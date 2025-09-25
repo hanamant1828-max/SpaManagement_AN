@@ -181,6 +181,7 @@ def unaki_get_staff():
     """Get active staff for Unaki booking system"""
     try:
         from models import User
+        from werkzeug.security import generate_password_hash
         from datetime import datetime, date
 
         # Get active staff members
@@ -191,22 +192,58 @@ def unaki_get_staff():
             staff_info = {
                 'id': staff.id,
                 'name': f"{staff.first_name} {staff.last_name}".strip(),
-                'specialization': getattr(staff, 'specialization', 'General Services'),
-                'color': getattr(staff, 'color', f"#{staff.id:06x}"[-6:]),  # Generate color based on ID
+                'specialization': getattr(staff, 'designation', 'General Services'),
+                'color': f"#{staff.id:06x}"[-6:],  # Generate color based on ID
                 'email': staff.email,
                 'phone': getattr(staff, 'phone', ''),
                 'is_active': staff.is_active
             }
             staff_data.append(staff_info)
 
-        return jsonify({
-            'success': True,
-            'staff': staff_data
-        })
+        # If no staff exist, create sample ones
+        if not staff_data:
+            print("No staff found, creating sample staff...")
+            sample_staff = [
+                {'first_name': 'Sarah', 'last_name': 'Johnson', 'designation': 'Senior Therapist', 'email': 'sarah@spa.com'},
+                {'first_name': 'Mike', 'last_name': 'Wilson', 'designation': 'Massage Therapist', 'email': 'mike@spa.com'},
+                {'first_name': 'Emily', 'last_name': 'Davis', 'designation': 'Esthetician', 'email': 'emily@spa.com'},
+                {'first_name': 'David', 'last_name': 'Brown', 'designation': 'Hair Stylist', 'email': 'david@spa.com'}
+            ]
+            
+            for i, staff_data_item in enumerate(sample_staff, 1):
+                staff = User(
+                    username=f"{staff_data_item['first_name'].lower()}_demo",
+                    first_name=staff_data_item['first_name'],
+                    last_name=staff_data_item['last_name'],
+                    email=staff_data_item['email'],
+                    designation=staff_data_item['designation'],
+                    role='staff',
+                    is_active=True,
+                    password_hash=generate_password_hash('demo123')
+                )
+                db.session.add(staff)
+                staff_data.append({
+                    'id': i,
+                    'name': f"{staff_data_item['first_name']} {staff_data_item['last_name']}",
+                    'specialization': staff_data_item['designation'],
+                    'color': f"#{i:06x}"[-6:],
+                    'email': staff_data_item['email'],
+                    'phone': '',
+                    'is_active': True
+                })
+            
+            try:
+                db.session.commit()
+                print(f"Created {len(sample_staff)} sample staff members")
+            except Exception as commit_error:
+                print(f"Error committing sample staff: {commit_error}")
+                db.session.rollback()
+
+        return jsonify(staff_data)
 
     except Exception as e:
         print(f"Error in unaki_get_staff: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify([])
 
 @app.route('/api/unaki/services', methods=['GET'])
 @login_required
@@ -229,14 +266,46 @@ def unaki_get_services():
             }
             services_data.append(service_info)
 
-        return jsonify({
-            'success': True,
-            'services': services_data
-        })
+        # If no services exist, create sample ones
+        if not services_data:
+            print("No services found, creating sample services...")
+            sample_services = [
+                {'name': 'Swedish Massage', 'duration': 60, 'price': 75.00, 'category': 'massage'},
+                {'name': 'Deep Tissue Massage', 'duration': 90, 'price': 95.00, 'category': 'massage'},
+                {'name': 'Classic Facial', 'duration': 60, 'price': 65.00, 'category': 'facial'},
+                {'name': 'Anti-Aging Facial', 'duration': 75, 'price': 85.00, 'category': 'facial'},
+                {'name': 'Manicure', 'duration': 45, 'price': 35.00, 'category': 'nails'}
+            ]
+            
+            for service_data in sample_services:
+                service = Service(
+                    name=service_data['name'],
+                    duration=service_data['duration'],
+                    price=service_data['price'],
+                    category=service_data['category'],
+                    is_active=True
+                )
+                db.session.add(service)
+                services_data.append({
+                    'id': len(services_data) + 1,
+                    'name': service_data['name'],
+                    'duration': service_data['duration'],
+                    'price': service_data['price'],
+                    'category': service_data['category']
+                })
+            
+            try:
+                db.session.commit()
+                print(f"Created {len(sample_services)} sample services")
+            except Exception as commit_error:
+                print(f"Error committing sample services: {commit_error}")
+                db.session.rollback()
+
+        return jsonify(services_data)
 
     except Exception as e:
         print(f"Error in unaki_get_services: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify([])
 
 @app.route('/api/unaki/schedule/<date_str>', methods=['GET'])
 @login_required
@@ -475,104 +544,80 @@ def unaki_get_staff_availability(staff_id, date_str):
         return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/api/unaki/load-sample-data', methods=['POST'])
+@login_required
 def unaki_load_sample_data():
     """Load sample data for Unaki booking system"""
     try:
-        from models import UnakiStaff, UnakiAppointment, UnakiBreak, Service, User
+        from models import Service, User, Customer, Appointment
+        from modules.bookings.bookings_queries import create_appointment
+        from datetime import datetime, date, timedelta
+        import random
 
-        # Clear existing data (optional, for clean testing)
-        # db.session.query(UnakiAppointment).delete()
-        # db.session.query(UnakiBreak).delete()
-        # db.session.query(UnakiStaff).delete()
-        # db.session.commit()
-
-        # Create sample staff if none exist
-        if not UnakiStaff.query.first():
-            # Use existing User model as a source for staff data, or create new UnakiStaff
-            # For this example, we'll create new UnakiStaff entries
-            staff_list = [
-                {'id': 1, 'name': 'John Doe', 'specialization': 'Therapist', 'color': '#FF5733', 'is_active': True},
-                {'id': 2, 'name': 'Jane Smith', 'specialization': 'Beautician', 'color': '#33FF57', 'is_active': True},
-                {'id': 3, 'name': 'Peter Jones', 'specialization': 'Masseur', 'color': '#3357FF', 'is_active': False}
-            ]
-            for staff_data in staff_list:
-                # Check if staff with this ID already exists to avoid duplication if run multiple times
-                if not UnakiStaff.query.get(staff_data['id']):
-                    unaki_staff = UnakiStaff(**staff_data)
-                    db.session.add(unaki_staff)
-            db.session.commit()
-
-        staff_list = UnakiStaff.query.all()
+        # Get existing data
         services = Service.query.filter_by(is_active=True).all()
-        users = User.query.filter_by(is_active=True).all() # Assuming User model contains staff info
+        staff = User.query.filter_by(is_active=True).all()
+        
+        # Create sample data if none exists
+        created_count = 0
+        
+        # Create sample customers if none exist
+        customers = Customer.query.all()
+        if not customers:
+            sample_customers = [
+                {'first_name': 'Emma', 'last_name': 'Wilson', 'phone': '+1-555-0201', 'email': 'emma.wilson@email.com'},
+                {'first_name': 'Olivia', 'last_name': 'Brown', 'phone': '+1-555-0202', 'email': 'olivia.brown@email.com'},
+                {'first_name': 'Sophia', 'last_name': 'Davis', 'phone': '+1-555-0203', 'email': 'sophia.davis@email.com'},
+                {'first_name': 'Isabella', 'last_name': 'Miller', 'phone': '+1-555-0204', 'email': 'isabella.miller@email.com'}
+            ]
+            
+            for customer_data in sample_customers:
+                customer = Customer(**customer_data, is_active=True)
+                db.session.add(customer)
+            
+            db.session.commit()
+            customers = Customer.query.all()
 
-        if not staff_list:
-            return jsonify({'success': False, 'error': 'No staff found to generate appointments. Please create staff first.'}), 400
-        if not services:
-            return jsonify({'success': False, 'error': 'No services found to generate appointments. Please create services first.'}), 400
-
-        # Generate sample appointments and breaks
-        appointment_count = 0
+        # Create sample appointments for today
         today = date.today()
-
-        for staff in staff_list:
-            # Generate 3-5 sample appointments per staff member per day
-            num_appointments = random.randint(3, 5)
-            for _ in range(num_appointments):
-                try:
-                    start_hour = random.randint(10, 15)
-                    start_time = datetime.combine(today, datetime.min.time().replace(hour=start_hour, minute=random.choice([0, 30])))
-                    end_time = start_time + timedelta(hours=random.choice([1, 1.5]))
-
-                    appointment = UnakiAppointment(
-                        staff_id=staff.id,
-                        client_name=random.choice(['Emma Wilson', 'Olivia Brown', 'Sophia Davis', 'Isabella Miller', 'Ava Anderson']),
-                        service=random.choice(services).name if services else 'Sample Service',
-                        start_time=start_time,
-                        end_time=end_time,
-                        phone=f"555-{random.randint(1000, 9999)}",
-                        appointment_date=today,
-                        notes="Sample appointment"
-                    )
-                    db.session.add(appointment)
-                    appointment_count += 1
-                except Exception as e:
-                    print(f"Error creating appointment: {e}")
-                    continue
-
-            # Add lunch break
-            try:
-                lunch_start = datetime.combine(today, datetime.min.time().replace(hour=12, minute=30))
-                lunch_end = lunch_start + timedelta(minutes=30)
-
-                break_time = UnakiBreak(
-                    staff_id=staff.id,
-                    reason='Lunch Break',
-                    start_time=lunch_start,
-                    end_time=lunch_end,
-                    break_date=today
-                )
-                db.session.add(break_time)
-            except Exception as e:
-                print(f"Error creating break: {e}")
-                continue
+        appointment_times = ['10:00', '11:30', '14:00', '15:30']
+        
+        for i, time_str in enumerate(appointment_times):
+            if i < len(customers) and i < len(staff) and i < len(services):
+                appointment_time = datetime.combine(today, datetime.strptime(time_str, '%H:%M').time())
+                end_time = appointment_time + timedelta(minutes=services[i % len(services)].duration)
+                
+                appointment_data = {
+                    'client_id': customers[i].id,
+                    'service_id': services[i % len(services)].id,
+                    'staff_id': staff[i % len(staff)].id,
+                    'appointment_date': appointment_time,
+                    'end_time': end_time,
+                    'status': 'confirmed',
+                    'notes': 'Sample appointment',
+                    'amount': services[i % len(services)].price
+                }
+                
+                appointment = create_appointment(appointment_data)
+                if appointment:
+                    created_count += 1
 
         db.session.commit()
 
         return jsonify({
             'success': True,
-            'message': 'Sample data loaded successfully',
+            'message': f'Sample data loaded successfully! Created {created_count} appointments.',
             'data': {
-                'staff_created': len(staff_list),
-                'appointments_created': appointment_count,
-                'breaks_created': len(staff_list)
+                'appointments_created': created_count,
+                'customers_available': len(customers),
+                'services_available': len(services),
+                'staff_available': len(staff)
             }
         })
 
     except Exception as e:
         db.session.rollback()
         print(f"Error loading sample data: {e}")
-        return jsonify({'success': False, 'error': 'Failed to load sample data. Please check server logs.'}), 500
+        return jsonify({'success': False, 'error': f'Failed to load sample data: {str(e)}'}), 500
 
 
 @app.route('/api/unaki/staff', methods=['GET'])
