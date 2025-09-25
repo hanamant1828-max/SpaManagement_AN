@@ -658,7 +658,42 @@
                             <div class="col-md-4">
                                 <div class="mb-3">
                                     <label class="form-label">Start Time *</label>
-                                    <input type="time" id="startTime" class="form-control" required>
+                                    <select id="startTime" class="form-select" required onchange="updateEndTime()">
+                                        <option value="">Select Time</option>
+                                        <option value="08:00">8:00 AM</option>
+                                        <option value="08:15">8:15 AM</option>
+                                        <option value="08:30">8:30 AM</option>
+                                        <option value="08:45">8:45 AM</option>
+                                        <option value="09:00">9:00 AM</option>
+                                        <option value="09:15">9:15 AM</option>
+                                        <option value="09:30">9:30 AM</option>
+                                        <option value="09:45">9:45 AM</option>
+                                        <option value="10:00">10:00 AM</option>
+                                        <option value="10:15">10:15 AM</option>
+                                        <option value="10:30">10:30 AM</option>
+                                        <option value="10:45">10:45 AM</option>
+                                        <option value="11:00">11:00 AM</option>
+                                        <option value="11:15">11:15 AM</option>
+                                        <option value="11:30">11:30 AM</option>
+                                        <option value="11:45">11:45 AM</option>
+                                        <option value="12:00">12:00 PM</option>
+                                        <option value="12:15">12:15 PM</option>
+                                        <option value="12:30">12:30 PM</option>
+                                        <option value="12:45">12:45 PM</option>
+                                        <option value="13:00">1:00 PM</option>
+                                        <option value="13:15">1:15 PM</option>
+                                        <option value="13:30">1:30 PM</option>
+                                        <option value="13:45">1:45 PM</option>
+                                        <option value="14:00">2:00 PM</option>
+                                        <option value="14:15">2:15 PM</option>
+                                        <option value="14:30">2:30 PM</option>
+                                        <option value="14:45">2:45 PM</option>
+                                        <option value="15:00">3:00 PM</option>
+                                        <option value="15:15">3:15 PM</option>
+                                        <option value="15:30">3:30 PM</option>
+                                        <option value="15:45">3:45 PM</option>
+                                        <option value="16:00">4:00 PM</option>
+                                    </select>
                                 </div>
                             </div>
                             <div class="col-md-4">
@@ -681,7 +716,7 @@
                             <div class="col-md-4">
                                 <div class="mb-3">
                                     <label class="form-label">End Time *</label>
-                                    <input type="time" id="endTime" class="form-control" required readonly>
+                                    <input type="text" id="endTime" class="form-control" required readonly placeholder="Auto-calculated">
                                 </div>
                             </div>
                         </div>
@@ -773,7 +808,13 @@
             const nextHour = new Date(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours() + 1, 0);
             const timeString = nextHour.toTimeString().slice(0, 5);
 
-            document.getElementById('startTime').value = timeString;
+            // Find the closest time option in the dropdown
+            const startTimeSelect = document.getElementById('startTime');
+            const timeOptions = Array.from(startTimeSelect.options);
+            const closestOption = timeOptions.find(option => option.value === timeString) || timeOptions[1]; // Default to first real option
+            if (closestOption) {
+                startTimeSelect.value = closestOption.value;
+            }
             updateEndTime(); // This will set the end time based on duration
 
             // Show the modal
@@ -807,8 +848,7 @@
                 hideLoading();
             });
 
-            // Add event listener for start time changes
-            document.getElementById('startTime').addEventListener('change', updateEndTime);
+            // Add event listener for start time changes (already handled in onchange attribute)
         });
 
         function loadServices() {
@@ -1515,8 +1555,16 @@
                 return;
             }
 
-            document.getElementById('startTime').value = startTime;
-            document.getElementById('endTime').value = endTime;
+            // Set start time in the dropdown
+            const startTimeSelect = document.getElementById('startTime');
+            startTimeSelect.value = startTime;
+            
+            // Set end time display (convert to 12-hour format if needed)
+            const endTimeInput = document.getElementById('endTime');
+            if (endTime) {
+                const [endHours, endMinutes] = endTime.split(':').map(Number);
+                endTimeInput.value = convertTo12HourFormat(endHours, endMinutes);
+            }
 
             // Populate staff select
             const staffSelect = document.getElementById('staffSelect');
@@ -1549,11 +1597,11 @@
         }
 
         function updateEndTime() {
-            const startTimeInput = document.getElementById('startTime');
+            const startTimeSelect = document.getElementById('startTime');
             const durationSelect = document.getElementById('appointmentDuration');
             const endTimeInput = document.getElementById('endTime');
 
-            const startTime = startTimeInput.value;
+            const startTime = startTimeSelect.value;
             const duration = parseInt(durationSelect.value);
 
             if (startTime && !isNaN(duration)) {
@@ -1564,12 +1612,9 @@
                 const endHours = Math.floor(endTotalMinutes / 60);
                 const endMins = endTotalMinutes % 60;
 
-                // Handle cases where end time goes past midnight (e.g., 23:00 + 120 min)
-                // For simplicity, we assume appointments are within the same day for this UI.
-                // If endHours >= 24, it might indicate an issue or a very long appointment.
-                const displayEndHours = endHours % 24;
-                const endTime = `${displayEndHours.toString().padStart(2, '0')}:${endMins.toString().padStart(2, '0')}`;
-                endTimeInput.value = endTime;
+                // Convert to 12-hour format for display
+                const displayEndTime = convertTo12HourFormat(endHours, endMins);
+                endTimeInput.value = displayEndTime;
             } else if (startTime) {
                 // If duration is not selected yet, just set end time based on start time and default duration if any
                 const durationDefault = parseInt(durationSelect.value) || 60; // Default to 60 minutes if not set
@@ -1578,10 +1623,16 @@
                 const endTotalMinutes = startTotalMinutes + durationDefault;
                 const endHours = Math.floor(endTotalMinutes / 60);
                 const endMins = endTotalMinutes % 60;
-                const displayEndHours = endHours % 24;
-                const endTime = `${displayEndHours.toString().padStart(2, '0')}:${endMins.toString().padStart(2, '0')}`;
-                endTimeInput.value = endTime;
+                const displayEndTime = convertTo12HourFormat(endHours, endMins);
+                endTimeInput.value = displayEndTime;
             }
+        }
+
+        function convertTo12HourFormat(hours, minutes) {
+            const displayHours = hours % 24; // Handle overflow past midnight
+            const period = displayHours >= 12 ? 'PM' : 'AM';
+            const hour12 = displayHours === 0 ? 12 : (displayHours > 12 ? displayHours - 12 : displayHours);
+            return `${hour12}:${minutes.toString().padStart(2, '0')} ${period}`;
         }
 
         function bookAppointment() {
@@ -1594,7 +1645,16 @@
             const selectedStaffId = parseInt(document.getElementById('staffSelect').value);
             const selectedClientId = document.getElementById('clientSelect').value;
             const startTime = document.getElementById('startTime').value;
-            const endTime = document.getElementById('endTime').value;
+            const endTimeDisplay = document.getElementById('endTime').value;
+            
+            // Calculate actual end time in 24-hour format for backend
+            const duration = parseInt(document.getElementById('appointmentDuration').value);
+            const [startHours, startMinutes] = startTime.split(':').map(Number);
+            const startTotalMinutes = startHours * 60 + startMinutes;
+            const endTotalMinutes = startTotalMinutes + duration;
+            const endHours = Math.floor(endTotalMinutes / 60);
+            const endMins = endTotalMinutes % 60;
+            const endTime = `${endHours.toString().padStart(2, '0')}:${endMins.toString().padStart(2, '0')}`;
             const clientName = document.getElementById('clientName').value.trim();
             const serviceType = document.getElementById('serviceType').value;
 
