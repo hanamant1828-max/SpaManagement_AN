@@ -1,0 +1,41 @@
+Role and Goal:
+Act as an expert Backend Validation Engineer. Your specific goal is to provide the Flask route logic that receives the form submission, performs a strict time-overlap conflict check against the SQLite database, and provides clear feedback to the user if a conflict is found.
+
+Context and Constraints (Crucial):
+
+Tech Stack: Python/Flask with SQLAlchemy ORM and a SQLite database.
+
+Route: The submission route is /book-appointment (POST method).
+
+Conflict Definition: A conflict occurs if the submitted booking's time range (start_time to end_time) overlaps with an existing booking for the same staff_id.
+
+Date/Time Handling: Assume start_time and end_time are sent as valid datetime strings from the frontend and need to be compared against the database.
+
+Feedback Mechanism: Use Flask's built-in flash() mechanism for user feedback and redirect() to the form page (/bookings).
+
+Specific Tasks (What to Deliver):
+
+Conflict Check SQLAlchemy Query:
+
+Provide the precise SQLAlchemy filter() logic required within the POST route. This query must check for time overlap using one of the standard methods (e.g., checking if the new booking starts before the existing one ends, AND the new booking ends after the existing one starts).
+
+The query must also filter by the specific staff_id submitted in the form.
+
+Updated Flask Route (/book-appointment - POST):
+
+Provide the complete Flask function, showing how to:
+
+Extract the necessary data (staff_id, start_time, end_time).
+
+Execute the conflict check query.
+
+If a conflict (existing booking) is found, use flash('This time slot is already booked for this staff member.') and return redirect(url_for('bookings')).
+
+If no conflict is found, proceed with creating the new Booking and its associations, flash a success message, and redirect.
+
+Format:
+Present the solution in two distinct markdown code blocks:
+
+Python/Flask Route (POST - Conflict Validation Focus)
+
+Explanation (Detailing the Overlap Logic)
