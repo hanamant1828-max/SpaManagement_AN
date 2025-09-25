@@ -233,7 +233,6 @@ from modules.packages.professional_packages_views import *
 
 # Unaki Booking API endpoints
 @app.route('/api/unaki/services')
-@login_required
 def unaki_services():
     """Get all active services for Unaki booking"""
     try:
@@ -255,7 +254,6 @@ def unaki_services():
         return jsonify([])
 
 @app.route('/api/unaki/staff')
-@login_required
 def unaki_staff():
     """Get all active staff for Unaki booking"""
     try:
@@ -276,7 +274,6 @@ def unaki_staff():
         return jsonify([])
 
 @app.route('/api/unaki/schedule')
-@login_required
 def unaki_schedule():
     """Get schedule data for Unaki booking"""
     try:
@@ -343,7 +340,6 @@ def unaki_schedule():
         })
 
 @app.route('/api/unaki/load-sample-data', methods=['POST'])
-@login_required
 def unaki_load_sample_data():
     """Load sample data for Unaki booking system"""
     try:

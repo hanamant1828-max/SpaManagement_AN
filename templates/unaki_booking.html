@@ -656,6 +656,9 @@
             }, 1000);
         }
 
+        // Add alias for compatibility
+        window.showLoadingAndLoadSample = showLoadingAndLoadSample;
+
         // Initialize
         document.addEventListener('DOMContentLoaded', function() {
             showLoading();
@@ -679,33 +682,49 @@
 
         function loadServices() {
             return fetch('/api/unaki/services')
-                .then(response => response.json())
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.json();
+                })
                 .then(services => {
-                    console.log('Loaded services:', services.length);
+                    console.log('Loaded services:', Array.isArray(services) ? services.length : 'Invalid data');
                     // Services are already populated in the select options
+                    return services;
                 })
                 .catch(error => {
-                    console.error('Failed to load services');
+                    console.error('Failed to load services:', error);
+                    return [];
                 });
         }
 
         function loadStaff() {
             return fetch('/api/unaki/staff')
-                .then(response => response.json())
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.json();
+                })
                 .then(staff => {
-                    console.log('Loaded staff:', staff.length);
+                    console.log('Loaded staff:', Array.isArray(staff) ? staff.length : 'Invalid data');
                     // Update staff select in modal
                     const staffSelect = document.getElementById('staffSelect');
-                    staffSelect.innerHTML = '';
-                    staff.forEach(member => {
-                        const option = document.createElement('option');
-                        option.value = member.id;
-                        option.textContent = `${member.name} (${member.specialty})`;
-                        staffSelect.appendChild(option);
-                    });
+                    if (staffSelect && Array.isArray(staff)) {
+                        staffSelect.innerHTML = '<option value="">Select Staff</option>';
+                        staff.forEach(member => {
+                            const option = document.createElement('option');
+                            option.value = member.id;
+                            option.textContent = `${member.name} (${member.specialty || member.role || 'Staff'})`;
+                            staffSelect.appendChild(option);
+                        });
+                    }
+                    return staff;
                 })
                 .catch(error => {
-                    console.error('Failed to load staff');
+                    console.error('Failed to load staff:', error);
+                    return [];
                 });
         }
 
@@ -729,19 +748,34 @@
 
         function loadScheduleForDate() {
             currentDate = document.getElementById('scheduleDate').value;
+            console.log('Loading schedule for date:', currentDate);
 
             // Load from API
             fetch(`/api/unaki/schedule?date=${currentDate}`)
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        scheduleData = {
-                            staff: data.staff || [],
-                            appointments: data.appointments || [],
-                            breaks: data.breaks || []
-                        };
-                    } else {
-                        console.error('Failed to load schedule:', data.error);
+                .then(response => {
+                    console.log('Schedule API response status:', response.status);
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.text(); // Get as text first
+                })
+                .then(text => {
+                    console.log('Schedule API raw response:', text.substring(0, 200) + '...');
+                    try {
+                        const data = JSON.parse(text);
+                        if (data.success) {
+                            scheduleData = {
+                                staff: data.staff || [],
+                                appointments: data.appointments || [],
+                                breaks: data.breaks || []
+                            };
+                            console.log('Schedule data loaded:', scheduleData);
+                        } else {
+                            console.error('Failed to load schedule:', data.error);
+                            scheduleData = { staff: [], appointments: [], breaks: [] };
+                        }
+                    } catch (parseError) {
+                        console.error('JSON parse error:', parseError);
                         scheduleData = { staff: [], appointments: [], breaks: [] };
                     }
                     renderSchedule();
@@ -756,6 +790,7 @@
         }
 
         function loadSampleData() {
+            console.log('Loading sample data...');
             fetch('/api/unaki/load-sample-data', {
                 method: 'POST',
                 headers: {
@@ -763,16 +798,39 @@
                 },
                 body: JSON.stringify({})
             })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    console.log('Sample data loaded:', data.message);
-                    // Reload the schedule to show new data
-                    loadScheduleForDate();
-                } else {
-                    console.error('Failed to load sample data:', data.error);
-                    // Fallback to hardcoded data
-                    scheduleData = {
+            .then(response => {
+                console.log('Sample data API response status:', response.status);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.text(); // Get as text first
+            })
+            .then(text => {
+                console.log('Sample data API raw response:', text.substring(0, 200) + '...');
+                try {
+                    const data = JSON.parse(text);
+                    if (data.success) {
+                        console.log('Sample data loaded:', data.message);
+                        // Reload the schedule to show new data
+                        loadScheduleForDate();
+                    } else {
+                        console.error('Failed to load sample data:', data.error);
+                        // Fallback to hardcoded data
+                        loadHardcodedSampleData();
+                    }
+                } catch (parseError) {
+                    console.error('JSON parse error in sample data:', parseError);
+                    loadHardcodedSampleData();
+                }
+            })
+            .catch(error => {
+                console.error('Error loading sample data:', error);
+                loadHardcodedSampleData();
+            });
+        }
+
+        function loadHardcodedSampleData() {
+            scheduleData = {
                         staff: [
                             { id: 1, name: 'Sarah Johnson', role: 'Senior Facial Specialist' },
                             { id: 2, name: 'Michael Chen', role: 'Massage Therapist' },
@@ -837,6 +895,8 @@
                     { id: 12, staffId: 7, startTime: '11:30', endTime: '11:45', reason: 'Equipment Cleaning' },
                     { id: 13, staffId: 8, startTime: '14:00', endTime: '14:15', reason: 'Coffee Break' }
                 ]
+            };
+
             };
 
             // Save to localStorage
