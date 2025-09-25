@@ -534,6 +534,10 @@
                                         </div>
                                     </div>
                                     <div class="col-auto d-flex align-items-end gap-2">
+                                        <button class="btn btn-primary" onclick="openQuickBookingModal()" title="Book New Appointment">
+                                            <i class="fas fa-calendar-plus me-2"></i>
+                                            <span class="d-none d-sm-inline">Book Appointment</span>
+                                        </button>
                                         <button class="btn btn-outline-secondary" onclick="showLoadingAndRefresh()" title="Refresh Schedule">
                                             <i class="fas fa-sync-alt me-2"></i>
                                             <span class="d-none d-md-inline">Refresh</span>
@@ -776,6 +780,39 @@
 
         // Add alias for compatibility
         window.showLoadingAndLoadSample = showLoadingAndLoadSample;
+
+        // Quick booking modal function
+        function openQuickBookingModal() {
+            // Reset the booking modal form
+            const form = document.getElementById('bookingForm');
+            if (form) {
+                form.reset();
+            }
+
+            // Clear staff and duration selections
+            document.getElementById('staffSelect').selectedIndex = 0;
+            document.getElementById('appointmentDuration').value = '60';
+            
+            // Set default times (current time rounded to next hour)
+            const now = new Date();
+            const nextHour = new Date(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours() + 1, 0);
+            const timeString = nextHour.toTimeString().slice(0, 5);
+            
+            document.getElementById('startTime').value = timeString;
+            updateEndTime(); // This will set the end time based on duration
+            
+            // Show the modal
+            const modal = new bootstrap.Modal(document.getElementById('bookingModal'));
+            modal.show();
+            
+            // Focus on client name field
+            setTimeout(() => {
+                document.getElementById('clientName').focus();
+            }, 500);
+        }
+
+        // Make function globally available
+        window.openQuickBookingModal = openQuickBookingModal;
 
         // Initialize
         document.addEventListener('DOMContentLoaded', function() {
