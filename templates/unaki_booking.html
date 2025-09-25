@@ -534,7 +534,7 @@
                                         </div>
                                     </div>
                                     <div class="col-auto d-flex align-items-end gap-2">
-                                        <button class="btn btn-primary" onclick="openQuickBookingModal()" title="Book New Appointment">
+                                        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#bookingModal" title="Book New Appointment">
                                             <i class="fas fa-calendar-plus me-2"></i>
                                             <span class="d-none d-sm-inline">Book Appointment</span>
                                         </button>
@@ -792,19 +792,19 @@
             // Clear staff and duration selections
             document.getElementById('staffSelect').selectedIndex = 0;
             document.getElementById('appointmentDuration').value = '60';
-            
+
             // Set default times (current time rounded to next hour)
             const now = new Date();
             const nextHour = new Date(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours() + 1, 0);
             const timeString = nextHour.toTimeString().slice(0, 5);
-            
+
             document.getElementById('startTime').value = timeString;
             updateEndTime(); // This will set the end time based on duration
-            
+
             // Show the modal
             const modal = new bootstrap.Modal(document.getElementById('bookingModal'));
             modal.show();
-            
+
             // Focus on client name field
             setTimeout(() => {
                 document.getElementById('clientName').focus();
@@ -1063,20 +1063,20 @@
         function showAppointmentContextMenu(e, appointment) {
             e.preventDefault();
             e.stopPropagation();
-            
+
             // Remove any existing context menu
             const existingMenu = document.querySelector('.appointment-context-menu');
             if (existingMenu) {
                 existingMenu.remove();
             }
-            
+
             const contextMenu = document.createElement('div');
             contextMenu.className = 'appointment-context-menu position-absolute bg-white border rounded shadow-lg p-2';
             contextMenu.style.left = `${e.pageX}px`;
             contextMenu.style.top = `${e.pageY}px`;
             contextMenu.style.zIndex = '1000';
             contextMenu.style.minWidth = '150px';
-            
+
             contextMenu.innerHTML = `
                 <div class="btn btn-sm btn-outline-primary d-block mb-1" onclick="viewAppointment(${appointment.id})">
                     <i class="fas fa-eye me-2"></i>View Details
@@ -1088,9 +1088,9 @@
                     <i class="fas fa-times me-2"></i>Cancel
                 </div>
             `;
-            
+
             document.body.appendChild(contextMenu);
-            
+
             // Remove context menu when clicking elsewhere
             setTimeout(() => {
                 document.addEventListener('click', function removeMenu() {
@@ -1224,7 +1224,7 @@
                         appointmentBlock.style.top = '1px';
                         appointmentBlock.style.left = '1px';
                         appointmentBlock.style.height = 'calc(100% - 2px)';
-                        
+
                         appointmentBlock.innerHTML = `
                             <div class="appointment-client" title="${appointment.clientName}">${appointment.clientName}</div>
                             <div class="appointment-service" title="${appointment.service}">${appointment.service}</div>
@@ -1233,12 +1233,12 @@
                                 <div class="appointment-duration">${durationText}</div>
                             </div>
                         `;
-                        
+
                         // Add right-click context menu
                         appointmentBlock.addEventListener('contextmenu', (e) => {
                             showAppointmentContextMenu(e, appointment);
                         });
-                        
+
                         timeSlot.appendChild(appointmentBlock);
 
                         // Mark the time slot as having a starting appointment
@@ -1599,7 +1599,7 @@
             })
             .then(data => {
                 console.log('Parsed response:', data);
-                
+
                 if (data.success) {
                     console.log('Appointment created successfully:', data.appointmentId || data.booking?.id);
 
@@ -1614,7 +1614,7 @@
                         duration: parseInt(document.getElementById('appointmentDuration').value),
                         status: 'confirmed'
                     };
-                    
+
                     scheduleData.appointments.push(newAppointment);
                     renderSchedule(); // Re-render to show the new appointment
                     updateStats();    // Update stats
@@ -1633,7 +1633,7 @@
                         Service: ${appointmentData.serviceType}<br>
                         Time: ${appointmentData.startTime} - ${appointmentData.endTime}
                     `, 'success', 4000);
-                    
+
                     // Reload schedule data to show updated information
                     setTimeout(() => {
                         loadScheduleForDate();
@@ -1714,7 +1714,7 @@
             notification.style.zIndex = '9999';
             notification.style.minWidth = '300px';
             notification.style.animation = 'slideInRight 0.3s ease-out';
-            
+
             notification.innerHTML = `
                 <div class="d-flex align-items-center">
                     <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : type === 'warning' ? 'exclamation-triangle' : 'info-circle'} me-2"></i>
@@ -1722,9 +1722,9 @@
                     <button type="button" class="btn-close ms-auto" onclick="this.parentElement.parentElement.remove()"></button>
                 </div>
             `;
-            
+
             document.body.appendChild(notification);
-            
+
             setTimeout(() => {
                 if (notification.parentNode) {
                     notification.style.animation = 'slideOutRight 0.3s ease-out';
