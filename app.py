@@ -910,22 +910,27 @@ def book_appointment():
             flash('Cannot book appointments in the past', 'danger')
             return redirect(url_for('unaki_bookings'))
         
-        # CRITICAL: Time-overlap conflict check using SQLAlchemy
+        # CRITICAL STRICT TIME-OVERLAP CONFLICT CHECK
+        # Check if new booking overlaps with any existing booking for the same staff member
+        # Overlap logic: Two time ranges overlap if:
+        # - New booking starts before existing booking ends AND
+        # - New booking ends after existing booking starts
         conflicting_booking = UnakiBooking.query.filter(
             UnakiBooking.staff_id == staff_id,
             UnakiBooking.appointment_date == appointment_date,
             UnakiBooking.status.in_(['scheduled', 'confirmed', 'in_progress']),
-            # Overlap condition: new_start < existing_end AND new_end > existing_start
+            # Time overlap condition using SQLAlchemy and_ operator
             db.and_(
-                start_time_obj < UnakiBooking.end_time,        # New booking starts before existing ends
-                end_time_obj > UnakiBooking.start_time         # New booking ends after existing starts
+                start_time_obj < UnakiBooking.end_time,    # New start < Existing end
+                end_time_obj > UnakiBooking.start_time     # New end > Existing start
             )
         ).first()
         
-        # If conflict found, reject the booking
+        # If ANY conflict found, reject the booking immediately
         if conflicting_booking:
             conflict_time = f"{conflicting_booking.start_time.strftime('%I:%M %p')} - {conflicting_booking.end_time.strftime('%I:%M %p')}"
-            flash(f'This time slot is already booked for this staff member and time is not available. Conflicting appointment: {conflicting_booking.client_name} at {conflict_time}', 'danger')
+            conflict_msg = f'This time slot is already booked for this staff member. Conflicting appointment: {conflicting_booking.client_name} at {conflict_time} on {conflicting_booking.appointment_date}'
+            flash(conflict_msg, 'danger')
             return redirect(url_for('unaki_bookings'))
         
         # Get client and staff details for denormalized storage
@@ -936,7 +941,7 @@ def book_appointment():
             flash('Selected client or staff member not found', 'danger')
             return redirect(url_for('unaki_bookings'))
         
-        # No conflict found - create the UnakiBooking
+        # NO CONFLICT FOUND - Proceed with booking creation
         unaki_booking = UnakiBooking(
             client_name=client.full_name,
             client_phone=client.phone,
@@ -962,12 +967,13 @@ def book_appointment():
         db.session.add(unaki_booking)
         db.session.commit()
         
-        flash(f'Appointment successfully booked! Booking ID: {unaki_booking.id}', 'success')
+        success_msg = f'Appointment successfully booked! Booking ID: {unaki_booking.id} for {client.full_name} on {appointment_date} at {start_time_str}'
+        flash(success_msg, 'success')
         return redirect(url_for('unaki_bookings'))
         
     except Exception as e:
         db.session.rollback()
-        print(f"Error creating appointment: {e}")
+        print(f"Critical error creating appointment: {e}")
         flash('Error processing booking. Please try again.', 'danger')
         return redirect(url_for('unaki_bookings'))
 
