@@ -1518,27 +1518,46 @@
             const selectedStaffId = parseInt(document.getElementById('staffSelect').value);
             const startTime = document.getElementById('startTime').value;
             const endTime = document.getElementById('endTime').value;
+            const clientName = document.getElementById('clientName').value.trim();
+            const serviceType = document.getElementById('serviceType').value;
 
-            // Basic validation for start/end time order and presence
-            if (!startTime || !endTime || startTime >= endTime) {
-                alert('Please ensure the start time is before the end time.');
+            // Enhanced validation
+            if (!clientName) {
+                alert('Please enter the client name.');
+                document.getElementById('clientName').focus();
                 return;
             }
+
+            if (!serviceType) {
+                alert('Please select a service.');
+                document.getElementById('serviceType').focus();
+                return;
+            }
+
+            if (!startTime || !endTime || startTime >= endTime) {
+                alert('Please ensure the start time is before the end time.');
+                document.getElementById('startTime').focus();
+                return;
+            }
+
             if (isNaN(selectedStaffId) || selectedStaffId === 0) {
                 alert('Please select a staff member.');
+                document.getElementById('staffSelect').focus();
                 return;
             }
 
             const appointmentData = {
                 staffId: selectedStaffId,
-                clientName: document.getElementById('clientName').value.trim(),
+                clientName: clientName,
                 clientPhone: document.getElementById('clientPhone').value.trim(),
-                serviceType: document.getElementById('serviceType').value,
+                serviceType: serviceType,
                 startTime: startTime,
                 endTime: endTime,
                 date: currentDate,
                 notes: document.getElementById('appointmentNotes').value.trim()
             };
+
+            console.log('Sending appointment data:', appointmentData);
 
             // Check for conflicts with existing appointments or breaks for the selected staff member and time
             const conflicts = scheduleData.appointments.some(apt =>
@@ -1568,20 +1587,34 @@
                 body: JSON.stringify(appointmentData)
             })
             .then(response => {
-                if (!response.ok) {
-                    return response.json().then(err => { throw new Error(err.error || `HTTP error ${response.status}`) });
-                }
-                return response.json();
+                console.log('Response status:', response.status);
+                return response.text().then(text => {
+                    console.log('Raw response:', text);
+                    try {
+                        return JSON.parse(text);
+                    } catch (e) {
+                        throw new Error('Invalid JSON response: ' + text.substring(0, 100));
+                    }
+                });
             })
             .then(data => {
+                console.log('Parsed response:', data);
+                
                 if (data.success) {
-                    console.log('Appointment created successfully:', data.appointmentId);
+                    console.log('Appointment created successfully:', data.appointmentId || data.booking?.id);
 
                     // Add the new appointment to the local scheduleData for immediate UI update
                     const newAppointment = {
-                        id: data.appointmentId,
-                        ...appointmentData
+                        id: data.appointmentId || data.booking?.id || 'temp_' + Date.now(),
+                        staffId: appointmentData.staffId,
+                        clientName: appointmentData.clientName,
+                        service: appointmentData.serviceType,
+                        startTime: appointmentData.startTime,
+                        endTime: appointmentData.endTime,
+                        duration: parseInt(document.getElementById('appointmentDuration').value),
+                        status: 'confirmed'
                     };
+                    
                     scheduleData.appointments.push(newAppointment);
                     renderSchedule(); // Re-render to show the new appointment
                     updateStats();    // Update stats
@@ -1590,7 +1623,9 @@
                     form.reset();
                     const modalElement = document.getElementById('bookingModal');
                     const modal = bootstrap.Modal.getInstance(modalElement);
-                    modal.hide();
+                    if (modal) {
+                        modal.hide();
+                    }
 
                     showNotification(`
                         🎉 <strong>Appointment Booked Successfully!</strong><br>
@@ -1599,22 +1634,19 @@
                         Time: ${appointmentData.startTime} - ${appointmentData.endTime}
                     `, 'success', 4000);
                     
-                    // Highlight the new appointment with a glow effect
+                    // Reload schedule data to show updated information
                     setTimeout(() => {
-                        const newAppointments = document.querySelectorAll('.appointment-block');
-                        if (newAppointments.length > 0) {
-                            const lastAppointment = newAppointments[newAppointments.length - 1];
-                            lastAppointment.style.animation = 'pulse 1s ease-in-out 3';
-                        }
-                    }, 500);
+                        loadScheduleForDate();
+                    }, 1000);
 
                 } else {
-                    alert('Error creating appointment: ' + data.error);
+                    console.error('Booking failed:', data.error);
+                    alert('Error creating appointment: ' + (data.error || 'Unknown error'));
                 }
             })
             .catch(error => {
                 console.error('Error booking appointment:', error);
-                alert('Failed to book appointment. Please check console or try again. Error: ' + error.message);
+                alert('Failed to book appointment. Error: ' + error.message);
             })
             .finally(() => {
                 hideLoading(); // Hide loading indicator after API call
