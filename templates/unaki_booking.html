@@ -420,9 +420,9 @@
                                             <i class="fas fa-sync-alt me-2"></i>
                                             <span class="d-none d-md-inline">Refresh</span>
                                         </button>
-                                        <button class="btn btn-primary" onclick="showLoadingAndLoadSample()" title="Load Demo Data">
-                                            <i class="fas fa-magic me-2"></i>
-                                            <span class="d-none d-sm-inline">Demo Data</span>
+                                        <button onclick="loadSampleData()" class="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-6 py-3 rounded-lg font-semibold hover:from-blue-600 hover:to-purple-700 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1">
+                                            <i class="fas fa-database mr-2"></i>
+                                            Load Sample Data
                                         </button>
                                     </div>
                                 </div>
@@ -1065,7 +1065,9 @@
                             const remainingMinutes = breakDuration % 60;
                             const remainingPercentage = remainingMinutes > 0 ? (remainingMinutes / 60) * 100 : 0;
 
-                            if (remainingMinutes === 0) {
+                            if (breakDuration === 0) { // Handle zero duration breaks
+                                breakWidth = '0%';
+                            } else if (remainingMinutes === 0) {
                                 // Exact hour breaks
                                 breakWidth = `calc(${fullSlots * 100}% + ${(fullSlots - 1)}px)`;
                             } else {
@@ -1110,7 +1112,20 @@
         }
 
         function handleMouseDown(e) {
-            if (e.target.closest('.appointment-block, .break-block')) return;
+            // Prevent drag from starting if clicking on an existing appointment or break
+            if (e.target.closest('.appointment-block, .break-block')) {
+                // Optionally, you can open the modal for existing appointments here
+                // For now, we just prevent dragging
+                return;
+            }
+
+            // Prevent drag from starting if clicking on the drag-selection overlay itself
+            if (e.target.classList.contains('drag-selection')) {
+                return;
+            }
+
+            // Prevent default browser drag behavior
+            e.preventDefault();
 
             isDragging = true;
             dragStart = {
@@ -1119,73 +1134,163 @@
                 element: e.currentTarget
             };
 
-            e.currentTarget.style.background = 'rgba(37, 99, 235, 0.1)';
+            // Create a visual indicator for dragging
+            dragSelection = document.createElement('div');
+            dragSelection.className = 'drag-selection';
+            dragSelection.style.left = `${e.currentTarget.offsetLeft}px`;
+            dragSelection.style.top = `${e.currentTarget.offsetTop}px`;
+            dragSelection.style.width = `${e.currentTarget.offsetWidth}px`;
+            dragSelection.style.height = `${e.currentTarget.offsetHeight}px`;
+            e.currentTarget.parentNode.appendChild(dragSelection); // Append to the parent of the grid for correct positioning
+
+            // Mark the starting slot as being dragged
+            e.currentTarget.style.backgroundColor = 'rgba(37, 99, 235, 0.1)'; // Visual feedback for the start slot
         }
 
         function handleMouseEnter(e) {
             if (!isDragging) return;
 
+            // Ensure we are only dragging within the same staff member's row
             const currentStaffId = parseInt(e.currentTarget.dataset.staffId);
             if (currentStaffId !== dragStart.staffId) return;
 
-            // Highlight selection
-            e.currentTarget.style.background = 'rgba(37, 99, 235, 0.1)';
+            // Prevent drag into slots that already have content or are breaks
+            if (e.currentTarget.dataset.hasAppointment === 'start' || e.currentTarget.dataset.hasAppointment === 'ongoing' ||
+                e.currentTarget.dataset.hasBreak === 'start' || e.currentTarget.dataset.hasBreak === 'ongoing') {
+                return;
+            }
+
+            // Highlight selection dynamically
+            const startIndex = Array.from(e.currentTarget.parentNode.children).indexOf(dragStart.element);
+            const endIndex = Array.from(e.currentTarget.parentNode.children).indexOf(e.currentTarget);
+
+            // Determine the start and end of the selection range
+            const start = Math.min(startIndex, endIndex);
+            const end = Math.max(startIndex, endIndex);
+
+            // Update drag selection size and position
+            const startElement = e.currentTarget.parentNode.children[start];
+            const endElement = e.currentTarget.parentNode.children[end];
+
+            dragSelection.style.left = `${startElement.offsetLeft}px`;
+            dragSelection.style.width = `${endElement.offsetLeft + endElement.offsetWidth - startElement.offsetLeft}px`;
+            dragSelection.style.top = `${startElement.offsetTop}px`; // Ensure it's aligned with the row
+            dragSelection.style.height = `${startElement.offsetHeight}px`; // Match the height of a single slot
+
+            // Add visual feedback to all selected slots
+            for (let i = start; i <= end; i++) {
+                const slot = e.currentTarget.parentNode.children[i];
+                if (slot.classList.contains('time-slot')) {
+                    slot.style.backgroundColor = 'rgba(37, 99, 235, 0.1)';
+                }
+            }
         }
+
 
         function handleMouseUp(e) {
             if (!isDragging) return;
 
             isDragging = false;
 
+            // Remove the drag selection indicator
+            if (dragSelection && dragSelection.parentNode) {
+                dragSelection.parentNode.removeChild(dragSelection);
+            }
+
             const endTime = e.currentTarget.dataset.time;
             const staffId = dragStart.staffId;
 
-            // Clear highlights
+            // Clear any lingering background highlights
             document.querySelectorAll('.time-slot').forEach(slot => {
-                slot.style.background = '';
+                slot.style.backgroundColor = '';
             });
 
-            if (staffId && dragStart.time && endTime) {
+            // Ensure a valid selection was made (start and end times are different, and valid staffId)
+            if (staffId && dragStart.time && endTime && dragStart.time !== endTime) {
                 openBookingModal(staffId, dragStart.time, endTime);
+            } else if (staffId && dragStart.time && endTime && dragStart.time === endTime) {
+                // If only one slot was clicked, open modal for that slot
+                openBookingModal(staffId, dragStart.time, dragStart.element.dataset.time);
             }
+
+            // Reset drag state
+            dragStart = null;
+            dragSelection = null;
         }
 
         function openBookingModal(staffId, startTime, endTime) {
             const staff = scheduleData.staff.find(s => s.id === staffId);
-            if (!staff) return;
+            if (!staff) {
+                console.error("Staff not found for ID:", staffId);
+                return;
+            }
 
             document.getElementById('startTime').value = startTime;
             document.getElementById('endTime').value = endTime;
 
             // Populate staff select
             const staffSelect = document.getElementById('staffSelect');
-            staffSelect.innerHTML = '';
+            staffSelect.innerHTML = ''; // Clear existing options
             scheduleData.staff.forEach(s => {
                 const option = document.createElement('option');
                 option.value = s.id;
                 option.textContent = `${s.name} (${s.role})`;
-                option.selected = s.id === staffId;
+                if (s.id === staffId) {
+                    option.selected = true;
+                }
                 staffSelect.appendChild(option);
             });
 
-            const modal = new bootstrap.Modal(document.getElementById('bookingModal'));
+            // Calculate duration based on selected time slots
+            const startMinutes = parseInt(startTime.split(':')[0]) * 60 + parseInt(startTime.split(':')[1]);
+            const endMinutes = parseInt(endTime.split(':')[0]) * 60 + parseInt(endTime.split(':')[1]);
+            const duration = endMinutes - startMinutes;
+
+            // Set the duration in the modal's select element
+            const durationSelect = document.getElementById('appointmentDuration');
+            if (durationSelect) {
+                durationSelect.value = duration;
+                updateEndTime(); // Update end time based on selected duration
+            }
+
+            const modalElement = document.getElementById('bookingModal');
+            const modal = new bootstrap.Modal(modalElement);
             modal.show();
         }
 
         function updateEndTime() {
-            const startTime = document.getElementById('startTime').value;
-            const duration = parseInt(document.getElementById('appointmentDuration').value);
+            const startTimeInput = document.getElementById('startTime');
+            const durationSelect = document.getElementById('appointmentDuration');
+            const endTimeInput = document.getElementById('endTime');
 
-            if (startTime) {
+            const startTime = startTimeInput.value;
+            const duration = parseInt(durationSelect.value);
+
+            if (startTime && !isNaN(duration)) {
                 const [hours, minutes] = startTime.split(':').map(Number);
-                const startMinutes = hours * 60 + minutes;
-                const endMinutes = startMinutes + duration;
+                const startTotalMinutes = hours * 60 + minutes;
+                const endTotalMinutes = startTotalMinutes + duration;
 
-                const endHours = Math.floor(endMinutes / 60);
-                const endMins = endMinutes % 60;
+                const endHours = Math.floor(endTotalMinutes / 60);
+                const endMins = endTotalMinutes % 60;
 
-                const endTime = `${endHours.toString().padStart(2, '0')}:${endMins.toString().padStart(2, '0')}`;
-                document.getElementById('endTime').value = endTime;
+                // Handle cases where end time goes past midnight (e.g., 23:00 + 120 min)
+                // For simplicity, we assume appointments are within the same day for this UI.
+                // If endHours >= 24, it might indicate an issue or a very long appointment.
+                const displayEndHours = endHours % 24;
+                const endTime = `${displayEndHours.toString().padStart(2, '0')}:${endMins.toString().padStart(2, '0')}`;
+                endTimeInput.value = endTime;
+            } else if (startTime) {
+                // If duration is not selected yet, just set end time based on start time and default duration if any
+                const durationDefault = parseInt(durationSelect.value) || 60; // Default to 60 minutes if not set
+                const [hours, minutes] = startTime.split(':').map(Number);
+                const startTotalMinutes = hours * 60 + minutes;
+                const endTotalMinutes = startTotalMinutes + durationDefault;
+                const endHours = Math.floor(endTotalMinutes / 60);
+                const endMins = endTotalMinutes % 60;
+                const displayEndHours = endHours % 24;
+                const endTime = `${displayEndHours.toString().padStart(2, '0')}:${endMins.toString().padStart(2, '0')}`;
+                endTimeInput.value = endTime;
             }
         }
 
@@ -1196,16 +1301,50 @@
                 return;
             }
 
+            const selectedStaffId = parseInt(document.getElementById('staffSelect').value);
+            const startTime = document.getElementById('startTime').value;
+            const endTime = document.getElementById('endTime').value;
+
+            // Basic validation for start/end time order and presence
+            if (!startTime || !endTime || startTime >= endTime) {
+                alert('Please ensure the start time is before the end time.');
+                return;
+            }
+            if (isNaN(selectedStaffId) || selectedStaffId === 0) {
+                alert('Please select a staff member.');
+                return;
+            }
+
             const appointmentData = {
-                staffId: parseInt(document.getElementById('staffSelect').value),
-                clientName: document.getElementById('clientName').value,
-                clientPhone: document.getElementById('clientPhone').value,
+                staffId: selectedStaffId,
+                clientName: document.getElementById('clientName').value.trim(),
+                clientPhone: document.getElementById('clientPhone').value.trim(),
                 serviceType: document.getElementById('serviceType').value,
-                startTime: document.getElementById('startTime').value,
-                endTime: document.getElementById('endTime').value,
+                startTime: startTime,
+                endTime: endTime,
                 date: currentDate,
-                notes: document.getElementById('appointmentNotes').value
+                notes: document.getElementById('appointmentNotes').value.trim()
             };
+
+            // Check for conflicts with existing appointments or breaks for the selected staff member and time
+            const conflicts = scheduleData.appointments.some(apt =>
+                apt.staffId === selectedStaffId &&
+                ( (startTime >= apt.startTime && startTime < apt.endTime) ||
+                  (endTime > apt.startTime && endTime <= apt.endTime) ||
+                  (startTime <= apt.startTime && endTime >= apt.endTime) )
+            ) || scheduleData.breaks.some(brk =>
+                brk.staffId === selectedStaffId &&
+                ( (startTime >= brk.startTime && startTime < brk.endTime) ||
+                  (endTime > brk.startTime && endTime <= brk.endTime) ||
+                  (startTime <= brk.startTime && endTime >= brk.endTime) )
+            );
+
+            if (conflicts) {
+                alert('The selected time slot conflicts with an existing appointment or break for this staff member.');
+                return;
+            }
+
+            showLoading(); // Show loading indicator before API call
 
             fetch('/api/unaki/appointments', {
                 method: 'POST',
@@ -1214,54 +1353,86 @@
                 },
                 body: JSON.stringify(appointmentData)
             })
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(err => { throw new Error(err.error || `HTTP error ${response.status}`) });
+                }
+                return response.json();
+            })
             .then(data => {
                 if (data.success) {
-                    console.log('Appointment created:', data.message);
+                    console.log('Appointment created successfully:', data.appointmentId);
 
-                    // Clear form
+                    // Add the new appointment to the local scheduleData for immediate UI update
+                    const newAppointment = {
+                        id: data.appointmentId,
+                        ...appointmentData
+                    };
+                    scheduleData.appointments.push(newAppointment);
+                    renderSchedule(); // Re-render to show the new appointment
+                    updateStats();    // Update stats
+
+                    // Reset form and close modal
                     form.reset();
-
-                    // Close modal
-                    const modal = bootstrap.Modal.getInstance(document.getElementById('bookingModal'));
+                    const modalElement = document.getElementById('bookingModal');
+                    const modal = bootstrap.Modal.getInstance(modalElement);
                     modal.hide();
 
-                    // Reload schedule to show new appointment
-                    loadScheduleForDate();
+                    alert('Appointment booked successfully!');
+
                 } else {
                     alert('Error creating appointment: ' + data.error);
                 }
             })
             .catch(error => {
-                console.error('Error creating appointment:', error);
-                alert('Error creating appointment. Please try again.');
+                console.error('Error booking appointment:', error);
+                alert('Failed to book appointment. Please check console or try again. Error: ' + error.message);
+            })
+            .finally(() => {
+                hideLoading(); // Hide loading indicator after API call
             });
         }
 
         function updateStats() {
-            document.getElementById('totalAppointments').textContent = scheduleData.appointments.length;
-            document.getElementById('activeStaff').textContent = scheduleData.staff.length;
+            const totalAppointmentsElement = document.getElementById('totalAppointments');
+            const activeStaffElement = document.getElementById('activeStaff');
+            const availableSlotsElement = document.getElementById('availableSlots');
+            const utilizationRateElement = document.getElementById('utilizationRate');
 
-            const totalSlots = scheduleData.staff.length * 8; // 8 time slots per staff
-            const bookedSlots = scheduleData.appointments.length + scheduleData.breaks.length;
-            const availableSlots = Math.max(0, totalSlots - bookedSlots);
-            const utilization = totalSlots > 0 ? Math.round((bookedSlots / totalSlots) * 100) : 0;
+            if (totalAppointmentsElement) totalAppointmentsElement.textContent = scheduleData.appointments.length;
+            if (activeStaffElement) activeStaffElement.textContent = scheduleData.staff.length;
 
-            document.getElementById('availableSlots').textContent = availableSlots;
-            document.getElementById('utilizationRate').textContent = utilization + '%';
+            // Calculate total possible slots considering the operating hours (e.g., 8 AM to 4 PM = 8 hours)
+            const operatingHours = 8; // 8 time slots from 8:00 to 15:00
+            const totalPossibleSlots = scheduleData.staff.length * operatingHours;
+
+            // Calculate currently booked slots (appointments + breaks)
+            const bookedSlotsCount = scheduleData.appointments.length + scheduleData.breaks.length;
+
+            const availableSlots = Math.max(0, totalPossibleSlots - bookedSlotsCount);
+            const utilizationRate = totalPossibleSlots > 0 ? Math.round((bookedSlotsCount / totalPossibleSlots) * 100) : 0;
+
+            if (availableSlotsElement) availableSlotsElement.textContent = availableSlots;
+            if (utilizationRateElement) utilizationRateElement.textContent = `${utilizationRate}%`;
         }
 
         function refreshSchedule() {
             loadScheduleForDate();
         }
 
-        // Global mouse up handler to stop dragging
+        // Global mouse up handler to ensure dragging stops even if mouse button is released outside a slot
         document.addEventListener('mouseup', function() {
             if (isDragging) {
                 isDragging = false;
+                // Clean up any lingering visual indicators
                 document.querySelectorAll('.time-slot').forEach(slot => {
-                    slot.style.background = '';
+                    slot.style.backgroundColor = '';
                 });
+                if (dragSelection && dragSelection.parentNode) {
+                    dragSelection.parentNode.removeChild(dragSelection);
+                }
+                dragStart = null;
+                dragSelection = null;
             }
         });
     </script>

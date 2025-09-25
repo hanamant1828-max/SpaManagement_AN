@@ -11,7 +11,7 @@ import json
 class Role(db.Model):
     """Dynamic roles management"""
     __table_args__ = {'extend_existing': True}
-    
+
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(50), unique=True, nullable=False)
     display_name = db.Column(db.String(100), nullable=False)
@@ -186,6 +186,17 @@ class User(UserMixin, db.Model):
     def full_name(self):
         return f"{self.first_name} {self.last_name}"
 
+    @full_name.setter
+    def full_name(self, value):
+        """Allow setting full name by splitting into first and last name"""
+        if value and ' ' in value:
+            names = value.split(' ', 1)
+            self.first_name = names[0]
+            self.last_name = names[1] if len(names) > 1 else ''
+        elif value:
+            self.first_name = value
+            self.last_name = ''
+
     def has_role(self, role):
         # Support both dynamic and legacy role systems
         if self.role_id and hasattr(self, 'dynamic_role') and self.dynamic_role:
@@ -240,7 +251,7 @@ class User(UserMixin, db.Model):
         # Fallback to legacy role system
         role_access_map = {
             'admin': True,  # Admin can access everything
-            'manager': resource in ['dashboard', 'billing', 'inventory', 'staff', 'clients', 
+            'manager': resource in ['dashboard', 'billing', 'inventory', 'staff', 'clients',
                                    'services', 'packages', 'reports', 'appointments', 'expenses'],
             'staff': resource in ['dashboard', 'clients', 'appointments', 'services'],
             'receptionist': resource in ['dashboard', 'clients', 'appointments', 'billing']
@@ -345,6 +356,17 @@ class Customer(db.Model):
     @property
     def full_name(self):
         return f"{self.first_name} {self.last_name}"
+
+    @full_name.setter
+    def full_name(self, value):
+        """Allow setting full name by splitting into first and last name"""
+        if value and ' ' in value:
+            names = value.split(' ', 1)
+            self.first_name = names[0]
+            self.last_name = names[1] if len(names) > 1 else ''
+        elif value:
+            self.first_name = value
+            self.last_name = ''
 
     @property
     def status(self):
@@ -954,7 +976,7 @@ class EnhancedInvoice(db.Model):
 
     # Professional Tax Structure
     cgst_rate = db.Column(db.Float, default=0.0)  # CGST rate percentage
-    sgst_rate = db.Column(db.Float, default=0.0)  # SGST rate percentage  
+    sgst_rate = db.Column(db.Float, default=0.0)  # SGST rate percentage
     igst_rate = db.Column(db.Float, default=0.0)  # IGST rate percentage
     cgst_amount = db.Column(db.Float, default=0.0)  # CGST amount
     sgst_amount = db.Column(db.Float, default=0.0)  # SGST amount

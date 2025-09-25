@@ -283,6 +283,14 @@ def create_staff_performance_record(staff_id, month, year, metrics):
     db.session.commit()
     return performance
 
+def get_staff_members():
+    """Get all active staff members for Unaki API"""
+    try:
+        return User.query.filter_by(is_active=True).order_by(User.first_name).all()
+    except Exception as e:
+        print(f"Error getting staff members: {e}")
+        return []
+
 def get_staff_performance_data(staff_id):
     """Get performance data for specific staff member"""
     try:
