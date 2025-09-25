@@ -661,14 +661,53 @@
             showLoading();
             document.getElementById('scheduleDate').value = currentDate;
 
-            setTimeout(() => {
-                loadScheduleForDate();
+            // Load initial data
+            Promise.all([
+                loadScheduleForDate(),
+                loadServices(),
+                loadStaff()
+            ]).then(() => {
                 hideLoading();
-            }, 1200);
+            }).catch(error => {
+                console.error('Error loading initial data:', error);
+                hideLoading();
+            });
 
             // Add event listener for start time changes
             document.getElementById('startTime').addEventListener('change', updateEndTime);
         });
+
+        function loadServices() {
+            return fetch('/api/unaki/services')
+                .then(response => response.json())
+                .then(services => {
+                    console.log('Loaded services:', services.length);
+                    // Services are already populated in the select options
+                })
+                .catch(error => {
+                    console.error('Failed to load services');
+                });
+        }
+
+        function loadStaff() {
+            return fetch('/api/unaki/staff')
+                .then(response => response.json())
+                .then(staff => {
+                    console.log('Loaded staff:', staff.length);
+                    // Update staff select in modal
+                    const staffSelect = document.getElementById('staffSelect');
+                    staffSelect.innerHTML = '';
+                    staff.forEach(member => {
+                        const option = document.createElement('option');
+                        option.value = member.id;
+                        option.textContent = `${member.name} (${member.specialty})`;
+                        staffSelect.appendChild(option);
+                    });
+                })
+                .catch(error => {
+                    console.error('Failed to load staff');
+                });
+        }
 
         function generateTimeSlots() {
             const slots = [];
@@ -691,32 +730,59 @@
         function loadScheduleForDate() {
             currentDate = document.getElementById('scheduleDate').value;
 
-            // Try to load from localStorage or API
-            const localData = localStorage.getItem(`schedule-${currentDate}`);
-            if (localData) {
-                scheduleData = JSON.parse(localData);
-                renderSchedule();
-                updateStats();
-            } else {
-                // Load empty schedule
-                scheduleData = { staff: [], appointments: [], breaks: [] };
-                renderSchedule();
-                updateStats();
-            }
+            // Load from API
+            fetch(`/api/unaki/schedule?date=${currentDate}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        scheduleData = {
+                            staff: data.staff || [],
+                            appointments: data.appointments || [],
+                            breaks: data.breaks || []
+                        };
+                    } else {
+                        console.error('Failed to load schedule:', data.error);
+                        scheduleData = { staff: [], appointments: [], breaks: [] };
+                    }
+                    renderSchedule();
+                    updateStats();
+                })
+                .catch(error => {
+                    console.error('Error loading schedule:', error);
+                    scheduleData = { staff: [], appointments: [], breaks: [] };
+                    renderSchedule();
+                    updateStats();
+                });
         }
 
         function loadSampleData() {
-            scheduleData = {
-                staff: [
-                    { id: 1, name: 'Sarah Johnson', role: 'Senior Facial Specialist' },
-                    { id: 2, name: 'Michael Chen', role: 'Massage Therapist' },
-                    { id: 3, name: 'Emily Rodriguez', role: 'Hair Stylist & Colorist' },
-                    { id: 4, name: 'James Wilson', role: 'Nail Technician' },
-                    { id: 5, name: 'Linda Davis', role: 'Makeup Artist' },
-                    { id: 6, name: 'Priya Sharma', role: 'Ayurvedic Therapist' },
-                    { id: 7, name: 'Alex Thompson', role: 'Body Treatment Specialist' },
-                    { id: 8, name: 'Maria Santos', role: 'Waxing Specialist' }
-                ],
+            fetch('/api/unaki/load-sample-data', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({})
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    console.log('Sample data loaded:', data.message);
+                    // Reload the schedule to show new data
+                    loadScheduleForDate();
+                } else {
+                    console.error('Failed to load sample data:', data.error);
+                    // Fallback to hardcoded data
+                    scheduleData = {
+                        staff: [
+                            { id: 1, name: 'Sarah Johnson', role: 'Senior Facial Specialist' },
+                            { id: 2, name: 'Michael Chen', role: 'Massage Therapist' },
+                            { id: 3, name: 'Emily Rodriguez', role: 'Hair Stylist & Colorist' },
+                            { id: 4, name: 'James Wilson', role: 'Nail Technician' },
+                            { id: 5, name: 'Linda Davis', role: 'Makeup Artist' },
+                            { id: 6, name: 'Priya Sharma', role: 'Ayurvedic Therapist' },
+                            { id: 7, name: 'Alex Thompson', role: 'Body Treatment Specialist' },
+                            { id: 8, name: 'Maria Santos', role: 'Waxing Specialist' }
+                        ],
                 appointments: [
                     // Morning rush (8:00-10:00)
                     { id: 1, staffId: 1, clientName: 'Jessica Brown', service: 'Deep Cleansing Facial', startTime: '08:00', endTime: '09:30', duration: 90 },
@@ -1072,32 +1138,46 @@
                 return;
             }
 
-            const duration = parseInt(document.getElementById('appointmentDuration').value);
-
-            const newAppointment = {
-                id: Date.now(),
+            const appointmentData = {
                 staffId: parseInt(document.getElementById('staffSelect').value),
                 clientName: document.getElementById('clientName').value,
-                service: document.getElementById('serviceType').value,
+                clientPhone: document.getElementById('clientPhone').value,
+                serviceType: document.getElementById('serviceType').value,
                 startTime: document.getElementById('startTime').value,
                 endTime: document.getElementById('endTime').value,
-                duration: duration,
-                phone: document.getElementById('clientPhone').value,
+                date: currentDate,
                 notes: document.getElementById('appointmentNotes').value
             };
 
-            scheduleData.appointments.push(newAppointment);
-            localStorage.setItem(`schedule-${currentDate}`, JSON.stringify(scheduleData));
+            fetch('/api/unaki/appointments', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(appointmentData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    console.log('Appointment created:', data.message);
+                    
+                    // Clear form
+                    form.reset();
 
-            // Clear form
-            form.reset();
+                    // Close modal
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('bookingModal'));
+                    modal.hide();
 
-            // Close modal
-            const modal = bootstrap.Modal.getInstance(document.getElementById('bookingModal'));
-            modal.hide();
-
-            renderSchedule();
-            updateStats();
+                    // Reload schedule to show new appointment
+                    loadScheduleForDate();
+                } else {
+                    alert('Error creating appointment: ' + data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error creating appointment:', error);
+                alert('Error creating appointment. Please try again.');
+            });
         }
 
         function updateStats() {
