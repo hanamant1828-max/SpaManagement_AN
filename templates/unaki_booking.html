@@ -370,6 +370,94 @@
             height: 1px;
             background: linear-gradient(90deg, transparent, #667eea, transparent);
         }
+
+        /* Enhanced button styles */
+        .btn-loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        .btn-content {
+            transition: all 0.3s ease;
+        }
+
+        .position-relative {
+            position: relative;
+        }
+
+        .overflow-hidden {
+            overflow: hidden;
+        }
+
+        /* Form validation enhancements */
+        .was-validated .form-control:invalid {
+            border-color: #dc3545;
+            animation: shake 0.5s ease-in-out;
+        }
+
+        .was-validated .form-control:valid {
+            border-color: #28a745;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+
+        /* Enhanced appointment context menu */
+        .appointment-context-menu {
+            animation: fadeInScale 0.2s ease-out;
+        }
+
+        .appointment-context-menu .btn {
+            transition: all 0.2s ease;
+        }
+
+        .appointment-context-menu .btn:hover {
+            transform: translateX(3px);
+        }
+
+        /* Tooltip styles */
+        .selection-tooltip {
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        /* Enhanced time slot interactions */
+        .time-slot.selecting {
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(99, 102, 241, 0.15));
+            border: 2px solid #3b82f6;
+            transform: scale(1.02);
+            transition: all 0.2s ease;
+        }
+
+        /* Success animation for stats */
+        .stat-item.updated {
+            animation: bounce 0.6s ease-in-out;
+        }
+
+        /* Dark mode support */
+        @media (prefers-color-scheme: dark) {
+            .spa-context-menu {
+                background: #2c2c2c;
+                border-color: #444;
+                color: #fff;
+            }
+
+            .context-menu-item {
+                color: #fff;
+            }
+
+            .context-menu-item:hover {
+                background: #3c3c3c;
+            }
+
+            .context-menu-divider {
+                background: #444;
+            }
+        }
     </style>
 </head>
 <body>
@@ -1067,6 +1155,8 @@
 
                             if (breakDuration === 0) { // Handle zero duration breaks
                                 breakWidth = '0%';
+                            } else if (breakDuration === 60) { // Handle exactly 60 min breaks
+                                breakWidth = '100%';
                             } else if (remainingMinutes === 0) {
                                 // Exact hour breaks
                                 breakWidth = `calc(${fullSlots * 100}% + ${(fullSlots - 1)}px)`;
