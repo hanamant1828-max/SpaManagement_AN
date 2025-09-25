@@ -437,6 +437,19 @@
             75% { transform: translateX(5px); }
         }
 
+        /* Time input group styling */
+        .time-input-group {
+            position: relative;
+        }
+
+        .time-input-group small.time-display {
+            font-size: 0.75em;
+            color: #6c757d;
+            margin-top: 2px;
+            display: block;
+            font-weight: 500;
+        }
+
         /* Enhanced appointment context menu */
         .appointment-context-menu {
             animation: fadeInScale 0.2s ease-out;
@@ -658,7 +671,10 @@
                             <div class="col-md-4">
                                 <div class="mb-3">
                                     <label class="form-label">Start Time *</label>
-                                    <input type="time" id="startTime" class="form-control" required onchange="updateEndTime()" placeholder="Select or type time">
+                                    <div class="time-input-group">
+                                        <input type="time" id="startTime" class="form-control" required onchange="updateEndTime(); updateTimeDisplay(this)" placeholder="Type HH:MM or select time">
+                                        <small class="text-muted time-display" id="startTimeDisplay"></small>
+                                    </div>
                                 </div>
                             </div>
                             <div class="col-md-4">
@@ -681,7 +697,10 @@
                             <div class="col-md-4">
                                 <div class="mb-3">
                                     <label class="form-label">End Time *</label>
-                                    <input type="text" id="endTime" class="form-control" required readonly placeholder="Auto-calculated">
+                                    <div class="time-input-group">
+                                        <input type="text" id="endTime" class="form-control" required readonly placeholder="Auto-calculated">
+                                        <small class="text-muted time-display" id="endTimeDisplay"></small>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -809,7 +828,25 @@
                 hideLoading();
             });
 
-            // Add event listener for start time changes (already handled in onchange attribute)
+            // Enhanced time input support
+            const startTimeInput = document.getElementById('startTime');
+            if (startTimeInput) {
+                // Allow keyboard input with validation
+                startTimeInput.addEventListener('input', function(e) {
+                    validateAndFormatTimeInput(this);
+                });
+                
+                // Handle blur to ensure proper formatting
+                startTimeInput.addEventListener('blur', function(e) {
+                    validateAndFormatTimeInput(this);
+                    updateEndTime();
+                });
+                
+                // Initialize display
+                if (this.value) {
+                    updateTimeDisplay(this);
+                }
+            }
         });
 
         function loadServices() {
@@ -1561,6 +1598,7 @@
             const startTimeInput = document.getElementById('startTime');
             const durationSelect = document.getElementById('appointmentDuration');
             const endTimeInput = document.getElementById('endTime');
+            const endTimeDisplay = document.getElementById('endTimeDisplay');
 
             const startTime = startTimeInput.value;
             const duration = parseInt(durationSelect.value);
@@ -1573,9 +1611,17 @@
                 const endHours = Math.floor(endTotalMinutes / 60);
                 const endMins = endTotalMinutes % 60;
 
+                // Store 24-hour format for calculations
+                const endTime24 = `${endHours.toString().padStart(2, '0')}:${endMins.toString().padStart(2, '0')}`;
+                
                 // Convert to 12-hour format for display
                 const displayEndTime = convertTo12HourFormat(endHours, endMins);
                 endTimeInput.value = displayEndTime;
+                endTimeInput.dataset.time24 = endTime24; // Store 24-hour format for backend
+                
+                if (endTimeDisplay) {
+                    endTimeDisplay.textContent = displayEndTime;
+                }
             } else if (startTime) {
                 // If duration is not selected yet, just set end time based on start time and default duration if any
                 const durationDefault = parseInt(durationSelect.value) || 60; // Default to 60 minutes if not set
@@ -1584,9 +1630,19 @@
                 const endTotalMinutes = startTotalMinutes + durationDefault;
                 const endHours = Math.floor(endTotalMinutes / 60);
                 const endMins = endTotalMinutes % 60;
+                
+                const endTime24 = `${endHours.toString().padStart(2, '0')}:${endMins.toString().padStart(2, '0')}`;
                 const displayEndTime = convertTo12HourFormat(endHours, endMins);
                 endTimeInput.value = displayEndTime;
+                endTimeInput.dataset.time24 = endTime24;
+                
+                if (endTimeDisplay) {
+                    endTimeDisplay.textContent = displayEndTime;
+                }
             }
+
+            // Update start time display as well
+            updateTimeDisplay(startTimeInput);
         }
 
         function convertTo12HourFormat(hours, minutes) {
@@ -1594,6 +1650,65 @@
             const period = displayHours >= 12 ? 'PM' : 'AM';
             const hour12 = displayHours === 0 ? 12 : (displayHours > 12 ? displayHours - 12 : displayHours);
             return `${hour12}:${minutes.toString().padStart(2, '0')} ${period}`;
+        }
+
+        // Convert 24-hour time string to 12-hour format
+        function convert24To12Hour(time24) {
+            if (!time24) return '';
+            
+            try {
+                const [hours, minutes] = time24.split(':').map(Number);
+                if (isNaN(hours) || isNaN(minutes)) return time24;
+                
+                const hour12 = hours === 0 ? 12 : (hours > 12 ? hours - 12 : hours);
+                const ampm = hours >= 12 ? 'PM' : 'AM';
+                
+                return `${hour12}:${minutes.toString().padStart(2, '0')} ${ampm}`;
+            } catch (error) {
+                console.error('Time conversion error:', error);
+                return time24;
+            }
+        }
+
+        // Update time display for any time input
+        function updateTimeDisplay(element) {
+            const timeValue = element.value;
+            if (timeValue) {
+                const displayTime = convert24To12Hour(timeValue);
+                const displayElement = element.parentElement.querySelector('.time-display');
+                if (displayElement) {
+                    displayElement.textContent = displayTime;
+                }
+            }
+        }
+
+        // Enhanced time input validation and formatting
+        function validateAndFormatTimeInput(input) {
+            let value = input.value.replace(/[^\d:]/g, ''); // Remove non-numeric and non-colon characters
+            
+            // Auto-format as user types
+            if (value.length === 2 && !value.includes(':')) {
+                value = value + ':';
+            }
+            
+            // Validate hours and minutes
+            if (value.includes(':')) {
+                const parts = value.split(':');
+                if (parts.length === 2) {
+                    let hours = parseInt(parts[0]);
+                    let minutes = parseInt(parts[1]);
+                    
+                    // Validate ranges
+                    if (hours > 23) hours = 23;
+                    if (minutes > 59) minutes = 59;
+                    
+                    value = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+                }
+            }
+            
+            input.value = value;
+            updateTimeDisplay(input);
+            return value;
         }
 
         function bookAppointment() {
@@ -1608,14 +1723,21 @@
             const startTime = document.getElementById('startTime').value;
             const endTimeDisplay = document.getElementById('endTime').value;
             
-            // Calculate actual end time in 24-hour format for backend
-            const duration = parseInt(document.getElementById('appointmentDuration').value);
-            const [startHours, startMinutes] = startTime.split(':').map(Number);
-            const startTotalMinutes = startHours * 60 + startMinutes;
-            const endTotalMinutes = startTotalMinutes + duration;
-            const endHours = Math.floor(endTotalMinutes / 60);
-            const endMins = endTotalMinutes % 60;
-            const endTime = `${endHours.toString().padStart(2, '0')}:${endMins.toString().padStart(2, '0')}`;
+            // Get end time in 24-hour format for backend (either from dataset or calculate)
+            let endTime;
+            const endTimeInput = document.getElementById('endTime');
+            if (endTimeInput.dataset.time24) {
+                endTime = endTimeInput.dataset.time24;
+            } else {
+                // Calculate if not stored
+                const duration = parseInt(document.getElementById('appointmentDuration').value);
+                const [startHours, startMinutes] = startTime.split(':').map(Number);
+                const startTotalMinutes = startHours * 60 + startMinutes;
+                const endTotalMinutes = startTotalMinutes + duration;
+                const endHours = Math.floor(endTotalMinutes / 60);
+                const endMins = endTotalMinutes % 60;
+                endTime = `${endHours.toString().padStart(2, '0')}:${endMins.toString().padStart(2, '0')}`;
+            }
             const clientName = document.getElementById('clientName').value.trim();
             const serviceType = document.getElementById('serviceType').value;
 
