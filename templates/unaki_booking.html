@@ -609,14 +609,31 @@
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="mb-3">
-                                    <label class="form-label">Client Name *</label>
-                                    <input type="text" id="clientName" class="form-control" required>
+                                    <label class="form-label">Client *</label>
+                                    <select id="clientSelect" class="form-select" required>
+                                        <option value="">Select Client</option>
+                                        <!-- Clients will be populated from database -->
+                                    </select>
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="mb-3">
+                                    <label class="form-label">Client Name (Manual Entry)</label>
+                                    <input type="text" id="clientName" class="form-control" placeholder="Or enter new client name">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
                                     <label class="form-label">Phone</label>
                                     <input type="tel" id="clientPhone" class="form-control">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Email</label>
+                                    <input type="email" id="clientEmail" class="form-control">
                                 </div>
                             </div>
                         </div>
@@ -741,9 +758,15 @@
                 form.reset();
             }
 
-            // Clear staff and duration selections
+            // Clear selections
             document.getElementById('staffSelect').selectedIndex = 0;
+            document.getElementById('clientSelect').selectedIndex = 0;
             document.getElementById('appointmentDuration').value = '60';
+            
+            // Reset client fields
+            document.getElementById('clientName').placeholder = 'Or enter new client name';
+            document.getElementById('clientPhone').value = '';
+            document.getElementById('clientEmail').value = '';
 
             // Set default times (current time rounded to next hour)
             const now = new Date();
@@ -775,7 +798,8 @@
             Promise.all([
                 loadScheduleForDate(),
                 loadServices(),
-                loadStaff()
+                loadStaff(),
+                loadClients()
             ]).then(() => {
                 hideLoading();
             }).catch(error => {
@@ -877,6 +901,60 @@
                 })
                 .catch(error => {
                     console.error('Failed to load staff:', error);
+                    return [];
+                });
+        }
+
+        function loadClients() {
+            return fetch('/api/unaki/clients')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(clients => {
+                    console.log('Loaded clients:', Array.isArray(clients) ? clients.length : 'Invalid data');
+                    
+                    // Populate clients dropdown
+                    const clientSelect = document.getElementById('clientSelect');
+                    if (clientSelect && Array.isArray(clients)) {
+                        clientSelect.innerHTML = '<option value="">Select Client</option>';
+                        
+                        clients.forEach(client => {
+                            const option = document.createElement('option');
+                            option.value = client.id;
+                            option.textContent = `${client.name}`;
+                            option.dataset.phone = client.phone || '';
+                            option.dataset.email = client.email || '';
+                            clientSelect.appendChild(option);
+                        });
+                        
+                        // Add event listener to auto-fill client details when client is selected
+                        clientSelect.addEventListener('change', function() {
+                            const selectedOption = this.options[this.selectedIndex];
+                            if (selectedOption && selectedOption.value) {
+                                // Fill in client details
+                                document.getElementById('clientName').value = selectedOption.textContent;
+                                document.getElementById('clientPhone').value = selectedOption.dataset.phone || '';
+                                document.getElementById('clientEmail').value = selectedOption.dataset.email || '';
+                                
+                                // Clear manual entry when selecting from dropdown
+                                document.getElementById('clientName').placeholder = 'Selected: ' + selectedOption.textContent;
+                            } else {
+                                // Clear fields when no client selected
+                                document.getElementById('clientName').value = '';
+                                document.getElementById('clientPhone').value = '';
+                                document.getElementById('clientEmail').value = '';
+                                document.getElementById('clientName').placeholder = 'Or enter new client name';
+                            }
+                        });
+                    }
+                    
+                    return clients;
+                })
+                .catch(error => {
+                    console.error('Failed to load clients:', error);
                     return [];
                 });
         }
@@ -1514,15 +1592,16 @@
             }
 
             const selectedStaffId = parseInt(document.getElementById('staffSelect').value);
+            const selectedClientId = document.getElementById('clientSelect').value;
             const startTime = document.getElementById('startTime').value;
             const endTime = document.getElementById('endTime').value;
             const clientName = document.getElementById('clientName').value.trim();
             const serviceType = document.getElementById('serviceType').value;
 
-            // Enhanced validation
-            if (!clientName) {
-                alert('Please enter the client name.');
-                document.getElementById('clientName').focus();
+            // Enhanced validation - either select existing client or enter new client name
+            if (!selectedClientId && !clientName) {
+                alert('Please select an existing client or enter a new client name.');
+                document.getElementById('clientSelect').focus();
                 return;
             }
 
@@ -1546,8 +1625,10 @@
 
             const appointmentData = {
                 staffId: selectedStaffId,
-                clientName: clientName,
+                clientId: selectedClientId || null,
+                clientName: clientName || document.getElementById('clientSelect').options[document.getElementById('clientSelect').selectedIndex].textContent,
                 clientPhone: document.getElementById('clientPhone').value.trim(),
+                clientEmail: document.getElementById('clientEmail').value.trim(),
                 serviceType: serviceType,
                 startTime: startTime,
                 endTime: endTime,

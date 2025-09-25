@@ -274,6 +274,26 @@ def unaki_staff():
         print(f"Error in unaki_staff: {e}")
         return jsonify([])
 
+@app.route('/api/unaki/clients')
+def unaki_clients():
+    """Get all active clients for Unaki booking"""
+    try:
+        from modules.clients.clients_queries import get_all_customers
+        clients = get_all_customers()
+        clients_data = []
+        for client in clients:
+            clients_data.append({
+                'id': client.id,
+                'name': client.full_name or f"{client.first_name} {client.last_name}",
+                'phone': client.phone,
+                'email': client.email,
+                'is_active': client.is_active
+            })
+        return jsonify(clients_data)
+    except Exception as e:
+        print(f"Error in unaki_clients: {e}")
+        return jsonify([])
+
 @app.route('/api/unaki/schedule')
 def unaki_schedule():
     """Get schedule data for Unaki booking"""
