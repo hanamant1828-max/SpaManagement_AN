@@ -1,6 +1,6 @@
 import os
 import re
-from flask import Flask, render_template, jsonify, request, redirect, url_for
+from flask import Flask, render_template, jsonify, request, redirect, url_for, flash
 from flask_sqlalchemy import SQLAlchemy
 from flask_wtf.csrf import CSRFProtect
 from sqlalchemy.orm import DeclarativeBase
@@ -136,9 +136,7 @@ def after_request(response):
 
     return response
 
-# Basic routes removed to avoid conflicts with main application routes
-
-# Initialize database and routes within app context
+# Initialize the app
 def init_app():
     """Initialize the application with proper error handling"""
     with app.app_context():
@@ -198,36 +196,31 @@ try:
 except Exception as e:
     print(f"Error registering packages blueprint: {e}")
 
-# Import routes.py removed due to route conflicts
-# Adding specific missing routes instead
-
-# Import all views to register routes
-from modules.auth.auth_views import *
-from modules.dashboard.dashboard_views import *
-from modules.clients.clients_views import *
-from modules.services.services_views import *
-from modules.bookings.bookings_views import *
-from modules.staff.staff_views import *
-from modules.expenses.expenses_views import *
-from modules.reports.reports_views import *
-from modules.settings.settings_views import *
-from modules.notifications.notifications_views import *
-from modules.checkin.checkin_views import *
-from modules.billing.billing_views import *
-from modules.billing.integrated_billing_views import *
-from modules.inventory.views import *
-from modules.packages.new_packages_views import *
-from modules.packages.membership_views import *
-from modules.packages.professional_packages_views import *
-
 # Routes are imported via module views, avoiding import conflicts
 
 # Missing route endpoints to fix template BuildErrors
 @app.route('/unaki-booking')
 @login_required
 def unaki_booking():
-    """Unaki Appointment Booking page"""
-    return render_template('unaki_booking.html')
+    """Unaki appointment booking system with multiple service bookings"""
+    if not current_user.can_access('bookings'):
+        flash('Access denied', 'danger')
+        return redirect(url_for('dashboard'))
+
+    # Get initial data for the template
+    from models import Service, UnakiStaff, Customer
+
+    services = Service.query.filter_by(is_active=True).order_by(Service.name).all()
+    staff = UnakiStaff.query.filter_by(active=True).order_by(UnakiStaff.name).all()
+
+    # If no Unaki staff, use regular User staff
+    if not staff:
+        from models import User
+        staff = User.query.filter_by(is_active=True).order_by(User.first_name, User.last_name).all()
+
+    return render_template('unaki_booking.html', 
+                         services=services, 
+                         staff=staff)
 
 @app.route('/system_management')
 @login_required

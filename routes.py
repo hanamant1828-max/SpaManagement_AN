@@ -191,7 +191,7 @@ def load_sample_data():
 
         # Check if we already have Unaki staff
         existing_staff = UnakiStaff.query.all()
-        
+
         if not existing_staff:
             # Create sample staff
             staff_data = [
@@ -298,28 +298,28 @@ def unaki_appointments_api():
             from models import UnakiAppointment
             appointments = UnakiAppointment.query.all()
             return jsonify([a.to_dict() for a in appointments])
-        
+
         elif request.method == 'POST':
             data = request.get_json()
-            
+
             # Validate required fields - check for both old and new field names for compatibility
             required_fields = ['staffId', 'clientName', 'service', 'startTime', 'endTime']
             missing_fields = []
-            
+
             for field in required_fields:
                 if field not in data or not data[field] or str(data[field]).strip() == '':
                     missing_fields.append(field)
-            
+
             if missing_fields:
                 return jsonify({
                     'success': False,
                     'error': f'Missing required fields: {", ".join(missing_fields)}. All fields (staff, client name, service, start time, and end time) are required'
                 }), 400
-            
+
             # Import models
             from models import UnakiAppointment, UnakiStaff
             from datetime import datetime, date
-            
+
             # Validate staff exists
             try:
                 staff_id = int(data['staffId'])
@@ -334,30 +334,30 @@ def unaki_appointments_api():
                     'success': False,
                     'error': 'Invalid staff ID format'
                 }), 400
-            
+
             # Parse date and times with better error handling
             try:
                 appointment_date = datetime.strptime(data.get('appointmentDate', date.today().isoformat()), '%Y-%m-%d').date()
                 start_time = datetime.strptime(data['startTime'], '%H:%M').time()
                 end_time = datetime.strptime(data['endTime'], '%H:%M').time()
-                
+
                 # Validate time logic
                 if start_time >= end_time:
                     return jsonify({
                         'success': False,
                         'error': 'Start time must be before end time'
                     }), 400
-                
+
                 # Create datetime objects
                 start_datetime = datetime.combine(appointment_date, start_time)
                 end_datetime = datetime.combine(appointment_date, end_time)
-                
+
             except ValueError as e:
                 return jsonify({
                     'success': False,
                     'error': f'Invalid date/time format: {str(e)}'
                 }), 400
-            
+
             # Create new appointment
             appointment = UnakiAppointment(
                 staff_id=data['staffId'],
@@ -369,16 +369,16 @@ def unaki_appointments_api():
                 notes=data.get('notes', ''),
                 appointment_date=appointment_date
             )
-            
+
             db.session.add(appointment)
             db.session.commit()
-            
+
             return jsonify({
                 'success': True,
                 'message': 'Appointment created successfully',
                 'appointment': appointment.to_dict()
             })
-    
+
     except Exception as e:
         db.session.rollback()
         print(f"Error in unaki appointments API: {e}")
@@ -390,22 +390,22 @@ def delete_unaki_appointment(appointment_id):
     """Delete a specific Unaki appointment"""
     try:
         from models import UnakiAppointment
-        
+
         appointment = UnakiAppointment.query.get(appointment_id)
         if not appointment:
             return jsonify({
                 'success': False,
                 'error': 'Appointment not found'
             }), 404
-        
+
         db.session.delete(appointment)
         db.session.commit()
-        
+
         return jsonify({
             'success': True,
             'message': 'Appointment deleted successfully'
         })
-    
+
     except Exception as e:
         db.session.rollback()
         print(f"Error deleting appointment: {e}")

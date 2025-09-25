@@ -16,2051 +16,1200 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         * {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
 
         body {
-            background: #f7fafc;
+            font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
-            margin: 0;
-            padding: 20px 0;
+            color: #333;
         }
 
-        .schedule-container {
-            background: white;
-            border-radius: 16px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-            overflow: hidden;
+        .booking-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .booking-header {
+            text-align: center;
+            margin-bottom: 40px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        .booking-header h1 {
+            color: #2d3748;
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        .booking-header p {
+            color: #718096;
+            font-size: 1.1rem;
+        }
+
+        /* Multiple Booking Section */
+        .multiple-booking-section {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+        }
+
+        .section-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #2d3748;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .client-search-section {
+            background: #f7fafc;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 25px;
             border: 2px solid #e2e8f0;
         }
 
-        .loading-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(255, 255, 255, 0.9);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 9999;
-            opacity: 0;
-            visibility: hidden;
-            transition: all 0.3s ease;
+        .form-group {
+            margin-bottom: 20px;
         }
 
-        .loading-overlay.show {
-            opacity: 1;
-            visibility: visible;
-        }
-
-        .loading-spinner {
-            width: 60px;
-            height: 60px;
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #667eea;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        .schedule-grid {
-            display: grid;
-            grid-template-columns: 220px repeat(10, 250px);
-            border: 3px solid #2d3748;
-            border-radius: 12px;
-            overflow: hidden;
-            background: white;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-        }
-
-        .time-header, .staff-cell, .time-slot {
-            border-right: 2px solid #4a5568;
-            border-bottom: 1px solid #cbd5e0;
-            padding: 16px 12px;
-            text-align: center;
-            position: relative;
-            transition: all 0.2s ease;
-        }
-
-        /* Make vertical lines very thin */
-        .time-header:not(:last-child),
-        .time-slot:not(:nth-child(11n)) {
-            border-right: 1px solid #e2e8f0;
-        }
-
-        /* Staff column has extra thick border */
-        .staff-cell {
-            border-right: 4px solid #667eea !important;
-            background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%);
-        }
-
-        .time-header {
-            background: #2d3748;
-            font-weight: 700;
-            font-size: 14px;
-            color: white;
-            border-bottom: 3px solid #667eea;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .staff-cell {
-            background: #f7fafc;
-            text-align: left;
-            font-weight: 700;
-            position: relative;
-            transition: all 0.2s ease;
-        }
-
-        .staff-cell:hover {
-            background: #edf2f7;
-        }
-
-        .staff-name {
-            font-size: 16px;
-            color: #2d3748;
-            margin-bottom: 4px;
-            font-weight: 700;
-        }
-
-        .staff-role {
-            font-size: 12px;
-            color: #4a5568;
-            font-weight: 500;
-            text-transform: uppercase;
-            letter-spacing: 0.3px;
-        }
-
-        .time-slot {
-            min-height: 80px;
-            background: white;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            position: relative;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .time-slot:hover {
-            background: #f0f4ff;
-            box-shadow: inset 0 0 0 2px #667eea;
-        }
-
-        .time-slot:empty::after {
-            content: '+';
-            font-size: 24px;
-            color: #cbd5e0;
-            font-weight: 300;
-            opacity: 0;
-            transition: opacity 0.2s ease;
-        }
-
-        .time-slot:empty:hover::after {
-            opacity: 1;
-            color: #667eea;
-        }
-
-        .appointment-block {
-            background: #667eea;
-            color: white;
-            border-radius: 8px;
-            padding: 12px;
-            font-size: 13px;
-            line-height: 1.4;
-            cursor: pointer;
-            min-height: 66px;
-            z-index: 10;
-            display: flex;
-            flex-direction: column;
-            justify-content: flex-start;
-            position: relative;
-            transition: all 0.2s ease;
-            border: 2px solid #667eea;
-            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.2);
-        }
-
-        .appointment-block:hover {
-            background: #5a67d8;
-            border-color: #5a67d8;
-            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
-        }
-
-        .appointment-client {
-            font-weight: 600;
-            margin-bottom: 2px;
-        }
-
-        .appointment-service {
-            font-size: 11px;
-            opacity: 0.9;
-        }
-
-        .break-block {
-            background: #ed8936;
-            color: white;
-            border-radius: 8px;
-            padding: 8px;
-            font-size: 13px;
-            text-align: center;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 700;
-            cursor: default;
-            min-height: 66px;
-            z-index: 10;
-            border: 2px solid #dd6b20;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .drag-selection {
-            position: absolute;
-            background: rgba(37, 99, 235, 0.2);
-            border: 2px dashed #2563eb;
-            border-radius: 4px;
-            z-index: 100;
-            pointer-events: none;
-        }
-
-        .header-controls {
-            padding: 20px;
-            border-bottom: 1px solid #dee2e6;
-            background: white;
-        }
-
-        .btn-primary {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border: none;
-            border-radius: 12px;
-            padding: 12px 24px;
-            font-weight: 600;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 14px rgba(102, 126, 234, 0.3);
-            position: relative;
-            overflow: hidden;
-        }
-
-        .btn-primary:hover {
-            background: linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%);
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
-        }
-
-        .btn-outline-secondary {
-            border: 2px solid rgba(102, 126, 234, 0.3);
-            color: #667eea;
-            border-radius: 12px;
-            padding: 10px 20px;
-            transition: all 0.3s ease;
-            background: white;
-        }
-
-        .btn-outline-secondary:hover {
-            background: #667eea;
-            color: white;
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
-        }
-
-        .modal-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border-radius: 20px 20px 0 0;
-            border: none;
-            padding: 24px;
-        }
-
-        .modal-content {
-            border-radius: 20px;
-            border: none;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-        }
-
-        .form-label {
-            font-weight: 600;
-            color: #374151;
+        .form-group label {
+            display: block;
             margin-bottom: 8px;
-            font-size: 14px;
+            font-weight: 600;
+            color: #4a5568;
+            font-size: 0.95rem;
         }
 
-        .form-control, .form-select {
-            border-radius: 12px;
-            border: 2px solid rgba(226, 232, 240, 0.8);
+        .form-control {
+            width: 100%;
             padding: 12px 16px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 1rem;
             transition: all 0.3s ease;
-            font-size: 14px;
+            background: white;
         }
 
-        .form-control:focus, .form-select:focus {
+        .form-control:focus {
+            outline: none;
             border-color: #667eea;
             box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
         }
 
-        .stats-row {
-            padding: 24px 32px;
-            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
-            border-bottom: 1px solid rgba(226, 232, 240, 0.6);
-            position: relative;
-        }
-
-        .stats-row::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 2px;
-            background: linear-gradient(90deg, #667eea, #764ba2);
-        }
-
-        .stat-item {
-            text-align: center;
-            padding: 16px;
-            background: white;
-            border-radius: 16px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-            transition: all 0.3s ease;
-            border: 1px solid rgba(226, 232, 240, 0.6);
-        }
-
-        .stat-item:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.15);
-        }
-
-        .stat-number {
-            font-size: 32px;
-            font-weight: 700;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            margin-bottom: 4px;
-        }
-
-        .stat-label {
-            font-size: 11px;
-            color: #64748b;
-            text-transform: uppercase;
-            font-weight: 600;
-            letter-spacing: 0.5px;
-        }
-
-        .header-controls {
-            padding: 32px;
-            border-bottom: 1px solid rgba(226, 232, 240, 0.6);
-            background: linear-gradient(135deg, white 0%, #f8fafc 100%);
-            position: relative;
-        }
-
-        .header-controls::after {
-            content: '';
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            width: 100%;
-            height: 1px;
-            background: linear-gradient(90deg, transparent, #667eea, transparent);
-        }
-
-        /* Multi-booking modal styles */
-        .step-container {
-            transition: all 0.3s ease;
-        }
-        .step-container > div {
-            display: none;
-        }
-        .step-container .active {
-            display: block;
-        }
-        #serviceInfoDisplay, #timeConflictWarning {
-            display: none;
-        }
-        .selected-service-item {
-            border: 1px solid #e2e8f0;
+        .btn {
+            padding: 12px 24px;
+            border: none;
             border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.95rem;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+            color: white;
+        }
+
+        .btn-success:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(72, 187, 120, 0.4);
+        }
+
+        .btn-warning {
+            background: linear-gradient(135deg, #ed8936 0%, #dd6b20 100%);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: #718096;
+            color: white;
+        }
+
+        .client-info-display {
+            background: #edf2f7;
             padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+            border-left: 4px solid #667eea;
+        }
+
+        .client-info-display h4 {
+            color: #2d3748;
             margin-bottom: 10px;
-            background-color: #fefefe;
         }
-        .selected-service-item:hover {
-            background-color: #f8f9fa;
+
+        .booking-services-section {
+            margin-top: 30px;
         }
-        .service-controls .form-select, .service-controls .form-control {
-            min-height: 48px; /* Match button height */
+
+        .service-booking-item {
+            background: white;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            position: relative;
+        }
+
+        .service-booking-item.completed {
+            border-color: #48bb78;
+            background: #f0fff4;
+        }
+
+        .remove-service-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #f56565;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .row {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .col-md-3, .col-md-4, .col-md-6 {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .add-service-btn {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            margin-bottom: 20px;
+        }
+
+        .booking-summary {
+            background: #f7fafc;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+
+        .total-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #2d3748;
+            padding: 10px 0;
+            border-top: 2px solid #e2e8f0;
+        }
+
+        /* Schedule Grid Styles */
+        .schedule-container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 30px;
+            margin-top: 30px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+        }
+
+        .date-selector {
+            background: #f7fafc;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 25px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .schedule-grid {
+            display: grid;
+            grid-template-columns: 220px repeat(60, 25px);
+            border: 3px solid #2d3748;
+            border-radius: 12px;
+            overflow: hidden;
+            min-width: 1820px;
+        }
+
+        .grid-header {
+            background: #2d3748;
+            color: white;
+            padding: 12px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            text-align: center;
+            border-right: 1px solid #4a5568;
+        }
+
+        .time-header {
+            background: #4a5568;
+            color: white;
+            padding: 8px 4px;
+            font-size: 0.7rem;
+            text-align: center;
+            writing-mode: vertical-rl;
+            text-orientation: mixed;
+            border-right: 1px solid #667eea;
+        }
+
+        .time-header.hour-mark {
+            background: #2d3748;
+            font-weight: 600;
+            border-right: 2px solid #667eea;
+        }
+
+        .time-header.half-hour {
+            background: #718096;
+            border-right: 1px solid #a0aec0;
+        }
+
+        .staff-cell {
+            background: #2d3748;
+            color: white;
+            padding: 15px 10px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            border-bottom: 1px solid #4a5568;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .time-slot {
+            min-height: 60px;
+            border-right: 1px solid #e2e8f0;
+            border-bottom: 1px solid #e2e8f0;
+            position: relative;
+            background: #f8f9fa;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .time-slot:hover {
+            background: #e3f2fd;
+        }
+
+        .time-slot.available {
+            background: #f0fff4;
+        }
+
+        .time-slot.available:hover {
+            background: #c6f6d5;
+        }
+
+        .appointment-block {
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            right: 2px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 4px 6px;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            z-index: 10;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .break-block {
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            right: 2px;
+            background: linear-gradient(135deg, #ed8936 0%, #dd6b20 100%);
+            color: white;
+            padding: 4px 6px;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            z-index: 10;
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .alert-success {
+            background: #f0fff4;
+            border: 1px solid #9ae6b4;
+            color: #22543d;
+        }
+
+        .alert-warning {
+            background: #fffbeb;
+            border: 1px solid #fbd38d;
+            color: #744210;
+        }
+
+        .alert-info {
+            background: #ebf8ff;
+            border: 1px solid #90cdf4;
+            color: #2c5282;
+        }
+
+        @media (max-width: 768px) {
+            .booking-header h1 {
+                font-size: 2rem;
+            }
+
+            .row {
+                flex-direction: column;
+            }
+
+            .schedule-grid {
+                overflow-x: auto;
+            }
         }
     </style>
 </head>
 <body>
-    <!-- Loading Overlay -->
-    <div class="loading-overlay" id="loadingOverlay">
-        <div class="text-center">
-            <div class="loading-spinner mx-auto mb-3"></div>
-            <div class="text-muted fw-medium">Loading schedule data...</div>
+    <div class="booking-container">
+        <!-- Header -->
+        <div class="booking-header">
+            <h1>🌸 Unaki Spa Booking System</h1>
+            <p>Professional appointment scheduling with multiple service bookings</p>
         </div>
-    </div>
 
-    <div class="container-fluid py-4">
-        <div class="row">
-            <div class="col-12">
-                <div class="schedule-container">
-                    <!-- Header Controls -->
-                    <div class="header-controls">
-                        <div class="row align-items-center">
-                            <div class="col-md-6">
-                                <div class="d-flex align-items-center mb-3">
-                                    <div class="bg-gradient-primary rounded-circle p-3 me-3 shadow-sm" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
-                                        <i class="fas fa-calendar-check text-white fa-lg"></i>
-                                    </div>
-                                    <div>
-                                        <h2 class="h3 mb-1 fw-bold" style="color: #1e293b;">
-                                            Unaki Appointment Booking
-                                        </h2>
-                                        <p class="text-muted mb-0 fw-medium">
-                                            <i class="fas fa-hand-pointer me-2 text-primary"></i>
-                                            Drag to select time slots and create appointments
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-md-6 text-end">
-                                <div class="row g-3 justify-content-end">
-                                    <div class="col-auto">
-                                        <label class="form-label mb-2 d-block text-start fw-semibold">
-                                            <i class="fas fa-calendar-day me-2 text-primary"></i>Select Date:
-                                        </label>
-                                        <div class="position-relative">
-                                            <input type="date" id="scheduleDate" class="form-control ps-5" onchange="showLoadingAndLoad()">
-                                            <i class="fas fa-calendar-alt position-absolute top-50 translate-middle-y ms-3 text-muted"></i>
-                                        </div>
-                                    </div>
-                                    <div class="col-auto d-flex align-items-end gap-2">
-                                        <button class="btn btn-outline-secondary" onclick="showLoadingAndRefresh()" title="Refresh Schedule">
-                                            <i class="fas fa-sync-alt me-2"></i>
-                                            <span class="d-none d-md-inline">Refresh</span>
-                                        </button>
-                                        <button class="btn btn-primary" onclick="showLoadingAndLoadSample()" title="Load Demo Data">
-                                            <i class="fas fa-magic me-2"></i>
-                                            <span class="d-none d-sm-inline">Demo Data</span>
-                                        </button>
-                                        <button class="btn btn-primary" onclick="openMultipleBookingModal()" title="Multiple Bookings">
-                                            <i class="fas fa-plus-circle me-2"></i>
-                                            Multiple Bookings
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
+        <!-- Multiple Booking Section -->
+        <div class="multiple-booking-section">
+            <h2 class="section-title">
+                <i class="fas fa-calendar-plus"></i>
+                Multiple Service Booking
+            </h2>
+
+            <!-- Client Search Section -->
+            <div class="client-search-section">
+                <h3 style="margin-bottom: 15px; color: #2d3748;">
+                    <i class="fas fa-search"></i>
+                    Find Client by Phone Number
+                </h3>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="clientPhone">Phone Number</label>
+                            <input type="tel" id="clientPhone" class="form-control" placeholder="Enter client phone number" maxlength="15">
                         </div>
                     </div>
-
-                    <!-- Stats Row -->
-                    <div class="stats-row">
-                        <div class="row">
-                            <div class="col-3">
-                                <div class="stat-item">
-                                    <div class="stat-number" id="totalAppointments">0</div>
-                                    <div class="stat-label">Appointments</div>
-                                </div>
-                            </div>
-                            <div class="col-3">
-                                <div class="stat-item">
-                                    <div class="stat-number" id="activeStaff">0</div>
-                                    <div class="stat-label">Staff on Duty</div>
-                                </div>
-                            </div>
-                            <div class="col-3">
-                                <div class="stat-item">
-                                    <div class="stat-number" id="availableSlots">0</div>
-                                    <div class="stat-label">Available Slots</div>
-                                </div>
-                            </div>
-                            <div class="col-3">
-                                <div class="stat-item">
-                                    <div class="stat-number" id="utilizationRate">0%</div>
-                                    <div class="stat-label">Utilization</div>
-                                </div>
-                            </div>
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label>&nbsp;</label>
+                            <button type="button" class="btn btn-primary" onclick="searchClient()" style="width: 100%;">
+                                <i class="fas fa-search"></i> Search Client
+                            </button>
                         </div>
                     </div>
-
-                    <!-- Schedule Grid -->
-                    <div style="overflow-x: auto; padding-bottom: 10px;">
-                        <div id="scheduleGrid" class="schedule-grid" style="min-width: 2720px;">
-                            <!-- Grid content will be generated by JavaScript -->
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label>&nbsp;</label>
+                            <button type="button" class="btn btn-success" onclick="showAddClientModal()" style="width: 100%;">
+                                <i class="fas fa-user-plus"></i> Add New Client
+                            </button>
                         </div>
                     </div>
+                </div>
+
+                <!-- Client Info Display -->
+                <div id="clientInfoDisplay" class="client-info-display" style="display: none;">
+                    <h4><i class="fas fa-user"></i> Client Information</h4>
+                    <div id="clientDetails"></div>
+                </div>
+            </div>
+
+            <!-- Booking Services Section -->
+            <div class="booking-services-section">
+                <h3 style="margin-bottom: 20px; color: #2d3748;">
+                    <i class="fas fa-spa"></i>
+                    Service Bookings
+                </h3>
+
+                <button type="button" class="add-service-btn" onclick="addServiceBooking()">
+                    <i class="fas fa-plus"></i> Add Service Booking
+                </button>
+
+                <div id="serviceBookingsContainer">
+                    <!-- Service booking items will be added here -->
+                </div>
+
+                <!-- Booking Summary -->
+                <div class="booking-summary" id="bookingSummary" style="display: none;">
+                    <h4 style="margin-bottom: 15px; color: #2d3748;">
+                        <i class="fas fa-receipt"></i>
+                        Booking Summary
+                    </h4>
+                    <div id="summaryDetails"></div>
+                    <div class="total-info">
+                        <span>Total Duration:</span>
+                        <span id="totalDuration">0 minutes</span>
+                    </div>
+                    <div class="total-info">
+                        <span>Total Amount:</span>
+                        <span id="totalAmount">₹0</span>
+                    </div>
+                    <button type="button" class="btn btn-success" onclick="confirmAllBookings()" style="width: 100%; margin-top: 15px;">
+                        <i class="fas fa-check"></i> Confirm All Bookings
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Schedule Display -->
+        <div class="schedule-container">
+            <h2 class="section-title">
+                <i class="fas fa-calendar-alt"></i>
+                Today's Schedule
+            </h2>
+
+            <!-- Date Selector -->
+            <div class="date-selector">
+                <label for="scheduleDate" style="font-weight: 600; color: #4a5568;">Select Date:</label>
+                <input type="date" id="scheduleDate" class="form-control" style="width: 200px;" onchange="loadSchedule()">
+                <button type="button" class="btn btn-secondary" onclick="goToToday()">
+                    <i class="fas fa-calendar-day"></i> Today
+                </button>
+                <button type="button" class="btn btn-primary" onclick="loadSchedule()">
+                    <i class="fas fa-sync"></i> Refresh Schedule
+                </button>
+            </div>
+
+            <!-- Schedule Grid -->
+            <div style="overflow-x: auto; padding-bottom: 10px;">
+                <div id="scheduleGrid" class="schedule-grid" style="min-width: 1820px;">
+                    <!-- Grid content will be generated by JavaScript -->
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Booking Modal -->
-    <div class="modal fade" id="bookingModal" tabindex="-1">
+    <!-- Add Client Modal -->
+    <div class="modal fade" id="addClientModal" tabindex="-1">
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title">
-                        <i class="fas fa-calendar-plus me-2"></i>
-                        New Appointment
+                        <i class="fas fa-user-plus"></i>
+                        Add New Client
                     </h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <form id="bookingForm">
+                    <form id="addClientForm">
                         <div class="row">
                             <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label class="form-label">Client Name *</label>
-                                    <input type="text" id="clientName" class="form-control" required>
+                                <div class="form-group">
+                                    <label for="newClientFirstName">First Name *</label>
+                                    <input type="text" id="newClientFirstName" class="form-control" required>
                                 </div>
                             </div>
                             <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label class="form-label">Phone</label>
-                                    <input type="tel" id="clientPhone" class="form-control">
+                                <div class="form-group">
+                                    <label for="newClientLastName">Last Name *</label>
+                                    <input type="text" id="newClientLastName" class="form-control" required>
                                 </div>
                             </div>
                         </div>
+                        <div class="form-group">
+                            <label for="newClientPhone">Phone Number *</label>
+                            <input type="tel" id="newClientPhone" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="newClientEmail">Email</label>
+                            <input type="email" id="newClientEmail" class="form-control">
+                        </div>
                         <div class="row">
                             <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label class="form-label">Service *</label>
-                                    <select id="serviceType" class="form-select" required>
-                                        <option value="">Select Service</option>
-                                        <optgroup label="Facial Treatments">
-                                            <option value="Deep Cleansing Facial">Deep Cleansing Facial (90 min)</option>
-                                            <option value="Anti-Aging Facial">Anti-Aging Facial (90 min)</option>
-                                            <option value="Hydrating Facial">Hydrating Facial (60 min)</option>
-                                            <option value="Express Facial">Express Facial (45 min)</option>
-                                            <option value="Acne Treatment Facial">Acne Treatment Facial (75 min)</option>
-                                        </optgroup>
-                                        <optgroup label="Massage Therapy">
-                                            <option value="Swedish Massage">Swedish Massage (60 min)</option>
-                                            <option value="Deep Tissue Massage">Deep Tissue Massage (90 min)</option>
-                                            <option value="Hot Stone Massage">Hot Stone Massage (90 min)</option>
-                                            <option value="Sports Massage">Sports Massage (60 min)</option>
-                                            <option value="Aromatherapy Massage">Aromatherapy Massage (75 min)</option>
-                                        </optgroup>
-                                        <optgroup label="Hair Services">
-                                            <option value="Hair Cut & Style">Hair Cut & Style (75 min)</option>
-                                            <option value="Hair Wash & Blow Dry">Hair Wash & Blow Dry (45 min)</option>
-                                            <option value="Hair Color & Highlights">Hair Color & Highlights (150 min)</option>
-                                            <option value="Hair Treatment">Hair Treatment (60 min)</option>
-                                        </optgroup>
-                                        <optgroup label="Nail Care">
-                                            <option value="Classic Manicure">Classic Manicure (45 min)</option>
-                                            <option value="Gel Manicure">Gel Manicure (60 min)</option>
-                                            <option value="French Manicure">French Manicure (45 min)</option>
-                                            <option value="Spa Pedicure">Spa Pedicure (60 min)</option>
-                                            <option value="Express Pedicure">Express Pedicure (45 min)</option>
-                                        </optgroup>
-                                        <optgroup label="Body Treatments">
-                                            <option value="Body Scrub">Body Scrub (90 min)</option>
-                                            <option value="Body Wrap Treatment">Body Wrap Treatment (90 min)</option>
-                                            <option value="Cellulite Treatment">Cellulite Treatment (60 min)</option>
-                                        </optgroup>
-                                        <optgroup label="Ayurvedic Treatments">
-                                            <option value="Abhyanga Massage">Abhyanga Massage (90 min)</option>
-                                            <option value="Shirodhara Treatment">Shirodhara Treatment (60 min)</option>
-                                            <option value="Marma Point Therapy">Marma Point Therapy (60 min)</option>
-                                            <option value="Ayurvedic Consultation">Ayurvedic Consultation (30 min)</option>
-                                        </optgroup>
-                                        <optgroup label="Makeup & Styling">
-                                            <option value="Bridal Makeup Trial">Bridal Makeup Trial (120 min)</option>
-                                            <option value="Evening Makeup">Evening Makeup (60 min)</option>
-                                            <option value="Party Makeup">Party Makeup (45 min)</option>
-                                        </optgroup>
-                                        <optgroup label="Waxing Services">
-                                            <option value="Full Leg Wax">Full Leg Wax (45 min)</option>
-                                            <option value="Brazilian Wax">Brazilian Wax (45 min)</option>
-                                            <option value="Eyebrow Threading">Eyebrow Threading (15 min)</option>
-                                            <option value="Upper Lip Wax">Upper Lip Wax (15 min)</option>
-                                        </optgroup>
+                                <div class="form-group">
+                                    <label for="newClientGender">Gender</label>
+                                    <select id="newClientGender" class="form-control">
+                                        <option value="">Select Gender</option>
+                                        <option value="male">Male</option>
+                                        <option value="female">Female</option>
+                                        <option value="other">Other</option>
                                     </select>
                                 </div>
                             </div>
                             <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label class="form-label">Staff *</label>
-                                    <select id="staffSelect" class="form-select" required></select>
+                                <div class="form-group">
+                                    <label for="newClientDOB">Date of Birth</label>
+                                    <input type="date" id="newClientDOB" class="form-control">
                                 </div>
                             </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-4">
-                                <div class="mb-3">
-                                    <label class="form-label">Start Time *</label>
-                                    <input type="time" id="startTime" class="form-control" required>
-                                </div>
-                            </div>
-                            <div class="col-md-4">
-                                <div class="mb-3">
-                                    <label class="form-label">Duration *</label>
-                                    <select id="appointmentDuration" class="form-select" required onchange="updateEndTime()">
-                                        <option value="15">15 minutes</option>
-                                        <option value="30">30 minutes</option>
-                                        <option value="45">45 minutes</option>
-                                        <option value="60" selected>1 hour</option>
-                                        <option value="75">1 hour 15 minutes</option>
-                                        <option value="90">1 hour 30 minutes</option>
-                                        <option value="120">2 hours</option>
-                                        <option value="150">2 hours 30 minutes</option>
-                                        <option value="180">3 hours</option>
-                                        <option value="240">4 hours</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="col-md-4">
-                                <div class="mb-3">
-                                    <label class="form-label">End Time *</label>
-                                    <input type="time" id="endTime" class="form-control" required readonly>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Notes</label>
-                            <textarea id="appointmentNotes" class="form-control" rows="2"></textarea>
                         </div>
                     </form>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-primary" onclick="bookAppointment()">Book Appointment</button>
+                    <button type="button" class="btn btn-success" onclick="addNewClient()">
+                        <i class="fas fa-save"></i> Add Client
+                    </button>
                 </div>
             </div>
         </div>
     </div>
-
-    <!-- Multiple Booking Modal -->
-    <div class="modal fade" id="multipleBookingModal" tabindex="-1" aria-labelledby="multipleBookingModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-xl">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="multipleBookingModalLabel"><i class="fas fa-calendar-plus me-2"></i>Multiple Bookings</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="step-container">
-                        <!-- Client Search Step -->
-                        <div id="clientSearchStep" class="active">
-                            <h6 class="mb-3">Step 1: Select Client</h6>
-                            <div class="row g-3 mb-3">
-                                <div class="col-md-6">
-                                    <label for="clientPhoneSearch" class="form-label">Search Client by Phone Number</label>
-                                    <div class="input-group">
-                                        <input type="tel" id="clientPhoneSearch" class="form-control" placeholder="Enter phone number (e.g., +11234567890)">
-                                        <button class="btn btn-primary" type="button" onclick="searchClientByPhone()">Search</button>
-                                    </div>
-                                </div>
-                            </div>
-                            <div id="clientSearchResults" class="mb-3 p-3 border rounded">
-                                <div id="clientFoundInfo"></div>
-                                <div class="text-center mt-3">
-                                    <button class="btn btn-success me-2" onclick="selectFoundClient()" id="selectFoundClientBtn">Select This Client</button>
-                                    <button class="btn btn-secondary" onclick="showAddNewClientForm()">Add New Client</button>
-                                </div>
-                            </div>
-                            <div id="addNewClientForm" class="mb-3 p-3 border rounded">
-                                <h6 class="mb-3">Add New Client</h6>
-                                <div class="row g-3">
-                                    <div class="col-md-4">
-                                        <label for="newClientFirstName" class="form-label">First Name *</label>
-                                        <input type="text" id="newClientFirstName" class="form-control" required>
-                                    </div>
-                                    <div class="col-md-4">
-                                        <label for="newClientLastName" class="form-label">Last Name *</label>
-                                        <input type="text" id="newClientLastName" class="form-control" required>
-                                    </div>
-                                    <div class="col-md-4">
-                                        <label for="newClientPhone" class="form-label">Phone *</label>
-                                        <input type="tel" id="newClientPhone" class="form-control" required>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <label for="newClientEmail" class="form-label">Email</label>
-                                        <input type="email" id="newClientEmail" class="form-control">
-                                    </div>
-                                </div>
-                                <div class="text-center mt-3">
-                                    <button class="btn btn-primary" onclick="createNewClient()">Save Client</button>
-                                    <button class="btn btn-outline-secondary" onclick="hideAddNewClientForm()">Cancel</button>
-                                </div>
-                            </div>
-                            <div id="selectedClientDisplay" class="mb-3 p-3 border rounded bg-light">
-                                <h6 class="mb-2">Selected Client:</h6>
-                                <div id="selectedClientInfo"></div>
-                                <div class="text-end mt-2">
-                                    <button class="btn btn-outline-primary" onclick="backToClientSearch()">Change Client</button>
-                                </div>
-                            </div>
-                            <div class="text-end">
-                                <button class="btn btn-secondary me-2" onclick="backToClientSearch()" disabled>Back</button>
-                                <button class="btn btn-primary" onclick="proceedToDateSelection()">Next: Select Date</button>
-                            </div>
-                        </div>
-
-                        <!-- Date Selection Step -->
-                        <div id="dateSelectionStep">
-                            <h6 class="mb-3">Step 2: Select Date</h6>
-                            <div class="row g-3 mb-3">
-                                <div class="col-md-4">
-                                    <label for="multiBookingDate" class="form-label">Booking Date *</label>
-                                    <input type="date" id="multiBookingDate" class="form-control" required>
-                                </div>
-                            </div>
-                            <div class="d-flex justify-content-between">
-                                <button class="btn btn-outline-secondary" onclick="backToClientSearch()">Back</button>
-                                <button class="btn btn-primary" onclick="proceedToServiceSelection()">Next: Select Services</button>
-                            </div>
-                        </div>
-
-                        <!-- Service Selection Step -->
-                        <div id="serviceSelectionStep">
-                            <h6 class="mb-3">Step 3: Add Services</h6>
-                            <div class="row g-3 mb-3 align-items-end">
-                                <div class="col-md-5">
-                                    <label for="serviceSelect" class="form-label">Select Service</label>
-                                    <select id="serviceSelect" class="form-select" onchange="onServiceSelect()">
-                                        <option value="">Select Service...</option>
-                                    </select>
-                                </div>
-                                <div class="col-md-3">
-                                    <label for="staffSelect" class="form-label">Select Staff</label>
-                                    <select id="staffSelect" class="form-select" onchange="onStaffSelect()">
-                                        <option value="">Select Staff...</option>
-                                    </select>
-                                </div>
-                                <div class="col-md-2">
-                                    <label for="timeSelect" class="form-label">Start Time</label>
-                                    <select id="timeSelect" class="form-select">
-                                        <option value="">Select Time...</option>
-                                    </select>
-                                </div>
-                                <div class="col-md-2 text-center">
-                                    <button class="btn btn-primary w-100" onclick="addServiceToBooking()">Add Service</button>
-                                </div>
-                            </div>
-                            <div id="serviceInfoDisplay" class="mb-3 p-3 border rounded bg-light">
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        Service: <strong id="serviceNameDisplay"></strong><br>
-                                        Staff: <strong id="staffNameDisplay"></strong>
-                                    </div>
-                                    <div class="col-md-3">
-                                        Duration: <strong id="serviceDuration"></strong> min
-                                    </div>
-                                    <div class="col-md-3">
-                                        Price: <strong id="servicePrice"></strong>
-                                    </div>
-                                </div>
-                                <div id="timeConflictWarning" class="alert alert-warning mt-2 p-2">
-                                    <i class="fas fa-exclamation-triangle me-2"></i>
-                                    <span id="conflictDetails"></span>
-                                </div>
-                            </div>
-
-                            <h6 class="mt-4 mb-3">Selected Services:</h6>
-                            <div id="selectedServicesList">
-                                <div class="text-muted text-center py-3">No services added yet</div>
-                            </div>
-
-                            <div id="bookingSummary" class="mt-3 p-3 border-top border-primary pt-3">
-                                <div class="row">
-                                    <div class="col-md-8">
-                                        Total Services: <strong id="serviceCount">0</strong><br>
-                                        Total Duration: <strong id="totalDuration">0</strong> min
-                                    </div>
-                                    <div class="col-md-4 text-end">
-                                        Total Cost: <strong class="fs-5 text-primary" id="totalCost">0.00</strong>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="d-flex justify-content-between mt-4">
-                                <button class="btn btn-outline-secondary" onclick="backToDateSelection()">Back</button>
-                                <button class="btn btn-primary" onclick="confirmMultipleBooking()">Confirm Booking</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
 
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
     <script>
-        // Placeholder for init_app function if it exists
-        function init_app() {
-            console.log("App initialized");
-        }
+        // Global variables
+        let currentClient = null;
+        let serviceBookings = [];
+        let services = [];
+        let staff = [];
+        let scheduleData = {};
 
-        let scheduleData = {
-            staff: [],
-            appointments: [],
-            breaks: []
-        };
-
-        let isDragging = false;
-        let dragStart = null;
-        let dragSelection = null;
-        let currentDate = new Date().toISOString().split('T')[0];
-
-        // Loading overlay functions
-        function showLoading() {
-            document.getElementById('loadingOverlay').classList.add('show');
-        }
-
-        function hideLoading() {
-            document.getElementById('loadingOverlay').classList.remove('show');
-        }
-
-        function showLoadingAndLoad() {
-            showLoading();
-            setTimeout(() => {
-                loadScheduleForDate();
-                hideLoading();
-            }, 800);
-        }
-
-        function showLoadingAndRefresh() {
-            showLoading();
-            setTimeout(() => {
-                refreshSchedule();
-                hideLoading();
-            }, 600);
-        }
-
-        function showLoadingAndLoadSample() {
-            showLoading();
-            setTimeout(() => {
-                loadSampleData();
-                hideLoading();
-            }, 1000);
-        }
-
-        // Initialize
+        // Initialize the system
         document.addEventListener('DOMContentLoaded', function() {
-            showLoading();
-            document.getElementById('scheduleDate').value = currentDate;
-
-            setTimeout(() => {
-                loadScheduleForDate();
-                hideLoading();
-            }, 1200);
-
-            // Add event listener for start time changes
-            document.getElementById('startTime').addEventListener('change', updateEndTime);
+            loadInitialData();
+            setTodayDate();
+            loadSchedule();
         });
 
-        function generateTimeSlots() {
-            const slots = [];
-            // Generate slots from 8:00 to 17:00 (inclusive of 8:00, exclusive of 18:00)
-            for (let hour = 8; hour < 18; hour++) {
-                const timeStr = `${hour.toString().padStart(2, '0')}:00`;
-                let displayTime;
-                if (hour === 0) { // Midnight
-                    displayTime = '12:00 AM';
-                } else if (hour < 12) {
-                    displayTime = `${hour}:00 AM`;
-                } else if (hour === 12) {
-                    displayTime = '12:00 PM';
+        // Load initial data
+        async function loadInitialData() {
+            try {
+                // Load services
+                const servicesResponse = await fetch('/api/unaki/services');
+                if (servicesResponse.ok) {
+                    services = await servicesResponse.json();
                 } else {
-                    displayTime = `${hour - 12}:00 PM`;
+                     console.error('Failed to load services');
+                     services = []; // Set to empty array if fetch fails
                 }
-                slots.push({ time: timeStr, display: displayTime });
-            }
-            return slots;
-        }
 
+                // Load staff
+                const staffResponse = await fetch('/api/unaki/staff');
+                if (staffResponse.ok) {
+                    staff = await staffResponse.json();
+                } else {
+                    console.error('Failed to load staff');
+                    staff = []; // Set to empty array if fetch fails
+                }
 
-        function loadScheduleForDate() {
-            currentDate = document.getElementById('scheduleDate').value;
-
-            // Try to load from localStorage or API
-            const localData = localStorage.getItem(`schedule-${currentDate}`);
-            if (localData) {
-                scheduleData = JSON.parse(localData);
-                renderSchedule();
-                updateStats();
-            } else {
-                // Load empty schedule
-                scheduleData = { staff: [], appointments: [], breaks: [] };
-                renderSchedule();
-                updateStats();
+                console.log('Loaded services:', services.length);
+                console.log('Loaded staff:', staff.length);
+            } catch (error) {
+                console.error('Error loading initial data:', error);
             }
         }
 
-        function loadSampleData() {
-            scheduleData = {
-                staff: [
-                    { id: 1, name: 'Sarah Johnson', role: 'Senior Facial Specialist' },
-                    { id: 2, name: 'Michael Chen', role: 'Massage Therapist' },
-                    { id: 3, name: 'Emily Rodriguez', role: 'Hair Stylist & Colorist' },
-                    { id: 4, name: 'James Wilson', role: 'Nail Technician' },
-                    { id: 5, name: 'Linda Davis', role: 'Makeup Artist' },
-                    { id: 6, name: 'Priya Sharma', role: 'Ayurvedic Therapist' },
-                    { id: 7, name: 'Alex Thompson', role: 'Body Treatment Specialist' },
-                    { id: 8, name: 'Maria Santos', role: 'Waxing Specialist' }
-                ],
-                appointments: [
-                    // Morning rush (8:00-10:00)
-                    { id: 1, staffId: 1, clientName: 'Jessica Brown', service: 'Deep Cleansing Facial', startTime: '08:00', endTime: '09:30', duration: 90 },
-                    { id: 2, staffId: 2, clientName: 'Amanda White', service: 'Hot Stone Massage', startTime: '08:30', endTime: '10:00', duration: 90 },
-                    { id: 3, staffId: 3, clientName: 'Rachel Green', service: 'Hair Wash & Blow Dry', startTime: '08:15', endTime: '09:00', duration: 45 },
-                    { id: 4, staffId: 4, clientName: 'Robert Taylor', service: 'Express Manicure', startTime: '08:00', endTime: '08:45', duration: 45 },
-                    { id: 5, staffId: 6, clientName: 'Ananya Patel', service: 'Abhyanga Massage', startTime: '08:00', endTime: '09:30', duration: 90 },
-                    { id: 6, staffId: 7, clientName: 'Catherine Moore', service: 'Body Scrub', startTime: '08:30', endTime: '10:00', duration: 90 },
+        // Set today's date in the date picker
+        function setTodayDate() {
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('scheduleDate').value = today;
+        }
 
-                    // Mid-morning (10:00-12:00)
-                    { id: 7, staffId: 1, clientName: 'Emma Thompson', service: 'Anti-Aging Facial', startTime: '10:00', endTime: '11:30', duration: 90 },
-                    { id: 8, staffId: 2, clientName: 'David Brown', service: 'Swedish Massage', startTime: '10:30', endTime: '11:30', duration: 60 },
-                    { id: 9, staffId: 3, clientName: 'Sophie Miller', service: 'Hair Cut & Style', startTime: '09:30', endTime: '10:45', duration: 75 },
-                    { id: 10, staffId: 4, clientName: 'Lisa Anderson', service: 'Gel Manicure', startTime: '09:15', endTime: '10:15', duration: 60 },
-                    { id: 11, staffId: 5, clientName: 'Kate Wilson', service: 'Bridal Makeup Trial', startTime: '10:00', endTime: '12:00', duration: 120 },
-                    { id: 12, staffId: 6, clientName: 'Meera Gupta', service: 'Shirodhara Treatment', startTime: '10:00', endTime: '11:00', duration: 60 },
-                    { id: 13, staffId: 7, clientName: 'Jennifer Davis', service: 'Cellulite Treatment', startTime: '10:30', endTime: '11:30', duration: 60 },
-                    { id: 14, staffId: 8, clientName: 'Hannah White', service: 'Full Leg Wax', startTime: '10:00', endTime: '10:45', duration: 45 },
+        // Go to today
+        function goToToday() {
+            setTodayDate();
+            loadSchedule();
+        }
 
-                    // Afternoon (13:00-15:00)
-                    { id: 15, staffId: 1, clientName: 'Victoria James', service: 'Hydrating Facial', startTime: '13:00', endTime: '14:00', duration: 60 },
-                    { id: 16, staffId: 2, clientName: 'Mark Johnson', service: 'Deep Tissue Massage', startTime: '13:30', endTime: '15:00', duration: 90 },
-                    { id: 17, staffId: 3, clientName: 'Maria Garcia', service: 'Hair Color & Highlights', startTime: '13:00', endTime: '15:30', duration: 150 },
-                    { id: 18, staffId: 4, clientName: 'Sarah Connor', service: 'Spa Pedicure', startTime: '13:00', endTime: '14:00', duration: 60 },
-                    { id: 19, staffId: 6, clientName: 'Ravi Kumar', service: 'Marma Point Therapy', startTime: '13:00', endTime: '14:00', duration: 60 },
-                    { id: 20, staffId: 7, clientName: 'Michelle Obama', service: 'Body Wrap Treatment', startTime: '13:30', endTime: '15:00', duration: 90 },
-                    { id: 21, staffId: 8, clientName: 'Taylor Swift', service: 'Brazilian Wax', startTime: '13:15', endTime: '14:00', duration: 45 },
+        // Search client by phone number
+        async function searchClient() {
+            const phone = document.getElementById('clientPhone').value.trim();
 
-                    // Late afternoon (15:00-16:00)
-                    { id: 22, staffId: 1, clientName: 'Grace Kelly', service: 'Express Facial', startTime: '14:30', endTime: '15:15', duration: 45 },
-                    { id: 23, staffId: 2, clientName: 'Chris Evans', service: 'Sports Massage', startTime: '15:30', endTime: '16:30', duration: 60 },
-                    { id: 24, staffId: 4, clientName: 'Natalie Portman', service: 'French Manicure', startTime: '14:30', endTime: '15:15', duration: 45 },
-                    { id: 25, staffId: 5, clientName: 'Scarlett Johansson', service: 'Evening Makeup', startTime: '15:00', endTime: '16:00', duration: 60 },
-                    { id: 26, staffId: 6, clientName: 'Deepika Singh', service: 'Ayurvedic Consultation', startTime: '14:30', endTime: '15:00', duration: 30 },
-                    { id: 27, staffId: 8, clientName: 'Emma Watson', service: 'Eyebrow Threading', startTime: '15:00', endTime: '15:15', duration: 15 }
-                ],
-                breaks: [
-                    // Lunch breaks
-                    { id: 1, staffId: 1, startTime: '12:00', endTime: '13:00', reason: 'Lunch Break' },
-                    { id: 2, staffId: 2, startTime: '12:30', endTime: '13:30', reason: 'Lunch Break' },
-                    { id: 3, staffId: 3, startTime: '11:30', endTime: '12:30', reason: 'Lunch Break' },
-                    { id: 4, staffId: 4, startTime: '12:00', endTime: '13:00', reason: 'Lunch Break' },
-                    { id: 5, staffId: 5, startTime: '12:30', endTime: '13:30', reason: 'Lunch Break' },
-                    { id: 6, staffId: 6, startTime: '12:00', endTime: '13:00', reason: 'Lunch Break' },
-                    { id: 7, staffId: 7, startTime: '12:30', endTime: '13:30', reason: 'Lunch Break' },
-                    { id: 8, staffId: 8, startTime: '12:00', endTime: '13:00', reason: 'Lunch Break' },
+            if (!phone) {
+                alert('Please enter a phone number');
+                return;
+            }
 
-                    // Short breaks
-                    { id: 9, staffId: 2, startTime: '11:30', endTime: '11:45', reason: 'Coffee Break' },
-                    { id: 10, staffId: 4, startTime: '10:15', endTime: '10:30', reason: 'Equipment Setup' },
-                    { id: 11, staffId: 5, startTime: '14:00', endTime: '14:15', reason: 'Coffee Break' },
-                    { id: 12, staffId: 7, startTime: '11:30', endTime: '11:45', reason: 'Equipment Cleaning' },
-                    { id: 13, staffId: 8, startTime: '14:00', endTime: '14:15', reason: 'Coffee Break' }
-                ]
+            try {
+                const response = await fetch(`/api/unaki/clients/search?phone=${encodeURIComponent(phone)}`);
+
+                if (response.ok) {
+                    const client = await response.json();
+                    currentClient = client;
+                    displayClientInfo(client);
+                } else if (response.status === 404) {
+                    currentClient = null;
+                    document.getElementById('clientInfoDisplay').style.display = 'none';
+                    alert('Client not found. Please add a new client.');
+                } else {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+            } catch (error) {
+                console.error('Error searching client:', error);
+                alert('Error searching for client. Please try again.');
+            }
+        }
+
+        // Display client information
+        function displayClientInfo(client) {
+            const display = document.getElementById('clientInfoDisplay');
+            const details = document.getElementById('clientDetails');
+
+            details.innerHTML = `
+                <div class="row">
+                    <div class="col-md-4">
+                        <strong>Name:</strong><br>
+                        ${client.first_name} ${client.last_name}
+                    </div>
+                    <div class="col-md-4">
+                        <strong>Phone:</strong><br>
+                        ${client.phone}
+                    </div>
+                    <div class="col-md-4">
+                        <strong>Email:</strong><br>
+                        ${client.email || 'Not provided'}
+                    </div>
+                </div>
+            `;
+
+            display.style.display = 'block';
+        }
+
+        // Show add client modal
+        function showAddClientModal() {
+            const phone = document.getElementById('clientPhone').value.trim();
+            if (phone) {
+                document.getElementById('newClientPhone').value = phone;
+            }
+
+            const modal = new bootstrap.Modal(document.getElementById('addClientModal'));
+            modal.show();
+        }
+
+        // Add new client
+        async function addNewClient() {
+            const formData = {
+                first_name: document.getElementById('newClientFirstName').value.trim(),
+                last_name: document.getElementById('newClientLastName').value.trim(),
+                phone: document.getElementById('newClientPhone').value.trim(),
+                email: document.getElementById('newClientEmail').value.trim(),
+                gender: document.getElementById('newClientGender').value,
+                date_of_birth: document.getElementById('newClientDOB').value
             };
 
-            // Save to localStorage
-            localStorage.setItem(`schedule-${currentDate}`, JSON.stringify(scheduleData));
+            if (!formData.first_name || !formData.last_name || !formData.phone) {
+                alert('Please fill in all required fields');
+                return;
+            }
 
-            renderSchedule();
-            updateStats();
+            try {
+                const response = await fetch('/api/unaki/clients', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(formData)
+                });
+
+                if (response.ok) {
+                    const newClient = await response.json();
+                    currentClient = newClient;
+                    document.getElementById('clientPhone').value = newClient.phone;
+                    displayClientInfo(newClient);
+
+                    // Close modal and reset form
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('addClientModal'));
+                    modal.hide();
+                    document.getElementById('addClientForm').reset();
+
+                    alert('Client added successfully!');
+                } else {
+                    const error = await response.json();
+                    alert('Error adding client: ' + error.message);
+                }
+            } catch (error) {
+                console.error('Error adding client:', error);
+                alert('Error adding client. Please try again.');
+            }
         }
 
-        function renderSchedule() {
-            const grid = document.getElementById('scheduleGrid');
-            const timeSlots = generateTimeSlots();
+        // Add service booking
+        function addServiceBooking() {
+            if (!currentClient) {
+                alert('Please search and select a client first');
+                return;
+            }
 
-            // Clear grid
+            const bookingId = Date.now();
+            const booking = {
+                id: bookingId,
+                service_id: '',
+                staff_id: '',
+                appointment_date: '',
+                start_time: '',
+                duration: 0,
+                price: 0,
+                notes: ''
+            };
+
+            serviceBookings.push(booking);
+            renderServiceBooking(booking);
+            updateBookingSummary();
+        }
+
+        // Render service booking form
+        function renderServiceBooking(booking) {
+            const container = document.getElementById('serviceBookingsContainer');
+
+            const bookingDiv = document.createElement('div');
+            bookingDiv.className = 'service-booking-item';
+            bookingDiv.id = `booking-${booking.id}`;
+
+            bookingDiv.innerHTML = `
+                <button type="button" class="remove-service-btn" onclick="removeServiceBooking(${booking.id})">
+                    <i class="fas fa-times"></i>
+                </button>
+
+                <h4 style="margin-bottom: 15px; color: #2d3748;">
+                    <i class="fas fa-spa"></i>
+                    Service Booking #${serviceBookings.length}
+                </h4>
+
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label>Select Service *</label>
+                            <select class="form-control" onchange="updateServiceDetails(${booking.id}, this.value)">
+                                <option value="">Choose Service</option>
+                                ${services.map(service => `
+                                    <option value="${service.id}" data-duration="${service.duration}" data-price="${service.price}">
+                                        ${service.name} (${service.duration} min - ₹${service.price})
+                                    </option>
+                                `).join('')}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label>Select Staff *</label>
+                            <select class="form-control" onchange="updateStaffSelection(${booking.id}, this.value)">
+                                <option value="">Choose Staff</option>
+                                ${staff.map(member => `
+                                    <option value="${member.id}">
+                                        ${member.name} - ${member.specialty}
+                                    </option>
+                                `).join('')}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label>Date *</label>
+                            <input type="date" class="form-control" onchange="updateBookingDate(${booking.id}, this.value)">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label>Start Time *</label>
+                            <input type="time" class="form-control" onchange="updateStartTime(${booking.id}, this.value)">
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label>Duration</label>
+                            <input type="number" class="form-control" id="duration-${booking.id}" readonly>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label>Price</label>
+                            <input type="number" class="form-control" id="price-${booking.id}" readonly>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label>End Time</label>
+                            <input type="time" class="form-control" id="endtime-${booking.id}" readonly>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Notes</label>
+                    <textarea class="form-control" rows="2" placeholder="Additional notes..." onchange="updateNotes(${booking.id}, this.value)"></textarea>
+                </div>
+            `;
+
+            container.appendChild(bookingDiv);
+        }
+
+        // Update service details
+        function updateServiceDetails(bookingId, serviceId) {
+            const booking = serviceBookings.find(b => b.id === bookingId);
+            if (!booking) return;
+
+            booking.service_id = serviceId;
+
+            if (serviceId) {
+                const service = services.find(s => s.id == serviceId);
+                if (service) {
+                    booking.duration = service.duration;
+                    booking.price = service.price;
+
+                    document.getElementById(`duration-${bookingId}`).value = service.duration;
+                    document.getElementById(`price-${bookingId}`).value = service.price;
+
+                    updateEndTime(bookingId);
+                }
+            } else {
+                // Reset duration and price if no service is selected
+                booking.duration = 0;
+                booking.price = 0;
+                document.getElementById(`duration-${bookingId}`).value = '';
+                document.getElementById(`price-${bookingId}`).value = '';
+                document.getElementById(`endtime-${bookingId}`).value = '';
+            }
+
+            updateBookingSummary();
+        }
+
+        // Update staff selection
+        function updateStaffSelection(bookingId, staffId) {
+            const booking = serviceBookings.find(b => b.id === bookingId);
+            if (booking) {
+                booking.staff_id = staffId;
+            }
+        }
+
+        // Update booking date
+        function updateBookingDate(bookingId, date) {
+            const booking = serviceBookings.find(b => b.id === bookingId);
+            if (booking) {
+                booking.appointment_date = date;
+            }
+        }
+
+        // Update start time and calculate end time
+        function updateStartTime(bookingId, startTime) {
+            const booking = serviceBookings.find(b => b.id === bookingId);
+            if (booking) {
+                booking.start_time = startTime;
+                updateEndTime(bookingId);
+            }
+        }
+
+        // Update end time based on start time and duration
+        function updateEndTime(bookingId) {
+            const booking = serviceBookings.find(b => b.id === bookingId);
+            if (!booking || !booking.start_time || !booking.duration) return;
+
+            const [hours, minutes] = booking.start_time.split(':').map(Number);
+            const startMinutes = hours * 60 + minutes;
+            const endMinutes = startMinutes + booking.duration;
+
+            const endHours = Math.floor(endMinutes / 60);
+            const endMins = endMinutes % 60;
+
+            const endTime = `${endHours.toString().padStart(2, '0')}:${endMins.toString().padStart(2, '0')}`;
+            document.getElementById(`endtime-${bookingId}`).value = endTime;
+        }
+
+        // Update notes
+        function updateNotes(bookingId, notes) {
+            const booking = serviceBookings.find(b => b.id === bookingId);
+            if (booking) {
+                booking.notes = notes;
+            }
+        }
+
+        // Remove service booking
+        function removeServiceBooking(bookingId) {
+            serviceBookings = serviceBookings.filter(b => b.id !== bookingId);
+            document.getElementById(`booking-${bookingId}`).remove();
+            updateBookingSummary();
+        }
+
+        // Update booking summary
+        function updateBookingSummary() {
+            const summaryDiv = document.getElementById('bookingSummary');
+            const summaryDetails = document.getElementById('summaryDetails');
+
+            if (serviceBookings.length === 0) {
+                summaryDiv.style.display = 'none';
+                return;
+            }
+
+            let totalDuration = 0;
+            let totalAmount = 0;
+            let summaryHTML = '';
+
+            serviceBookings.forEach((booking, index) => {
+                const service = services.find(s => s.id == booking.service_id);
+                const staffMember = staff.find(s => s.id == booking.staff_id);
+
+                totalDuration += booking.duration;
+                totalAmount += booking.price;
+
+                summaryHTML += `
+                    <div style="padding: 10px; border-bottom: 1px solid #e2e8f0;">
+                        <strong>Service ${index + 1}:</strong>
+                        ${service ? service.name : 'Not selected'}
+                        ${staffMember ? `with ${staffMember.name}` : ''}
+                        ${booking.appointment_date && booking.start_time ?
+                            `on ${booking.appointment_date} at ${booking.start_time}` : ''}
+                        (${booking.duration} min - ₹${booking.price})
+                    </div>
+                `;
+            });
+
+            summaryDetails.innerHTML = summaryHTML;
+            document.getElementById('totalDuration').textContent = `${totalDuration} minutes`;
+            document.getElementById('totalAmount').textContent = `₹${totalAmount}`;
+
+            summaryDiv.style.display = 'block';
+        }
+
+        // Confirm all bookings
+        async function confirmAllBookings() {
+            if (!currentClient) {
+                alert('Please select a client first');
+                return;
+            }
+
+            // Validate all bookings
+            for (let booking of serviceBookings) {
+                if (!booking.service_id || !booking.staff_id || !booking.appointment_date || !booking.start_time) {
+                    alert('Please complete all required fields for all service bookings');
+                    return;
+                }
+            }
+
+            try {
+                const bookingData = {
+                    client_id: currentClient.id,
+                    bookings: serviceBookings.map(booking => ({
+                        service_id: booking.service_id,
+                        staff_id: booking.staff_id,
+                        appointment_date: booking.appointment_date,
+                        start_time: booking.start_time,
+                        duration: booking.duration,
+                        price: booking.price,
+                        notes: booking.notes
+                    }))
+                };
+
+                const response = await fetch('/api/unaki/bookings/multiple', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(bookingData)
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    alert(`Successfully booked ${result.booked_count} appointments!`);
+
+                    // Reset form
+                    serviceBookings = [];
+                    document.getElementById('serviceBookingsContainer').innerHTML = '';
+                    updateBookingSummary();
+                    loadSchedule();
+                } else {
+                    const error = await response.json();
+                    alert('Error booking appointments: ' + error.message);
+                }
+            } catch (error) {
+                console.error('Error confirming bookings:', error);
+                alert('Error confirming bookings. Please try again.');
+            }
+        }
+
+        // Load and display schedule
+        async function loadSchedule() {
+            const selectedDate = document.getElementById('scheduleDate').value;
+
+            try {
+                const response = await fetch(`/api/unaki/schedule?date=${selectedDate}`);
+                if (response.ok) {
+                    scheduleData = await response.json();
+                    renderScheduleGrid();
+                } else {
+                     console.error('Failed to load schedule');
+                     scheduleData = { appointments: [], breaks: [] }; // Reset schedule data on error
+                     renderScheduleGrid(); // Render empty grid
+                }
+            } catch (error) {
+                console.error('Error loading schedule:', error);
+                scheduleData = { appointments: [], breaks: [] }; // Reset schedule data on error
+                renderScheduleGrid(); // Render empty grid
+            }
+        }
+
+        // Render schedule grid
+        function renderScheduleGrid() {
+            const grid = document.getElementById('scheduleGrid');
             grid.innerHTML = '';
 
-            // Create header row
-            const emptyCorner = document.createElement('div');
-            emptyCorner.className = 'time-header';
-            emptyCorner.innerHTML = '<strong>Staff</strong>';
-            grid.appendChild(emptyCorner);
+            // Create time slots (10-minute intervals from 8 AM to 6 PM)
+            const timeSlots = [];
+            for (let hour = 8; hour < 18; hour++) {
+                for (let minute = 0; minute < 60; minute += 10) {
+                    timeSlots.push({
+                        hour,
+                        minute,
+                        time: `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`
+                    });
+                }
+            }
 
-            timeSlots.forEach(slot => {
+            // Header row for Staff / Time
+            const headerCell = document.createElement('div');
+            headerCell.className = 'grid-header';
+            headerCell.textContent = 'Staff / Time';
+            grid.appendChild(headerCell);
+
+            // Time headers
+            timeSlots.forEach((slot, index) => {
                 const timeHeader = document.createElement('div');
                 timeHeader.className = 'time-header';
-                timeHeader.textContent = slot.display;
+
+                if (slot.minute === 0) {
+                    timeHeader.classList.add('hour-mark');
+                    timeHeader.textContent = `${slot.hour}:00`;
+                } else if (slot.minute === 30) {
+                    timeHeader.classList.add('half-hour');
+                    timeHeader.textContent = ':30';
+                } else {
+                    timeHeader.textContent = `:${slot.minute}`;
+                }
                 grid.appendChild(timeHeader);
             });
 
-            // Create staff rows
-            scheduleData.staff.forEach(staff => {
+            // Staff rows
+            staff.forEach(staffMember => {
                 // Staff name cell
                 const staffCell = document.createElement('div');
                 staffCell.className = 'staff-cell';
                 staffCell.innerHTML = `
-                    <div class="staff-name">${staff.name}</div>
-                    <div class="staff-role">${staff.role}</div>
+                    <div>${staffMember.name}</div>
+                    <small>${staffMember.specialty}</small>
                 `;
                 grid.appendChild(staffCell);
 
                 // Time slots for this staff member
-                timeSlots.forEach((slot, slotIndex) => {
+                timeSlots.forEach(slot => {
                     const timeSlot = document.createElement('div');
-                    timeSlot.className = 'time-slot';
-                    timeSlot.dataset.staffId = staff.id;
-                    timeSlot.dataset.time = slot.time; // Store start time of the slot
+                    timeSlot.className = 'time-slot available';
+                    timeSlot.onclick = () => quickBook(staffMember.id, slot.time);
 
-                    // Check for appointments that start at this time
-                    const appointment = scheduleData.appointments.find(apt => 
-                        apt.staffId === staff.id && apt.startTime === slot.time
-                    );
-
-                    // Check if this slot is occupied by an ongoing appointment
-                    const ongoingAppointment = scheduleData.appointments.find(apt => {
-                        if (apt.staffId !== staff.id) return false;
-
-                        const aptStartHour = parseInt(apt.startTime.split(':')[0]);
-                        const aptStartMinute = parseInt(apt.startTime.split(':')[1]);
-                        const aptEndHour = parseInt(apt.endTime.split(':')[0]);
-                        const aptEndMinute = parseInt(apt.endTime.split(':')[1]);
-
-                        const slotHour = parseInt(slot.time.split(':')[0]);
-                        const slotMinute = parseInt(slot.time.split(':')[1]);
-
-                        const aptStartTime = aptStartHour * 60 + aptStartMinute;
-                        const aptEndTime = aptEndHour * 60 + aptEndMinute;
-                        const slotTime = slotHour * 60 + slotMinute;
-
-                        return slotTime >= aptStartTime && slotTime < aptEndTime;
-                    });
-
-                    // Check for breaks that start at this time
-                    const breakItem = scheduleData.breaks.find(brk => 
-                        brk.staffId === staff.id && brk.startTime === slot.time
-                    );
-
-                    // Check if this slot is occupied by an ongoing break
-                    const ongoingBreak = scheduleData.breaks.find(brk => {
-                        if (brk.staffId !== staff.id) return false;
-
-                        const brkStartHour = parseInt(brk.startTime.split(':')[0]);
-                        const brkStartMinute = parseInt(brk.startTime.split(':')[1]);
-                        const brkEndHour = parseInt(brk.endTime.split(':')[0]);
-                        const brkEndMinute = parseInt(brk.endTime.split(':')[1]);
-
-                        const slotHour = parseInt(slot.time.split(':')[0]);
-                        const slotMinute = parseInt(slot.time.split(':')[1]);
-
-                        const brkStartTime = brkStartHour * 60 + brkStartMinute;
-                        const brkEndTime = brkEndHour * 60 + brkEndMinute;
-                        const slotTime = slotHour * 60 + slotMinute;
-
-                        return slotTime >= brkStartTime && slotTime < brkEndTime;
-                    });
+                    // Check for appointments or breaks
+                    const appointment = findAppointmentAtTime(staffMember.id, slot.time);
+                    const breakTime = findBreakAtTime(staffMember.id, slot.time);
 
                     if (appointment) {
-                        // Calculate span based on duration
-                        const duration = appointment.duration || 60;
-                        const durationText = duration >= 60 ? 
-                            `${Math.floor(duration / 60)}h ${duration % 60 > 0 ? duration % 60 + 'm' : ''}`.trim() :
-                            `${duration}m`;
-
-                        // Calculate the actual width based on exact duration in minutes
-                        // Each time slot represents 60 minutes, so calculate percentage
-                        let blockWidth = '100%';
-
-                        if (duration <= 60) {
-                            // For appointments 60 minutes or less, calculate percentage of current slot
-                            const widthPercentage = (duration / 60) * 100;
-                            blockWidth = `${widthPercentage}%`;
-                        } else {
-                            // For appointments longer than 60 minutes, span multiple slots
-                            const fullSlots = Math.floor(duration / 60);
-                            const remainingMinutes = duration % 60;
-                            const remainingPercentage = remainingMinutes > 0 ? (remainingMinutes / 60) * 100 : 0;
-
-                            if (remainingMinutes === 0) {
-                                // Exact hour appointments (90min = 1.5 slots, 120min = 2 slots)
-                                blockWidth = `calc(${fullSlots * 100}% + ${(fullSlots - 1)}px)`;
-                            } else {
-                                // Appointments with partial minutes (90min, 150min, etc.)
-                                blockWidth = `calc(${(fullSlots * 100) + remainingPercentage}% + ${fullSlots}px)`;
-                            }
-                        }
-
-                        timeSlot.innerHTML = `
-                            <div class="appointment-block" style="width: ${blockWidth}; z-index: 10; position: absolute; top: 2px; left: 2px; height: calc(100% - 4px);">
-                                <div class="appointment-client">${appointment.clientName}</div>
-                                <div class="appointment-service">${appointment.service}</div>
-                                <div class="appointment-time" style="font-size: 10px; opacity: 0.9; font-weight: 600;">${appointment.startTime} - ${appointment.endTime}</div>
-                                <div class="appointment-duration" style="font-size: 9px; opacity: 0.8;">${durationText}</div>
-                            </div>
-                        `;
-
-                        // Mark the time slot as having a starting appointment
-                        timeSlot.dataset.hasAppointment = 'start';
-
-                    } else if (ongoingAppointment && !appointment) {
-                        // This slot is part of an ongoing appointment - make it invisible but blocked
-                        timeSlot.innerHTML = `
-                            <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: transparent; cursor: not-allowed;"></div>
-                        `;
-                        timeSlot.dataset.hasAppointment = 'ongoing';
-                        timeSlot.style.background = '#f8f9fa';
-                        timeSlot.style.borderTop = 'none';
-
-                    } else if (breakItem) {
-                        // Calculate break duration for spanning
-                        const brkStartHour = parseInt(breakItem.startTime.split(':')[0]);
-                        const brkStartMinute = parseInt(breakItem.startTime.split(':')[1]);
-                        const brkEndHour = parseInt(breakItem.endTime.split(':')[0]);
-                        const brkEndMinute = parseInt(breakItem.endTime.split(':')[1]);
-
-                        const brkStartTime = brkStartHour * 60 + brkStartMinute;
-                        const brkEndTime = brkEndHour * 60 + brkEndMinute;
-                        const breakDuration = brkEndTime - brkStartTime;
-
-                        // Calculate the actual width based on exact break duration in minutes
-                        let breakWidth = '100%';
-
-                        if (breakDuration <= 60) {
-                            // For breaks 60 minutes or less, calculate percentage of current slot
-                            const widthPercentage = (breakDuration / 60) * 100;
-                            breakWidth = `${widthPercentage}%`;
-                        } else {
-                            // For breaks longer than 60 minutes, span multiple slots
-                            const fullSlots = Math.floor(breakDuration / 60);
-                            const remainingMinutes = breakDuration % 60;
-                            const remainingPercentage = remainingMinutes > 0 ? (remainingMinutes / 60) * 100 : 0;
-
-                            if (remainingMinutes === 0) {
-                                // Exact hour breaks
-                                breakWidth = `calc(${fullSlots * 100}% + ${(fullSlots - 1)}px)`;
-                            } else {
-                                // Breaks with partial minutes
-                                breakWidth = `calc(${(fullSlots * 100) + remainingPercentage}% + ${fullSlots}px)`;
-                            }
-                        }
-
-                        timeSlot.innerHTML = `
-                            <div class="break-block" style="width: ${breakWidth}; z-index: 10; position: absolute; top: 2px; left: 2px; height: calc(100% - 4px);">
-                                <div><i class="fas fa-coffee me-1"></i>Break</div>
-                                <div class="break-time" style="font-size: 9px; opacity: 0.9; margin-top: 2px;">${breakItem.startTime} - ${breakItem.endTime}</div>
-                            </div>
-                        `;
-                        timeSlot.dataset.hasBreak = 'start';
-
-                    } else if (ongoingBreak && !breakItem) {
-                        // This slot is part of an ongoing break - make it invisible but blocked
-                        timeSlot.innerHTML = `
-                            <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: transparent; cursor: not-allowed;"></div>
-                        `;
-                        timeSlot.dataset.hasBreak = 'ongoing';
-                        timeSlot.style.background = '#fff3cd';
-                        timeSlot.style.borderTop = 'none';
+                        const appointmentBlock = document.createElement('div');
+                        appointmentBlock.className = 'appointment-block';
+                        appointmentBlock.textContent = `${appointment.client_name} - ${appointment.service}`;
+                        appointmentBlock.title = `Client: ${appointment.client_name}\nService: ${appointment.service}\nTime: ${appointment.start_time} - ${appointment.end_time}`;
+                        timeSlot.appendChild(appointmentBlock);
+                        timeSlot.className = 'time-slot booked';
+                    } else if (breakTime) {
+                        const breakBlock = document.createElement('div');
+                        breakBlock.className = 'break-block';
+                        breakBlock.textContent = breakTime.break_type;
+                        timeSlot.appendChild(breakBlock);
+                        timeSlot.className = 'time-slot break';
+                    } else {
+                        // If no appointment or break, ensure it's marked as available
+                        timeSlot.className = 'time-slot available';
                     }
 
                     grid.appendChild(timeSlot);
                 });
             });
-
-            setupDragHandlers();
         }
 
-        function setupDragHandlers() {
-            const timeSlots = document.querySelectorAll('.time-slot');
+        // Find appointment at specific time
+        function findAppointmentAtTime(staffId, time) {
+            if (!scheduleData || !scheduleData.appointments) return null;
 
-            timeSlots.forEach(slot => {
-                // Remove existing listeners to prevent duplicates if re-rendering
-                slot.removeEventListener('mousedown', handleMouseDown);
-                slot.removeEventListener('mouseenter', handleMouseEnter);
-                slot.removeEventListener('mouseup', handleMouseUp);
-                
-                slot.addEventListener('mousedown', handleMouseDown);
-                slot.addEventListener('mouseenter', handleMouseEnter);
-                slot.addEventListener('mouseup', handleMouseUp);
-            });
-        }
-
-        function handleMouseDown(e) {
-            // Prevent drag from starting if clicking on an appointment or break
-            if (e.target.closest('.appointment-block, .break-block')) return;
-
-            isDragging = true;
-            // Ensure we're targeting the time-slot element itself
-            const targetSlot = e.currentTarget; 
-            dragStart = {
-                staffId: parseInt(targetSlot.dataset.staffId),
-                time: targetSlot.dataset.time, // This is the start time of the slot
-                element: targetSlot
-            };
-
-            // Add a visual indicator for the start of the drag
-            targetSlot.classList.add('drag-selection'); 
-            // Prevent default drag behavior
-            e.preventDefault(); 
-        }
-
-        function handleMouseEnter(e) {
-            if (!isDragging || !dragStart) return;
-
-            const currentTarget = e.currentTarget;
-            const currentStaffId = parseInt(currentTarget.dataset.staffId);
-
-            // Only highlight if it's the same staff member and not already occupied
-            if (currentStaffId === dragStart.staffId && !currentTarget.dataset.hasAppointment && !currentTarget.dataset.hasBreak) {
-                currentTarget.classList.add('drag-selection');
-                // We might want to show a range, but for now, just highlighting is fine
-            }
-        }
-
-        function handleMouseUp(e) {
-            if (!isDragging || !dragStart) return;
-
-            isDragging = false;
-            const endSlot = e.currentTarget;
-            const endStaffId = parseInt(endSlot.dataset.staffId);
-            const endTime = endSlot.dataset.time; // This is the start time of the end slot
-
-            // Clean up all drag selection classes
-            document.querySelectorAll('.time-slot').forEach(slot => {
-                slot.classList.remove('drag-selection');
-            });
-
-            // Ensure the drag was within the same staff member and a valid end time was reached
-            if (dragStart && dragStart.staffId === endStaffId && dragStart.time && endTime) {
-                // Ensure the end time is after the start time
-                if (endTime > dragStart.time) {
-                    openBookingModal(dragStart.staffId, dragStart.time, endTime);
-                } else {
-                    // If end time is same or earlier, it's not a valid range for a new booking
-                    console.log("Invalid time range selected.");
-                }
-            }
-            
-            // Reset drag state
-            dragStart = null; 
-        }
-
-        function openBookingModal(staffId, startTime, endTime) {
-            const staff = scheduleData.staff.find(s => s.id === staffId);
-            if (!staff) return;
-
-            document.getElementById('startTime').value = startTime;
-            document.getElementById('endTime').value = endTime;
-
-            // Calculate duration based on selected time slots
-            const startDateTime = new Date(`2000-01-01T${startTime}:00`);
-            const endDateTime = new Date(`2000-01-01T${endTime}:00`);
-            const durationMs = endDateTime - startDateTime;
-            const durationMinutes = durationMs / (1000 * 60);
-
-            // Update duration select if possible, or at least set the read-only end time input
-            const durationSelect = document.getElementById('appointmentDuration');
-            if (durationSelect.options.namedItem(durationMinutes.toString())) {
-                durationSelect.value = durationMinutes.toString();
-            } else {
-                 // If exact duration not available, set it to the nearest or just update end time
-                document.getElementById('endTime').value = endTime; // Ensure endTime is correct
-                // Optionally, find closest duration option
-                let closestDuration = 15;
-                let minDiff = Infinity;
-                for (const option of durationSelect.options) {
-                    const optionValue = parseInt(option.value);
-                    const diff = Math.abs(optionValue - durationMinutes);
-                    if (diff < minDiff) {
-                        minDiff = diff;
-                        closestDuration = optionValue;
-                    }
-                }
-                durationSelect.value = closestDuration.toString();
-            }
-            updateEndTime(); // Ensure end time is recalculated based on selected duration
-
-            // Populate staff select
-            const staffSelect = document.getElementById('staffSelect');
-            staffSelect.innerHTML = '';
-            scheduleData.staff.forEach(s => {
-                const option = document.createElement('option');
-                option.value = s.id;
-                option.textContent = `${s.name} (${s.role})`;
-                option.selected = s.id === staffId;
-                staffSelect.appendChild(option);
-            });
-
-            // Populate service select (optional, can be pre-filled or empty)
-            // For now, we'll leave it for the user to select in the modal
-
-            const modal = new bootstrap.Modal(document.getElementById('bookingModal'));
-            modal.show();
-        }
-
-        function updateEndTime() {
-            const startTime = document.getElementById('startTime').value;
-            const duration = parseInt(document.getElementById('appointmentDuration').value);
-
-            if (startTime && !isNaN(duration)) {
-                const [hours, minutes] = startTime.split(':').map(Number);
-                const startMinutes = hours * 60 + minutes;
-                const endMinutes = startMinutes + duration;
-
-                const endHours = Math.floor(endMinutes / 60);
-                const endMins = endMinutes % 60;
-
-                // Ensure end time stays within the working day (e.g., 8 AM to 6 PM or 18:00)
-                if (endHours >= 18 && endMins > 0) {
-                    // If it goes past 18:00, cap it or handle as error
-                    // For now, just show the calculated time, might need validation later
-                }
-
-                const endTime = `${endHours.toString().padStart(2, '0')}:${endMins.toString().padStart(2, '0')}`;
-                document.getElementById('endTime').value = endTime;
-            }
-        }
-
-        function bookAppointment() {
-            const form = document.getElementById('bookingForm');
-            if (!form.checkValidity()) {
-                form.reportValidity();
-                return;
-            }
-
-            const duration = parseInt(document.getElementById('appointmentDuration').value);
-
-            const newAppointment = {
-                id: Date.now(),
-                staffId: parseInt(document.getElementById('staffSelect').value),
-                clientName: document.getElementById('clientName').value,
-                service: document.getElementById('serviceType').value,
-                startTime: document.getElementById('startTime').value,
-                endTime: document.getElementById('endTime').value,
-                duration: duration,
-                phone: document.getElementById('clientPhone').value,
-                notes: document.getElementById('appointmentNotes').value
-            };
-
-            // Basic validation: Check if the slot is already booked or a break
-            const staffId = newAppointment.staffId;
-            const startTime = newAppointment.startTime;
-            const endTime = newAppointment.endTime;
-
-            const isSlotBooked = scheduleData.appointments.some(apt =>
-                apt.staffId === staffId &&
-                ((startTime >= apt.startTime && startTime < apt.endTime) ||
-                 (endTime > apt.startTime && endTime <= apt.endTime) ||
-                 (startTime <= apt.startTime && endTime >= apt.endTime))
+            return scheduleData.appointments.find(apt =>
+                apt.staff_id === staffId &&
+                apt.start_time <= time &&
+                apt.end_time > time
             );
+        }
 
-            const isSlotBreak = scheduleData.breaks.some(brk =>
-                brk.staffId === staffId &&
-                ((startTime >= brk.startTime && startTime < brk.endTime) ||
-                 (endTime > brk.startTime && endTime <= brk.endTime) ||
-                 (startTime <= brk.startTime && endTime >= brk.endTime))
+        // Find break at specific time
+        function findBreakAtTime(staffId, time) {
+            if (!scheduleData || !scheduleData.breaks) return null;
+
+            return scheduleData.breaks.find(brk =>
+                brk.staff_id === staffId &&
+                brk.start_time <= time &&
+                brk.end_time > time
             );
+        }
 
-            if (isSlotBooked || isSlotBreak) {
-                alert('The selected time slot for this staff member is already booked or is a break. Please choose another time.');
+        // Quick book function (clicking on time slot)
+        function quickBook(staffId, time) {
+            if (!currentClient) {
+                alert('Please search and select a client first');
                 return;
             }
 
+            // Add a new service booking
+            addServiceBooking();
 
-            scheduleData.appointments.push(newAppointment);
-            localStorage.setItem(`schedule-${currentDate}`, JSON.stringify(scheduleData));
+            // Get the last added booking
+            const lastBooking = serviceBookings[serviceBookings.length - 1];
+            const bookingDiv = document.getElementById(`booking-${lastBooking.id}`);
 
-            // Clear form
-            form.reset();
+            // Pre-fill staff and time
+            const staffSelect = bookingDiv.querySelector('select[onchange*="updateStaffSelection"]');
+            const timeInput = bookingDiv.querySelector('input[type="time"]');
+            const dateInput = bookingDiv.querySelector('input[type="date"]');
 
-            // Close modal
-            const modal = bootstrap.Modal.getInstance(document.getElementById('bookingModal'));
-            modal.hide();
+            staffSelect.value = staffId;
+            updateStaffSelection(lastBooking.id, staffId);
 
-            renderSchedule();
-            updateStats();
-        }
+            timeInput.value = time;
+            updateStartTime(lastBooking.id, time);
 
-        function updateStats() {
-            document.getElementById('totalAppointments').textContent = scheduleData.appointments.length;
-            document.getElementById('activeStaff').textContent = scheduleData.staff.length;
+            const selectedDate = document.getElementById('scheduleDate').value;
+            dateInput.value = selectedDate;
+            updateBookingDate(lastBooking.id, selectedDate);
 
-            // Assuming 10 slots per staff from 8:00 to 17:00 (10 hours)
-            const totalPossibleSlots = scheduleData.staff.length * 10; 
-            let bookedSlotsCount = 0;
-
-            scheduleData.appointments.forEach(apt => {
-                // Count appointments that start within the defined hour slots
-                // This is a simplification; a more accurate count would consider duration spanning slots
-                bookedSlotsCount++; 
-            });
-
-            // Add breaks to booked slots count
-            bookedSlotsCount += scheduleData.breaks.length;
-
-            const availableSlots = Math.max(0, totalPossibleSlots - bookedSlotsCount);
-            const utilization = totalPossibleSlots > 0 ? Math.round((bookedSlotsCount / totalPossibleSlots) * 100) : 0;
-
-            document.getElementById('availableSlots').textContent = availableSlots;
-            document.getElementById('utilizationRate').textContent = utilization + '%';
-        }
-
-        function refreshSchedule() {
-            loadScheduleForDate();
-        }
-
-        // Global mouse up handler to stop dragging
-        document.addEventListener('mouseup', function() {
-            if (isDragging) {
-                isDragging = false;
-                // Clean up drag selection classes if mouseup happens outside a slot
-                document.querySelectorAll('.time-slot.drag-selection').forEach(slot => {
-                    slot.classList.remove('drag-selection');
-                });
-                // Reset drag state
-                dragStart = null; 
-            }
-        });
-
-        // Multi-booking functionality starts here
-        // Multiple Booking Variables
-        let selectedClient = null;
-        let selectedServices = [];
-        let availableStaff = []; // Will be populated when date is selected
-        let availableServices = []; // Will be populated when date is selected
-
-        // Open Multiple Booking Modal
-        function openMultipleBookingModal() {
-            resetMultipleBookingModal();
-            const modal = new bootstrap.Modal(document.getElementById('multipleBookingModal'));
-            modal.show();
-        }
-
-        // Reset modal to initial state
-        function resetMultipleBookingModal() {
-            selectedClient = null;
-            selectedServices = [];
-            // Reset UI steps
-            document.getElementById('clientSearchStep').classList.add('active');
-            document.getElementById('dateSelectionStep').classList.remove('active');
-            document.getElementById('serviceSelectionStep').classList.remove('active');
-            // Clear inputs and hide elements
-            document.getElementById('clientPhoneSearch').value = '';
-            document.getElementById('clientSearchResults').style.display = 'none';
-            document.getElementById('addNewClientForm').style.display = 'none';
-            document.getElementById('selectedClientDisplay').style.display = 'none';
-            document.getElementById('selectFoundClientBtn').disabled = true; // Disable select button initially
-            document.getElementById('multiBookingDate').value = ''; // Clear date
-            document.getElementById('serviceSelect').value = ''; // Clear service selection
-            document.getElementById('staffSelect').value = ''; // Clear staff selection
-            document.getElementById('timeSelect').value = ''; // Clear time selection
-            document.getElementById('serviceInfoDisplay').style.display = 'none';
-            document.getElementById('timeConflictWarning').style.display = 'none';
-            updateSelectedServicesList(); // Clear the list of selected services
-        }
-
-        // Search client by phone number
-        function searchClientByPhone() {
-            const phone = document.getElementById('clientPhoneSearch').value.trim();
-            // Basic validation for phone number length
-            if (phone.length < 7) { // Assuming a minimum of 7 digits for local numbers
-                alert("Please enter a valid phone number.");
-                document.getElementById('clientSearchResults').style.display = 'none';
-                return;
-            }
-
-            // Simulate API call to search client
-            // In a real app, this would be a fetch to your backend API
-            // Example: fetch(`/api/customers?phone=${encodeURIComponent(phone)}`)
-            
-            // Mock response for demonstration
-            setTimeout(() => {
-                // Simulate finding a client
-                if (phone === "1234567890") {
-                    showClientFound({
-                        id: 101,
-                        full_name: "Jane Doe",
-                        phone: "1234567890",
-                        email: "jane.doe@example.com",
-                        total_visits: 5
-                    });
-                } else if (phone === "9876543210") {
-                     showClientFound({
-                        id: 102,
-                        full_name: "John Smith",
-                        phone: "9876543210",
-                        email: null,
-                        total_visits: 2
-                    });
-                }
-                else {
-                    showClientNotFound(phone);
-                }
-            }, 500); 
-        }
-
-        // Show client found
-        function showClientFound(client) {
-            const resultsDiv = document.getElementById('clientSearchResults');
-            const infoDiv = document.getElementById('clientFoundInfo');
-
-            infoDiv.innerHTML = `
-                <strong>Client Found:</strong><br>
-                <i class="fas fa-user me-2"></i>${client.full_name}<br>
-                <i class="fas fa-phone me-2"></i>${client.phone}<br>
-                ${client.email ? `<i class="fas fa-envelope me-2"></i>${client.email}<br>` : ''}
-                <small class="text-muted">Total visits: ${client.total_visits || 0}</small>
-            `;
-
-            selectedClient = client; // Store the found client
-            resultsDiv.style.display = 'block';
-            document.getElementById('addNewClientForm').style.display = 'none';
-            document.getElementById('selectFoundClientBtn').disabled = false; // Enable select button
-        }
-
-        // Show client not found
-        function showClientNotFound(phone) {
-            const resultsDiv = document.getElementById('clientSearchResults');
-            const infoDiv = document.getElementById('clientFoundInfo');
-
-            infoDiv.innerHTML = `
-                <div class="text-warning">
-                    <i class="fas fa-exclamation-triangle me-2"></i>
-                    No client found with phone number: ${phone}
-                </div>
-                <small>Click "Add New Client" to create a new client with this number.</small>
-            `;
-
-            // Pre-fill the new client phone number
-            document.getElementById('newClientPhone').value = phone; 
-            
-            resultsDiv.style.display = 'block';
-            document.getElementById('selectFoundClientBtn').disabled = true; // Disable select button
-            selectedClient = null; // Ensure no client is selected
-        }
-
-        // Select found client and proceed
-        function selectFoundClient() {
-            if (selectedClient) {
-                showSelectedClient();
-                document.getElementById('clientSearchStep').classList.remove('active');
-                document.getElementById('dateSelectionStep').classList.add('active');
-            } else {
-                alert("Please search for a client first.");
-            }
-        }
-
-        // Show add new client form
-        function showAddNewClientForm() {
-            document.getElementById('addNewClientForm').style.display = 'block';
-            document.getElementById('clientSearchResults').style.display = 'none';
-            document.getElementById('selectFoundClientBtn').disabled = true; // Disable select button
-        }
-
-        // Hide add new client form
-        function hideAddNewClientForm() {
-            document.getElementById('addNewClientForm').style.display = 'none';
-            // Optionally show search results again if needed
-            if(document.getElementById('clientFoundInfo').innerHTML.trim() !== '') {
-                document.getElementById('clientSearchResults').style.display = 'block';
-            }
-        }
-
-        // Create new client
-        function createNewClient() {
-            const firstName = document.getElementById('newClientFirstName').value.trim();
-            const lastName = document.getElementById('newClientLastName').value.trim();
-            const phone = document.getElementById('newClientPhone').value.trim();
-            const email = document.getElementById('newClientEmail').value.trim();
-
-            // Basic validation
-            if (!firstName || !lastName || !phone) {
-                alert('Please fill in First Name, Last Name, and Phone Number.');
-                return;
-            }
-
-            const clientData = {
-                first_name: firstName,
-                last_name: lastName,
-                phone: phone,
-                email: email
-            };
-
-            // Simulate API call to create a client
-            // In a real app: fetch('/customers/create', { method: 'POST', body: JSON.stringify(clientData) })
-            setTimeout(() => {
-                selectedClient = {
-                    id: Date.now(), // Temporary ID, real ID would come from API response
-                    full_name: `${firstName} ${lastName}`,
-                    phone: phone,
-                    email: email,
-                    total_visits: 0 // New client has 0 visits initially
-                };
-                showSelectedClient();
-                // Transition to the next step
-                document.getElementById('clientSearchStep').classList.remove('active');
-                document.getElementById('dateSelectionStep').classList.add('active');
-            }, 500);
-        }
-
-        // Show the currently selected client's info and move to next step
-        function showSelectedClient() {
-            const displayDiv = document.getElementById('selectedClientDisplay');
-            const infoDiv = document.getElementById('selectedClientInfo');
-
-            infoDiv.innerHTML = `
-                <i class="fas fa-user me-2"></i><strong>${selectedClient.full_name}</strong><br>
-                <i class="fas fa-phone me-2"></i>${selectedClient.phone}
-                ${selectedClient.email ? `<br><i class="fas fa-envelope me-2"></i>${selectedClient.email}` : ''}
-            `;
-
-            displayDiv.style.display = 'block';
-            // Hide other forms/results
-            document.getElementById('clientSearchResults').style.display = 'none';
-            document.getElementById('addNewClientForm').style.display = 'none';
-        }
-
-        // Proceed to date selection from client search step
-        function proceedToDateSelection() {
-            if (!selectedClient) {
-                alert("Please select or add a client before proceeding.");
-                return;
-            }
-            document.getElementById('clientSearchStep').classList.remove('active');
-            document.getElementById('dateSelectionStep').classList.add('active');
-
-            // Set default date to today
-            const today = new Date().toISOString().split('T')[0];
-            document.getElementById('multiBookingDate').value = today;
-        }
-
-        // Back to client search from date selection step
-        function backToClientSearch() {
-            document.getElementById('dateSelectionStep').classList.remove('active');
-            document.getElementById('clientSearchStep').classList.add('active');
-        }
-
-        // Load available staff and services for the selected date
-        function loadAvailableStaff() {
-            const selectedDate = document.getElementById('multiBookingDate').value;
-            if (!selectedDate) return;
-
-            // Load services (this data might come from an API in a real app)
-            loadServices();
-            // Load staff for the selected date (this data might also come from an API)
-            loadStaffForDate(selectedDate);
-        }
-
-        // Load services data
-        function loadServices() {
-            // Mock service data - replace with API call in production
-            availableServices = [
-                { id: 1, name: 'Deep Cleansing Facial', duration: 90, price: 80 },
-                { id: 2, name: 'Swedish Massage', duration: 60, price: 75 },
-                { id: 3, name: 'Hair Cut & Style', duration: 75, price: 45 },
-                { id: 4, name: 'Manicure', duration: 45, price: 35 },
-                { id: 5, name: 'Pedicure', duration: 60, price: 40 },
-                { id: 6, name: 'Aromatherapy Massage', duration: 75, price: 85 },
-                { id: 7, name: 'Body Scrub', duration: 90, price: 90 },
-                { id: 8, name: 'Hot Stone Massage', duration: 90, price: 100 }
-            ];
-
-            const serviceSelect = document.getElementById('serviceSelect');
-            serviceSelect.innerHTML = '<option value="">Select Service...</option>'; // Reset options
-
-            availableServices.forEach(service => {
-                const option = document.createElement('option');
-                option.value = service.id;
-                option.textContent = `${service.name} (${service.duration} min - $${service.price.toFixed(2)})`;
-                option.dataset.duration = service.duration;
-                option.dataset.price = service.price;
-                serviceSelect.appendChild(option);
-            });
-        }
-
-        // Load staff data
-        function loadStaffForDate(date) {
-            // Mock staff data - replace with API call in production
-            // In a real scenario, you might filter staff based on availability for the given date
-            availableStaff = [
-                { id: 1, name: 'Sarah Johnson', role: 'Facial Specialist' },
-                { id: 2, name: 'Michael Chen', role: 'Massage Therapist' },
-                { id: 3, name: 'Emily Rodriguez', role: 'Hair Stylist' },
-                { id: 4, name: 'James Wilson', role: 'Nail Technician' }
-            ];
-
-            const staffSelect = document.getElementById('staffSelect');
-            staffSelect.innerHTML = '<option value="">Select Staff...</option>'; // Reset options
-
-            availableStaff.forEach(staff => {
-                const option = document.createElement('option');
-                option.value = staff.id;
-                option.textContent = `${staff.name} (${staff.role})`;
-                staffSelect.appendChild(option);
-            });
-        }
-
-        // Proceed to service selection from date selection step
-        function proceedToServiceSelection() {
-            const selectedDate = document.getElementById('multiBookingDate').value;
-            if (!selectedDate) {
-                alert('Please select a date first.');
-                return;
-            }
-
-            document.getElementById('dateSelectionStep').classList.remove('active');
-            document.getElementById('serviceSelectionStep').classList.add('active');
-            loadAvailableStaff(); // Load staff and services after showing the step
-        }
-
-        // Back to date selection from service selection step
-        function backToDateSelection() {
-            document.getElementById('serviceSelectionStep').classList.remove('active');
-            document.getElementById('dateSelectionStep').classList.add('active');
-        }
-
-        // Handle service selection change
-        function onServiceSelect() {
-            const serviceSelect = document.getElementById('serviceSelect');
-            const selectedOption = serviceSelect.options[serviceSelect.selectedIndex];
-
-            if (selectedOption.value) { // If a service is selected
-                const duration = parseInt(selectedOption.dataset.duration);
-                const price = parseFloat(selectedOption.dataset.price);
-
-                // Display service details
-                document.getElementById('serviceNameDisplay').textContent = selectedOption.text.split(' (')[0];
-                document.getElementById('serviceDuration').textContent = duration;
-                document.getElementById('servicePrice').textContent = price.toFixed(2);
-                document.getElementById('serviceInfoDisplay').style.display = 'block';
-            } else { // If no service is selected
-                document.getElementById('serviceInfoDisplay').style.display = 'none';
-                document.getElementById('timeConflictWarning').style.display = 'none';
-            }
-            // Update time slots based on selected service and staff
-            updateTimeSlots(); 
-        }
-
-        // Handle staff selection change
-        function onStaffSelect() {
-            // Update time slots based on selected service and staff
-            updateTimeSlots();
-        }
-
-        // Update available time slots based on selected service and staff
-        function updateTimeSlots() {
-            const serviceSelect = document.getElementById('serviceSelect');
-            const staffSelect = document.getElementById('staffSelect');
-            const timeSelect = document.getElementById('timeSelect');
-
-            timeSelect.innerHTML = '<option value="">Select Time...</option>'; // Reset time options
-
-            // Only proceed if both service and staff are selected
-            if (!serviceSelect.value || !staffSelect.value) {
-                return;
-            }
-
-            const selectedService = availableServices.find(s => s.id == serviceSelect.value);
-            const selectedStaffId = parseInt(staffSelect.value);
-            const serviceDuration = selectedService.duration;
-
-            // Generate potential start times (e.g., every 30 minutes from 8 AM to 5 PM)
-            // This needs to consider the service duration to determine valid end times
-            const dayStartTime = 8 * 60; // 8:00 AM in minutes
-            const dayEndTime = 18 * 60; // 6:00 PM in minutes (exclusive end)
-
-            for (let startMinutes = dayStartTime; startMinutes < dayEndTime; startMinutes += 30) {
-                const endMinutes = startMinutes + serviceDuration;
-
-                // Check if the service ends within the working day
-                if (endMinutes <= dayEndTime) {
-                    const startHour = Math.floor(startMinutes / 60);
-                    const startMin = startMinutes % 60;
-                    const startTimeStr = `${startHour.toString().padStart(2, '0')}:${startMin.toString().padStart(2, '0')}`;
-
-                    const endHour = Math.floor(endMinutes / 60);
-                    const endMin = endMinutes % 60;
-                    const endTimeStr = `${endHour.toString().padStart(2, '0')}:${endMin.toString().padStart(2, '0')}`;
-
-                    // Check for conflicts with existing appointments and breaks for the selected staff
-                    const isTimeSlotAvailable = !scheduleData.appointments.some(apt =>
-                        apt.staffId === selectedStaffId &&
-                        isTimeOverlap(startTimeStr, endTimeStr, apt.startTime, apt.endTime)
-                    ) && !scheduleData.breaks.some(brk =>
-                        brk.staffId === selectedStaffId &&
-                        isTimeOverlap(startTimeStr, endTimeStr, brk.startTime, brk.endTime)
-                    );
-                    
-                    // Check for conflicts with already added services in this multi-booking session
-                    const isTimeSlotAvailableForSelected = !selectedServices.some(service =>
-                        service.staffId == selectedStaffId &&
-                        isTimeOverlap(startTimeStr, endTimeStr, service.startTime, service.endTime)
-                    );
-
-                    if (isTimeSlotAvailable && isTimeSlotAvailableForSelected) {
-                        const option = document.createElement('option');
-                        option.value = startTimeStr;
-                        option.textContent = formatTime12Hour(startTimeStr);
-                        option.dataset.endTime = endTimeStr; // Store calculated end time
-                        timeSelect.appendChild(option);
-                    }
-                }
-            }
-
-            // Add event listener to update end time display and check conflicts when time is selected
-            timeSelect.removeEventListener('change', handleTimeSelectChange); // Remove previous listener to avoid duplicates
-            timeSelect.addEventListener('change', handleTimeSelectChange);
-        }
-
-        // Helper function to check for time overlap
-        function isTimeOverlap(startA, endA, startB, endB) {
-            // Convert HH:MM to minutes since midnight for easier comparison
-            const toMinutes = (timeStr) => {
-                const [h, m] = timeStr.split(':').map(Number);
-                return h * 60 + m;
-            };
-
-            const startMinutesA = toMinutes(startA);
-            const endMinutesA = toMinutes(endA);
-            const startMinutesB = toMinutes(startB);
-            const endMinutesB = toMinutes(endB);
-
-            // Check if A starts before B ends AND A ends after B starts
-            return startMinutesA < endMinutesB && endMinutesA > startMinutesB;
-        }
-
-        // Combined handler for time selection change
-        function handleTimeSelectChange() {
-            const timeSelect = document.getElementById('timeSelect');
-            const serviceSelect = document.getElementById('serviceSelect');
-            
-            if (timeSelect.value && serviceSelect.value) {
-                const selectedOption = timeSelect.options[timeSelect.selectedIndex];
-                const endTimeStr = selectedOption.dataset.endTime;
-
-                // Display the calculated end time
-                document.getElementById('serviceEndTime').textContent = formatTime12Hour(endTimeStr);
-
-                // Check for conflicts
-                checkTimeConflicts(timeSelect.value, endTimeStr);
-            } else {
-                document.getElementById('serviceEndTime').textContent = '';
-                document.getElementById('timeConflictWarning').style.display = 'none';
-            }
-        }
-
-        // Check for time conflicts with already added services
-        function checkTimeConflicts(startTime, endTime) {
-            const staffId = document.getElementById('staffSelect').value;
-            const conflictWarning = document.getElementById('timeConflictWarning');
-            const conflictDetailsDiv = document.getElementById('conflictDetails');
-
-            // Check against services already added to the current booking session
-            const conflicts = selectedServices.filter(service => 
-                service.staffId == staffId && 
-                isTimeOverlap(startTime, endTime, service.startTime, service.endTime)
-            );
-
-            if (conflicts.length > 0) {
-                const conflictDetails = conflicts.map(c => 
-                    `${c.serviceName} with ${c.staffName} (${formatTime12Hour(c.startTime)} - ${formatTime12Hour(c.endTime)})`
-                ).join(', ');
-
-                conflictDetailsDiv.textContent = `Conflicts with: ${conflictDetails}`;
-                conflictWarning.style.display = 'block';
-            } else {
-                conflictWarning.style.display = 'none';
-            }
-        }
-
-        // Add the selected service to the current booking
-        function addServiceToBooking() {
-            const serviceSelect = document.getElementById('serviceSelect');
-            const staffSelect = document.getElementById('staffSelect');
-            const timeSelect = document.getElementById('timeSelect');
-
-            // Validate selections
-            if (!serviceSelect.value || !staffSelect.value || !timeSelect.value) {
-                alert('Please select a service, staff member, and start time.');
-                return;
-            }
-
-            const selectedServiceOption = serviceSelect.options[serviceSelect.selectedIndex];
-            const selectedStaffOption = staffSelect.options[staffSelect.selectedIndex];
-            const selectedTimeOption = timeSelect.options[timeSelect.selectedIndex];
-
-            const serviceId = parseInt(serviceSelect.value);
-            const staffId = parseInt(staffSelect.value);
-            const startTime = timeSelect.value;
-            const endTime = selectedTimeOption.dataset.endTime; // Already calculated end time
-
-            const serviceData = availableServices.find(s => s.id === serviceId);
-
-            // Ensure the selected time slot is actually available (re-check after adding)
-            const isTimeSlotAvailable = !selectedServices.some(service =>
-                service.staffId == staffId && 
-                isTimeOverlap(startTime, endTime, service.startTime, service.endTime)
-            );
-
-            if (!isTimeSlotAvailable) {
-                alert("This time slot is already taken by another service in this booking. Please choose a different time.");
-                return;
-            }
-
-            // Create the service entry
-            const newService = {
-                id: Date.now(), // Unique ID for this specific service instance in the booking
-                serviceId: serviceId,
-                serviceName: serviceData.name,
-                staffId: staffId,
-                staffName: selectedStaffOption.textContent.split(' (')[0], // Get name from option text
-                startTime: startTime,
-                endTime: endTime,
-                duration: serviceData.duration,
-                price: serviceData.price
-            };
-
-            selectedServices.push(newService); // Add to the list for this booking
-            updateSelectedServicesList(); // Update the UI
-
-            // Reset the selection fields for adding another service
-            serviceSelect.value = '';
-            staffSelect.value = '';
-            timeSelect.value = '';
-            document.getElementById('serviceInfoDisplay').style.display = 'none';
-            document.getElementById('timeConflictWarning').style.display = 'none';
-            document.getElementById('serviceEndTime').textContent = ''; // Clear end time display
-        }
-
-        // Update the list of selected services in the UI
-        function updateSelectedServicesList() {
-            const listContainer = document.getElementById('selectedServicesList');
-            const countElement = document.getElementById('serviceCount');
-            const summaryElement = document.getElementById('bookingSummary');
-
-            countElement.textContent = selectedServices.length;
-
-            // If no services are selected, show a placeholder message
-            if (selectedServices.length === 0) {
-                listContainer.innerHTML = '<div class="text-muted text-center py-3">No services added yet</div>';
-                summaryElement.style.display = 'none'; // Hide summary if no services
-                return;
-            }
-
-            let html = '';
-            let totalDuration = 0;
-            let totalCost = 0;
-
-            selectedServices.forEach((service, index) => {
-                totalDuration += service.duration;
-                totalCost += service.price;
-
-                // Generate HTML for each selected service
-                html += `
-                    <div class="selected-service-item">
-                        <div class="row align-items-center">
-                            <div class="col">
-                                <strong>${service.serviceName}</strong> with ${service.staffName}<br>
-                                <small class="text-muted">
-                                    <i class="fas fa-clock me-1"></i>${formatTime12Hour(service.startTime)} - ${formatTime12Hour(service.endTime)} | 
-                                    <i class="fas fa-dollar-sign me-1"></i>${service.price.toFixed(2)}
-                                </small>
-                            </div>
-                            <div class="col-auto">
-                                <button class="btn btn-outline-danger btn-sm" onclick="removeService(${index})" title="Remove Service">
-                                    <i class="fas fa-trash"></i> Remove
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                `;
-            });
-
-            listContainer.innerHTML = html; // Update the list container
-
-            // Update the summary totals
-            document.getElementById('totalDuration').textContent = totalDuration;
-            document.getElementById('totalCost').textContent = totalCost.toFixed(2);
-            summaryElement.style.display = 'block'; // Show the summary section
-        }
-
-        // Remove a service from the selected list
-        function removeService(index) {
-            selectedServices.splice(index, 1); // Remove service by index
-            updateSelectedServicesList(); // Refresh the UI
-        }
-
-        // Format time from 24-hour HH:MM to 12-hour AM/PM format
-        function formatTime12Hour(time24) {
-            const [hours, minutes] = time24.split(':').map(Number);
-            const period = hours >= 12 ? 'PM' : 'AM';
-            const displayHours = hours % 12 || 12; // Convert 0 to 12 for 12 AM/PM
-            return `${displayHours}:${minutes.toString().padStart(2, '0')} ${period}`;
-        }
-
-        // Confirm the multiple booking details
-        function confirmMultipleBooking() {
-            // Final validation checks
-            if (!selectedClient) {
-                alert('Please select or add a client.');
-                return;
-            }
-            if (selectedServices.length === 0) {
-                alert('Please add at least one service to the booking.');
-                return;
-            }
-
-            const bookingDate = document.getElementById('multiBookingDate').value;
-            if (!bookingDate) {
-                alert('Please select a booking date.');
-                return;
-            }
-
-            // Prepare data for confirmation and API call
-            const bookingsData = {
-                client: selectedClient,
-                date: bookingDate,
-                services: selectedServices
-            };
-
-            // Calculate total cost for confirmation message
-            const totalCost = selectedServices.reduce((sum, service) => sum + service.price, 0);
-            
-            // Build confirmation message
-            const confirmationMessage = `
-                Confirm Booking for:
-                Client: ${selectedClient.full_name} (${selectedClient.phone})
-                Date: ${bookingDate}
-                Number of Services: ${selectedServices.length}
-                Total Estimated Cost: $${totalCost.toFixed(2)}
-
-                Do you want to proceed with these bookings?
-            `;
-
-            // Show confirmation dialog
-            if (confirm(confirmationMessage)) {
-                processMultipleBooking(bookingsData); // Proceed to booking process
-            }
-        }
-
-        // Process the actual booking (simulated API call)
-        function processMultipleBooking(bookingsData) {
-            // In a real application, send bookingsData to your backend API here.
-            console.log('Processing multiple booking:', bookingsData);
-
-            // Simulate API success response
-            setTimeout(() => {
-                alert(`Successfully booked ${bookingsData.services.length} services for ${bookingsData.client.full_name}!`);
-
-                // Close the multi-booking modal
-                bootstrap.Modal.getInstance(document.getElementById('multipleBookingModal')).hide();
-
-                // Refresh the main schedule view to show the new appointments
-                // Use a slight delay to ensure modal is fully closed and UI is ready
-                setTimeout(() => {
-                    loadSampleData(); // Reload sample data or fetch current schedule
-                }, 500);
-            }, 700); // Simulate API call latency
+            // Scroll to the new booking
+            bookingDiv.scrollIntoView({ behavior: 'smooth' });
         }
     </script>
 </body>
