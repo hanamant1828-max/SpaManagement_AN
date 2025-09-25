@@ -4,9 +4,10 @@ from flask import Flask, render_template, jsonify, request, redirect, url_for, f
 from flask_sqlalchemy import SQLAlchemy
 from flask_wtf.csrf import CSRFProtect
 from sqlalchemy.orm import DeclarativeBase
-from sqlalchemy import event
+from sqlalchemy import event, func
 from werkzeug.middleware.proxy_fix import ProxyFix
 from flask_login import LoginManager, login_required, current_user
+from datetime import datetime, date, timedelta, time
 # Department will be imported inside functions to avoid circular imports
 
 
@@ -190,7 +191,7 @@ def init_app():
             except Exception as e:
                 print(f"Error importing billing routes: {e}")
                 print("Billing will not be available")
-                
+
             print("Routes imported successfully")
         except Exception as e:
             print(f"Warning: Could not import all routes: {e}")
@@ -354,7 +355,7 @@ def unaki_load_sample_data():
 
         # Create sample UnakiBooking entries for today
         today = date.today()
-        
+
         # Get available staff
         staff_members = User.query.filter_by(is_active=True).limit(5).all()
         if not staff_members:
@@ -409,12 +410,12 @@ def unaki_load_sample_data():
         created_count = 0
         for i, booking_data in enumerate(sample_bookings):
             staff = staff_members[i % len(staff_members)]
-            
+
             # Parse times
             start_time_obj = datetime.strptime(booking_data['start_time'], '%H:%M').time()
             start_datetime = datetime.combine(today, start_time_obj)
             end_datetime = start_datetime + timedelta(minutes=booking_data['duration'])
-            
+
             # Create UnakiBooking entry
             unaki_booking = UnakiBooking(
                 client_name=booking_data['client_name'],
@@ -436,7 +437,7 @@ def unaki_load_sample_data():
                 payment_status='pending',
                 created_at=datetime.utcnow()
             )
-            
+
             db.session.add(unaki_booking)
             created_count += 1
 
@@ -471,11 +472,11 @@ def unaki_create_appointment():
         # Validate required fields
         required_fields = ['staffId', 'clientName', 'serviceType', 'startTime', 'endTime']
         missing_fields = []
-        
+
         for field in required_fields:
             if field not in data or not data[field] or str(data[field]).strip() == '':
                 missing_fields.append(field)
-        
+
         if missing_fields:
             return jsonify({
                 'success': False,
@@ -535,12 +536,12 @@ def unaki_create_appointment():
         customer = None
         client_phone = data.get('clientPhone', '').strip()
         client_email = data.get('clientEmail', '').strip()
-        
+
         if client_phone:
             customer = Customer.query.filter_by(phone=client_phone).first()
         elif client_email:
             customer = Customer.query.filter_by(email=client_email).first()
-        
+
         # If customer doesn't exist, create a basic record
         if not customer and (client_phone or client_email):
             try:
@@ -548,7 +549,7 @@ def unaki_create_appointment():
                 name_parts = data['clientName'].strip().split(' ', 1)
                 first_name = name_parts[0] if name_parts else 'Unknown'
                 last_name = name_parts[1] if len(name_parts) > 1 else ''
-                
+
                 customer = Customer(
                     first_name=first_name,
                     last_name=last_name,
@@ -832,25 +833,25 @@ def unaki_bookings():
         from modules.staff.staff_queries import get_staff_members
         from models import UnakiBooking
         from datetime import date
-        
+
         # Get all required data for dropdowns
         clients = get_all_customers()
         services = get_all_services()
         staff_members = get_staff_members()
-        
+
         # Get recent bookings for display
         existing_bookings = UnakiBooking.query.order_by(UnakiBooking.created_at.desc()).limit(10).all()
-        
+
         # Pass today's date
         today = date.today().strftime('%Y-%m-%d')
-        
+
         return render_template('unaki_bookings.html', 
                              clients=clients,
                              services=services, 
                              staff_members=staff_members,
                              existing_bookings=existing_bookings,
                              today=today)
-                             
+
     except Exception as e:
         print(f"Error in unaki_bookings: {e}")
         flash('Error loading booking form. Please try again.', 'danger')
@@ -863,7 +864,7 @@ def book_appointment():
     try:
         from datetime import datetime, timedelta, time, date
         from models import UnakiBooking, Service, Customer, User
-        
+
         # Extract form data
         client_id = request.form.get('client_id', type=int)
         staff_id = request.form.get('staff_id', type=int)
@@ -872,12 +873,12 @@ def book_appointment():
         start_time_str = request.form.get('start_time')
         notes = request.form.get('notes', '')
         total_duration = request.form.get('duration', type=int)
-        
+
         # Validate required fields
         if not all([client_id, staff_id, service_ids, appointment_date_str, start_time_str]):
             flash('Missing required booking information', 'danger')
             return redirect(url_for('unaki_bookings'))
-        
+
         # Parse date and time
         try:
             appointment_date = datetime.strptime(appointment_date_str, '%Y-%m-%d').date()
@@ -885,31 +886,31 @@ def book_appointment():
         except ValueError:
             flash('Invalid date or time format', 'danger')
             return redirect(url_for('unaki_bookings'))
-        
+
         # Get service details and calculate total duration and price
         selected_service_ids = [int(id.strip()) for id in service_ids.split(',') if id.strip()]
         services = Service.query.filter(Service.id.in_(selected_service_ids)).all()
-        
+
         if not services:
             flash('Selected services not found', 'danger')
             return redirect(url_for('unaki_bookings'))
-        
+
         # Calculate totals
         total_duration_calculated = sum(service.duration for service in services)
         total_price = sum(float(service.price) for service in services)
         service_names = ', '.join(service.name for service in services)
-        
+
         # Calculate end time
         start_datetime = datetime.combine(appointment_date, start_time_obj)
         end_datetime = start_datetime + timedelta(minutes=total_duration_calculated)
         end_time_obj = end_datetime.time()
-        
+
         # Validate that appointment is not in the past
         current_datetime = datetime.now()
         if start_datetime < current_datetime:
             flash('Cannot book appointments in the past', 'danger')
             return redirect(url_for('unaki_bookings'))
-        
+
         # CRITICAL STRICT TIME-OVERLAP CONFLICT CHECK
         # Check if new booking overlaps with any existing booking for the same staff member
         # Overlap logic: Two time ranges overlap if:
@@ -925,22 +926,22 @@ def book_appointment():
                 end_time_obj > UnakiBooking.start_time     # New end > Existing start
             )
         ).first()
-        
+
         # If ANY conflict found, reject the booking immediately
         if conflicting_booking:
             conflict_time = f"{conflicting_booking.start_time.strftime('%I:%M %p')} - {conflicting_booking.end_time.strftime('%I:%M %p')}"
             conflict_msg = f'This time slot is already booked for this staff member. Conflicting appointment: {conflicting_booking.client_name} at {conflict_time} on {conflicting_booking.appointment_date}'
             flash(conflict_msg, 'danger')
             return redirect(url_for('unaki_bookings'))
-        
+
         # Get client and staff details for denormalized storage
         client = Customer.query.get(client_id)
         staff = User.query.get(staff_id)
-        
+
         if not client or not staff:
             flash('Selected client or staff member not found', 'danger')
             return redirect(url_for('unaki_bookings'))
-        
+
         # NO CONFLICT FOUND - Proceed with booking creation
         unaki_booking = UnakiBooking(
             client_name=client.full_name,
@@ -963,17 +964,16 @@ def book_appointment():
             created_at=datetime.utcnow(),
             updated_at=datetime.utcnow()
         )
-        
+
         db.session.add(unaki_booking)
         db.session.commit()
-        
+
         success_msg = f'Appointment successfully booked! Booking ID: {unaki_booking.id} for {client.full_name} on {appointment_date} at {start_time_str}'
         flash(success_msg, 'success')
         return redirect(url_for('unaki_bookings'))
-        
+
     except Exception as e:
         db.session.rollback()
         print(f"Critical error creating appointment: {e}")
         flash('Error processing booking. Please try again.', 'danger')
         return redirect(url_for('unaki_bookings'))
-
