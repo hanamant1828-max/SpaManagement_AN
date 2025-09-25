@@ -698,7 +698,7 @@
                                 <div class="mb-3">
                                     <label class="form-label">End Time *</label>
                                     <div class="time-input-group">
-                                        <input type="text" id="endTime" class="form-control" required readonly placeholder="Auto-calculated">
+                                        <input type="time" id="endTime" class="form-control" required onchange="updateTimeDisplay(this); validateEndTime()" placeholder="Type HH:MM or auto-calculated">
                                         <small class="text-muted time-display" id="endTimeDisplay"></small>
                                     </div>
                                 </div>
@@ -1614,14 +1614,13 @@
                 // Store 24-hour format for calculations
                 const endTime24 = `${endHours.toString().padStart(2, '0')}:${endMins.toString().padStart(2, '0')}`;
                 
-                // Convert to 12-hour format for display
-                const displayEndTime = convertTo12HourFormat(endHours, endMins);
-                endTimeInput.value = displayEndTime;
+                // Set 24-hour format in the time input
+                endTimeInput.value = endTime24;
                 endTimeInput.dataset.time24 = endTime24; // Store 24-hour format for backend
                 
-                if (endTimeDisplay) {
-                    endTimeDisplay.textContent = displayEndTime;
-                }
+                // Update the display to show 12-hour format
+                updateTimeDisplay(endTimeInput);
+                
             } else if (startTime) {
                 // If duration is not selected yet, just set end time based on start time and default duration if any
                 const durationDefault = parseInt(durationSelect.value) || 60; // Default to 60 minutes if not set
@@ -1632,17 +1631,49 @@
                 const endMins = endTotalMinutes % 60;
                 
                 const endTime24 = `${endHours.toString().padStart(2, '0')}:${endMins.toString().padStart(2, '0')}`;
-                const displayEndTime = convertTo12HourFormat(endHours, endMins);
-                endTimeInput.value = displayEndTime;
+                endTimeInput.value = endTime24;
                 endTimeInput.dataset.time24 = endTime24;
                 
-                if (endTimeDisplay) {
-                    endTimeDisplay.textContent = displayEndTime;
-                }
+                updateTimeDisplay(endTimeInput);
             }
 
             // Update start time display as well
             updateTimeDisplay(startTimeInput);
+        }
+
+        function validateEndTime() {
+            const startTimeInput = document.getElementById('startTime');
+            const endTimeInput = document.getElementById('endTime');
+            const durationSelect = document.getElementById('appointmentDuration');
+
+            const startTime = startTimeInput.value;
+            const endTime = endTimeInput.value;
+
+            if (startTime && endTime) {
+                // Calculate duration based on manual end time entry
+                const [startHours, startMinutes] = startTime.split(':').map(Number);
+                const [endHours, endMinutes] = endTime.split(':').map(Number);
+
+                const startTotalMinutes = startHours * 60 + startMinutes;
+                const endTotalMinutes = endHours * 60 + endMinutes;
+
+                if (endTotalMinutes <= startTotalMinutes) {
+                    alert('End time must be after start time');
+                    updateEndTime(); // Reset to calculated value
+                    return;
+                }
+
+                const calculatedDuration = endTotalMinutes - startTotalMinutes;
+                
+                // Update duration select if it matches a standard duration
+                const durationOptions = [15, 30, 45, 60, 75, 90, 120, 150, 180, 240];
+                if (durationOptions.includes(calculatedDuration)) {
+                    durationSelect.value = calculatedDuration;
+                }
+
+                // Store 24-hour format for backend
+                endTimeInput.dataset.time24 = endTime;
+            }
         }
 
         function convertTo12HourFormat(hours, minutes) {
@@ -1723,10 +1754,15 @@
             const startTime = document.getElementById('startTime').value;
             const endTimeDisplay = document.getElementById('endTime').value;
             
-            // Get end time in 24-hour format for backend (either from dataset or calculate)
+            // Get end time in 24-hour format for backend
             let endTime;
             const endTimeInput = document.getElementById('endTime');
-            if (endTimeInput.dataset.time24) {
+            
+            // If user manually entered a time, use that value
+            if (endTimeInput.value) {
+                endTime = endTimeInput.value; // This is already in 24-hour format from time input
+                endTimeInput.dataset.time24 = endTime;
+            } else if (endTimeInput.dataset.time24) {
                 endTime = endTimeInput.dataset.time24;
             } else {
                 // Calculate if not stored
