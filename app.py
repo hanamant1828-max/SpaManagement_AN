@@ -821,3 +821,153 @@ def unaki_cancel_booking(booking_id):
             'error': str(e)
         }), 500
 
+# UNAKI BOOKING VIEW ROUTES
+@app.route('/unaki-booking')
+@login_required
+def unaki_bookings():
+    """Display the Unaki booking form with dropdowns populated from database"""
+    try:
+        from modules.clients.clients_queries import get_all_customers
+        from modules.services.services_queries import get_all_services
+        from modules.staff.staff_queries import get_staff_members
+        from models import UnakiBooking
+        from datetime import date
+        
+        # Get all required data for dropdowns
+        clients = get_all_customers()
+        services = get_all_services()
+        staff_members = get_staff_members()
+        
+        # Get recent bookings for display
+        existing_bookings = UnakiBooking.query.order_by(UnakiBooking.created_at.desc()).limit(10).all()
+        
+        # Pass today's date
+        today = date.today().strftime('%Y-%m-%d')
+        
+        return render_template('unaki_bookings.html', 
+                             clients=clients,
+                             services=services, 
+                             staff_members=staff_members,
+                             existing_bookings=existing_bookings,
+                             today=today)
+                             
+    except Exception as e:
+        print(f"Error in unaki_bookings: {e}")
+        flash('Error loading booking form. Please try again.', 'danger')
+        return redirect(url_for('dashboard'))
+
+@app.route('/book-appointment', methods=['POST'])
+@login_required
+def book_appointment():
+    """Handle Unaki booking form submission with strict time-overlap conflict checking"""
+    try:
+        from datetime import datetime, timedelta, time, date
+        from models import UnakiBooking, Service, Customer, User
+        
+        # Extract form data
+        client_id = request.form.get('client_id', type=int)
+        staff_id = request.form.get('staff_id', type=int)
+        service_ids = request.form.get('service_ids', '')  # Comma-separated IDs
+        appointment_date_str = request.form.get('appointment_date')
+        start_time_str = request.form.get('start_time')
+        notes = request.form.get('notes', '')
+        total_duration = request.form.get('duration', type=int)
+        
+        # Validate required fields
+        if not all([client_id, staff_id, service_ids, appointment_date_str, start_time_str]):
+            flash('Missing required booking information', 'danger')
+            return redirect(url_for('unaki_bookings'))
+        
+        # Parse date and time
+        try:
+            appointment_date = datetime.strptime(appointment_date_str, '%Y-%m-%d').date()
+            start_time_obj = datetime.strptime(start_time_str, '%H:%M').time()
+        except ValueError:
+            flash('Invalid date or time format', 'danger')
+            return redirect(url_for('unaki_bookings'))
+        
+        # Get service details and calculate total duration and price
+        selected_service_ids = [int(id.strip()) for id in service_ids.split(',') if id.strip()]
+        services = Service.query.filter(Service.id.in_(selected_service_ids)).all()
+        
+        if not services:
+            flash('Selected services not found', 'danger')
+            return redirect(url_for('unaki_bookings'))
+        
+        # Calculate totals
+        total_duration_calculated = sum(service.duration for service in services)
+        total_price = sum(float(service.price) for service in services)
+        service_names = ', '.join(service.name for service in services)
+        
+        # Calculate end time
+        start_datetime = datetime.combine(appointment_date, start_time_obj)
+        end_datetime = start_datetime + timedelta(minutes=total_duration_calculated)
+        end_time_obj = end_datetime.time()
+        
+        # Validate that appointment is not in the past
+        current_datetime = datetime.now()
+        if start_datetime < current_datetime:
+            flash('Cannot book appointments in the past', 'danger')
+            return redirect(url_for('unaki_bookings'))
+        
+        # CRITICAL: Time-overlap conflict check using SQLAlchemy
+        conflicting_booking = UnakiBooking.query.filter(
+            UnakiBooking.staff_id == staff_id,
+            UnakiBooking.appointment_date == appointment_date,
+            UnakiBooking.status.in_(['scheduled', 'confirmed', 'in_progress']),
+            # Overlap condition: new_start < existing_end AND new_end > existing_start
+            db.and_(
+                start_time_obj < UnakiBooking.end_time,        # New booking starts before existing ends
+                end_time_obj > UnakiBooking.start_time         # New booking ends after existing starts
+            )
+        ).first()
+        
+        # If conflict found, reject the booking
+        if conflicting_booking:
+            conflict_time = f"{conflicting_booking.start_time.strftime('%I:%M %p')} - {conflicting_booking.end_time.strftime('%I:%M %p')}"
+            flash(f'This time slot is already booked for this staff member and time is not available. Conflicting appointment: {conflicting_booking.client_name} at {conflict_time}', 'danger')
+            return redirect(url_for('unaki_bookings'))
+        
+        # Get client and staff details for denormalized storage
+        client = Customer.query.get(client_id)
+        staff = User.query.get(staff_id)
+        
+        if not client or not staff:
+            flash('Selected client or staff member not found', 'danger')
+            return redirect(url_for('unaki_bookings'))
+        
+        # No conflict found - create the UnakiBooking
+        unaki_booking = UnakiBooking(
+            client_name=client.full_name,
+            client_phone=client.phone,
+            client_email=client.email,
+            staff_id=staff_id,
+            staff_name=staff.full_name or f"{staff.first_name} {staff.last_name}",
+            service_name=service_names,
+            service_duration=total_duration_calculated,
+            service_price=total_price,
+            appointment_date=appointment_date,
+            start_time=start_time_obj,
+            end_time=end_time_obj,
+            status='scheduled',
+            notes=notes,
+            booking_source='unaki_system',
+            booking_method='form_booking',
+            amount_charged=total_price,
+            payment_status='pending',
+            created_at=datetime.utcnow(),
+            updated_at=datetime.utcnow()
+        )
+        
+        db.session.add(unaki_booking)
+        db.session.commit()
+        
+        flash(f'Appointment successfully booked! Booking ID: {unaki_booking.id}', 'success')
+        return redirect(url_for('unaki_bookings'))
+        
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error creating appointment: {e}")
+        flash('Error processing booking. Please try again.', 'danger')
+        return redirect(url_for('unaki_bookings'))
+

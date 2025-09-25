@@ -1,0 +1,46 @@
+Role and Goal:
+Act as an expert Full-Stack Flask Developer specializing in SQLite backend validation and clean code architecture. Your goal is to provide the complete, functional code for the Unaki Booking View, handling the initial page load and the complex form submission logic with robust conflict checking.
+
+Context and Constraints (Crucial):
+
+Tech Stack: Python/Flask with SQLAlchemy ORM and a SQLite database.
+
+View Name: The primary view function is explicitly named unaki_bookings().
+
+URL: The view is accessible at the URL route /unaki-booking.
+
+Template: The form is rendered via the template unaki_bookings.html.
+
+Models/Features: Supports multiple services per booking, requires three dropdowns (Client, Staff, Service) fetched from the DB, and uses a standard form page.
+
+Conflict Logic: Must check for time overlap for the same staff member.
+
+Specific Tasks (What to Deliver):
+
+Flask Route for Page Load (unaki_bookings() - GET):
+
+Provide the complete Python Flask view function (def unaki_bookings():) routed to /unaki-booking (GET).
+
+This function must query and pass all four lists (clients, services, staff_members, and existing bookings) to the unaki_bookings.html template.
+
+Jinja2 Form Structure:
+
+Provide the HTML/Jinja2 snippet showing the form structure within the unaki_bookings.html template. This includes the action pointing to the POST route, the three dynamic dropdowns (Client/Service/Staff), and the time input fields.
+
+JavaScript Logic (Duration Calculation):
+
+Provide the JavaScript snippet that correctly calculates the total duration by summing the data-duration attributes of the multiple selected services and automatically updates the End Time field.
+
+Flask Route for Submission (/book-appointment - POST) with Validation:
+
+Provide the complete Flask function for the POST submission (e.g., routed to /book-appointment).
+
+CRITICAL CONFLICT CHECK: Implement the SQLAlchemy query logic to check for any overlapping bookings for the selected staff_id and the proposed start_time/end_time.
+
+Show the logic to use flash() and redirect(url_for('unaki_bookings')) to provide the user feedback:
+
+If conflict: flash('This time slot is already booked for this staff member and time is not available.')
+
+If success: flash('Appointment successfully booked!')
+
+Show how to save the new Booking and its associated multiple services via the many-to-many relationship.
