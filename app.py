@@ -278,15 +278,18 @@ def unaki_schedule():
     """Get schedule data for Unaki booking"""
     try:
         from datetime import datetime, date, timedelta
-        from modules.bookings.bookings_queries import get_appointments_by_date, get_staff_members
+        from modules.staff.staff_queries import get_staff_members
+        from models import UnakiBooking
 
         # Get date parameter
         date_str = request.args.get('date', date.today().strftime('%Y-%m-%d'))
         target_date = datetime.strptime(date_str, '%Y-%m-%d').date()
 
-        # Get staff and appointments
+        # Get staff members
         staff_members = get_staff_members()
-        appointments = get_appointments_by_date(target_date)
+
+        # Get Unaki bookings for the target date
+        unaki_bookings = UnakiBooking.query.filter_by(appointment_date=target_date).all()
 
         # Format staff data
         staff_data = []
@@ -301,20 +304,23 @@ def unaki_schedule():
             }
             staff_data.append(staff_info)
 
-        # Format appointments data
+        # Format Unaki bookings data
         appointments_data = []
-        for appointment in appointments:
+        for booking in unaki_bookings:
             appointment_info = {
-                'id': appointment.id,
-                'staffId': appointment.staff_id,
-                'clientName': appointment.client.full_name if appointment.client else 'Unknown',
-                'clientPhone': appointment.client.phone if appointment.client else '',
-                'service': appointment.service.name if appointment.service else 'Service',
-                'startTime': appointment.appointment_date.strftime('%H:%M'),
-                'endTime': appointment.end_time.strftime('%H:%M') if appointment.end_time else None,
-                'duration': appointment.service.duration if appointment.service else 60,
-                'status': appointment.status,
-                'notes': appointment.notes or ''
+                'id': booking.id,
+                'staffId': booking.staff_id,
+                'clientName': booking.client_name,
+                'clientPhone': booking.client_phone or '',
+                'service': booking.service_name,
+                'startTime': booking.start_time.strftime('%H:%M'),
+                'endTime': booking.end_time.strftime('%H:%M'),
+                'duration': booking.service_duration,
+                'status': booking.status,
+                'notes': booking.notes or '',
+                'amount': booking.service_price,
+                'payment_status': booking.payment_status,
+                'booking_source': booking.booking_source
             }
             appointments_data.append(appointment_info)
 
@@ -343,89 +349,104 @@ def unaki_schedule():
 def unaki_load_sample_data():
     """Load sample data for Unaki booking system"""
     try:
-        from datetime import datetime, date, timedelta
-        from modules.bookings.bookings_queries import create_appointment
-        from models import Customer, Service, User
+        from datetime import datetime, date, timedelta, time
+        from models import UnakiBooking, User
 
-        # Create sample appointments for today
+        # Create sample UnakiBooking entries for today
         today = date.today()
-        sample_appointments = [
+        
+        # Get available staff
+        staff_members = User.query.filter_by(is_active=True).limit(5).all()
+        if not staff_members:
+            return jsonify({
+                'success': False,
+                'error': 'No active staff members found'
+            })
+
+        sample_bookings = [
             {
                 'client_name': 'Jessica Williams',
+                'client_phone': '+1-555-0101',
                 'service_name': 'Deep Cleansing Facial',
                 'start_time': '10:00',
-                'duration': 90
+                'duration': 90,
+                'price': 150.0
             },
             {
                 'client_name': 'David Brown', 
+                'client_phone': '+1-555-0102',
                 'service_name': 'Swedish Massage',
                 'start_time': '14:00',
-                'duration': 60
+                'duration': 60,
+                'price': 120.0
             },
             {
                 'client_name': 'Emma Thompson',
+                'client_phone': '+1-555-0103',
                 'service_name': 'Hair Cut & Style',
                 'start_time': '11:00',
-                'duration': 75
+                'duration': 75,
+                'price': 85.0
+            },
+            {
+                'client_name': 'Michael Johnson',
+                'client_phone': '+1-555-0104',
+                'service_name': 'Aromatherapy Massage',
+                'start_time': '15:30',
+                'duration': 90,
+                'price': 140.0
+            },
+            {
+                'client_name': 'Sarah Davis',
+                'client_phone': '+1-555-0105',
+                'service_name': 'Express Facial',
+                'start_time': '09:00',
+                'duration': 45,
+                'price': 75.0
             }
         ]
 
         created_count = 0
-        for apt_data in sample_appointments:
-            # Find or create customer
-            customer = Customer.query.filter_by(full_name=apt_data['client_name']).first()
-            if not customer:
-                names = apt_data['client_name'].split(' ')
-                customer = Customer(
-                    first_name=names[0],
-                    last_name=' '.join(names[1:]) if len(names) > 1 else '',
-                    full_name=apt_data['client_name'],
-                    phone=f"+1-555-{created_count:04d}",
-                    email=f"{apt_data['client_name'].lower().replace(' ', '.')}@example.com"
-                )
-                db.session.add(customer)
-                db.session.flush()
-
-            # Find service
-            service = Service.query.filter_by(name=apt_data['service_name']).first()
-            if not service:
-                service = Service(
-                    name=apt_data['service_name'],
-                    duration=apt_data['duration'],
-                    price=100.0,
-                    is_active=True
-                )
-                db.session.add(service)
-                db.session.flush()
-
-            # Get first available staff
-            staff = User.query.filter_by(is_active=True).first()
-            if staff:
-                # Create appointment
-                start_datetime = datetime.combine(today, datetime.strptime(apt_data['start_time'], '%H:%M').time())
-                end_datetime = start_datetime + timedelta(minutes=apt_data['duration'])
-
-                appointment_data = {
-                    'client_id': customer.id,
-                    'service_id': service.id,
-                    'staff_id': staff.id,
-                    'appointment_date': start_datetime,
-                    'end_time': end_datetime,
-                    'status': 'confirmed',
-                    'notes': 'Sample appointment',
-                    'amount': service.price
-                }
-
-                create_appointment(appointment_data)
-                created_count += 1
+        for i, booking_data in enumerate(sample_bookings):
+            staff = staff_members[i % len(staff_members)]
+            
+            # Parse times
+            start_time_obj = datetime.strptime(booking_data['start_time'], '%H:%M').time()
+            start_datetime = datetime.combine(today, start_time_obj)
+            end_datetime = start_datetime + timedelta(minutes=booking_data['duration'])
+            
+            # Create UnakiBooking entry
+            unaki_booking = UnakiBooking(
+                client_name=booking_data['client_name'],
+                client_phone=booking_data['client_phone'],
+                client_email=f"{booking_data['client_name'].lower().replace(' ', '.')}@example.com",
+                staff_id=staff.id,
+                staff_name=staff.full_name,
+                service_name=booking_data['service_name'],
+                service_duration=booking_data['duration'],
+                service_price=booking_data['price'],
+                appointment_date=today,
+                start_time=start_time_obj,
+                end_time=end_datetime.time(),
+                status='confirmed',
+                notes='Sample booking from Unaki system',
+                booking_source='unaki_system',
+                booking_method='quick_book',
+                amount_charged=booking_data['price'],
+                payment_status='pending',
+                created_at=datetime.utcnow()
+            )
+            
+            db.session.add(unaki_booking)
+            created_count += 1
 
         db.session.commit()
 
         return jsonify({
             'success': True,
-            'message': f'Sample data loaded successfully! Created {created_count} appointments.',
+            'message': f'Sample data loaded successfully! Created {created_count} Unaki bookings.',
             'data': {
-                'appointments_created': created_count
+                'bookings_created': created_count
             }
         })
 
@@ -437,14 +458,12 @@ def unaki_load_sample_data():
             'error': f'Failed to load sample data: {str(e)}'
         })
 
-# Moved to routes.py to avoid duplicate endpoint
-# def unaki_create_appointment():
-def create_appointment_impl():
-    """Create appointment for Unaki booking system - implementation moved to routes.py"""
+@app.route('/api/unaki/create-appointment', methods=['POST'])
+def unaki_create_appointment():
+    """Create appointment for Unaki booking system using UnakiBooking table"""
     try:
-        from datetime import datetime, timedelta
-        from modules.bookings.bookings_queries import create_appointment
-        from models import Customer, Service, User
+        from datetime import datetime, timedelta, time
+        from models import UnakiBooking, User
 
         data = request.get_json()
 
@@ -460,35 +479,13 @@ def create_appointment_impl():
         # Parse date and times
         appointment_date_str = data.get('date', datetime.now().strftime('%Y-%m-%d'))
         appointment_date = datetime.strptime(appointment_date_str, '%Y-%m-%d').date()
-        start_datetime = datetime.combine(appointment_date, datetime.strptime(data['startTime'], '%H:%M').time())
-        end_datetime = datetime.combine(appointment_date, datetime.strptime(data['endTime'], '%H:%M').time())
+        start_time_obj = datetime.strptime(data['startTime'], '%H:%M').time()
+        end_time_obj = datetime.strptime(data['endTime'], '%H:%M').time()
 
-        # Find or create customer
-        customer = Customer.query.filter_by(full_name=data['clientName']).first()
-        if not customer:
-            names = data['clientName'].split(' ')
-            customer = Customer(
-                first_name=names[0],
-                last_name=' '.join(names[1:]) if len(names) > 1 else '',
-                full_name=data['clientName'],
-                phone=data.get('clientPhone', ''),
-                email=f"{data['clientName'].lower().replace(' ', '.')}@customer.spa"
-            )
-            db.session.add(customer)
-            db.session.flush()
-
-        # Find or create service
-        service = Service.query.filter_by(name=data['serviceType']).first()
-        if not service:
-            duration = int((end_datetime - start_datetime).total_seconds() / 60)
-            service = Service(
-                name=data['serviceType'],
-                duration=duration,
-                price=100.0,
-                is_active=True
-            )
-            db.session.add(service)
-            db.session.flush()
+        # Calculate duration
+        start_datetime = datetime.combine(appointment_date, start_time_obj)
+        end_datetime = datetime.combine(appointment_date, end_time_obj)
+        duration = int((end_datetime - start_datetime).total_seconds() / 60)
 
         # Verify staff exists
         staff = User.query.get(data['staffId'])
@@ -498,35 +495,49 @@ def create_appointment_impl():
                 'error': 'Staff member not found'
             }), 400
 
-        # Create appointment
-        appointment_data = {
-            'client_id': customer.id,
-            'service_id': service.id,
-            'staff_id': data['staffId'],
-            'appointment_date': start_datetime,
-            'end_time': end_datetime,
-            'status': 'confirmed',
-            'notes': data.get('notes', ''),
-            'amount': service.price
-        }
+        # Check for conflicts
+        existing_booking = UnakiBooking.query.filter(
+            UnakiBooking.staff_id == data['staffId'],
+            UnakiBooking.appointment_date == appointment_date,
+            UnakiBooking.start_time == start_time_obj,
+            UnakiBooking.status.in_(['scheduled', 'confirmed', 'in_progress'])
+        ).first()
 
-        appointment = create_appointment(appointment_data)
+        if existing_booking:
+            return jsonify({
+                'success': False,
+                'error': f'Time slot already booked for {staff.full_name} at {data["startTime"]}'
+            }), 400
+
+        # Create UnakiBooking entry
+        unaki_booking = UnakiBooking(
+            client_name=data['clientName'],
+            client_phone=data.get('clientPhone', ''),
+            client_email=data.get('clientEmail', ''),
+            staff_id=data['staffId'],
+            staff_name=staff.full_name,
+            service_name=data['serviceType'],
+            service_duration=duration,
+            service_price=data.get('servicePrice', 100.0),
+            appointment_date=appointment_date,
+            start_time=start_time_obj,
+            end_time=end_time_obj,
+            status='confirmed',
+            notes=data.get('notes', ''),
+            booking_source='unaki_system',
+            booking_method=data.get('bookingMethod', 'manual'),
+            amount_charged=data.get('servicePrice', 100.0),
+            payment_status='pending',
+            created_at=datetime.utcnow()
+        )
+
+        db.session.add(unaki_booking)
+        db.session.commit()
 
         return jsonify({
             'success': True,
-            'message': 'Appointment created successfully',
-            'appointment': {
-                'id': appointment.id,
-                'staff_id': data['staffId'],
-                'client_name': data['clientName'],
-                'service_type': data['serviceType'],
-                'start_time': data['startTime'],
-                'end_time': data['endTime'],
-                'date': appointment_date_str,
-                'status': 'confirmed',
-                'notes': data.get('notes', ''),
-                'created_at': appointment.created_at.isoformat()
-            }
+            'message': 'Unaki booking created successfully',
+            'booking': unaki_booking.to_dict()
         })
 
     except Exception as e:
@@ -534,7 +545,7 @@ def create_appointment_impl():
         print(f"Error in unaki_create_appointment: {e}")
         return jsonify({
             'success': False,
-            'error': f'Failed to create appointment: {str(e)}'
+            'error': f'Failed to create booking: {str(e)}'
         }), 500
 
 
@@ -578,3 +589,176 @@ def index():
 if __name__ != '__main__':
     # When imported by gunicorn or other WSGI servers
     print("App imported for WSGI deployment")
+
+
+# Additional UnakiBooking API endpoints
+@app.route('/api/unaki/bookings')
+def unaki_get_bookings():
+    """Get all Unaki bookings with optional filters"""
+    try:
+        from models import UnakiBooking
+        from datetime import datetime, date
+
+        # Get filter parameters
+        date_filter = request.args.get('date')
+        staff_id = request.args.get('staff_id', type=int)
+        status = request.args.get('status')
+
+        # Base query
+        query = UnakiBooking.query
+
+        # Apply filters
+        if date_filter:
+            filter_date = datetime.strptime(date_filter, '%Y-%m-%d').date()
+            query = query.filter(UnakiBooking.appointment_date == filter_date)
+
+        if staff_id:
+            query = query.filter(UnakiBooking.staff_id == staff_id)
+
+        if status:
+            query = query.filter(UnakiBooking.status == status)
+
+        bookings = query.order_by(UnakiBooking.appointment_date, UnakiBooking.start_time).all()
+
+        return jsonify({
+            'success': True,
+            'bookings': [booking.to_dict() for booking in bookings],
+            'total': len(bookings)
+        })
+
+    except Exception as e:
+        print(f"Error in unaki_get_bookings: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'bookings': []
+        })
+
+@app.route('/api/unaki/bookings/<int:booking_id>')
+def unaki_get_booking(booking_id):
+    """Get specific Unaki booking by ID"""
+    try:
+        from models import UnakiBooking
+
+        booking = UnakiBooking.query.get(booking_id)
+        if not booking:
+            return jsonify({
+                'success': False,
+                'error': 'Booking not found'
+            }), 404
+
+        return jsonify({
+            'success': True,
+            'booking': booking.to_dict()
+        })
+
+    except Exception as e:
+        print(f"Error in unaki_get_booking: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@app.route('/api/unaki/bookings/<int:booking_id>/update-status', methods=['PUT'])
+def unaki_update_booking_status(booking_id):
+    """Update Unaki booking status"""
+    try:
+        from models import UnakiBooking
+        from datetime import datetime
+
+        data = request.get_json()
+        new_status = data.get('status')
+
+        if not new_status:
+            return jsonify({
+                'success': False,
+                'error': 'Status is required'
+            }), 400
+
+        valid_statuses = ['scheduled', 'confirmed', 'in_progress', 'completed', 'cancelled', 'no_show']
+        if new_status not in valid_statuses:
+            return jsonify({
+                'success': False,
+                'error': f'Invalid status. Must be one of: {", ".join(valid_statuses)}'
+            }), 400
+
+        booking = UnakiBooking.query.get(booking_id)
+        if not booking:
+            return jsonify({
+                'success': False,
+                'error': 'Booking not found'
+            }), 404
+
+        # Update status and relevant timestamps
+        booking.status = new_status
+        booking.updated_at = datetime.utcnow()
+
+        if new_status == 'confirmed':
+            booking.confirmed_at = datetime.utcnow()
+        elif new_status == 'completed':
+            booking.completed_at = datetime.utcnow()
+
+        # Update notes if provided
+        if data.get('notes'):
+            booking.internal_notes = (booking.internal_notes or '') + f"\n[{datetime.now().strftime('%Y-%m-%d %H:%M')}] Status changed to {new_status}: {data['notes']}"
+
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'message': f'Booking status updated to {new_status}',
+            'booking': booking.to_dict()
+        })
+
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error in unaki_update_booking_status: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@app.route('/api/unaki/bookings/<int:booking_id>', methods=['DELETE'])
+def unaki_cancel_booking(booking_id):
+    """Cancel Unaki booking"""
+    try:
+        from models import UnakiBooking
+        from datetime import datetime
+
+        data = request.get_json() or {}
+        reason = data.get('reason', 'Cancelled by user')
+
+        booking = UnakiBooking.query.get(booking_id)
+        if not booking:
+            return jsonify({
+                'success': False,
+                'error': 'Booking not found'
+            }), 404
+
+        if not booking.can_be_cancelled():
+            return jsonify({
+                'success': False,
+                'error': f'Cannot cancel booking with status: {booking.status}'
+            }), 400
+
+        # Update booking status to cancelled
+        booking.status = 'cancelled'
+        booking.updated_at = datetime.utcnow()
+        booking.internal_notes = (booking.internal_notes or '') + f"\n[{datetime.now().strftime('%Y-%m-%d %H:%M')}] Cancelled: {reason}"
+
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'message': 'Booking cancelled successfully',
+            'booking': booking.to_dict()
+        })
+
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error in unaki_cancel_booking: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
