@@ -182,6 +182,15 @@ def init_app():
             except Exception as e:
                 print(f"Error importing shift scheduler routes: {e}")
                 print("Shift Scheduler will not be available")
+
+            try:
+                # Import integrated billing views to register routes
+                import modules.billing.integrated_billing_views  # noqa: F401
+                print("Billing views registered successfully")
+            except Exception as e:
+                print(f"Error importing billing routes: {e}")
+                print("Billing will not be available")
+                
             print("Routes imported successfully")
         except Exception as e:
             print(f"Warning: Could not import all routes: {e}")
@@ -432,10 +441,10 @@ def unaki_load_sample_data():
             'error': f'Failed to load sample data: {str(e)}'
         })
 
-@app.route('/api/unaki/appointments', methods=['POST'])
-@login_required
-def unaki_create_appointment():
-    """Create appointment for Unaki booking system"""
+# Moved to routes.py to avoid duplicate endpoint
+# def unaki_create_appointment():
+def create_appointment_impl():
+    """Create appointment for Unaki booking system - implementation moved to routes.py"""
     try:
         from datetime import datetime, timedelta
         from modules.bookings.bookings_queries import create_appointment

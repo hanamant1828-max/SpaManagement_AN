@@ -1644,32 +1644,11 @@ def unaki_schedule_api(date_str):
         return jsonify({'success': False, 'error': 'Server error'}), 500
 
 
-@app.route('/api/unaki/load-sample-data', methods=['POST'])
-@login_required
-def unaki_load_sample_data():
-    """API endpoint to load sample data for Unaki booking system"""
-    try:
-        # This endpoint simulates loading sample data
-        # In a real implementation, this would populate the database with sample data
-        
-        return jsonify({
-            'success': True,
-            'message': 'Sample data loaded successfully',
-            'data': {
-                'staff_created': 3,
-                'appointments_created': 5,
-                'breaks_created': 2
-            }
-        })
-        
-    except Exception as e:
-        print(f"Error in unaki_load_sample_data: {e}")
-        return jsonify({'success': False, 'error': 'Failed to load sample data'}), 500
+# Removed duplicate unaki_load_sample_data - using implementation from app.py
 
 
-@app.route('/api/unaki/appointments', methods=['POST'])
-@login_required
-def unaki_create_appointment():
+# Moved to routes.py - avoiding duplicate endpoint
+def unaki_create_appointment_impl():
     """API endpoint to create appointments for Unaki booking system"""
     try:
         from app import db
