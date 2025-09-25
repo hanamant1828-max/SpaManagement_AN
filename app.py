@@ -616,7 +616,25 @@ def unaki_booking():
     if not current_user.can_access('bookings'):
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
-    return render_template('unaki_booking.html')
+    
+    try:
+        from modules.services.services_queries import get_active_services
+        from modules.staff.staff_queries import get_staff_members
+        from datetime import date
+        
+        # Get services and staff for initial page load
+        services = get_active_services()
+        staff_members = get_staff_members()
+        today = date.today().strftime('%Y-%m-%d')
+        
+        return render_template('unaki_booking.html',
+                             services=services,
+                             staff_members=staff_members,
+                             today=today)
+    except Exception as e:
+        print(f"Error loading Unaki booking page: {e}")
+        flash('Error loading booking form. Please try again.', 'danger')
+        return redirect(url_for('dashboard'))
 
 @app.route('/system_management')
 @login_required
