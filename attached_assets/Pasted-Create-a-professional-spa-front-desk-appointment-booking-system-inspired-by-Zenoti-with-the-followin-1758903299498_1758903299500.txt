@@ -1,0 +1,88 @@
+Create a professional spa front desk appointment booking system inspired by Zenoti with the following comprehensive specifications:
+Core Layout & Design:
+
+Split-screen interface: 320px left sidebar for booking controls, main area for schedule grid
+Modern glassmorphism design with gradients (#667eea, #764ba2) and blur effects
+Responsive design optimized for tablets and desktop displays
+Professional spa industry aesthetics with clean typography and consistent spacing
+
+Left Sidebar Features:
+
+Real-time client search with autocomplete dropdown
+Service selection organized by categories (Facials, Massage, Body Treatments, Hair, Nails)
+Staff/therapist selection with live availability indicators
+Visual calendar date picker with highlighted available dates
+Custom duration selector supporting any minute increment
+Toggle between new/existing client with auto-populated forms
+Quick action buttons: Book Now, Block Time, Add Break, Waitlist
+Live dashboard showing daily stats: bookings count, revenue, utilization rate
+
+Advanced Schedule Grid:
+
+Flexible timeline: 8 AM to 8 PM with custom minute-level precision (not locked to 15-min intervals)
+Multi-staff column view showing all therapists simultaneously
+Support for odd timing appointments (e.g., 9:17 AM - 10:43 AM, 11:27 AM - 12:35 PM)
+Proportional appointment blocks sized by actual duration
+Drag-and-drop functionality with free-form time selection
+Color-coded appointments by service category with visual legends
+
+Consecutive Booking Capabilities:
+
+Perfect back-to-back scheduling with no buffer time required
+Seamless visual connection of consecutive appointments for same staff
+Support for irregular consecutive timing (e.g., 37-minute followed by 83-minute appointment)
+One-click 'Add Consecutive' when selecting adjacent time slots
+Automatic time alignment ensuring no gaps or overlaps
+Drag appointment edges to extend/reduce duration with snap-to-adjacent functionality
+Visual flow indicators showing treatment progression chains
+
+Interactive Features:
+
+Right-click context menus: View Details, Edit, Cancel, Reschedule, Duplicate
+Hover tooltips displaying full appointment information
+Real-time conflict detection with visual warnings
+Smooth animations for all interactions and transitions
+Loading states with elegant spinners
+Toast notifications for success/error messages
+Keyboard shortcuts for power users (Ctrl+N for new booking, etc.)
+
+Smart Booking Intelligence:
+
+Automatic service duration suggestions based on treatment type
+Staff specialization matching (only show qualified therapists for specific services)
+Package/series booking with consecutive appointment scheduling
+Waitlist management with automatic rebooking suggestions
+Client history integration showing previous appointments and preferences
+Commission tracking display for staff performance
+
+Data Management:
+
+Local storage for offline capability with sync indicators
+Sample data generator with realistic spa scenarios
+Form validation with inline error messages and visual feedback
+Bulk operations: multiple appointment creation, mass rescheduling
+Export functionality for daily/weekly schedules
+Backup and restore capabilities
+
+Professional Features:
+
+Print-friendly schedule layouts
+Resource/room assignment integration
+Multi-location support if applicable
+Staff break and lunch scheduling
+Holiday and closure management
+Appointment confirmation and reminder system integration
+Payment integration indicators
+Insurance and membership tracking
+
+Technical Requirements:
+
+Single HTML file with embedded CSS and JavaScript
+Modern browser compatibility (Chrome, Safari, Firefox, Edge)
+Touch-friendly for tablet use
+High contrast mode support
+Accessibility compliance (WCAG 2.1)
+Optimized performance for busy spa environments
+No external dependencies except CDN resources (FontAwesome, Google Fonts)
+
+Focus on creating an intuitive, fast, and visually appealing interface that handles complex spa scheduling scenarios while maintaining the flexibility for custom timing and consecutive bookings. The system should feel professional and efficient for front desk staff managing multiple therapists and various service types throughout a busy spa day."
