@@ -700,6 +700,39 @@ def role_management():
                          permission_form=permission_form,
                          business_form=business_form)
 
+@app.route('/add_role', methods=['POST'])
+@login_required
+def add_role():
+    """Add new role"""
+    if not current_user.can_access('settings'):
+        flash('Access denied', 'danger')
+        return redirect(url_for('dashboard'))
+
+    from models import Role
+    from forms import RoleForm
+
+    form = RoleForm()
+    if form.validate_on_submit():
+        try:
+            role = Role(
+                name=form.name.data,
+                display_name=form.display_name.data,
+                description=form.description.data,
+                is_active=form.is_active.data
+            )
+            db.session.add(role)
+            db.session.commit()
+            flash('Role added successfully!', 'success')
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error adding role: {str(e)}', 'danger')
+    else:
+        for field, errors in form.errors.items():
+            for error in errors:
+                flash(f'{getattr(form, field).label.text}: {error}', 'danger')
+
+    return redirect(url_for('role_management'))
+
 # Department Management Routes moved to routes.py to avoid conflicts
 
 @app.route('/')
