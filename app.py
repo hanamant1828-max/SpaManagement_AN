@@ -230,6 +230,14 @@ from modules.packages.new_packages_views import *
 from modules.packages.membership_views import *
 from modules.packages.professional_packages_views import *
 
+# Import user management views
+try:
+    from modules.user_management.user_views import *
+    print("User management routes registered successfully")
+except Exception as e:
+    print(f"Error importing user management routes: {e}")
+    print("User management will not be available")
+
 # Routes are imported via module views, avoiding import conflicts
 
 # Unaki Booking API endpoints

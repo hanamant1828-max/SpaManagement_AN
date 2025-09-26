@@ -220,6 +220,181 @@ class AdvancedCustomerForm(FlaskForm):
     is_active = BooleanField('Active', default=True)
     submit = SubmitField('Save Customer')
 
+class UserRegistrationForm(FlaskForm):
+    """User registration form with security validations"""
+    username = StringField('Username', validators=[
+        DataRequired(message='Username is required'),
+        Length(min=3, max=20, message='Username must be between 3-20 characters')
+    ])
+    email = StringField('Email', validators=[
+        DataRequired(message='Email is required'),
+        Email(message='Please enter a valid email address')
+    ])
+    first_name = StringField('First Name', validators=[
+        DataRequired(message='First name is required'),
+        Length(max=50, message='First name must be less than 50 characters')
+    ])
+    last_name = StringField('Last Name', validators=[
+        DataRequired(message='Last name is required'),
+        Length(max=50, message='Last name must be less than 50 characters')
+    ])
+    phone = StringField('Phone', validators=[
+        Optional(),
+        Length(max=20, message='Phone must be less than 20 characters')
+    ])
+    password = PasswordField('Password', validators=[
+        DataRequired(message='Password is required'),
+        Length(min=8, message='Password must be at least 8 characters long')
+    ])
+    confirm_password = PasswordField('Confirm Password', validators=[
+        DataRequired(message='Please confirm your password')
+    ])
+    submit = SubmitField('Register')
+
+    def validate_password(self, field):
+        """Custom password strength validation"""
+        password = field.data
+        if password:
+            import re
+            if not re.search(r'[A-Z]', password):
+                raise ValidationError('Password must contain at least one uppercase letter.')
+            if not re.search(r'[a-z]', password):
+                raise ValidationError('Password must contain at least one lowercase letter.')
+            if not re.search(r'[0-9]', password):
+                raise ValidationError('Password must contain at least one number.')
+            if not re.search(r'[!@#$%^&*(),.?":{}|<>]', password):
+                raise ValidationError('Password must contain at least one special character.')
+
+    def validate_confirm_password(self, field):
+        """Validate password confirmation matches"""
+        if self.password.data != field.data:
+            raise ValidationError('Passwords do not match.')
+
+    def validate_username(self, field):
+        """Check if username already exists"""
+        from models import User
+        if User.query.filter_by(username=field.data).first():
+            raise ValidationError('Username already exists. Please choose a different one.')
+
+    def validate_email(self, field):
+        """Check if email already exists"""
+        from models import User
+        if User.query.filter_by(email=field.data).first():
+            raise ValidationError('Email already exists. Please use a different email address.')
+
+class UserProfileForm(FlaskForm):
+    """User profile management form"""
+    first_name = StringField('First Name', validators=[
+        DataRequired(message='First name is required'),
+        Length(max=50, message='First name must be less than 50 characters')
+    ])
+    last_name = StringField('Last Name', validators=[
+        DataRequired(message='Last name is required'),
+        Length(max=50, message='Last name must be less than 50 characters')
+    ])
+    email = StringField('Email', validators=[
+        DataRequired(message='Email is required'),
+        Email(message='Please enter a valid email address')
+    ])
+    phone = StringField('Phone', validators=[
+        Optional(),
+        Length(max=20, message='Phone must be less than 20 characters')
+    ])
+    date_of_birth = DateField('Date of Birth', validators=[Optional()])
+    gender = SelectField('Gender', choices=[
+        ('', 'Select Gender'),
+        ('male', 'Male'),
+        ('female', 'Female'),
+        ('other', 'Other')
+    ], validators=[Optional()])
+    notes_bio = TextAreaField('Bio/Notes', validators=[
+        Optional(),
+        Length(max=500, message='Bio must be less than 500 characters')
+    ])
+    submit = SubmitField('Update Profile')
+
+    def validate_email(self, field):
+        """Check if email already exists for other users"""
+        from models import User
+        from flask_login import current_user
+        user = User.query.filter_by(email=field.data).first()
+        if user and user.id != current_user.id:
+            raise ValidationError('Email already exists. Please use a different email address.')
+
+class ChangePasswordForm(FlaskForm):
+    """Change password form"""
+    current_password = PasswordField('Current Password', validators=[
+        DataRequired(message='Current password is required')
+    ])
+    new_password = PasswordField('New Password', validators=[
+        DataRequired(message='New password is required'),
+        Length(min=8, message='Password must be at least 8 characters long')
+    ])
+    confirm_password = PasswordField('Confirm New Password', validators=[
+        DataRequired(message='Please confirm your new password')
+    ])
+    submit = SubmitField('Change Password')
+
+    def validate_current_password(self, field):
+        """Validate current password is correct"""
+        from flask_login import current_user
+        if not current_user.check_password(field.data):
+            raise ValidationError('Current password is incorrect.')
+
+    def validate_new_password(self, field):
+        """Custom password strength validation"""
+        password = field.data
+        if password:
+            import re
+            if not re.search(r'[A-Z]', password):
+                raise ValidationError('Password must contain at least one uppercase letter.')
+            if not re.search(r'[a-z]', password):
+                raise ValidationError('Password must contain at least one lowercase letter.')
+            if not re.search(r'[0-9]', password):
+                raise ValidationError('Password must contain at least one number.')
+            if not re.search(r'[!@#$%^&*(),.?":{}|<>]', password):
+                raise ValidationError('Password must contain at least one special character.')
+
+    def validate_confirm_password(self, field):
+        """Validate password confirmation matches"""
+        if self.new_password.data != field.data:
+            raise ValidationError('Passwords do not match.')
+
+class AdminUserForm(FlaskForm):
+    """Admin form for managing users"""
+    username = StringField('Username', validators=[
+        DataRequired(message='Username is required'),
+        Length(min=3, max=20, message='Username must be between 3-20 characters')
+    ])
+    email = StringField('Email', validators=[
+        DataRequired(message='Email is required'),
+        Email(message='Please enter a valid email address')
+    ])
+    first_name = StringField('First Name', validators=[
+        DataRequired(message='First name is required'),
+        Length(max=50, message='First name must be less than 50 characters')
+    ])
+    last_name = StringField('Last Name', validators=[
+        DataRequired(message='Last name is required'),
+        Length(max=50, message='Last name must be less than 50 characters')
+    ])
+    phone = StringField('Phone', validators=[
+        Optional(),
+        Length(max=20, message='Phone must be less than 20 characters')
+    ])
+    role_id = SelectField('Role', coerce=int, validators=[Optional()])
+    department_id = SelectField('Department', coerce=int, validators=[Optional()])
+    designation = StringField('Designation', validators=[
+        Optional(),
+        Length(max=100, message='Designation must be less than 100 characters')
+    ])
+    is_active = BooleanField('Active', default=True)
+    password = PasswordField('Password (leave blank to keep current)', validators=[
+        Optional(),
+        Length(min=8, message='Password must be at least 8 characters long')
+    ])
+    submit = SubmitField('Save User')
+
 class AdvancedUserForm(FlaskForm):
     """Advanced user form with additional fields"""
     username = StringField('Username', validators=[DataRequired(), Length(min=3, max=20)])
