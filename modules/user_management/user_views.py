@@ -214,8 +214,8 @@ def admin_view_user(user_id):
     
     # Get user statistics
     stats = {
-        'total_appointments': user.appointments.count() if hasattr(user, 'appointments') else 0,
-        'active_appointments': user.appointments.filter_by(status='scheduled').count() if hasattr(user, 'appointments') else 0,
+        'total_appointments': len(user.appointments) if hasattr(user, 'appointments') and user.appointments else 0,
+        'active_appointments': len([a for a in user.appointments if a.status == 'scheduled']) if hasattr(user, 'appointments') and user.appointments else 0,
         'last_login': user.last_login.strftime('%Y-%m-%d %H:%M:%S') if user.last_login else 'Never',
         'member_since': user.created_at.strftime('%Y-%m-%d') if user.created_at else 'Unknown'
     }

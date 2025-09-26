@@ -433,6 +433,10 @@ class AdminUserForm(FlaskForm):
         Optional(),
         Length(min=8, message='Password must be at least 8 characters long')
     ])
+    confirm_password = PasswordField('Confirm Password', validators=[
+        Optional(),
+        EqualTo('password', message='Passwords must match')
+    ])
     submit = SubmitField('Save User')
 
 class AdvancedUserForm(FlaskForm):
