@@ -3,7 +3,7 @@ Flask-WTF forms for the Spa Management System
 """
 from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, BooleanField, SubmitField, TextAreaField, SelectField, SelectMultipleField, IntegerField, FloatField, DateField, TimeField, DateTimeField, HiddenField
-from wtforms.validators import DataRequired, Email, Length, Optional, NumberRange, ValidationError
+from wtforms.validators import DataRequired, Email, Length, Optional, NumberRange, ValidationError, EqualTo
 from wtforms.widgets import TextArea
 
 class LoginForm(FlaskForm):
