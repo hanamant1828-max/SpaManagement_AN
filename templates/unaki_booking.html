@@ -1039,6 +1039,13 @@
                                 breaks: data.breaks || []
                             };
                             console.log('Schedule data loaded:', scheduleData);
+
+                            // Debug: Log all appointments for Admin User (ID: 11)
+                            const adminAppointments = scheduleData.appointments.filter(apt => apt.staffId === 11);
+                            console.log(`🔍 Admin User (ID: 11) appointments found: ${adminAppointments.length}`);
+                            adminAppointments.forEach((apt, index) => {
+                                console.log(`   ${index + 1}. ${apt.clientName} - ${apt.service} (${apt.startTime} - ${apt.endTime})`);
+                            });
                         } else {
                             console.error('Failed to load schedule:', data.error);
                             scheduleData = { staff: [], appointments: [], breaks: [] };
@@ -1252,12 +1259,12 @@
                     timeSlot.dataset.staffId = staff.id;
                     timeSlot.dataset.time = slot.time;
 
-                    // Check for appointments that start at this time
+                    // Check for appointments that start exactly at this time
                     const appointment = scheduleData.appointments.find(apt => 
                         apt.staffId === staff.id && apt.startTime === slot.time
                     );
 
-                    // Check if this slot is occupied by an ongoing appointment
+                    // Check if this slot is occupied by any ongoing appointment (including consecutive ones)
                     const ongoingAppointment = scheduleData.appointments.find(apt => {
                         if (apt.staffId !== staff.id) return false;
 
@@ -1273,6 +1280,7 @@
                         const aptEndTime = aptEndHour * 60 + aptEndMinute;
                         const slotTime = slotHour * 60 + slotMinute;
 
+                        // Check if current slot falls within appointment duration
                         return slotTime >= aptStartTime && slotTime < aptEndTime;
                     });
 
@@ -1301,35 +1309,7 @@
                     });
 
                     if (appointment) {
-                        // Calculate span based on duration
-                        const duration = appointment.duration || 60;
-                        const durationText = duration >= 60 ? 
-                            `${Math.floor(duration / 60)}h ${duration % 60 > 0 ? duration % 60 + 'm' : ''}`.trim() :
-                            `${duration}m`;
-
-                        // Calculate the actual width based on exact duration in minutes
-                        // Each time slot represents 60 minutes, so calculate percentage
-                        let blockWidth = '100%';
-
-                        if (duration <= 60) {
-                            // For appointments 60 minutes or less, calculate percentage of current slot
-                            const widthPercentage = (duration / 60) * 100;
-                            blockWidth = `${widthPercentage}%`;
-                        } else {
-                            // For appointments longer than 60 minutes, span multiple slots
-                            const fullSlots = Math.floor(duration / 60);
-                            const remainingMinutes = duration % 60;
-                            const remainingPercentage = remainingMinutes > 0 ? (remainingMinutes / 60) * 100 : 0;
-
-                            if (remainingMinutes === 0) {
-                                // Exact hour appointments (90min = 1.5 slots, 120min = 2 slots)
-                                blockWidth = `calc(${fullSlots * 100}% + ${(fullSlots - 1)}px)`;
-                            } else {
-                                // Appointments with partial minutes (90min, 150min, etc.)
-                                blockWidth = `calc(${(fullSlots * 100) + remainingPercentage}% + ${fullSlots}px)`;
-                            }
-                        }
-
+                        // Create appointment block for NEW appointments starting at this slot
                         const appointmentBlock = document.createElement('div');
                         appointmentBlock.className = 'appointment-block';
                         appointmentBlock.style.width = blockWidth;
@@ -1355,8 +1335,8 @@
 
                         timeSlot.appendChild(appointmentBlock);
 
-                        // Mark the time slot as having a starting appointment
-                        timeSlot.dataset.hasAppointment = 'start';
+                        // Debug log for consecutive bookings
+                        console.log(`✅ Rendered appointment: ${appointment.clientName} at ${appointment.startTime} for staff ${staff.id}`);
 
                     } else if (ongoingAppointment && !appointment) {
                         // This slot is part of an ongoing appointment - make it invisible but blocked

@@ -305,12 +305,20 @@ def unaki_schedule():
         # Get date parameter
         date_str = request.args.get('date', date.today().strftime('%Y-%m-%d'))
         target_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+        
+        # Debug: Log the date we're querying for
+        print(f"🗓️  Querying Unaki bookings for date: {target_date} (from parameter: {date_str})")
 
         # Get staff members
         staff_members = get_staff_members()
 
         # Get Unaki bookings for the target date
         unaki_bookings = UnakiBooking.query.filter_by(appointment_date=target_date).all()
+        
+        # Debug: Log all bookings found
+        print(f"📋 Found {len(unaki_bookings)} Unaki bookings for {target_date}")
+        for booking in unaki_bookings:
+            print(f"   - ID {booking.id}: {booking.client_name} at {booking.start_time} (Staff: {booking.staff_id})")
 
         # Format staff data
         staff_data = []
