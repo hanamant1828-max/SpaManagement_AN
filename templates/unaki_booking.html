@@ -1248,7 +1248,7 @@
                 staffCell.className = 'staff-cell';
                 staffCell.innerHTML = `
                     <div class="staff-name">${staff.name}</div>
-                    <div class="staff-role">${staff.role}</div>
+                    <div class="staff-role">${staff.specialty || staff.role || 'Staff'}</div>
                 `;
                 grid.appendChild(staffCell);
 
@@ -1309,10 +1309,21 @@
                     });
 
                     if (appointment) {
+                        // Calculate appointment duration
+                        const aptStartHour = parseInt(appointment.startTime.split(':')[0]);
+                        const aptStartMinute = parseInt(appointment.startTime.split(':')[1]);
+                        const aptEndHour = parseInt(appointment.endTime.split(':')[0]);
+                        const aptEndMinute = parseInt(appointment.endTime.split(':')[1]);
+                        
+                        const aptStartTime = aptStartHour * 60 + aptStartMinute;
+                        const aptEndTime = aptEndHour * 60 + aptEndMinute;
+                        const durationMinutes = aptEndTime - aptStartTime;
+                        const durationText = `${durationMinutes} min`;
+
                         // Create appointment block for NEW appointments starting at this slot
                         const appointmentBlock = document.createElement('div');
                         appointmentBlock.className = 'appointment-block';
-                        appointmentBlock.style.width = blockWidth;
+                        appointmentBlock.style.width = '100%';
                         appointmentBlock.style.zIndex = '10';
                         appointmentBlock.style.position = 'absolute';
                         appointmentBlock.style.top = '1px';
@@ -1320,8 +1331,8 @@
                         appointmentBlock.style.height = 'calc(100% - 2px)';
 
                         appointmentBlock.innerHTML = `
-                            <div class="appointment-client" title="${appointment.clientName}">${appointment.clientName}</div>
-                            <div class="appointment-service" title="${appointment.service}">${appointment.service}</div>
+                            <div class="appointment-client" title="${appointment.clientName || 'Unknown Client'}">${appointment.clientName || 'Unknown Client'}</div>
+                            <div class="appointment-service" title="${appointment.service || 'Service'}">${appointment.service || 'Service'}</div>
                             <div style="margin-top: auto;">
                                 <div class="appointment-time">${appointment.startTime} - ${appointment.endTime}</div>
                                 <div class="appointment-duration">${durationText}</div>
@@ -1537,11 +1548,10 @@
             const startTimeInput = document.getElementById('startTime');
             startTimeInput.value = startTime;
 
-            // Set end time display (convert to 12-hour format if needed)
+            // Set end time display (use 24-hour format for time input)
             const endTimeInput = document.getElementById('endTime');
             if (endTime) {
-                const [endHours, endMinutes] = endTime.split(':').map(Number);
-                endTimeInput.value = convertTo12HourFormat(endHours, endMinutes);
+                endTimeInput.value = endTime;
             }
 
             // Populate staff select
@@ -1550,7 +1560,7 @@
             scheduleData.staff.forEach(s => {
                 const option = document.createElement('option');
                 option.value = s.id;
-                option.textContent = `${s.name} (${s.role})`;
+                option.textContent = `${s.name} (${s.specialty || s.role || 'Staff'})`;
                 if (s.id === staffId) {
                     option.selected = true;
                 }
@@ -1564,7 +1574,7 @@
 
             // Set the duration in the modal's select element
             const durationSelect = document.getElementById('appointmentDuration');
-            if (durationSelect) {
+            if (durationSelect && duration > 0) {
                 durationSelect.value = duration;
                 updateEndTime(); // Update end time based on selected duration
             }
@@ -2001,15 +2011,8 @@
             }
         });
 
-        // Initialize the booking system when page loads
-        document.addEventListener('DOMContentLoaded', function() {
-            try {
-                window.bookingSystem = new UnakiBookingSystem();
-                console.log('Unaki Booking System initialized successfully');
-            } catch (error) {
-                console.error('Error initializing Unaki Booking System:', error);
-            }
-        });
+        // Note: UnakiBookingSystem class is not defined, removing problematic initialization
+        // The booking functionality is handled by the existing functions above
     </script>
 </body>
 </html>
