@@ -767,6 +767,224 @@ def add_permission():
 
     return redirect(url_for('role_management'))
 
+@app.route('/edit_role/<int:role_id>', methods=['POST'])
+@login_required
+def edit_role(role_id):
+    """Edit existing role"""
+    if not current_user.can_access('settings'):
+        flash('Access denied', 'danger')
+        return redirect(url_for('dashboard'))
+
+    from models import Role
+    from forms import RoleForm
+
+    role = Role.query.get_or_404(role_id)
+    form = RoleForm()
+
+    if form.validate_on_submit():
+        try:
+            # Prevent editing admin role name
+            if role.name == 'admin' and form.name.data != 'admin':
+                flash('Cannot change admin role name', 'danger')
+                return redirect(url_for('role_management'))
+
+            role.name = form.name.data
+            role.display_name = form.display_name.data
+            role.description = form.description.data
+            role.is_active = form.is_active.data
+            db.session.commit()
+            flash('Role updated successfully!', 'success')
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error updating role: {str(e)}', 'danger')
+    else:
+        for field, errors in form.errors.items():
+            for error in errors:
+                flash(f'{getattr(form, field).label.text}: {error}', 'danger')
+
+    return redirect(url_for('role_management'))
+
+@app.route('/delete_role/<int:role_id>', methods=['POST'])
+@login_required
+def delete_role(role_id):
+    """Delete role"""
+    if not current_user.can_access('settings'):
+        flash('Access denied', 'danger')
+        return redirect(url_for('dashboard'))
+
+    from models import Role
+
+    try:
+        role = Role.query.get_or_404(role_id)
+        
+        # Prevent deleting admin role
+        if role.name == 'admin':
+            flash('Cannot delete admin role', 'danger')
+            return redirect(url_for('role_management'))
+
+        # Check if role is being used by users
+        if role.users:
+            flash(f'Cannot delete role "{role.display_name}" as it is assigned to {len(role.users)} users', 'danger')
+            return redirect(url_for('role_management'))
+
+        db.session.delete(role)
+        db.session.commit()
+        flash('Role deleted successfully!', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error deleting role: {str(e)}', 'danger')
+
+    return redirect(url_for('role_management'))
+
+@app.route('/api/roles/<int:role_id>', methods=['GET'])
+@login_required
+def api_get_role(role_id):
+    """API endpoint to get role details for editing"""
+    if not current_user.can_access('settings'):
+        return jsonify({'error': 'Access denied'}), 403
+
+    from models import Role
+
+    try:
+        role = Role.query.get_or_404(role_id)
+        return jsonify({
+            'success': True,
+            'role': {
+                'id': role.id,
+                'name': role.name,
+                'display_name': role.display_name,
+                'description': role.description or '',
+                'is_active': role.is_active
+            }
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/roles/<int:role_id>', methods=['DELETE'])
+@login_required
+def api_delete_role(role_id):
+    """API endpoint to delete role"""
+    if not current_user.can_access('settings'):
+        return jsonify({'error': 'Access denied'}), 403
+
+    from models import Role
+
+    try:
+        role = Role.query.get_or_404(role_id)
+        
+        # Prevent deleting admin role
+        if role.name == 'admin':
+            return jsonify({'error': 'Cannot delete admin role'}), 400
+
+        # Check if role is being used by users
+        if role.users:
+            return jsonify({'error': f'Cannot delete role as it is assigned to {len(role.users)} users'}), 400
+
+        db.session.delete(role)
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Role deleted successfully'
+        })
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/roles', methods=['POST'])
+@login_required
+def api_create_role():
+    """API endpoint to create a new role"""
+    if not current_user.can_access('settings'):
+        return jsonify({'error': 'Access denied'}), 403
+
+    from models import Role
+
+    data = request.get_json()
+    if not data:
+        return jsonify({'error': 'No data provided'}), 400
+
+    try:
+        # Check if role name already exists
+        existing_role = Role.query.filter_by(name=data.get('name')).first()
+        if existing_role:
+            return jsonify({'error': 'Role name already exists'}), 400
+
+        role = Role(
+            name=data.get('name'),
+            display_name=data.get('display_name', data.get('name')),
+            description=data.get('description', ''),
+            is_active=True
+        )
+        db.session.add(role)
+        db.session.commit()
+        return jsonify({
+            'success': True,
+            'message': 'Role created successfully',
+            'role_id': role.id
+        }), 201
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/roles/<int:role_id>/permissions', methods=['GET'])
+@login_required
+def api_get_role_permissions(role_id):
+    """API endpoint to get role permissions"""
+    if not current_user.can_access('settings'):
+        return jsonify({'error': 'Access denied'}), 403
+
+    from models import Role
+
+    try:
+        role = Role.query.get_or_404(role_id)
+        role_permissions = [rp.permission.name for rp in role.permissions]
+        return jsonify({
+            'success': True,
+            'role_name': role.display_name,
+            'permissions': role_permissions
+        }), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/roles/<int:role_id>/permissions', methods=['POST'])
+@login_required
+def api_update_role_permissions(role_id):
+    """API endpoint to update role permissions"""
+    if not current_user.can_access('settings'):
+        return jsonify({'error': 'Access denied'}), 403
+
+    from models import Role, Permission, RolePermission
+
+    data = request.get_json()
+    if not data:
+        return jsonify({'error': 'No data provided'}), 400
+
+    try:
+        role = Role.query.get_or_404(role_id)
+        if role.name == 'admin':
+            return jsonify({'error': 'Cannot modify admin role permissions'}), 400
+
+        # Clear existing permissions
+        RolePermission.query.filter_by(role_id=role_id).delete()
+
+        # Add new permissions
+        permission_names = data.get('permissions', [])
+        for perm_name in permission_names:
+            permission = Permission.query.filter_by(name=perm_name).first()
+            if permission:
+                role_perm = RolePermission(role_id=role_id, permission_id=permission.id)
+                db.session.add(role_perm)
+
+        db.session.commit()
+        return jsonify({
+            'success': True,
+            'message': 'Permissions updated successfully'
+        }), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
 # Department Management Routes moved to routes.py to avoid conflicts
 
 @app.route('/')

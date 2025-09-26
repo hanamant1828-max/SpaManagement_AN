@@ -499,6 +499,20 @@ class RoleForm(FlaskForm):
     is_active = BooleanField('Active', default=True)
     submit = SubmitField('Save Role')
 
+    def validate_name(self, field):
+        """Custom validation for role name"""
+        if field.data:
+            # Convert to lowercase for consistency
+            field.data = field.data.lower().strip()
+            # Check for valid characters
+            import re
+            if not re.match(r'^[a-z_]+$', field.data):
+                raise ValidationError('Role name can only contain lowercase letters and underscores.')
+            # Reserved role names
+            reserved_names = ['admin', 'superuser', 'root', 'system']
+            if field.data in reserved_names and not hasattr(self, '_editing_admin'):
+                raise ValidationError('This role name is reserved.')
+
 class PermissionForm(FlaskForm):
     """Permission form"""
     name = StringField('Permission Name', validators=[DataRequired(), Length(max=50)])
