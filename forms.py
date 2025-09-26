@@ -197,10 +197,29 @@ class RecurringAppointmentForm(FlaskForm):
 class BusinessSettingsForm(FlaskForm):
     """Business settings form"""
     business_name = StringField('Business Name', validators=[DataRequired(), Length(max=100)])
-    address = TextAreaField('Address', validators=[Optional()])
-    phone = StringField('Phone', validators=[Optional(), Length(max=20)])
-    email = StringField('Email', validators=[Optional(), Email()])
-    business_hours = TextAreaField('Business Hours', validators=[Optional()])
+    business_phone = StringField('Business Phone', validators=[Optional(), Length(max=20)])
+    business_email = StringField('Business Email', validators=[Optional(), Email()])
+    business_address = TextAreaField('Business Address', validators=[Optional()])
+    tax_rate = FloatField('Tax Rate (%)', validators=[Optional(), NumberRange(min=0, max=100)])
+    currency = SelectField('Currency', choices=[
+        ('USD', 'US Dollar ($)'),
+        ('EUR', 'Euro (€)'),
+        ('GBP', 'British Pound (£)'),
+        ('INR', 'Indian Rupee (₹)'),
+        ('CAD', 'Canadian Dollar (C$)'),
+        ('AUD', 'Australian Dollar (A$)')
+    ], default='USD')
+    timezone = SelectField('Timezone', choices=[
+        ('UTC', 'UTC'),
+        ('US/Eastern', 'Eastern Time'),
+        ('US/Central', 'Central Time'),
+        ('US/Mountain', 'Mountain Time'),
+        ('US/Pacific', 'Pacific Time'),
+        ('Europe/London', 'London'),
+        ('Europe/Paris', 'Paris'),
+        ('Asia/Kolkata', 'India Standard Time'),
+        ('Asia/Tokyo', 'Japan Standard Time')
+    ], default='UTC')
     submit = SubmitField('Save Settings')
 
 class AdvancedCustomerForm(FlaskForm):
