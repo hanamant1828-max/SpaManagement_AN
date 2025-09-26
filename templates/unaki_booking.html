@@ -555,9 +555,13 @@
                                             <i class="fas fa-sync-alt me-2"></i>
                                             <span class="d-none d-md-inline">Refresh</span>
                                         </button>
-                                        <button onclick="loadSampleData()" class="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-6 py-3 rounded-lg font-semibold hover:from-blue-600 hover:to-purple-700 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1">
+                                        <button onclick="loadSampleData()" class="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-4 py-2 rounded-lg font-semibold hover:from-blue-600 hover:to-purple-700 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1">
                                             <i class="fas fa-database mr-2"></i>
                                             Load Sample Data
+                                        </button>
+                                        <button onclick="clearAllData()" class="bg-gradient-to-r from-red-500 to-red-600 text-white px-4 py-2 rounded-lg font-semibold hover:from-red-600 hover:to-red-700 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1">
+                                            <i class="fas fa-trash mr-2"></i>
+                                            Clear All
                                         </button>
                                     </div>
                                 </div>
@@ -809,6 +813,29 @@
 
         // Make function globally available
         window.openQuickBookingModal = openQuickBookingModal;
+
+        // Clear all data function for debugging
+        function clearAllData() {
+            if (confirm('Are you sure you want to clear all appointment data? This will remove all bookings for today.')) {
+                console.log('Clearing all data...');
+                
+                // Clear local data immediately
+                scheduleData = {
+                    staff: [],
+                    appointments: [],
+                    breaks: []
+                };
+                
+                // Re-render empty schedule
+                renderSchedule();
+                updateStats();
+                
+                showNotification('All appointment data cleared!', 'info', 2000);
+            }
+        }
+
+        // Make function globally available
+        window.clearAllData = clearAllData;
 
         // Initialize
         document.addEventListener('DOMContentLoaded', function() {
@@ -1067,6 +1094,20 @@
 
         function loadSampleData() {
             console.log('Loading sample data...');
+            
+            // Clear existing schedule data first to prevent stale UI
+            scheduleData = {
+                staff: [],
+                appointments: [],
+                breaks: []
+            };
+            
+            // Clear the grid immediately
+            const grid = document.getElementById('scheduleGrid');
+            if (grid) {
+                grid.innerHTML = '<div class="text-center p-4"><i class="fas fa-spinner fa-spin"></i> Loading fresh data...</div>';
+            }
+            
             fetch('/api/unaki/load-sample-data', {
                 method: 'POST',
                 headers: {
@@ -1320,19 +1361,27 @@
                         const durationMinutes = aptEndTime - aptStartTime;
                         const durationText = `${durationMinutes} min`;
 
+                        // Calculate width based on duration (each slot represents 1 hour = 60 minutes)
+                        const slotWidthPercent = (durationMinutes / 60) * 100;
+                        const appointmentWidth = Math.min(slotWidthPercent, 100); // Cap at 100% for single slot
+
                         // Create appointment block for NEW appointments starting at this slot
                         const appointmentBlock = document.createElement('div');
                         appointmentBlock.className = 'appointment-block';
-                        appointmentBlock.style.width = '100%';
+                        appointmentBlock.style.width = `${appointmentWidth}%`;
                         appointmentBlock.style.zIndex = '10';
                         appointmentBlock.style.position = 'absolute';
                         appointmentBlock.style.top = '1px';
                         appointmentBlock.style.left = '1px';
                         appointmentBlock.style.height = 'calc(100% - 2px)';
 
+                        // Use consistent service name property
+                        const serviceName = appointment.service || appointment.serviceName || appointment.service_name || 'Service';
+                        const clientName = appointment.clientName || appointment.client_name || 'Unknown Client';
+
                         appointmentBlock.innerHTML = `
-                            <div class="appointment-client" title="${appointment.clientName || 'Unknown Client'}">${appointment.clientName || 'Unknown Client'}</div>
-                            <div class="appointment-service" title="${appointment.service || 'Service'}">${appointment.service || 'Service'}</div>
+                            <div class="appointment-client" title="${clientName}">${clientName}</div>
+                            <div class="appointment-service" title="${serviceName}">${serviceName}</div>
                             <div style="margin-top: auto;">
                                 <div class="appointment-time">${appointment.startTime} - ${appointment.endTime}</div>
                                 <div class="appointment-duration">${durationText}</div>
@@ -1345,18 +1394,19 @@
                         });
 
                         timeSlot.appendChild(appointmentBlock);
+                        timeSlot.dataset.hasAppointment = 'start';
 
                         // Debug log for consecutive bookings
-                        console.log(`✅ Rendered appointment: ${appointment.clientName} at ${appointment.startTime} for staff ${staff.id}`);
+                        console.log(`✅ Rendered appointment: ${clientName} at ${appointment.startTime} for staff ${staff.id} (${serviceName})`);
 
                     } else if (ongoingAppointment && !appointment) {
                         // This slot is part of an ongoing appointment - make it invisible but blocked
                         timeSlot.innerHTML = `
-                            <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: transparent; cursor: not-allowed;"></div>
+                            <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(102, 126, 234, 0.1); cursor: not-allowed; border: 1px dashed rgba(102, 126, 234, 0.3);"></div>
                         `;
                         timeSlot.dataset.hasAppointment = 'ongoing';
                         timeSlot.style.background = '#f8f9fa';
-                        timeSlot.style.borderTop = 'none';
+                        timeSlot.style.borderTop = '1px dashed rgba(102, 126, 234, 0.3)';
 
                     } else if (breakItem) {
                         // Calculate break duration for spanning

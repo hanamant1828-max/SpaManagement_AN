@@ -381,7 +381,7 @@ def unaki_load_sample_data():
         from datetime import datetime, date, time
         from models import UnakiBooking
 
-        # First, clear all existing UnakiBooking records for the target date
+        # First, clear ALL existing UnakiBooking records to ensure clean state
         target_date = date(2025, 9, 26)
         existing_bookings = UnakiBooking.query.filter_by(appointment_date=target_date).all()
 
@@ -389,8 +389,16 @@ def unaki_load_sample_data():
         for booking in existing_bookings:
             db.session.delete(booking)
 
+        # Force commit to ensure data is cleared
         db.session.commit()
         print(f"✅ Cleared all existing bookings")
+
+        # Verify the clear worked
+        remaining_count = UnakiBooking.query.filter_by(appointment_date=target_date).count()
+        if remaining_count > 0:
+            print(f"⚠️ Warning: {remaining_count} bookings still remain, clearing again...")
+            UnakiBooking.query.filter_by(appointment_date=target_date).delete()
+            db.session.commit()
 
         # Sample data for demonstration
         sample_bookings = [
