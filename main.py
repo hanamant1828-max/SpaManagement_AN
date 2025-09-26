@@ -2,42 +2,38 @@
 
 import os
 import sys
+import logging
 
-# Set required environment variables if not present
-if not os.environ.get("SESSION_SECRET"):
-    os.environ["SESSION_SECRET"] = "1578063aca108928c78100b516702a5765d2d05e85b4fb8bb29a75db0bfc34ca"
-    print("✅ SESSION_SECRET set")
-
-if not os.environ.get("DATABASE_URL"):
-    os.environ["DATABASE_URL"] = "postgresql://replit:postgres@localhost:5432/spa_management"
-    print("✅ DATABASE_URL set")
+# Set up basic logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # Set PORT from environment if available (for Replit deployment)
 port = int(os.environ.get("PORT", 5000))
 
 def main():
     """Main application entry point with crash guards"""
-    print("🚀 Starting Spa Management System...")
-    print(f"📡 Server will be available at: http://0.0.0.0:{port}")
-    print("🌐 Access via webview or browser")
+    logger.info("🚀 Starting Spa Management System...")
+    logger.info(f"📡 Server will be available at: http://0.0.0.0:{port}")
+    logger.info("🌐 Access via webview or browser")
 
     try:
-        # Import app with error handling
+        # Import app with timeout protection
+        logger.info("📦 Importing Flask application...")
         from app import app
-        print("✅ App imported successfully")
+        logger.info("✅ App imported successfully")
 
-        # Health check route is handled in routes.py
-
-        # Start the server
-        app.run(host="0.0.0.0", port=port, debug=True, threaded=True)
+        # Start the server with host configuration for Replit
+        logger.info("🚀 Starting Flask development server...")
+        app.run(host="0.0.0.0", port=port, debug=True, threaded=True, use_reloader=False)
 
     except ImportError as e:
-        print(f"❌ Import error: {e}")
-        print("💡 Check if all required modules are available")
+        logger.error(f"❌ Import error: {e}")
+        logger.error("💡 Check if all required modules are available")
         sys.exit(1)
     except Exception as e:
-        print(f"❌ Failed to start server: {e}")
-        print("💡 Check the error details above")
+        logger.error(f"❌ Failed to start server: {e}")
+        logger.error("💡 Check the error details above")
         sys.exit(1)
 
 if __name__ == "__main__":
