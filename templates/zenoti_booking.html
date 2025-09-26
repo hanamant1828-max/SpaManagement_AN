@@ -1,13 +1,27 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Professional Spa Booking System - {{ business_name or 'Spa Management' }}</title>
+    <title>Zenoti Professional Spa Booking - {{ business_name or 'Spa Management' }}</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --primary-blue: #667eea;
+            --primary-purple: #764ba2;
+            --success-green: #10b981;
+            --warning-orange: #f59e0b;
+            --danger-red: #ef4444;
+            --text-dark: #1e293b;
+            --text-light: #64748b;
+            --bg-light: #f8fafc;
+            --border-light: #e2e8f0;
+            --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+            --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+        }
+
         * {
             margin: 0;
             padding: 0;
@@ -16,263 +30,180 @@
 
         body {
             font-family: 'Inter', sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, var(--primary-blue) 0%, var(--primary-purple) 100%);
             min-height: 100vh;
             overflow-x: hidden;
         }
 
-        .booking-container {
+        .zenoti-container {
             display: flex;
             height: 100vh;
             backdrop-filter: blur(20px);
-            overflow: hidden;
         }
 
-        /* Left Sidebar */
-        .sidebar {
-            width: 320px;
-            min-width: 320px;
-            flex-shrink: 0;
-            background: rgba(255, 255, 255, 0.1);
+        /* Enhanced Left Sidebar */
+        .zenoti-sidebar {
+            width: 360px;
+            min-width: 360px;
+            background: rgba(255, 255, 255, 0.95);
             backdrop-filter: blur(20px);
-            border-right: 1px solid rgba(255, 255, 255, 0.2);
-            padding: 20px;
+            border-right: 1px solid var(--border-light);
             overflow-y: auto;
-            box-shadow: 4px 0 24px rgba(0, 0, 0, 0.1);
+            box-shadow: var(--shadow-lg);
         }
 
-        .sidebar::-webkit-scrollbar {
-            width: 6px;
-        }
-
-        .sidebar::-webkit-scrollbar-track {
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 3px;
-        }
-
-        .sidebar::-webkit-scrollbar-thumb {
-            background: rgba(255, 255, 255, 0.3);
-            border-radius: 3px;
-        }
-
-        .logo {
-            text-align: center;
-            margin-bottom: 30px;
-        }
-
-        .logo h1 {
+        .zenoti-header {
+            padding: 24px;
+            background: linear-gradient(135deg, var(--primary-blue), var(--primary-purple));
             color: white;
-            font-size: 24px;
+            text-align: center;
+        }
+
+        .zenoti-logo {
+            font-size: 28px;
             font-weight: 700;
-            margin-bottom: 5px;
+            margin-bottom: 8px;
         }
 
-        .logo p {
-            color: rgba(255, 255, 255, 0.8);
+        .zenoti-subtitle {
             font-size: 14px;
+            opacity: 0.9;
         }
 
-        .section {
-            margin-bottom: 25px;
+        .sidebar-section {
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--border-light);
         }
 
         .section-title {
-            color: white;
             font-size: 16px;
             font-weight: 600;
-            margin-bottom: 15px;
+            color: var(--text-dark);
+            margin-bottom: 16px;
             display: flex;
             align-items: center;
             gap: 8px;
         }
 
-        .glass-input {
+        .zenoti-input {
             width: 100%;
             padding: 12px 16px;
-            background: rgba(255, 255, 255, 0.15);
-            border: 1px solid rgba(255, 255, 255, 0.2);
+            border: 2px solid var(--border-light);
             border-radius: 12px;
-            color: white;
             font-size: 14px;
-            margin-bottom: 10px;
             transition: all 0.3s ease;
+            background: white;
         }
 
-        .glass-input::placeholder {
-            color: rgba(255, 255, 255, 0.6);
-        }
-
-        .glass-input:focus {
+        .zenoti-input:focus {
             outline: none;
-            border-color: rgba(255, 255, 255, 0.4);
-            background: rgba(255, 255, 255, 0.2);
-            box-shadow: 0 0 20px rgba(255, 255, 255, 0.1);
+            border-color: var(--primary-blue);
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
         }
 
         .client-toggle {
             display: flex;
-            background: rgba(255, 255, 255, 0.1);
+            background: var(--bg-light);
             border-radius: 12px;
             padding: 4px;
-            margin-bottom: 15px;
+            margin-bottom: 16px;
         }
 
-        .client-toggle button {
+        .toggle-btn {
             flex: 1;
-            padding: 8px 12px;
+            padding: 10px 16px;
             background: transparent;
             border: none;
-            color: rgba(255, 255, 255, 0.7);
             border-radius: 8px;
             cursor: pointer;
             transition: all 0.3s ease;
-            font-size: 13px;
             font-weight: 500;
+            color: var(--text-light);
         }
 
-        .client-toggle button.active {
-            background: rgba(255, 255, 255, 0.2);
-            color: white;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        .toggle-btn.active {
+            background: white;
+            color: var(--primary-blue);
+            box-shadow: var(--shadow-sm);
         }
 
-        .dropdown {
-            position: relative;
-        }
-
-        .dropdown-toggle {
-            width: 100%;
-            padding: 12px 16px;
-            background: rgba(255, 255, 255, 0.15);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 12px;
-            color: white;
-            font-size: 14px;
-            cursor: pointer;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            transition: all 0.3s ease;
-        }
-
-        .dropdown-toggle:hover {
-            background: rgba(255, 255, 255, 0.2);
-        }
-
-        .dropdown-menu {
-            position: absolute;
-            top: 100%;
-            left: 0;
-            right: 0;
-            background: rgba(255, 255, 255, 0.98);
-            backdrop-filter: blur(20px);
-            border-radius: 12px;
-            margin-top: 5px;
-            max-height: 250px;
-            overflow-y: auto;
-            z-index: 1500;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            display: none;
-        }
-
-        .dropdown-menu.show {
-            display: block !important;
-            animation: fadeInDown 0.3s ease;
-        }
-
-        .dropdown-menu::-webkit-scrollbar {
-            width: 6px;
-        }
-
-        .dropdown-menu::-webkit-scrollbar-track {
-            background: rgba(0, 0, 0, 0.05);
-            border-radius: 3px;
-        }
-
-        .dropdown-menu::-webkit-scrollbar-thumb {
-            background: rgba(0, 0, 0, 0.2);
-            border-radius: 3px;
-        }
-
-        .dropdown-item {
-            padding: 12px 16px;
-            color: #333;
-            cursor: pointer;
-            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-            transition: background 0.2s ease;
-        }
-
-        .dropdown-item:hover {
-            background: rgba(102, 126, 234, 0.1);
-        }
-
-        .dropdown-item:last-child {
-            border-bottom: none;
-        }
-
-        .service-categories {
+        .service-grid {
             display: grid;
-            gap: 8px;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-bottom: 20px;
         }
 
-        .service-category {
-            padding: 10px 14px;
-            background: rgba(255, 255, 255, 0.1);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 10px;
-            color: white;
+        .service-card {
+            padding: 16px;
+            background: white;
+            border: 2px solid var(--border-light);
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+
+        .service-card:hover {
+            border-color: var(--primary-blue);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .service-card.selected {
+            border-color: var(--primary-blue);
+            background: rgba(102, 126, 234, 0.05);
+        }
+
+        .service-icon {
+            font-size: 24px;
+            margin-bottom: 8px;
+            color: var(--primary-blue);
+        }
+
+        .service-name {
+            font-weight: 600;
             font-size: 13px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            display: flex;
-            align-items: center;
-            gap: 8px;
+            color: var(--text-dark);
         }
 
-        .service-category:hover,
-        .service-category.selected {
-            background: rgba(255, 255, 255, 0.2);
-            border-color: rgba(255, 255, 255, 0.4);
-            transform: translateY(-1px);
-        }
-
-        .staff-list {
+        .staff-grid {
             display: grid;
-            gap: 8px;
+            gap: 12px;
         }
 
-        .staff-item {
-            padding: 12px;
-            background: rgba(255, 255, 255, 0.1);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 10px;
-            color: white;
-            cursor: pointer;
-            transition: all 0.3s ease;
+        .staff-card {
             display: flex;
             align-items: center;
-            gap: 10px;
+            padding: 16px;
+            background: white;
+            border: 2px solid var(--border-light);
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
         }
 
-        .staff-item:hover,
-        .staff-item.selected {
-            background: rgba(255, 255, 255, 0.2);
-            border-color: rgba(255, 255, 255, 0.4);
+        .staff-card:hover {
+            border-color: var(--primary-blue);
             transform: translateY(-1px);
+        }
+
+        .staff-card.selected {
+            border-color: var(--primary-blue);
+            background: rgba(102, 126, 234, 0.05);
         }
 
         .staff-avatar {
-            width: 32px;
-            height: 32px;
+            width: 48px;
+            height: 48px;
             border-radius: 50%;
-            background: linear-gradient(135deg, #667eea, #764ba2);
+            background: linear-gradient(135deg, var(--primary-blue), var(--primary-purple));
             display: flex;
             align-items: center;
             justify-content: center;
             color: white;
             font-weight: 600;
-            font-size: 12px;
+            margin-right: 12px;
         }
 
         .staff-info {
@@ -280,68 +211,63 @@
         }
 
         .staff-name {
-            font-weight: 500;
-            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-dark);
+            margin-bottom: 4px;
         }
 
         .staff-specialty {
             font-size: 12px;
-            color: rgba(255, 255, 255, 0.7);
+            color: var(--text-light);
         }
 
-        .availability-indicator {
+        .availability-dot {
             width: 8px;
             height: 8px;
             border-radius: 50%;
-            background: #10b981;
+            background: var(--success-green);
         }
 
-        .availability-indicator.busy {
-            background: #ef4444;
+        .availability-dot.busy {
+            background: var(--danger-red);
         }
 
-        .availability-indicator.break {
-            background: #f59e0b;
-        }
-
-        .date-picker {
-            background: rgba(255, 255, 255, 0.15);
-            border: 1px solid rgba(255, 255, 255, 0.2);
+        .zenoti-calendar {
+            background: white;
             border-radius: 12px;
-            padding: 15px;
+            padding: 16px;
+            margin-bottom: 20px;
         }
 
         .calendar-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 15px;
+            margin-bottom: 16px;
         }
 
         .calendar-nav {
-            background: rgba(255, 255, 255, 0.1);
+            background: var(--bg-light);
             border: none;
-            color: white;
-            padding: 6px 10px;
-            border-radius: 6px;
+            padding: 8px 12px;
+            border-radius: 8px;
             cursor: pointer;
-            transition: background 0.2s ease;
+            transition: all 0.3s ease;
         }
 
         .calendar-nav:hover {
-            background: rgba(255, 255, 255, 0.2);
+            background: var(--border-light);
         }
 
         .calendar-month {
-            color: white;
             font-weight: 600;
-            font-size: 14px;
+            color: var(--text-dark);
         }
 
         .calendar-grid {
             display: grid;
             grid-template-columns: repeat(7, 1fr);
-            gap: 5px;
+            gap: 4px;
         }
 
         .calendar-day {
@@ -349,179 +275,146 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 12px;
-            color: rgba(255, 255, 255, 0.7);
-            border-radius: 6px;
+            border-radius: 8px;
             cursor: pointer;
-            transition: all 0.2s ease;
-        }
-
-        .calendar-day.today {
-            background: rgba(255, 255, 255, 0.2);
-            color: white;
-            font-weight: 600;
-        }
-
-        .calendar-day.selected {
-            background: rgba(255, 255, 255, 0.3);
-            color: white;
+            transition: all 0.3s ease;
+            font-size: 14px;
+            color: var(--text-dark);
         }
 
         .calendar-day:hover {
-            background: rgba(255, 255, 255, 0.15);
+            background: var(--bg-light);
+        }
+
+        .calendar-day.today {
+            background: var(--primary-blue);
             color: white;
         }
 
-        .duration-selector {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 15px;
-        }
-
-        .duration-input {
-            flex: 1;
-            padding: 8px 12px;
-            background: rgba(255, 255, 255, 0.15);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 8px;
+        .calendar-day.selected {
+            background: var(--primary-purple);
             color: white;
-            font-size: 13px;
-            text-align: center;
         }
 
-        .quick-actions {
-            display: grid;
-            gap: 10px;
+        .action-buttons {
+            padding: 24px;
+            background: var(--bg-light);
         }
 
-        .action-btn {
-            padding: 12px 16px;
-            background: rgba(255, 255, 255, 0.15);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 10px;
+        .primary-btn {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, var(--primary-blue), var(--primary-purple));
             color: white;
-            font-size: 14px;
+            border: none;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 12px;
+        }
+
+        .primary-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .secondary-btn {
+            width: 100%;
+            padding: 12px;
+            background: white;
+            color: var(--text-dark);
+            border: 2px solid var(--border-light);
+            border-radius: 12px;
             font-weight: 500;
             cursor: pointer;
             transition: all 0.3s ease;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            justify-content: center;
+            margin-bottom: 8px;
         }
 
-        .action-btn:hover {
-            background: rgba(255, 255, 255, 0.25);
-            transform: translateY(-2px);
-            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
-        }
-
-        .action-btn.primary {
-            background: linear-gradient(135deg, #10b981, #059669);
-            border-color: transparent;
-        }
-
-        .action-btn.primary:hover {
-            background: linear-gradient(135deg, #059669, #047857);
-        }
-
-        .dashboard-stats {
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 12px;
-            padding: 15px;
-        }
-
-        .stat-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 10px;
-        }
-
-        .stat-item:last-child {
-            margin-bottom: 0;
-        }
-
-        .stat-label {
-            color: rgba(255, 255, 255, 0.8);
-            font-size: 13px;
-        }
-
-        .stat-value {
-            color: white;
-            font-weight: 600;
-            font-size: 14px;
+        .secondary-btn:hover {
+            border-color: var(--primary-blue);
+            color: var(--primary-blue);
         }
 
         /* Main Schedule Area */
-        .schedule-area {
+        .zenoti-schedule {
             flex: 1;
-            min-width: 0;
-            background: rgba(255, 255, 255, 0.05);
-            backdrop-filter: blur(10px);
+            background: rgba(255, 255, 255, 0.98);
             display: flex;
             flex-direction: column;
         }
 
         .schedule-header {
-            padding: 20px 25px;
-            background: rgba(255, 255, 255, 0.1);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 24px 32px;
+            background: white;
+            border-bottom: 1px solid var(--border-light);
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
 
         .schedule-title {
-            color: white;
-            font-size: 24px;
+            font-size: 28px;
             font-weight: 700;
+            color: var(--text-dark);
         }
 
         .schedule-date {
-            color: rgba(255, 255, 255, 0.8);
             font-size: 16px;
-            font-weight: 500;
+            color: var(--text-light);
+            margin-top: 4px;
         }
 
-        .view-controls {
+        .schedule-controls {
             display: flex;
-            gap: 10px;
+            gap: 12px;
             align-items: center;
         }
 
         .view-btn {
-            padding: 8px 16px;
-            background: rgba(255, 255, 255, 0.15);
-            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 10px 20px;
+            background: var(--bg-light);
+            border: 2px solid var(--border-light);
             border-radius: 8px;
-            color: white;
-            font-size: 13px;
             cursor: pointer;
             transition: all 0.3s ease;
+            font-weight: 500;
         }
 
         .view-btn.active {
-            background: rgba(255, 255, 255, 0.25);
-            border-color: rgba(255, 255, 255, 0.4);
+            background: var(--primary-blue);
+            color: white;
+            border-color: var(--primary-blue);
         }
 
         .schedule-grid-container {
             flex: 1;
             overflow: auto;
-            position: relative;
+            background: var(--bg-light);
         }
 
         .schedule-grid {
             display: grid;
-            grid-template-columns: 80px repeat(var(--staff-count, 5), 1fr);
+            grid-template-columns: 100px repeat(var(--staff-count, 4), 1fr);
             min-height: 100%;
-            background: rgba(255, 255, 255, 0.02);
         }
 
         .time-column {
-            background: rgba(255, 255, 255, 0.08);
-            border-right: 1px solid rgba(255, 255, 255, 0.1);
+            background: white;
+            border-right: 1px solid var(--border-light);
+        }
+
+        .time-header {
+            height: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--bg-light);
+            border-bottom: 1px solid var(--border-light);
+            font-weight: 600;
+            color: var(--text-dark);
         }
 
         .time-slot {
@@ -529,88 +422,75 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-            color: rgba(255, 255, 255, 0.7);
+            border-bottom: 1px solid var(--border-light);
             font-size: 12px;
-            font-weight: 500;
+            color: var(--text-light);
         }
 
         .staff-column {
-            border-right: 1px solid rgba(255, 255, 255, 0.1);
+            background: white;
+            border-right: 1px solid var(--border-light);
             position: relative;
         }
 
         .staff-header {
-            height: 60px;
-            background: rgba(255, 255, 255, 0.1);
+            height: 80px;
             display: flex;
+            flex-direction: column;
             align-items: center;
             justify-content: center;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-            color: white;
+            background: var(--bg-light);
+            border-bottom: 1px solid var(--border-light);
+            padding: 12px;
+        }
+
+        .staff-header-name {
             font-weight: 600;
-            font-size: 14px;
-            text-align: center;
-            padding: 10px;
+            color: var(--text-dark);
+            margin-bottom: 4px;
         }
 
-        .time-slots {
-            position: relative;
+        .staff-header-specialty {
+            font-size: 12px;
+            color: var(--text-light);
         }
 
-        .hour-slot {
-            height: 60px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-            position: relative;
-        }
-
-        .half-hour-line {
+        .appointment-slot {
             position: absolute;
-            top: 50%;
-            left: 0;
-            right: 0;
-            height: 1px;
-            background: rgba(255, 255, 255, 0.03);
-        }
-
-        .appointment {
-            position: absolute;
-            left: 2px;
-            right: 2px;
-            background: linear-gradient(135deg, #10b981, #059669);
-            border-radius: 6px;
+            left: 4px;
+            right: 4px;
+            background: linear-gradient(135deg, var(--success-green), #059669);
+            border-radius: 8px;
             padding: 8px;
             color: white;
             font-size: 12px;
             cursor: pointer;
             transition: all 0.3s ease;
             border: 1px solid rgba(255, 255, 255, 0.2);
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-            overflow: hidden;
         }
 
-        .appointment:hover {
-            transform: translateX(-1px);
-            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+        .appointment-slot:hover {
+            transform: translateX(-2px);
+            box-shadow: var(--shadow-md);
         }
 
-        .appointment.facial {
+        .appointment-slot.facial {
             background: linear-gradient(135deg, #8b5cf6, #7c3aed);
         }
 
-        .appointment.massage {
-            background: linear-gradient(135deg, #10b981, #059669);
+        .appointment-slot.massage {
+            background: linear-gradient(135deg, var(--success-green), #059669);
         }
 
-        .appointment.body {
-            background: linear-gradient(135deg, #f59e0b, #d97706);
+        .appointment-slot.body {
+            background: linear-gradient(135deg, var(--warning-orange), #d97706);
         }
 
-        .appointment.hair {
-            background: linear-gradient(135deg, #ef4444, #dc2626);
+        .appointment-slot.hair {
+            background: linear-gradient(135deg, var(--danger-red), #dc2626);
         }
 
-        .appointment.nails {
+        .appointment-slot.nails {
             background: linear-gradient(135deg, #ec4899, #db2777);
         }
 
@@ -625,9 +505,6 @@
         .appointment-service {
             font-size: 10px;
             opacity: 0.9;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
         }
 
         .appointment-time {
@@ -636,314 +513,190 @@
             margin-top: 2px;
         }
 
-        .consecutive-indicator {
-            position: absolute;
-            right: 4px;
-            top: 4px;
-            width: 6px;
-            height: 6px;
-            border-radius: 50%;
-            background: rgba(255, 255, 255, 0.8);
-        }
-
-        .context-menu {
-            position: fixed;
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(20px);
-            border-radius: 8px;
-            padding: 8px 0;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
-            z-index: 2000;
-            min-width: 160px;
-            display: none;
-        }
-
-        .context-menu-item {
-            padding: 10px 16px;
-            cursor: pointer;
-            color: #333;
-            font-size: 13px;
-            transition: background 0.2s ease;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .context-menu-item:hover {
-            background: rgba(102, 126, 234, 0.1);
-        }
-
-        .toast {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(20px);
-            padding: 12px 20px;
-            border-radius: 8px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-            z-index: 3000;
-            display: none;
-            align-items: center;
-            gap: 10px;
-            color: #333;
-            font-size: 14px;
-            font-weight: 500;
-        }
-
-        .toast.success {
-            border-left: 4px solid #10b981;
-        }
-
-        .toast.error {
-            border-left: 4px solid #ef4444;
-        }
-
-        .toast.warning {
-            border-left: 4px solid #f59e0b;
-        }
-
         .legend {
-            position: absolute;
-            bottom: 20px;
-            left: 20px;
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(20px);
-            border-radius: 8px;
-            padding: 15px;
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            background: white;
+            padding: 16px;
+            border-radius: 12px;
+            box-shadow: var(--shadow-lg);
             display: flex;
-            gap: 15px;
-            align-items: center;
+            gap: 16px;
         }
 
         .legend-item {
             display: flex;
             align-items: center;
             gap: 6px;
-            color: white;
             font-size: 12px;
+            color: var(--text-dark);
         }
 
         .legend-color {
             width: 12px;
             height: 12px;
-            border-radius: 3px;
+            border-radius: 4px;
         }
 
-        .loading-spinner {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 40px;
-            height: 40px;
-            border: 3px solid rgba(255, 255, 255, 0.3);
-            border-top: 3px solid white;
+        .quick-stats {
+            background: white;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 20px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .stat-item {
+            text-align: center;
+            padding: 12px;
+            background: var(--bg-light);
+            border-radius: 8px;
+        }
+
+        .stat-value {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--primary-blue);
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: var(--text-light);
+            margin-top: 4px;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 1024px) {
+            .zenoti-sidebar {
+                width: 300px;
+                min-width: 300px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .zenoti-container {
+                flex-direction: column;
+            }
+
+            .zenoti-sidebar {
+                width: 100%;
+                height: auto;
+                max-height: 50vh;
+            }
+
+            .zenoti-schedule {
+                height: 50vh;
+            }
+        }
+
+        /* Loading States */
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+            color: var(--text-light);
+        }
+
+        .spinner {
+            width: 32px;
+            height: 32px;
+            border: 3px solid var(--border-light);
+            border-top: 3px solid var(--primary-blue);
             border-radius: 50%;
             animation: spin 1s linear infinite;
         }
 
         @keyframes spin {
-            0% { transform: translate(-50%, -50%) rotate(0deg); }
-            100% { transform: translate(-50%, -50%) rotate(360deg); }
-        }
-
-        @keyframes fadeInDown {
-            from {
-                opacity: 0;
-                transform: translateY(-10px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        @keyframes slideInRight {
-            from {
-                opacity: 0;
-                transform: translateX(20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateX(0);
-            }
-        }
-
-        /* Responsive Design */
-        @media (max-width: 1024px) {
-            .sidebar {
-                width: 280px;
-                min-width: 280px;
-            }
-            
-            .schedule-grid {
-                grid-template-columns: 60px repeat(var(--staff-count, 5), 1fr);
-            }
-        }
-
-        @media (max-width: 768px) {
-            .booking-container {
-                flex-direction: column;
-            }
-            
-            .sidebar {
-                width: 100%;
-                height: auto;
-                border-right: none;
-                border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-            }
-            
-            .schedule-area {
-                height: 60vh;
-            }
-        }
-
-        /* High Contrast Mode */
-        @media (prefers-contrast: high) {
-            .glass-input,
-            .dropdown-toggle,
-            .action-btn {
-                border-width: 2px;
-                border-color: rgba(255, 255, 255, 0.6);
-            }
-            
-            .appointment {
-                border-width: 2px;
-            }
-        }
-
-        /* Touch Friendly */
-        @media (pointer: coarse) {
-            .action-btn,
-            .glass-input,
-            .dropdown-toggle {
-                min-height: 44px;
-            }
-            
-            .appointment {
-                min-height: 40px;
-            }
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
     </style>
 </head>
 <body>
-    <div class="booking-container">
-        <!-- Left Sidebar -->
-        <div class="sidebar">
-            <div class="logo">
-                <h1><i class="fas fa-spa"></i> ZenSpa</h1>
-                <p>Professional Booking System</p>
+    <div class="zenoti-container">
+        <!-- Enhanced Left Sidebar -->
+        <div class="zenoti-sidebar">
+            <!-- Header -->
+            <div class="zenoti-header">
+                <div class="zenoti-logo">
+                    <i class="fas fa-spa"></i> ZenSpa Pro
+                </div>
+                <div class="zenoti-subtitle">Professional Booking System</div>
             </div>
 
-            <!-- Client Type Toggle -->
-            <div class="section">
+            <!-- Client Selection -->
+            <div class="sidebar-section">
                 <div class="section-title">
                     <i class="fas fa-user"></i>
-                    Client Type
+                    Client Selection
                 </div>
                 <div class="client-toggle">
-                    <button class="active" data-type="existing">Existing</button>
-                    <button data-type="new">New Client</button>
+                    <button class="toggle-btn active" data-type="existing">Existing</button>
+                    <button class="toggle-btn" data-type="new">New Client</button>
                 </div>
-            </div>
-
-            <!-- Client Search -->
-            <div class="section">
-                <div class="section-title">
-                    <i class="fas fa-search"></i>
-                    Client Search
-                </div>
-                <input type="text" class="glass-input" id="clientSearch" placeholder="Type name, phone, or email..." autocomplete="off">
-                <div class="dropdown">
-                    <div class="dropdown-menu" id="clientDropdown"></div>
-                </div>
-                <div style="font-size: 12px; color: rgba(255, 255, 255, 0.6); margin-top: 5px;">
-                    <i class="fas fa-info-circle"></i> Start typing to search existing clients
-                </div>
-            </div>
-
-            <!-- New Client Form (Hidden by default) -->
-            <div class="section" id="newClientForm" style="display: none;">
-                <input type="text" class="glass-input" placeholder="First Name" id="newClientFirstName">
-                <input type="text" class="glass-input" placeholder="Last Name" id="newClientLastName">
-                <input type="tel" class="glass-input" placeholder="Phone Number" id="newClientPhone">
-                <input type="email" class="glass-input" placeholder="Email" id="newClientEmail">
+                <input type="text" class="zenoti-input" id="clientSearch" placeholder="Search by name, phone, or email...">
+                <div id="clientDropdown" style="display: none; margin-top: 8px;"></div>
             </div>
 
             <!-- Service Categories -->
-            <div class="section">
+            <div class="sidebar-section">
                 <div class="section-title">
-                    <i class="fas fa-th-large"></i>
+                    <i class="fas fa-spa"></i>
                     Service Categories
                 </div>
-                <div class="service-categories">
-                    <div class="service-category" data-category="facial">
-                        <i class="fas fa-leaf"></i>
-                        Facials
+                <div class="service-grid">
+                    <div class="service-card" data-category="facial">
+                        <div class="service-icon"><i class="fas fa-leaf"></i></div>
+                        <div class="service-name">Facials</div>
                     </div>
-                    <div class="service-category" data-category="massage">
-                        <i class="fas fa-hands"></i>
-                        Massage
+                    <div class="service-card" data-category="massage">
+                        <div class="service-icon"><i class="fas fa-hands"></i></div>
+                        <div class="service-name">Massage</div>
                     </div>
-                    <div class="service-category" data-category="body">
-                        <i class="fas fa-spa"></i>
-                        Body Treatments
+                    <div class="service-card" data-category="body">
+                        <div class="service-icon"><i class="fas fa-spa"></i></div>
+                        <div class="service-name">Body</div>
                     </div>
-                    <div class="service-category" data-category="hair">
-                        <i class="fas fa-cut"></i>
-                        Hair Services
+                    <div class="service-card" data-category="hair">
+                        <div class="service-icon"><i class="fas fa-cut"></i></div>
+                        <div class="service-name">Hair</div>
                     </div>
-                    <div class="service-category" data-category="nails">
-                        <i class="fas fa-hand-sparkles"></i>
-                        Nail Services
+                    <div class="service-card" data-category="nails">
+                        <div class="service-icon"><i class="fas fa-hand-sparkles"></i></div>
+                        <div class="service-name">Nails</div>
                     </div>
-                </div>
-            </div>
-
-            <!-- Service Selection -->
-            <div class="section">
-                <div class="section-title">
-                    <i class="fas fa-list"></i>
-                    Select Service
-                </div>
-                <div class="dropdown">
-                    <div class="dropdown-toggle" id="serviceSelector">
-                        <span>Choose a service...</span>
-                        <i class="fas fa-chevron-down"></i>
+                    <div class="service-card" data-category="skincare">
+                        <div class="service-icon"><i class="fas fa-magic"></i></div>
+                        <div class="service-name">Skincare</div>
                     </div>
-                    <div class="dropdown-menu" id="serviceDropdown"></div>
-                </div>
-            </div>
-
-            <!-- Duration Selector -->
-            <div class="section">
-                <div class="section-title">
-                    <i class="fas fa-clock"></i>
-                    Duration
-                </div>
-                <div class="duration-selector">
-                    <input type="number" class="duration-input" id="durationHours" placeholder="Hours" min="0" max="8" value="1">
-                    <input type="number" class="duration-input" id="durationMinutes" placeholder="Minutes" min="0" max="59" value="0">
                 </div>
             </div>
 
             <!-- Staff Selection -->
-            <div class="section">
+            <div class="sidebar-section">
                 <div class="section-title">
                     <i class="fas fa-users"></i>
                     Select Therapist
                 </div>
-                <div class="staff-list" id="staffList"></div>
+                <div class="staff-grid" id="staffGrid">
+                    <!-- Staff cards will be populated here -->
+                </div>
             </div>
 
-            <!-- Date Picker -->
-            <div class="section">
+            <!-- Calendar -->
+            <div class="sidebar-section">
                 <div class="section-title">
                     <i class="fas fa-calendar"></i>
                     Select Date
                 </div>
-                <div class="date-picker">
+                <div class="zenoti-calendar">
                     <div class="calendar-header">
                         <button class="calendar-nav" id="prevMonth">
                             <i class="fas fa-chevron-left"></i>
@@ -957,150 +710,113 @@
                 </div>
             </div>
 
-            <!-- Quick Actions -->
-            <div class="section">
+            <!-- Quick Stats -->
+            <div class="sidebar-section">
                 <div class="section-title">
-                    <i class="fas fa-bolt"></i>
-                    Quick Actions
+                    <i class="fas fa-chart-bar"></i>
+                    Today's Overview
                 </div>
-                <div class="quick-actions">
-                    <button class="action-btn primary" id="bookNow" onclick="redirectToBookingPage()">
-                        <i class="fas fa-plus"></i>
-                        Book Now
-                    </button>
-                    <button class="action-btn" id="blockTime">
-                        <i class="fas fa-ban"></i>
-                        Block Time
-                    </button>
-                    <button class="action-btn" id="addBreak">
-                        <i class="fas fa-coffee"></i>
-                        Add Break
-                    </button>
-                    <button class="action-btn" id="waitlist">
-                        <i class="fas fa-list-ul"></i>
-                        Waitlist
-                    </button>
+                <div class="quick-stats">
+                    <div class="stats-grid">
+                        <div class="stat-item">
+                            <div class="stat-value" id="todayBookings">0</div>
+                            <div class="stat-label">Bookings</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value" id="todayRevenue">$0</div>
+                            <div class="stat-label">Revenue</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value" id="staffUtilization">0%</div>
+                            <div class="stat-label">Utilization</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value" id="availableSlots">0</div>
+                            <div class="stat-label">Available</div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <!-- Daily Stats -->
-            <div class="section">
-                <div class="section-title">
-                    <i class="fas fa-chart-bar"></i>
-                    Daily Dashboard
-                </div>
-                <div class="dashboard-stats">
-                    <div class="stat-item">
-                        <span class="stat-label">Bookings</span>
-                        <span class="stat-value" id="dailyBookings">0</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-label">Revenue</span>
-                        <span class="stat-value" id="dailyRevenue">$0</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-label">Utilization</span>
-                        <span class="stat-value" id="utilization">0%</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-label">Waitlist</span>
-                        <span class="stat-value" id="waitlistCount">0</span>
-                    </div>
-                </div>
+            <!-- Action Buttons -->
+            <div class="action-buttons">
+                <button class="primary-btn" id="bookNowBtn">
+                    <i class="fas fa-calendar-plus"></i>
+                    Book Appointment
+                </button>
+                <button class="secondary-btn" id="blockTimeBtn">
+                    <i class="fas fa-ban"></i>
+                    Block Time
+                </button>
+                <button class="secondary-btn" id="addBreakBtn">
+                    <i class="fas fa-coffee"></i>
+                    Add Break
+                </button>
             </div>
         </div>
 
         <!-- Main Schedule Area -->
-        <div class="schedule-area">
+        <div class="zenoti-schedule">
+            <!-- Schedule Header -->
             <div class="schedule-header">
                 <div>
                     <div class="schedule-title">Daily Schedule</div>
                     <div class="schedule-date" id="scheduleDate"></div>
                 </div>
-                <div class="view-controls">
-                    <button class="view-btn active" data-view="day">Day</button>
-                    <button class="view-btn" data-view="week">Week</button>
-                    <button class="view-btn" id="refreshSchedule">
+                <div class="schedule-controls">
+                    <button class="view-btn active" data-view="day">Day View</button>
+                    <button class="view-btn" data-view="week">Week View</button>
+                    <button class="view-btn" id="refreshBtn">
                         <i class="fas fa-sync-alt"></i>
                         Refresh
                     </button>
                 </div>
             </div>
 
+            <!-- Schedule Grid -->
             <div class="schedule-grid-container">
                 <div class="schedule-grid" id="scheduleGrid">
                     <!-- Time Column -->
                     <div class="time-column">
-                        <div class="staff-header">Time</div>
+                        <div class="time-header">Time</div>
                         <div id="timeSlots"></div>
                     </div>
-                    <!-- Staff Columns will be generated dynamically -->
+                    <!-- Staff columns will be generated dynamically -->
                 </div>
-                <div class="loading-spinner" id="loadingSpinner" style="display: none;"></div>
-            </div>
-
-            <!-- Service Legend -->
-            <div class="legend">
-                <div class="legend-item">
-                    <div class="legend-color" style="background: linear-gradient(135deg, #8b5cf6, #7c3aed);"></div>
-                    <span>Facials</span>
-                </div>
-                <div class="legend-item">
-                    <div class="legend-color" style="background: linear-gradient(135deg, #10b981, #059669);"></div>
-                    <span>Massage</span>
-                </div>
-                <div class="legend-item">
-                    <div class="legend-color" style="background: linear-gradient(135deg, #f59e0b, #d97706);"></div>
-                    <span>Body</span>
-                </div>
-                <div class="legend-item">
-                    <div class="legend-color" style="background: linear-gradient(135deg, #ef4444, #dc2626);"></div>
-                    <span>Hair</span>
-                </div>
-                <div class="legend-item">
-                    <div class="legend-color" style="background: linear-gradient(135deg, #ec4899, #db2777);"></div>
-                    <span>Nails</span>
+                <div class="loading" id="scheduleLoading" style="display: none;">
+                    <div class="spinner"></div>
+                    <span style="margin-left: 12px;">Loading schedule...</span>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Context Menu -->
-    <div class="context-menu" id="contextMenu">
-        <div class="context-menu-item" data-action="view">
-            <i class="fas fa-eye"></i>
-            View Details
+    <!-- Service Legend -->
+    <div class="legend">
+        <div class="legend-item">
+            <div class="legend-color" style="background: linear-gradient(135deg, #8b5cf6, #7c3aed);"></div>
+            <span>Facials</span>
         </div>
-        <div class="context-menu-item" data-action="edit">
-            <i class="fas fa-edit"></i>
-            Edit Appointment
+        <div class="legend-item">
+            <div class="legend-color" style="background: linear-gradient(135deg, #10b981, #059669);"></div>
+            <span>Massage</span>
         </div>
-        <div class="context-menu-item" data-action="reschedule">
-            <i class="fas fa-calendar-alt"></i>
-            Reschedule
+        <div class="legend-item">
+            <div class="legend-color" style="background: linear-gradient(135deg, #f59e0b, #d97706);"></div>
+            <span>Body</span>
         </div>
-        <div class="context-menu-item" data-action="duplicate">
-            <i class="fas fa-copy"></i>
-            Duplicate
+        <div class="legend-item">
+            <div class="legend-color" style="background: linear-gradient(135deg, #ef4444, #dc2626);"></div>
+            <span>Hair</span>
         </div>
-        <div class="context-menu-item" data-action="consecutive">
-            <i class="fas fa-link"></i>
-            Add Consecutive
+        <div class="legend-item">
+            <div class="legend-color" style="background: linear-gradient(135deg, #ec4899, #db2777);"></div>
+            <span>Nails</span>
         </div>
-        <div class="context-menu-item" data-action="cancel" style="color: #ef4444;">
-            <i class="fas fa-times"></i>
-            Cancel
-        </div>
-    </div>
-
-    <!-- Toast Notifications -->
-    <div class="toast" id="toast">
-        <i class="fas fa-check-circle"></i>
-        <span id="toastMessage"></span>
     </div>
 
     <script>
-        // Global Variables
+        // Global state
         let currentDate = new Date();
         let selectedDate = new Date();
         let selectedClient = null;
@@ -1110,12 +826,10 @@
         let servicesData = [];
         let clientsData = [];
         let appointmentsData = [];
-        let isDragging = false;
-        let dragStartY = 0;
-        let currentAppointment = null;
 
-        // Initialize the booking system
+        // Initialize the system
         document.addEventListener('DOMContentLoaded', function() {
+            console.log('Initializing Zenoti Professional Booking System...');
             initializeSystem();
             loadData();
             setupEventListeners();
@@ -1124,42 +838,34 @@
         });
 
         function initializeSystem() {
-            console.log('Initializing Professional Spa Booking System...');
-            showToast('System initialized successfully', 'success');
+            // Set CSS custom properties for dynamic grid
+            document.documentElement.style.setProperty('--staff-count', '4');
         }
 
         async function loadData() {
             showLoading(true);
             try {
-                // Load staff data
-                const staffResponse = await fetch('/api/unaki/staff');
-                if (staffResponse.ok) {
-                    staffData = await staffResponse.json();
-                }
+                // Load all data in parallel
+                const [staffResponse, servicesResponse, clientsResponse] = await Promise.all([
+                    fetch('/api/unaki/staff'),
+                    fetch('/api/unaki/services'),
+                    fetch('/api/unaki/clients')
+                ]);
 
-                // Load services data
-                const servicesResponse = await fetch('/api/unaki/services');
-                if (servicesResponse.ok) {
-                    servicesData = await servicesResponse.json();
-                }
+                if (staffResponse.ok) staffData = await staffResponse.json();
+                if (servicesResponse.ok) servicesData = await servicesResponse.json();
+                if (clientsResponse.ok) clientsData = await clientsResponse.json();
 
-                // Load clients data
-                const clientsResponse = await fetch('/api/unaki/clients');
-                if (clientsResponse.ok) {
-                    clientsData = await clientsResponse.json();
-                }
+                // Update staff count for grid
+                document.documentElement.style.setProperty('--staff-count', staffData.length);
 
-                renderStaffList();
-                renderServiceCategories();
+                renderStaffGrid();
                 await loadScheduleData();
-                updateDailyStats();
-                
-                console.log('Loaded staff:', staffData.length);
-                console.log('Loaded services:', servicesData.length);
-                console.log('Loaded clients:', clientsData.length);
+                updateStats();
+
+                console.log(`Loaded: ${staffData.length} staff, ${servicesData.length} services, ${clientsData.length} clients`);
             } catch (error) {
                 console.error('Error loading data:', error);
-                showToast('Error loading data', 'error');
             } finally {
                 showLoading(false);
             }
@@ -1169,7 +875,7 @@
             try {
                 const dateStr = selectedDate.toISOString().split('T')[0];
                 const response = await fetch(`/api/unaki/schedule?date=${dateStr}`);
-                
+
                 if (response.ok) {
                     const data = await response.json();
                     appointmentsData = data.appointments || [];
@@ -1177,103 +883,33 @@
                     renderAppointments();
                 } else {
                     console.error('Failed to load schedule data');
-                    showToast('Failed to load schedule', 'error');
                 }
             } catch (error) {
                 console.error('Error loading schedule:', error);
-                showToast('Error loading schedule', 'error');
             }
         }
 
         function setupEventListeners() {
             // Client type toggle
-            document.querySelectorAll('.client-toggle button').forEach(btn => {
+            document.querySelectorAll('.toggle-btn').forEach(btn => {
                 btn.addEventListener('click', function() {
-                    document.querySelectorAll('.client-toggle button').forEach(b => b.classList.remove('active'));
+                    document.querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('active'));
                     this.classList.add('active');
-                    
+
                     const type = this.dataset.type;
-                    const newClientForm = document.getElementById('newClientForm');
-                    const clientSearchSection = document.querySelector('.section:has(#clientSearch)');
-                    
-                    // Reset selected client when switching
-                    selectedClient = null;
-                    document.getElementById('clientSearch').value = '';
-                    document.getElementById('clientSearch').style.borderColor = '';
-                    document.getElementById('clientSearch').style.backgroundColor = '';
-                    document.getElementById('clientDropdown').classList.remove('show');
-                    
-                    if (type === 'new') {
-                        newClientForm.style.display = 'block';
-                        clientSearchSection.style.display = 'none';
-                        showToast('Switched to new client mode', 'info');
-                    } else {
-                        newClientForm.style.display = 'none';
-                        clientSearchSection.style.display = 'block';
-                        showToast('Switched to existing client mode', 'info');
-                        // Focus on search when switching to existing client
-                        setTimeout(() => {
-                            document.getElementById('clientSearch').focus();
-                        }, 100);
-                    }
+                    // Handle client type switching logic here
                 });
             });
 
-            // Client search
-            const clientSearch = document.getElementById('clientSearch');
-            
-            clientSearch.addEventListener('input', function(e) {
-                handleClientSearch();
-            });
-            
-            clientSearch.addEventListener('focus', function(e) {
-                // Reset visual indicators when focusing
-                if (!selectedClient) {
-                    this.style.borderColor = '';
-                    this.style.backgroundColor = '';
-                }
-                handleClientSearch();
-            });
-            
-            clientSearch.addEventListener('blur', function(e) {
-                // Delay hiding dropdown to allow for clicks
-                setTimeout(() => {
-                    const dropdown = document.getElementById('clientDropdown');
-                    if (!dropdown.matches(':hover')) {
-                        dropdown.classList.remove('show');
-                    }
-                }, 200);
-            });
-            
-            clientSearch.addEventListener('keydown', function(e) {
-                const dropdown = document.getElementById('clientDropdown');
-                const items = dropdown.querySelectorAll('.dropdown-item');
-                
-                if (e.key === 'ArrowDown') {
-                    e.preventDefault();
-                    if (items.length > 0) {
-                        items[0].focus();
-                    }
-                } else if (e.key === 'Escape') {
-                    dropdown.classList.remove('show');
-                    this.blur();
-                }
-            });
-
-            // Service categories
-            document.querySelectorAll('.service-category').forEach(category => {
-                category.addEventListener('click', function() {
-                    document.querySelectorAll('.service-category').forEach(c => c.classList.remove('selected'));
+            // Service category selection
+            document.querySelectorAll('.service-card').forEach(card => {
+                card.addEventListener('click', function() {
+                    document.querySelectorAll('.service-card').forEach(c => c.classList.remove('selected'));
                     this.classList.add('selected');
-                    filterServicesByCategory(this.dataset.category);
-                });
-            });
 
-            // Service selector
-            const serviceSelector = document.getElementById('serviceSelector');
-            serviceSelector.addEventListener('click', function() {
-                const dropdown = document.getElementById('serviceDropdown');
-                dropdown.classList.toggle('show');
+                    const category = this.dataset.category;
+                    filterServicesByCategory(category);
+                });
             });
 
             // Calendar navigation
@@ -1287,61 +923,48 @@
                 renderCalendar();
             });
 
-            // Quick actions
-            document.getElementById('bookNow').addEventListener('click', handleBookNow);
-            document.getElementById('blockTime').addEventListener('click', handleBlockTime);
-            document.getElementById('addBreak').addEventListener('click', handleAddBreak);
-            document.getElementById('waitlist').addEventListener('click', handleWaitlist);
-            document.getElementById('refreshSchedule').addEventListener('click', loadScheduleData);
+            // Action buttons
+            document.getElementById('bookNowBtn').addEventListener('click', handleBookNow);
+            document.getElementById('blockTimeBtn').addEventListener('click', handleBlockTime);
+            document.getElementById('addBreakBtn').addEventListener('click', handleAddBreak);
+            document.getElementById('refreshBtn').addEventListener('click', loadScheduleData);
 
-            // Context menu
-            document.addEventListener('contextmenu', handleContextMenu);
-            document.addEventListener('click', hideContextMenu);
-
-            // Keyboard shortcuts
-            document.addEventListener('keydown', handleKeyboardShortcuts);
-
-            // Close dropdowns when clicking outside
-            document.addEventListener('click', function(e) {
-                // Don't close if clicking inside a dropdown or its parent
-                if (!e.target.closest('.dropdown') && !e.target.closest('.dropdown-menu')) {
-                    document.querySelectorAll('.dropdown-menu').forEach(menu => {
-                        menu.classList.remove('show');
-                        menu.style.display = 'none';
-                    });
-                }
+            // View controls
+            document.querySelectorAll('.view-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    if (this.id !== 'refreshBtn') {
+                        document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
+                        this.classList.add('active');
+                    }
+                });
             });
-            
-            // Prevent dropdown from closing when clicking inside it
-            document.addEventListener('click', function(e) {
-                if (e.target.closest('.dropdown-menu')) {
-                    e.stopPropagation();
-                }
-            });
+
+            // Client search
+            const clientSearch = document.getElementById('clientSearch');
+            clientSearch.addEventListener('input', handleClientSearch);
         }
 
         function renderCalendar() {
             const currentMonthElement = document.getElementById('currentMonth');
             const calendarGrid = document.getElementById('calendarGrid');
-            
+
             const year = currentDate.getFullYear();
             const month = currentDate.getMonth();
-            
+
             currentMonthElement.textContent = currentDate.toLocaleDateString('en-US', { 
                 month: 'long', 
                 year: 'numeric' 
             });
 
-            // Clear previous calendar
             calendarGrid.innerHTML = '';
 
             // Add day headers
-            const dayHeaders = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+            const dayHeaders = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
             dayHeaders.forEach(day => {
                 const dayHeader = document.createElement('div');
                 dayHeader.className = 'calendar-day';
                 dayHeader.style.fontWeight = '600';
-                dayHeader.style.color = 'rgba(255, 255, 255, 0.8)';
+                dayHeader.style.color = 'var(--text-light)';
                 dayHeader.textContent = day;
                 calendarGrid.appendChild(dayHeader);
             });
@@ -1365,18 +988,15 @@
                 dayElement.textContent = day;
 
                 const dayDate = new Date(year, month, day);
-                
-                // Highlight today
+
                 if (dayDate.toDateString() === today.toDateString()) {
                     dayElement.classList.add('today');
                 }
 
-                // Highlight selected date
                 if (dayDate.toDateString() === selectedDate.toDateString()) {
                     dayElement.classList.add('selected');
                 }
 
-                // Add click handler
                 dayElement.addEventListener('click', function() {
                     selectedDate = new Date(year, month, day);
                     renderCalendar();
@@ -1388,668 +1008,141 @@
             }
         }
 
-        function renderStaffList() {
-            const staffList = document.getElementById('staffList');
-            staffList.innerHTML = '';
+        function renderStaffGrid() {
+            const staffGrid = document.getElementById('staffGrid');
+            staffGrid.innerHTML = '';
 
             staffData.forEach(staff => {
-                const staffItem = document.createElement('div');
-                staffItem.className = 'staff-item';
-                staffItem.dataset.staffId = staff.id;
+                const staffCard = document.createElement('div');
+                staffCard.className = 'staff-card';
+                staffCard.dataset.staffId = staff.id;
 
                 const initials = staff.name.split(' ').map(n => n[0]).join('').toUpperCase();
-                const availability = Math.random() > 0.3 ? 'available' : 'busy'; // Random for demo
+                const availability = Math.random() > 0.3 ? 'available' : 'busy';
 
-                staffItem.innerHTML = `
+                staffCard.innerHTML = `
                     <div class="staff-avatar">${initials}</div>
                     <div class="staff-info">
                         <div class="staff-name">${staff.name}</div>
-                        <div class="staff-specialty">${staff.specialty || 'General'}</div>
+                        <div class="staff-specialty">${staff.specialty || 'Therapist'}</div>
                     </div>
-                    <div class="availability-indicator ${availability}"></div>
+                    <div class="availability-dot ${availability}"></div>
                 `;
 
-                staffItem.addEventListener('click', function() {
-                    document.querySelectorAll('.staff-item').forEach(item => item.classList.remove('selected'));
+                staffCard.addEventListener('click', function() {
+                    document.querySelectorAll('.staff-card').forEach(card => card.classList.remove('selected'));
                     this.classList.add('selected');
                     selectedStaff = staff;
                 });
 
-                staffList.appendChild(staffItem);
+                staffGrid.appendChild(staffCard);
             });
-        }
-
-        function renderServiceCategories() {
-            // Services are already rendered in HTML, just add event listeners
-            const serviceDropdown = document.getElementById('serviceDropdown');
-            serviceDropdown.innerHTML = '';
-
-            servicesData.forEach(service => {
-                const serviceItem = document.createElement('div');
-                serviceItem.className = 'dropdown-item';
-                serviceItem.textContent = `${service.name} (${service.duration}min - $${service.price})`;
-                
-                serviceItem.addEventListener('click', function() {
-                    selectedService = service;
-                    document.getElementById('serviceSelector').querySelector('span').textContent = service.name;
-                    document.getElementById('serviceDropdown').classList.remove('show');
-                    
-                    // Auto-fill duration
-                    const hours = Math.floor(service.duration / 60);
-                    const minutes = service.duration % 60;
-                    document.getElementById('durationHours').value = hours;
-                    document.getElementById('durationMinutes').value = minutes;
-                });
-
-                serviceDropdown.appendChild(serviceItem);
-            });
-        }
-
-        function filterServicesByCategory(category) {
-            const serviceDropdown = document.getElementById('serviceDropdown');
-            serviceDropdown.innerHTML = '';
-
-            const filteredServices = servicesData.filter(service => 
-                service.category === category || !service.category
-            );
-
-            filteredServices.forEach(service => {
-                const serviceItem = document.createElement('div');
-                serviceItem.className = 'dropdown-item';
-                serviceItem.textContent = `${service.name} (${service.duration}min - $${service.price})`;
-                
-                serviceItem.addEventListener('click', function() {
-                    selectedService = service;
-                    document.getElementById('serviceSelector').querySelector('span').textContent = service.name;
-                    document.getElementById('serviceDropdown').classList.remove('show');
-                    
-                    // Auto-fill duration
-                    const hours = Math.floor(service.duration / 60);
-                    const minutes = service.duration % 60;
-                    document.getElementById('durationHours').value = hours;
-                    document.getElementById('durationMinutes').value = minutes;
-                });
-
-                serviceDropdown.appendChild(serviceItem);
-            });
-        }
-
-        function handleClientSearch() {
-            const searchInput = document.getElementById('clientSearch');
-            const searchTerm = searchInput.value.toLowerCase();
-            const clientDropdown = document.getElementById('clientDropdown');
-            
-            // Clear previous timeout if exists
-            if (window.searchTimeout) {
-                clearTimeout(window.searchTimeout);
-            }
-            
-            // Debounce the search to prevent excessive API calls
-            window.searchTimeout = setTimeout(() => {
-                if (searchTerm.length < 1) {
-                    clientDropdown.classList.remove('show');
-                    clientDropdown.innerHTML = '';
-                    return;
-                }
-
-                // Show all clients if search is short, filter if longer
-                const filteredClients = searchTerm.length < 2 ? 
-                    clientsData.slice(0, 10) : // Show first 10 clients for short search
-                    clientsData.filter(client => 
-                        client.name.toLowerCase().includes(searchTerm) ||
-                        (client.phone && client.phone.includes(searchTerm)) ||
-                        (client.email && client.email.toLowerCase().includes(searchTerm))
-                    );
-
-                // Clear dropdown
-                clientDropdown.innerHTML = '';
-                
-                if (filteredClients.length === 0) {
-                    const noResultsItem = document.createElement('div');
-                    noResultsItem.className = 'dropdown-item';
-                    noResultsItem.style.fontStyle = 'italic';
-                    noResultsItem.style.color = '#666';
-                    noResultsItem.style.padding = '12px 16px';
-                    noResultsItem.textContent = 'No clients found - type to search';
-                    clientDropdown.appendChild(noResultsItem);
-                } else {
-                    filteredClients.forEach(client => {
-                        const clientItem = document.createElement('div');
-                        clientItem.className = 'dropdown-item';
-                        clientItem.style.cursor = 'pointer';
-                        clientItem.style.padding = '12px 16px';
-                        clientItem.style.borderBottom = '1px solid rgba(0, 0, 0, 0.05)';
-                        clientItem.innerHTML = `
-                            <div style="font-weight: 600; margin-bottom: 2px;">${client.name}</div>
-                            <div style="font-size: 12px; color: #666; opacity: 0.8;">${client.phone || 'No phone'} ${client.email ? '• ' + client.email : ''}</div>
-                        `;
-                        
-                        // Add hover effect
-                        clientItem.addEventListener('mouseenter', function() {
-                            this.style.backgroundColor = 'rgba(102, 126, 234, 0.1)';
-                        });
-                        
-                        clientItem.addEventListener('mouseleave', function() {
-                            this.style.backgroundColor = '';
-                        });
-                        
-                        clientItem.addEventListener('click', function(e) {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            
-                            selectedClient = client;
-                            searchInput.value = client.name;
-                            clientDropdown.classList.remove('show');
-                            
-                            // Update visual indicator
-                            searchInput.style.borderColor = '#10b981';
-                            searchInput.style.backgroundColor = 'rgba(16, 185, 129, 0.1)';
-                            
-                            showToast(`Selected client: ${client.name}`, 'success');
-                            
-                            // Focus next input element or service selection
-                            const serviceSelector = document.getElementById('serviceSelector');
-                            if (serviceSelector) {
-                                serviceSelector.focus();
-                            }
-                        });
-
-                        clientDropdown.appendChild(clientItem);
-                    });
-                }
-
-                // Force show the dropdown
-                clientDropdown.classList.add('show');
-                clientDropdown.style.display = 'block';
-                
-            }, 300); // 300ms debounce
         }
 
         function renderScheduleGrid() {
             const scheduleGrid = document.getElementById('scheduleGrid');
-            
-            // Update CSS custom property for staff count
-            document.documentElement.style.setProperty('--staff-count', staffData.length);
-            
-            // Clear existing grid except time column
             const timeColumn = scheduleGrid.querySelector('.time-column');
-            scheduleGrid.innerHTML = '';
-            scheduleGrid.appendChild(timeColumn);
 
-            // Render time slots
+            // Clear existing staff columns
+            const existingStaffColumns = scheduleGrid.querySelectorAll('.staff-column');
+            existingStaffColumns.forEach(col => col.remove());
+
+            // Generate time slots
             renderTimeSlots();
 
-            // Create staff columns
+            // Generate staff columns
             staffData.forEach(staff => {
                 const staffColumn = document.createElement('div');
                 staffColumn.className = 'staff-column';
                 staffColumn.dataset.staffId = staff.id;
 
+                // Staff header
                 const staffHeader = document.createElement('div');
                 staffHeader.className = 'staff-header';
-                staffHeader.textContent = staff.name;
-
-                const timeSlots = document.createElement('div');
-                timeSlots.className = 'time-slots';
-
-                // Create hour slots from 8 AM to 8 PM
-                for (let hour = 8; hour <= 20; hour++) {
-                    const hourSlot = document.createElement('div');
-                    hourSlot.className = 'hour-slot';
-                    hourSlot.dataset.hour = hour;
-
-                    const halfHourLine = document.createElement('div');
-                    halfHourLine.className = 'half-hour-line';
-                    hourSlot.appendChild(halfHourLine);
-
-                    timeSlots.appendChild(hourSlot);
-                }
+                staffHeader.innerHTML = `
+                    <div class="staff-header-name">${staff.name}</div>
+                    <div class="staff-header-specialty">${staff.specialty || 'Therapist'}</div>
+                `;
 
                 staffColumn.appendChild(staffHeader);
-                staffColumn.appendChild(timeSlots);
-                scheduleGrid.appendChild(staffColumn);
 
-                // Add click handler for booking
-                timeSlots.addEventListener('click', function(e) {
-                    if (e.target.classList.contains('appointment')) return;
-                    handleTimeSlotClick(e, staff.id);
-                });
+                // Time slots
+                for (let hour = 8; hour < 20; hour++) {
+                    for (let minutes = 0; minutes < 60; minutes += 30) {
+                        const timeSlot = document.createElement('div');
+                        timeSlot.className = 'time-slot';
+                        timeSlot.style.height = '60px';
+                        timeSlot.style.borderBottom = '1px solid var(--border-light)';
+
+                        // Add click handler for booking
+                        const timeString = `${hour.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+                        timeSlot.addEventListener('click', () => handleSlotClick(staff.id, timeString));
+
+                        staffColumn.appendChild(timeSlot);
+                    }
+                }
+
+                scheduleGrid.appendChild(staffColumn);
             });
         }
 
         function renderTimeSlots() {
-            const timeSlots = document.getElementById('timeSlots');
-            timeSlots.innerHTML = '';
+            const timeSlotsContainer = document.getElementById('timeSlots');
+            timeSlotsContainer.innerHTML = '';
 
-            for (let hour = 8; hour <= 20; hour++) {
-                const timeSlot = document.createElement('div');
-                timeSlot.className = 'time-slot';
-                
-                const time = hour === 12 ? '12:00 PM' : 
-                           hour < 12 ? `${hour}:00 AM` : 
-                           `${hour - 12}:00 PM`;
-                
-                timeSlot.textContent = time;
-                timeSlots.appendChild(timeSlot);
+            for (let hour = 8; hour < 20; hour++) {
+                for (let minutes = 0; minutes < 60; minutes += 30) {
+                    const timeSlot = document.createElement('div');
+                    timeSlot.className = 'time-slot';
+
+                    const timeString = `${hour.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+                    const displayTime = new Date(`2000-01-01 ${timeString}`).toLocaleTimeString('en-US', {
+                        hour: 'numeric',
+                        minute: '2-digit',
+                        hour12: true
+                    });
+
+                    timeSlot.textContent = displayTime;
+                    timeSlotsContainer.appendChild(timeSlot);
+                }
             }
         }
 
         function renderAppointments() {
             // Clear existing appointments
-            document.querySelectorAll('.appointment').forEach(apt => apt.remove());
+            document.querySelectorAll('.appointment-slot').forEach(slot => slot.remove());
 
             appointmentsData.forEach(appointment => {
-                const staffColumn = document.querySelector(`[data-staff-id="${appointment.staffId}"] .time-slots`);
+                const staffColumn = document.querySelector(`[data-staff-id="${appointment.staffId}"]`);
                 if (!staffColumn) return;
 
-                const appointmentElement = document.createElement('div');
-                appointmentElement.className = `appointment ${appointment.service ? getServiceCategory(appointment.service) : 'general'}`;
-                appointmentElement.dataset.appointmentId = appointment.id;
+                const appointmentSlot = document.createElement('div');
+                appointmentSlot.className = `appointment-slot ${appointment.serviceType.toLowerCase()}`;
 
-                // Calculate position and height
-                const startTime = parseTime(appointment.startTime);
-                const endTime = parseTime(appointment.endTime);
-                const startMinutes = (startTime.hour - 8) * 60 + startTime.minute;
-                const duration = (endTime.hour - startTime.hour) * 60 + (endTime.minute - startTime.minute);
+                const startTime = new Date(`2000-01-01 ${appointment.startTime}`);
+                const endTime = new Date(`2000-01-01 ${appointment.endTime}`);
+                const duration = (endTime - startTime) / (1000 * 60); // minutes
 
-                const top = (startMinutes / 60) * 60; // 60px per hour
-                const height = (duration / 60) * 60;
+                // Calculate position
+                const startHour = startTime.getHours();
+                const startMinutes = startTime.getMinutes();
+                const topOffset = ((startHour - 8) * 2 + startMinutes / 30) * 60 + 80; // 80px for header
+                const height = (duration / 30) * 60;
 
-                appointmentElement.style.top = `${top}px`;
-                appointmentElement.style.height = `${height}px`;
+                appointmentSlot.style.top = `${topOffset}px`;
+                appointmentSlot.style.height = `${height}px`;
+                appointmentSlot.style.zIndex = '10';
 
-                // Check if this is part of consecutive bookings
-                const hasConsecutive = checkConsecutiveBooking(appointment);
-                
-                appointmentElement.innerHTML = `
+                appointmentSlot.innerHTML = `
                     <div class="appointment-client">${appointment.clientName}</div>
-                    <div class="appointment-service">${appointment.service}</div>
+                    <div class="appointment-service">${appointment.serviceType}</div>
                     <div class="appointment-time">${appointment.startTime} - ${appointment.endTime}</div>
-                    ${hasConsecutive ? '<div class="consecutive-indicator"></div>' : ''}
                 `;
 
-                // Add event listeners
-                appointmentElement.addEventListener('click', function(e) {
-                    e.stopPropagation();
-                    selectAppointment(appointment);
-                });
+                appointmentSlot.addEventListener('click', () => handleAppointmentClick(appointment));
 
-                appointmentElement.addEventListener('contextmenu', function(e) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    currentAppointment = appointment;
-                    showContextMenu(e.clientX, e.clientY);
-                });
-
-                staffColumn.appendChild(appointmentElement);
+                staffColumn.appendChild(appointmentSlot);
             });
-        }
-
-        function parseTime(timeStr) {
-            const [hours, minutes] = timeStr.split(':').map(Number);
-            return { hour: hours, minute: minutes };
-        }
-
-        function getServiceCategory(serviceName) {
-            if (!serviceName) return 'general';
-            
-            const service = servicesData.find(s => s.name === serviceName);
-            return service ? service.category || 'general' : 'general';
-        }
-
-        function checkConsecutiveBooking(appointment) {
-            // Check if there's another appointment immediately before or after
-            const sameStaffAppointments = appointmentsData.filter(apt => 
-                apt.staffId === appointment.staffId && apt.id !== appointment.id
-            );
-
-            return sameStaffAppointments.some(apt => 
-                apt.endTime === appointment.startTime || apt.startTime === appointment.endTime
-            );
-        }
-
-        function handleTimeSlotClick(e, staffId) {
-            const rect = e.currentTarget.getBoundingClientRect();
-            const y = e.clientY - rect.top;
-            const hour = Math.floor(y / 60) + 8;
-            const minute = Math.round(((y % 60) / 60) * 60);
-
-            const timeStr = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
-            
-            // Check if we have all required data
-            if (!selectedClient && !hasNewClientData()) {
-                showToast('Please select a client first', 'warning');
-                return;
-            }
-
-            if (!selectedService) {
-                showToast('Please select a service first', 'warning');
-                return;
-            }
-
-            // Start booking process
-            startQuickBooking(staffId, timeStr);
-        }
-
-        function hasNewClientData() {
-            const firstName = document.getElementById('newClientFirstName').value.trim();
-            const lastName = document.getElementById('newClientLastName').value.trim();
-            const phone = document.getElementById('newClientPhone').value.trim();
-            
-            return firstName && lastName && phone;
-        }
-        
-        function getCurrentClientData() {
-            const activeToggle = document.querySelector('.client-toggle button.active');
-            const isNewClient = activeToggle && activeToggle.dataset.type === 'new';
-            
-            if (isNewClient) {
-                if (hasNewClientData()) {
-                    return {
-                        name: `${document.getElementById('newClientFirstName').value.trim()} ${document.getElementById('newClientLastName').value.trim()}`,
-                        phone: document.getElementById('newClientPhone').value.trim(),
-                        email: document.getElementById('newClientEmail').value.trim(),
-                        isNew: true
-                    };
-                }
-            } else {
-                if (selectedClient) {
-                    return {
-                        name: selectedClient.name,
-                        phone: selectedClient.phone,
-                        email: selectedClient.email,
-                        isNew: false
-                    };
-                }
-            }
-            return null;
-        }
-
-        function startQuickBooking(staffId, startTime) {
-            const hours = parseInt(document.getElementById('durationHours').value) || 0;
-            const minutes = parseInt(document.getElementById('durationMinutes').value) || 0;
-            const totalMinutes = hours * 60 + minutes;
-
-            if (totalMinutes === 0) {
-                showToast('Please set a duration', 'warning');
-                return;
-            }
-
-            const clientData = getCurrentClientData();
-            if (!clientData) {
-                showToast('Please select a client first', 'warning');
-                return;
-            }
-
-            // Calculate end time
-            const startHour = parseInt(startTime.split(':')[0]);
-            const startMinute = parseInt(startTime.split(':')[1]);
-            const endTotalMinutes = startHour * 60 + startMinute + totalMinutes;
-            const endHour = Math.floor(endTotalMinutes / 60);
-            const endMinute = endTotalMinutes % 60;
-            const endTime = `${endHour.toString().padStart(2, '0')}:${endMinute.toString().padStart(2, '0')}`;
-
-            // Prepare booking data
-            const bookingData = {
-                staffId: staffId,
-                clientName: clientData.name,
-                clientPhone: clientData.phone,
-                clientEmail: clientData.email,
-                serviceType: selectedService.name,
-                startTime: startTime,
-                endTime: endTime,
-                date: selectedDate.toISOString().split('T')[0],
-                notes: clientData.isNew ? 'New client booking' : 'Existing client booking'
-            };
-
-            // Show confirmation and create booking
-            createBooking(bookingData);
-        }
-
-        async function createBooking(bookingData) {
-            showLoading(true);
-            
-            try {
-                const response = await fetch('/api/unaki/create-appointment', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(bookingData)
-                });
-
-                const result = await response.json();
-
-                if (result.success) {
-                    showToast('Appointment booked successfully!', 'success');
-                    await loadScheduleData();
-                    updateDailyStats();
-                    clearBookingForm();
-                } else {
-                    showToast(result.error || 'Failed to create booking', 'error');
-                }
-            } catch (error) {
-                console.error('Error creating booking:', error);
-                showToast('Error creating booking', 'error');
-            } finally {
-                showLoading(false);
-            }
-        }
-
-        function clearBookingForm() {
-            selectedClient = null;
-            selectedService = null;
-            selectedStaff = null;
-            
-            document.getElementById('clientSearch').value = '';
-            document.getElementById('clientSearch').style.borderColor = '';
-            document.getElementById('clientSearch').style.backgroundColor = '';
-            document.getElementById('serviceSelector').querySelector('span').textContent = 'Choose a service...';
-            document.getElementById('durationHours').value = '1';
-            document.getElementById('durationMinutes').value = '0';
-            
-            // Clear new client form
-            document.getElementById('newClientFirstName').value = '';
-            document.getElementById('newClientLastName').value = '';
-            document.getElementById('newClientPhone').value = '';
-            document.getElementById('newClientEmail').value = '';
-            
-            document.querySelectorAll('.selected').forEach(el => el.classList.remove('selected'));
-            
-            showToast('Booking form cleared', 'info');
-        }
-
-        function redirectToBookingPage() {
-            // Get selected data to pass to booking page
-            const selectedData = {
-                client_id: selectedClient ? selectedClient.id : null,
-                service_id: selectedService ? selectedService.id : null,
-                staff_id: selectedStaff ? selectedStaff.id : null,
-                date: selectedDate.toISOString().split('T')[0],
-                duration: getDurationInMinutes()
-            };
-            
-            // Create URL with parameters
-            const params = new URLSearchParams();
-            Object.keys(selectedData).forEach(key => {
-                if (selectedData[key] !== null) {
-                    params.append(key, selectedData[key]);
-                }
-            });
-            
-            // Redirect to separate booking page
-            window.location.href = `/book-appointment?${params.toString()}`;
-        }
-
-        function getDurationInMinutes() {
-            const hours = parseInt(document.getElementById('durationHours').value) || 0;
-            const minutes = parseInt(document.getElementById('durationMinutes').value) || 0;
-            return hours * 60 + minutes;
-        }
-
-        function handleBookNow() {
-            redirectToBookingPage();
-        }
-
-        function validateBookingData() {
-            const clientData = getCurrentClientData();
-            if (!clientData) {
-                showToast('Please select an existing client or complete new client details', 'warning');
-                return false;
-            }
-
-            if (!selectedService) {
-                showToast('Please select a service', 'warning');
-                return false;
-            }
-
-            if (!selectedStaff) {
-                showToast('Please select a therapist', 'warning');
-                return false;
-            }
-
-            return true;
-        }
-
-        function handleBlockTime() {
-            showToast('Block time feature - coming soon', 'info');
-        }
-
-        function handleAddBreak() {
-            showToast('Add break feature - coming soon', 'info');
-        }
-
-        function handleWaitlist() {
-            showToast('Waitlist feature - coming soon', 'info');
-        }
-
-        function handleContextMenu(e) {
-            if (e.target.closest('.appointment')) {
-                e.preventDefault();
-                const appointment = e.target.closest('.appointment');
-                const appointmentId = appointment.dataset.appointmentId;
-                currentAppointment = appointmentsData.find(apt => apt.id == appointmentId);
-                showContextMenu(e.clientX, e.clientY);
-            }
-        }
-
-        function showContextMenu(x, y) {
-            const contextMenu = document.getElementById('contextMenu');
-            contextMenu.style.left = `${x}px`;
-            contextMenu.style.top = `${y}px`;
-            contextMenu.style.display = 'block';
-
-            // Add action handlers
-            contextMenu.querySelectorAll('.context-menu-item').forEach(item => {
-                item.onclick = function() {
-                    handleContextAction(this.dataset.action);
-                    hideContextMenu();
-                };
-            });
-        }
-
-        function hideContextMenu() {
-            document.getElementById('contextMenu').style.display = 'none';
-        }
-
-        function handleContextAction(action) {
-            if (!currentAppointment) return;
-
-            switch (action) {
-                case 'view':
-                    showAppointmentDetails(currentAppointment);
-                    break;
-                case 'edit':
-                    editAppointment(currentAppointment);
-                    break;
-                case 'reschedule':
-                    rescheduleAppointment(currentAppointment);
-                    break;
-                case 'duplicate':
-                    duplicateAppointment(currentAppointment);
-                    break;
-                case 'consecutive':
-                    addConsecutiveAppointment(currentAppointment);
-                    break;
-                case 'cancel':
-                    cancelAppointment(currentAppointment);
-                    break;
-            }
-        }
-
-        function showAppointmentDetails(appointment) {
-            const details = `
-                Client: ${appointment.clientName}
-                Service: ${appointment.service}
-                Time: ${appointment.startTime} - ${appointment.endTime}
-                Duration: ${appointment.duration} minutes
-                Phone: ${appointment.clientPhone || 'N/A'}
-                Status: ${appointment.status}
-                Notes: ${appointment.notes || 'None'}
-            `;
-            alert(details); // In production, use a proper modal
-        }
-
-        function editAppointment(appointment) {
-            showToast('Edit appointment feature - coming soon', 'info');
-        }
-
-        function rescheduleAppointment(appointment) {
-            showToast('Reschedule feature - coming soon', 'info');
-        }
-
-        function duplicateAppointment(appointment) {
-            showToast('Duplicate appointment feature - coming soon', 'info');
-        }
-
-        function addConsecutiveAppointment(appointment) {
-            showToast('Add consecutive appointment feature - coming soon', 'info');
-        }
-
-        async function cancelAppointment(appointment) {
-            if (!confirm(`Cancel appointment for ${appointment.clientName}?`)) return;
-
-            try {
-                const response = await fetch(`/api/unaki/bookings/${appointment.id}`, {
-                    method: 'DELETE',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ reason: 'Cancelled by staff' })
-                });
-
-                const result = await response.json();
-
-                if (result.success) {
-                    showToast('Appointment cancelled successfully', 'success');
-                    await loadScheduleData();
-                    updateDailyStats();
-                } else {
-                    showToast(result.error || 'Failed to cancel appointment', 'error');
-                }
-            } catch (error) {
-                console.error('Error cancelling appointment:', error);
-                showToast('Error cancelling appointment', 'error');
-            }
-        }
-
-        function handleKeyboardShortcuts(e) {
-            if (e.ctrlKey) {
-                switch (e.key) {
-                    case 'n':
-                        e.preventDefault();
-                        handleBookNow();
-                        break;
-                    case 'r':
-                        e.preventDefault();
-                        loadScheduleData();
-                        break;
-                    case 'f':
-                        e.preventDefault();
-                        document.getElementById('clientSearch').focus();
-                        break;
-                }
-            }
         }
 
         function updateScheduleDate() {
@@ -2062,99 +1155,135 @@
             });
         }
 
-        function updateDailyStats() {
-            const todayAppointments = appointmentsData.filter(apt => {
-                const aptDate = new Date(apt.date || selectedDate.toISOString().split('T')[0]);
-                return aptDate.toDateString() === selectedDate.toDateString();
-            });
+        function updateStats() {
+            // Update today's stats
+            const todayAppointments = appointmentsData.filter(apt => 
+                new Date(apt.date).toDateString() === new Date().toDateString()
+            );
 
-            document.getElementById('dailyBookings').textContent = todayAppointments.length;
-            
+            document.getElementById('todayBookings').textContent = todayAppointments.length;
+
             const revenue = todayAppointments.reduce((sum, apt) => sum + (apt.amount || 0), 0);
-            document.getElementById('dailyRevenue').textContent = `$${revenue.toFixed(2)}`;
-            
-            const totalSlots = staffData.length * 12; // 12 hours * staff count
-            const bookedSlots = todayAppointments.length;
-            const utilization = totalSlots > 0 ? Math.round((bookedSlots / totalSlots) * 100) : 0;
-            document.getElementById('utilization').textContent = `${utilization}%`;
-            
-            document.getElementById('waitlistCount').textContent = '0'; // Placeholder
+            document.getElementById('todayRevenue').textContent = `$${revenue.toFixed(0)}`;
+
+            const utilization = staffData.length > 0 ? Math.round((todayAppointments.length / (staffData.length * 12)) * 100) : 0;
+            document.getElementById('staffUtilization').textContent = `${utilization}%`;
+
+            const totalSlots = staffData.length * 24; // 12 hours * 2 slots per hour
+            const availableSlots = totalSlots - todayAppointments.length;
+            document.getElementById('availableSlots').textContent = availableSlots;
         }
 
-        function showToast(message, type = 'info') {
-            const toast = document.getElementById('toast');
-            const toastMessage = document.getElementById('toastMessage');
-            
-            toast.className = `toast ${type}`;
-            toastMessage.textContent = message;
-            
-            // Update icon based on type
-            const icon = toast.querySelector('i');
-            icon.className = type === 'success' ? 'fas fa-check-circle' :
-                            type === 'error' ? 'fas fa-exclamation-circle' :
-                            type === 'warning' ? 'fas fa-exclamation-triangle' :
-                            'fas fa-info-circle';
-            
-            toast.style.display = 'flex';
-            toast.style.animation = 'slideInRight 0.3s ease';
-            
-            setTimeout(() => {
-                toast.style.animation = 'slideInRight 0.3s ease reverse';
-                setTimeout(() => {
-                    toast.style.display = 'none';
-                }, 300);
-            }, 3000);
+        function handleClientSearch() {
+            const searchTerm = this.value.toLowerCase();
+            const dropdown = document.getElementById('clientDropdown');
+
+            if (searchTerm.length > 0) {
+                const matches = clientsData.filter(client => 
+                    client.name.toLowerCase().includes(searchTerm) ||
+                    client.phone.includes(searchTerm) ||
+                    (client.email && client.email.toLowerCase().includes(searchTerm))
+                );
+
+                if (matches.length > 0) {
+                    dropdown.innerHTML = matches.map(client => `
+                        <div class="client-option" data-client-id="${client.id}" style="padding: 8px 12px; cursor: pointer; border-radius: 6px; margin-bottom: 4px; background: var(--bg-light);">
+                            <strong>${client.name}</strong><br>
+                            <small>${client.phone}</small>
+                        </div>
+                    `).join('');
+                    dropdown.style.display = 'block';
+
+                    // Add click handlers
+                    dropdown.querySelectorAll('.client-option').forEach(option => {
+                        option.addEventListener('click', function() {
+                            const clientId = this.dataset.clientId;
+                            selectedClient = clientsData.find(c => c.id == clientId);
+                            document.getElementById('clientSearch').value = selectedClient.name;
+                            dropdown.style.display = 'none';
+                        });
+                    });
+                } else {
+                    dropdown.style.display = 'none';
+                }
+            } else {
+                dropdown.style.display = 'none';
+            }
+        }
+
+        function filterServicesByCategory(category) {
+            // Filter services by category and update UI accordingly
+            console.log('Filtering services by category:', category);
+        }
+
+        function handleSlotClick(staffId, timeString) {
+            if (!selectedClient || !selectedService) {
+                alert('Please select a client and service first');
+                return;
+            }
+
+            const confirmed = confirm(`Book appointment for ${selectedClient.name} at ${timeString}?`);
+            if (confirmed) {
+                redirectToBookingPage(staffId, timeString);
+            }
+        }
+
+        function handleAppointmentClick(appointment) {
+            // Show appointment details or edit modal
+            console.log('Appointment clicked:', appointment);
+        }
+
+        function handleBookNow() {
+            redirectToBookingPage();
+        }
+
+        function handleBlockTime() {
+            alert('Block time functionality would be implemented here');
+        }
+
+        function handleAddBreak() {
+            alert('Add break functionality would be implemented here');
+        }
+
+        function redirectToBookingPage(staffId = null, timeString = null) {
+            let url = '/book-appointment';
+            const params = new URLSearchParams();
+
+            params.append('date', selectedDate.toISOString().split('T')[0]);
+
+            if (selectedClient) {
+                params.append('client_id', selectedClient.id);
+            }
+
+            if (selectedService) {
+                params.append('service_id', selectedService.id);
+            }
+
+            if (staffId) {
+                params.append('staff_id', staffId);
+            }
+
+            if (timeString) {
+                params.append('time', timeString);
+            }
+
+            if (selectedService && selectedService.duration) {
+                params.append('duration', selectedService.duration);
+            }
+
+            if (params.toString()) {
+                url += '?' + params.toString();
+            }
+
+            window.location.href = url;
         }
 
         function showLoading(show) {
-            const spinner = document.getElementById('loadingSpinner');
-            spinner.style.display = show ? 'block' : 'none';
-        }
-
-        function selectAppointment(appointment) {
-            // Remove previous selections
-            document.querySelectorAll('.appointment').forEach(apt => apt.classList.remove('selected'));
-            
-            // Select current appointment
-            const appointmentElement = document.querySelector(`[data-appointment-id="${appointment.id}"]`);
-            if (appointmentElement) {
-                appointmentElement.classList.add('selected');
-            }
-            
-            currentAppointment = appointment;
-        }
-
-        // Sample data generator for demo purposes
-        async function loadSampleData() {
-            try {
-                const response = await fetch('/api/unaki/load-sample-data', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    }
-                });
-
-                const result = await response.json();
-                
-                if (result.success) {
-                    showToast('Sample data loaded successfully!', 'success');
-                    await loadScheduleData();
-                    updateDailyStats();
-                } else {
-                    showToast('Failed to load sample data', 'error');
-                }
-            } catch (error) {
-                console.error('Error loading sample data:', error);
-                showToast('Error loading sample data', 'error');
+            const loading = document.getElementById('scheduleLoading');
+            if (loading) {
+                loading.style.display = show ? 'flex' : 'none';
             }
         }
-
-        // Auto-load sample data if no appointments exist
-        setTimeout(() => {
-            if (appointmentsData.length === 0) {
-                loadSampleData();
-            }
-        }, 2000);
     </script>
 </body>
 </html>
