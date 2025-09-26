@@ -1,102 +1,64 @@
 # Spa Management System
 
 ## Overview
-This is a comprehensive spa management system built with Flask that provides complete business management functionality for spa and wellness centers. The system includes modules for staff management, customer management, booking systems, inventory control, billing, and reporting.
+A comprehensive Flask-based spa and salon management system with advanced features for staff management, customer booking, inventory tracking, billing, and reporting.
 
-## Recent Changes
-- **2025-09-24**: Successfully set up project in Replit environment
-- **2025-09-24**: Installed all Python dependencies via pip package manager
-- **2025-09-24**: Configured SQLite database for development (workspace.db)
-- **2025-09-24**: Set up Flask development server on port 5000 with webview output
-- **2025-09-24**: Configured deployment settings for production using Gunicorn
-- **2025-09-24**: All modules successfully loading and application running
-- **2025-09-24**: Verified frontend accessibility through Replit proxy
+## Recent Changes (September 26, 2025)
+- **Project Import Setup**: Successfully configured for Replit environment
+- **Route Conflicts Fixed**: Resolved multiple duplicate route definitions that were preventing proper application startup
+- **Database Configuration**: Configured to use SQLite database with proper pragmas for development
+- **Requirements Cleanup**: Removed duplicate entries from requirements.txt
+- **Workflow Configuration**: Set up proper Flask development server with webview output on port 5000
+- **Deployment Ready**: Configured for Replit autoscale deployment using gunicorn
 
 ## Project Architecture
+- **Backend**: Flask with SQLAlchemy ORM
+- **Database**: SQLite (development), PostgreSQL-ready for production
+- **Frontend**: Jinja2 templates with Bootstrap CSS framework
+- **Authentication**: Flask-Login with role-based access control
+- **Modular Structure**: Organized into feature-specific modules (staff, customers, services, billing, etc.)
 
-### Technology Stack
-- **Backend**: Flask 3.0.3, SQLAlchemy 2.0.41, Flask-Login, Flask-WTF
-- **Database**: PostgreSQL (production), SQLite (development fallback)
-- **Frontend**: HTML5, CSS3, JavaScript, Bootstrap
-- **Deployment**: Gunicorn WSGI server
+## Key Features
+- Staff management and scheduling
+- Customer booking system (including Unaki booking integration)
+- Service and package management
+- Inventory tracking with batch management
+- Comprehensive billing and invoicing
+- Role-based permission system
+- Dashboard with analytics
+- Report generation
 
-### Key Components
+## Technical Setup
+- **Main Entry Point**: `main.py`
+- **Application Configuration**: `app.py`
+- **Database Models**: `models.py`
+- **Routes**: Distributed across `routes.py` and module-specific view files
+- **Templates**: Located in `templates/` directory with modular organization
+- **Static Assets**: CSS, JavaScript, and images in `static/` directory
 
-#### Core Application (`app.py`)
-- Flask application factory with environment detection
-- Database configuration (PostgreSQL for production, SQLite for development)
-- Security headers and CORS configuration for Replit environment
-- Login manager and user authentication setup
+## Current Status
+✅ **Working Features**:
+- Application startup and module loading
+- Database connectivity and table creation
+- User authentication system
+- Dashboard interface
+- Static file serving
+- All route conflicts resolved
 
-#### Database Models (`models.py`)
-- Comprehensive data models for all business entities
-- Dynamic role and permission system
-- User management with staff-specific fields
-- Service, booking, and billing models
-- Inventory management models
+🔧 **Configuration**:
+- Flask development server running on port 5000
+- Webview output configured for Replit Preview
+- SQLite database with WAL mode for better concurrency
+- Deployment configuration set for autoscale with gunicorn
 
-#### Routing (`routes.py`)
-- Main application routes and default data creation
-- System management endpoints
-- API endpoints for role and permission management
+## User Preferences
+- Clean, production-ready code structure
+- Comprehensive error handling and logging
+- Modular architecture for maintainability
+- Bootstrap-based responsive UI design
 
-### Module Structure
-The application is organized into feature-based modules:
-
-- **auth/**: User authentication and authorization
-- **dashboard/**: Main dashboard and overview
-- **staff/**: Staff management and scheduling
-- **clients/**: Customer management
-- **services/**: Service catalog management
-- **bookings/**: Appointment and booking system
-- **inventory/**: Stock and inventory control
-- **billing/**: Invoicing and payment processing
-- **packages/**: Service packages and memberships
-- **reports/**: Business analytics and reporting
-- **expenses/**: Expense tracking
-- **settings/**: System configuration
-
-### Configuration
-- **Development**: Debug mode enabled, SQLite database, relaxed security
-- **Production**: Security headers, PostgreSQL database, CSRF protection
-- **Environment Variables**: SESSION_SECRET, DATABASE_URL automatically configured
-
-### Default Credentials
-- **Username**: admin
-- **Password**: admin123
-- **Email**: admin@spa.com
-
-## Running the Application
-
-### Development
-The application runs automatically via the configured workflow:
-- **Command**: `python main.py`
-- **Port**: 5000
-- **Host**: 0.0.0.0 (required for Replit environment)
-
-### Production Deployment
-Configured for autoscale deployment:
-- **Server**: Gunicorn WSGI
-- **Command**: `gunicorn --bind 0.0.0.0:5000 --reuse-port main:app`
-
-## Database Setup
-- PostgreSQL database automatically created in Replit environment
-- All required tables created on first run
-- Default admin user and sample data populated automatically
-
-## Features
-- Multi-role user management system
-- Complete booking and appointment system
-- Inventory management with batch tracking
-- Integrated billing and invoicing
-- Staff scheduling and time management
-- Customer package and membership management
-- Comprehensive reporting system
-- Mobile-responsive design
-
-## Notes
-- Application successfully tested and running
-- All static files (CSS, JS) properly served
-- Bootstrap UI framework fully functional
-- Database connections and queries working correctly
-- Authentication system operational
+## Next Steps
+- Test individual modules and features
+- Verify role management functionality
+- Complete user acceptance testing
+- Production deployment optimization
