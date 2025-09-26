@@ -222,6 +222,27 @@ class BusinessSettingsForm(FlaskForm):
     ], default='UTC')
     submit = SubmitField('Save Settings')
 
+class AdminUserForm(FlaskForm):
+    """Admin user creation/edit form"""
+    username = StringField('Username', validators=[DataRequired(), Length(min=3, max=50)])
+    email = StringField('Email', validators=[Optional(), Email()])
+    first_name = StringField('First Name', validators=[DataRequired(), Length(max=50)])
+    last_name = StringField('Last Name', validators=[DataRequired(), Length(max=50)])
+    phone = StringField('Phone', validators=[Optional(), Length(max=20)])
+    role_id = SelectField('Role', coerce=int, validators=[Optional()])
+    department_id = SelectField('Department', coerce=int, validators=[Optional()])
+    designation = StringField('Designation', validators=[Optional(), Length(max=100)])
+    password = PasswordField('Password', validators=[Optional(), Length(min=6)])
+    confirm_password = PasswordField('Confirm Password', validators=[Optional(), EqualTo('password')])
+    is_active = BooleanField('Active', default=True)
+    submit = SubmitField('Save User')
+
+    def validate_password(self, field):
+        # Only require password for new users (no user.id means create mode)
+        if not hasattr(self, '_obj') or not self._obj:
+            if not field.data:
+                raise ValidationError('Password is required for new users.')
+
 class AdvancedCustomerForm(FlaskForm):
     """Advanced customer form with additional fields"""
     first_name = StringField('First Name', validators=[DataRequired(), Length(max=50)])
