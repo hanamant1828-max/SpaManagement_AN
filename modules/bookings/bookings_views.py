@@ -1572,6 +1572,16 @@ def edit_appointment(appointment_id):
                          staff_members=staff_members)
 
 
+@app.route('/book-appointment')
+@login_required
+def book_appointment_page():
+    """Render the separate booking page"""
+    if not current_user.can_access('bookings'):
+        flash('Access denied', 'danger')
+        return redirect(url_for('dashboard'))
+    
+    return render_template('book_appointment.html')
+
 # Unaki Booking System API endpoints
 @app.route('/api/unaki/schedule/<date_str>')
 @login_required

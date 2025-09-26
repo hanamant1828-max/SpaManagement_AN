@@ -964,7 +964,7 @@
                     Quick Actions
                 </div>
                 <div class="quick-actions">
-                    <button class="action-btn primary" id="bookNow">
+                    <button class="action-btn primary" id="bookNow" onclick="redirectToBookingPage()">
                         <i class="fas fa-plus"></i>
                         Book Now
                     </button>
@@ -1859,11 +1859,36 @@
             showToast('Booking form cleared', 'info');
         }
 
-        function handleBookNow() {
-            if (!validateBookingData()) return;
+        function redirectToBookingPage() {
+            // Get selected data to pass to booking page
+            const selectedData = {
+                client_id: selectedClient ? selectedClient.id : null,
+                service_id: selectedService ? selectedService.id : null,
+                staff_id: selectedStaff ? selectedStaff.id : null,
+                date: selectedDate.toISOString().split('T')[0],
+                duration: getDurationInMinutes()
+            };
             
-            // For manual booking, show time selection
-            showToast('Click on a time slot to book the appointment', 'info');
+            // Create URL with parameters
+            const params = new URLSearchParams();
+            Object.keys(selectedData).forEach(key => {
+                if (selectedData[key] !== null) {
+                    params.append(key, selectedData[key]);
+                }
+            });
+            
+            // Redirect to separate booking page
+            window.location.href = `/book-appointment?${params.toString()}`;
+        }
+
+        function getDurationInMinutes() {
+            const hours = parseInt(document.getElementById('durationHours').value) || 0;
+            const minutes = parseInt(document.getElementById('durationMinutes').value) || 0;
+            return hours * 60 + minutes;
+        }
+
+        function handleBookNow() {
+            redirectToBookingPage();
         }
 
         function validateBookingData() {

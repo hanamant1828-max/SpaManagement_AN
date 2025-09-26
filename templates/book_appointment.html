@@ -1,0 +1,807 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Book New Appointment - Professional Spa Booking</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .booking-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .booking-header {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .booking-header h1 {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+
+        .booking-header p {
+            opacity: 0.9;
+            font-size: 16px;
+        }
+
+        .booking-form {
+            padding: 40px;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .form-section {
+            background: #f8fafc;
+            border-radius: 12px;
+            padding: 25px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .section-title {
+            color: #1e293b;
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            color: #374151;
+            font-weight: 500;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .form-input,
+        .form-select,
+        .form-textarea {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e5e7eb;
+            border-radius: 10px;
+            font-size: 14px;
+            font-family: inherit;
+            transition: all 0.3s ease;
+            background: white;
+        }
+
+        .form-input:focus,
+        .form-select:focus,
+        .form-textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .form-textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .duration-inputs {
+            display: flex;
+            gap: 15px;
+        }
+
+        .duration-inputs .form-group {
+            flex: 1;
+        }
+
+        .client-toggle {
+            display: flex;
+            background: #e2e8f0;
+            border-radius: 10px;
+            padding: 4px;
+            margin-bottom: 20px;
+        }
+
+        .client-toggle button {
+            flex: 1;
+            padding: 10px 15px;
+            background: transparent;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 500;
+            color: #64748b;
+        }
+
+        .client-toggle button.active {
+            background: white;
+            color: #667eea;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .booking-summary {
+            background: linear-gradient(135deg, #f0f9ff, #e0f2fe);
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 30px;
+            border-left: 4px solid #0ea5e9;
+        }
+
+        .summary-title {
+            color: #0c4a6e;
+            font-weight: 600;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .summary-details {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .summary-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid #bae6fd;
+        }
+
+        .summary-item:last-child {
+            border-bottom: none;
+        }
+
+        .summary-label {
+            color: #0c4a6e;
+            font-weight: 500;
+        }
+
+        .summary-value {
+            color: #1e40af;
+            font-weight: 600;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 30px;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            text-decoration: none;
+        }
+
+        .btn-secondary {
+            background: #6b7280;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #4b5563;
+            transform: translateY(-1px);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            min-width: 160px;
+            justify-content: center;
+        }
+
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #5a67d8, #6b46c1);
+            transform: translateY(-1px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        .success-message,
+        .error-message {
+            padding: 15px 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: none;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .success-message {
+            background: #dcfce7;
+            color: #166534;
+            border-left: 4px solid #22c55e;
+        }
+
+        .error-message {
+            background: #fef2f2;
+            color: #dc2626;
+            border-left: 4px solid #ef4444;
+        }
+
+        @media (max-width: 768px) {
+            .booking-form {
+                padding: 20px;
+            }
+
+            .form-grid {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+
+            .action-buttons {
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .btn {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="booking-container">
+        <div class="booking-header">
+            <h1><i class="fas fa-calendar-plus me-2"></i>Book New Appointment</h1>
+            <p>Fill in the details below to schedule a new appointment</p>
+        </div>
+
+        <div class="booking-form">
+            <div class="success-message" id="successMessage">
+                <i class="fas fa-check-circle"></i>
+                <span id="successText"></span>
+            </div>
+            
+            <div class="error-message" id="errorMessage">
+                <i class="fas fa-exclamation-circle"></i>
+                <span id="errorText"></span>
+            </div>
+
+            <form id="bookingForm">
+                <div class="form-grid">
+                    <!-- Client Selection -->
+                    <div class="form-section">
+                        <div class="section-title">
+                            <i class="fas fa-user text-blue-600"></i>
+                            Client Information
+                        </div>
+                        
+                        <div class="client-toggle">
+                            <button type="button" class="active" data-type="existing">Existing Client</button>
+                            <button type="button" data-type="new">New Client</button>
+                        </div>
+
+                        <!-- Existing Client -->
+                        <div id="existingClientSection">
+                            <div class="form-group">
+                                <label class="form-label">Search Client</label>
+                                <input type="text" id="clientSearch" class="form-input" placeholder="Type name, phone, or email...">
+                                <select id="clientSelect" class="form-select" style="display: none;">
+                                    <option value="">Select a client...</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- New Client -->
+                        <div id="newClientSection" style="display: none;">
+                            <div class="form-group">
+                                <label class="form-label">First Name *</label>
+                                <input type="text" id="newClientFirstName" class="form-input" required>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Last Name *</label>
+                                <input type="text" id="newClientLastName" class="form-input" required>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Phone Number *</label>
+                                <input type="tel" id="newClientPhone" class="form-input" required>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Email</label>
+                                <input type="email" id="newClientEmail" class="form-input">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Service & Staff -->
+                    <div class="form-section">
+                        <div class="section-title">
+                            <i class="fas fa-spa text-purple-600"></i>
+                            Service Details
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">Service Category</label>
+                            <select id="categorySelect" class="form-select">
+                                <option value="">All Categories</option>
+                                <option value="facial">Facials</option>
+                                <option value="massage">Massage</option>
+                                <option value="body">Body Treatments</option>
+                                <option value="hair">Hair Services</option>
+                                <option value="nails">Nail Services</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Service *</label>
+                            <select id="serviceSelect" class="form-select" required>
+                                <option value="">Select a service...</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Therapist/Staff *</label>
+                            <select id="staffSelect" class="form-select" required>
+                                <option value="">Select staff member...</option>
+                            </select>
+                        </div>
+
+                        <div class="duration-inputs">
+                            <div class="form-group">
+                                <label class="form-label">Duration (Hours)</label>
+                                <input type="number" id="durationHours" class="form-input" min="0" max="8" value="1">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Duration (Minutes)</label>
+                                <input type="number" id="durationMinutes" class="form-input" min="0" max="59" value="0">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Date & Time -->
+                <div class="form-section">
+                    <div class="section-title">
+                        <i class="fas fa-calendar text-green-600"></i>
+                        Schedule Information
+                    </div>
+                    
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label class="form-label">Appointment Date *</label>
+                            <input type="date" id="appointmentDate" class="form-input" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Appointment Time *</label>
+                            <input type="time" id="appointmentTime" class="form-input" required>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Notes (Optional)</label>
+                        <textarea id="appointmentNotes" class="form-textarea" placeholder="Any special requirements or notes..."></textarea>
+                    </div>
+                </div>
+
+                <!-- Booking Summary -->
+                <div class="booking-summary" id="bookingSummary" style="display: none;">
+                    <div class="summary-title">
+                        <i class="fas fa-clipboard-list"></i>
+                        Booking Summary
+                    </div>
+                    <div class="summary-details" id="summaryDetails">
+                        <!-- Summary will be populated here -->
+                    </div>
+                </div>
+
+                <div class="action-buttons">
+                    <a href="/zenoti-booking" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left"></i>
+                        Back to Calendar
+                    </a>
+                    <button type="submit" class="btn btn-primary" id="submitBtn">
+                        <i class="fas fa-check"></i>
+                        Confirm Booking
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        let clientsData = [];
+        let servicesData = [];
+        let staffData = [];
+        let selectedClient = null;
+
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', function() {
+            loadInitialData();
+            setupEventListeners();
+            loadURLParameters();
+        });
+
+        async function loadInitialData() {
+            try {
+                // Load clients, services, and staff
+                const [clientsResponse, servicesResponse, staffResponse] = await Promise.all([
+                    fetch('/api/unaki/clients'),
+                    fetch('/api/unaki/services'),
+                    fetch('/api/unaki/staff')
+                ]);
+
+                clientsData = await clientsResponse.json();
+                servicesData = await servicesResponse.json();
+                staffData = await staffResponse.json();
+
+                populateSelects();
+            } catch (error) {
+                console.error('Error loading data:', error);
+                showError('Error loading data. Please refresh the page.');
+            }
+        }
+
+        function populateSelects() {
+            // Populate services
+            const serviceSelect = document.getElementById('serviceSelect');
+            servicesData.forEach(service => {
+                const option = document.createElement('option');
+                option.value = service.id;
+                option.textContent = `${service.name} - $${service.price} (${service.duration}min)`;
+                option.dataset.price = service.price;
+                option.dataset.duration = service.duration;
+                option.dataset.category = service.category;
+                serviceSelect.appendChild(option);
+            });
+
+            // Populate staff
+            const staffSelect = document.getElementById('staffSelect');
+            staffData.forEach(staff => {
+                const option = document.createElement('option');
+                option.value = staff.id;
+                option.textContent = `${staff.name} - ${staff.specialty}`;
+                staffSelect.appendChild(option);
+            });
+
+            // Populate client search
+            const clientSelect = document.getElementById('clientSelect');
+            clientsData.forEach(client => {
+                const option = document.createElement('option');
+                option.value = client.id;
+                option.textContent = `${client.name} - ${client.phone}`;
+                clientSelect.appendChild(option);
+            });
+        }
+
+        function setupEventListeners() {
+            // Client type toggle
+            document.querySelectorAll('.client-toggle button').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    document.querySelectorAll('.client-toggle button').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    
+                    const type = this.dataset.type;
+                    if (type === 'new') {
+                        document.getElementById('existingClientSection').style.display = 'none';
+                        document.getElementById('newClientSection').style.display = 'block';
+                    } else {
+                        document.getElementById('existingClientSection').style.display = 'block';
+                        document.getElementById('newClientSection').style.display = 'none';
+                    }
+                    updateSummary();
+                });
+            });
+
+            // Client search
+            const clientSearch = document.getElementById('clientSearch');
+            const clientSelect = document.getElementById('clientSelect');
+            
+            clientSearch.addEventListener('input', function() {
+                const searchTerm = this.value.toLowerCase();
+                if (searchTerm.length > 0) {
+                    clientSelect.style.display = 'block';
+                    Array.from(clientSelect.options).forEach(option => {
+                        if (option.value === '') return;
+                        const visible = option.textContent.toLowerCase().includes(searchTerm);
+                        option.style.display = visible ? 'block' : 'none';
+                    });
+                } else {
+                    clientSelect.style.display = 'none';
+                }
+            });
+
+            clientSelect.addEventListener('change', function() {
+                if (this.value) {
+                    const client = clientsData.find(c => c.id == this.value);
+                    if (client) {
+                        selectedClient = client;
+                        clientSearch.value = client.name;
+                        clientSelect.style.display = 'none';
+                        updateSummary();
+                    }
+                }
+            });
+
+            // Category filter
+            document.getElementById('categorySelect').addEventListener('change', function() {
+                const category = this.value;
+                const serviceSelect = document.getElementById('serviceSelect');
+                
+                Array.from(serviceSelect.options).forEach(option => {
+                    if (option.value === '') return;
+                    const visible = !category || option.dataset.category === category;
+                    option.style.display = visible ? 'block' : 'none';
+                });
+            });
+
+            // Form inputs change
+            document.getElementById('serviceSelect').addEventListener('change', function() {
+                const option = this.options[this.selectedIndex];
+                if (option.dataset.duration) {
+                    const duration = parseInt(option.dataset.duration);
+                    const hours = Math.floor(duration / 60);
+                    const minutes = duration % 60;
+                    document.getElementById('durationHours').value = hours;
+                    document.getElementById('durationMinutes').value = minutes;
+                }
+                updateSummary();
+            });
+
+            // Update summary on form changes
+            ['staffSelect', 'appointmentDate', 'appointmentTime', 'durationHours', 'durationMinutes'].forEach(id => {
+                document.getElementById(id).addEventListener('change', updateSummary);
+            });
+
+            // Form submission
+            document.getElementById('bookingForm').addEventListener('submit', handleFormSubmit);
+        }
+
+        function loadURLParameters() {
+            const urlParams = new URLSearchParams(window.location.search);
+            
+            // Set date if provided
+            const date = urlParams.get('date');
+            if (date) {
+                document.getElementById('appointmentDate').value = date;
+            }
+
+            // Set client if provided
+            const clientId = urlParams.get('client_id');
+            if (clientId && clientsData.length > 0) {
+                const client = clientsData.find(c => c.id == clientId);
+                if (client) {
+                    selectedClient = client;
+                    document.getElementById('clientSearch').value = client.name;
+                }
+            }
+
+            // Set service if provided
+            const serviceId = urlParams.get('service_id');
+            if (serviceId) {
+                document.getElementById('serviceSelect').value = serviceId;
+            }
+
+            // Set staff if provided
+            const staffId = urlParams.get('staff_id');
+            if (staffId) {
+                document.getElementById('staffSelect').value = staffId;
+            }
+
+            // Set duration if provided
+            const duration = urlParams.get('duration');
+            if (duration) {
+                const totalMinutes = parseInt(duration);
+                const hours = Math.floor(totalMinutes / 60);
+                const minutes = totalMinutes % 60;
+                document.getElementById('durationHours').value = hours;
+                document.getElementById('durationMinutes').value = minutes;
+            }
+
+            updateSummary();
+        }
+
+        function updateSummary() {
+            const summary = document.getElementById('bookingSummary');
+            const summaryDetails = document.getElementById('summaryDetails');
+            
+            // Get form values
+            const clientType = document.querySelector('.client-toggle button.active').dataset.type;
+            let clientName = '';
+            
+            if (clientType === 'existing' && selectedClient) {
+                clientName = selectedClient.name;
+            } else if (clientType === 'new') {
+                const firstName = document.getElementById('newClientFirstName').value;
+                const lastName = document.getElementById('newClientLastName').value;
+                clientName = `${firstName} ${lastName}`.trim();
+            }
+
+            const serviceSelect = document.getElementById('serviceSelect');
+            const staffSelect = document.getElementById('staffSelect');
+            const appointmentDate = document.getElementById('appointmentDate').value;
+            const appointmentTime = document.getElementById('appointmentTime').value;
+            const durationHours = parseInt(document.getElementById('durationHours').value) || 0;
+            const durationMinutes = parseInt(document.getElementById('durationMinutes').value) || 0;
+
+            if (clientName && serviceSelect.value && staffSelect.value && appointmentDate && appointmentTime) {
+                const serviceName = serviceSelect.options[serviceSelect.selectedIndex].text.split(' - ')[0];
+                const servicePrice = serviceSelect.options[serviceSelect.selectedIndex].dataset.price;
+                const staffName = staffSelect.options[staffSelect.selectedIndex].text.split(' - ')[0];
+                const totalDuration = durationHours * 60 + durationMinutes;
+
+                summaryDetails.innerHTML = `
+                    <div class="summary-item">
+                        <span class="summary-label">Client:</span>
+                        <span class="summary-value">${clientName}</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="summary-label">Service:</span>
+                        <span class="summary-value">${serviceName}</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="summary-label">Price:</span>
+                        <span class="summary-value">$${servicePrice}</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="summary-label">Staff:</span>
+                        <span class="summary-value">${staffName}</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="summary-label">Date:</span>
+                        <span class="summary-value">${new Date(appointmentDate).toLocaleDateString()}</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="summary-label">Time:</span>
+                        <span class="summary-value">${appointmentTime}</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="summary-label">Duration:</span>
+                        <span class="summary-value">${totalDuration} minutes</span>
+                    </div>
+                `;
+                
+                summary.style.display = 'block';
+            } else {
+                summary.style.display = 'none';
+            }
+        }
+
+        async function handleFormSubmit(e) {
+            e.preventDefault();
+            
+            const submitBtn = document.getElementById('submitBtn');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Booking...';
+
+            try {
+                const bookingData = collectFormData();
+                
+                const response = await fetch('/api/unaki/create-appointment', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(bookingData)
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showSuccess('Appointment booked successfully!');
+                    setTimeout(() => {
+                        window.location.href = '/zenoti-booking';
+                    }, 2000);
+                } else {
+                    throw new Error(result.error || 'Failed to book appointment');
+                }
+            } catch (error) {
+                console.error('Error booking appointment:', error);
+                showError(error.message || 'Error booking appointment. Please try again.');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fas fa-check"></i> Confirm Booking';
+            }
+        }
+
+        function collectFormData() {
+            const clientType = document.querySelector('.client-toggle button.active').dataset.type;
+            
+            let clientData = {};
+            if (clientType === 'existing' && selectedClient) {
+                clientData = {
+                    clientName: selectedClient.name,
+                    clientPhone: selectedClient.phone,
+                    clientEmail: selectedClient.email
+                };
+            } else if (clientType === 'new') {
+                clientData = {
+                    clientName: `${document.getElementById('newClientFirstName').value} ${document.getElementById('newClientLastName').value}`.trim(),
+                    clientPhone: document.getElementById('newClientPhone').value,
+                    clientEmail: document.getElementById('newClientEmail').value
+                };
+            }
+
+            const serviceSelect = document.getElementById('serviceSelect');
+            const serviceName = serviceSelect.options[serviceSelect.selectedIndex].text.split(' - ')[0];
+            
+            const durationHours = parseInt(document.getElementById('durationHours').value) || 0;
+            const durationMinutes = parseInt(document.getElementById('durationMinutes').value) || 0;
+            const totalMinutes = durationHours * 60 + durationMinutes;
+            
+            const startTime = document.getElementById('appointmentTime').value;
+            const endTime = addMinutesToTime(startTime, totalMinutes);
+
+            return {
+                staffId: parseInt(document.getElementById('staffSelect').value),
+                ...clientData,
+                serviceType: serviceName,
+                startTime: startTime,
+                endTime: endTime,
+                date: document.getElementById('appointmentDate').value,
+                notes: document.getElementById('appointmentNotes').value
+            };
+        }
+
+        function addMinutesToTime(timeString, minutes) {
+            const [hours, mins] = timeString.split(':').map(Number);
+            const totalMinutes = hours * 60 + mins + minutes;
+            const newHours = Math.floor(totalMinutes / 60) % 24;
+            const newMins = totalMinutes % 60;
+            return `${newHours.toString().padStart(2, '0')}:${newMins.toString().padStart(2, '0')}`;
+        }
+
+        function showSuccess(message) {
+            document.getElementById('successText').textContent = message;
+            document.getElementById('successMessage').style.display = 'flex';
+            document.getElementById('errorMessage').style.display = 'none';
+        }
+
+        function showError(message) {
+            document.getElementById('errorText').textContent = message;
+            document.getElementById('errorMessage').style.display = 'flex';
+            document.getElementById('successMessage').style.display = 'none';
+        }
+    </script>
+</body>
+</html>
