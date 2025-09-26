@@ -886,40 +886,7 @@ def unaki_cancel_booking(booking_id):
             'error': str(e)
         }), 500
 
-# UNAKI BOOKING VIEW ROUTES
-@app.route('/unaki-booking')
-@login_required
-def unaki_bookings():
-    """Display the Unaki booking form with dropdowns populated from database"""
-    try:
-        from modules.clients.clients_queries import get_all_customers
-        from modules.services.services_queries import get_all_services
-        from modules.staff.staff_queries import get_staff_members
-        from models import UnakiBooking
-        from datetime import date
-
-        # Get all required data for dropdowns
-        clients = get_all_customers()
-        services = get_all_services()
-        staff_members = get_staff_members()
-
-        # Get recent bookings for display
-        existing_bookings = UnakiBooking.query.order_by(UnakiBooking.created_at.desc()).limit(10).all()
-
-        # Pass today's date
-        today = date.today().strftime('%Y-%m-%d')
-
-        return render_template('unaki_bookings.html',
-                             clients=clients,
-                             services=services,
-                             staff_members=staff_members,
-                             existing_bookings=existing_bookings,
-                             today=today)
-
-    except Exception as e:
-        print(f"Error in unaki_bookings: {e}")
-        flash('Error loading booking form. Please try again.', 'danger')
-        return redirect(url_for('dashboard'))
+# UNAKI BOOKING VIEW ROUTES - Duplicate removed to avoid route conflicts
 
 @app.route('/book-appointment', methods=['POST'])
 @login_required

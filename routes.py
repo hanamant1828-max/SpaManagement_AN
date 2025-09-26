@@ -164,14 +164,7 @@ def test_navigation():
     """Navigation testing page"""
     return render_template('test_navigation.html')
 
-@app.route('/unaki-booking')
-@login_required
-def unaki_booking():
-    """Unaki Appointment Booking page"""
-    if not current_user.can_access('bookings'):
-        flash('Access denied', 'danger')
-        return redirect(url_for('dashboard'))
-    return render_template('unaki_booking.html')
+# unaki-booking route moved to app.py to avoid conflicts
 
 # Enhanced API routes for Unaki Booking System with live database integration
 
@@ -543,81 +536,7 @@ def unaki_get_staff_availability(staff_id, date_str):
         print(f"Error getting staff availability: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
-@app.route('/api/unaki/load-sample-data', methods=['POST'])
-@login_required
-def unaki_load_sample_data():
-    """Load sample data for Unaki booking system"""
-    try:
-        from models import Service, User, Customer, Appointment
-        from modules.bookings.bookings_queries import create_appointment
-        from datetime import datetime, date, timedelta
-        import random
-
-        # Get existing data
-        services = Service.query.filter_by(is_active=True).all()
-        staff = User.query.filter_by(is_active=True).all()
-        
-        # Create sample data if none exists
-        created_count = 0
-        
-        # Create sample customers if none exist
-        customers = Customer.query.all()
-        if not customers:
-            sample_customers = [
-                {'first_name': 'Emma', 'last_name': 'Wilson', 'phone': '+1-555-0201', 'email': 'emma.wilson@email.com'},
-                {'first_name': 'Olivia', 'last_name': 'Brown', 'phone': '+1-555-0202', 'email': 'olivia.brown@email.com'},
-                {'first_name': 'Sophia', 'last_name': 'Davis', 'phone': '+1-555-0203', 'email': 'sophia.davis@email.com'},
-                {'first_name': 'Isabella', 'last_name': 'Miller', 'phone': '+1-555-0204', 'email': 'isabella.miller@email.com'}
-            ]
-            
-            for customer_data in sample_customers:
-                customer = Customer(**customer_data, is_active=True)
-                db.session.add(customer)
-            
-            db.session.commit()
-            customers = Customer.query.all()
-
-        # Create sample appointments for today
-        today = date.today()
-        appointment_times = ['10:00', '11:30', '14:00', '15:30']
-        
-        for i, time_str in enumerate(appointment_times):
-            if i < len(customers) and i < len(staff) and i < len(services):
-                appointment_time = datetime.combine(today, datetime.strptime(time_str, '%H:%M').time())
-                end_time = appointment_time + timedelta(minutes=services[i % len(services)].duration)
-                
-                appointment_data = {
-                    'client_id': customers[i].id,
-                    'service_id': services[i % len(services)].id,
-                    'staff_id': staff[i % len(staff)].id,
-                    'appointment_date': appointment_time,
-                    'end_time': end_time,
-                    'status': 'confirmed',
-                    'notes': 'Sample appointment',
-                    'amount': services[i % len(services)].price
-                }
-                
-                appointment = create_appointment(appointment_data)
-                if appointment:
-                    created_count += 1
-
-        db.session.commit()
-
-        return jsonify({
-            'success': True,
-            'message': f'Sample data loaded successfully! Created {created_count} appointments.',
-            'data': {
-                'appointments_created': created_count,
-                'customers_available': len(customers),
-                'services_available': len(services),
-                'staff_available': len(staff)
-            }
-        })
-
-    except Exception as e:
-        db.session.rollback()
-        print(f"Error loading sample data: {e}")
-        return jsonify({'success': False, 'error': f'Failed to load sample data: {str(e)}'}), 500
+# /api/unaki/load-sample-data route moved to app.py to avoid conflicts
 
 
 @app.route('/api/unaki/staff', methods=['GET'])
@@ -881,52 +800,7 @@ def business_settings():
     return render_template('business_settings.html', form=form, business_settings=business_settings)
 
 
-@app.route('/system_management')
-
-def system_management():
-    if False:
-        flash('Access denied', 'danger')
-        return redirect(url_for('dashboard'))
-
-    from models import Role, Permission, Category, Department, SystemSetting, BusinessSettings
-    from forms import RoleForm, PermissionForm, CategoryForm, DepartmentForm, SystemSettingForm, BusinessSettingsForm
-
-    # Get all required data for system management
-    roles = Role.query.all()
-    permissions = Permission.query.all()
-    categories = Category.query.all()
-    departments = Department.query.all()
-    system_settings = SystemSetting.query.all()
-
-    # Get business settings - create a proper structure for system management
-    business_settings = {}
-
-    # Get existing business settings as key-value pairs
-    existing_settings = BusinessSettings.query.all()
-    for setting in existing_settings:
-        business_settings[setting.setting_key] = setting.setting_value
-
-    # Initialize forms
-    role_form = RoleForm()
-    permission_form = PermissionForm()
-    category_form = CategoryForm()
-    department_form = DepartmentForm()
-    setting_form = SystemSettingForm()
-    business_form = BusinessSettingsForm(obj=business_settings)
-
-    return render_template('system_management.html',
-                         roles=roles,
-                         permissions=permissions,
-                         categories=categories,
-                         departments=departments,
-                         system_settings=system_settings,
-                         business_settings=business_settings,
-                         role_form=role_form,
-                         permission_form=permission_form,
-                         category_form=category_form,
-                         department_form=department_form,
-                         setting_form=setting_form,
-                         business_form=business_form)
+# system_management route moved to app.py to avoid conflicts
 
 @app.route('/add_category', methods=['POST'])
 
@@ -966,30 +840,7 @@ def add_category():
 
     return redirect(url_for('system_management'))
 
-@app.route('/role_management')
-@login_required
-def role_management():
-    """Role management page"""
-    if not current_user.can_access('settings'):
-        flash('Access denied', 'danger')
-        return redirect(url_for('dashboard'))
-    
-    from models import Role, Permission, RolePermission
-    from forms import RoleForm, PermissionForm
-    
-    # Get all roles and permissions
-    roles = Role.query.all()
-    permissions = Permission.query.all()
-    
-    # Initialize forms
-    role_form = RoleForm()
-    permission_form = PermissionForm()
-    
-    return render_template('role_management.html',
-                         roles=roles,
-                         permissions=permissions,
-                         role_form=role_form,
-                         permission_form=permission_form)
+# role_management route moved to app.py to avoid conflicts
 
 @app.route('/student-offers/add')
 @login_required
@@ -1003,9 +854,9 @@ def student_offers_add():
 
 # System Management Data Providers
 @app.route('/add_role', methods=['POST'])
-
+@login_required
 def add_role():
-    if False:
+    if not current_user.can_access('settings'):
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
 
@@ -1032,7 +883,7 @@ def add_role():
             for error in errors:
                 flash(f'{getattr(form, field).label.text}: {error}', 'danger')
 
-    return redirect(url_for('system_management'))
+    return redirect(url_for('role_management'))
 
 @app.route('/edit_role/<int:role_id>', methods=['POST'])
 
