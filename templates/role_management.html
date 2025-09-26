@@ -189,8 +189,65 @@
     </div>
 </div>
 
+<!-- Permission Management Modal -->
+<div class="modal fade" id="permissionManagementModal" tabindex="-1" aria-labelledby="permissionManagementModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="permissionManagementModalLabel">
+                    <i class="fas fa-key me-2"></i>Manage Permissions for <span id="roleNameDisplay"></span>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="manage_role_id">
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6 class="text-primary">Available Permissions</h6>
+                        <div class="border rounded p-3" style="height: 350px; overflow-y: auto;">
+                            <div id="availablePermissions">
+                                <!-- Available permissions will be loaded here -->
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="text-success">Assigned Permissions</h6>
+                        <div class="border rounded p-3" style="height: 350px; overflow-y: auto;">
+                            <div id="assignedPermissions">
+                                <!-- Assigned permissions will be loaded here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mt-3">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>Quick Actions:</strong>
+                        <button type="button" class="btn btn-sm btn-outline-primary ms-2" onclick="assignAllPermissions()">
+                            <i class="fas fa-check-double me-1"></i>Assign All
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-warning ms-2" onclick="removeAllPermissions()">
+                            <i class="fas fa-times me-1"></i>Remove All
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-2"></i>Cancel
+                </button>
+                <button type="button" class="btn btn-primary" onclick="saveRolePermissions()">
+                    <i class="fas fa-save me-2"></i>Save Permissions
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Edit Role Modal -->
-<div class="modal fade" id="editRoleModal" tabindex="-1" aria-labelledby="editRoleModalLabel" aria-hidden="true">
+<div class="modal fade" id="editRoleModal" tabindex="-1" aria-labelledby="editRoleModalLabel" aria-hidden="true"></div>
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
@@ -314,8 +371,228 @@ function deleteRole(roleId) {
 }
 
 function manageRolePermissions(roleId) {
-    // Implement permission management
-    alert('Permission management feature coming soon!');
+    // Load role details and permissions
+    Promise.all([
+        fetch(`/api/roles/${roleId}`),
+        fetch(`/api/permissions`),
+        fetch(`/api/roles/${roleId}/permissions`)
+    ])
+    .then(responses => Promise.all(responses.map(r => r.json())))
+    .then(([roleData, allPermissions, rolePermissions]) => {
+        if (roleData.success && allPermissions.success && rolePermissions.success) {
+            const role = roleData.role;
+            const permissions = allPermissions.permissions;
+            const assignedPermissionNames = rolePermissions.permissions;
+            
+            // Set role info
+            document.getElementById('manage_role_id').value = role.id;
+            document.getElementById('roleNameDisplay').textContent = role.display_name || role.name;
+            
+            // Clear and populate permissions
+            populatePermissions(permissions, assignedPermissionNames);
+            
+            // Show modal
+            new bootstrap.Modal(document.getElementById('permissionManagementModal')).show();
+        } else {
+            alert('Error loading permission data');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error loading permission data');
+    });
+}
+
+function populatePermissions(allPermissions, assignedPermissionNames) {
+    const availableContainer = document.getElementById('availablePermissions');
+    const assignedContainer = document.getElementById('assignedPermissions');
+    
+    availableContainer.innerHTML = '';
+    assignedContainer.innerHTML = '';
+    
+    allPermissions.forEach(permission => {
+        const isAssigned = assignedPermissionNames.includes(permission.name);
+        const permissionElement = createPermissionElement(permission, isAssigned);
+        
+        if (isAssigned) {
+            assignedContainer.appendChild(permissionElement);
+        } else {
+            availableContainer.appendChild(permissionElement);
+        }
+    });
+}
+
+function createPermissionElement(permission, isAssigned) {
+    const div = document.createElement('div');
+    div.className = 'mb-2 p-2 border rounded permission-item';
+    div.dataset.permissionName = permission.name;
+    
+    const badgeClass = isAssigned ? 'bg-success' : 'bg-secondary';
+    const actionText = isAssigned ? 'Remove' : 'Assign';
+    const actionIcon = isAssigned ? 'fas fa-minus' : 'fas fa-plus';
+    const actionClass = isAssigned ? 'btn-outline-danger' : 'btn-outline-primary';
+    
+    div.innerHTML = `
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <span class="badge ${badgeClass} me-2">${permission.module || 'general'}</span>
+                <strong>${permission.display_name}</strong>
+                ${permission.description ? `<br><small class="text-muted">${permission.description}</small>` : ''}
+            </div>
+            <button type="button" class="btn btn-sm ${actionClass}" onclick="${isAssigned ? 'removePermission' : 'assignPermission'}('${permission.name}')">
+                <i class="${actionIcon} me-1"></i>${actionText}
+            </button>
+        </div>
+    `;
+    
+    return div;
+}
+
+function assignPermission(permissionName) {
+    const permissionElement = document.querySelector(`[data-permission-name="${permissionName}"]`);
+    const availableContainer = document.getElementById('availablePermissions');
+    const assignedContainer = document.getElementById('assignedPermissions');
+    
+    // Move from available to assigned
+    if (permissionElement && permissionElement.parentNode === availableContainer) {
+        availableContainer.removeChild(permissionElement);
+        
+        // Update the element for assigned state
+        const button = permissionElement.querySelector('button');
+        button.className = 'btn btn-sm btn-outline-danger';
+        button.onclick = () => removePermission(permissionName);
+        button.innerHTML = '<i class="fas fa-minus me-1"></i>Remove';
+        
+        const badge = permissionElement.querySelector('.badge');
+        badge.className = badge.className.replace('bg-secondary', 'bg-success');
+        
+        assignedContainer.appendChild(permissionElement);
+    }
+}
+
+function removePermission(permissionName) {
+    const permissionElement = document.querySelector(`[data-permission-name="${permissionName}"]`);
+    const availableContainer = document.getElementById('availablePermissions');
+    const assignedContainer = document.getElementById('assignedPermissions');
+    
+    // Move from assigned to available
+    if (permissionElement && permissionElement.parentNode === assignedContainer) {
+        assignedContainer.removeChild(permissionElement);
+        
+        // Update the element for available state
+        const button = permissionElement.querySelector('button');
+        button.className = 'btn btn-sm btn-outline-primary';
+        button.onclick = () => assignPermission(permissionName);
+        button.innerHTML = '<i class="fas fa-plus me-1"></i>Assign';
+        
+        const badge = permissionElement.querySelector('.badge');
+        badge.className = badge.className.replace('bg-success', 'bg-secondary');
+        
+        availableContainer.appendChild(permissionElement);
+    }
+}
+
+function assignAllPermissions() {
+    const availablePermissions = document.querySelectorAll('#availablePermissions .permission-item');
+    availablePermissions.forEach(element => {
+        const permissionName = element.dataset.permissionName;
+        assignPermission(permissionName);
+    });
+}
+
+function removeAllPermissions() {
+    const assignedPermissions = document.querySelectorAll('#assignedPermissions .permission-item');
+    assignedPermissions.forEach(element => {
+        const permissionName = element.dataset.permissionName;
+        removePermission(permissionName);
+    });
+}
+
+function saveRolePermissions() {
+    const roleId = document.getElementById('manage_role_id').value;
+    const assignedPermissions = Array.from(document.querySelectorAll('#assignedPermissions .permission-item'))
+        .map(element => element.dataset.permissionName);
+    
+    const button = event.target;
+    const originalText = button.innerHTML;
+    button.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Saving...';
+    button.disabled = true;
+    
+    fetch(`/api/roles/${roleId}/permissions`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            permissions: assignedPermissions
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Close modal
+            const modal = bootstrap.Modal.getInstance(document.getElementById('permissionManagementModal'));
+            modal.hide();
+            
+            // Show success message
+            showToast('Permissions updated successfully!', 'success');
+        } else {
+            alert('Error: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error updating permissions');
+    })
+    .finally(() => {
+        button.innerHTML = originalText;
+        button.disabled = false;
+    });
+}
+
+function showToast(message, type = 'info') {
+    // Create toast element if it doesn't exist
+    let toastContainer = document.getElementById('toastContainer');
+    if (!toastContainer) {
+        toastContainer = document.createElement('div');
+        toastContainer.id = 'toastContainer';
+        toastContainer.className = 'toast-container position-fixed top-0 end-0 p-3';
+        toastContainer.style.zIndex = '1055';
+        document.body.appendChild(toastContainer);
+    }
+    
+    const toastId = 'toast-' + Date.now();
+    const toastElement = document.createElement('div');
+    toastElement.id = toastId;
+    toastElement.className = 'toast';
+    toastElement.setAttribute('role', 'alert');
+    
+    const bgClass = type === 'success' ? 'bg-success' : type === 'error' ? 'bg-danger' : 'bg-info';
+    
+    toastElement.innerHTML = `
+        <div class="toast-header ${bgClass} text-white">
+            <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'} me-2"></i>
+            <strong class="me-auto">${type === 'success' ? 'Success' : type === 'error' ? 'Error' : 'Info'}</strong>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast"></button>
+        </div>
+        <div class="toast-body">
+            ${message}
+        </div>
+    `;
+    
+    toastContainer.appendChild(toastElement);
+    
+    // Show toast
+    const toast = new bootstrap.Toast(toastElement, {
+        autohide: true,
+        delay: 3000
+    });
+    toast.show();
+    
+    // Remove element after hiding
+    toastElement.addEventListener('hidden.bs.toast', () => {
+        toastElement.remove();
+    });
 }
 
 // Handle form submission for edit role

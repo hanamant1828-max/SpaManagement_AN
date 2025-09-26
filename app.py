@@ -160,6 +160,57 @@ def init_app():
             db.create_all()
             print("SQLite database tables created successfully")
             print(f"Database file location: {app.config['SQLALCHEMY_DATABASE_URI']}")
+            
+            # Create default permissions if they don't exist
+            try:
+                from models import Permission
+                default_permissions = [
+                    {'name': 'dashboard_view', 'display_name': 'View Dashboard', 'description': 'Access to main dashboard', 'module': 'dashboard'},
+                    {'name': 'staff_view', 'display_name': 'View Staff', 'description': 'View staff information', 'module': 'staff'},
+                    {'name': 'staff_create', 'display_name': 'Create Staff', 'description': 'Add new staff members', 'module': 'staff'},
+                    {'name': 'staff_edit', 'display_name': 'Edit Staff', 'description': 'Modify staff information', 'module': 'staff'},
+                    {'name': 'staff_delete', 'display_name': 'Delete Staff', 'description': 'Remove staff members', 'module': 'staff'},
+                    {'name': 'clients_view', 'display_name': 'View Clients', 'description': 'View client information', 'module': 'clients'},
+                    {'name': 'clients_create', 'display_name': 'Create Clients', 'description': 'Add new clients', 'module': 'clients'},
+                    {'name': 'clients_edit', 'display_name': 'Edit Clients', 'description': 'Modify client information', 'module': 'clients'},
+                    {'name': 'clients_delete', 'display_name': 'Delete Clients', 'description': 'Remove clients', 'module': 'clients'},
+                    {'name': 'services_view', 'display_name': 'View Services', 'description': 'View services and pricing', 'module': 'services'},
+                    {'name': 'services_create', 'display_name': 'Create Services', 'description': 'Add new services', 'module': 'services'},
+                    {'name': 'services_edit', 'display_name': 'Edit Services', 'description': 'Modify services and pricing', 'module': 'services'},
+                    {'name': 'services_delete', 'display_name': 'Delete Services', 'description': 'Remove services', 'module': 'services'},
+                    {'name': 'appointments_view', 'display_name': 'View Appointments', 'description': 'View appointment bookings', 'module': 'bookings'},
+                    {'name': 'appointments_create', 'display_name': 'Create Appointments', 'description': 'Book new appointments', 'module': 'bookings'},
+                    {'name': 'appointments_edit', 'display_name': 'Edit Appointments', 'description': 'Modify appointments', 'module': 'bookings'},
+                    {'name': 'appointments_delete', 'display_name': 'Delete Appointments', 'description': 'Cancel appointments', 'module': 'bookings'},
+                    {'name': 'billing_view', 'display_name': 'View Billing', 'description': 'Access billing information', 'module': 'billing'},
+                    {'name': 'billing_create', 'display_name': 'Create Bills', 'description': 'Generate invoices and bills', 'module': 'billing'},
+                    {'name': 'billing_edit', 'display_name': 'Edit Bills', 'description': 'Modify billing information', 'module': 'billing'},
+                    {'name': 'inventory_view', 'display_name': 'View Inventory', 'description': 'Access inventory information', 'module': 'inventory'},
+                    {'name': 'inventory_create', 'display_name': 'Create Inventory', 'description': 'Add inventory items', 'module': 'inventory'},
+                    {'name': 'inventory_edit', 'display_name': 'Edit Inventory', 'description': 'Modify inventory items', 'module': 'inventory'},
+                    {'name': 'packages_view', 'display_name': 'View Packages', 'description': 'View service packages', 'module': 'packages'},
+                    {'name': 'packages_create', 'display_name': 'Create Packages', 'description': 'Create service packages', 'module': 'packages'},
+                    {'name': 'packages_edit', 'display_name': 'Edit Packages', 'description': 'Modify service packages', 'module': 'packages'},
+                    {'name': 'reports_view', 'display_name': 'View Reports', 'description': 'Access business reports', 'module': 'reports'},
+                    {'name': 'expenses_view', 'display_name': 'View Expenses', 'description': 'View business expenses', 'module': 'expenses'},
+                    {'name': 'expenses_create', 'display_name': 'Create Expenses', 'description': 'Add new expenses', 'module': 'expenses'},
+                    {'name': 'expenses_edit', 'display_name': 'Edit Expenses', 'description': 'Modify expenses', 'module': 'expenses'},
+                    {'name': 'settings_view', 'display_name': 'View Settings', 'description': 'Access system settings', 'module': 'settings'},
+                    {'name': 'settings_edit', 'display_name': 'Edit Settings', 'description': 'Modify system settings', 'module': 'settings'},
+                ]
+                
+                for perm_data in default_permissions:
+                    existing_permission = Permission.query.filter_by(name=perm_data['name']).first()
+                    if not existing_permission:
+                        permission = Permission(**perm_data)
+                        db.session.add(permission)
+                
+                db.session.commit()
+                print("Default permissions created successfully")
+                
+            except Exception as e:
+                db.session.rollback()
+                print(f"Warning: Could not create default permissions: {e}")
         except Exception as e:
             print(f"SQLite database initialization warning: {e}")
             print("Continuing with existing SQLite database...")
@@ -944,6 +995,35 @@ def api_get_role_permissions(role_id):
             'role_name': role.display_name,
             'permissions': role_permissions
         }), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/permissions', methods=['GET'])
+@login_required
+def api_get_all_permissions():
+    """API endpoint to get all permissions"""
+    if not current_user.can_access('settings'):
+        return jsonify({'error': 'Access denied'}), 403
+
+    from models import Permission
+
+    try:
+        permissions = Permission.query.filter_by(is_active=True).order_by(Permission.module, Permission.display_name).all()
+        permissions_data = []
+        for permission in permissions:
+            permissions_data.append({
+                'id': permission.id,
+                'name': permission.name,
+                'display_name': permission.display_name,
+                'description': permission.description,
+                'module': permission.module,
+                'is_active': permission.is_active
+            })
+        
+        return jsonify({
+            'success': True,
+            'permissions': permissions_data
+        })
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
