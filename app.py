@@ -61,14 +61,13 @@ app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1) # needed for url_for 
 # Handle trailing slash variations
 app.url_map.strict_slashes = False
 
-# Configure the database - use existing SQLite database
-app.config["SQLALCHEMY_DATABASE_URI"] = compute_sqlite_uri()
+# Configure the database - use PostgreSQL from environment
+app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL")
 app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
-    "connect_args": {
-        "check_same_thread": False  # Allow SQLite to be used across threads
-    }
+    "pool_recycle": 300,
+    "pool_pre_ping": True,
 }
-print(f"Using SQLite database: {app.config['SQLALCHEMY_DATABASE_URI']}")
+print(f"Using PostgreSQL database: {app.config['SQLALCHEMY_DATABASE_URI']}")
 
 # Configure cache control for Replit environment
 app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
@@ -144,10 +143,8 @@ def init_app():
     """Initialize the application with proper error handling"""
     with app.app_context():
         try:
-            # Add SQLite PRAGMA event listener for SQLite connections (inside app context)
-            event.listen(db.engine, 'connect', configure_sqlite_pragmas)
-            print(f"SQLite PRAGMAs configured for: {app.config['SQLALCHEMY_DATABASE_URI']}")
-            print(f"Instance identifier: {os.environ.get('SPA_DB_INSTANCE') or os.environ.get('REPL_SLUG') or 'default'}")
+            # Database connection configured for PostgreSQL
+            print(f"PostgreSQL database configured: {app.config['SQLALCHEMY_DATABASE_URI']}")
 
             # Make sure to import the models here or their tables won't be created
             import models  # noqa: F401
