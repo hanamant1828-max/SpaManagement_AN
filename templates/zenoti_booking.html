@@ -834,9 +834,12 @@
                     <i class="fas fa-search"></i>
                     Client Search
                 </div>
-                <input type="text" class="glass-input" id="clientSearch" placeholder="Search clients...">
+                <input type="text" class="glass-input" id="clientSearch" placeholder="Type name, phone, or email..." autocomplete="off">
                 <div class="dropdown">
                     <div class="dropdown-menu" id="clientDropdown"></div>
+                </div>
+                <div style="font-size: 12px; color: rgba(255, 255, 255, 0.6); margin-top: 5px;">
+                    <i class="fas fa-info-circle"></i> Start typing to search existing clients
                 </div>
             </div>
 
@@ -1171,14 +1174,27 @@
                     
                     const type = this.dataset.type;
                     const newClientForm = document.getElementById('newClientForm');
-                    const clientSearch = document.getElementById('clientSearch');
+                    const clientSearchSection = document.querySelector('.section:has(#clientSearch)');
+                    
+                    // Reset selected client when switching
+                    selectedClient = null;
+                    document.getElementById('clientSearch').value = '';
+                    document.getElementById('clientSearch').style.borderColor = '';
+                    document.getElementById('clientSearch').style.backgroundColor = '';
+                    document.getElementById('clientDropdown').classList.remove('show');
                     
                     if (type === 'new') {
                         newClientForm.style.display = 'block';
-                        clientSearch.style.display = 'none';
+                        clientSearchSection.style.display = 'none';
+                        showToast('Switched to new client mode', 'info');
                     } else {
                         newClientForm.style.display = 'none';
-                        clientSearch.style.display = 'block';
+                        clientSearchSection.style.display = 'block';
+                        showToast('Switched to existing client mode', 'info');
+                        // Focus on search when switching to existing client
+                        setTimeout(() => {
+                            document.getElementById('clientSearch').focus();
+                        }, 100);
                     }
                 });
             });
@@ -1397,33 +1413,53 @@
             const searchTerm = document.getElementById('clientSearch').value.toLowerCase();
             const clientDropdown = document.getElementById('clientDropdown');
             
-            if (searchTerm.length < 2) {
+            if (searchTerm.length < 1) {
                 clientDropdown.classList.remove('show');
                 return;
             }
 
-            const filteredClients = clientsData.filter(client => 
-                client.name.toLowerCase().includes(searchTerm) ||
-                (client.phone && client.phone.includes(searchTerm))
-            );
+            // Show all clients if search is short, filter if longer
+            const filteredClients = searchTerm.length < 2 ? 
+                clientsData.slice(0, 10) : // Show first 10 clients for short search
+                clientsData.filter(client => 
+                    client.name.toLowerCase().includes(searchTerm) ||
+                    (client.phone && client.phone.includes(searchTerm)) ||
+                    (client.email && client.email.toLowerCase().includes(searchTerm))
+                );
 
             clientDropdown.innerHTML = '';
-            filteredClients.forEach(client => {
-                const clientItem = document.createElement('div');
-                clientItem.className = 'dropdown-item';
-                clientItem.innerHTML = `
-                    <div><strong>${client.name}</strong></div>
-                    <div style="font-size: 12px; color: #666;">${client.phone || 'No phone'}</div>
-                `;
-                
-                clientItem.addEventListener('click', function() {
-                    selectedClient = client;
-                    document.getElementById('clientSearch').value = client.name;
-                    clientDropdown.classList.remove('show');
-                });
+            
+            if (filteredClients.length === 0) {
+                const noResultsItem = document.createElement('div');
+                noResultsItem.className = 'dropdown-item';
+                noResultsItem.style.fontStyle = 'italic';
+                noResultsItem.style.color = '#666';
+                noResultsItem.textContent = 'No clients found';
+                clientDropdown.appendChild(noResultsItem);
+            } else {
+                filteredClients.forEach(client => {
+                    const clientItem = document.createElement('div');
+                    clientItem.className = 'dropdown-item';
+                    clientItem.style.cursor = 'pointer';
+                    clientItem.innerHTML = `
+                        <div><strong>${client.name}</strong></div>
+                        <div style="font-size: 12px; color: #666;">${client.phone || 'No phone'} ${client.email ? '• ' + client.email : ''}</div>
+                    `;
+                    
+                    clientItem.addEventListener('click', function() {
+                        selectedClient = client;
+                        document.getElementById('clientSearch').value = client.name;
+                        clientDropdown.classList.remove('show');
+                        showToast(`Selected client: ${client.name}`, 'success');
+                        
+                        // Update the visual indicator
+                        document.getElementById('clientSearch').style.borderColor = '#10b981';
+                        document.getElementById('clientSearch').style.backgroundColor = 'rgba(16, 185, 129, 0.1)';
+                    });
 
-                clientDropdown.appendChild(clientItem);
-            });
+                    clientDropdown.appendChild(clientItem);
+                });
+            }
 
             clientDropdown.classList.add('show');
         }
@@ -1595,11 +1631,37 @@
         }
 
         function hasNewClientData() {
-            const firstName = document.getElementById('newClientFirstName').value;
-            const lastName = document.getElementById('newClientLastName').value;
-            const phone = document.getElementById('newClientPhone').value;
+            const firstName = document.getElementById('newClientFirstName').value.trim();
+            const lastName = document.getElementById('newClientLastName').value.trim();
+            const phone = document.getElementById('newClientPhone').value.trim();
             
             return firstName && lastName && phone;
+        }
+        
+        function getCurrentClientData() {
+            const activeToggle = document.querySelector('.client-toggle button.active');
+            const isNewClient = activeToggle && activeToggle.dataset.type === 'new';
+            
+            if (isNewClient) {
+                if (hasNewClientData()) {
+                    return {
+                        name: `${document.getElementById('newClientFirstName').value.trim()} ${document.getElementById('newClientLastName').value.trim()}`,
+                        phone: document.getElementById('newClientPhone').value.trim(),
+                        email: document.getElementById('newClientEmail').value.trim(),
+                        isNew: true
+                    };
+                }
+            } else {
+                if (selectedClient) {
+                    return {
+                        name: selectedClient.name,
+                        phone: selectedClient.phone,
+                        email: selectedClient.email,
+                        isNew: false
+                    };
+                }
+            }
+            return null;
         }
 
         function startQuickBooking(staffId, startTime) {
@@ -1609,6 +1671,12 @@
 
             if (totalMinutes === 0) {
                 showToast('Please set a duration', 'warning');
+                return;
+            }
+
+            const clientData = getCurrentClientData();
+            if (!clientData) {
+                showToast('Please select a client first', 'warning');
                 return;
             }
 
@@ -1623,14 +1691,14 @@
             // Prepare booking data
             const bookingData = {
                 staffId: staffId,
-                clientName: selectedClient ? selectedClient.name : `${document.getElementById('newClientFirstName').value} ${document.getElementById('newClientLastName').value}`,
-                clientPhone: selectedClient ? selectedClient.phone : document.getElementById('newClientPhone').value,
-                clientEmail: selectedClient ? selectedClient.email : document.getElementById('newClientEmail').value,
+                clientName: clientData.name,
+                clientPhone: clientData.phone,
+                clientEmail: clientData.email,
                 serviceType: selectedService.name,
                 startTime: startTime,
                 endTime: endTime,
                 date: selectedDate.toISOString().split('T')[0],
-                notes: 'Quick booking'
+                notes: clientData.isNew ? 'New client booking' : 'Existing client booking'
             };
 
             // Show confirmation and create booking
@@ -1673,11 +1741,21 @@
             selectedStaff = null;
             
             document.getElementById('clientSearch').value = '';
+            document.getElementById('clientSearch').style.borderColor = '';
+            document.getElementById('clientSearch').style.backgroundColor = '';
             document.getElementById('serviceSelector').querySelector('span').textContent = 'Choose a service...';
             document.getElementById('durationHours').value = '1';
             document.getElementById('durationMinutes').value = '0';
             
+            // Clear new client form
+            document.getElementById('newClientFirstName').value = '';
+            document.getElementById('newClientLastName').value = '';
+            document.getElementById('newClientPhone').value = '';
+            document.getElementById('newClientEmail').value = '';
+            
             document.querySelectorAll('.selected').forEach(el => el.classList.remove('selected'));
+            
+            showToast('Booking form cleared', 'info');
         }
 
         function handleBookNow() {
@@ -1688,13 +1766,19 @@
         }
 
         function validateBookingData() {
-            if (!selectedClient && !hasNewClientData()) {
-                showToast('Please select a client or enter new client details', 'warning');
+            const clientData = getCurrentClientData();
+            if (!clientData) {
+                showToast('Please select an existing client or complete new client details', 'warning');
                 return false;
             }
 
             if (!selectedService) {
                 showToast('Please select a service', 'warning');
+                return false;
+            }
+
+            if (!selectedStaff) {
+                showToast('Please select a therapist', 'warning');
                 return false;
             }
 
