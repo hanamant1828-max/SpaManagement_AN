@@ -1,0 +1,80 @@
+Create an exact replica of Zenoti's appointment booking interface for spa management. Study Zenoti's professional design patterns and replicate their booking system with these precise specifications:
+
+Zenoti-Style Main Interface:
+
+Clean white background with Zenoti's signature blue accent colors (
+#2B5CE6, 
+#1E88E5)
+Top navigation bar: Logo, location selector, user profile, notifications bell, settings gear
+Left sidebar: Today's date prominently displayed, quick stats cards, navigation menu
+Main booking area: Full-width calendar/schedule view with professional grid layout
+Bottom status bar: Connection status, last sync time, help button
+Zenoti's Booking Calendar Layout:
+
+Header row: Date navigation (< Today >) with month/year, view toggles (Day/Week/Month)
+Time column: 15-minute intervals from opening to closing hours
+Staff columns: Each therapist gets dedicated column with name, photo placeholder, availability status
+Appointment blocks: Rounded rectangles with client name, service, time, duration
+Color coding: Different service categories have distinct colors (massage=blue, facial=purple, etc.)
+Zenoti's Left Sidebar Elements:
+
+'Book Appointment' large blue button at top
+Search clients: Clean search bar with magnifying glass icon
+Quick filters: Available Now, Walk-ins, VIP clients
+Today's overview card: Appointments count, revenue, no-shows
+Staff status indicators: Available (green dot), Busy (red), Break (yellow)
+Zenoti's Booking Modal/Popup:
+
+Clean modal with Zenoti's signature header styling
+Client section: Search existing or 'Add New Client' toggle
+Service selection: Dropdown with service categories and duration auto-fill
+Staff assignment: Photos with availability indicators
+Date/Time picker: Calendar widget + time slots grid
+Notes field: Simple text area
+Pricing display: Service price, tax, total prominently shown
+Action buttons: 'Book Appointment' (blue), 'Cancel' (gray)
+Zenoti's Professional Features:
+
+Drag-and-drop appointment moving/resizing
+Quick actions on hover: Edit, Cancel, No-show, Reschedule
+Conflict warnings: Red highlighting for double-booked slots
+Waitlist integration: 'Add to Waitlist' option when times unavailable
+Resource management: Room assignments, equipment allocation
+Package/series booking: Multi-appointment creation
+Payment integration: 'Collect Payment' buttons on appointments
+Zenoti's Data Display Standards:
+
+Client info: Name, phone, email, membership status
+Service details: Name, duration, price, category
+Staff info: Name, specializations, commission rates
+Appointment status: Confirmed, Tentative, Cancelled, No-show, Completed
+Real-time updates: Live availability, booking confirmations
+Professional typography: Clean sans-serif, proper hierarchy
+Zenoti's User Experience Patterns:
+
+Single-click actions for common tasks
+Keyboard shortcuts displayed in tooltips
+Breadcrumb navigation for complex booking flows
+Auto-save functionality with visual indicators
+Error handling with clear, actionable messages
+Loading states with progress indicators
+Confirmation dialogs for destructive actions
+Zenoti's Mobile-First Responsive Design:
+
+Touch-friendly buttons and controls
+Swipe gestures for navigation
+Collapsible sidebar for smaller screens
+Optimized tap targets (minimum 44px)
+Fast scrolling and smooth animations
+Technical Implementation:
+
+Single HTML file replicating Zenoti's exact visual design
+Use Zenoti's color palette, fonts, and spacing standards
+Implement their grid system and component styling
+Include sample spa data (services, staff, clients, appointments)
+Functional drag-and-drop, form validation, and modal interactions
+Professional loading states and error handling
+Print-friendly appointment schedules
+Replicate Zenoti's professional polish, intuitive workflow, and comprehensive feature set. The interface should feel familiar to users of the actual Zenoti platform while being fully functional for spa appointment management. Focus on their signature clean design, logical information hierarchy, and efficient booking workflows that make Zenoti the industry standard."
+
+ONE BUTTON CALLED NEW BOOKING THEN ONE MODAL AND WHILE  BOOKING APPOINTMENT I WANT OPTION TO ADD MULTIPLE SERVIVE BOOKING IN DINGLE FORM

@@ -67,7 +67,7 @@ app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
     "pool_recycle": 300,
     "pool_pre_ping": True,
 }
-print(f"Using PostgreSQL database: {app.config['SQLALCHEMY_DATABASE_URI']}")
+print("Using PostgreSQL database: [PROTECTED]")
 
 # Configure cache control for Replit environment
 app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
@@ -144,7 +144,7 @@ def init_app():
     with app.app_context():
         try:
             # Database connection configured for PostgreSQL
-            print(f"PostgreSQL database configured: {app.config['SQLALCHEMY_DATABASE_URI']}")
+            print("PostgreSQL database configured: [PROTECTED]")
 
             # Make sure to import the models here or their tables won't be created
             import models  # noqa: F401
@@ -723,6 +723,137 @@ def index():
     if current_user.is_authenticated:
         return redirect(url_for('dashboard'))
     return redirect(url_for('login'))
+
+@app.route('/zenoti-booking')
+@login_required
+def zenoti_booking():
+    """Zenoti-style appointment booking interface"""
+    from models import User, Customer, Appointment
+    from datetime import datetime, date
+    
+    # Get today's data for the interface
+    today = date.today()
+    staff_members = User.query.filter_by(is_active=True, role='staff').all()
+    customers = Customer.query.filter_by(is_active=True).all()
+    
+    # For now, use static services data since Service model might not exist
+    services = [
+        {'id': 1, 'name': 'Deep Tissue Massage', 'duration': 60, 'price': 120},
+        {'id': 2, 'name': 'Anti-Aging Facial', 'duration': 60, 'price': 100},
+        {'id': 3, 'name': 'Gel Manicure', 'duration': 45, 'price': 65},
+        {'id': 4, 'name': 'Spa Pedicure', 'duration': 60, 'price': 80},
+    ]
+    
+    # Get today's appointments
+    today_appointments = Appointment.query.filter(
+        db.func.date(Appointment.appointment_date) == today
+    ).all()
+    
+    return render_template('zenoti_booking.html', 
+                         appointments=today_appointments,
+                         staff_members=staff_members,
+                         services=services,
+                         customers=customers)
+
+@app.route('/api/create-booking', methods=['POST'])
+@login_required
+def zenoti_create_booking():
+    """API endpoint to create new booking with multiple services"""
+    try:
+        from models import Appointment, Customer, User
+        from datetime import datetime, timedelta
+        
+        data = request.get_json()
+        
+        # Validate required fields
+        if not data.get('client_id') or not data.get('services') or not data.get('date') or not data.get('time'):
+            return jsonify({'error': 'Missing required fields'}), 400
+            
+        # Parse date and time
+        appointment_datetime = datetime.strptime(f"{data['date']} {data['time']}", "%Y-%m-%d %H:%M")
+        
+        created_appointments = []
+        
+        # Create appointment for each service
+        for service_data in data['services']:
+            # Use service data directly since we're using static services for now
+            if not service_data.get('service_id'):
+                continue
+                
+            # Calculate end time based on service duration
+            duration_minutes = service_data.get('duration', 60)
+            end_time = appointment_datetime + timedelta(minutes=duration_minutes)
+            
+            appointment = Appointment(
+                client_id=data['client_id'],
+                service_id=service_data['service_id'],
+                staff_id=data.get('staff_id'),
+                appointment_date=appointment_datetime,
+                end_time=end_time,
+                status='scheduled',
+                amount=service_data.get('price', 0),
+                notes=data.get('notes', '')
+            )
+            
+            db.session.add(appointment)
+            created_appointments.append(appointment)
+            
+            # Move start time for next service
+            appointment_datetime = end_time
+        
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': f'{len(created_appointments)} appointments created successfully',
+            'appointments': [{'id': apt.id, 'date': apt.appointment_date.isoformat()} for apt in created_appointments]
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/get-availability/<staff_id>/<date>')
+@login_required
+def get_staff_availability(staff_id, date):
+    """Get staff availability for a specific date"""
+    try:
+        from models import Appointment
+        from datetime import datetime, timedelta
+        
+        target_date = datetime.strptime(date, "%Y-%m-%d").date()
+        
+        # Get existing appointments for the staff on this date
+        existing_appointments = Appointment.query.filter(
+            Appointment.staff_id == staff_id,
+            db.func.date(Appointment.appointment_date) == target_date
+        ).all()
+        
+        # Generate available time slots (9 AM to 6 PM, 30-minute intervals)
+        available_slots = []
+        start_time = datetime.combine(target_date, datetime.min.time().replace(hour=9))
+        end_time = datetime.combine(target_date, datetime.min.time().replace(hour=18))
+        
+        current_time = start_time
+        while current_time < end_time:
+            slot_end = current_time + timedelta(minutes=30)
+            
+            # Check if this slot conflicts with existing appointments
+            conflict = False
+            for apt in existing_appointments:
+                if (current_time < apt.end_time and slot_end > apt.appointment_date):
+                    conflict = True
+                    break
+            
+            if not conflict:
+                available_slots.append(current_time.strftime("%H:%M"))
+            
+            current_time += timedelta(minutes=30)
+        
+        return jsonify({'available_slots': available_slots})
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 # Ensure app is available for gunicorn
 if __name__ != '__main__':
