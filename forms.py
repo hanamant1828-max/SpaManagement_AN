@@ -243,6 +243,22 @@ class AdminUserForm(FlaskForm):
             if not field.data:
                 raise ValidationError('Password is required for new users.')
 
+class RoleForm(FlaskForm):
+    """Role management form"""
+    name = StringField('Role Name', validators=[DataRequired(), Length(max=50)])
+    display_name = StringField('Display Name', validators=[Optional(), Length(max=100)])
+    description = TextAreaField('Description', validators=[Optional()])
+    is_active = BooleanField('Active', default=True)
+    submit = SubmitField('Save Role')
+
+class PermissionForm(FlaskForm):
+    """Permission management form"""
+    name = StringField('Permission Name', validators=[DataRequired(), Length(max=50)])
+    description = TextAreaField('Description', validators=[Optional()])
+    category = StringField('Category', validators=[Optional(), Length(max=50)])
+    is_active = BooleanField('Active', default=True)
+    submit = SubmitField('Save Permission')
+
 class AdvancedCustomerForm(FlaskForm):
     """Advanced customer form with additional fields"""
     first_name = StringField('First Name', validators=[DataRequired(), Length(max=50)])

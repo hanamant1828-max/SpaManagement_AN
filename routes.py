@@ -973,7 +973,23 @@ def role_management():
     if not current_user.can_access('settings'):
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
-    return render_template('settings.html')
+    
+    from models import Role, Permission, RolePermission
+    from forms import RoleForm, PermissionForm
+    
+    # Get all roles and permissions
+    roles = Role.query.all()
+    permissions = Permission.query.all()
+    
+    # Initialize forms
+    role_form = RoleForm()
+    permission_form = PermissionForm()
+    
+    return render_template('role_management.html',
+                         roles=roles,
+                         permissions=permissions,
+                         role_form=role_form,
+                         permission_form=permission_form)
 
 @app.route('/student-offers/add')
 @login_required
