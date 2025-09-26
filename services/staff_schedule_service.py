@@ -60,7 +60,7 @@ class StaffScheduleInfo:
     break_end: Optional[time] = None
     break_minutes: int = 0
     schedule_name: str = ""
-    working_intervals: List[WorkingInterval] = None
+    working_intervals: Optional[List[WorkingInterval]] = None
     
     def __post_init__(self):
         if self.working_intervals is None:
@@ -69,8 +69,11 @@ class StaffScheduleInfo:
 class StaffScheduleService:
     """Professional service for managing staff schedules and availability"""
     
-    def __init__(self):
-        self.slot_duration = 30  # Default 30-minute slots
+    def __init__(self, slot_interval_minutes=15):
+        """Initialize with configurable slot interval for finer granularity"""
+        self.slot_interval = slot_interval_minutes  # Use 15-minute intervals by default
+        # Defer optimal interval calculation until application context is available
+        self._optimal_interval = None
     
     def parse_break_time(self, break_time_string: str) -> Tuple[Optional[str], Optional[str]]:
         """
@@ -112,7 +115,13 @@ class StaffScheduleService:
         Get comprehensive schedule information for a staff member on a specific date.
         Integrates with StaffScheduleRange model from shift scheduler.
         """
-        from models import StaffScheduleRange, User
+        try:
+            from models import StaffScheduleRange, User
+        except ImportError:
+            # Fallback if StaffScheduleRange is not available
+            print("Warning: StaffScheduleRange model not found, using basic schedule")
+            from models import User
+            StaffScheduleRange = None
         
         if not staff_id:
             return None
@@ -123,12 +132,14 @@ class StaffScheduleService:
             return None
         
         # Find active schedule that covers the target date
-        schedule = StaffScheduleRange.query.filter(
-            StaffScheduleRange.staff_id == staff_id,
-            StaffScheduleRange.start_date <= target_date,
-            StaffScheduleRange.end_date >= target_date,
-            StaffScheduleRange.is_active == True
-        ).order_by(StaffScheduleRange.priority.desc()).first()
+        schedule = None
+        if StaffScheduleRange:
+            schedule = StaffScheduleRange.query.filter(
+                StaffScheduleRange.staff_id == staff_id,
+                StaffScheduleRange.start_date <= target_date,
+                StaffScheduleRange.end_date >= target_date,
+                StaffScheduleRange.is_active == True
+            ).order_by(StaffScheduleRange.priority.desc()).first()
         
         if not schedule:
             # Staff has no schedule for this date
@@ -267,14 +278,15 @@ class StaffScheduleService:
             earliest_start = datetime.combine(target_date, time(9, 0))
             latest_end = datetime.combine(target_date, time(18, 0))
         
-        # Generate slots within the time range
+        # Generate slots within the time range using fine-grained intervals
         current_time = earliest_start
         while current_time < latest_end:
-            slot_end = current_time + timedelta(minutes=service_duration)
+            # Use fine-grained interval for slot generation, not service duration
+            slot_end = current_time + timedelta(minutes=self.slot_interval)
             
-            # Determine slot status
-            status = self._determine_slot_status(
-                current_time, slot_end, staff_schedule, appointments, staff_id
+            # Determine slot status considering the full service duration
+            status = self._determine_slot_status_for_service(
+                current_time, service_duration, latest_end, staff_schedule, appointments, staff_id
             )
             
             # Create time slot
@@ -301,7 +313,8 @@ class StaffScheduleService:
                         break
             
             slots.append(slot)
-            current_time += timedelta(minutes=service_duration)
+            # Use fine-grained interval for advancement
+            current_time += timedelta(minutes=self.slot_interval)
         
         return slots
     
@@ -495,6 +508,151 @@ class StaffScheduleService:
         }
         
         return result
+    
+    def _calculate_optimal_interval(self) -> int:
+        """Calculate optimal time slot interval based on service durations"""
+        try:
+            from models import Service
+            from math import gcd
+            from functools import reduce
+            
+            # Get all service durations
+            services = Service.query.filter(Service.is_active == True).all()
+            durations = [service.duration for service in services if service.duration > 0]
+            
+            if not durations:
+                return 15  # Default to 15 minutes
+            
+            # Calculate GCD of all service durations to find optimal interval
+            optimal = reduce(gcd, durations)
+            
+            # Ensure reasonable interval bounds (5-30 minutes)
+            if optimal < 5:
+                optimal = 5
+            elif optimal > 30:
+                optimal = 15
+            
+            return optimal
+        except Exception as e:
+            print(f"Error calculating optimal interval: {e}")
+            return 15  # Fallback to 15 minutes
+    
+    def _get_optimal_interval(self) -> int:
+        """Get optimal interval, calculating it lazily if needed"""
+        if self._optimal_interval is None:
+            self._optimal_interval = self._calculate_optimal_interval()
+        return self._optimal_interval
+    
+    def _can_accommodate_service(self, start_time: datetime, service_duration: int,
+                               latest_end: datetime, staff_schedule: Optional[StaffScheduleInfo],
+                               appointments: List[Any], staff_id: Optional[int]) -> bool:
+        """Check if a service of given duration can be accommodated starting at start_time"""
+        service_end = start_time + timedelta(minutes=service_duration)
+        
+        # Check if service extends beyond available time
+        if service_end > latest_end:
+            return False
+        
+        # If no staff specified, only check appointments
+        if not staff_id or not staff_schedule:
+            for appointment in appointments:
+                apt_start = appointment.appointment_date
+                apt_end = apt_start + timedelta(minutes=appointment.service.duration if appointment.service else 60)
+                # Check if service would overlap with existing appointment
+                if not (start_time >= apt_end or service_end <= apt_start):
+                    return False
+            return True
+        
+        # Staff not working
+        if not staff_schedule.is_working:
+            return False
+        
+        # Check if entire service duration is within working intervals
+        service_in_working_time = False
+        for interval in staff_schedule.working_intervals:
+            if interval.contains(start_time, service_end):
+                service_in_working_time = True
+                break
+        
+        if not service_in_working_time:
+            return False
+        
+        # Check for conflicts with existing appointments
+        for appointment in appointments:
+            if staff_id and appointment.staff_id != staff_id:
+                continue
+            
+            apt_start = appointment.appointment_date
+            apt_end = apt_start + timedelta(minutes=appointment.service.duration if appointment.service else 60)
+            
+            # Check for overlap with the full service duration
+            if not (start_time >= apt_end or service_end <= apt_start):
+                return False
+        
+        return True
+    
+    def _determine_slot_status_for_service(self, slot_start: datetime, service_duration: int,
+                                         latest_end: datetime, staff_schedule: Optional[StaffScheduleInfo],
+                                         appointments: List[Any], staff_id: Optional[int]) -> SlotStatus:
+        """Determine slot status considering the full service duration"""
+        
+        # First check if the service can be accommodated from this start time
+        can_accommodate = self._can_accommodate_service(
+            slot_start, service_duration, latest_end, staff_schedule, appointments, staff_id
+        )
+        
+        if can_accommodate:
+            return SlotStatus.AVAILABLE
+        
+        # If service can't be accommodated, determine the specific reason
+        service_end = slot_start + timedelta(minutes=service_duration)
+        slot_end = slot_start + timedelta(minutes=self.slot_interval)
+        
+        # If no staff specified, check appointments only
+        if not staff_id or not staff_schedule:
+            for appointment in appointments:
+                apt_start = appointment.appointment_date
+                apt_end = apt_start + timedelta(minutes=appointment.service.duration if appointment.service else 60)
+                # Check if any part of the service duration would overlap
+                if not (slot_start >= apt_end or service_end <= apt_start):
+                    return SlotStatus.BOOKED
+            return SlotStatus.UNAVAILABLE
+        
+        # Staff not working
+        if not staff_schedule.is_working:
+            return SlotStatus.OFF_SHIFT
+        
+        # Check if any part of the service duration would be outside working intervals
+        service_in_working_time = False
+        for interval in staff_schedule.working_intervals:
+            if interval.contains(slot_start, service_end):
+                service_in_working_time = True
+                break
+        
+        if not service_in_working_time:
+            # Check if it conflicts with break time
+            if (staff_schedule.break_start and staff_schedule.break_end):
+                break_start_dt = datetime.combine(staff_schedule.schedule_date, staff_schedule.break_start)
+                break_end_dt = datetime.combine(staff_schedule.schedule_date, staff_schedule.break_end)
+                
+                if not (service_end <= break_start_dt or slot_start >= break_end_dt):
+                    return SlotStatus.BREAK
+            
+            return SlotStatus.OFF_SHIFT
+        
+        # Check for conflicts with existing appointments using full service duration
+        for appointment in appointments:
+            if staff_id and appointment.staff_id != staff_id:
+                continue
+            
+            apt_start = appointment.appointment_date
+            apt_end = apt_start + timedelta(minutes=appointment.service.duration if appointment.service else 60)
+            
+            # Check if the full service duration would overlap with existing appointment
+            if not (slot_start >= apt_end or service_end <= apt_start):
+                return SlotStatus.BOOKED
+        
+        return SlotStatus.UNAVAILABLE
 
 # Global service instance
 staff_schedule_service = StaffScheduleService()
