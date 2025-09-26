@@ -494,7 +494,9 @@ class PaymentForm(FlaskForm):
 class RoleForm(FlaskForm):
     """Role form"""
     name = StringField('Role Name', validators=[DataRequired(), Length(max=50)])
+    display_name = StringField('Display Name', validators=[Optional(), Length(max=100)])
     description = TextAreaField('Description', validators=[Optional()])
+    is_active = BooleanField('Active', default=True)
     submit = SubmitField('Save Role')
 
 class PermissionForm(FlaskForm):
