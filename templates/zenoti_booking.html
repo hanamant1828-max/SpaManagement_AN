@@ -1,0 +1,1950 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Professional Spa Booking System - {{ business_name or 'Spa Management' }}</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .booking-container {
+            display: flex;
+            height: 100vh;
+            backdrop-filter: blur(20px);
+        }
+
+        /* Left Sidebar */
+        .sidebar {
+            width: 320px;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px);
+            border-right: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 20px;
+            overflow-y: auto;
+            box-shadow: 4px 0 24px rgba(0, 0, 0, 0.1);
+        }
+
+        .sidebar::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .sidebar::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+        }
+
+        .sidebar::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 3px;
+        }
+
+        .logo {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .logo h1 {
+            color: white;
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+
+        .logo p {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 14px;
+        }
+
+        .section {
+            margin-bottom: 25px;
+        }
+
+        .section-title {
+            color: white;
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .glass-input {
+            width: 100%;
+            padding: 12px 16px;
+            background: rgba(255, 255, 255, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            color: white;
+            font-size: 14px;
+            margin-bottom: 10px;
+            transition: all 0.3s ease;
+        }
+
+        .glass-input::placeholder {
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .glass-input:focus {
+            outline: none;
+            border-color: rgba(255, 255, 255, 0.4);
+            background: rgba(255, 255, 255, 0.2);
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.1);
+        }
+
+        .client-toggle {
+            display: flex;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 4px;
+            margin-bottom: 15px;
+        }
+
+        .client-toggle button {
+            flex: 1;
+            padding: 8px 12px;
+            background: transparent;
+            border: none;
+            color: rgba(255, 255, 255, 0.7);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        .client-toggle button.active {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .dropdown {
+            position: relative;
+        }
+
+        .dropdown-toggle {
+            width: 100%;
+            padding: 12px 16px;
+            background: rgba(255, 255, 255, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            color: white;
+            font-size: 14px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s ease;
+        }
+
+        .dropdown-toggle:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .dropdown-menu {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 12px;
+            margin-top: 5px;
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 1000;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            display: none;
+        }
+
+        .dropdown-menu.show {
+            display: block;
+            animation: fadeInDown 0.3s ease;
+        }
+
+        .dropdown-item {
+            padding: 12px 16px;
+            color: #333;
+            cursor: pointer;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+            transition: background 0.2s ease;
+        }
+
+        .dropdown-item:hover {
+            background: rgba(102, 126, 234, 0.1);
+        }
+
+        .dropdown-item:last-child {
+            border-bottom: none;
+        }
+
+        .service-categories {
+            display: grid;
+            gap: 8px;
+        }
+
+        .service-category {
+            padding: 10px 14px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            color: white;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .service-category:hover,
+        .service-category.selected {
+            background: rgba(255, 255, 255, 0.2);
+            border-color: rgba(255, 255, 255, 0.4);
+            transform: translateY(-1px);
+        }
+
+        .staff-list {
+            display: grid;
+            gap: 8px;
+        }
+
+        .staff-item {
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .staff-item:hover,
+        .staff-item.selected {
+            background: rgba(255, 255, 255, 0.2);
+            border-color: rgba(255, 255, 255, 0.4);
+            transform: translateY(-1px);
+        }
+
+        .staff-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            font-size: 12px;
+        }
+
+        .staff-info {
+            flex: 1;
+        }
+
+        .staff-name {
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        .staff-specialty {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .availability-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #10b981;
+        }
+
+        .availability-indicator.busy {
+            background: #ef4444;
+        }
+
+        .availability-indicator.break {
+            background: #f59e0b;
+        }
+
+        .date-picker {
+            background: rgba(255, 255, 255, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            padding: 15px;
+        }
+
+        .calendar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .calendar-nav {
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            color: white;
+            padding: 6px 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+
+        .calendar-nav:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .calendar-month {
+            color: white;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 5px;
+        }
+
+        .calendar-day {
+            aspect-ratio: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.7);
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .calendar-day.today {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            font-weight: 600;
+        }
+
+        .calendar-day.selected {
+            background: rgba(255, 255, 255, 0.3);
+            color: white;
+        }
+
+        .calendar-day:hover {
+            background: rgba(255, 255, 255, 0.15);
+            color: white;
+        }
+
+        .duration-selector {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .duration-input {
+            flex: 1;
+            padding: 8px 12px;
+            background: rgba(255, 255, 255, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            color: white;
+            font-size: 13px;
+            text-align: center;
+        }
+
+        .quick-actions {
+            display: grid;
+            gap: 10px;
+        }
+
+        .action-btn {
+            padding: 12px 16px;
+            background: rgba(255, 255, 255, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            color: white;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            justify-content: center;
+        }
+
+        .action-btn:hover {
+            background: rgba(255, 255, 255, 0.25);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+        }
+
+        .action-btn.primary {
+            background: linear-gradient(135deg, #10b981, #059669);
+            border-color: transparent;
+        }
+
+        .action-btn.primary:hover {
+            background: linear-gradient(135deg, #059669, #047857);
+        }
+
+        .dashboard-stats {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 15px;
+        }
+
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .stat-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .stat-label {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 13px;
+        }
+
+        .stat-value {
+            color: white;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        /* Main Schedule Area */
+        .schedule-area {
+            flex: 1;
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .schedule-header {
+            padding: 20px 25px;
+            background: rgba(255, 255, 255, 0.1);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .schedule-title {
+            color: white;
+            font-size: 24px;
+            font-weight: 700;
+        }
+
+        .schedule-date {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 16px;
+            font-weight: 500;
+        }
+
+        .view-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .view-btn {
+            padding: 8px 16px;
+            background: rgba(255, 255, 255, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            color: white;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .view-btn.active {
+            background: rgba(255, 255, 255, 0.25);
+            border-color: rgba(255, 255, 255, 0.4);
+        }
+
+        .schedule-grid-container {
+            flex: 1;
+            overflow: auto;
+            position: relative;
+        }
+
+        .schedule-grid {
+            display: grid;
+            grid-template-columns: 80px repeat(var(--staff-count, 5), 1fr);
+            min-height: 100%;
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .time-column {
+            background: rgba(255, 255, 255, 0.08);
+            border-right: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .time-slot {
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .staff-column {
+            border-right: 1px solid rgba(255, 255, 255, 0.1);
+            position: relative;
+        }
+
+        .staff-header {
+            height: 60px;
+            background: rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            color: white;
+            font-weight: 600;
+            font-size: 14px;
+            text-align: center;
+            padding: 10px;
+        }
+
+        .time-slots {
+            position: relative;
+        }
+
+        .hour-slot {
+            height: 60px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            position: relative;
+        }
+
+        .half-hour-line {
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .appointment {
+            position: absolute;
+            left: 2px;
+            right: 2px;
+            background: linear-gradient(135deg, #10b981, #059669);
+            border-radius: 6px;
+            padding: 8px;
+            color: white;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .appointment:hover {
+            transform: translateX(-1px);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+        }
+
+        .appointment.facial {
+            background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+        }
+
+        .appointment.massage {
+            background: linear-gradient(135deg, #10b981, #059669);
+        }
+
+        .appointment.body {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+        }
+
+        .appointment.hair {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+        }
+
+        .appointment.nails {
+            background: linear-gradient(135deg, #ec4899, #db2777);
+        }
+
+        .appointment-client {
+            font-weight: 600;
+            margin-bottom: 2px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .appointment-service {
+            font-size: 10px;
+            opacity: 0.9;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .appointment-time {
+            font-size: 10px;
+            opacity: 0.8;
+            margin-top: 2px;
+        }
+
+        .consecutive-indicator {
+            position: absolute;
+            right: 4px;
+            top: 4px;
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.8);
+        }
+
+        .context-menu {
+            position: fixed;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 8px;
+            padding: 8px 0;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            z-index: 2000;
+            min-width: 160px;
+            display: none;
+        }
+
+        .context-menu-item {
+            padding: 10px 16px;
+            cursor: pointer;
+            color: #333;
+            font-size: 13px;
+            transition: background 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .context-menu-item:hover {
+            background: rgba(102, 126, 234, 0.1);
+        }
+
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            padding: 12px 20px;
+            border-radius: 8px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            z-index: 3000;
+            display: none;
+            align-items: center;
+            gap: 10px;
+            color: #333;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .toast.success {
+            border-left: 4px solid #10b981;
+        }
+
+        .toast.error {
+            border-left: 4px solid #ef4444;
+        }
+
+        .toast.warning {
+            border-left: 4px solid #f59e0b;
+        }
+
+        .legend {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px);
+            border-radius: 8px;
+            padding: 15px;
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            color: white;
+            font-size: 12px;
+        }
+
+        .legend-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 3px;
+        }
+
+        .loading-spinner {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-top: 3px solid white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: translate(-50%, -50%) rotate(0deg); }
+            100% { transform: translate(-50%, -50%) rotate(360deg); }
+        }
+
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes slideInRight {
+            from {
+                opacity: 0;
+                transform: translateX(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        /* Responsive Design */
+        @media (max-width: 1024px) {
+            .sidebar {
+                width: 280px;
+            }
+            
+            .schedule-grid {
+                grid-template-columns: 60px repeat(var(--staff-count, 5), 1fr);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .booking-container {
+                flex-direction: column;
+            }
+            
+            .sidebar {
+                width: 100%;
+                height: auto;
+                border-right: none;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            }
+            
+            .schedule-area {
+                height: 60vh;
+            }
+        }
+
+        /* High Contrast Mode */
+        @media (prefers-contrast: high) {
+            .glass-input,
+            .dropdown-toggle,
+            .action-btn {
+                border-width: 2px;
+                border-color: rgba(255, 255, 255, 0.6);
+            }
+            
+            .appointment {
+                border-width: 2px;
+            }
+        }
+
+        /* Touch Friendly */
+        @media (pointer: coarse) {
+            .action-btn,
+            .glass-input,
+            .dropdown-toggle {
+                min-height: 44px;
+            }
+            
+            .appointment {
+                min-height: 40px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="booking-container">
+        <!-- Left Sidebar -->
+        <div class="sidebar">
+            <div class="logo">
+                <h1><i class="fas fa-spa"></i> ZenSpa</h1>
+                <p>Professional Booking System</p>
+            </div>
+
+            <!-- Client Type Toggle -->
+            <div class="section">
+                <div class="section-title">
+                    <i class="fas fa-user"></i>
+                    Client Type
+                </div>
+                <div class="client-toggle">
+                    <button class="active" data-type="existing">Existing</button>
+                    <button data-type="new">New Client</button>
+                </div>
+            </div>
+
+            <!-- Client Search -->
+            <div class="section">
+                <div class="section-title">
+                    <i class="fas fa-search"></i>
+                    Client Search
+                </div>
+                <input type="text" class="glass-input" id="clientSearch" placeholder="Search clients...">
+                <div class="dropdown">
+                    <div class="dropdown-menu" id="clientDropdown"></div>
+                </div>
+            </div>
+
+            <!-- New Client Form (Hidden by default) -->
+            <div class="section" id="newClientForm" style="display: none;">
+                <input type="text" class="glass-input" placeholder="First Name" id="newClientFirstName">
+                <input type="text" class="glass-input" placeholder="Last Name" id="newClientLastName">
+                <input type="tel" class="glass-input" placeholder="Phone Number" id="newClientPhone">
+                <input type="email" class="glass-input" placeholder="Email" id="newClientEmail">
+            </div>
+
+            <!-- Service Categories -->
+            <div class="section">
+                <div class="section-title">
+                    <i class="fas fa-th-large"></i>
+                    Service Categories
+                </div>
+                <div class="service-categories">
+                    <div class="service-category" data-category="facial">
+                        <i class="fas fa-leaf"></i>
+                        Facials
+                    </div>
+                    <div class="service-category" data-category="massage">
+                        <i class="fas fa-hands"></i>
+                        Massage
+                    </div>
+                    <div class="service-category" data-category="body">
+                        <i class="fas fa-spa"></i>
+                        Body Treatments
+                    </div>
+                    <div class="service-category" data-category="hair">
+                        <i class="fas fa-cut"></i>
+                        Hair Services
+                    </div>
+                    <div class="service-category" data-category="nails">
+                        <i class="fas fa-hand-sparkles"></i>
+                        Nail Services
+                    </div>
+                </div>
+            </div>
+
+            <!-- Service Selection -->
+            <div class="section">
+                <div class="section-title">
+                    <i class="fas fa-list"></i>
+                    Select Service
+                </div>
+                <div class="dropdown">
+                    <div class="dropdown-toggle" id="serviceSelector">
+                        <span>Choose a service...</span>
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
+                    <div class="dropdown-menu" id="serviceDropdown"></div>
+                </div>
+            </div>
+
+            <!-- Duration Selector -->
+            <div class="section">
+                <div class="section-title">
+                    <i class="fas fa-clock"></i>
+                    Duration
+                </div>
+                <div class="duration-selector">
+                    <input type="number" class="duration-input" id="durationHours" placeholder="Hours" min="0" max="8" value="1">
+                    <input type="number" class="duration-input" id="durationMinutes" placeholder="Minutes" min="0" max="59" value="0">
+                </div>
+            </div>
+
+            <!-- Staff Selection -->
+            <div class="section">
+                <div class="section-title">
+                    <i class="fas fa-users"></i>
+                    Select Therapist
+                </div>
+                <div class="staff-list" id="staffList"></div>
+            </div>
+
+            <!-- Date Picker -->
+            <div class="section">
+                <div class="section-title">
+                    <i class="fas fa-calendar"></i>
+                    Select Date
+                </div>
+                <div class="date-picker">
+                    <div class="calendar-header">
+                        <button class="calendar-nav" id="prevMonth">
+                            <i class="fas fa-chevron-left"></i>
+                        </button>
+                        <div class="calendar-month" id="currentMonth"></div>
+                        <button class="calendar-nav" id="nextMonth">
+                            <i class="fas fa-chevron-right"></i>
+                        </button>
+                    </div>
+                    <div class="calendar-grid" id="calendarGrid"></div>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="section">
+                <div class="section-title">
+                    <i class="fas fa-bolt"></i>
+                    Quick Actions
+                </div>
+                <div class="quick-actions">
+                    <button class="action-btn primary" id="bookNow">
+                        <i class="fas fa-plus"></i>
+                        Book Now
+                    </button>
+                    <button class="action-btn" id="blockTime">
+                        <i class="fas fa-ban"></i>
+                        Block Time
+                    </button>
+                    <button class="action-btn" id="addBreak">
+                        <i class="fas fa-coffee"></i>
+                        Add Break
+                    </button>
+                    <button class="action-btn" id="waitlist">
+                        <i class="fas fa-list-ul"></i>
+                        Waitlist
+                    </button>
+                </div>
+            </div>
+
+            <!-- Daily Stats -->
+            <div class="section">
+                <div class="section-title">
+                    <i class="fas fa-chart-bar"></i>
+                    Daily Dashboard
+                </div>
+                <div class="dashboard-stats">
+                    <div class="stat-item">
+                        <span class="stat-label">Bookings</span>
+                        <span class="stat-value" id="dailyBookings">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Revenue</span>
+                        <span class="stat-value" id="dailyRevenue">$0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Utilization</span>
+                        <span class="stat-value" id="utilization">0%</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Waitlist</span>
+                        <span class="stat-value" id="waitlistCount">0</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Schedule Area -->
+        <div class="schedule-area">
+            <div class="schedule-header">
+                <div>
+                    <div class="schedule-title">Daily Schedule</div>
+                    <div class="schedule-date" id="scheduleDate"></div>
+                </div>
+                <div class="view-controls">
+                    <button class="view-btn active" data-view="day">Day</button>
+                    <button class="view-btn" data-view="week">Week</button>
+                    <button class="view-btn" id="refreshSchedule">
+                        <i class="fas fa-sync-alt"></i>
+                        Refresh
+                    </button>
+                </div>
+            </div>
+
+            <div class="schedule-grid-container">
+                <div class="schedule-grid" id="scheduleGrid">
+                    <!-- Time Column -->
+                    <div class="time-column">
+                        <div class="staff-header">Time</div>
+                        <div id="timeSlots"></div>
+                    </div>
+                    <!-- Staff Columns will be generated dynamically -->
+                </div>
+                <div class="loading-spinner" id="loadingSpinner" style="display: none;"></div>
+            </div>
+
+            <!-- Service Legend -->
+            <div class="legend">
+                <div class="legend-item">
+                    <div class="legend-color" style="background: linear-gradient(135deg, #8b5cf6, #7c3aed);"></div>
+                    <span>Facials</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: linear-gradient(135deg, #10b981, #059669);"></div>
+                    <span>Massage</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: linear-gradient(135deg, #f59e0b, #d97706);"></div>
+                    <span>Body</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: linear-gradient(135deg, #ef4444, #dc2626);"></div>
+                    <span>Hair</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: linear-gradient(135deg, #ec4899, #db2777);"></div>
+                    <span>Nails</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Context Menu -->
+    <div class="context-menu" id="contextMenu">
+        <div class="context-menu-item" data-action="view">
+            <i class="fas fa-eye"></i>
+            View Details
+        </div>
+        <div class="context-menu-item" data-action="edit">
+            <i class="fas fa-edit"></i>
+            Edit Appointment
+        </div>
+        <div class="context-menu-item" data-action="reschedule">
+            <i class="fas fa-calendar-alt"></i>
+            Reschedule
+        </div>
+        <div class="context-menu-item" data-action="duplicate">
+            <i class="fas fa-copy"></i>
+            Duplicate
+        </div>
+        <div class="context-menu-item" data-action="consecutive">
+            <i class="fas fa-link"></i>
+            Add Consecutive
+        </div>
+        <div class="context-menu-item" data-action="cancel" style="color: #ef4444;">
+            <i class="fas fa-times"></i>
+            Cancel
+        </div>
+    </div>
+
+    <!-- Toast Notifications -->
+    <div class="toast" id="toast">
+        <i class="fas fa-check-circle"></i>
+        <span id="toastMessage"></span>
+    </div>
+
+    <script>
+        // Global Variables
+        let currentDate = new Date();
+        let selectedDate = new Date();
+        let selectedClient = null;
+        let selectedService = null;
+        let selectedStaff = null;
+        let staffData = [];
+        let servicesData = [];
+        let clientsData = [];
+        let appointmentsData = [];
+        let isDragging = false;
+        let dragStartY = 0;
+        let currentAppointment = null;
+
+        // Initialize the booking system
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeSystem();
+            loadData();
+            setupEventListeners();
+            renderCalendar();
+            updateScheduleDate();
+        });
+
+        function initializeSystem() {
+            console.log('Initializing Professional Spa Booking System...');
+            showToast('System initialized successfully', 'success');
+        }
+
+        async function loadData() {
+            showLoading(true);
+            try {
+                // Load staff data
+                const staffResponse = await fetch('/api/unaki/staff');
+                if (staffResponse.ok) {
+                    staffData = await staffResponse.json();
+                }
+
+                // Load services data
+                const servicesResponse = await fetch('/api/unaki/services');
+                if (servicesResponse.ok) {
+                    servicesData = await servicesResponse.json();
+                }
+
+                // Load clients data
+                const clientsResponse = await fetch('/api/unaki/clients');
+                if (clientsResponse.ok) {
+                    clientsData = await clientsResponse.json();
+                }
+
+                renderStaffList();
+                renderServiceCategories();
+                await loadScheduleData();
+                updateDailyStats();
+                
+                console.log('Loaded staff:', staffData.length);
+                console.log('Loaded services:', servicesData.length);
+                console.log('Loaded clients:', clientsData.length);
+            } catch (error) {
+                console.error('Error loading data:', error);
+                showToast('Error loading data', 'error');
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        async function loadScheduleData() {
+            try {
+                const dateStr = selectedDate.toISOString().split('T')[0];
+                const response = await fetch(`/api/unaki/schedule?date=${dateStr}`);
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    appointmentsData = data.appointments || [];
+                    renderScheduleGrid();
+                    renderAppointments();
+                } else {
+                    console.error('Failed to load schedule data');
+                    showToast('Failed to load schedule', 'error');
+                }
+            } catch (error) {
+                console.error('Error loading schedule:', error);
+                showToast('Error loading schedule', 'error');
+            }
+        }
+
+        function setupEventListeners() {
+            // Client type toggle
+            document.querySelectorAll('.client-toggle button').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    document.querySelectorAll('.client-toggle button').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    
+                    const type = this.dataset.type;
+                    const newClientForm = document.getElementById('newClientForm');
+                    const clientSearch = document.getElementById('clientSearch');
+                    
+                    if (type === 'new') {
+                        newClientForm.style.display = 'block';
+                        clientSearch.style.display = 'none';
+                    } else {
+                        newClientForm.style.display = 'none';
+                        clientSearch.style.display = 'block';
+                    }
+                });
+            });
+
+            // Client search
+            const clientSearch = document.getElementById('clientSearch');
+            clientSearch.addEventListener('input', handleClientSearch);
+            clientSearch.addEventListener('focus', handleClientSearch);
+
+            // Service categories
+            document.querySelectorAll('.service-category').forEach(category => {
+                category.addEventListener('click', function() {
+                    document.querySelectorAll('.service-category').forEach(c => c.classList.remove('selected'));
+                    this.classList.add('selected');
+                    filterServicesByCategory(this.dataset.category);
+                });
+            });
+
+            // Service selector
+            const serviceSelector = document.getElementById('serviceSelector');
+            serviceSelector.addEventListener('click', function() {
+                const dropdown = document.getElementById('serviceDropdown');
+                dropdown.classList.toggle('show');
+            });
+
+            // Calendar navigation
+            document.getElementById('prevMonth').addEventListener('click', () => {
+                currentDate.setMonth(currentDate.getMonth() - 1);
+                renderCalendar();
+            });
+
+            document.getElementById('nextMonth').addEventListener('click', () => {
+                currentDate.setMonth(currentDate.getMonth() + 1);
+                renderCalendar();
+            });
+
+            // Quick actions
+            document.getElementById('bookNow').addEventListener('click', handleBookNow);
+            document.getElementById('blockTime').addEventListener('click', handleBlockTime);
+            document.getElementById('addBreak').addEventListener('click', handleAddBreak);
+            document.getElementById('waitlist').addEventListener('click', handleWaitlist);
+            document.getElementById('refreshSchedule').addEventListener('click', loadScheduleData);
+
+            // Context menu
+            document.addEventListener('contextmenu', handleContextMenu);
+            document.addEventListener('click', hideContextMenu);
+
+            // Keyboard shortcuts
+            document.addEventListener('keydown', handleKeyboardShortcuts);
+
+            // Close dropdowns when clicking outside
+            document.addEventListener('click', function(e) {
+                if (!e.target.closest('.dropdown')) {
+                    document.querySelectorAll('.dropdown-menu').forEach(menu => {
+                        menu.classList.remove('show');
+                    });
+                }
+            });
+        }
+
+        function renderCalendar() {
+            const currentMonthElement = document.getElementById('currentMonth');
+            const calendarGrid = document.getElementById('calendarGrid');
+            
+            const year = currentDate.getFullYear();
+            const month = currentDate.getMonth();
+            
+            currentMonthElement.textContent = currentDate.toLocaleDateString('en-US', { 
+                month: 'long', 
+                year: 'numeric' 
+            });
+
+            // Clear previous calendar
+            calendarGrid.innerHTML = '';
+
+            // Add day headers
+            const dayHeaders = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+            dayHeaders.forEach(day => {
+                const dayHeader = document.createElement('div');
+                dayHeader.className = 'calendar-day';
+                dayHeader.style.fontWeight = '600';
+                dayHeader.style.color = 'rgba(255, 255, 255, 0.8)';
+                dayHeader.textContent = day;
+                calendarGrid.appendChild(dayHeader);
+            });
+
+            // Get first day of month and number of days
+            const firstDay = new Date(year, month, 1).getDay();
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            const today = new Date();
+
+            // Add empty cells for days before month starts
+            for (let i = 0; i < firstDay; i++) {
+                const emptyDay = document.createElement('div');
+                emptyDay.className = 'calendar-day';
+                calendarGrid.appendChild(emptyDay);
+            }
+
+            // Add days of the month
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dayElement = document.createElement('div');
+                dayElement.className = 'calendar-day';
+                dayElement.textContent = day;
+
+                const dayDate = new Date(year, month, day);
+                
+                // Highlight today
+                if (dayDate.toDateString() === today.toDateString()) {
+                    dayElement.classList.add('today');
+                }
+
+                // Highlight selected date
+                if (dayDate.toDateString() === selectedDate.toDateString()) {
+                    dayElement.classList.add('selected');
+                }
+
+                // Add click handler
+                dayElement.addEventListener('click', function() {
+                    selectedDate = new Date(year, month, day);
+                    renderCalendar();
+                    updateScheduleDate();
+                    loadScheduleData();
+                });
+
+                calendarGrid.appendChild(dayElement);
+            }
+        }
+
+        function renderStaffList() {
+            const staffList = document.getElementById('staffList');
+            staffList.innerHTML = '';
+
+            staffData.forEach(staff => {
+                const staffItem = document.createElement('div');
+                staffItem.className = 'staff-item';
+                staffItem.dataset.staffId = staff.id;
+
+                const initials = staff.name.split(' ').map(n => n[0]).join('').toUpperCase();
+                const availability = Math.random() > 0.3 ? 'available' : 'busy'; // Random for demo
+
+                staffItem.innerHTML = `
+                    <div class="staff-avatar">${initials}</div>
+                    <div class="staff-info">
+                        <div class="staff-name">${staff.name}</div>
+                        <div class="staff-specialty">${staff.specialty || 'General'}</div>
+                    </div>
+                    <div class="availability-indicator ${availability}"></div>
+                `;
+
+                staffItem.addEventListener('click', function() {
+                    document.querySelectorAll('.staff-item').forEach(item => item.classList.remove('selected'));
+                    this.classList.add('selected');
+                    selectedStaff = staff;
+                });
+
+                staffList.appendChild(staffItem);
+            });
+        }
+
+        function renderServiceCategories() {
+            // Services are already rendered in HTML, just add event listeners
+            const serviceDropdown = document.getElementById('serviceDropdown');
+            serviceDropdown.innerHTML = '';
+
+            servicesData.forEach(service => {
+                const serviceItem = document.createElement('div');
+                serviceItem.className = 'dropdown-item';
+                serviceItem.textContent = `${service.name} (${service.duration}min - $${service.price})`;
+                
+                serviceItem.addEventListener('click', function() {
+                    selectedService = service;
+                    document.getElementById('serviceSelector').querySelector('span').textContent = service.name;
+                    document.getElementById('serviceDropdown').classList.remove('show');
+                    
+                    // Auto-fill duration
+                    const hours = Math.floor(service.duration / 60);
+                    const minutes = service.duration % 60;
+                    document.getElementById('durationHours').value = hours;
+                    document.getElementById('durationMinutes').value = minutes;
+                });
+
+                serviceDropdown.appendChild(serviceItem);
+            });
+        }
+
+        function filterServicesByCategory(category) {
+            const serviceDropdown = document.getElementById('serviceDropdown');
+            serviceDropdown.innerHTML = '';
+
+            const filteredServices = servicesData.filter(service => 
+                service.category === category || !service.category
+            );
+
+            filteredServices.forEach(service => {
+                const serviceItem = document.createElement('div');
+                serviceItem.className = 'dropdown-item';
+                serviceItem.textContent = `${service.name} (${service.duration}min - $${service.price})`;
+                
+                serviceItem.addEventListener('click', function() {
+                    selectedService = service;
+                    document.getElementById('serviceSelector').querySelector('span').textContent = service.name;
+                    document.getElementById('serviceDropdown').classList.remove('show');
+                    
+                    // Auto-fill duration
+                    const hours = Math.floor(service.duration / 60);
+                    const minutes = service.duration % 60;
+                    document.getElementById('durationHours').value = hours;
+                    document.getElementById('durationMinutes').value = minutes;
+                });
+
+                serviceDropdown.appendChild(serviceItem);
+            });
+        }
+
+        function handleClientSearch() {
+            const searchTerm = document.getElementById('clientSearch').value.toLowerCase();
+            const clientDropdown = document.getElementById('clientDropdown');
+            
+            if (searchTerm.length < 2) {
+                clientDropdown.classList.remove('show');
+                return;
+            }
+
+            const filteredClients = clientsData.filter(client => 
+                client.name.toLowerCase().includes(searchTerm) ||
+                (client.phone && client.phone.includes(searchTerm))
+            );
+
+            clientDropdown.innerHTML = '';
+            filteredClients.forEach(client => {
+                const clientItem = document.createElement('div');
+                clientItem.className = 'dropdown-item';
+                clientItem.innerHTML = `
+                    <div><strong>${client.name}</strong></div>
+                    <div style="font-size: 12px; color: #666;">${client.phone || 'No phone'}</div>
+                `;
+                
+                clientItem.addEventListener('click', function() {
+                    selectedClient = client;
+                    document.getElementById('clientSearch').value = client.name;
+                    clientDropdown.classList.remove('show');
+                });
+
+                clientDropdown.appendChild(clientItem);
+            });
+
+            clientDropdown.classList.add('show');
+        }
+
+        function renderScheduleGrid() {
+            const scheduleGrid = document.getElementById('scheduleGrid');
+            
+            // Update CSS custom property for staff count
+            document.documentElement.style.setProperty('--staff-count', staffData.length);
+            
+            // Clear existing grid except time column
+            const timeColumn = scheduleGrid.querySelector('.time-column');
+            scheduleGrid.innerHTML = '';
+            scheduleGrid.appendChild(timeColumn);
+
+            // Render time slots
+            renderTimeSlots();
+
+            // Create staff columns
+            staffData.forEach(staff => {
+                const staffColumn = document.createElement('div');
+                staffColumn.className = 'staff-column';
+                staffColumn.dataset.staffId = staff.id;
+
+                const staffHeader = document.createElement('div');
+                staffHeader.className = 'staff-header';
+                staffHeader.textContent = staff.name;
+
+                const timeSlots = document.createElement('div');
+                timeSlots.className = 'time-slots';
+
+                // Create hour slots from 8 AM to 8 PM
+                for (let hour = 8; hour <= 20; hour++) {
+                    const hourSlot = document.createElement('div');
+                    hourSlot.className = 'hour-slot';
+                    hourSlot.dataset.hour = hour;
+
+                    const halfHourLine = document.createElement('div');
+                    halfHourLine.className = 'half-hour-line';
+                    hourSlot.appendChild(halfHourLine);
+
+                    timeSlots.appendChild(hourSlot);
+                }
+
+                staffColumn.appendChild(staffHeader);
+                staffColumn.appendChild(timeSlots);
+                scheduleGrid.appendChild(staffColumn);
+
+                // Add click handler for booking
+                timeSlots.addEventListener('click', function(e) {
+                    if (e.target.classList.contains('appointment')) return;
+                    handleTimeSlotClick(e, staff.id);
+                });
+            });
+        }
+
+        function renderTimeSlots() {
+            const timeSlots = document.getElementById('timeSlots');
+            timeSlots.innerHTML = '';
+
+            for (let hour = 8; hour <= 20; hour++) {
+                const timeSlot = document.createElement('div');
+                timeSlot.className = 'time-slot';
+                
+                const time = hour === 12 ? '12:00 PM' : 
+                           hour < 12 ? `${hour}:00 AM` : 
+                           `${hour - 12}:00 PM`;
+                
+                timeSlot.textContent = time;
+                timeSlots.appendChild(timeSlot);
+            }
+        }
+
+        function renderAppointments() {
+            // Clear existing appointments
+            document.querySelectorAll('.appointment').forEach(apt => apt.remove());
+
+            appointmentsData.forEach(appointment => {
+                const staffColumn = document.querySelector(`[data-staff-id="${appointment.staffId}"] .time-slots`);
+                if (!staffColumn) return;
+
+                const appointmentElement = document.createElement('div');
+                appointmentElement.className = `appointment ${appointment.service ? getServiceCategory(appointment.service) : 'general'}`;
+                appointmentElement.dataset.appointmentId = appointment.id;
+
+                // Calculate position and height
+                const startTime = parseTime(appointment.startTime);
+                const endTime = parseTime(appointment.endTime);
+                const startMinutes = (startTime.hour - 8) * 60 + startTime.minute;
+                const duration = (endTime.hour - startTime.hour) * 60 + (endTime.minute - startTime.minute);
+
+                const top = (startMinutes / 60) * 60; // 60px per hour
+                const height = (duration / 60) * 60;
+
+                appointmentElement.style.top = `${top}px`;
+                appointmentElement.style.height = `${height}px`;
+
+                // Check if this is part of consecutive bookings
+                const hasConsecutive = checkConsecutiveBooking(appointment);
+                
+                appointmentElement.innerHTML = `
+                    <div class="appointment-client">${appointment.clientName}</div>
+                    <div class="appointment-service">${appointment.service}</div>
+                    <div class="appointment-time">${appointment.startTime} - ${appointment.endTime}</div>
+                    ${hasConsecutive ? '<div class="consecutive-indicator"></div>' : ''}
+                `;
+
+                // Add event listeners
+                appointmentElement.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    selectAppointment(appointment);
+                });
+
+                appointmentElement.addEventListener('contextmenu', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    currentAppointment = appointment;
+                    showContextMenu(e.clientX, e.clientY);
+                });
+
+                staffColumn.appendChild(appointmentElement);
+            });
+        }
+
+        function parseTime(timeStr) {
+            const [hours, minutes] = timeStr.split(':').map(Number);
+            return { hour: hours, minute: minutes };
+        }
+
+        function getServiceCategory(serviceName) {
+            if (!serviceName) return 'general';
+            
+            const service = servicesData.find(s => s.name === serviceName);
+            return service ? service.category || 'general' : 'general';
+        }
+
+        function checkConsecutiveBooking(appointment) {
+            // Check if there's another appointment immediately before or after
+            const sameStaffAppointments = appointmentsData.filter(apt => 
+                apt.staffId === appointment.staffId && apt.id !== appointment.id
+            );
+
+            return sameStaffAppointments.some(apt => 
+                apt.endTime === appointment.startTime || apt.startTime === appointment.endTime
+            );
+        }
+
+        function handleTimeSlotClick(e, staffId) {
+            const rect = e.currentTarget.getBoundingClientRect();
+            const y = e.clientY - rect.top;
+            const hour = Math.floor(y / 60) + 8;
+            const minute = Math.round(((y % 60) / 60) * 60);
+
+            const timeStr = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+            
+            // Check if we have all required data
+            if (!selectedClient && !hasNewClientData()) {
+                showToast('Please select a client first', 'warning');
+                return;
+            }
+
+            if (!selectedService) {
+                showToast('Please select a service first', 'warning');
+                return;
+            }
+
+            // Start booking process
+            startQuickBooking(staffId, timeStr);
+        }
+
+        function hasNewClientData() {
+            const firstName = document.getElementById('newClientFirstName').value;
+            const lastName = document.getElementById('newClientLastName').value;
+            const phone = document.getElementById('newClientPhone').value;
+            
+            return firstName && lastName && phone;
+        }
+
+        function startQuickBooking(staffId, startTime) {
+            const hours = parseInt(document.getElementById('durationHours').value) || 0;
+            const minutes = parseInt(document.getElementById('durationMinutes').value) || 0;
+            const totalMinutes = hours * 60 + minutes;
+
+            if (totalMinutes === 0) {
+                showToast('Please set a duration', 'warning');
+                return;
+            }
+
+            // Calculate end time
+            const startHour = parseInt(startTime.split(':')[0]);
+            const startMinute = parseInt(startTime.split(':')[1]);
+            const endTotalMinutes = startHour * 60 + startMinute + totalMinutes;
+            const endHour = Math.floor(endTotalMinutes / 60);
+            const endMinute = endTotalMinutes % 60;
+            const endTime = `${endHour.toString().padStart(2, '0')}:${endMinute.toString().padStart(2, '0')}`;
+
+            // Prepare booking data
+            const bookingData = {
+                staffId: staffId,
+                clientName: selectedClient ? selectedClient.name : `${document.getElementById('newClientFirstName').value} ${document.getElementById('newClientLastName').value}`,
+                clientPhone: selectedClient ? selectedClient.phone : document.getElementById('newClientPhone').value,
+                clientEmail: selectedClient ? selectedClient.email : document.getElementById('newClientEmail').value,
+                serviceType: selectedService.name,
+                startTime: startTime,
+                endTime: endTime,
+                date: selectedDate.toISOString().split('T')[0],
+                notes: 'Quick booking'
+            };
+
+            // Show confirmation and create booking
+            createBooking(bookingData);
+        }
+
+        async function createBooking(bookingData) {
+            showLoading(true);
+            
+            try {
+                const response = await fetch('/api/unaki/create-appointment', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(bookingData)
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showToast('Appointment booked successfully!', 'success');
+                    await loadScheduleData();
+                    updateDailyStats();
+                    clearBookingForm();
+                } else {
+                    showToast(result.error || 'Failed to create booking', 'error');
+                }
+            } catch (error) {
+                console.error('Error creating booking:', error);
+                showToast('Error creating booking', 'error');
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        function clearBookingForm() {
+            selectedClient = null;
+            selectedService = null;
+            selectedStaff = null;
+            
+            document.getElementById('clientSearch').value = '';
+            document.getElementById('serviceSelector').querySelector('span').textContent = 'Choose a service...';
+            document.getElementById('durationHours').value = '1';
+            document.getElementById('durationMinutes').value = '0';
+            
+            document.querySelectorAll('.selected').forEach(el => el.classList.remove('selected'));
+        }
+
+        function handleBookNow() {
+            if (!validateBookingData()) return;
+            
+            // For manual booking, show time selection
+            showToast('Click on a time slot to book the appointment', 'info');
+        }
+
+        function validateBookingData() {
+            if (!selectedClient && !hasNewClientData()) {
+                showToast('Please select a client or enter new client details', 'warning');
+                return false;
+            }
+
+            if (!selectedService) {
+                showToast('Please select a service', 'warning');
+                return false;
+            }
+
+            return true;
+        }
+
+        function handleBlockTime() {
+            showToast('Block time feature - coming soon', 'info');
+        }
+
+        function handleAddBreak() {
+            showToast('Add break feature - coming soon', 'info');
+        }
+
+        function handleWaitlist() {
+            showToast('Waitlist feature - coming soon', 'info');
+        }
+
+        function handleContextMenu(e) {
+            if (e.target.closest('.appointment')) {
+                e.preventDefault();
+                const appointment = e.target.closest('.appointment');
+                const appointmentId = appointment.dataset.appointmentId;
+                currentAppointment = appointmentsData.find(apt => apt.id == appointmentId);
+                showContextMenu(e.clientX, e.clientY);
+            }
+        }
+
+        function showContextMenu(x, y) {
+            const contextMenu = document.getElementById('contextMenu');
+            contextMenu.style.left = `${x}px`;
+            contextMenu.style.top = `${y}px`;
+            contextMenu.style.display = 'block';
+
+            // Add action handlers
+            contextMenu.querySelectorAll('.context-menu-item').forEach(item => {
+                item.onclick = function() {
+                    handleContextAction(this.dataset.action);
+                    hideContextMenu();
+                };
+            });
+        }
+
+        function hideContextMenu() {
+            document.getElementById('contextMenu').style.display = 'none';
+        }
+
+        function handleContextAction(action) {
+            if (!currentAppointment) return;
+
+            switch (action) {
+                case 'view':
+                    showAppointmentDetails(currentAppointment);
+                    break;
+                case 'edit':
+                    editAppointment(currentAppointment);
+                    break;
+                case 'reschedule':
+                    rescheduleAppointment(currentAppointment);
+                    break;
+                case 'duplicate':
+                    duplicateAppointment(currentAppointment);
+                    break;
+                case 'consecutive':
+                    addConsecutiveAppointment(currentAppointment);
+                    break;
+                case 'cancel':
+                    cancelAppointment(currentAppointment);
+                    break;
+            }
+        }
+
+        function showAppointmentDetails(appointment) {
+            const details = `
+                Client: ${appointment.clientName}
+                Service: ${appointment.service}
+                Time: ${appointment.startTime} - ${appointment.endTime}
+                Duration: ${appointment.duration} minutes
+                Phone: ${appointment.clientPhone || 'N/A'}
+                Status: ${appointment.status}
+                Notes: ${appointment.notes || 'None'}
+            `;
+            alert(details); // In production, use a proper modal
+        }
+
+        function editAppointment(appointment) {
+            showToast('Edit appointment feature - coming soon', 'info');
+        }
+
+        function rescheduleAppointment(appointment) {
+            showToast('Reschedule feature - coming soon', 'info');
+        }
+
+        function duplicateAppointment(appointment) {
+            showToast('Duplicate appointment feature - coming soon', 'info');
+        }
+
+        function addConsecutiveAppointment(appointment) {
+            showToast('Add consecutive appointment feature - coming soon', 'info');
+        }
+
+        async function cancelAppointment(appointment) {
+            if (!confirm(`Cancel appointment for ${appointment.clientName}?`)) return;
+
+            try {
+                const response = await fetch(`/api/unaki/bookings/${appointment.id}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ reason: 'Cancelled by staff' })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showToast('Appointment cancelled successfully', 'success');
+                    await loadScheduleData();
+                    updateDailyStats();
+                } else {
+                    showToast(result.error || 'Failed to cancel appointment', 'error');
+                }
+            } catch (error) {
+                console.error('Error cancelling appointment:', error);
+                showToast('Error cancelling appointment', 'error');
+            }
+        }
+
+        function handleKeyboardShortcuts(e) {
+            if (e.ctrlKey) {
+                switch (e.key) {
+                    case 'n':
+                        e.preventDefault();
+                        handleBookNow();
+                        break;
+                    case 'r':
+                        e.preventDefault();
+                        loadScheduleData();
+                        break;
+                    case 'f':
+                        e.preventDefault();
+                        document.getElementById('clientSearch').focus();
+                        break;
+                }
+            }
+        }
+
+        function updateScheduleDate() {
+            const scheduleDateElement = document.getElementById('scheduleDate');
+            scheduleDateElement.textContent = selectedDate.toLocaleDateString('en-US', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+        }
+
+        function updateDailyStats() {
+            const todayAppointments = appointmentsData.filter(apt => {
+                const aptDate = new Date(apt.date || selectedDate.toISOString().split('T')[0]);
+                return aptDate.toDateString() === selectedDate.toDateString();
+            });
+
+            document.getElementById('dailyBookings').textContent = todayAppointments.length;
+            
+            const revenue = todayAppointments.reduce((sum, apt) => sum + (apt.amount || 0), 0);
+            document.getElementById('dailyRevenue').textContent = `$${revenue.toFixed(2)}`;
+            
+            const totalSlots = staffData.length * 12; // 12 hours * staff count
+            const bookedSlots = todayAppointments.length;
+            const utilization = totalSlots > 0 ? Math.round((bookedSlots / totalSlots) * 100) : 0;
+            document.getElementById('utilization').textContent = `${utilization}%`;
+            
+            document.getElementById('waitlistCount').textContent = '0'; // Placeholder
+        }
+
+        function showToast(message, type = 'info') {
+            const toast = document.getElementById('toast');
+            const toastMessage = document.getElementById('toastMessage');
+            
+            toast.className = `toast ${type}`;
+            toastMessage.textContent = message;
+            
+            // Update icon based on type
+            const icon = toast.querySelector('i');
+            icon.className = type === 'success' ? 'fas fa-check-circle' :
+                            type === 'error' ? 'fas fa-exclamation-circle' :
+                            type === 'warning' ? 'fas fa-exclamation-triangle' :
+                            'fas fa-info-circle';
+            
+            toast.style.display = 'flex';
+            toast.style.animation = 'slideInRight 0.3s ease';
+            
+            setTimeout(() => {
+                toast.style.animation = 'slideInRight 0.3s ease reverse';
+                setTimeout(() => {
+                    toast.style.display = 'none';
+                }, 300);
+            }, 3000);
+        }
+
+        function showLoading(show) {
+            const spinner = document.getElementById('loadingSpinner');
+            spinner.style.display = show ? 'block' : 'none';
+        }
+
+        function selectAppointment(appointment) {
+            // Remove previous selections
+            document.querySelectorAll('.appointment').forEach(apt => apt.classList.remove('selected'));
+            
+            // Select current appointment
+            const appointmentElement = document.querySelector(`[data-appointment-id="${appointment.id}"]`);
+            if (appointmentElement) {
+                appointmentElement.classList.add('selected');
+            }
+            
+            currentAppointment = appointment;
+        }
+
+        // Sample data generator for demo purposes
+        async function loadSampleData() {
+            try {
+                const response = await fetch('/api/unaki/load-sample-data', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    showToast('Sample data loaded successfully!', 'success');
+                    await loadScheduleData();
+                    updateDailyStats();
+                } else {
+                    showToast('Failed to load sample data', 'error');
+                }
+            } catch (error) {
+                console.error('Error loading sample data:', error);
+                showToast('Error loading sample data', 'error');
+            }
+        }
+
+        // Auto-load sample data if no appointments exist
+        setTimeout(() => {
+            if (appointmentsData.length === 0) {
+                loadSampleData();
+            }
+        }, 2000);
+    </script>
+</body>
+</html>
