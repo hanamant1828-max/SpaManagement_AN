@@ -8,6 +8,11 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# Remove PostgreSQL environment variables to ensure SQLite usage
+if 'DATABASE_URL' in os.environ:
+    del os.environ['DATABASE_URL']
+    logger.info("Removed PostgreSQL DATABASE_URL to use SQLite")
+
 # Set PORT from environment if available (for Replit deployment)
 port = int(os.environ.get("PORT", 5000))
 

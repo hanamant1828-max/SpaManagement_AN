@@ -61,13 +61,12 @@ app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1) # needed for url_for 
 # Handle trailing slash variations
 app.url_map.strict_slashes = False
 
-# Configure the database - use PostgreSQL from environment
-app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL")
+# Configure the database - use SQLite
+app.config["SQLALCHEMY_DATABASE_URI"] = compute_sqlite_uri()
 app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
-    "pool_recycle": 300,
     "pool_pre_ping": True,
 }
-print("Using PostgreSQL database: [PROTECTED]")
+print(f"Using SQLite database: {app.config['SQLALCHEMY_DATABASE_URI']}")
 
 # Configure cache control for Replit environment
 app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
@@ -143,8 +142,9 @@ def init_app():
     """Initialize the application with proper error handling"""
     with app.app_context():
         try:
-            # Database connection configured for PostgreSQL
-            print("PostgreSQL database configured: [PROTECTED]")
+            # Configure SQLite pragmas for better performance
+            event.listen(db.engine, "connect", configure_sqlite_pragmas)
+            print(f"SQLite database configured: {app.config['SQLALCHEMY_DATABASE_URI']}")
 
             # Make sure to import the models here or their tables won't be created
             import models  # noqa: F401
