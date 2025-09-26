@@ -257,7 +257,7 @@ class PermissionForm(FlaskForm):
     description = TextAreaField('Description', validators=[Optional()])
     category = StringField('Category', validators=[Optional(), Length(max=50)])
     is_active = BooleanField('Active', default=True)
-    submit = SubmitField('Save Permission')
+    submit = SubmitField('Save Permission')ion')
 
 class AdvancedCustomerForm(FlaskForm):
     """Advanced customer form with additional fields"""

@@ -402,7 +402,7 @@ def unaki_load_sample_data():
                 'price': 150.0
             },
             {
-                'client_name': 'David Brown', 
+                'client_name': 'David Brown',
                 'client_phone': '+1-555-0102',
                 'service_name': 'Swedish Massage',
                 'start_time': '14:00',
@@ -644,17 +644,17 @@ def unaki_booking():
     if not current_user.can_access('bookings'):
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
-    
+
     try:
         from modules.services.services_queries import get_active_services
         from modules.staff.staff_queries import get_staff_members
         from datetime import date
-        
+
         # Get services and staff for initial page load
         services = get_active_services()
         staff_members = get_staff_members()
         today = date.today().strftime('%Y-%m-%d')
-        
+
         return render_template('unaki_booking.html',
                              services=services,
                              staff_members=staff_members,
@@ -680,19 +680,19 @@ def role_management():
     if not current_user.can_access('settings'):
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
-    
+
     from models import Role, Permission
     from forms import RoleForm, PermissionForm, BusinessSettingsForm
-    
+
     # Get all roles and permissions
     roles = Role.query.all()
     permissions = Permission.query.all()
-    
+
     # Initialize forms
     role_form = RoleForm()
     permission_form = PermissionForm()
     business_form = BusinessSettingsForm()  # Add this for template compatibility
-    
+
     return render_template('role_management.html',
                          roles=roles,
                          permissions=permissions,
@@ -909,9 +909,9 @@ def unaki_bookings():
         # Pass today's date
         today = date.today().strftime('%Y-%m-%d')
 
-        return render_template('unaki_bookings.html', 
+        return render_template('unaki_bookings.html',
                              clients=clients,
-                             services=services, 
+                             services=services,
                              staff_members=staff_members,
                              existing_bookings=existing_bookings,
                              today=today)
