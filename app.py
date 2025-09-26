@@ -680,7 +680,25 @@ def role_management():
     if not current_user.can_access('settings'):
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
-    return render_template('settings.html')
+    
+    from models import Role, Permission
+    from forms import RoleForm, PermissionForm, BusinessSettingsForm
+    
+    # Get all roles and permissions
+    roles = Role.query.all()
+    permissions = Permission.query.all()
+    
+    # Initialize forms
+    role_form = RoleForm()
+    permission_form = PermissionForm()
+    business_form = BusinessSettingsForm()  # Add this for template compatibility
+    
+    return render_template('role_management.html',
+                         roles=roles,
+                         permissions=permissions,
+                         role_form=role_form,
+                         permission_form=permission_form,
+                         business_form=business_form)
 
 # Department Management Routes moved to routes.py to avoid conflicts
 

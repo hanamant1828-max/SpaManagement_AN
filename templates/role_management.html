@@ -233,3 +233,229 @@ function deleteRole(roleId) {
 </script>
 
 {% endblock %}
+{% extends "base.html" %}
+
+{% block title %}Role Management - Spa & Salon Management Suite{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <h1 class="h3 mb-4">
+                <i class="fas fa-users-cog me-2"></i>Role & Permission Management
+            </h1>
+        </div>
+    </div>
+
+    <!-- Roles Management -->
+    <div class="row">
+        <div class="col-lg-6">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-user-tag me-2"></i>Roles Management
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <!-- Add Role Form -->
+                    <form method="POST" action="{{ url_for('add_role') }}" class="mb-4">
+                        {{ role_form.hidden_tag() }}
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                {{ role_form.name.label(class="form-label") }}
+                                {{ role_form.name(class="form-control") }}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                {{ role_form.display_name.label(class="form-label") }}
+                                {{ role_form.display_name(class="form-control") }}
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            {{ role_form.description.label(class="form-label") }}
+                            {{ role_form.description(class="form-control", rows="2") }}
+                        </div>
+                        <div class="mb-3">
+                            <div class="form-check">
+                                {{ role_form.is_active(class="form-check-input") }}
+                                {{ role_form.is_active.label(class="form-check-label") }}
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-plus me-2"></i>Add Role
+                        </button>
+                    </form>
+
+                    <!-- Existing Roles -->
+                    <h6 class="mb-3">Existing Roles</h6>
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Display Name</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for role in roles %}
+                                <tr>
+                                    <td>{{ role.name }}</td>
+                                    <td>{{ role.display_name or role.name }}</td>
+                                    <td>
+                                        {% if role.is_active %}
+                                            <span class="badge bg-success">Active</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">Inactive</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-sm btn-outline-primary" onclick="editRole({{ role.id }})">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        {% if role.name != 'admin' %}
+                                        <button class="btn btn-sm btn-outline-danger" onclick="deleteRole({{ role.id }})">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Permissions Management -->
+        <div class="col-lg-6">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-key me-2"></i>Permissions Management
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <!-- Add Permission Form -->
+                    <form method="POST" action="{{ url_for('add_permission') }}" class="mb-4">
+                        {{ permission_form.hidden_tag() }}
+                        <div class="mb-3">
+                            {{ permission_form.name.label(class="form-label") }}
+                            {{ permission_form.name(class="form-control") }}
+                        </div>
+                        <div class="mb-3">
+                            {{ permission_form.description.label(class="form-label") }}
+                            {{ permission_form.description(class="form-control", rows="2") }}
+                        </div>
+                        <div class="mb-3">
+                            <div class="form-check">
+                                {{ permission_form.is_active(class="form-check-input") }}
+                                {{ permission_form.is_active.label(class="form-check-label") }}
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-success">
+                            <i class="fas fa-plus me-2"></i>Add Permission
+                        </button>
+                    </form>
+
+                    <!-- Existing Permissions -->
+                    <h6 class="mb-3">Existing Permissions</h6>
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Description</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for permission in permissions %}
+                                <tr>
+                                    <td>{{ permission.name }}</td>
+                                    <td>{{ permission.description or 'N/A' }}</td>
+                                    <td>
+                                        {% if permission.is_active %}
+                                            <span class="badge bg-success">Active</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">Inactive</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Role-Permission Assignment -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-link me-2"></i>Role-Permission Assignment
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted">Select a role to manage its permissions:</p>
+                    <div class="row">
+                        {% for role in roles %}
+                        <div class="col-md-4 mb-3">
+                            <div class="card border">
+                                <div class="card-body">
+                                    <h6 class="card-title">{{ role.display_name or role.name }}</h6>
+                                    <p class="card-text small text-muted">{{ role.description or 'No description' }}</p>
+                                    <button class="btn btn-sm btn-outline-primary" onclick="manageRolePermissions({{ role.id }})">
+                                        <i class="fas fa-cog me-1"></i>Manage Permissions
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function editRole(roleId) {
+    // Implement role editing
+    alert('Role editing feature coming soon!');
+}
+
+function deleteRole(roleId) {
+    if (confirm('Are you sure you want to delete this role?')) {
+        fetch(`/api/roles/${roleId}`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                alert('Error: ' + data.error);
+            } else {
+                location.reload();
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error deleting role');
+        });
+    }
+}
+
+function manageRolePermissions(roleId) {
+    // Implement permission management
+    alert('Permission management feature coming soon!');
+}
+</script>
+{% endblock %}

@@ -1217,6 +1217,39 @@ def api_update_role_permissions(role_id):
         db.session.rollback()
         return {'error': str(e)}, 500
 
+# Role Management API endpoints
+@app.route('/add_permission', methods=['POST'])
+@login_required
+def add_permission():
+    """Add new permission"""
+    if not current_user.can_access('settings'):
+        flash('Access denied', 'danger')
+        return redirect(url_for('dashboard'))
+
+    from models import Permission
+    from forms import PermissionForm
+
+    form = PermissionForm()
+    if form.validate_on_submit():
+        try:
+            permission = Permission(
+                name=form.name.data,
+                description=form.description.data,
+                is_active=form.is_active.data
+            )
+            db.session.add(permission)
+            db.session.commit()
+            flash('Permission added successfully!', 'success')
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error adding permission: {str(e)}', 'danger')
+    else:
+        for field, errors in form.errors.items():
+            for error in errors:
+                flash(f'{getattr(form, field).label.text}: {error}', 'danger')
+
+    return redirect(url_for('role_management'))
+
 # Additional API routes
 @app.route('/api/services')
 def api_services():
