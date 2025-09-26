@@ -161,20 +161,35 @@
             top: 100%;
             left: 0;
             right: 0;
-            background: rgba(255, 255, 255, 0.95);
+            background: rgba(255, 255, 255, 0.98);
             backdrop-filter: blur(20px);
             border-radius: 12px;
             margin-top: 5px;
-            max-height: 200px;
+            max-height: 250px;
             overflow-y: auto;
-            z-index: 1000;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            z-index: 1500;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.3);
             display: none;
         }
 
         .dropdown-menu.show {
-            display: block;
+            display: block !important;
             animation: fadeInDown 0.3s ease;
+        }
+
+        .dropdown-menu::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .dropdown-menu::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.05);
+            border-radius: 3px;
+        }
+
+        .dropdown-menu::-webkit-scrollbar-thumb {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 3px;
         }
 
         .dropdown-item {
@@ -1201,8 +1216,44 @@
 
             // Client search
             const clientSearch = document.getElementById('clientSearch');
-            clientSearch.addEventListener('input', handleClientSearch);
-            clientSearch.addEventListener('focus', handleClientSearch);
+            
+            clientSearch.addEventListener('input', function(e) {
+                handleClientSearch();
+            });
+            
+            clientSearch.addEventListener('focus', function(e) {
+                // Reset visual indicators when focusing
+                if (!selectedClient) {
+                    this.style.borderColor = '';
+                    this.style.backgroundColor = '';
+                }
+                handleClientSearch();
+            });
+            
+            clientSearch.addEventListener('blur', function(e) {
+                // Delay hiding dropdown to allow for clicks
+                setTimeout(() => {
+                    const dropdown = document.getElementById('clientDropdown');
+                    if (!dropdown.matches(':hover')) {
+                        dropdown.classList.remove('show');
+                    }
+                }, 200);
+            });
+            
+            clientSearch.addEventListener('keydown', function(e) {
+                const dropdown = document.getElementById('clientDropdown');
+                const items = dropdown.querySelectorAll('.dropdown-item');
+                
+                if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    if (items.length > 0) {
+                        items[0].focus();
+                    }
+                } else if (e.key === 'Escape') {
+                    dropdown.classList.remove('show');
+                    this.blur();
+                }
+            });
 
             // Service categories
             document.querySelectorAll('.service-category').forEach(category => {
@@ -1247,10 +1298,19 @@
 
             // Close dropdowns when clicking outside
             document.addEventListener('click', function(e) {
-                if (!e.target.closest('.dropdown')) {
+                // Don't close if clicking inside a dropdown or its parent
+                if (!e.target.closest('.dropdown') && !e.target.closest('.dropdown-menu')) {
                     document.querySelectorAll('.dropdown-menu').forEach(menu => {
                         menu.classList.remove('show');
+                        menu.style.display = 'none';
                     });
+                }
+            });
+            
+            // Prevent dropdown from closing when clicking inside it
+            document.addEventListener('click', function(e) {
+                if (e.target.closest('.dropdown-menu')) {
+                    e.stopPropagation();
                 }
             });
         }
@@ -1410,58 +1470,94 @@
         }
 
         function handleClientSearch() {
-            const searchTerm = document.getElementById('clientSearch').value.toLowerCase();
+            const searchInput = document.getElementById('clientSearch');
+            const searchTerm = searchInput.value.toLowerCase();
             const clientDropdown = document.getElementById('clientDropdown');
             
-            if (searchTerm.length < 1) {
-                clientDropdown.classList.remove('show');
-                return;
+            // Clear previous timeout if exists
+            if (window.searchTimeout) {
+                clearTimeout(window.searchTimeout);
             }
-
-            // Show all clients if search is short, filter if longer
-            const filteredClients = searchTerm.length < 2 ? 
-                clientsData.slice(0, 10) : // Show first 10 clients for short search
-                clientsData.filter(client => 
-                    client.name.toLowerCase().includes(searchTerm) ||
-                    (client.phone && client.phone.includes(searchTerm)) ||
-                    (client.email && client.email.toLowerCase().includes(searchTerm))
-                );
-
-            clientDropdown.innerHTML = '';
             
-            if (filteredClients.length === 0) {
-                const noResultsItem = document.createElement('div');
-                noResultsItem.className = 'dropdown-item';
-                noResultsItem.style.fontStyle = 'italic';
-                noResultsItem.style.color = '#666';
-                noResultsItem.textContent = 'No clients found';
-                clientDropdown.appendChild(noResultsItem);
-            } else {
-                filteredClients.forEach(client => {
-                    const clientItem = document.createElement('div');
-                    clientItem.className = 'dropdown-item';
-                    clientItem.style.cursor = 'pointer';
-                    clientItem.innerHTML = `
-                        <div><strong>${client.name}</strong></div>
-                        <div style="font-size: 12px; color: #666;">${client.phone || 'No phone'} ${client.email ? '• ' + client.email : ''}</div>
-                    `;
-                    
-                    clientItem.addEventListener('click', function() {
-                        selectedClient = client;
-                        document.getElementById('clientSearch').value = client.name;
-                        clientDropdown.classList.remove('show');
-                        showToast(`Selected client: ${client.name}`, 'success');
+            // Debounce the search to prevent excessive API calls
+            window.searchTimeout = setTimeout(() => {
+                if (searchTerm.length < 1) {
+                    clientDropdown.classList.remove('show');
+                    clientDropdown.innerHTML = '';
+                    return;
+                }
+
+                // Show all clients if search is short, filter if longer
+                const filteredClients = searchTerm.length < 2 ? 
+                    clientsData.slice(0, 10) : // Show first 10 clients for short search
+                    clientsData.filter(client => 
+                        client.name.toLowerCase().includes(searchTerm) ||
+                        (client.phone && client.phone.includes(searchTerm)) ||
+                        (client.email && client.email.toLowerCase().includes(searchTerm))
+                    );
+
+                // Clear dropdown
+                clientDropdown.innerHTML = '';
+                
+                if (filteredClients.length === 0) {
+                    const noResultsItem = document.createElement('div');
+                    noResultsItem.className = 'dropdown-item';
+                    noResultsItem.style.fontStyle = 'italic';
+                    noResultsItem.style.color = '#666';
+                    noResultsItem.style.padding = '12px 16px';
+                    noResultsItem.textContent = 'No clients found - type to search';
+                    clientDropdown.appendChild(noResultsItem);
+                } else {
+                    filteredClients.forEach(client => {
+                        const clientItem = document.createElement('div');
+                        clientItem.className = 'dropdown-item';
+                        clientItem.style.cursor = 'pointer';
+                        clientItem.style.padding = '12px 16px';
+                        clientItem.style.borderBottom = '1px solid rgba(0, 0, 0, 0.05)';
+                        clientItem.innerHTML = `
+                            <div style="font-weight: 600; margin-bottom: 2px;">${client.name}</div>
+                            <div style="font-size: 12px; color: #666; opacity: 0.8;">${client.phone || 'No phone'} ${client.email ? '• ' + client.email : ''}</div>
+                        `;
                         
-                        // Update the visual indicator
-                        document.getElementById('clientSearch').style.borderColor = '#10b981';
-                        document.getElementById('clientSearch').style.backgroundColor = 'rgba(16, 185, 129, 0.1)';
+                        // Add hover effect
+                        clientItem.addEventListener('mouseenter', function() {
+                            this.style.backgroundColor = 'rgba(102, 126, 234, 0.1)';
+                        });
+                        
+                        clientItem.addEventListener('mouseleave', function() {
+                            this.style.backgroundColor = '';
+                        });
+                        
+                        clientItem.addEventListener('click', function(e) {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            
+                            selectedClient = client;
+                            searchInput.value = client.name;
+                            clientDropdown.classList.remove('show');
+                            
+                            // Update visual indicator
+                            searchInput.style.borderColor = '#10b981';
+                            searchInput.style.backgroundColor = 'rgba(16, 185, 129, 0.1)';
+                            
+                            showToast(`Selected client: ${client.name}`, 'success');
+                            
+                            // Focus next input element or service selection
+                            const serviceSelector = document.getElementById('serviceSelector');
+                            if (serviceSelector) {
+                                serviceSelector.focus();
+                            }
+                        });
+
+                        clientDropdown.appendChild(clientItem);
                     });
+                }
 
-                    clientDropdown.appendChild(clientItem);
-                });
-            }
-
-            clientDropdown.classList.add('show');
+                // Force show the dropdown
+                clientDropdown.classList.add('show');
+                clientDropdown.style.display = 'block';
+                
+            }, 300); // 300ms debounce
         }
 
         function renderScheduleGrid() {
