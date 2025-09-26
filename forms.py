@@ -503,6 +503,7 @@ class PermissionForm(FlaskForm):
     """Permission form"""
     name = StringField('Permission Name', validators=[DataRequired(), Length(max=50)])
     description = TextAreaField('Description', validators=[Optional()])
+    is_active = BooleanField('Active', default=True)
     submit = SubmitField('Save Permission')
 
 class CategoryForm(FlaskForm):
