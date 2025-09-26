@@ -70,7 +70,7 @@ app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
 }
 print(f"Using SQLite database: {app.config['SQLALCHEMY_DATABASE_URI']}")
 
-# Configure cache control for Replit webview
+# Configure cache control for Replit environment
 app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
 app.config['WTF_CSRF_ENABLED'] = False  # Disable CSRF for API endpoints in development
 
@@ -208,7 +208,7 @@ try:
 except Exception as e:
     print(f"Error registering packages blueprint: {e}")
 
-# Import routes.py removed due to route conflicts
+# Import routes.py removed to avoid route conflicts
 # Adding specific missing routes instead
 
 # Import all views to register routes
@@ -305,7 +305,7 @@ def unaki_schedule():
         # Get date parameter
         date_str = request.args.get('date', date.today().strftime('%Y-%m-%d'))
         target_date = datetime.strptime(date_str, '%Y-%m-%d').date()
-        
+
         # Debug: Log the date we're querying for
         print(f"🗓️  Querying Unaki bookings for date: {target_date} (from parameter: {date_str})")
 
@@ -314,7 +314,7 @@ def unaki_schedule():
 
         # Get Unaki bookings for the target date
         unaki_bookings = UnakiBooking.query.filter_by(appointment_date=target_date).all()
-        
+
         # Debug: Log all bookings found
         print(f"📋 Found {len(unaki_bookings)} Unaki bookings for {target_date}")
         for booking in unaki_bookings:
@@ -376,116 +376,137 @@ def unaki_schedule():
 
 @app.route('/api/unaki/load-sample-data', methods=['POST'])
 def unaki_load_sample_data():
-    """Load sample data for Unaki booking system"""
+    """Load sample data for Unaki booking system - clears existing data first"""
     try:
-        from datetime import datetime, date, timedelta, time
-        from models import UnakiBooking, User
+        from datetime import datetime, date, time
+        from models import UnakiBooking
 
-        # Create sample UnakiBooking entries for today
-        today = date.today()
+        # First, clear all existing UnakiBooking records for the target date
+        target_date = date(2025, 9, 26)
+        existing_bookings = UnakiBooking.query.filter_by(appointment_date=target_date).all()
 
-        # Get available staff
-        staff_members = User.query.filter_by(is_active=True).limit(5).all()
-        if not staff_members:
-            return jsonify({
-                'success': False,
-                'error': 'No active staff members found'
-            })
+        print(f"🧹 Clearing {len(existing_bookings)} existing bookings for {target_date}")
+        for booking in existing_bookings:
+            db.session.delete(booking)
 
+        db.session.commit()
+        print(f"✅ Cleared all existing bookings")
+
+        # Sample data for demonstration
         sample_bookings = [
             {
                 'client_name': 'Jessica Williams',
                 'client_phone': '+1-555-0101',
                 'service_name': 'Deep Cleansing Facial',
+                'staff_id': 1,
                 'start_time': '10:00',
+                'end_time': '11:30',
                 'duration': 90,
-                'price': 150.0
+                'price': 150.0,
+                'date': '2025-09-26'
             },
             {
-                'client_name': 'David Brown', 
+                'client_name': 'David Brown',
                 'client_phone': '+1-555-0102',
-                'service_name': 'Swedish Massage',
+                'service_name': 'Relaxation Massage',
+                'staff_id': 2,
                 'start_time': '14:00',
+                'end_time': '15:00',
                 'duration': 60,
-                'price': 120.0
+                'price': 120.0,
+                'date': '2025-09-26'
             },
             {
                 'client_name': 'Emma Thompson',
                 'client_phone': '+1-555-0103',
-                'service_name': 'Hair Cut & Style',
+                'service_name': 'Hair Styling',
+                'staff_id': 3,
                 'start_time': '11:00',
-                'duration': 75,
-                'price': 85.0
+                'end_time': '12:00',
+                'duration': 60,
+                'price': 80.0,
+                'date': '2025-09-26'
             },
             {
                 'client_name': 'Michael Johnson',
                 'client_phone': '+1-555-0104',
-                'service_name': 'Aromatherapy Massage',
+                'service_name': 'Manicure & Pedicure',
+                'staff_id': 4,
                 'start_time': '15:30',
-                'duration': 90,
-                'price': 140.0
+                'end_time': '16:30',
+                'duration': 60,
+                'price': 65.0,
+                'date': '2025-09-26'
             },
             {
                 'client_name': 'Sarah Davis',
                 'client_phone': '+1-555-0105',
-                'service_name': 'Express Facial',
+                'service_name': 'Body Scrub',
+                'staff_id': 5,
                 'start_time': '09:00',
-                'duration': 45,
-                'price': 75.0
+                'end_time': '10:00',
+                'duration': 60,
+                'price': 95.0,
+                'date': '2025-09-26'
             }
         ]
 
-        created_count = 0
-        for i, booking_data in enumerate(sample_bookings):
-            staff = staff_members[i % len(staff_members)]
+        created_bookings = 0
+        print(f"🚀 Creating {len(sample_bookings)} fresh sample bookings...")
 
-            # Parse times
+        for booking_data in sample_bookings:
+            # Parse date and times
+            appointment_date = datetime.strptime(booking_data['date'], '%Y-%m-%d').date()
             start_time_obj = datetime.strptime(booking_data['start_time'], '%H:%M').time()
-            start_datetime = datetime.combine(today, start_time_obj)
-            end_datetime = start_datetime + timedelta(minutes=booking_data['duration'])
+            end_time_obj = datetime.strptime(booking_data['end_time'], '%H:%M').time()
 
-            # Create UnakiBooking entry
+            # Create UnakiBooking record
             unaki_booking = UnakiBooking(
                 client_name=booking_data['client_name'],
                 client_phone=booking_data['client_phone'],
                 client_email=f"{booking_data['client_name'].lower().replace(' ', '.')}@example.com",
-                staff_id=staff.id,
-                staff_name=staff.full_name,
+                staff_id=booking_data['staff_id'],
+                staff_name=f'Staff {booking_data["staff_id"]}',
                 service_name=booking_data['service_name'],
                 service_duration=booking_data['duration'],
                 service_price=booking_data['price'],
-                appointment_date=today,
+                appointment_date=appointment_date,
                 start_time=start_time_obj,
-                end_time=end_datetime.time(),
+                end_time=end_time_obj,
                 status='confirmed',
-                notes='Sample booking from Unaki system',
+                notes=f'Sample booking for {booking_data["client_name"]}',
                 booking_source='unaki_system',
-                booking_method='quick_book',
+                booking_method='sample_data',
                 amount_charged=booking_data['price'],
                 payment_status='pending',
                 created_at=datetime.utcnow()
             )
 
             db.session.add(unaki_booking)
-            created_count += 1
+            created_bookings += 1
+            print(f"   ✅ Created: {booking_data['client_name']} - {booking_data['service_name']} at {booking_data['start_time']}")
 
         db.session.commit()
+        print(f"🎉 Successfully created {created_bookings} fresh sample bookings")
 
         return jsonify({
             'success': True,
-            'message': f'Sample data loaded successfully! Created {created_count} Unaki bookings.',
+            'message': f'Sample data loaded successfully! Created {created_bookings} Unaki bookings.',
             'data': {
-                'bookings_created': created_count
+                'bookings_created': created_bookings,
+                'bookings_cleared': len(existing_bookings)
             }
         })
 
     except Exception as e:
         db.session.rollback()
-        print(f"Error in unaki_load_sample_data: {e}")
+        print(f"Error loading sample data: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({
             'success': False,
             'error': f'Failed to load sample data: {str(e)}'
-        })
+        }), 500
 
 @app.route('/api/unaki/create-appointment', methods=['POST'])
 def unaki_create_appointment():
@@ -561,7 +582,7 @@ def unaki_create_appointment():
             conflict_details = []
             for booking in conflicting_bookings:
                 conflict_details.append(f"{booking.get_time_range_display()} - {booking.service_name}")
-            
+
             return jsonify({
                 'success': False,
                 'error': f'Time slot conflicts with existing booking(s) for {staff.full_name}: {", ".join(conflict_details)}'
@@ -651,17 +672,17 @@ def unaki_booking():
     if not current_user.can_access('bookings'):
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
-    
+
     try:
         from modules.services.services_queries import get_active_services
         from modules.staff.staff_queries import get_staff_members
         from datetime import date
-        
+
         # Get services and staff for initial page load
         services = get_active_services()
         staff_members = get_staff_members()
         today = date.today().strftime('%Y-%m-%d')
-        
+
         return render_template('unaki_booking.html',
                              services=services,
                              staff_members=staff_members,
@@ -874,6 +895,3 @@ def unaki_cancel_booking(booking_id):
             'success': False,
             'error': str(e)
         }), 500
-
-
-
