@@ -538,18 +538,25 @@ def unaki_create_appointment():
         service = Service.query.filter_by(name=data['serviceType'], is_active=True).first()
         service_price = float(service.price) if service else 100.0
 
-        # Check for time conflicts
-        existing_booking = UnakiBooking.query.filter(
+        # Check for time conflicts - proper overlap detection
+        # Two appointments overlap if: new_start < existing_end AND existing_start < new_end
+        conflicting_bookings = UnakiBooking.query.filter(
             UnakiBooking.staff_id == data['staffId'],
             UnakiBooking.appointment_date == appointment_date,
-            UnakiBooking.start_time == start_time_obj,
-            UnakiBooking.status.in_(['scheduled', 'confirmed', 'in_progress'])
-        ).first()
+            UnakiBooking.status.in_(['scheduled', 'confirmed', 'in_progress']),
+            # Check for overlap: new appointment overlaps if new_start < existing_end AND existing_start < new_end
+            UnakiBooking.end_time > start_time_obj,  # existing ends after new starts
+            UnakiBooking.start_time < end_time_obj   # existing starts before new ends
+        ).all()
 
-        if existing_booking:
+        if conflicting_bookings:
+            conflict_details = []
+            for booking in conflicting_bookings:
+                conflict_details.append(f"{booking.get_time_range_display()} - {booking.service_name}")
+            
             return jsonify({
                 'success': False,
-                'error': f'Time slot already booked for {staff.full_name} at {data["startTime"]}'
+                'error': f'Time slot conflicts with existing booking(s) for {staff.full_name}: {", ".join(conflict_details)}'
             }), 400
 
         # Try to find or create customer record
