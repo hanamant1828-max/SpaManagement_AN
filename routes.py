@@ -164,41 +164,11 @@ def test_navigation():
     """Navigation testing page"""
     return render_template('test_navigation.html')
 
-@app.route('/unaki-booking')
-@login_required
-def unaki_booking():
-    """Unaki Appointment Booking page"""
-    if not current_user.can_access('bookings'):
-        flash('Access denied', 'danger')
-        return redirect(url_for('dashboard'))
-    return render_template('unaki_booking.html')
-
 # Enhanced API routes for Unaki Booking System with live database integration
 
 @app.route('/api/unaki/staff', methods=['GET'])
 @login_required
-def unaki_get_staff():
-    """Get active staff for Unaki booking system"""
-    try:
-        from models import User
-        from werkzeug.security import generate_password_hash
-        from datetime import datetime, date
-
-        # Get active staff members
-        staff_members = User.query.filter_by(is_active=True).order_by(User.first_name, User.last_name).all()
-
-        staff_data = []
-        for staff in staff_members:
-            staff_info = {
-                'id': staff.id,
-                'name': f"{staff.first_name} {staff.last_name}".strip(),
-                'specialization': getattr(staff, 'designation', 'General Services'),
-                'color': f"#{staff.id:06x}"[-6:],  # Generate color based on ID
-                'email': staff.email,
-                'phone': getattr(staff, 'phone', ''),
-                'is_active': staff.is_active
-            }
-            staff_data.append(staff_info)
+# Unaki staff API is handled in app.py
 
         # If no staff exist, create sample ones
         if not staff_data:
@@ -247,24 +217,7 @@ def unaki_get_staff():
 
 @app.route('/api/unaki/services', methods=['GET'])
 @login_required
-def unaki_get_services():
-    """Get active services for Unaki booking system"""
-    try:
-        from models import Service
-
-        services = Service.query.filter_by(is_active=True).order_by(Service.name).all()
-
-        services_data = []
-        for service in services:
-            service_info = {
-                'id': service.id,
-                'name': service.name,
-                'duration': service.duration,
-                'price': float(service.price) if service.price else 0.0,
-                'description': getattr(service, 'description', ''),
-                'category': getattr(service, 'category', 'General')
-            }
-            services_data.append(service_info)
+# Unaki services API is handled in app.py
 
         # If no services exist, create sample ones
         if not services_data:
