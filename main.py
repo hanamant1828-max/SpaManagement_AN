@@ -8,9 +8,9 @@ if not os.environ.get("SESSION_SECRET"):
     os.environ["SESSION_SECRET"] = "1578063aca108928c78100b516702a5765d2d05e85b4fb8bb29a75db0bfc34ca"
     print("✅ SESSION_SECRET set")
 
-if not os.environ.get("DATABASE_URL"):
-    os.environ["DATABASE_URL"] = "postgresql://replit:postgres@localhost:5432/spa_management"
-    print("✅ DATABASE_URL set")
+# DATABASE_URL is automatically set by Replit's PostgreSQL service
+if os.environ.get("DATABASE_URL"):
+    print("✅ DATABASE_URL available")
 
 # Set PORT from environment if available (for Replit deployment)
 port = int(os.environ.get("PORT", 5000))

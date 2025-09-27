@@ -143,10 +143,8 @@ def init_app():
     """Initialize the application with proper error handling"""
     with app.app_context():
         try:
-            # Add SQLite PRAGMA event listener for SQLite connections (inside app context)
-            event.listen(db.engine, 'connect', configure_sqlite_pragmas)
-            print(f"SQLite PRAGMAs configured for: {app.config['SQLALCHEMY_DATABASE_URI']}")
-            print(f"Instance identifier: {os.environ.get('SPA_DB_INSTANCE') or os.environ.get('REPL_SLUG') or 'default'}")
+            # PostgreSQL database is ready - no special configuration needed
+            print(f"PostgreSQL database configured: {app.config['SQLALCHEMY_DATABASE_URI']}")
 
             # Make sure to import the models here or their tables won't be created
             import models  # noqa: F401
@@ -157,11 +155,11 @@ def init_app():
 
             # Try to create tables, but handle conflicts gracefully
             db.create_all()
-            print("SQLite database tables created successfully")
-            print(f"Database file location: {app.config['SQLALCHEMY_DATABASE_URI']}")
+            print("PostgreSQL database tables created successfully")
+            print(f"Database connection: {app.config['SQLALCHEMY_DATABASE_URI']}")
         except Exception as e:
-            print(f"SQLite database initialization warning: {e}")
-            print("Continuing with existing SQLite database...")
+            print(f"PostgreSQL database initialization warning: {e}")
+            print("Continuing with existing PostgreSQL database...")
 
         try:
             # Import and register blueprints
