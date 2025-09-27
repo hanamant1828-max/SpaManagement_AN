@@ -367,7 +367,7 @@
                                     <div class="col-md-3">
                                         <div class="form-check mt-4">
                                             <input class="form-check-input" type="checkbox" id="is_interstate" name="is_interstate" onchange="toggleTaxType()">
-                                            <label class="form-check-label" for="is_interstate">
+                                            <label class="form-label" for="is_interstate">
                                                 Interstate Transaction
                                             </label>
                                         </div>
@@ -532,47 +532,8 @@
             </div>
         </div>
 
-        <!-- Recent Invoices -->
-        <div class="col-lg-4 mb-4">
-            <div class="card shadow">
-                <div class="card-header py-3">
-                    <h6 class="m-0 font-weight-bold text-primary">
-                        <i class="fas fa-file-invoice me-2"></i>Recent Invoices
-                    </h6>
-                </div>
-                <div class="card-body">
-                    {% if recent_invoices %}
-                        {% for invoice in recent_invoices %}
-                        <div class="d-flex justify-content-between align-items-center mb-3 p-2 border rounded">
-                            <div>
-                                <div class="font-weight-bold">{{ invoice.invoice_number }}</div>
-                                <small class="text-muted">{{ invoice.customer.full_name }}</small>
-                                <br>
-                                <small class="text-muted">{{ invoice.invoice_date.strftime('%d %b %Y') }}</small>
-                            </div>
-                            <div class="text-end">
-                                <div class="font-weight-bold text-success">₹{{ "{:,.2f}".format(invoice.total_amount) }}</div>
-                                {% if invoice.packages_deduction > 0 %}
-                                <small class="text-success">
-                                    <i class="fas fa-gift"></i> ₹{{ "{:,.2f}".format(invoice.packages_deduction) }} saved
-                                </small>
-                                {% endif %}
-                                <br>
-                                <span class="badge badge-{{ 'success' if invoice.payment_status == 'paid' else 'warning' if invoice.payment_status == 'partial' else 'danger' }}">
-                                    {{ invoice.payment_status.title() }}
-                                </span>
-                            </div>
-                        </div>
-                        {% endfor %}
-                    {% else %}
-                        <div class="text-center text-muted">
-                            <i class="fas fa-file-invoice fa-3x mb-3"></i>
-                            <p>No invoices created yet</p>
-                        </div>
-                    {% endif %}
-                    </div>
-            </div>
-        </div>
+        <!-- Removed Recent Invoices Section -->
+
     </div>
 </div>
 
@@ -674,11 +635,11 @@ document.addEventListener('DOMContentLoaded', function() {
     if (customerSelect) {
         customerSelect.addEventListener('change', function() {
             const selectedCustomerId = this.value;
-            
+
             // Get current customer ID from URL to prevent unnecessary redirects
             const currentPath = window.location.pathname;
             const currentCustomerId = currentPath.match(/\/integrated-billing\/(\d+)$/)?.[1];
-            
+
             if (selectedCustomerId) {
                 // Only redirect if the selected customer is different from current
                 if (selectedCustomerId !== currentCustomerId) {
@@ -2210,13 +2171,8 @@ document.getElementById('billingForm').addEventListener('submit', function(e) {
             const customerSelect = document.getElementById('client_id');
             if (customerSelect) {
                 customerSelect.value = '{{ selected_customer.id }}';
-                // Only trigger change event if we're not already on this customer's billing page
-                const currentPath = window.location.pathname;
-                const currentCustomerId = currentPath.match(/\/integrated-billing\/(\d+)$/)?.[1];
-                if (currentCustomerId !== '{{ selected_customer.id }}') {
-                    // Trigger change event to load customer packages
-                    customerSelect.dispatchEvent(new Event('change'));
-                }
+                // Trigger change event to load customer packages and appointments
+                customerSelect.dispatchEvent(new Event('change'));
 
                 // Show notification about auto-selection
                 const notification = document.createElement('div');
@@ -2239,11 +2195,6 @@ document.getElementById('billingForm').addEventListener('submit', function(e) {
                     // Fallback: insert at the top of the container
                     container.insertBefore(notification, container.firstChild);
                 }
-
-                // Auto-populate services from customer appointments  
-                {% if customer_appointments %}
-                populateCustomerAppointments();
-                {% endif %}
             }
             {% endif %}
         });
