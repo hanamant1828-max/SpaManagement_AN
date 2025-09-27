@@ -154,7 +154,6 @@ def integrated_billing(customer_id=None):
     customer_appointments = []
     selected_customer = None
     if customer_id:
-        from models import Customer, Appointment
         selected_customer = Customer.query.get(customer_id)
         if selected_customer:
             # Get all appointments for this customer that are not yet billed
