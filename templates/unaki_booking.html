@@ -1037,7 +1037,7 @@
                 <div class="modal-body p-4">
                     <form id="editAppointmentForm">
                         <input type="hidden" id="editAppointmentId">
-                        
+
                         <!-- Client Information -->
                         <div class="row g-4 mb-4">
                             <div class="col-md-6">
@@ -1448,7 +1448,7 @@
                 staffData.forEach(staff => {
                     const option = document.createElement('option');
                     option.value = staff.id;
-                    option.textContent = `${staff.name} (${staff.specialty})`;
+                    option.textContent = `${staff.name} (${staff.specialty || staff.role || 'Staff'})`;
                     staffSelect.appendChild(option);
                 });
 
@@ -2479,14 +2479,114 @@
         }
 
         function editAppointment(appointmentId) {
-            showNotification(`Editing appointment ID: ${appointmentId}`, 'info');
-            // TODO: Implement actual editing logic. This would likely involve:
-            // 1. Fetching appointment details by ID.
-            // 2. Pre-filling the booking modal with these details.
-            // 3. Allowing modifications.
-            // 4. Sending an UPDATE request to the backend.
-            // For now, we'll just show a notification.
+            console.log('Editing appointment:', appointmentId);
+
+            // Find the appointment in the schedule data
+            const appointment = scheduleData.appointments.find(apt => apt.id === appointmentId);
+            if (!appointment) {
+                showNotification('Appointment not found', 'error');
+                return;
+            }
+
+            console.log('Found appointment to edit:', appointment);
+
+            // Ensure dropdowns are populated first
+            Promise.all([
+                populateEditServiceDropdown(),
+                populateEditStaffDropdown()
+            ]).then(() => {
+                // Populate the edit form
+                document.getElementById('editAppointmentId').value = appointmentId;
+                document.getElementById('editClientName').value = appointment.clientName;
+                document.getElementById('editClientPhone').value = appointment.clientPhone || '';
+
+                // Set service by name (find matching option)
+                const serviceSelect = document.getElementById('editServiceSelect');
+                let foundService = false;
+                for (let option of serviceSelect.options) {
+                    if (option.value === appointment.serviceName || option.textContent.includes(appointment.serviceName)) {
+                        serviceSelect.value = option.value;
+                        foundService = true;
+                        break;
+                    }
+                }
+                // If not found by name, try to find by ID if available
+                if (!foundService && appointment.serviceId) {
+                    serviceSelect.value = appointment.serviceId;
+                }
+
+                document.getElementById('editStaffSelect').value = appointment.staffId;
+                document.getElementById('editAppointmentDate').value = appointment.appointment_date || currentDate;
+                document.getElementById('editStartTime').value = appointment.startTime;
+                document.getElementById('editEndTime').value = appointment.endTime;
+                document.getElementById('editStatus').value = appointment.status || 'confirmed';
+                document.getElementById('editServicePrice').value = appointment.amount || 0;
+                document.getElementById('editAppointmentNotes').value = appointment.notes || '';
+
+                // Update end time and price when service or start time changes
+                updateEditEndTime();
+                const selectedOption = serviceSelect.options[serviceSelect.selectedIndex];
+                if (selectedOption.dataset.price) {
+                    document.getElementById('editServicePrice').value = selectedOption.dataset.price;
+                }
+
+                // Show the modal
+                const modal = new bootstrap.Modal(document.getElementById('editAppointmentModal'));
+                modal.show();
+            });
         }
+
+        function populateEditServiceDropdown() {
+            const serviceSelect = document.getElementById('editServiceSelect');
+            if (serviceSelect && servicesData.length > 0) {
+                serviceSelect.innerHTML = '<option value="">Select Service</option>';
+                servicesData.forEach(service => {
+                    const option = document.createElement('option');
+                    option.value = service.id || service.name; // Use ID if available, otherwise name
+                    option.textContent = `${service.name} ($${service.price}) - ${service.duration}min`;
+                    option.dataset.price = service.price;
+                    option.dataset.duration = service.duration;
+                    serviceSelect.appendChild(option);
+                });
+
+                // Add event listener for service selection changes
+                serviceSelect.addEventListener('change', function() {
+                    const selectedOption = this.options[this.selectedIndex];
+                    if (selectedOption && selectedOption.dataset.price) {
+                        document.getElementById('editServicePrice').value = selectedOption.dataset.price;
+                        updateEditEndTime();
+                    }
+                });
+            }
+        }
+
+        function populateEditStaffDropdown() {
+            const staffSelect = document.getElementById('editStaffSelect');
+            if (staffSelect && staffData.length > 0) {
+                staffSelect.innerHTML = '<option value="">Select Staff</option>';
+                staffData.forEach(staff => {
+                    const option = document.createElement('option');
+                    option.value = staff.id;
+                    option.textContent = `${staff.name} (${staff.specialty || staff.role || 'Staff'})`;
+                    staffSelect.appendChild(option);
+                });
+            }
+        }
+
+        function updateEditEndTime() {
+            const startTime = document.getElementById('editStartTime').value;
+            const serviceSelect = document.getElementById('editServiceSelect');
+
+            if (startTime && serviceSelect.value) {
+                const selectedOption = serviceSelect.options[serviceSelect.selectedIndex];
+                const duration = parseInt(selectedOption.dataset.duration) || 60;
+
+                const startDateTime = new Date(`2000-01-01T${startTime}:00`);
+                const endDateTime = new Date(startDateTime.getTime() + duration * 60000);
+                document.getElementById('editEndTime').value = endDateTime.toTimeString().slice(0, 5);
+            }
+        }
+
 
         function deleteAppointment(appointmentId) {
             if (confirm('Are you sure you want to delete this appointment?')) {
@@ -2763,174 +2863,7 @@
         window.clearConflictWarning = clearConflictWarning;
 
         // Edit appointment functionality
-        function editAppointment(appointmentId) {
-            console.log(`Editing appointment ID: ${appointmentId}`);
-            
-            // Find the appointment in scheduleData
-            const appointment = scheduleData.appointments.find(apt => apt.id === appointmentId);
-            if (!appointment) {
-                showNotification('Appointment not found', 'error');
-                return;
-            }
-
-            // Populate edit form
-            document.getElementById('editAppointmentId').value = appointment.id;
-            document.getElementById('editClientName').value = appointment.clientName;
-            document.getElementById('editClientPhone').value = appointment.clientPhone || '';
-            document.getElementById('editAppointmentDate').value = appointment.appointment_date || currentDate;
-            document.getElementById('editStartTime').value = appointment.startTime;
-            document.getElementById('editEndTime').value = appointment.endTime;
-            document.getElementById('editStatus').value = appointment.status || 'scheduled';
-            document.getElementById('editServicePrice').value = appointment.amount || 0;
-            document.getElementById('editAppointmentNotes').value = appointment.notes || '';
-
-            // Populate service dropdown and select current service
-            populateEditServiceDropdown(appointment.service);
-            
-            // Populate staff dropdown and select current staff
-            populateEditStaffDropdown(appointment.staffId);
-
-            // Show modal
-            const modal = new bootstrap.Modal(document.getElementById('editAppointmentModal'));
-            modal.show();
-        }
-
-        function populateEditServiceDropdown(selectedService) {
-            const serviceSelect = document.getElementById('editServiceSelect');
-            serviceSelect.innerHTML = '<option value="">Select Service</option>';
-            
-            if (servicesData && servicesData.length > 0) {
-                servicesData.forEach(service => {
-                    const option = document.createElement('option');
-                    option.value = service.name;
-                    option.textContent = `${service.name} ($${service.price}) - ${service.duration}min`;
-                    option.dataset.price = service.price;
-                    option.dataset.duration = service.duration;
-                    
-                    if (service.name === selectedService) {
-                        option.selected = true;
-                    }
-                    
-                    serviceSelect.appendChild(option);
-                });
-
-                // Add event listener for service changes
-                serviceSelect.addEventListener('change', function() {
-                    const selectedOption = this.options[this.selectedIndex];
-                    if (selectedOption.dataset.price) {
-                        document.getElementById('editServicePrice').value = selectedOption.dataset.price;
-                        updateEditEndTime();
-                    }
-                });
-            }
-        }
-
-        function populateEditStaffDropdown(selectedStaffId) {
-            const staffSelect = document.getElementById('editStaffSelect');
-            staffSelect.innerHTML = '<option value="">Select Staff</option>';
-            
-            if (staffData && staffData.length > 0) {
-                staffData.forEach(staff => {
-                    const option = document.createElement('option');
-                    option.value = staff.id;
-                    option.textContent = `${staff.name} (${staff.specialty})`;
-                    
-                    if (staff.id === selectedStaffId) {
-                        option.selected = true;
-                    }
-                    
-                    staffSelect.appendChild(option);
-                });
-            }
-        }
-
-        function updateEditEndTime() {
-            const startTime = document.getElementById('editStartTime').value;
-            const serviceSelect = document.getElementById('editServiceSelect');
-            
-            if (startTime && serviceSelect.value) {
-                const selectedOption = serviceSelect.options[serviceSelect.selectedIndex];
-                const duration = parseInt(selectedOption.dataset.duration) || 60;
-
-                const startDateTime = new Date(`2000-01-01T${startTime}:00`);
-                const endDateTime = new Date(startDateTime.getTime() + duration * 60000);
-                document.getElementById('editEndTime').value = endDateTime.toTimeString().slice(0, 5);
-            }
-        }
-
-        function updateAppointment() {
-            const appointmentId = document.getElementById('editAppointmentId').value;
-            const clientName = document.getElementById('editClientName').value.trim();
-            const clientPhone = document.getElementById('editClientPhone').value.trim();
-            const serviceName = document.getElementById('editServiceSelect').value;
-            const staffId = document.getElementById('editStaffSelect').value;
-            const appointmentDate = document.getElementById('editAppointmentDate').value;
-            const startTime = document.getElementById('editStartTime').value;
-            const endTime = document.getElementById('editEndTime').value;
-            const status = document.getElementById('editStatus').value;
-            const notes = document.getElementById('editAppointmentNotes').value.trim();
-
-            // Validation
-            if (!clientName || !serviceName || !staffId || !appointmentDate || !startTime || !endTime) {
-                showNotification('Please fill in all required fields', 'error');
-                return;
-            }
-
-            const updateData = {
-                clientName: clientName,
-                clientPhone: clientPhone,
-                serviceName: serviceName,
-                staffId: parseInt(staffId),
-                date: appointmentDate,
-                startTime: startTime,
-                endTime: endTime,
-                status: status,
-                notes: notes
-            };
-
-            console.log('Updating appointment:', updateData);
-            showNotification('Updating appointment...', 'info');
-
-            fetch(`/api/unaki/bookings/${appointmentId}`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(updateData)
-            })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                return response.json();
-            })
-            .then(data => {
-                if (data.success) {
-                    showNotification('Appointment updated successfully!', 'success');
-                    
-                    // Close modal
-                    const modal = bootstrap.Modal.getInstance(document.getElementById('editAppointmentModal'));
-                    if (modal) modal.hide();
-                    
-                    // Refresh schedule
-                    loadScheduleForDate();
-                } else {
-                    showNotification('Failed to update appointment: ' + data.error, 'error');
-                }
-            })
-            .catch(error => {
-                console.error('Error updating appointment:', error);
-                showNotification('Error updating appointment: ' + error.message, 'error');
-            });
-        }
-
-        // Add event listener for start time changes in edit form
-        document.addEventListener('DOMContentLoaded', function() {
-            const editStartTime = document.getElementById('editStartTime');
-            if (editStartTime) {
-                editStartTime.addEventListener('change', updateEditEndTime);
-            }
-        });
+        // (The editAppointment, populateEditServiceDropdown, populateEditStaffDropdown, and updateEditEndTime functions have been updated above)
 
         // New functions for edit/delete
         window.editAppointment = editAppointment;
