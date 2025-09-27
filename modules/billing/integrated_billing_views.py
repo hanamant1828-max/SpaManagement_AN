@@ -184,14 +184,64 @@ def appointment_to_billing(appointment_id):
         return redirect(url_for('dashboard'))
     
     try:
-        from models import Appointment
-        appointment = Appointment.query.get_or_404(appointment_id)
+        from models import Appointment, UnakiBooking, Customer
         
-        # Log the redirection for debugging
-        app.logger.info(f"Redirecting to integrated billing for appointment {appointment_id}, customer {appointment.client_id}")
+        # First try to find in regular Appointment table
+        appointment = Appointment.query.get(appointment_id)
+        customer_id = None
+        
+        if appointment:
+            customer_id = appointment.client_id
+            app.logger.info(f"Found regular appointment {appointment_id}, customer {customer_id}")
+        else:
+            # Try to find in UnakiBooking table
+            unaki_booking = UnakiBooking.query.get(appointment_id)
+            if unaki_booking:
+                # Try to find customer by phone or name
+                customer = None
+                if unaki_booking.client_phone:
+                    customer = Customer.query.filter_by(phone=unaki_booking.client_phone).first()
+                
+                if not customer and unaki_booking.client_name:
+                    # Try to find by name (split and search)
+                    name_parts = unaki_booking.client_name.strip().split(' ', 1)
+                    first_name = name_parts[0] if name_parts else ''
+                    last_name = name_parts[1] if len(name_parts) > 1 else ''
+                    
+                    if first_name:
+                        customer = Customer.query.filter(
+                            Customer.first_name.ilike(f'%{first_name}%')
+                        ).first()
+                
+                if customer:
+                    customer_id = customer.id
+                    app.logger.info(f"Found UnakiBooking {appointment_id}, matched to customer {customer_id}")
+                else:
+                    # Create a basic customer record for the booking
+                    name_parts = unaki_booking.client_name.strip().split(' ', 1)
+                    first_name = name_parts[0] if name_parts else 'Unknown'
+                    last_name = name_parts[1] if len(name_parts) > 1 else ''
+                    
+                    new_customer = Customer(
+                        first_name=first_name,
+                        last_name=last_name,
+                        phone=unaki_booking.client_phone,
+                        email=unaki_booking.client_email,
+                        is_active=True
+                    )
+                    db.session.add(new_customer)
+                    db.session.commit()
+                    customer_id = new_customer.id
+                    app.logger.info(f"Created new customer {customer_id} for UnakiBooking {appointment_id}")
+            else:
+                raise Exception(f"No appointment or booking found with ID {appointment_id}")
+        
+        if not customer_id:
+            raise Exception(f"Could not determine customer for appointment {appointment_id}")
         
         # Redirect to integrated billing with customer_id
-        return redirect(url_for('integrated_billing', customer_id=appointment.client_id))
+        return redirect(url_for('integrated_billing', customer_id=customer_id))
+        
     except Exception as e:
         app.logger.error(f"Error redirecting to billing for appointment {appointment_id}: {str(e)}")
         flash(f'Error accessing billing for this appointment: {str(e)}', 'danger')
