@@ -162,9 +162,9 @@ def init_app():
             print("Continuing with existing SQLite database...")
 
         print("Basic routes imported successfully")
-        except Exception as e:
-            print(f"Warning: Could not import all routes: {e}")
-            print("Application will continue with basic functionality")
+    except Exception as e:
+        print(f"Warning: Could not import all routes: {e}")
+        print("Application will continue with basic functionality")
 
 # Initialize the app
 init_app()
