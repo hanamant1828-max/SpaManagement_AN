@@ -1354,6 +1354,200 @@
         let servicesData = [];
         let staffData = [];
 
+        // Enhanced appointment-to-billing redirect functionality
+        function showFallbackContextMenu(event, appointmentId) {
+            console.log(`🎯 Enhanced context menu for appointment ${appointmentId}`);
+            
+            // Find the appointment data to get client_id
+            const appointment = scheduleData.appointments.find(apt => 
+                apt.id == appointmentId || apt.appointment_id == appointmentId
+            );
+            
+            if (!appointment) {
+                console.error(`❌ Appointment ${appointmentId} not found in schedule data`);
+                showNotification('Appointment data not found. Please refresh and try again.', 'error');
+                return;
+            }
+            
+            console.log(`📋 Found appointment data:`, appointment);
+            
+            // Create enhanced context menu HTML
+            const contextMenuHTML = `
+                <div id="dynamicContextMenu" style="
+                    position: absolute;
+                    left: ${event.pageX}px;
+                    top: ${event.pageY}px;
+                    background: white;
+                    border: 1px solid #ddd;
+                    border-radius: 8px;
+                    box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+                    z-index: 10000;
+                    min-width: 200px;
+                    font-family: Inter, sans-serif;
+                ">
+                    <div style="padding: 12px 16px; border-bottom: 1px solid #eee; background: #f8f9fa; border-radius: 8px 8px 0 0;">
+                        <strong style="color: #333;">${appointment.clientName || 'Unknown Client'}</strong>
+                        <div style="font-size: 12px; color: #666;">${appointment.service || appointment.serviceName || 'Unknown Service'}</div>
+                    </div>
+                    
+                    <div style="padding: 4px 0;">
+                        <div class="context-menu-item" onclick="viewAppointmentDetails('${appointmentId}')" style="
+                            padding: 10px 16px; cursor: pointer; display: flex; align-items: center; gap: 10px;
+                            transition: background 0.2s; border: none; background: none; width: 100%; text-align: left;
+                        " onmouseover="this.style.background='#f8f9fa'" onmouseout="this.style.background='none'">
+                            <i class="fas fa-eye" style="color: #007bff; width: 16px;"></i>
+                            <span>View Details</span>
+                        </div>
+                        
+                        <div class="context-menu-item" onclick="editAppointment('${appointmentId}')" style="
+                            padding: 10px 16px; cursor: pointer; display: flex; align-items: center; gap: 10px;
+                            transition: background 0.2s; border: none; background: none; width: 100%; text-align: left;
+                        " onmouseover="this.style.background='#f8f9fa'" onmouseout="this.style.background='none'">
+                            <i class="fas fa-edit" style="color: #17a2b8; width: 16px;"></i>
+                            <span>Edit Appointment</span>
+                        </div>
+                        
+                        <hr style="margin: 4px 0; border: none; border-top: 1px solid #eee;">
+                        
+                        <div class="context-menu-item" onclick="redirectToBilling('${appointment.client_id || appointment.clientId}', '${appointmentId}')" style="
+                            padding: 10px 16px; cursor: pointer; display: flex; align-items: center; gap: 10px;
+                            transition: background 0.2s; border: none; background: none; width: 100%; text-align: left;
+                            background: linear-gradient(135deg, #e8f5e9 0%, #f1f8e9 100%);
+                        " onmouseover="this.style.background='linear-gradient(135deg, #d4edda 0%, #e2f5e3 100%)'" onmouseout="this.style.background='linear-gradient(135deg, #e8f5e9 0%, #f1f8e9 100%)'">
+                            <i class="fas fa-file-invoice-dollar" style="color: #28a745; width: 16px;"></i>
+                            <span style="font-weight: 600; color: #28a745;">Go to Integrated Billing</span>
+                        </div>
+                        
+                        <div class="context-menu-item" onclick="markAsPaid('${appointmentId}')" style="
+                            padding: 10px 16px; cursor: pointer; display: flex; align-items: center; gap: 10px;
+                            transition: background 0.2s; border: none; background: none; width: 100%; text-align: left;
+                        " onmouseover="this.style.background='#f8f9fa'" onmouseout="this.style.background='none'">
+                            <i class="fas fa-check-circle" style="color: #28a745; width: 16px;"></i>
+                            <span>Mark as Paid</span>
+                        </div>
+                        
+                        <hr style="margin: 4px 0; border: none; border-top: 1px solid #eee;">
+                        
+                        <div class="context-menu-item" onclick="deleteAppointment('${appointmentId}')" style="
+                            padding: 10px 16px; cursor: pointer; display: flex; align-items: center; gap: 10px;
+                            transition: background 0.2s; border: none; background: none; width: 100%; text-align: left;
+                        " onmouseover="this.style.background='#f8d7da'" onmouseout="this.style.background='none'">
+                            <i class="fas fa-trash" style="color: #dc3545; width: 16px;"></i>
+                            <span style="color: #dc3545;">Delete</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Remove any existing context menu
+            const existingMenu = document.getElementById('dynamicContextMenu');
+            if (existingMenu) {
+                existingMenu.remove();
+            }
+            
+            // Add new context menu to body
+            document.body.insertAdjacentHTML('beforeend', contextMenuHTML);
+            
+            // Add click outside to close
+            setTimeout(() => {
+                document.addEventListener('click', function closeContextMenu(e) {
+                    const menu = document.getElementById('dynamicContextMenu');
+                    if (menu && !menu.contains(e.target)) {
+                        menu.remove();
+                        document.removeEventListener('click', closeContextMenu);
+                    }
+                });
+            }, 100);
+            
+            // Adjust position if menu goes off screen
+            const menu = document.getElementById('dynamicContextMenu');
+            const rect = menu.getBoundingClientRect();
+            const windowWidth = window.innerWidth;
+            const windowHeight = window.innerHeight;
+            
+            if (rect.right > windowWidth) {
+                menu.style.left = (event.pageX - rect.width) + 'px';
+            }
+            
+            if (rect.bottom > windowHeight) {
+                menu.style.top = (event.pageY - rect.height) + 'px';
+            }
+        }
+
+        // Enhanced redirect function with proper client_id handling
+        function redirectToBilling(clientId, appointmentId) {
+            console.log(`🔄 Redirecting to billing with client_id: ${clientId}, appointment_id: ${appointmentId}`);
+            
+            // Remove context menu
+            const menu = document.getElementById('dynamicContextMenu');
+            if (menu) menu.remove();
+            
+            // Validate client_id
+            if (!clientId || clientId === 'null' || clientId === 'undefined') {
+                console.error(`❌ Invalid client_id: ${clientId}`);
+                
+                // Try to extract client_id from appointment data
+                const appointment = scheduleData.appointments.find(apt => 
+                    apt.id == appointmentId || apt.appointment_id == appointmentId
+                );
+                
+                if (appointment) {
+                    // Try different possible field names for client_id
+                    clientId = appointment.client_id || 
+                              appointment.clientId || 
+                              appointment.customer_id || 
+                              appointment.customerId;
+                    
+                    console.log(`🔍 Extracted client_id from appointment: ${clientId}`);
+                }
+                
+                if (!clientId || clientId === 'null' || clientId === 'undefined') {
+                    showNotification('Client ID not found. Using backend route for customer matching.', 'warning');
+                    window.location.href = `/appointment/${appointmentId}/go-to-billing`;
+                    return;
+                }
+            }
+            
+            // Show loading notification
+            showNotification(`Loading billing for client ID: ${clientId}...`, 'info');
+            
+            // Redirect to integrated billing with client_id
+            window.location.href = `/integrated-billing/${clientId}`;
+        }
+
+        // Helper function for marking as paid
+        function markAsPaid(appointmentId) {
+            console.log(`💰 Marking appointment ${appointmentId} as paid`);
+            
+            // Remove context menu
+            const menu = document.getElementById('dynamicContextMenu');
+            if (menu) menu.remove();
+            
+            // Update appointment status
+            fetch(`/api/unaki/appointments/${appointmentId}/mark-paid`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    payment_status: 'paid'
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showNotification('Appointment marked as paid!', 'success');
+                    refreshSchedule();
+                } else {
+                    showNotification('Failed to mark as paid: ' + data.error, 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error marking as paid:', error);
+                showNotification('Error marking appointment as paid', 'error');
+            });
+        }
+
         // Enhanced appointment booking
         function openQuickBookingModal() {
             const modal = new bootstrap.Modal(document.getElementById('bookingModal'));
@@ -1906,6 +2100,11 @@
             }
         }
 
+        // Make functions globally available for context menu
+        window.showFallbackContextMenu = showFallbackContextMenu;
+        window.redirectToBilling = redirectToBilling;
+        window.markAsPaid = markAsPaid;
+
         // Initialize application
         document.addEventListener('DOMContentLoaded', function() {
             showLoading();
@@ -1924,6 +2123,7 @@
             ]).then(() => {
                 hideLoading();
                 showNotification('Schedule loaded successfully!', 'success', 3000);
+                console.log('✅ Enhanced appointment-to-billing integration loaded successfully!');
             }).catch(error => {
                 console.error('Error loading initial data:', error);
                 hideLoading();
@@ -2413,6 +2613,13 @@
                 console.log(`🔍 Setting appointment block ID: ${appointment.id} for ${appointment.clientName}`);
             }
 
+            // Store client_id in multiple ways for reliability
+            const clientId = appointment.client_id || appointment.clientId || appointment.customer_id || appointment.customerId;
+            if (clientId) {
+                appointmentBlock.setAttribute('data-client-id', clientId);
+                appointmentBlock.dataset.clientId = clientId;
+            }
+
             const serviceCategory = getServiceCategory(appointment.service || appointment.serviceType);
             let serviceCategoryClass = '';
             if (serviceCategory) {
@@ -2425,11 +2632,11 @@
             const durationMinutes = getTimeDifferenceInMinutes(startTime, endTime);
             const durationSlots = Math.ceil(durationMinutes / SCHEDULE_CONFIG.slotMinutes);
 
-            // Calculate gradient based on category
-            let gradientStyle = `linear-gradient(135deg, #667eea 0%, #764ba2 100%)`; // Default gradient
+            // Calculate gradient based on category - CONSISTENT FOR ALL TYPES
+            let gradientStyle = `linear-gradient(135deg, #667eea 0%, #764ba2 100%)`; // Default blue gradient
             switch (serviceCategory) {
                 case 'massage': gradientStyle = 'linear-gradient(135deg, #48bb78 0%, #38a169 100%)'; break;
-                case 'facial': gradientStyle = 'linear-gradient(135deg, #ed8936 0%, #dd6b20 100%)'; break;
+                case 'facial': gradientStyle = 'linear-gradient(135deg, #ed8936 0%, #dd6b20 100%)'; break; // Orange
                 case 'hair': gradientStyle = 'linear-gradient(135deg, #9f7aea 0%, #805ad5 100%)'; break;
                 case 'nails': gradientStyle = 'linear-gradient(135deg, #f56565 0%, #e53e3e 100%)'; break;
                 case 'body': gradientStyle = 'linear-gradient(135deg, #38b2ac 0%, #319795 100%)'; break;
@@ -2479,30 +2686,17 @@
                 handleAppointmentClick(appointment);
             });
 
-            // Add context menu handler - CONSISTENT FOR ALL APPOINTMENT BLOCKS
+            // UNIFIED context menu handler for ALL appointment blocks - NO MORE COLOR-SPECIFIC BEHAVIOR
             appointmentBlock.addEventListener('contextmenu', function(event) {
                 event.preventDefault();
                 event.stopPropagation();
                 
-                console.log(`🎯 Context menu triggered for appointment ${appointment.id}`);
+                console.log(`🎯 UNIFIED context menu triggered for appointment ${appointment.id}`);
                 console.log(`🎨 Block background: ${appointmentBlock.style.background}`);
-                console.log(`📋 Block classes: ${appointmentBlock.className}`);
-
-                // Call the context menu handler
-                if (typeof window.handleAppointmentRightClick === 'function') {
-                    console.log('🔧 Using window.handleAppointmentRightClick');
-                    window.handleAppointmentRightClick(event);
-                } else if (typeof handleAppointmentRightClick === 'function') {
-                    console.log('🔧 Using handleAppointmentRightClick');
-                    handleAppointmentRightClick(event);
-                } else if (window.appointmentContextMenu) {
-                    console.log('🔧 Using appointmentContextMenu directly');
-                    window.appointmentContextMenu.showContextMenu(event.pageX, event.pageY, appointment.id);
-                } else {
-                    console.log('⚠️ Context menu handler not available, using fallback');
-                    // Fallback: show simple context menu
-                    showFallbackContextMenu(event, appointment.id);
-                }
+                console.log(`📋 Appointment data:`, appointment);
+                
+                // Always use the enhanced context menu function for ALL appointments
+                showFallbackContextMenu(event, appointment.id);
             });
 
             // Add hover effects

@@ -2225,6 +2225,35 @@ def get_schedule():
         return jsonify({'error': 'Server error'}), 500
 
 
+@app.route('/api/unaki/appointments/<int:appointment_id>/mark-paid', methods=['POST'])
+@login_required
+def mark_appointment_paid(appointment_id):
+    """Mark an appointment as paid"""
+    if not current_user.can_access('billing'):
+        return jsonify({'error': 'Access denied'}), 403
+    
+    try:
+        from app import db
+        from models import UnakiBooking
+        
+        # Find the appointment
+        appointment = UnakiBooking.query.get(appointment_id)
+        if not appointment:
+            return jsonify({'error': 'Appointment not found'}), 404
+        
+        # Update payment status
+        appointment.payment_status = 'paid'
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': f'Appointment for {appointment.client_name} marked as paid'
+        })
+        
+    except Exception as e:
+        print(f"Error marking appointment as paid: {e}")
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/appointment/<int:appointment_id>/go-to-billing')
 @login_required
 def appointment_go_to_billing(appointment_id):
