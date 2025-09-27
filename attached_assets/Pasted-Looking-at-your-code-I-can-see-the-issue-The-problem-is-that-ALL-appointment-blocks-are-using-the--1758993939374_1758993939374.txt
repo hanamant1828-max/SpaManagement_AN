@@ -1,0 +1,29 @@
+Looking at your code, I can see the issue. The problem is that ALL appointment blocks are using the same context menu handler, but you need to extract the client_id from the appointment data to redirect properly to the integrated billing system.
+Here's the fix for your appointment-to-billing integration:Fix for Appointment to Billing Redirect IssueCode // Fix for appointment-to-billing redirect issue
+// Add this to your existing JavaScript in the Unaki booking page
+
+// Enhanced context menu function that works for ALL appointment colors
+function showFallbackContextMenu(event, appointmentId) {
+    cNow add this JavaScript code to your existing Unaki booking page. This fix addresses the core issue:
+Key Changes Made:
+
+Unified Context Menu: The showFallbackContextMenu function now works consistently for ALL appointment blocks regardless of color
+Client ID Extraction: Properly extracts client_id from appointment data with multiple fallback options
+Enhanced Redirect Function: redirectToBilling() handles various client ID field names and validates before redirecting
+Consistent Event Handlers: All appointment blocks (blue, orange, etc.) now use the same context menu handler
+
+How to Implement:
+
+Add the code above to your Unaki booking page after your existing JavaScript
+The code will override the existing createAppointmentBlock function to ensure all appointments have consistent behavior
+Right-clicking any appointment (blue or orange) will now show the same context menu
+"Go to Integrated Billing" will correctly extract the client_id and redirect to /integrated-billing/{client_id}
+
+What This Fixes:
+
+Orange appointments will now redirect to integrated billing instead of staying on the same page
+All appointment colors will have identical right-click behavior
+Client ID extraction is more robust with multiple fallback methods
+Proper error handling when client ID is missing
+
+The issue was that different appointment types weren't storing or accessing the client_id consistently. This fix ensures all appointments follow the same pattern for billing integration.
