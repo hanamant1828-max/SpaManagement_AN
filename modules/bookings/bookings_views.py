@@ -2223,3 +2223,41 @@ def get_schedule():
     except Exception as e:
         print(f"Error in get_schedule: {e}")
         return jsonify({'error': 'Server error'}), 500
+
+
+@app.route('/appointment/<int:appointment_id>/go-to-billing')
+@login_required
+def appointment_go_to_billing(appointment_id):
+    """Redirect from appointment context menu to integrated billing with client ID"""
+    if not current_user.can_access('billing'):
+        flash('Access denied', 'danger')
+        return redirect(url_for('dashboard'))
+    
+    try:
+        # First try to find in UnakiBooking table
+        from models import UnakiBooking
+        unaki_booking = UnakiBooking.query.get(appointment_id)
+        
+        if unaki_booking and unaki_booking.client_id:
+            # Found in UnakiBooking, redirect to integrated billing with client ID
+            flash(f'Loading billing for {unaki_booking.client_name}', 'info')
+            return redirect(url_for('integrated_billing', customer_id=unaki_booking.client_id))
+        
+        # If not found in UnakiBooking, try regular Appointment table
+        appointment = Appointment.query.get(appointment_id)
+        
+        if appointment and appointment.client_id:
+            # Found in Appointment table, redirect to integrated billing
+            client = Customer.query.get(appointment.client_id)
+            if client:
+                flash(f'Loading billing for {client.first_name} {client.last_name}', 'info')
+                return redirect(url_for('integrated_billing', customer_id=appointment.client_id))
+        
+        # If appointment not found or has no client
+        flash('Appointment not found or no client associated', 'error')
+        return redirect(url_for('bookings'))
+        
+    except Exception as e:
+        app.logger.error(f"Error in appointment_go_to_billing: {e}")
+        flash('Error accessing billing information', 'error')
+        return redirect(url_for('bookings'))
