@@ -1031,6 +1031,7 @@ class UnakiBooking(db.Model):
     id = db.Column(db.Integer, primary_key=True)
 
     # Client Information
+    client_id = db.Column(db.Integer, db.ForeignKey('client.id'), nullable=True)  # FK to customer table
     client_name = db.Column(db.String(100), nullable=False)
     client_phone = db.Column(db.String(20))
     client_email = db.Column(db.String(120))
@@ -1071,11 +1072,13 @@ class UnakiBooking(db.Model):
 
     # Relationships
     assigned_staff = db.relationship('User', backref='unaki_bookings', foreign_keys=[staff_id])
+    client = db.relationship('Customer', backref='unaki_bookings', foreign_keys=[client_id])
 
     def to_dict(self):
         """Convert booking to dictionary for API responses"""
         return {
             'id': self.id,
+            'client_id': self.client_id,
             'client_name': self.client_name,
             'client_phone': self.client_phone,
             'client_email': self.client_email,

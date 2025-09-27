@@ -1757,6 +1757,7 @@
 
             const promises = bookingData.services.map((service, index) => {
                 const serviceBookingData = {
+                    clientId: bookingData.clientId,
                     clientName: bookingData.clientName || document.getElementById('clientSelect').options[document.getElementById('clientSelect').selectedIndex]?.text,
                     clientPhone: bookingData.clientPhone,
                     clientEmail: bookingData.clientEmail,
@@ -1772,7 +1773,7 @@
                     amount_charged: service.price - (bookingData.discount / bookingData.services.length)
                 };
 
-                console.log(`📤 Sending booking request ${index + 1}:`, serviceBookingData);
+                console.log(` uitgenodigd Sending booking request ${index + 1}:`, serviceBookingData);
 
                 return fetch('/api/unaki/book-appointment', {
                     method: 'POST',
@@ -2400,7 +2401,7 @@
         function createAppointmentBlock(appointment, startSlotIndex, overlapIndex, totalOverlaps) {
             const appointmentBlock = document.createElement('div');
             appointmentBlock.className = 'appointment-block';
-            
+
             // Add appointment ID for context menu functionality
             if (appointment.id) {
                 appointmentBlock.setAttribute('data-appointment-id', appointment.id);

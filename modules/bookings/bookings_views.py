@@ -956,6 +956,7 @@ def api_unaki_book_appointment():
         print(f"📝 Booking request data: {data}")
         
         # Validate required fields with flexible field names
+        client_id = data.get('client_id') or data.get('clientId')
         client_name = data.get('client_name') or data.get('clientName')
         staff_id = data.get('staff_id') or data.get('staffId')
         service_name = data.get('service_name') or data.get('serviceName') or data.get('serviceType')
@@ -1050,6 +1051,7 @@ def api_unaki_book_appointment():
             service_duration = int(service_duration)
 
         appointment = UnakiBooking(
+            client_id=int(client_id) if client_id else None,
             client_name=client_name,
             client_phone=data.get('client_phone', '') or data.get('clientPhone', ''),
             client_email=data.get('client_email', '') or data.get('clientEmail', ''),

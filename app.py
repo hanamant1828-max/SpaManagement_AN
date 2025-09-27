@@ -840,6 +840,7 @@ def unaki_create_appointment():
 
         # Create UnakiBooking entry
         unaki_booking = UnakiBooking(
+            client_id=int(data['clientId']) if data.get('clientId') else None,
             client_name=data['clientName'].strip(),
             client_phone=client_phone,
             client_email=client_email,
