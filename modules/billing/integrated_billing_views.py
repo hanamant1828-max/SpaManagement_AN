@@ -776,7 +776,8 @@ def get_customer_packages(client_id):
         return jsonify({'error': 'Access denied'}), 403
 
     try:
-        from models import CustomerPackage, CustomerPackageSession # Ensure these are imported correctly
+        # Import CustomerPackage model - CustomerPackageSession will be added later
+        from models import CustomerPackage
         # Get active packages
         packages = CustomerPackage.query.filter_by(
             client_id=client_id,
@@ -785,21 +786,19 @@ def get_customer_packages(client_id):
 
         package_data = []
         for pkg in packages:
-            # Get session details
-            sessions = CustomerPackageSession.query.filter_by(
-                client_package_id=pkg.id
-            ).all()
-
-            session_details = []
-            for session in sessions:
-                session_details.append({
-                    'service_id': session.service_id,
-                    'service_name': session.service.name,
-                    'sessions_total': session.sessions_total,
-                    'sessions_used': session.sessions_used,
-                    'sessions_remaining': session.sessions_remaining,
-                    'is_unlimited': session.is_unlimited
-                })
+            # Session functionality will be implemented when CustomerPackageSession model is added
+            # For now, show basic package information
+            # Placeholder for session details - will be implemented when CustomerPackageSession model is added
+            session_details = [
+                {
+                    'service_id': None,
+                    'service_name': 'Package sessions feature coming soon',
+                    'sessions_total': 0,
+                    'sessions_used': 0,
+                    'sessions_remaining': 0,
+                    'is_unlimited': False
+                }
+            ]
 
             package_data.append({
                 'id': pkg.id,
