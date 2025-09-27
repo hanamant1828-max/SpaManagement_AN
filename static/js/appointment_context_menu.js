@@ -59,7 +59,7 @@ function createContextMenu() {
             border-bottom: 1px solid #eee;
         ">
             <i class="fas fa-cash-register" style="margin-right: 8px; color: #28a745;"></i>
-            Go to Integrated Billing
+            Bill All Customer Bookings
         </div>
         <div class="context-menu-item" onclick="viewAppointmentDetails()" style="
             padding: 12px 16px;
@@ -449,8 +449,8 @@ class AppointmentContextMenu {
     }
 
     goToIntegratedBilling() {
-        // Show loading indicator
-        this.showLoadingMessage('Redirecting to billing...');
+        // Show loading indicator with specific message
+        this.showLoadingMessage('Loading all customer bookings for billing...');
         
         // Redirect to the integrated billing with appointment data
         window.location.href = `/appointment/${this.currentAppointmentId}/go-to-billing`;

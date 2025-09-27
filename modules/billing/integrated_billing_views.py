@@ -208,7 +208,7 @@ def integrated_billing(customer_id=None):
 @app.route('/appointment/<int:appointment_id>/go-to-billing')
 @login_required
 def appointment_to_billing(appointment_id):
-    """Redirect to integrated billing for a specific appointment's customer"""
+    """Redirect to integrated billing for a specific appointment's customer and show ALL their bookings"""
     if not current_user.can_access('billing'):
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
@@ -219,14 +219,17 @@ def appointment_to_billing(appointment_id):
         # First try to find in regular Appointment table
         appointment = Appointment.query.get(appointment_id)
         customer_id = None
+        customer_name = None
 
         if appointment:
             customer_id = appointment.client_id
-            app.logger.info(f"Found regular appointment {appointment_id}, customer {customer_id}")
+            customer_name = appointment.client.full_name if appointment.client else 'Unknown'
+            app.logger.info(f"Found regular appointment {appointment_id}, customer {customer_id} ({customer_name})")
         else:
             # Try to find in UnakiBooking table
             unaki_booking = UnakiBooking.query.get(appointment_id)
             if unaki_booking:
+                customer_name = unaki_booking.client_name
                 # Try to find customer by phone or name
                 customer = None
                 if unaki_booking.client_phone:
@@ -236,7 +239,6 @@ def appointment_to_billing(appointment_id):
                     # Try to find by name (split and search)
                     name_parts = unaki_booking.client_name.strip().split(' ', 1)
                     first_name = name_parts[0] if name_parts else ''
-                    last_name = name_parts[1] if len(name_parts) > 1 else ''
 
                     if first_name:
                         customer = Customer.query.filter(
@@ -245,7 +247,7 @@ def appointment_to_billing(appointment_id):
 
                 if customer:
                     customer_id = customer.id
-                    app.logger.info(f"Found UnakiBooking {appointment_id}, matched to customer {customer_id}")
+                    app.logger.info(f"Found UnakiBooking {appointment_id}, matched to customer {customer_id} ({customer_name})")
                 else:
                     # Create a basic customer record for the booking
                     name_parts = unaki_booking.client_name.strip().split(' ', 1)
@@ -262,14 +264,18 @@ def appointment_to_billing(appointment_id):
                     db.session.add(new_customer)
                     db.session.commit()
                     customer_id = new_customer.id
-                    app.logger.info(f"Created new customer {customer_id} for UnakiBooking {appointment_id}")
+                    customer_name = new_customer.full_name
+                    app.logger.info(f"Created new customer {customer_id} ({customer_name}) for UnakiBooking {appointment_id}")
             else:
                 raise Exception(f"No appointment or booking found with ID {appointment_id}")
 
         if not customer_id:
             raise Exception(f"Could not determine customer for appointment {appointment_id}")
 
-        # Redirect to integrated billing with customer_id
+        # Flash a success message showing we're loading all bookings for this customer
+        flash(f'Loading all confirmed bookings for {customer_name} ready for billing', 'info')
+
+        # Redirect to integrated billing with customer_id - this will automatically load ALL their bookings
         return redirect(url_for('integrated_billing', customer_id=customer_id))
 
     except Exception as e:
