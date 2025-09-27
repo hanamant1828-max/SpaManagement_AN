@@ -1,69 +1,70 @@
 # Spa Management System
 
+A comprehensive Flask-based web application for managing spa and salon operations.
+
 ## Overview
-This is a comprehensive Flask-based spa management system that handles customer management, appointments, staff scheduling, inventory, billing, and packages. The system provides a complete solution for spa operations with an advanced database structure and modern web interface.
+This project is a sophisticated spa management system built with Flask that handles:
+- Customer management and profiles
+- Staff scheduling and management
+- Service bookings and appointments
+- Inventory tracking
+- Billing and payment processing
+- Reporting and analytics
+- Package and membership management
+
+## Current State
+- ✅ **Status**: Successfully configured and running on Replit
+- ✅ **Database**: PostgreSQL database configured and ready
+- ✅ **Frontend**: Flask web application with professional UI
+- ✅ **Port**: Running on port 5000 with webview configuration
+- ✅ **Deployment**: Configured for autoscale deployment with Gunicorn
+
+## Recent Changes (September 27, 2025)
+- Migrated from GitHub import to Replit environment
+- Updated database configuration from SQLite to PostgreSQL
+- Configured proper Flask development workflow
+- Set up deployment configuration for production
+- Verified all components are working correctly
 
 ## Project Architecture
-- **Backend**: Flask (Python) with SQLAlchemy ORM
-- **Database**: SQLite for development (configured for PostgreSQL compatibility)
-- **Frontend**: HTML templates with Bootstrap, jQuery, and JavaScript
-- **Authentication**: Flask-Login with role-based access control
-- **Deployment**: Configured for Replit with gunicorn for production
 
-## Key Features
-- Customer management with facial recognition support
-- Staff management with shift scheduling
-- Service and package management
-- Inventory management with batch tracking
-- Comprehensive billing and invoicing system
-- Appointment booking and management
-- Role-based permission system
-- Reporting and analytics
+### Backend
+- **Framework**: Flask 3.1+
+- **Database**: PostgreSQL via Replit's built-in service
+- **ORM**: SQLAlchemy 2.0+
+- **Authentication**: Flask-Login
+- **Forms**: WTForms with Flask-WTF
 
-## Current Configuration
-- **Development Server**: Flask dev server on port 5000
-- **Production Deployment**: Gunicorn with autoscale deployment target
-- **Database**: SQLite with proper PRAGMA settings for concurrent access
-- **Environment**: Configured for Replit environment with proxy support
+### Frontend
+- **Templates**: Jinja2
+- **CSS Framework**: Bootstrap
+- **JavaScript**: Vanilla JS with modern modules
+- **Icons**: Font Awesome
 
-## Recent Changes
-- 2025-09-27: **Successfully imported from GitHub and configured for Replit environment**
-  - ✅ Installed all Python dependencies from requirements.txt
-  - ✅ Configured SQLite database with proper connection settings
-  - ✅ Set up Flask application with Replit-compatible configuration (proxy headers, CORS, cache control)
-  - ✅ Created Flask Frontend workflow running on port 5000 with webview output
-  - ✅ Tested application - login page and navigation working perfectly
-  - ✅ Configured deployment settings for production use with gunicorn and autoscale
-  - ✅ All core modules loading successfully (auth, dashboard, clients, services, inventory, etc.)
-  - ✅ Application running smoothly in Replit environment
-  - ✅ Import process completed - application is ready for use and deployment
+### Key Modules
+- Authentication and user management
+- Dashboard with analytics
+- Staff management and scheduling
+- Customer/client management
+- Service management
+- Appointment booking
+- Inventory management
+- Billing and payments
+- Reporting system
 
-## Project Structure
-```
-/
-├── app.py                 # Main Flask application configuration
-├── main.py               # Application entry point
-├── models.py             # Database models
-├── modules/              # Modular application components
-│   ├── auth/            # Authentication module
-│   ├── billing/         # Billing and invoicing
-│   ├── staff/           # Staff management and scheduling
-│   ├── inventory/       # Inventory management
-│   ├── packages/        # Package management
-│   └── ...              # Other modules
-├── templates/           # HTML templates
-├── static/             # CSS, JS, and assets
-└── hanamantdatabase/   # SQLite database files
-```
+## Development Workflow
+1. The main workflow "Spa Management System" runs the Flask development server
+2. Application is accessible via webview on port 5000
+3. PostgreSQL database handles all data persistence
+4. Hot reloading enabled for development
+
+## Deployment
+- **Target**: Autoscale deployment
+- **Server**: Gunicorn WSGI server
+- **Configuration**: Ready for production deployment on Replit
 
 ## User Preferences
-- Production-ready design with professional UI
-- Modular architecture for maintainability
-- Comprehensive error handling and logging
-- Security-focused with proper authentication
-
-## Development Notes
-- SQLite configured with WAL mode for better concurrency
-- Flask app configured with proper proxy headers for Replit
-- All routes registered through modular blueprint system
-- Environment variables properly configured for security
+- Follow existing Flask project structure and conventions
+- Maintain professional UI/UX design
+- Use PostgreSQL for data persistence
+- Prioritize security and proper authentication
