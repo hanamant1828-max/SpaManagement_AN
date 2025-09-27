@@ -167,24 +167,19 @@ def integrated_billing(customer_id=None):
     if customer_id:
         selected_customer = Customer.query.get(customer_id)
         if selected_customer:
-            # Get all appointments for this customer (both paid and unpaid)
+            # Get only CURRENT booked appointments (not completed/paid) - save time
             customer_appointments = Appointment.query.filter(
                 Appointment.client_id == customer_id,
-                Appointment.status.in_(['completed', 'confirmed', 'scheduled'])
+                Appointment.status.in_(['confirmed', 'scheduled']),
+                Appointment.is_paid == False  # Only unpaid appointments
             ).order_by(Appointment.appointment_date.desc()).all()
 
-            # Get all unique services this customer has taken
-            from sqlalchemy import distinct
-            customer_service_ids = db.session.query(distinct(Appointment.service_id)).filter(
-                Appointment.client_id == customer_id,
-                Appointment.status.in_(['completed', 'confirmed', 'scheduled'])
-            ).all()
+            # Get services from current appointments only
+            current_service_ids = [apt.service_id for apt in customer_appointments if apt.service_id]
+            if current_service_ids:
+                customer_services = Service.query.filter(Service.id.in_(current_service_ids)).all()
 
-            if customer_service_ids:
-                service_ids = [sid[0] for sid in customer_service_ids]
-                customer_services = Service.query.filter(Service.id.in_(service_ids)).all()
-
-            print(f"DEBUG: Customer {customer_id} has {len(customer_appointments)} appointments and {len(customer_services)} unique services")
+            print(f"DEBUG: Customer {customer_id} has {len(customer_appointments)} current unpaid appointments and {len(customer_services)} services ready for billing")
 
     return render_template('integrated_billing.html',
                          customers=customers,

@@ -161,13 +161,13 @@
                                 <div class="card border-info">
                                     <div class="card-header bg-info text-white">
                                         <h6 class="mb-0">
-                                            <i class="fas fa-user me-2"></i>{{ selected_customer.full_name }}'s Service History
-                                            <span class="badge bg-light text-dark ms-2">{{ customer_appointments|length }} Total Appointments</span>
+                                            <i class="fas fa-user me-2"></i>{{ selected_customer.full_name }}'s Current Bookings
+                                            <span class="badge bg-primary text-white ms-2">{{ customer_appointments|length }} Ready to Bill</span>
                                         </h6>
                                     </div>
                                     <div class="card-body">
                                         {% if customer_services %}
-                                        <h6 class="text-primary mb-3">Services Taken ({{ customer_services|length }} unique services):</h6>
+                                        <h6 class="text-primary mb-3">Current Services to Bill ({{ customer_services|length }} services):</h6>
                                         <div class="row">
                                             {% for service in customer_services %}
                                             <div class="col-md-4 mb-2">
@@ -179,57 +179,67 @@
                                             </div>
                                             {% endfor %}
                                         </div>
-                                        {% else %}
-                                        <div class="text-center text-muted">
-                                            <i class="fas fa-info-circle fa-2x mb-2"></i>
-                                            <p>No service history found for this customer</p>
-                                        </div>
                                         {% endif %}
 
                                         {% if customer_appointments %}
                                         <hr>
-                                        <h6 class="text-primary mb-3">Recent Appointments:</h6>
+                                        <h6 class="text-success mb-3">
+                                            <i class="fas fa-clock me-1"></i>Current Bookings Ready for Billing:
+                                        </h6>
                                         <div class="table-responsive">
-                                            <table class="table table-sm">
-                                                <thead>
+                                            <table class="table table-sm table-bordered">
+                                                <thead class="table-success">
                                                     <tr>
-                                                        <th>Date</th>
+                                                        <th>Date & Time</th>
                                                         <th>Service</th>
                                                         <th>Staff</th>
                                                         <th>Status</th>
                                                         <th>Amount</th>
-                                                        <th>Payment</th>
+                                                        <th>Action</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody>
-                                                    {% for appointment in customer_appointments[:10] %}
-                                                    <tr>
-                                                        <td>{{ appointment.appointment_date.strftime('%d %b %Y') }}</td>
-                                                        <td>{{ appointment.service.name if appointment.service else 'N/A' }}</td>
+                                                    {% for appointment in customer_appointments %}
+                                                    <tr class="bg-light">
+                                                        <td>
+                                                            <strong>{{ appointment.appointment_date.strftime('%d %b %Y') }}</strong><br>
+                                                            <small class="text-muted">{{ appointment.appointment_date.strftime('%I:%M %p') }}</small>
+                                                        </td>
+                                                        <td>
+                                                            <strong>{{ appointment.service.name if appointment.service else 'N/A' }}</strong><br>
+                                                            <small class="text-muted">{{ appointment.service.duration if appointment.service else '0' }} mins</small>
+                                                        </td>
                                                         <td>{{ appointment.assigned_staff.full_name if appointment.assigned_staff else 'N/A' }}</td>
                                                         <td>
-                                                            <span class="badge badge-{{ 'success' if appointment.status == 'completed' else 'warning' if appointment.status == 'confirmed' else 'secondary' }}">
+                                                            <span class="badge badge-warning">
                                                                 {{ appointment.status.title() }}
                                                             </span>
                                                         </td>
-                                                        <td>₹{{ "{:,.2f}".format(appointment.amount) if appointment.amount else '0.00' }}</td>
                                                         <td>
-                                                            <span class="badge badge-{{ 'success' if appointment.is_paid else 'danger' }}">
-                                                                {{ 'Paid' if appointment.is_paid else 'Pending' }}
-                                                            </span>
+                                                            <strong class="text-success">₹{{ "{:,.2f}".format(appointment.amount) if appointment.amount else appointment.service.price if appointment.service else '0.00' }}</strong>
+                                                        </td>
+                                                        <td>
+                                                            <button type="button" class="btn btn-success btn-sm" onclick="addAppointmentToBill({{ appointment.id }}, '{{ appointment.service.name if appointment.service else '' }}', {{ appointment.service.id if appointment.service else 'null' }}, {{ appointment.service.price if appointment.service else 0 }})">
+                                                                <i class="fas fa-plus me-1"></i>Add to Bill
+                                                            </button>
                                                         </td>
                                                     </tr>
                                                     {% endfor %}
                                                 </tbody>
                                             </table>
                                         </div>
+                                        {% else %}
+                                        <div class="alert alert-info">
+                                            <i class="fas fa-info-circle me-2"></i>
+                                            <strong>No current bookings found.</strong> This customer has no pending appointments to bill.
+                                        </div>
                                         {% endif %}
 
                                         <div class="mt-3">
-                                            <button type="button" class="btn btn-outline-info btn-sm" onclick="autoFillCustomerServices()">
-                                                <i class="fas fa-magic me-1"></i>Auto-Fill Customer's Favorite Services
+                                            <button type="button" class="btn btn-outline-primary btn-sm" onclick="autoFillCurrentServices()">
+                                                <i class="fas fa-bolt me-1"></i>Auto-Fill Current Services
                                             </button>
-                                            <button type="button" class="btn btn-outline-success btn-sm" onclick="viewFullCustomerHistory()">
+                                            <button type="button" class="btn btn-outline-info btn-sm" onclick="viewFullCustomerHistory()">
                                                 <i class="fas fa-history me-1"></i>View Full History
                                             </button>
                                         </div>
@@ -619,10 +629,10 @@ function showNotification(message, type = 'info') {
         ${message}
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     `;
-    
+
     // Add to page
     document.body.appendChild(notification);
-    
+
     // Auto-remove after 5 seconds
     setTimeout(() => {
         if (notification.parentNode) {
@@ -640,7 +650,7 @@ document.addEventListener('DOMContentLoaded', function() {
             console.error('Services dropdown is empty! Check backend data loading.');
         }
     });
-    
+
     // Add customer selection change handler
     const customerSelect = document.getElementById('client_id');
     if (customerSelect) {
@@ -675,25 +685,74 @@ function addServiceRow() {
     const button = newRow.querySelector('button');
     button.className = 'btn btn-danger btn-sm';
     button.innerHTML = '<i class="fas fa-minus"></i>';
-    button.onclick = function() { this.closest('.service-row').remove(); };
+    button.onclick = function() { this.closest('.service-row').remove(); updateTaxCalculations(); };
 
     container.appendChild(newRow);
 }
 
+// Function to add appointment directly to billing
+        function addAppointmentToBill(appointmentId, serviceName, serviceId, servicePrice) {
+            console.log('Adding appointment to bill:', appointmentId, serviceName, serviceId, servicePrice);
+
+            // Find the first empty service row or add a new one
+            const serviceRows = document.querySelectorAll('.service-row');
+            let targetRow = null;
+
+            // Look for empty row
+            for (let row of serviceRows) {
+                const serviceSelect = row.querySelector('select[name="service_ids[]"]');
+                if (!serviceSelect.value) {
+                    targetRow = row;
+                    break;
+                }
+            }
+
+            // If no empty row found, add new one
+            if (!targetRow) {
+                addServiceRow();
+                const allRows = document.querySelectorAll('.service-row');
+                targetRow = allRows[allRows.length - 1];
+            }
+
+            // Fill the row with appointment data
+            if (targetRow && serviceId) {
+                const serviceSelect = targetRow.querySelector('select[name="service_ids[]"]');
+                const quantityInput = targetRow.querySelector('input[name="service_quantities[]"]');
+                const appointmentInput = targetRow.querySelector('input[name="appointment_ids[]"]');
+
+                serviceSelect.value = serviceId;
+                quantityInput.value = '1';
+                appointmentInput.value = appointmentId;
+
+                // Highlight the row
+                targetRow.style.borderLeft = '4px solid #28a745';
+                targetRow.style.backgroundColor = 'rgba(40, 167, 69, 0.1)';
+
+                // Update calculations
+                updateTaxCalculations();
+
+                // Show success message
+                showNotification(`Added ${serviceName} to bill successfully!`, 'success');
+            }
+        }
+
 // Auto-fill customer's favorite services
-function autoFillCustomerServices() {
+function autoFillCurrentServices() {
+    // This function should now auto-fill services based on current bookings if available.
+    // For simplicity here, we'll keep the original logic of auto-filling from customer_services.
+    // In a more advanced version, you might want to specifically link to `customer_appointments`.
     {% if selected_customer and customer_services %}
     const servicesContainer = document.getElementById('servicesContainer');
-    
+
     // Clear existing service rows except the first one
     const serviceRows = servicesContainer.querySelectorAll('.service-row');
     for (let i = 1; i < serviceRows.length; i++) {
         serviceRows[i].remove();
     }
-    
+
     // Get customer's services
     const customerServices = {{ customer_services | tojson }};
-    
+
     customerServices.forEach((service, index) => {
         let serviceRow;
         if (index === 0) {
@@ -704,30 +763,30 @@ function autoFillCustomerServices() {
             addServiceRow();
             serviceRow = servicesContainer.lastElementChild;
         }
-        
+
         // Fill the service dropdown
         const serviceSelect = serviceRow.querySelector('select[name="service_ids[]"]');
         if (serviceSelect) {
             serviceSelect.value = service.id;
-            
+
             // Trigger change event to update any dependent fields
             const event = new Event('change', { bubbles: true });
             serviceSelect.dispatchEvent(event);
         }
-        
+
         // Set quantity to 1
         const quantityInput = serviceRow.querySelector('input[name="service_quantities[]"]');
         if (quantityInput) {
             quantityInput.value = '1';
         }
     });
-    
+
     // Update tax calculations
     updateTaxCalculations();
-    
-    showNotification('Customer\'s favorite services have been auto-filled!', 'success');
+
+    showNotification('Customer\'s current services have been auto-filled!', 'success');
     {% else %}
-    showNotification('No customer services found to auto-fill', 'warning');
+    showNotification('No current services found to auto-fill', 'warning');
     {% endif %}
 }
 
@@ -1034,35 +1093,35 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // Function to auto-populate customer's historical services
-function autoPopulateCustomerServices(customerId) {
+        function autoPopulateCustomerServices(customerId) {
     if (!customerId) return;
 
     // Check if customer_services data is passed from backend
     const customerServicesData = {{ customer_services | safe }};
-    
+
     if (customerServicesData && customerServicesData.length > 0) {
         console.log('Auto-populating services for customer:', customerServicesData);
-        
+
         // Clear existing service rows except the first one
         const servicesContainer = document.getElementById('servicesContainer');
         const firstRow = servicesContainer.querySelector('.service-row');
         servicesContainer.innerHTML = '';
         servicesContainer.appendChild(firstRow);
-        
+
         // Populate services
         customerServicesData.forEach((service, index) => {
             if (index === 0) {
                 // Use first row
                 const firstServiceSelect = firstRow.querySelector('select[name="service_ids[]"]');
                 firstServiceSelect.value = service.id;
-                
+
                 // Add visual indicator
                 firstRow.style.borderLeft = '3px solid #28a745';
                 firstRow.style.backgroundColor = 'rgba(40, 167, 69, 0.1)';
                 firstRow.style.padding = '10px';
                 firstRow.style.borderRadius = '5px';
                 firstRow.style.marginBottom = '10px';
-                
+
                 // Add label
                 const existingLabel = firstRow.querySelector('.auto-service-label');
                 if (!existingLabel) {
@@ -1076,7 +1135,7 @@ function autoPopulateCustomerServices(customerId) {
                 addServiceRowWithData(service);
             }
         });
-        
+
         // Show notification
         const notification = document.createElement('div');
         notification.className = 'alert alert-info alert-dismissible fade show';
@@ -1085,17 +1144,17 @@ function autoPopulateCustomerServices(customerId) {
             <strong>Auto-populated services:</strong> Found ${customerServicesData.length} services this customer has previously booked.
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         `;
-        
+
         const form = document.getElementById('billingForm');
         form.insertBefore(notification, form.firstChild);
-        
+
         // Auto-dismiss notification after 5 seconds
         setTimeout(() => {
             if (notification.parentNode) {
                 notification.remove();
             }
         }, 5000);
-        
+
         // Update calculations
         updateTaxCalculations();
     }
@@ -1109,28 +1168,28 @@ function addServiceRowWithData(serviceData) {
     // Set service value
     const serviceSelect = newRow.querySelector('select[name="service_ids[]"]');
     serviceSelect.value = serviceData.id;
-    
+
     // Set default quantity
     const quantityInput = newRow.querySelector('input[name="service_quantities[]"]');
     quantityInput.value = '1';
-    
+
     // Clear appointment ID
     const appointmentInput = newRow.querySelector('input[name="appointment_ids[]"]');
     appointmentInput.value = '';
-    
+
     // Style the row to indicate it's auto-populated
     newRow.style.borderLeft = '3px solid #28a745';
     newRow.style.backgroundColor = 'rgba(40, 167, 69, 0.1)';
     newRow.style.padding = '10px';
     newRow.style.borderRadius = '5px';
     newRow.style.marginBottom = '10px';
-    
+
     // Change button to remove
     const button = newRow.querySelector('button');
     button.className = 'btn btn-danger btn-sm';
     button.innerHTML = '<i class="fas fa-minus"></i>';
     button.onclick = function() { this.closest('.service-row').remove(); updateTaxCalculations(); };
-    
+
     // Add label
     const label = document.createElement('small');
     label.className = 'auto-service-label text-success fw-bold d-block';
@@ -1890,6 +1949,7 @@ document.getElementById('billingForm').addEventListener('submit', function(e) {
             title.className = 'text-danger';
             body.innerHTML = `<div class="text-danger">
                 <i class="fas fa-exclamation-triangle fa-2x mb-3"></i>
+                <h5>Invoice creation failed</h5>
                 <p>${data.message}</p>
             </div>`;
             viewBtn.style.display = 'none';
@@ -2069,7 +2129,7 @@ document.getElementById('billingForm').addEventListener('submit', function(e) {
                 alert('Invoice ID not found. Cannot send via WhatsApp.');
             }
         }
-        
+
         // Auto-select customer and load appointments if coming from appointment context menu
         document.addEventListener('DOMContentLoaded', function() {
             // Auto-select customer if provided from appointment context menu
@@ -2079,7 +2139,7 @@ document.getElementById('billingForm').addEventListener('submit', function(e) {
                 customerSelect.value = '{{ selected_customer.id }}';
                 // Trigger change event to load customer packages
                 customerSelect.dispatchEvent(new Event('change'));
-                
+
                 // Show notification about auto-selection
                 const notification = document.createElement('div');
                 notification.className = 'alert alert-info alert-dismissible fade show mt-3';
@@ -2091,12 +2151,12 @@ document.getElementById('billingForm').addEventListener('submit', function(e) {
                     {% endif %}
                     <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                 `;
-                
+
                 // Insert notification after the header
                 const container = document.querySelector('.container-fluid');
                 const firstRow = container.querySelector('.row');
                 firstRow.parentNode.insertBefore(notification, firstRow.nextSibling);
-                
+
                 // Auto-populate services from customer appointments  
                 {% if customer_appointments %}
                 populateCustomerAppointments();
@@ -2109,7 +2169,7 @@ document.getElementById('billingForm').addEventListener('submit', function(e) {
         {% if customer_appointments %}
         function populateCustomerAppointments() {
             const appointments = {{ customer_appointments | tojson }};
-            
+
             if (appointments && appointments.length > 0) {
                 // Add success message
                 const successAlert = document.createElement('div');
@@ -2119,11 +2179,11 @@ document.getElementById('billingForm').addEventListener('submit', function(e) {
                     <strong>Services Ready for Billing:</strong> ${appointments.length} service${appointments.length !== 1 ? 's' : ''} from pending appointments
                     <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                 `;
-                
+
                 const container = document.querySelector('.container-fluid'); 
                 const billingCard = container.querySelector('.card');
                 billingCard.parentNode.insertBefore(successAlert, billingCard);
-                
+
                 // Auto-dismiss after 8 seconds
                 setTimeout(() => {
                     if (successAlert.parentNode) {
