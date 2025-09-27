@@ -3037,16 +3037,16 @@
             try {
                 console.log('🔄 Starting schedule render...');
                 console.log('📊 Schedule data:', scheduleData);
-                
+
                 if (!scheduleData || !scheduleData.staff || !scheduleData.appointments) {
                     console.error('❌ Invalid schedule data:', scheduleData);
                     document.getElementById('scheduleGrid').innerHTML = '<div class="text-center p-5 text-danger">No schedule data available</div>';
                     hideLoading();
                     return;
                 }
-                
+
                 generateScheduleGrid();
-                
+
                 // Reinitialize context menu after schedule is rendered
                 console.log('🔄 Reinitializing context menu after schedule render...');
                 if (window.reinitializeContextMenu) {
@@ -3054,7 +3054,7 @@
                         window.reinitializeContextMenu();
                     }, 100);
                 }
-                
+
                 // Show stats
                 updateStats();
                 hideLoading();
@@ -3065,7 +3065,7 @@
                 console.error('Error details:', error.stack);
                 hideLoading();
                 showNotification('Error loading schedule. Please refresh and try again.', 'error');
-                
+
                 // Show basic error message in grid
                 const grid = document.getElementById('scheduleGrid');
                 if (grid) {
@@ -3078,6 +3078,39 @@
                     `;
                 }
             }
+        }
+
+        // Helper function to get service color
+        function getServiceColor(serviceName) {
+            const colors = {
+                'facial': '#e3f2fd',
+                'massage': '#f3e5f5',
+                'manicure': '#e8f5e8',
+                'pedicure': '#fff3e0',
+                'hair': '#fce4ec',
+                'body': '#e0f2f1'
+            };
+
+            const key = serviceName ? serviceName.toLowerCase() : 'default';
+            for (const [service, color] of Object.entries(colors)) {
+                if (key.includes(service)) {
+                    return color;
+                }
+            }
+            return '#f5f5f5';
+        }
+
+        // Helper function for notifications
+        function showNotification(message, type = 'info') {
+            console.log(`📢 ${type.toUpperCase()}: ${message}`);
+            // You can implement a toast notification system here
+            alert(message);
+        }
+
+        // Helper function to refresh schedule
+        function refreshSchedule() {
+            console.log('🔄 Refreshing schedule');
+            loadScheduleForDate();
         }
     </script>
 </body>

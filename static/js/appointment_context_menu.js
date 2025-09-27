@@ -1,422 +1,446 @@
-/**
- * Appointment Context Menu for Right-Click "Go to Integrated Billing"
- * Works with all booking templates and appointment blocks
- */
 
-// Global context menu variables
-let contextMenu = null;
-let currentAppointmentId = null;
+// Appointment Context Menu Implementation
+class AppointmentContextMenu {
+    constructor() {
+        this.contextMenu = null;
+        this.currentAppointmentId = null;
+        this.isInitialized = false;
+        this.init();
+    }
 
-// Initialize context menu when DOM is loaded
+    init() {
+        this.createContextMenuHTML();
+        this.attachGlobalEventListeners();
+        this.isInitialized = true;
+        console.log('🎛️ Context menu system initialized');
+    }
+
+    createContextMenuHTML() {
+        // Remove existing context menu if it exists
+        const existingMenu = document.getElementById('appointment-context-menu');
+        if (existingMenu) {
+            existingMenu.remove();
+        }
+
+        // Create context menu HTML
+        const contextMenuHTML = `
+            <div id="appointment-context-menu" class="context-menu" style="display: none;">
+                <div class="context-menu-header">
+                    <strong id="context-menu-title">Appointment Actions</strong>
+                </div>
+                <div class="context-menu-divider"></div>
+                <ul class="context-menu-list">
+                    <li class="context-menu-item" data-action="view">
+                        <i class="fas fa-eye"></i> View Details
+                    </li>
+                    <li class="context-menu-item" data-action="edit">
+                        <i class="fas fa-edit"></i> Edit Appointment
+                    </li>
+                    <li class="context-menu-item" data-action="reschedule">
+                        <i class="fas fa-calendar-alt"></i> Reschedule
+                    </li>
+                    <li class="context-menu-divider"></li>
+                    <li class="context-menu-item" data-action="complete">
+                        <i class="fas fa-check-circle"></i> Mark Completed
+                    </li>
+                    <li class="context-menu-item" data-action="cancel">
+                        <i class="fas fa-times-circle"></i> Cancel Appointment
+                    </li>
+                    <li class="context-menu-divider"></li>
+                    <li class="context-menu-item danger" data-action="delete">
+                        <i class="fas fa-trash"></i> Delete Appointment
+                    </li>
+                </ul>
+            </div>
+        `;
+
+        // Add to body
+        document.body.insertAdjacentHTML('beforeend', contextMenuHTML);
+        this.contextMenu = document.getElementById('appointment-context-menu');
+
+        // Add context menu styles if not already present
+        this.addContextMenuStyles();
+
+        // Add click handlers to menu items
+        this.attachContextMenuHandlers();
+    }
+
+    addContextMenuStyles() {
+        const existingStyle = document.getElementById('context-menu-styles');
+        if (existingStyle) return;
+
+        const style = document.createElement('style');
+        style.id = 'context-menu-styles';
+        style.textContent = `
+            .context-menu {
+                position: fixed;
+                background: white;
+                border: 1px solid #ddd;
+                border-radius: 8px;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+                z-index: 10000;
+                min-width: 200px;
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+                font-size: 14px;
+            }
+
+            .context-menu-header {
+                padding: 12px 16px 8px;
+                font-weight: 600;
+                color: #333;
+                border-bottom: 1px solid #eee;
+            }
+
+            .context-menu-list {
+                list-style: none;
+                margin: 0;
+                padding: 8px 0;
+            }
+
+            .context-menu-item {
+                padding: 10px 16px;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                transition: background-color 0.2s;
+            }
+
+            .context-menu-item:hover {
+                background-color: #f5f5f5;
+            }
+
+            .context-menu-item.danger {
+                color: #dc3545;
+            }
+
+            .context-menu-item.danger:hover {
+                background-color: #fff5f5;
+                color: #dc3545;
+            }
+
+            .context-menu-divider {
+                height: 1px;
+                background-color: #eee;
+                margin: 4px 0;
+            }
+
+            .context-menu-item i {
+                width: 16px;
+                text-align: center;
+            }
+        `;
+        document.head.appendChild(style);
+    }
+
+    attachContextMenuHandlers() {
+        const menuItems = this.contextMenu.querySelectorAll('.context-menu-item[data-action]');
+        menuItems.forEach(item => {
+            item.addEventListener('click', (e) => {
+                const action = e.currentTarget.dataset.action;
+                this.handleContextMenuAction(action);
+                this.hideContextMenu();
+            });
+        });
+    }
+
+    attachGlobalEventListeners() {
+        // Hide context menu on click outside
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('#appointment-context-menu')) {
+                this.hideContextMenu();
+            }
+        });
+
+        // Hide context menu on scroll
+        document.addEventListener('scroll', () => {
+            this.hideContextMenu();
+        });
+
+        // Hide context menu on escape key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                this.hideContextMenu();
+            }
+        });
+    }
+
+    showContextMenu(x, y, appointmentId) {
+        this.currentAppointmentId = appointmentId;
+        
+        if (!this.contextMenu) {
+            console.error('Context menu not initialized');
+            return;
+        }
+
+        // Position the menu
+        this.contextMenu.style.left = `${x}px`;
+        this.contextMenu.style.top = `${y}px`;
+        this.contextMenu.style.display = 'block';
+
+        // Ensure menu stays within viewport
+        this.adjustMenuPosition();
+
+        // Update header with appointment info
+        this.updateContextMenuHeader(appointmentId);
+
+        console.log(`🎯 Context menu shown for appointment ${appointmentId} at (${x}, ${y})`);
+    }
+
+    adjustMenuPosition() {
+        const menu = this.contextMenu;
+        const menuRect = menu.getBoundingClientRect();
+        const viewportWidth = window.innerWidth;
+        const viewportHeight = window.innerHeight;
+
+        // Adjust horizontal position
+        if (menuRect.right > viewportWidth) {
+            menu.style.left = `${viewportWidth - menuRect.width - 10}px`;
+        }
+
+        // Adjust vertical position
+        if (menuRect.bottom > viewportHeight) {
+            menu.style.top = `${viewportHeight - menuRect.height - 10}px`;
+        }
+    }
+
+    updateContextMenuHeader(appointmentId) {
+        // Find appointment data
+        const appointmentElement = document.querySelector(`[data-appointment-id="${appointmentId}"]`);
+        if (appointmentElement) {
+            const clientName = appointmentElement.querySelector('.appointment-client')?.textContent || 'Unknown Client';
+            const serviceName = appointmentElement.querySelector('.appointment-service')?.textContent || 'Unknown Service';
+            
+            const header = this.contextMenu.querySelector('#context-menu-title');
+            header.textContent = `${clientName} - ${serviceName}`;
+        }
+    }
+
+    hideContextMenu() {
+        if (this.contextMenu) {
+            this.contextMenu.style.display = 'none';
+            this.currentAppointmentId = null;
+        }
+    }
+
+    handleContextMenuAction(action) {
+        if (!this.currentAppointmentId) {
+            console.error('No appointment ID set for context menu action');
+            return;
+        }
+
+        console.log(`🎬 Context menu action: ${action} for appointment ${this.currentAppointmentId}`);
+
+        switch (action) {
+            case 'view':
+                this.viewAppointment(this.currentAppointmentId);
+                break;
+            case 'edit':
+                this.editAppointment(this.currentAppointmentId);
+                break;
+            case 'reschedule':
+                this.rescheduleAppointment(this.currentAppointmentId);
+                break;
+            case 'complete':
+                this.completeAppointment(this.currentAppointmentId);
+                break;
+            case 'cancel':
+                this.cancelAppointment(this.currentAppointmentId);
+                break;
+            case 'delete':
+                this.deleteAppointment(this.currentAppointmentId);
+                break;
+            default:
+                console.log(`Unknown action: ${action}`);
+        }
+    }
+
+    viewAppointment(appointmentId) {
+        // Implement view appointment functionality
+        console.log(`Viewing appointment ${appointmentId}`);
+        // You can implement a modal or navigation to appointment details
+        alert(`View appointment ${appointmentId} (implement actual view functionality)`);
+    }
+
+    editAppointment(appointmentId) {
+        console.log(`Editing appointment ${appointmentId}`);
+        // Open edit modal or form
+        if (typeof openEditAppointmentModal === 'function') {
+            openEditAppointmentModal(appointmentId);
+        } else {
+            alert(`Edit appointment ${appointmentId} (implement actual edit functionality)`);
+        }
+    }
+
+    rescheduleAppointment(appointmentId) {
+        console.log(`Rescheduling appointment ${appointmentId}`);
+        alert(`Reschedule appointment ${appointmentId} (implement actual reschedule functionality)`);
+    }
+
+    completeAppointment(appointmentId) {
+        if (confirm('Mark this appointment as completed?')) {
+            this.updateAppointmentStatus(appointmentId, 'completed');
+        }
+    }
+
+    cancelAppointment(appointmentId) {
+        if (confirm('Cancel this appointment?')) {
+            this.updateAppointmentStatus(appointmentId, 'cancelled');
+        }
+    }
+
+    deleteAppointment(appointmentId) {
+        if (confirm('Are you sure you want to delete this appointment? This action cannot be undone.')) {
+            // Make API call to delete appointment
+            fetch(`/api/unaki/appointments/${appointmentId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    console.log('✅ Appointment deleted successfully');
+                    // Remove from DOM
+                    const appointmentElement = document.querySelector(`[data-appointment-id="${appointmentId}"]`);
+                    if (appointmentElement) {
+                        appointmentElement.remove();
+                    }
+                    // Show success message
+                    if (typeof showNotification === 'function') {
+                        showNotification('Appointment deleted successfully', 'success');
+                    }
+                    // Refresh schedule
+                    if (typeof refreshSchedule === 'function') {
+                        refreshSchedule();
+                    }
+                } else {
+                    console.error('Failed to delete appointment:', data.error);
+                    alert('Failed to delete appointment: ' + data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error deleting appointment:', error);
+                alert('Error deleting appointment. Please try again.');
+            });
+        }
+    }
+
+    updateAppointmentStatus(appointmentId, status) {
+        fetch(`/api/unaki/bookings/${appointmentId}/update-status`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ status: status })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                console.log(`✅ Appointment ${appointmentId} status updated to ${status}`);
+                // Update visual indication
+                const appointmentElement = document.querySelector(`[data-appointment-id="${appointmentId}"]`);
+                if (appointmentElement) {
+                    appointmentElement.classList.add(`status-${status}`);
+                }
+                // Show success message
+                if (typeof showNotification === 'function') {
+                    showNotification(`Appointment marked as ${status}`, 'success');
+                }
+                // Refresh schedule
+                if (typeof refreshSchedule === 'function') {
+                    refreshSchedule();
+                }
+            } else {
+                console.error(`Failed to update appointment status:`, data.error);
+                alert(`Failed to update appointment status: ${data.error}`);
+            }
+        })
+        .catch(error => {
+            console.error('Error updating appointment status:', error);
+            alert('Error updating appointment status. Please try again.');
+        });
+    }
+
+    reinitializeForAppointments() {
+        // This function is called after DOM updates to reattach event listeners
+        console.log('🔄 Reinitializing context menu for appointments');
+        
+        // Find all appointment blocks
+        const appointmentBlocks = document.querySelectorAll('.appointment-block');
+        console.log(`🔍 Found ${appointmentBlocks.length} appointment blocks to initialize`);
+
+        appointmentBlocks.forEach((block, index) => {
+            // Remove existing right-click listeners
+            const clone = block.cloneNode(true);
+            block.parentNode.replaceChild(clone, block);
+            
+            // Add right-click event listener
+            clone.addEventListener('contextmenu', (event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                
+                const appointmentId = this.getAppointmentId(clone);
+                if (appointmentId) {
+                    console.log(`🎯 Right-click detected on appointment ${appointmentId}`);
+                    this.showContextMenu(event.pageX, event.pageY, appointmentId);
+                } else {
+                    console.error('No appointment ID found for right-clicked element');
+                }
+            });
+
+            // Mark as context menu ready
+            clone.setAttribute('data-context-menu-ready', 'true');
+            console.log(`✅ Context menu attached to appointment ${index + 1}: ID ${this.getAppointmentId(clone)}`);
+        });
+
+        console.log('✅ Context menu reinitialized');
+        console.log(`📊 Context menu coverage: ${appointmentBlocks.length}/${appointmentBlocks.length} appointment blocks`);
+    }
+
+    getAppointmentId(element) {
+        // Try multiple ways to get appointment ID
+        return element.dataset.appointmentId || 
+               element.getAttribute('data-appointment-id') || 
+               element.getAttribute('data-id') ||
+               null;
+    }
+}
+
+// Global instance
+let appointmentContextMenu = null;
+
+// Initialize when DOM is ready
 document.addEventListener('DOMContentLoaded', function() {
-    initializeAppointmentContextMenu();
+    appointmentContextMenu = new AppointmentContextMenu();
 });
 
-function initializeAppointmentContextMenu() {
-    // Create context menu HTML
-    createContextMenu();
-    
-    // Add event listeners for appointment blocks
-    addAppointmentListeners();
-    
-    // Hide context menu when clicking elsewhere
-    document.addEventListener('click', hideContextMenu);
-    
-    console.log('✅ Appointment context menu initialized');
-}
-
-function createContextMenu() {
-    // Remove existing context menu if any
-    const existing = document.getElementById('appointmentContextMenu');
-    if (existing) {
-        existing.remove();
+// Global functions for compatibility
+window.reinitializeContextMenu = function() {
+    if (appointmentContextMenu) {
+        appointmentContextMenu.reinitializeForAppointments();
+    } else {
+        console.error('Context menu not initialized yet');
     }
-    
-    // Create new context menu
-    contextMenu = document.createElement('div');
-    contextMenu.id = 'appointmentContextMenu';
-    contextMenu.className = 'context-menu';
-    contextMenu.style.cssText = `
-        position: fixed;
-        background: white;
-        border: 1px solid #ccc;
-        border-radius: 6px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-        z-index: 10000;
-        display: none;
-        min-width: 200px;
-        padding: 8px 0;
-    `;
-    
-    contextMenu.innerHTML = `
-        <div class="context-menu-item" onclick="goToIntegratedBilling()" style="
-            padding: 12px 16px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            font-size: 14px;
-            color: #333;
-            border-bottom: 1px solid #eee;
-        ">
-            <i class="fas fa-cash-register" style="margin-right: 8px; color: #28a745;"></i>
-            Bill All Customer Bookings
-        </div>
-        <div class="context-menu-item" onclick="viewAppointmentDetails()" style="
-            padding: 12px 16px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            font-size: 14px;
-            color: #333;
-            border-bottom: 1px solid #eee;
-        ">
-            <i class="fas fa-eye" style="margin-right: 8px; color: #007bff;"></i>
-            View Details
-        </div>
-        <div class="context-menu-item" onclick="editAppointment()" style="
-            padding: 12px 16px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            font-size: 14px;
-            color: #333;
-        ">
-            <i class="fas fa-edit" style="margin-right: 8px; color: #ffc107;"></i>
-            Edit Appointment
-        </div>
-    `;
-    
-    // Add hover effects
-    const menuItems = contextMenu.querySelectorAll('.context-menu-item');
-    menuItems.forEach(item => {
-        item.addEventListener('mouseenter', function() {
-            this.style.backgroundColor = '#f8f9fa';
-        });
-        item.addEventListener('mouseleave', function() {
-            this.style.backgroundColor = 'transparent';
-        });
-    });
-    
-    document.body.appendChild(contextMenu);
-}
+};
 
-function addAppointmentListeners() {
-    // Target multiple appointment selectors with more comprehensive coverage
-    const appointmentSelectors = [
-        '.appointment-block',
-        '.appointment-item',
-        '.booking-slot',
-        '.schedule-appointment',
-        '.appointment',
-        '[data-appointment-id]'
-    ];
-    
-    // Also target staff header columns for staff-level context menu
-    const staffSelectors = [
-        '.staff-cell',
-        '.staff-header-column',
-        '.staff-name',
-        '.staff-row'
-    ];
-    
-    // Add listeners for appointment blocks with improved detection
-    appointmentSelectors.forEach(selector => {
-        const appointments = document.querySelectorAll(selector);
-        console.log(`🔍 Found ${appointments.length} appointments for selector: ${selector}`);
+window.handleAppointmentRightClick = function(event) {
+    if (appointmentContextMenu) {
+        event.preventDefault();
+        event.stopPropagation();
         
-        appointments.forEach((appointment, index) => {
-            // Skip if already has context menu attached (avoid duplicates)
-            if (appointment.hasAttribute('data-context-menu-ready')) {
-                return;
-            }
-            
-            // Remove existing listeners to prevent duplicates
-            appointment.removeEventListener('contextmenu', handleAppointmentRightClick);
-            
-            // Add right-click listener with proper event handling
-            appointment.addEventListener('contextmenu', function(event) {
-                console.log(`🎯 Context menu triggered for appointment ${index + 1}`);
-                handleAppointmentRightClick(event);
-            });
-            
-            // Make sure appointment has cursor pointer
-            appointment.style.cursor = 'pointer';
-            
-            // Mark as having context menu attached
-            appointment.setAttribute('data-context-menu-ready', 'true');
-            
-            // Debug: Log appointment details
-            const appointmentId = appointment.dataset.appointmentId || appointment.getAttribute('data-appointment-id');
-            console.log(`✅ Context menu attached to appointment ${index + 1}: ID ${appointmentId}`);
-        });
-    });
-    
-    // Add listeners for staff header columns
-    staffSelectors.forEach(selector => {
-        const staffHeaders = document.querySelectorAll(selector);
-        console.log(`🔍 Found ${staffHeaders.length} staff headers for selector: ${selector}`);
+        const appointmentElement = event.currentTarget;
+        const appointmentId = appointmentContextMenu.getAppointmentId(appointmentElement);
         
-        staffHeaders.forEach((staffHeader, index) => {
-            // Remove existing listeners to prevent duplicates
-            staffHeader.removeEventListener('contextmenu', handleStaffHeaderRightClick);
-            
-            // Add right-click listener
-            staffHeader.addEventListener('contextmenu', handleStaffHeaderRightClick);
-            
-            // Make sure staff header has cursor pointer
-            staffHeader.style.cursor = 'pointer';
-            
-            // Debug: Log staff header details
-            const staffName = staffHeader.querySelector('.staff-name')?.textContent || 
-                             staffHeader.textContent || 
-                             staffHeader.dataset.staffName;
-            console.log(`✅ Context menu attached to staff header ${index + 1}: ${staffName}`);
-        });
-    });
-    
-    // Also try to find appointments in the entire schedule grid
-    const scheduleGrid = document.getElementById('scheduleGrid');
-    if (scheduleGrid) {
-        const allAppointmentBlocks = scheduleGrid.querySelectorAll('.appointment-block');
-        console.log(`🔍 Total appointment blocks found in schedule grid: ${allAppointmentBlocks.length}`);
-        
-        allAppointmentBlocks.forEach((block, index) => {
-            // Ensure each block has the right-click listener
-            if (!block.hasAttribute('data-context-menu-attached')) {
-                block.removeEventListener('contextmenu', handleAppointmentRightClick);
-                block.addEventListener('contextmenu', handleAppointmentRightClick);
-                block.style.cursor = 'pointer';
-                block.setAttribute('data-context-menu-attached', 'true');
-                
-                const appointmentId = block.dataset.appointmentId || block.getAttribute('data-appointment-id');
-                console.log(`✅ Context menu attached to grid appointment ${index + 1}: ID ${appointmentId}`);
-            }
-        });
-    }
-}
-
-function handleAppointmentRightClick(event) {
-    event.preventDefault();
-    event.stopPropagation();
-    
-    // Get appointment ID from various possible attributes
-    const appointmentElement = event.currentTarget;
-    
-    // Debug: Log all attributes to understand what we're working with
-    console.log('🔍 Right-click element:', appointmentElement);
-    console.log('🔍 Element class:', appointmentElement.className);
-    console.log('🔍 All data attributes:', appointmentElement.dataset);
-    console.log('🔍 data-appointment-id attribute:', appointmentElement.getAttribute('data-appointment-id'));
-    console.log('🔍 data-id attribute:', appointmentElement.getAttribute('data-id'));
-    
-    currentAppointmentId = appointmentElement.dataset.appointmentId || 
-                          appointmentElement.dataset.id ||
-                          appointmentElement.getAttribute('data-appointment-id') ||
-                          appointmentElement.getAttribute('data-id');
-    
-    // If no ID found, try to extract from nearby elements
-    if (!currentAppointmentId) {
-        const idElement = appointmentElement.querySelector('[data-appointment-id], [data-id]');
-        if (idElement) {
-            currentAppointmentId = idElement.dataset.appointmentId || idElement.dataset.id;
-            console.log('🔍 Found ID in child element:', currentAppointmentId);
+        if (appointmentId) {
+            console.log(`🎯 Right-click detected on appointment ${appointmentId}`);
+            appointmentContextMenu.showContextMenu(event.pageX, event.pageY, appointmentId);
         }
     }
-    
-    console.log('🔍 Right-clicked appointment ID:', currentAppointmentId);
-    
-    if (!currentAppointmentId) {
-        console.warn('⚠️ No appointment ID found for context menu');
-        console.warn('⚠️ Element HTML:', appointmentElement.outerHTML);
-        return;
-    }
-    
-    // Show context menu at cursor position
-    showContextMenu(event.pageX, event.pageY);
+};
+
+// Export for use in other scripts
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = { AppointmentContextMenu };
 }
-
-function handleStaffHeaderRightClick(event) {
-    event.preventDefault();
-    event.stopPropagation();
-    
-    // Get staff information from the header element
-    const staffElement = event.currentTarget;
-    
-    // Debug: Log staff header information
-    console.log('🎯 Staff header right-click detected!');
-    console.log('🔍 Right-click staff element:', staffElement);
-    console.log('🔍 Staff element class:', staffElement.className);
-    console.log('🔍 Staff data attributes:', staffElement.dataset);
-    
-    // Get staff name and ID from multiple possible sources
-    const staffName = staffElement.querySelector('.staff-name')?.textContent || 
-                     staffElement.textContent?.trim() || 
-                     staffElement.dataset.staffName || 
-                     staffElement.getAttribute('data-staff-name') ||
-                     'Unknown Staff';
-    
-    const staffId = staffElement.dataset.staffId || 
-                   staffElement.getAttribute('data-staff-id') ||
-                   staffElement.closest('[data-staff-id]')?.dataset.staffId ||
-                   staffElement.getAttribute('data-staff') ||
-                   extractStaffIdFromElement(staffElement);
-    
-    console.log('🎯 Staff header click - Staff:', staffName, 'ID:', staffId);
-    
-    // Set current appointment ID to null since this is a staff header click
-    currentAppointmentId = null;
-    
-    // Store staff information for context menu actions
-    window.currentStaffId = staffId;
-    window.currentStaffName = staffName;
-    
-    // Show context menu at cursor position
-    showContextMenu(event.pageX, event.pageY);
-}
-
-function extractStaffIdFromElement(element) {
-    // Try to extract staff ID from various attributes or text content
-    const allAttributes = Array.from(element.attributes);
-    for (let attr of allAttributes) {
-        if (attr.name.includes('staff') || attr.name.includes('id')) {
-            return attr.value;
-        }
-    }
-    return null;
-}
-
-function showContextMenu(x, y) {
-    if (!contextMenu) return;
-    
-    // Hide any existing context menu
-    hideContextMenu();
-    
-    // Position and show context menu
-    contextMenu.style.left = x + 'px';
-    contextMenu.style.top = y + 'px';
-    contextMenu.style.display = 'block';
-    
-    // Adjust position if menu goes off screen
-    const rect = contextMenu.getBoundingClientRect();
-    const viewportWidth = window.innerWidth;
-    const viewportHeight = window.innerHeight;
-    
-    if (rect.right > viewportWidth) {
-        contextMenu.style.left = (x - rect.width) + 'px';
-    }
-    
-    if (rect.bottom > viewportHeight) {
-        contextMenu.style.top = (y - rect.height) + 'px';
-    }
-}
-
-function hideContextMenu() {
-    if (contextMenu) {
-        contextMenu.style.display = 'none';
-    }
-}
-
-// Context menu action functions
-function goToIntegratedBilling() {
-    hideContextMenu();
-    
-    // Handle staff header clicks - bill all appointments for that staff
-    if (!currentAppointmentId && window.currentStaffId) {
-        console.log('🔄 Navigating to integrated billing for staff:', window.currentStaffName, 'ID:', window.currentStaffId);
-        
-        // Navigate to staff billing route or integrated billing with staff filter
-        window.location.href = `/integrated-billing?staff_id=${window.currentStaffId}`;
-        return;
-    }
-    
-    // Handle individual appointment clicks
-    if (!currentAppointmentId) {
-        alert('No appointment or staff selected');
-        return;
-    }
-    
-    console.log('🔄 Navigating to integrated billing for appointment:', currentAppointmentId);
-    
-    // Navigate to the appointment billing route
-    window.location.href = `/appointment/${currentAppointmentId}/go-to-billing`;
-}
-
-function viewAppointmentDetails() {
-    hideContextMenu();
-    
-    // Handle staff header clicks - show staff schedule or details
-    if (!currentAppointmentId && window.currentStaffId) {
-        console.log('👁️ Viewing staff details:', window.currentStaffName, 'ID:', window.currentStaffId);
-        
-        // Navigate to staff management or staff schedule
-        window.location.href = `/staff-management?staff_id=${window.currentStaffId}`;
-        return;
-    }
-    
-    // Handle individual appointment clicks
-    if (!currentAppointmentId) {
-        alert('No appointment or staff selected');
-        return;
-    }
-    
-    console.log('👁️ Viewing appointment details:', currentAppointmentId);
-    
-    // Navigate to appointment details
-    window.location.href = `/appointments/view/${currentAppointmentId}`;
-}
-
-function editAppointment() {
-    hideContextMenu();
-    
-    // Handle staff header clicks - edit staff or create new appointment
-    if (!currentAppointmentId && window.currentStaffId) {
-        console.log('✏️ Creating new appointment for staff:', window.currentStaffName, 'ID:', window.currentStaffId);
-        
-        // Navigate to create new appointment with staff pre-selected
-        window.location.href = `/unaki-booking?staff_id=${window.currentStaffId}`;
-        return;
-    }
-    
-    // Handle individual appointment clicks
-    if (!currentAppointmentId) {
-        alert('No appointment or staff selected');
-        return;
-    }
-    
-    console.log('✏️ Editing appointment:', currentAppointmentId);
-    
-    // Navigate to appointment edit
-    window.location.href = `/appointments/edit/${currentAppointmentId}`;
-}
-
-// Re-initialize context menu when new content is loaded (for dynamic content)
-function reinitializeContextMenu() {
-    console.log('🔄 Reinitializing appointment context menu...');
-    
-    // Clear any existing markers
-    document.querySelectorAll('[data-context-menu-attached]').forEach(element => {
-        element.removeAttribute('data-context-menu-attached');
-    });
-    document.querySelectorAll('[data-context-menu-ready]').forEach(element => {
-        element.removeAttribute('data-context-menu-ready');
-    });
-    
-    setTimeout(() => {
-        addAppointmentListeners();
-        console.log('✅ Context menu reinitialized');
-        
-        // Verify that all appointment blocks have context menu
-        const totalBlocks = document.querySelectorAll('.appointment-block').length;
-        const attachedBlocks = document.querySelectorAll('[data-context-menu-ready]').length;
-        console.log(`📊 Context menu coverage: ${attachedBlocks}/${totalBlocks} appointment blocks`);
-    }, 500);
-}
-
-// Export functions for global use
-window.reinitializeContextMenu = reinitializeContextMenu;
-window.goToIntegratedBilling = goToIntegratedBilling;
-window.viewAppointmentDetails = viewAppointmentDetails;
-window.editAppointment = editAppointment;
-
-// Removed duplicate class-based implementation to prevent conflicts
-// The global function-based implementation above provides all necessary functionality
