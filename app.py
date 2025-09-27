@@ -1201,6 +1201,30 @@ def unaki_update_booking_status(booking_id):
             'error': str(e)
         }), 500
 
+@app.route('/api/unaki/clear-all-data', methods=['POST'])
+def unaki_clear_all_data():
+    """Clear all Unaki booking data"""
+    try:
+        from models import UnakiBooking
+        
+        # Delete all bookings
+        deleted_count = UnakiBooking.query.delete()
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': f'Cleared {deleted_count} appointments successfully',
+            'deleted_count': deleted_count
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error clearing all data: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
 @app.route('/api/unaki/bookings/<int:booking_id>', methods=['PUT'])
 def unaki_update_booking(booking_id):
     """Update Unaki booking"""
@@ -1302,6 +1326,41 @@ def unaki_update_booking(booking_id):
         print(f"Error in unaki_update_booking: {e}")
         import traceback
         traceback.print_exc()
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@app.route('/api/unaki/appointments/<int:appointment_id>', methods=['DELETE'])
+def unaki_delete_appointment(appointment_id):
+    """Delete Unaki appointment by ID"""
+    try:
+        from models import UnakiBooking
+        from datetime import datetime
+
+        data = request.get_json() or {}
+        reason = data.get('reason', 'Deleted by user')
+
+        booking = UnakiBooking.query.get(appointment_id)
+        if not booking:
+            return jsonify({
+                'success': False,
+                'error': 'Appointment not found'
+            }), 404
+
+        # Delete the booking
+        db.session.delete(booking)
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'message': 'Appointment deleted successfully',
+            'appointment_id': appointment_id
+        })
+
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error in unaki_delete_appointment: {e}")
         return jsonify({
             'success': False,
             'error': str(e)
