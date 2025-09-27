@@ -1182,12 +1182,22 @@
             // Add event listeners
             setupServiceRowEventListeners(serviceRowCount);
             
-            // Set default start time for first service
+            // Set default start time for services
             if (serviceRowCount === 1) {
                 const now = new Date();
                 const nextHour = new Date(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours() + 1, 0);
                 const timeString = nextHour.toTimeString().slice(0, 5);
                 serviceRow.querySelector('.start-time').value = timeString;
+            } else {
+                // For subsequent services, start after the previous service ends
+                const previousRows = document.querySelectorAll('.service-row');
+                const lastRow = previousRows[previousRows.length - 2]; // Get previous row
+                if (lastRow) {
+                    const lastEndTime = lastRow.querySelector('.end-time').value;
+                    if (lastEndTime) {
+                        serviceRow.querySelector('.start-time').value = lastEndTime;
+                    }
+                }
             }
         }
 
@@ -1238,6 +1248,11 @@
                     option.textContent = `${staff.name} (${staff.specialty})`;
                     staffSelect.appendChild(option);
                 });
+                
+                // Auto-select first available staff for better UX
+                if (staffData.length > 0) {
+                    staffSelect.value = staffData[0].id;
+                }
             }
         }
 
@@ -1308,6 +1323,7 @@
         function checkAvailability() {
             const services = [];
             let isValid = true;
+            let conflicts = [];
             
             document.querySelectorAll('.service-row').forEach(row => {
                 const serviceSelect = row.querySelector('.service-select');
@@ -1322,6 +1338,7 @@
                 services.push({
                     service: serviceSelect.options[serviceSelect.selectedIndex].text,
                     staff: staffSelect.options[staffSelect.selectedIndex].text,
+                    staffId: staffSelect.value,
                     startTime: startTime.value,
                     endTime: row.querySelector('.end-time').value
                 });
@@ -1332,14 +1349,37 @@
                 return;
             }
             
+            // Check for staff conflicts (same staff at overlapping times)
+            for (let i = 0; i < services.length; i++) {
+                for (let j = i + 1; j < services.length; j++) {
+                    if (services[i].staffId === services[j].staffId) {
+                        const start1 = new Date(`1970-01-01T${services[i].startTime}:00`);
+                        const end1 = new Date(`1970-01-01T${services[i].endTime}:00`);
+                        const start2 = new Date(`1970-01-01T${services[j].startTime}:00`);
+                        const end2 = new Date(`1970-01-01T${services[j].endTime}:00`);
+                        
+                        if (start1 < end2 && start2 < end1) {
+                            conflicts.push(`${services[i].staff} has overlapping appointments`);
+                        }
+                    }
+                }
+            }
+            
             // Show availability results
             let availabilityText = 'Availability Check Results:\n\n';
             services.forEach((service, index) => {
                 availabilityText += `${index + 1}. ${service.service}\n`;
                 availabilityText += `   Staff: ${service.staff}\n`;
                 availabilityText += `   Time: ${service.startTime} - ${service.endTime}\n`;
-                availabilityText += `   Status: ✅ Available\n\n`;
+                availabilityText += `   Status: ${conflicts.length > 0 ? '⚠️ Conflict Detected' : '✅ Available'}\n\n`;
             });
+            
+            if (conflicts.length > 0) {
+                availabilityText += 'Conflicts:\n' + conflicts.join('\n');
+                showNotification('Time conflicts detected! Please adjust the schedule.', 'warning');
+            } else {
+                showNotification('All services are available!', 'success');
+            }
             
             alert(availabilityText);
         }
