@@ -203,23 +203,23 @@
                                                     <tr class="bg-light">
                                                         <td>
                                                             <strong>{{ appointment.appointment_date.strftime('%d %b %Y') }}</strong><br>
-                                                            <small class="text-muted">{{ appointment.appointment_date.strftime('%I:%M %p') }}</small>
+                                                            <small class="text-muted">{{ appointment.start_time.strftime('%I:%M %p') if appointment.start_time else 'N/A' }} - {{ appointment.end_time.strftime('%I:%M %p') if appointment.end_time else 'N/A' }}</small>
                                                         </td>
                                                         <td>
-                                                            <strong>{{ appointment.service.name if appointment.service else 'N/A' }}</strong><br>
-                                                            <small class="text-muted">{{ appointment.service.duration if appointment.service else '0' }} mins</small>
+                                                            <strong>{{ appointment.service_name if appointment.service_name else 'N/A' }}</strong><br>
+                                                            <small class="text-muted">{{ appointment.service_duration if appointment.service_duration else '0' }} mins</small>
                                                         </td>
-                                                        <td>{{ appointment.assigned_staff.full_name if appointment.assigned_staff else 'N/A' }}</td>
+                                                        <td>{{ appointment.staff_name if appointment.staff_name else 'N/A' }}</td>
                                                         <td>
                                                             <span class="badge badge-warning">
                                                                 {{ appointment.status.title() }}
                                                             </span>
                                                         </td>
                                                         <td>
-                                                            <strong class="text-success">₹{{ "{:,.2f}".format(appointment.amount) if appointment.amount else appointment.service.price if appointment.service else '0.00' }}</strong>
+                                                            <strong class="text-success">₹{{ "{:,.2f}".format(appointment.service_price) if appointment.service_price else '0.00' }}</strong>
                                                         </td>
                                                         <td>
-                                                            <button type="button" class="btn btn-success btn-sm" onclick="addAppointmentToBill({{ appointment.id }}, '{{ appointment.service.name if appointment.service else '' }}', {{ appointment.service.id if appointment.service else 'null' }}, {{ appointment.service.price if appointment.service else 0 }})">
+                                                            <button type="button" class="btn btn-success btn-sm" onclick="addUnakiAppointmentToBill({{ appointment.id }}, '{{ appointment.service_name if appointment.service_name else '' }}', {{ appointment.service_price if appointment.service_price else 0 }}, {{ appointment.service_duration if appointment.service_duration else 60 }})">
                                                                 <i class="fas fa-plus me-1"></i>Add to Bill
                                                             </button>
                                                         </td>
@@ -736,12 +736,76 @@ function addServiceRow() {
             }
         }
 
-// Auto-fill customer's favorite services
+        // Function to add Unaki appointment directly to billing
+        function addUnakiAppointmentToBill(appointmentId, serviceName, servicePrice, serviceDuration) {
+            console.log('Adding Unaki appointment to bill:', appointmentId, serviceName, servicePrice, serviceDuration);
+
+            // Find the first empty service row or add a new one
+            const serviceRows = document.querySelectorAll('.service-row');
+            let targetRow = null;
+
+            // Look for empty row
+            for (let row of serviceRows) {
+                const serviceSelect = row.querySelector('select[name="service_ids[]"]');
+                if (!serviceSelect.value) {
+                    targetRow = row;
+                    break;
+                }
+            }
+
+            // If no empty row found, add new one
+            if (!targetRow) {
+                addServiceRow();
+                const allRows = document.querySelectorAll('.service-row');
+                targetRow = allRows[allRows.length - 1];
+            }
+
+            // Fill the row with Unaki appointment data
+            if (targetRow) {
+                const serviceSelect = targetRow.querySelector('select[name="service_ids[]"]');
+                const quantityInput = targetRow.querySelector('input[name="service_quantities[]"]');
+                const appointmentInput = targetRow.querySelector('input[name="appointment_ids[]"]');
+
+                // Try to find matching service by name
+                let matchedServiceId = null;
+                for (let option of serviceSelect.options) {
+                    if (option.text.toLowerCase().includes(serviceName.toLowerCase())) {
+                        matchedServiceId = option.value;
+                        break;
+                    }
+                }
+
+                if (matchedServiceId) {
+                    serviceSelect.value = matchedServiceId;
+                } else {
+                    // If no exact match, show the service name in a custom way
+                    console.log('No exact service match found for:', serviceName);
+                }
+
+                quantityInput.value = '1';
+                appointmentInput.value = `unaki_${appointmentId}`; // Prefix to identify Unaki appointments
+
+                // Highlight the row differently for Unaki appointments
+                targetRow.style.borderLeft = '4px solid #007bff';
+                targetRow.style.backgroundColor = 'rgba(0, 123, 255, 0.1)';
+
+                // Add visual indicator
+                const indicator = document.createElement('small');
+                indicator.className = 'text-info fw-bold d-block';
+                indicator.innerHTML = '<i class="fas fa-calendar-check me-1"></i>Unaki Booking';
+                targetRow.appendChild(indicator);
+
+                // Update calculations
+                updateTaxCalculations();
+
+                // Show success message
+                showNotification(`Added Unaki booking: ${serviceName} to bill successfully!`, 'success');
+            }
+        }
+
+// Auto-fill customer's current Unaki appointments
 function autoFillCurrentServices() {
-    // This function should now auto-fill services based on current bookings if available.
-    // For simplicity here, we'll keep the original logic of auto-filling from customer_services.
-    // In a more advanced version, you might want to specifically link to `customer_appointments`.
-    {% if selected_customer and customer_services %}
+    {% if selected_customer and customer_appointments %}
     const servicesContainer = document.getElementById('servicesContainer');
 
     // Clear existing service rows except the first one
@@ -750,43 +814,25 @@ function autoFillCurrentServices() {
         serviceRows[i].remove();
     }
 
-    // Get customer's services
-    const customerServices = {{ customer_services | tojson }};
+    // Get customer's Unaki appointments
+    const customerAppointments = {{ customer_appointments | tojson }};
 
-    customerServices.forEach((service, index) => {
-        let serviceRow;
-        if (index === 0) {
-            // Use the first existing row
-            serviceRow = servicesContainer.querySelector('.service-row');
-        } else {
-            // Add new row
-            addServiceRow();
-            serviceRow = servicesContainer.lastElementChild;
-        }
-
-        // Fill the service dropdown
-        const serviceSelect = serviceRow.querySelector('select[name="service_ids[]"]');
-        if (serviceSelect) {
-            serviceSelect.value = service.id;
-
-            // Trigger change event to update any dependent fields
-            const event = new Event('change', { bubbles: true });
-            serviceSelect.dispatchEvent(event);
-        }
-
-        // Set quantity to 1
-        const quantityInput = serviceRow.querySelector('input[name="service_quantities[]"]');
-        if (quantityInput) {
-            quantityInput.value = '1';
-        }
+    customerAppointments.forEach((appointment, index) => {
+        // Use the addUnakiAppointmentToBill function to properly add each appointment
+        addUnakiAppointmentToBill(
+            appointment.id, 
+            appointment.service_name, 
+            appointment.service_price, 
+            appointment.service_duration
+        );
     });
 
     // Update tax calculations
     updateTaxCalculations();
 
-    showNotification('Customer\'s current services have been auto-filled!', 'success');
+    showNotification(`Auto-filled ${customerAppointments.length} Unaki appointments!`, 'success');
     {% else %}
-    showNotification('No current services found to auto-fill', 'warning');
+    showNotification('No current Unaki appointments found to auto-fill', 'warning');
     {% endif %}
 }
 

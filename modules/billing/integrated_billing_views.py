@@ -167,19 +167,30 @@ def integrated_billing(customer_id=None):
     if customer_id:
         selected_customer = Customer.query.get(customer_id)
         if selected_customer:
-            # Get only CURRENT booked appointments (not completed/paid) - save time
-            customer_appointments = Appointment.query.filter(
-                Appointment.client_id == customer_id,
-                Appointment.status.in_(['confirmed', 'scheduled']),
-                Appointment.is_paid == False  # Only unpaid appointments
-            ).order_by(Appointment.appointment_date.desc()).all()
+            # Import UnakiBooking model
+            from models import UnakiBooking
+            
+            # Get only CURRENT Unaki bookings (not completed/paid) - save time
+            customer_appointments = UnakiBooking.query.filter(
+                UnakiBooking.client_name.ilike(f'%{selected_customer.first_name}%'),
+                UnakiBooking.status.in_(['confirmed', 'scheduled']),
+                UnakiBooking.payment_status.in_(['pending', 'unpaid'])  # Only unpaid appointments
+            ).order_by(UnakiBooking.appointment_date.desc()).all()
 
-            # Get services from current appointments only
-            current_service_ids = [apt.service_id for apt in customer_appointments if apt.service_id]
-            if current_service_ids:
-                customer_services = Service.query.filter(Service.id.in_(current_service_ids)).all()
+            # Also try to match by phone if available
+            if selected_customer.phone and not customer_appointments:
+                customer_appointments = UnakiBooking.query.filter(
+                    UnakiBooking.client_phone == selected_customer.phone,
+                    UnakiBooking.status.in_(['confirmed', 'scheduled']),
+                    UnakiBooking.payment_status.in_(['pending', 'unpaid'])
+                ).order_by(UnakiBooking.appointment_date.desc()).all()
 
-            print(f"DEBUG: Customer {customer_id} has {len(customer_appointments)} current unpaid appointments and {len(customer_services)} services ready for billing")
+            # Get services from Unaki appointments by matching service names
+            unaki_service_names = [apt.service_name for apt in customer_appointments if apt.service_name]
+            if unaki_service_names:
+                customer_services = Service.query.filter(Service.name.in_(unaki_service_names)).all()
+
+            print(f"DEBUG: Customer {customer_id} has {len(customer_appointments)} current unpaid Unaki appointments and {len(customer_services)} services ready for billing")
 
     return render_template('integrated_billing.html',
                          customers=customers,
