@@ -1206,17 +1206,17 @@ def unaki_clear_all_data():
     """Clear all Unaki booking data"""
     try:
         from models import UnakiBooking
-        
+
         # Delete all bookings
         deleted_count = UnakiBooking.query.delete()
         db.session.commit()
-        
+
         return jsonify({
             'success': True,
             'message': f'Cleared {deleted_count} appointments successfully',
             'deleted_count': deleted_count
         })
-        
+
     except Exception as e:
         db.session.rollback()
         print(f"Error clearing all data: {e}")
@@ -1233,7 +1233,7 @@ def unaki_update_booking(booking_id):
         from datetime import datetime, time
 
         data = request.get_json()
-        
+
         booking = UnakiBooking.query.get(booking_id)
         if not booking:
             return jsonify({
@@ -1333,7 +1333,7 @@ def unaki_update_booking(booking_id):
 
 @app.route('/api/unaki/appointments/<int:appointment_id>', methods=['DELETE'])
 def unaki_delete_appointment(appointment_id):
-    """Delete Unaki appointment by ID"""
+    """Delete appointment in Unaki system"""
     try:
         from models import UnakiBooking
         from datetime import datetime
@@ -1344,7 +1344,7 @@ def unaki_delete_appointment(appointment_id):
             data = request.get_json() or {}
         elif request.form:
             data = request.form.to_dict()
-        
+
         reason = data.get('reason', 'Deleted by user')
 
         booking = UnakiBooking.query.get(appointment_id)
@@ -1354,14 +1354,24 @@ def unaki_delete_appointment(appointment_id):
                 'error': 'Appointment not found'
             }), 404
 
+        # Store info for response
+        client_name = booking.client_name
+        service_name = booking.service_name
+        appointment_time = booking.start_time.strftime('%I:%M %p')
+
         # Delete the booking
         db.session.delete(booking)
         db.session.commit()
 
         return jsonify({
             'success': True,
-            'message': 'Appointment deleted successfully',
-            'appointment_id': appointment_id
+            'message': f'Appointment for {client_name} ({service_name} at {appointment_time}) deleted successfully',
+            'deleted_appointment': {
+                'id': appointment_id,
+                'client_name': client_name,
+                'service_name': service_name,
+                'time': appointment_time
+            }
         })
 
     except Exception as e:
@@ -1369,49 +1379,5 @@ def unaki_delete_appointment(appointment_id):
         print(f"Error in unaki_delete_appointment: {e}")
         return jsonify({
             'success': False,
-            'error': str(e)
-        }), 500
-
-@app.route('/api/unaki/bookings/<int:booking_id>', methods=['DELETE'])
-def unaki_cancel_booking(booking_id):
-    """Cancel Unaki booking"""
-    try:
-        from models import UnakiBooking
-        from datetime import datetime
-
-        data = request.get_json() or {}
-        reason = data.get('reason', 'Cancelled by user')
-
-        booking = UnakiBooking.query.get(booking_id)
-        if not booking:
-            return jsonify({
-                'success': False,
-                'error': 'Booking not found'
-            }), 404
-
-        if not booking.can_be_cancelled():
-            return jsonify({
-                'success': False,
-                'error': f'Cannot cancel booking with status: {booking.status}'
-            }), 400
-
-        # Update booking status to cancelled
-        booking.status = 'cancelled'
-        booking.updated_at = datetime.utcnow()
-        booking.internal_notes = (booking.internal_notes or '') + f"\n[{datetime.now().strftime('%Y-%m-%d %H:%M')}] Cancelled: {reason}"
-
-        db.session.commit()
-
-        return jsonify({
-            'success': True,
-            'message': 'Booking cancelled successfully',
-            'booking': booking.to_dict()
-        })
-
-    except Exception as e:
-        db.session.rollback()
-        print(f"Error in unaki_cancel_booking: {e}")
-        return jsonify({
-            'success': False,
-            'error': str(e)
+            'error': f'Failed to delete appointment: {str(e)}'
         }), 500
