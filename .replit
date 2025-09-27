@@ -142,20 +142,20 @@ args = "export SESSION_SECRET=\"1578063aca108928c78100b516702a5765d2d05e85b4fb8b
 name = "Flask Frontend"
 author = "agent"
 
+[workflows.workflow.metadata]
+outputType = "webview"
+
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "python main.py"
 waitForPort = 5000
-
-[workflows.workflow.metadata]
-outputType = "webview"
 
 [[ports]]
 localPort = 5000
 externalPort = 80
 
 [[ports]]
-localPort = 42395
+localPort = 43847
 externalPort = 3000
 
 [agent]
