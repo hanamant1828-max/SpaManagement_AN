@@ -503,6 +503,7 @@
             min-height: 80px;
             cursor: pointer;
             transition: background-color 0.2s ease;
+            overflow: visible; /* Allow appointments to extend beyond cell boundaries */
         }
 
         .time-slot-cell:hover {
@@ -511,6 +512,7 @@
 
         .time-slot-cell.has-appointments {
             cursor: default;
+            background: #f8f9fa;
         }
 
         /* Appointment Block Styles */
@@ -518,21 +520,21 @@
             position: absolute;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
-            border-radius: 8px;
-            padding: 6px 8px;
-            font-size: 11px;
+            border-radius: 6px;
+            padding: 4px 6px;
+            font-size: 0.75rem;
             line-height: 1.2;
             cursor: pointer;
             z-index: 10;
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
             border: 1px solid rgba(255, 255, 255, 0.2);
             overflow: hidden;
-            min-height: 60px;
-            height: 70px;
+            min-height: 25px;
             display: flex;
             flex-direction: column;
-            justify-content: space-between;
+            justify-content: flex-start;
             white-space: nowrap;
+            margin: 1px;
         }
 
         .appointment-block:hover {
@@ -1527,52 +1529,91 @@
             // Clear existing appointment blocks
             grid.querySelectorAll('.appointment-block').forEach(block => block.remove());
 
-            // Group appointments by staff and time to handle overlaps
+            // Group appointments by staff and organize by time for proper rendering
             const appointmentsByStaff = {};
             scheduleData.appointments.forEach(appointment => {
                 if (!appointmentsByStaff[appointment.staffId]) {
-                    appointmentsByStaff[appointment.staffId] = {};
+                    appointmentsByStaff[appointment.staffId] = [];
                 }
-
-                const startSlotIndex = getSlotIndexFromTime(appointment.startTime);
-                if (startSlotIndex !== -1) {
-                    if (!appointmentsByStaff[appointment.staffId][startSlotIndex]) {
-                        appointmentsByStaff[appointment.staffId][startSlotIndex] = [];
-                    }
-                    appointmentsByStaff[appointment.staffId][startSlotIndex].push(appointment);
-                }
+                appointmentsByStaff[appointment.staffId].push(appointment);
             });
 
-            // Render appointment blocks
+            // Process each staff member's appointments
             Object.keys(appointmentsByStaff).forEach(staffId => {
                 const staffAppointments = appointmentsByStaff[staffId];
+                
+                // Sort appointments by start time
+                staffAppointments.sort((a, b) => {
+                    const timeA = a.startTime.split(':').map(Number);
+                    const timeB = b.startTime.split(':').map(Number);
+                    return (timeA[0] * 60 + timeA[1]) - (timeB[0] * 60 + timeB[1]);
+                });
 
-                Object.keys(staffAppointments).forEach(slotIndex => {
-                    const appointments = staffAppointments[slotIndex];
+                // Render each appointment
+                staffAppointments.forEach((appointment, appointmentIndex) => {
+                    const startSlotIndex = getSlotIndexFromTime(appointment.startTime);
+                    if (startSlotIndex === -1) return;
 
-                    appointments.forEach((appointment, overlapIndex) => {
-                        const appointmentBlock = createAppointmentBlock(appointment, parseInt(slotIndex), overlapIndex, appointments.length);
-
-                        // Find the starting time slot cell for this appointment
-                        const startTimeSlotCell = grid.querySelector(`[data-staff-id="${staffId}"][data-slot-index="${slotIndex}"]`);
-                        if (startTimeSlotCell) {
-                            // Mark all cells that this appointment spans across
-                            const durationMinutes = getTimeDifferenceInMinutes(appointment.startTime, appointment.endTime);
-                            const durationSlots = Math.ceil(durationMinutes / SCHEDULE_CONFIG.slotMinutes);
-                            
-                            for (let i = 0; i < durationSlots; i++) {
-                                const slotCell = grid.querySelector(`[data-staff-id="${staffId}"][data-slot-index="${parseInt(slotIndex) + i}"]`);
-                                if (slotCell) {
-                                    slotCell.classList.add('has-appointments');
-                                }
-                            }
-
-                            // Append the block to the starting cell
-                            startTimeSlotCell.appendChild(appointmentBlock);
+                    // Check for time conflicts with previous appointments (overlap detection)
+                    let overlapIndex = 0;
+                    let totalOverlaps = 1;
+                    
+                    for (let i = 0; i < appointmentIndex; i++) {
+                        const prevAppointment = staffAppointments[i];
+                        if (appointmentsOverlap(prevAppointment, appointment)) {
+                            overlapIndex++;
+                            totalOverlaps = Math.max(totalOverlaps, overlapIndex + 1);
                         }
-                    });
+                    }
+
+                    // Check for conflicts with subsequent appointments to get total overlap count
+                    for (let i = appointmentIndex + 1; i < staffAppointments.length; i++) {
+                        const nextAppointment = staffAppointments[i];
+                        if (appointmentsOverlap(appointment, nextAppointment)) {
+                            totalOverlaps++;
+                        }
+                    }
+
+                    const appointmentBlock = createAppointmentBlock(appointment, startSlotIndex, overlapIndex, totalOverlaps);
+
+                    // Find the starting time slot cell for this appointment
+                    const startTimeSlotCell = grid.querySelector(`[data-staff-id="${staffId}"][data-slot-index="${startSlotIndex}"]`);
+                    if (startTimeSlotCell) {
+                        // Mark all cells that this appointment spans across
+                        const durationMinutes = getTimeDifferenceInMinutes(appointment.startTime, appointment.endTime);
+                        const durationSlots = Math.ceil(durationMinutes / SCHEDULE_CONFIG.slotMinutes);
+                        
+                        for (let i = 0; i < durationSlots; i++) {
+                            const slotCell = grid.querySelector(`[data-staff-id="${staffId}"][data-slot-index="${startSlotIndex + i}"]`);
+                            if (slotCell) {
+                                slotCell.classList.add('has-appointments');
+                            }
+                        }
+
+                        // Set the cell as relative positioned to contain absolute positioned appointments
+                        startTimeSlotCell.style.position = 'relative';
+                        
+                        // Append the block to the starting cell
+                        startTimeSlotCell.appendChild(appointmentBlock);
+                    }
                 });
             });
+        }
+
+        // Helper function to check if two appointments overlap
+        function appointmentsOverlap(apt1, apt2) {
+            const start1 = timeToMinutes(apt1.startTime);
+            const end1 = timeToMinutes(apt1.endTime);
+            const start2 = timeToMinutes(apt2.startTime);
+            const end2 = timeToMinutes(apt2.endTime);
+            
+            return start1 < end2 && start2 < end1;
+        }
+
+        // Helper function to convert time string to minutes
+        function timeToMinutes(timeStr) {
+            const [hours, minutes] = timeStr.split(':').map(Number);
+            return hours * 60 + minutes;
         }
 
         function createAppointmentBlock(appointment, startSlotIndex, overlapIndex, totalOverlaps) {
@@ -1593,29 +1634,63 @@
 
             // Position the block to span across multiple time slots horizontally
             const slotWidth = SCHEDULE_CONFIG.timeSlotWidth;
-            const blockWidth = (durationSlots * slotWidth) - 4; // 4px for padding/borders
+            const blockWidth = (durationSlots * slotWidth) - 6; // 6px for padding/borders
             
             appointmentBlock.style.position = 'absolute';
-            appointmentBlock.style.left = '2px';
-            appointmentBlock.style.top = '5px';
+            appointmentBlock.style.left = '3px';
             appointmentBlock.style.width = `${blockWidth}px`;
-            appointmentBlock.style.height = '70px'; // Fixed height for all appointments
             appointmentBlock.style.zIndex = '10';
+            appointmentBlock.style.borderRadius = '6px';
+            appointmentBlock.style.overflow = 'hidden';
 
-            // Handle overlaps vertically (stack appointments on top of each other)
+            // Handle overlaps vertically - stack appointments that conflict
             if (totalOverlaps > 1) {
-                const stackHeight = 35; // Reduced height when stacked
+                const stackHeight = Math.max(25, Math.floor(70 / totalOverlaps) - 2); // Distribute height among overlapping appointments
                 appointmentBlock.style.height = `${stackHeight}px`;
-                appointmentBlock.style.top = `${5 + (overlapIndex * (stackHeight + 2))}px`;
+                appointmentBlock.style.top = `${3 + (overlapIndex * (stackHeight + 2))}px`;
                 appointmentBlock.classList.add(`overlap-${overlapIndex + 1}`);
+                
+                // Adjust font sizes for stacked appointments
+                appointmentBlock.style.fontSize = '0.65rem';
+                appointmentBlock.style.lineHeight = '1.1';
+            } else {
+                // Full height for non-overlapping appointments
+                appointmentBlock.style.height = '70px';
+                appointmentBlock.style.top = '3px';
+                appointmentBlock.style.fontSize = '0.75rem';
+                appointmentBlock.style.lineHeight = '1.2';
             }
 
-            // Add appointment content
-            appointmentBlock.innerHTML = `
-                <div class="appointment-client">${appointment.clientName}</div>
-                <div class="appointment-service">${appointment.service || appointment.serviceType}</div>
-                <div class="appointment-time">${startTime} - ${endTime}</div>
-            `;
+            // Add appointment content with proper structure
+            const clientDiv = document.createElement('div');
+            clientDiv.className = 'appointment-client';
+            clientDiv.textContent = appointment.clientName;
+            clientDiv.style.fontWeight = '700';
+            clientDiv.style.marginBottom = '1px';
+            clientDiv.style.whiteSpace = 'nowrap';
+            clientDiv.style.overflow = 'hidden';
+            clientDiv.style.textOverflow = 'ellipsis';
+
+            const serviceDiv = document.createElement('div');
+            serviceDiv.className = 'appointment-service';
+            serviceDiv.textContent = appointment.service || appointment.serviceType;
+            serviceDiv.style.opacity = '0.9';
+            serviceDiv.style.marginBottom = '1px';
+            serviceDiv.style.whiteSpace = 'nowrap';
+            serviceDiv.style.overflow = 'hidden';
+            serviceDiv.style.textOverflow = 'ellipsis';
+
+            const timeDiv = document.createElement('div');
+            timeDiv.className = 'appointment-time';
+            timeDiv.textContent = `${startTime} - ${endTime}`;
+            timeDiv.style.fontSize = totalOverlaps > 1 ? '0.6rem' : '0.7rem';
+            timeDiv.style.opacity = '0.8';
+            timeDiv.style.fontWeight = '500';
+            timeDiv.style.marginTop = 'auto';
+
+            appointmentBlock.appendChild(clientDiv);
+            appointmentBlock.appendChild(serviceDiv);
+            appointmentBlock.appendChild(timeDiv);
 
             // Add click handler
             appointmentBlock.addEventListener('click', (e) => {
