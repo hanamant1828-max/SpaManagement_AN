@@ -2396,16 +2396,6 @@
                     }
                 });
             });
-
-            // IMPORTANT: Reinitialize context menu after all appointments are rendered
-            setTimeout(() => {
-                if (window.reinitializeContextMenu) {
-                    console.log('🔄 Reinitializing context menu after appointment rendering...');
-                    window.reinitializeContextMenu();
-                } else {
-                    console.warn('⚠️ reinitializeContextMenu function not available');
-                }
-            }, 100);
         }
 
         function createAppointmentBlock(appointment, startSlotIndex, overlapIndex, totalOverlaps) {
@@ -2421,8 +2411,10 @@
             }
 
             const serviceCategory = getServiceCategory(appointment.service || appointment.serviceType);
+            let serviceCategoryClass = '';
             if (serviceCategory) {
                 appointmentBlock.classList.add('service-category-' + serviceCategory);
+                serviceCategoryClass = 'service-category-' + serviceCategory;
             }
 
             const startTime = appointment.startTime;
@@ -2433,61 +2425,82 @@
             const slotWidth = SCHEDULE_CONFIG.timeSlotWidth;
             const blockWidth = (durationSlots * slotWidth) - 4;
 
-            appointmentBlock.style.position = 'absolute';
-            appointmentBlock.style.left = '2px';
-            appointmentBlock.style.width = `${blockWidth}px`;
-            appointmentBlock.style.zIndex = '15';
-
-            if (totalOverlaps > 1) {
-                const stackHeight = Math.max(25, Math.floor(80 / totalOverlaps) - 2);
-                appointmentBlock.style.height = `${stackHeight}px`;
-                appointmentBlock.style.top = `${5 + (overlapIndex * (stackHeight + 2))}px`;
-                appointmentBlock.style.fontSize = '0.65rem';
-            } else {
-                appointmentBlock.style.height = '80px';
-                appointmentBlock.style.top = '5px';
-                appointmentBlock.style.fontSize = '0.75rem';
+            // Calculate gradient based on category
+            let gradientStyle = `linear-gradient(135deg, #667eea 0%, #764ba2 100%)`; // Default gradient
+            switch (serviceCategory) {
+                case 'massage': gradientStyle = 'linear-gradient(135deg, #48bb78 0%, #38a169 100%)'; break;
+                case 'facial': gradientStyle = 'linear-gradient(135deg, #ed8936 0%, #dd6b20 100%)'; break;
+                case 'hair': gradientStyle = 'linear-gradient(135deg, #9f7aea 0%, #805ad5 100%)'; break;
+                case 'nails': gradientStyle = 'linear-gradient(135deg, #f56565 0%, #e53e3e 100%)'; break;
+                case 'body': gradientStyle = 'linear-gradient(135deg, #38b2ac 0%, #319795 100%)'; break;
             }
 
-            // Add action buttons for edit and delete
-            const appointmentActionsDiv = document.createElement('div');
-            appointmentActionsDiv.className = 'appointment-actions';
-            appointmentActionsDiv.innerHTML = `
-                <button class="action-btn edit-btn" onclick="event.stopPropagation(); editAppointment(${appointment.id})" title="Edit">
-                    <i class="fas fa-edit"></i>
-                </button>
-                <button class="action-btn delete-btn" onclick="event.stopPropagation(); deleteAppointment(${appointment.id})" title="Delete">
-                    <i class="fas fa-trash"></i>
-                </button>
+            // Create appointment block with enhanced styling and context menu support
+            const appointmentDiv = document.createElement('div');
+            appointmentDiv.className = `appointment-block ${serviceCategoryClass}`;
+            appointmentDiv.setAttribute('data-appointment-id', appointment.id);
+            appointmentDiv.setAttribute('data-context-menu-attached', 'true'); // Ensure context menu tracking
+            appointmentDiv.style.cssText = `
+                grid-column: ${startColumn} / ${endColumn};
+                background: ${gradientStyle};
+                color: white;
+                border-radius: 12px;
+                padding: 8px 10px;
+                font-size: 11px;
+                line-height: 1.3;
+                cursor: pointer;
+                min-height: 70px;
+                z-index: 15;
+                display: flex;
+                flex-direction: column;
+                justify-content: space-between;
+                position: relative;
+                transition: all 0.3s ease;
+                border: 1px solid rgba(255, 255, 255, 0.3);
+                box-shadow: 0 4px 20px rgba(102, 126, 234, 0.4);
+                overflow: hidden;
+                width: calc(100% - 2px);
             `;
-            appointmentBlock.appendChild(appointmentActionsDiv);
 
-            const clientDiv = document.createElement('div');
-            clientDiv.className = 'appointment-client';
-            clientDiv.textContent = appointment.clientName;
+            // Add appointment content
+            appointmentDiv.innerHTML = `
+                <div class="appointment-client" style="font-weight: 700; margin-bottom: 2px; font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                    ${appointment.clientName}
+                </div>
+                <div class="appointment-service" style="font-size: 9px; opacity: 0.9; margin-bottom: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                    ${appointment.service}
+                </div>
+                <div class="appointment-time" style="font-size: 8px; opacity: 0.8; font-weight: 500; margin-top: auto; background: rgba(255, 255, 255, 0.2); padding: 2px 4px; border-radius: 4px; text-align: center;">
+                    ${appointment.startTime} - ${appointment.endTime}
+                </div>
+            `;
 
-            const serviceDiv = document.createElement('div');
-            serviceDiv.className = 'appointment-service';
-            serviceDiv.textContent = appointment.service || appointment.serviceType;
-
-            const timeDiv = document.createElement('div');
-            timeDiv.className = 'appointment-time';
-            timeDiv.textContent = `${startTime} - ${endTime}`;
-
-            appointmentBlock.appendChild(clientDiv);
-            appointmentBlock.appendChild(serviceDiv);
-            appointmentBlock.appendChild(timeDiv);
-
-            appointmentBlock.addEventListener('click', (e) => {
+            // Add click handler
+            appointmentDiv.addEventListener('click', (e) => {
                 e.stopPropagation();
                 handleAppointmentClick(appointment);
             });
 
-            // Add tooltip
-            appointmentBlock.title = `${appointment.clientName}\n${appointment.service}\n${startTime} - ${endTime}\nDuration: ${durationMinutes} minutes`;
+            // Add context menu handler - ensure it's properly attached
+            appointmentDiv.addEventListener('contextmenu', function(event) {
+                console.log(`🎯 Right-click detected on appointment ${appointment.id} (${appointment.clientName})`);
+                handleAppointmentRightClick(event);
+            });
 
-            return appointmentBlock;
+            // Add hover effects
+            appointmentDiv.addEventListener('mouseenter', function() {
+                this.style.transform = 'translateY(-2px) scale(1.02)';
+                this.style.boxShadow = '0 8px 30px rgba(102, 126, 234, 0.6)';
+            });
+
+            appointmentDiv.addEventListener('mouseleave', function() {
+                this.style.transform = 'translateY(0) scale(1)';
+                this.style.boxShadow = '0 4px 20px rgba(102, 126, 234, 0.4)';
+            });
+
+            return appointmentDiv;
         }
+
 
         // Helper functions
         function appointmentsOverlap(apt1, apt2) {
@@ -3030,15 +3043,21 @@
             try {
                 generateScheduleGrid();
                 // Reinitialize context menu after schedule is rendered
+                console.log('🔄 Reinitializing context menu after schedule render...');
                 if (window.reinitializeContextMenu) {
-                    window.reinitializeContextMenu();
+                    setTimeout(() => {
+                        window.reinitializeContextMenu();
+                    }, 100);
                 }
+                // Show stats
+                updateStats();
+                hideLoading();
+                console.log(`📊 Schedule loaded: ${scheduleData.appointments.length} appointments, ${scheduleData.staff.length} staff members`);
+
             } catch (error) {
-                console.error('Error rendering schedule:', error);
-                const grid = document.getElementById('scheduleGrid');
-                if (grid) {
-                    grid.innerHTML = '<div class="text-center p-5"><p class="text-muted">Error loading schedule. Please refresh.</p></div>';
-                }
+                console.error('❌ Error building schedule grid:', error);
+                hideLoading();
+                showNotification('Error loading schedule. Please refresh and try again.', 'error');
             }
         }
     </script>

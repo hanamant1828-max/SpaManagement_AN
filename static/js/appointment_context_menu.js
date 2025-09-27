@@ -119,20 +119,31 @@ function addAppointmentListeners() {
         '.staff-row'
     ];
     
-    // Add listeners for appointment blocks
+    // Add listeners for appointment blocks with improved detection
     appointmentSelectors.forEach(selector => {
         const appointments = document.querySelectorAll(selector);
         console.log(`🔍 Found ${appointments.length} appointments for selector: ${selector}`);
         
         appointments.forEach((appointment, index) => {
+            // Skip if already has context menu attached (avoid duplicates)
+            if (appointment.hasAttribute('data-context-menu-ready')) {
+                return;
+            }
+            
             // Remove existing listeners to prevent duplicates
             appointment.removeEventListener('contextmenu', handleAppointmentRightClick);
             
-            // Add right-click listener
-            appointment.addEventListener('contextmenu', handleAppointmentRightClick);
+            // Add right-click listener with proper event handling
+            appointment.addEventListener('contextmenu', function(event) {
+                console.log(`🎯 Context menu triggered for appointment ${index + 1}`);
+                handleAppointmentRightClick(event);
+            });
             
             // Make sure appointment has cursor pointer
             appointment.style.cursor = 'pointer';
+            
+            // Mark as having context menu attached
+            appointment.setAttribute('data-context-menu-ready', 'true');
             
             // Debug: Log appointment details
             const appointmentId = appointment.dataset.appointmentId || appointment.getAttribute('data-appointment-id');
@@ -386,6 +397,9 @@ function reinitializeContextMenu() {
     document.querySelectorAll('[data-context-menu-attached]').forEach(element => {
         element.removeAttribute('data-context-menu-attached');
     });
+    document.querySelectorAll('[data-context-menu-ready]').forEach(element => {
+        element.removeAttribute('data-context-menu-ready');
+    });
     
     setTimeout(() => {
         addAppointmentListeners();
@@ -393,7 +407,7 @@ function reinitializeContextMenu() {
         
         // Verify that all appointment blocks have context menu
         const totalBlocks = document.querySelectorAll('.appointment-block').length;
-        const attachedBlocks = document.querySelectorAll('[data-context-menu-attached]').length;
+        const attachedBlocks = document.querySelectorAll('[data-context-menu-ready]').length;
         console.log(`📊 Context menu coverage: ${attachedBlocks}/${totalBlocks} appointment blocks`);
     }, 500);
 }
