@@ -154,9 +154,5 @@ args = "export SESSION_SECRET=\"1578063aca108928c78100b516702a5765d2d05e85b4fb8b
 localPort = 5000
 externalPort = 80
 
-[[ports]]
-localPort = 38027
-externalPort = 3001
-
 [agent]
 expertMode = true
