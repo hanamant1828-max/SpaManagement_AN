@@ -6,7 +6,7 @@ packages = ["freetype", "glibcLocales", "lcms2", "libGL", "libGLU", "libimagequa
 
 [deployment]
 deploymentTarget = "autoscale"
-run = ["gunicorn", "--bind", "0.0.0.0:5000", "main:app"]
+run = ["gunicorn", "--bind", "0.0.0.0:5000", "--reuse-port", "main:app"]
 build = ["echo", "No build needed - Flask app ready to deploy"]
 
 [workflows]
@@ -127,23 +127,7 @@ author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "workflow.run"
-args = "Spa Management Application"
-
-[[workflows.workflow.tasks]]
-task = "workflow.run"
 args = "Flask Frontend"
-
-[[workflows.workflow]]
-name = "Spa Management Application"
-author = "agent"
-
-[workflows.workflow.metadata]
-outputType = "webview"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "python main.py"
-waitForPort = 5000
 
 [[workflows.workflow]]
 name = "Start Spa Management App"
