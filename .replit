@@ -10,7 +10,7 @@ run = ["gunicorn", "--bind", "0.0.0.0:5000", "--reuse-port", "main:app"]
 build = ["echo", "No build needed - Flask app ready to deploy"]
 
 [workflows]
-runButton = "Run Spa App"
+runButton = "Start Spa Management App"
 
 [[workflows.workflow]]
 name = "Start Flask App"
@@ -140,6 +140,15 @@ outputType = "webview"
 task = "shell.exec"
 args = "python main.py"
 waitForPort = 5000
+
+[[workflows.workflow]]
+name = "Start Spa Management App"
+author = 48041676
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "export SESSION_SECRET=\"1578063aca108928c78100b516702a5765d2d05e85b4fb8bb29a75db0bfc34ca\" && python main.py"
 
 [[ports]]
 localPort = 5000

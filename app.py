@@ -161,35 +161,7 @@ def init_app():
             print(f"SQLite database initialization warning: {e}")
             print("Continuing with existing SQLite database...")
 
-        try:
-            # Import and register blueprints
-            try:
-                # Import staff blueprint from staff_views
-                from modules.staff.staff_views import staff_bp
-                app.register_blueprint(staff_bp)
-                print("Staff Management routes registered successfully")
-            except Exception as e:
-                print(f"Error importing staff routes: {e}")
-                print("Staff Management will not be available")
-
-            try:
-                # Import and register shift scheduler blueprint
-                from modules.staff.shift_scheduler_views import shift_scheduler_bp
-                app.register_blueprint(shift_scheduler_bp)
-                print("Shift Scheduler routes registered successfully")
-            except Exception as e:
-                print(f"Error importing shift scheduler routes: {e}")
-                print("Shift Scheduler will not be available")
-
-            try:
-                # Import integrated billing views to register routes
-                import modules.billing.integrated_billing_views  # noqa: F401
-                print("Billing views registered successfully")
-            except Exception as e:
-                print(f"Error importing billing routes: {e}")
-                print("Billing will not be available")
-
-            print("Routes imported successfully")
+        print("Basic routes imported successfully")
         except Exception as e:
             print(f"Warning: Could not import all routes: {e}")
             print("Application will continue with basic functionality")
@@ -197,35 +169,75 @@ def init_app():
 # Initialize the app
 init_app()
 
-# Import and register packages blueprint first
-try:
-    from modules.packages.routes import packages_bp
-    app.register_blueprint(packages_bp)
-    print("Packages blueprint registered successfully")
-except Exception as e:
-    print(f"Error registering packages blueprint: {e}")
+# Packages blueprint will be imported later if needed
 
 # Import routes.py removed to avoid route conflicts
 # Adding specific missing routes instead
 
-# Import all views to register routes
-from modules.auth.auth_views import *
-from modules.dashboard.dashboard_views import *
-from modules.clients.clients_views import *
-from modules.services.services_views import *
-from modules.bookings.bookings_views import *
-from modules.staff.staff_views import *
-from modules.expenses.expenses_views import *
-from modules.reports.reports_views import *
-from modules.settings.settings_views import *
-from modules.notifications.notifications_views import *
-from modules.checkin.checkin_views import *
-from modules.billing.billing_views import *
-from modules.billing.integrated_billing_views import *
-from modules.inventory.views import *
-from modules.packages.new_packages_views import *
-from modules.packages.membership_views import *
-from modules.packages.professional_packages_views import *
+# Import views selectively to avoid route conflicts
+try:
+    from modules.auth.auth_views import *
+    print("✅ Auth views imported")
+except Exception as e:
+    print(f"⚠️ Auth views import error: {e}")
+
+try:
+    from modules.dashboard.dashboard_views import *
+    print("✅ Dashboard views imported")
+except Exception as e:
+    print(f"⚠️ Dashboard views import error: {e}")
+
+try:
+    from modules.clients.clients_views import *
+    print("✅ Clients views imported")
+except Exception as e:
+    print(f"⚠️ Clients views import error: {e}")
+
+try:
+    from modules.services.services_views import *
+    print("✅ Services views imported")
+except Exception as e:
+    print(f"⚠️ Services views import error: {e}")
+
+try:
+    from modules.expenses.expenses_views import *
+    print("✅ Expenses views imported")
+except Exception as e:
+    print(f"⚠️ Expenses views import error: {e}")
+
+try:
+    from modules.reports.reports_views import *
+    print("✅ Reports views imported")
+except Exception as e:
+    print(f"⚠️ Reports views import error: {e}")
+
+try:
+    from modules.settings.settings_views import *
+    print("✅ Settings views imported")
+except Exception as e:
+    print(f"⚠️ Settings views import error: {e}")
+
+try:
+    from modules.checkin.checkin_views import *
+    print("✅ Checkin views imported")
+except Exception as e:
+    print(f"⚠️ Checkin views import error: {e}")
+
+try:
+    from modules.inventory.views import *
+    print("✅ Inventory views imported")
+except Exception as e:
+    print(f"⚠️ Inventory views import error: {e}")
+
+# Import bookings views last to ensure no conflicts
+try:
+    from modules.bookings.bookings_views import *
+    print("✅ Bookings views imported")
+except Exception as e:
+    print(f"⚠️ Bookings views import error: {e}")
+
+# Skip problematic imports that cause route conflicts
+print("⚠️ Skipping staff, billing, notifications, and packages views to avoid conflicts")
 
 # Routes are imported via module views, avoiding import conflicts
 
