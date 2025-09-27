@@ -1023,6 +1023,140 @@
         </button>
     </div>
 
+    <!-- Edit Appointment Modal -->
+    <div class="modal fade" id="editAppointmentModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold">
+                        <i class="fas fa-edit me-2"></i>
+                        Edit Appointment
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <form id="editAppointmentForm">
+                        <input type="hidden" id="editAppointmentId">
+                        
+                        <!-- Client Information -->
+                        <div class="row g-4 mb-4">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">
+                                        <i class="fas fa-user me-2 text-primary"></i>Client Name *
+                                    </label>
+                                    <input type="text" id="editClientName" class="form-control" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">
+                                        <i class="fas fa-phone me-2 text-info"></i>Phone
+                                    </label>
+                                    <input type="tel" id="editClientPhone" class="form-control">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row g-4 mb-4">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">
+                                        <i class="fas fa-spa me-2 text-primary"></i>Service *
+                                    </label>
+                                    <select id="editServiceSelect" class="form-select" required>
+                                        <option value="">Select Service</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">
+                                        <i class="fas fa-user-tie me-2 text-success"></i>Staff *
+                                    </label>
+                                    <select id="editStaffSelect" class="form-select" required>
+                                        <option value="">Select Staff</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Date and Time -->
+                        <div class="row g-4 mb-4">
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label class="form-label">
+                                        <i class="fas fa-calendar me-2 text-warning"></i>Date *
+                                    </label>
+                                    <input type="date" id="editAppointmentDate" class="form-control" required>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label class="form-label">
+                                        <i class="fas fa-clock me-2 text-info"></i>Start Time *
+                                    </label>
+                                    <input type="time" id="editStartTime" class="form-control" required>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label class="form-label">
+                                        <i class="fas fa-clock me-2 text-secondary"></i>End Time
+                                    </label>
+                                    <input type="time" id="editEndTime" class="form-control" readonly>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Status and Notes -->
+                        <div class="row g-4 mb-4">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">
+                                        <i class="fas fa-flag me-2 text-warning"></i>Status
+                                    </label>
+                                    <select id="editStatus" class="form-select">
+                                        <option value="scheduled">Scheduled</option>
+                                        <option value="confirmed">Confirmed</option>
+                                        <option value="in_progress">In Progress</option>
+                                        <option value="completed">Completed</option>
+                                        <option value="cancelled">Cancelled</option>
+                                        <option value="no_show">No Show</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">
+                                        <i class="fas fa-dollar-sign me-2 text-success"></i>Service Price
+                                    </label>
+                                    <input type="number" id="editServicePrice" class="form-control" step="0.01" readonly>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Notes -->
+                        <div class="mb-3">
+                            <label class="form-label">
+                                <i class="fas fa-sticky-note me-2 text-info"></i>Notes
+                            </label>
+                            <textarea id="editAppointmentNotes" class="form-control" rows="3"></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-2"></i>Cancel
+                    </button>
+                    <button type="button" class="btn btn-primary" onclick="updateAppointment()">
+                        <i class="fas fa-save me-2"></i>Update Appointment
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Toast Container -->
     <div id="toastContainer" class="position-fixed top-0 end-0 p-3" style="z-index: 11000;"></div>
 
@@ -2628,9 +2762,180 @@
         window.performConflictCheck = performConflictCheck;
         window.clearConflictWarning = clearConflictWarning;
 
+        // Edit appointment functionality
+        function editAppointment(appointmentId) {
+            console.log(`Editing appointment ID: ${appointmentId}`);
+            
+            // Find the appointment in scheduleData
+            const appointment = scheduleData.appointments.find(apt => apt.id === appointmentId);
+            if (!appointment) {
+                showNotification('Appointment not found', 'error');
+                return;
+            }
+
+            // Populate edit form
+            document.getElementById('editAppointmentId').value = appointment.id;
+            document.getElementById('editClientName').value = appointment.clientName;
+            document.getElementById('editClientPhone').value = appointment.clientPhone || '';
+            document.getElementById('editAppointmentDate').value = appointment.appointment_date || currentDate;
+            document.getElementById('editStartTime').value = appointment.startTime;
+            document.getElementById('editEndTime').value = appointment.endTime;
+            document.getElementById('editStatus').value = appointment.status || 'scheduled';
+            document.getElementById('editServicePrice').value = appointment.amount || 0;
+            document.getElementById('editAppointmentNotes').value = appointment.notes || '';
+
+            // Populate service dropdown and select current service
+            populateEditServiceDropdown(appointment.service);
+            
+            // Populate staff dropdown and select current staff
+            populateEditStaffDropdown(appointment.staffId);
+
+            // Show modal
+            const modal = new bootstrap.Modal(document.getElementById('editAppointmentModal'));
+            modal.show();
+        }
+
+        function populateEditServiceDropdown(selectedService) {
+            const serviceSelect = document.getElementById('editServiceSelect');
+            serviceSelect.innerHTML = '<option value="">Select Service</option>';
+            
+            if (servicesData && servicesData.length > 0) {
+                servicesData.forEach(service => {
+                    const option = document.createElement('option');
+                    option.value = service.name;
+                    option.textContent = `${service.name} ($${service.price}) - ${service.duration}min`;
+                    option.dataset.price = service.price;
+                    option.dataset.duration = service.duration;
+                    
+                    if (service.name === selectedService) {
+                        option.selected = true;
+                    }
+                    
+                    serviceSelect.appendChild(option);
+                });
+
+                // Add event listener for service changes
+                serviceSelect.addEventListener('change', function() {
+                    const selectedOption = this.options[this.selectedIndex];
+                    if (selectedOption.dataset.price) {
+                        document.getElementById('editServicePrice').value = selectedOption.dataset.price;
+                        updateEditEndTime();
+                    }
+                });
+            }
+        }
+
+        function populateEditStaffDropdown(selectedStaffId) {
+            const staffSelect = document.getElementById('editStaffSelect');
+            staffSelect.innerHTML = '<option value="">Select Staff</option>';
+            
+            if (staffData && staffData.length > 0) {
+                staffData.forEach(staff => {
+                    const option = document.createElement('option');
+                    option.value = staff.id;
+                    option.textContent = `${staff.name} (${staff.specialty})`;
+                    
+                    if (staff.id === selectedStaffId) {
+                        option.selected = true;
+                    }
+                    
+                    staffSelect.appendChild(option);
+                });
+            }
+        }
+
+        function updateEditEndTime() {
+            const startTime = document.getElementById('editStartTime').value;
+            const serviceSelect = document.getElementById('editServiceSelect');
+            
+            if (startTime && serviceSelect.value) {
+                const selectedOption = serviceSelect.options[serviceSelect.selectedIndex];
+                const duration = parseInt(selectedOption.dataset.duration) || 60;
+
+                const startDateTime = new Date(`2000-01-01T${startTime}:00`);
+                const endDateTime = new Date(startDateTime.getTime() + duration * 60000);
+                document.getElementById('editEndTime').value = endDateTime.toTimeString().slice(0, 5);
+            }
+        }
+
+        function updateAppointment() {
+            const appointmentId = document.getElementById('editAppointmentId').value;
+            const clientName = document.getElementById('editClientName').value.trim();
+            const clientPhone = document.getElementById('editClientPhone').value.trim();
+            const serviceName = document.getElementById('editServiceSelect').value;
+            const staffId = document.getElementById('editStaffSelect').value;
+            const appointmentDate = document.getElementById('editAppointmentDate').value;
+            const startTime = document.getElementById('editStartTime').value;
+            const endTime = document.getElementById('editEndTime').value;
+            const status = document.getElementById('editStatus').value;
+            const notes = document.getElementById('editAppointmentNotes').value.trim();
+
+            // Validation
+            if (!clientName || !serviceName || !staffId || !appointmentDate || !startTime || !endTime) {
+                showNotification('Please fill in all required fields', 'error');
+                return;
+            }
+
+            const updateData = {
+                clientName: clientName,
+                clientPhone: clientPhone,
+                serviceName: serviceName,
+                staffId: parseInt(staffId),
+                date: appointmentDate,
+                startTime: startTime,
+                endTime: endTime,
+                status: status,
+                notes: notes
+            };
+
+            console.log('Updating appointment:', updateData);
+            showNotification('Updating appointment...', 'info');
+
+            fetch(`/api/unaki/bookings/${appointmentId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(updateData)
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    showNotification('Appointment updated successfully!', 'success');
+                    
+                    // Close modal
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('editAppointmentModal'));
+                    if (modal) modal.hide();
+                    
+                    // Refresh schedule
+                    loadScheduleForDate();
+                } else {
+                    showNotification('Failed to update appointment: ' + data.error, 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error updating appointment:', error);
+                showNotification('Error updating appointment: ' + error.message, 'error');
+            });
+        }
+
+        // Add event listener for start time changes in edit form
+        document.addEventListener('DOMContentLoaded', function() {
+            const editStartTime = document.getElementById('editStartTime');
+            if (editStartTime) {
+                editStartTime.addEventListener('change', updateEditEndTime);
+            }
+        });
+
         // New functions for edit/delete
         window.editAppointment = editAppointment;
         window.deleteAppointment = deleteAppointment;
+        window.updateAppointment = updateAppointment;
         window.viewAppointmentDetails = function(appointmentId) { /* Placeholder for viewing details */ };
 
         function renderSchedule() {
