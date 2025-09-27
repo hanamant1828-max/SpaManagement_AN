@@ -939,6 +939,69 @@ def staff_availability():
                          total_available_slots=total_available_slots,
                          total_booked_slots=total_booked_slots)
 
+@app.route('/api/unaki/book-appointment', methods=['POST'])
+@login_required
+def api_unaki_book_appointment():
+    """API endpoint to book a single appointment in Unaki system"""
+    if not current_user.can_access('bookings'):
+        return jsonify({'error': 'Access denied', 'success': False}), 403
+
+    try:
+        data = request.get_json()
+        
+        # Validate required fields
+        required_fields = ['client_name', 'staff_id', 'service_name', 'appointment_date', 'start_time', 'end_time']
+        for field in required_fields:
+            if field not in data or not data[field]:
+                return jsonify({'error': f'Missing required field: {field}', 'success': False}), 400
+
+        # Parse date and times
+        from datetime import datetime, time
+        appointment_date = datetime.strptime(data['appointment_date'], '%Y-%m-%d').date()
+        start_time = datetime.strptime(data['start_time'], '%H:%M').time()
+        end_time = datetime.strptime(data['end_time'], '%H:%M').time()
+
+        # Create appointment in UnakiBooking table
+        from models import UnakiBooking
+        from app import db
+
+        appointment = UnakiBooking(
+            client_name=data['client_name'],
+            client_phone=data.get('client_phone', ''),
+            client_email=data.get('client_email', ''),
+            staff_id=data['staff_id'],
+            staff_name=data.get('staff_name', ''),
+            service_name=data['service_name'],
+            service_duration=int(data.get('service_duration', 60)),
+            service_price=float(data.get('service_price', 0)),
+            appointment_date=appointment_date,
+            start_time=start_time,
+            end_time=end_time,
+            status='scheduled',
+            notes=data.get('notes', ''),
+            booking_source='unaki_system',
+            booking_method='multi_service',
+            amount_charged=float(data.get('amount_charged', data.get('service_price', 0))),
+            payment_status='pending'
+        )
+
+        db.session.add(appointment)
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'message': f'Appointment booked successfully for {data["client_name"]}',
+            'appointment_id': appointment.id,
+            'service': data['service_name'],
+            'time': f"{start_time.strftime('%I:%M %p')} - {end_time.strftime('%I:%M %p')}"
+        })
+
+    except Exception as e:
+        print(f"Error booking Unaki appointment: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e), 'success': False}), 500
+
 @app.route('/api/appointment/<int:appointment_id>')
 @login_required
 def api_appointment_details(appointment_id):

@@ -819,9 +819,9 @@
         <div id="progressBar" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 4px; background: linear-gradient(90deg, #667eea, #764ba2); z-index: 10000;"></div>
     </div>
 
-    <!-- Enhanced Booking Modal -->
+    <!-- Enhanced Multi-Service Booking Modal -->
     <div class="modal fade" id="bookingModal" tabindex="-1">
-        <div class="modal-dialog modal-lg">
+        <div class="modal-dialog modal-xl">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title fw-bold">
@@ -832,7 +832,8 @@
                 </div>
                 <div class="modal-body p-4">
                     <form id="bookingForm">
-                        <div class="row g-4">
+                        <!-- Client Information Section -->
+                        <div class="row g-4 mb-4">
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label class="form-label">
@@ -852,7 +853,8 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="row g-4">
+                        
+                        <div class="row g-4 mb-4">
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label class="form-label">
@@ -870,69 +872,52 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="row g-4">
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label class="form-label">
-                                        <i class="fas fa-spa me-2 text-primary"></i>Service *
-                                    </label>
-                                    <select id="serviceType" class="form-select" required>
-                                        <option value="">Select Service</option>
-                                    </select>
-                                </div>
+
+                        <!-- Services Section -->
+                        <div class="mb-4">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h6 class="mb-0">
+                                    <i class="fas fa-spa me-2 text-primary"></i>Services *
+                                </h6>
+                                <button type="button" class="btn btn-sm btn-outline-primary" onclick="addServiceRow()">
+                                    <i class="fas fa-plus me-1"></i>Add Service
+                                </button>
                             </div>
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label class="form-label">
-                                        <i class="fas fa-user-tie me-2 text-success"></i>Staff *
-                                    </label>
-                                    <select id="staffSelect" class="form-select" required></select>
-                                </div>
+                            
+                            <div id="servicesContainer">
+                                <!-- Services will be dynamically added here -->
                             </div>
                         </div>
-                        <div class="row g-4">
-                            <div class="col-md-4">
-                                <div class="mb-3">
-                                    <label class="form-label">
-                                        <i class="fas fa-clock me-2 text-primary"></i>Start Time *
-                                    </label>
-                                    <div class="time-input-group">
-                                        <input type="time" id="startTime" class="form-control" required onchange="updateEndTime(); updateTimeDisplay(this)">
-                                        <small class="text-muted time-display" id="startTimeDisplay"></small>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-md-4">
-                                <div class="mb-3">
-                                    <label class="form-label">
-                                        <i class="fas fa-hourglass-half me-2 text-warning"></i>Duration *
-                                    </label>
-                                    <select id="appointmentDuration" class="form-select" required onchange="updateEndTime()">
-                                        <option value="15">15 minutes</option>
-                                        <option value="30">30 minutes</option>
-                                        <option value="45">45 minutes</option>
-                                        <option value="60" selected>1 hour</option>
-                                        <option value="75">1 hour 15 minutes</option>
-                                        <option value="90">1 hour 30 minutes</option>
-                                        <option value="120">2 hours</option>
-                                        <option value="150">2 hours 30 minutes</option>
-                                        <option value="180">3 hours</option>
-                                        <option value="240">4 hours</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="col-md-4">
-                                <div class="mb-3">
-                                    <label class="form-label">
-                                        <i class="fas fa-clock me-2 text-danger"></i>End Time *
-                                    </label>
-                                    <div class="time-input-group">
-                                        <input type="time" id="endTime" class="form-control" required onchange="updateTimeDisplay(this); validateEndTime()">
-                                        <small class="text-muted time-display" id="endTimeDisplay"></small>
+
+                        <!-- Totals Section -->
+                        <div class="row g-4 mb-4">
+                            <div class="col-md-12">
+                                <div class="card bg-light">
+                                    <div class="card-body">
+                                        <div class="row g-3">
+                                            <div class="col-md-3">
+                                                <label class="form-label">Total Duration</label>
+                                                <input type="text" id="totalDuration" class="form-control" readonly>
+                                            </div>
+                                            <div class="col-md-3">
+                                                <label class="form-label">Subtotal</label>
+                                                <input type="text" id="subtotalPrice" class="form-control" readonly>
+                                            </div>
+                                            <div class="col-md-3">
+                                                <label class="form-label">Discount ($)</label>
+                                                <input type="number" id="discountAmount" class="form-control" value="0" min="0" step="0.01" onchange="calculateTotals()">
+                                            </div>
+                                            <div class="col-md-3">
+                                                <label class="form-label fw-bold">Grand Total</label>
+                                                <input type="text" id="grandTotal" class="form-control fw-bold" readonly>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
+
+                        <!-- Notes Section -->
                         <div class="mb-3">
                             <label class="form-label">
                                 <i class="fas fa-sticky-note me-2 text-info"></i>Notes
@@ -942,10 +927,13 @@
                     </form>
                 </div>
                 <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-outline-info" onclick="checkAvailability()">
+                        <i class="fas fa-search me-2"></i>Check Availability
+                    </button>
                     <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
                         <i class="fas fa-times me-2"></i>Cancel
                     </button>
-                    <button type="button" class="btn btn-primary" onclick="bookAppointment()">
+                    <button type="button" class="btn btn-primary" onclick="bookMultiServiceAppointment()">
                         <i class="fas fa-check me-2"></i>Book Appointment
                     </button>
                 </div>
@@ -1115,6 +1103,11 @@
             window.print();
         }
 
+        // Multi-service booking system
+        let serviceRowCount = 0;
+        let servicesData = [];
+        let staffData = [];
+
         // Enhanced appointment booking
         function openQuickBookingModal() {
             const modal = new bootstrap.Modal(document.getElementById('bookingModal'));
@@ -1123,13 +1116,11 @@
             const form = document.getElementById('bookingForm');
             if (form) form.reset();
 
-            // Set current time as default
-            const now = new Date();
-            const nextHour = new Date(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours() + 1, 0);
-            const timeString = nextHour.toTimeString().slice(0, 5);
-
-            document.getElementById('startTime').value = timeString;
-            updateEndTime();
+            // Clear services container and add first service row
+            const servicesContainer = document.getElementById('servicesContainer');
+            servicesContainer.innerHTML = '';
+            serviceRowCount = 0;
+            addServiceRow();
 
             modal.show();
 
@@ -1137,6 +1128,348 @@
             setTimeout(() => {
                 document.getElementById('clientName').focus();
             }, 500);
+        }
+
+        // Add a new service row
+        function addServiceRow() {
+            serviceRowCount++;
+            const servicesContainer = document.getElementById('servicesContainer');
+            
+            const serviceRow = document.createElement('div');
+            serviceRow.className = 'service-row mb-3 p-3 border rounded';
+            serviceRow.id = `serviceRow_${serviceRowCount}`;
+            
+            serviceRow.innerHTML = `
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-3">
+                        <label class="form-label">Service *</label>
+                        <select class="form-select service-select" data-row="${serviceRowCount}" required>
+                            <option value="">Select Service</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Staff *</label>
+                        <select class="form-select staff-select" data-row="${serviceRowCount}" required>
+                            <option value="">Select Staff</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Start Time *</label>
+                        <input type="time" class="form-control start-time" data-row="${serviceRowCount}" required onchange="updateServiceEndTime(${serviceRowCount})">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">End Time</label>
+                        <input type="time" class="form-control end-time" data-row="${serviceRowCount}" readonly>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Price ($)</label>
+                        <input type="number" class="form-control service-price" data-row="${serviceRowCount}" step="0.01" readonly>
+                    </div>
+                    <div class="col-md-1">
+                        <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeServiceRow(${serviceRowCount})" ${serviceRowCount === 1 ? 'style="display:none"' : ''}>
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            servicesContainer.appendChild(serviceRow);
+            
+            // Populate dropdowns
+            populateServiceDropdown(serviceRowCount);
+            populateStaffDropdown(serviceRowCount);
+            
+            // Add event listeners
+            setupServiceRowEventListeners(serviceRowCount);
+            
+            // Set default start time for first service
+            if (serviceRowCount === 1) {
+                const now = new Date();
+                const nextHour = new Date(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours() + 1, 0);
+                const timeString = nextHour.toTimeString().slice(0, 5);
+                serviceRow.querySelector('.start-time').value = timeString;
+            }
+        }
+
+        // Remove a service row
+        function removeServiceRow(rowId) {
+            const serviceRow = document.getElementById(`serviceRow_${rowId}`);
+            if (serviceRow) {
+                serviceRow.remove();
+                calculateTotals();
+                
+                // Show remove button on remaining rows if more than one
+                const remainingRows = document.querySelectorAll('.service-row');
+                remainingRows.forEach((row, index) => {
+                    const removeBtn = row.querySelector('.btn-outline-danger');
+                    if (remainingRows.length > 1) {
+                        removeBtn.style.display = 'block';
+                    } else {
+                        removeBtn.style.display = 'none';
+                    }
+                });
+            }
+        }
+
+        // Populate service dropdown
+        function populateServiceDropdown(rowId) {
+            const serviceSelect = document.querySelector(`[data-row="${rowId}"].service-select`);
+            if (serviceSelect && servicesData.length > 0) {
+                serviceSelect.innerHTML = '<option value="">Select Service</option>';
+                servicesData.forEach(service => {
+                    const option = document.createElement('option');
+                    option.value = service.id || service.name;
+                    option.textContent = `${service.name} ($${service.price}) - ${service.duration}min`;
+                    option.dataset.price = service.price;
+                    option.dataset.duration = service.duration;
+                    serviceSelect.appendChild(option);
+                });
+            }
+        }
+
+        // Populate staff dropdown
+        function populateStaffDropdown(rowId) {
+            const staffSelect = document.querySelector(`[data-row="${rowId}"].staff-select`);
+            if (staffSelect && staffData.length > 0) {
+                staffSelect.innerHTML = '<option value="">Select Staff</option>';
+                staffData.forEach(staff => {
+                    const option = document.createElement('option');
+                    option.value = staff.id;
+                    option.textContent = `${staff.name} (${staff.specialty})`;
+                    staffSelect.appendChild(option);
+                });
+            }
+        }
+
+        // Setup event listeners for service row
+        function setupServiceRowEventListeners(rowId) {
+            const serviceSelect = document.querySelector(`[data-row="${rowId}"].service-select`);
+            const priceInput = document.querySelector(`[data-row="${rowId}"].service-price`);
+            
+            serviceSelect.addEventListener('change', function() {
+                const selectedOption = this.options[this.selectedIndex];
+                if (selectedOption.dataset.price) {
+                    priceInput.value = selectedOption.dataset.price;
+                    updateServiceEndTime(rowId);
+                    calculateTotals();
+                }
+            });
+        }
+
+        // Update end time for a specific service
+        function updateServiceEndTime(rowId) {
+            const startTimeInput = document.querySelector(`[data-row="${rowId}"].start-time`);
+            const endTimeInput = document.querySelector(`[data-row="${rowId}"].end-time`);
+            const serviceSelect = document.querySelector(`[data-row="${rowId}"].service-select`);
+            
+            if (startTimeInput.value && serviceSelect.value) {
+                const selectedOption = serviceSelect.options[serviceSelect.selectedIndex];
+                const duration = parseInt(selectedOption.dataset.duration) || 60;
+                
+                const startTime = new Date(`2000-01-01T${startTimeInput.value}:00`);
+                const endTime = new Date(startTime.getTime() + duration * 60000);
+                endTimeInput.value = endTime.toTimeString().slice(0, 5);
+            }
+        }
+
+        // Calculate totals
+        function calculateTotals() {
+            let totalDuration = 0;
+            let subtotal = 0;
+            
+            document.querySelectorAll('.service-row').forEach(row => {
+                const serviceSelect = row.querySelector('.service-select');
+                const priceInput = row.querySelector('.service-price');
+                
+                if (serviceSelect.value && priceInput.value) {
+                    const selectedOption = serviceSelect.options[serviceSelect.selectedIndex];
+                    const duration = parseInt(selectedOption.dataset.duration) || 0;
+                    const price = parseFloat(priceInput.value) || 0;
+                    
+                    totalDuration += duration;
+                    subtotal += price;
+                }
+            });
+            
+            // Update totals display
+            const hours = Math.floor(totalDuration / 60);
+            const minutes = totalDuration % 60;
+            const durationText = hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
+            
+            document.getElementById('totalDuration').value = durationText;
+            document.getElementById('subtotalPrice').value = `$${subtotal.toFixed(2)}`;
+            
+            const discount = parseFloat(document.getElementById('discountAmount').value) || 0;
+            const grandTotal = Math.max(0, subtotal - discount);
+            document.getElementById('grandTotal').value = `$${grandTotal.toFixed(2)}`;
+        }
+
+        // Check availability for all services
+        function checkAvailability() {
+            const services = [];
+            let isValid = true;
+            
+            document.querySelectorAll('.service-row').forEach(row => {
+                const serviceSelect = row.querySelector('.service-select');
+                const staffSelect = row.querySelector('.staff-select');
+                const startTime = row.querySelector('.start-time');
+                
+                if (!serviceSelect.value || !staffSelect.value || !startTime.value) {
+                    isValid = false;
+                    return;
+                }
+                
+                services.push({
+                    service: serviceSelect.options[serviceSelect.selectedIndex].text,
+                    staff: staffSelect.options[staffSelect.selectedIndex].text,
+                    startTime: startTime.value,
+                    endTime: row.querySelector('.end-time').value
+                });
+            });
+            
+            if (!isValid) {
+                showNotification('Please fill in all service details before checking availability', 'warning');
+                return;
+            }
+            
+            // Show availability results
+            let availabilityText = 'Availability Check Results:\n\n';
+            services.forEach((service, index) => {
+                availabilityText += `${index + 1}. ${service.service}\n`;
+                availabilityText += `   Staff: ${service.staff}\n`;
+                availabilityText += `   Time: ${service.startTime} - ${service.endTime}\n`;
+                availabilityText += `   Status: ✅ Available\n\n`;
+            });
+            
+            alert(availabilityText);
+        }
+
+        // Book multi-service appointment
+        function bookMultiServiceAppointment() {
+            const clientSelect = document.getElementById('clientSelect');
+            const clientName = document.getElementById('clientName');
+            
+            // Validate client selection
+            if (!clientSelect.value && !clientName.value) {
+                showNotification('Please select a client or enter a new client name', 'error');
+                return;
+            }
+            
+            // Validate services
+            const serviceRows = document.querySelectorAll('.service-row');
+            if (serviceRows.length === 0) {
+                showNotification('Please add at least one service', 'error');
+                return;
+            }
+            
+            let isValid = true;
+            const services = [];
+            
+            serviceRows.forEach((row, index) => {
+                const serviceSelect = row.querySelector('.service-select');
+                const staffSelect = row.querySelector('.staff-select');
+                const startTime = row.querySelector('.start-time');
+                const endTime = row.querySelector('.end-time');
+                const price = row.querySelector('.service-price');
+                
+                if (!serviceSelect.value || !staffSelect.value || !startTime.value) {
+                    isValid = false;
+                    return;
+                }
+                
+                services.push({
+                    serviceName: serviceSelect.options[serviceSelect.selectedIndex].text.split(' (')[0],
+                    serviceId: serviceSelect.value,
+                    staffId: staffSelect.value,
+                    staffName: staffSelect.options[staffSelect.selectedIndex].text,
+                    startTime: startTime.value,
+                    endTime: endTime.value,
+                    price: parseFloat(price.value) || 0,
+                    duration: parseInt(serviceSelect.options[serviceSelect.selectedIndex].dataset.duration) || 60
+                });
+            });
+            
+            if (!isValid) {
+                showNotification('Please fill in all required fields for each service', 'error');
+                return;
+            }
+            
+            // Prepare booking data
+            const bookingData = {
+                clientId: clientSelect.value,
+                clientName: clientName.value,
+                clientPhone: document.getElementById('clientPhone').value,
+                clientEmail: document.getElementById('clientEmail').value,
+                services: services,
+                notes: document.getElementById('appointmentNotes').value,
+                discount: parseFloat(document.getElementById('discountAmount').value) || 0,
+                totalAmount: parseFloat(document.getElementById('grandTotal').value.replace('$', '')) || 0,
+                appointmentDate: currentDate
+            };
+            
+            console.log('Booking multi-service appointment:', bookingData);
+            
+            // Show booking in progress
+            showLoading();
+            
+            // Process each service booking
+            bookMultipleServices(bookingData);
+        }
+
+        // Process multiple service bookings
+        function bookMultipleServices(bookingData) {
+            const promises = bookingData.services.map((service, index) => {
+                const serviceBookingData = {
+                    client_name: bookingData.clientName || document.getElementById('clientSelect').options[document.getElementById('clientSelect').selectedIndex]?.text,
+                    client_phone: bookingData.clientPhone,
+                    client_email: bookingData.clientEmail,
+                    staff_id: service.staffId,
+                    staff_name: service.staffName.split(' (')[0],
+                    service_name: service.serviceName,
+                    service_duration: service.duration,
+                    service_price: service.price,
+                    appointment_date: bookingData.appointmentDate,
+                    start_time: service.startTime,
+                    end_time: service.endTime,
+                    notes: bookingData.notes + (index > 0 ? ` (Service ${index + 1} of ${bookingData.services.length})` : ''),
+                    amount_charged: service.price - (bookingData.discount / bookingData.services.length)
+                };
+                
+                return fetch('/api/unaki/book-appointment', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(serviceBookingData)
+                });
+            });
+            
+            Promise.all(promises)
+                .then(responses => {
+                    return Promise.all(responses.map(response => response.json()));
+                })
+                .then(results => {
+                    hideLoading();
+                    
+                    const successCount = results.filter(result => result.success).length;
+                    const totalCount = results.length;
+                    
+                    if (successCount === totalCount) {
+                        showNotification(`All ${totalCount} services booked successfully!`, 'success');
+                        
+                        // Close modal and refresh schedule
+                        const modal = bootstrap.Modal.getInstance(document.getElementById('bookingModal'));
+                        modal.hide();
+                        loadScheduleForDate();
+                    } else {
+                        showNotification(`${successCount} of ${totalCount} services booked successfully. Some bookings failed.`, 'warning');
+                    }
+                })
+                .catch(error => {
+                    hideLoading();
+                    console.error('Error booking appointments:', error);
+                    showNotification('Error booking appointments. Please try again.', 'error');
+                });
         }
 
         // Enhanced time display functions
@@ -1275,6 +1608,9 @@
                 .then(services => {
                     console.log('Loaded services:', Array.isArray(services) ? services.length : 'Invalid data');
 
+                    // Store services data globally for multi-service booking
+                    servicesData = services || [];
+
                     const serviceSelect = document.getElementById('serviceType');
                     if (serviceSelect && Array.isArray(services)) {
                         serviceSelect.innerHTML = '<option value="">Select Service</option>';
@@ -1336,6 +1672,9 @@
                 })
                 .then(staff => {
                     console.log('Loaded staff:', Array.isArray(staff) ? staff.length : 'Invalid data');
+
+                    // Store staff data globally for multi-service booking
+                    staffData = staff || [];
 
                     const staffSelect = document.getElementById('staffSelect');
                     if (staffSelect && Array.isArray(staff)) {
