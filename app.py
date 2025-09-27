@@ -162,9 +162,6 @@ def init_app():
             print("Continuing with existing SQLite database...")
 
         print("Basic routes imported successfully")
-    except Exception as e:
-        print(f"Warning: Could not import all routes: {e}")
-        print("Application will continue with basic functionality")
 
 # Initialize the app
 init_app()
@@ -236,8 +233,22 @@ try:
 except Exception as e:
     print(f"⚠️ Bookings views import error: {e}")
 
-# Skip problematic imports that cause route conflicts
-print("⚠️ Skipping staff, billing, notifications, and packages views to avoid conflicts")
+# Import specific modules referenced in base.html navigation
+try:
+    from modules.staff.shift_scheduler_views import shift_scheduler_bp
+    app.register_blueprint(shift_scheduler_bp)
+    print("✅ Shift scheduler views imported")
+except Exception as e:
+    print(f"⚠️ Shift scheduler views import error: {e}")
+
+try:
+    from modules.billing.integrated_billing_views import *
+    print("✅ Integrated billing views imported")
+except Exception as e:
+    print(f"⚠️ Integrated billing views import error: {e}")
+
+# Skip other problematic imports that cause route conflicts
+print("⚠️ Skipping other staff, notifications, and packages views to avoid conflicts")
 
 # Routes are imported via module views, avoiding import conflicts
 

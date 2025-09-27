@@ -10,7 +10,7 @@ run = ["gunicorn", "--bind", "0.0.0.0:5000", "--reuse-port", "main:app"]
 build = ["echo", "No build needed - Flask app ready to deploy"]
 
 [workflows]
-runButton = "Start Spa System"
+runButton = "Project"
 
 [[workflows.workflow]]
 name = "Start Flask App"
@@ -153,6 +153,10 @@ args = "export SESSION_SECRET=\"1578063aca108928c78100b516702a5765d2d05e85b4fb8b
 [[ports]]
 localPort = 5000
 externalPort = 80
+
+[[ports]]
+localPort = 33741
+externalPort = 3000
 
 [agent]
 expertMode = true
