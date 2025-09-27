@@ -19,7 +19,9 @@ def add_service_id_column():
             
             if 'service_id' not in columns:
                 # Add the service_id column
-                db.engine.execute(text('ALTER TABLE unaki_booking ADD COLUMN service_id INTEGER'))
+                with db.engine.connect() as conn:
+                    conn.execute(text('ALTER TABLE unaki_booking ADD COLUMN service_id INTEGER'))
+                    conn.commit()
                 print("✅ service_id column added successfully")
             else:
                 print("✅ service_id column already exists")
