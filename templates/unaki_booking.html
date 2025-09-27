@@ -819,7 +819,7 @@
                                 <i class="fas fa-ellipsis-v"></i>
                             </button>
                             <ul class="dropdown-menu dropdown-menu-end">
-                                <li><a class="dropdown-item" href="#" onclick="loadSampleData()">
+                                <li><a class="dropdown-item" href="#" onclick="showLoadingAndLoadSample()">
                                     <i class="fas fa-database me-2"></i>Load Sample Data
                                 </a></li>
                                 <li><a class="dropdown-item" href="#" onclick="clearAllData()">
@@ -2477,8 +2477,19 @@
 
             // Add context menu handler
             appointmentBlock.addEventListener('contextmenu', function(event) {
-                console.log(`🎯 Right-click detected on appointment ${appointment.id} (${appointment.clientName})`);
-                handleAppointmentRightClick(event);
+                event.preventDefault();
+                event.stopPropagation();
+
+                // Call the context menu handler
+                if (typeof window.handleAppointmentRightClick === 'function') {
+                    window.handleAppointmentRightClick(event);
+                } else if (typeof handleAppointmentRightClick === 'function') {
+                    handleAppointmentRightClick(event);
+                } else {
+                    console.log('Context menu handler not available');
+                    // Fallback: show simple context menu
+                    showFallbackContextMenu(event, appointment.id);
+                }
             });
 
             // Add hover effects
@@ -3047,13 +3058,19 @@
 
                 generateScheduleGrid();
 
-                // Reinitialize context menu after schedule is rendered
-                console.log('🔄 Reinitializing context menu after schedule render...');
-                if (window.reinitializeContextMenu) {
-                    setTimeout(() => {
+                // Reinitialize context menu for all appointment blocks
+                setTimeout(() => {
+                    if (typeof window.reinitializeContextMenu === 'function') {
+                        console.log('🔄 Reinitializing context menu after schedule render...');
                         window.reinitializeContextMenu();
-                    }, 100);
-                }
+                    } else if (window.appointmentContextMenu && typeof window.appointmentContextMenu.reinitializeForAppointments === 'function') {
+                        console.log('🔄 Using appointment context menu reinitialize...');
+                        window.appointmentContextMenu.reinitializeForAppointments();
+                    } else {
+                        console.log('⚠️ Context menu reinitialize function not available, adding fallback handlers');
+                        addFallbackContextMenuHandlers();
+                    }
+                }, 100);
 
                 // Show stats
                 updateStats();
@@ -3112,6 +3129,155 @@
             console.log('🔄 Refreshing schedule');
             loadScheduleForDate();
         }
+
+        // Missing function implementations
+        function showFallbackContextMenu(event, appointmentId) {
+            console.log(`🎯 Fallback context menu for appointment ${appointmentId}`);
+
+            // Simple fallback - show browser context menu or alert
+            const actions = ['View', 'Edit', 'Delete', 'Go to Billing'];
+            const choice = prompt(`Appointment ${appointmentId} actions:\n1. View\n2. Edit\n3. Delete\n4. Go to Billing\n\nEnter number (1-4):`);
+
+            switch(choice) {
+                case '1':
+                    viewAppointmentDetails(appointmentId);
+                    break;
+                case '2':
+                    editAppointment(appointmentId);
+                    break;
+                case '3':
+                    if (confirm('Delete this appointment?')) {
+                        deleteAppointment(appointmentId);
+                    }
+                    break;
+                case '4':
+                    window.location.href = `/appointment/${appointmentId}/go-to-billing`;
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        function addFallbackContextMenuHandlers() {
+            console.log('📋 Adding fallback context menu handlers');
+            const appointmentBlocks = document.querySelectorAll('.appointment-block');
+
+            appointmentBlocks.forEach((block, index) => {
+                const appointmentId = block.dataset.appointmentId || block.getAttribute('data-appointment-id');
+
+                if (!appointmentId) {
+                    console.error(`No appointment ID found for block ${index}`);
+                    return;
+                }
+
+                // Ensure context menu handler is properly attached
+                const existingHandler = block.oncontextmenu;
+                if (!existingHandler) {
+                    block.addEventListener('contextmenu', function(event) {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        showFallbackContextMenu(event, appointmentId);
+                    });
+
+                    console.log(`✅ Fallback context menu attached to appointment ${appointmentId}`);
+                }
+            });
+        }
+
+        function viewAppointmentDetails(appointmentId) {
+            console.log(`👁️ Viewing appointment ${appointmentId}`);
+            alert(`View appointment ${appointmentId} details (implement detailed view modal)`);
+        }
+
+        function editAppointment(appointmentId) {
+            console.log(`✏️ Editing appointment ${appointmentId}`);
+
+            // Find appointment data
+            const appointmentBlock = document.querySelector(`[data-appointment-id="${appointmentId}"]`);
+            if (!appointmentBlock) {
+                alert('Appointment not found');
+                return;
+            }
+
+            // Extract appointment data for editing
+            const clientName = appointmentBlock.querySelector('.appointment-client')?.textContent || '';
+            const serviceName = appointmentBlock.querySelector('.appointment-service')?.textContent || '';
+
+            // Simple edit implementation
+            const newClientName = prompt('Edit client name:', clientName);
+            const newServiceName = prompt('Edit service name:', serviceName);
+
+            if (newClientName && newServiceName) {
+                updateAppointmentData(appointmentId, {
+                    clientName: newClientName,
+                    serviceName: newServiceName
+                });
+            }
+        }
+
+        function deleteAppointment(appointmentId) {
+            console.log(`🗑️ Deleting appointment ${appointmentId}`);
+
+            fetch(`/api/unaki/appointments/${appointmentId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showNotification('Appointment deleted successfully', 'success');
+                    refreshSchedule();
+                } else {
+                    showNotification('Failed to delete appointment: ' + data.error, 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error deleting appointment:', error);
+                showNotification('Error deleting appointment', 'error');
+            });
+        }
+
+        function updateAppointmentData(appointmentId, data) {
+            console.log(`💾 Updating appointment ${appointmentId}`, data);
+
+            fetch(`/api/unaki/bookings/${appointmentId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    showNotification('Appointment updated successfully', 'success');
+                    refreshSchedule();
+                } else {
+                    showNotification('Failed to update appointment: ' + result.error, 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error updating appointment:', error);
+                showNotification('Error updating appointment', 'error');
+            });
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            // Set today's date
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('scheduleDate').value = today;
+            currentDate = today;
+
+            // Load initial schedule
+            showLoadingAndLoad();
+
+            // Start time updates
+            updateCurrentDateTime();
+            setInterval(updateCurrentDateTime, 1000);
+        });
     </script>
 </body>
 </html>

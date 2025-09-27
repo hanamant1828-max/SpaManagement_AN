@@ -172,8 +172,12 @@ class AppointmentContextMenu {
         this.currentAppointmentId = appointmentId;
         
         if (!this.contextMenu) {
-            console.error('Context menu not initialized');
-            return;
+            console.error('Context menu not initialized, recreating...');
+            this.createContextMenuHTML();
+            if (!this.contextMenu) {
+                console.error('Failed to create context menu');
+                return;
+            }
         }
 
         // Position the menu
@@ -427,28 +431,52 @@ let appointmentContextMenu = null;
 // Initialize when DOM is ready
 document.addEventListener('DOMContentLoaded', function() {
     appointmentContextMenu = new AppointmentContextMenu();
+    
+    // Make sure it's available globally
+    window.appointmentContextMenu = appointmentContextMenu;
 });
 
 // Global functions for compatibility
 window.reinitializeContextMenu = function() {
-    if (appointmentContextMenu) {
+    if (window.appointmentContextMenu) {
+        window.appointmentContextMenu.reinitializeForAppointments();
+    } else if (appointmentContextMenu) {
         appointmentContextMenu.reinitializeForAppointments();
     } else {
         console.error('Context menu not initialized yet');
+        // Try to initialize it
+        setTimeout(() => {
+            if (typeof AppointmentContextMenu !== 'undefined') {
+                window.appointmentContextMenu = new AppointmentContextMenu();
+                window.appointmentContextMenu.reinitializeForAppointments();
+            }
+        }, 100);
     }
 };
 
 window.handleAppointmentRightClick = function(event) {
-    if (appointmentContextMenu) {
+    const contextMenu = window.appointmentContextMenu || appointmentContextMenu;
+    
+    if (contextMenu) {
         event.preventDefault();
         event.stopPropagation();
         
         const appointmentElement = event.currentTarget;
-        const appointmentId = appointmentContextMenu.getAppointmentId(appointmentElement);
+        const appointmentId = contextMenu.getAppointmentId(appointmentElement);
         
         if (appointmentId) {
             console.log(`🎯 Right-click detected on appointment ${appointmentId}`);
-            appointmentContextMenu.showContextMenu(event.pageX, event.pageY, appointmentId);
+            contextMenu.showContextMenu(event.pageX, event.pageY, appointmentId);
+        } else {
+            console.error('No appointment ID found for right-clicked element');
+        }
+    } else {
+        console.error('Context menu not available');
+        // Fallback
+        const appointmentElement = event.currentTarget;
+        const appointmentId = appointmentElement.dataset.appointmentId || appointmentElement.getAttribute('data-appointment-id');
+        if (appointmentId && typeof showFallbackContextMenu === 'function') {
+            showFallbackContextMenu(event, appointmentId);
         }
     }
 };
