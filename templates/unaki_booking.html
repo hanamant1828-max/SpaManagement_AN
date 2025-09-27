@@ -954,18 +954,18 @@
         function clearAllData() {
             if (confirm('Are you sure you want to clear all appointment data? This will remove all bookings for today.')) {
                 console.log('Clearing all data...');
-                
+
                 // Clear local data immediately
                 scheduleData = {
                     staff: [],
                     appointments: [],
                     breaks: []
                 };
-                
+
                 // Re-render empty schedule
                 renderSchedule();
                 updateStats();
-                
+
                 showNotification('All appointment data cleared!', 'info', 2000);
             }
         }
@@ -1230,20 +1230,20 @@
 
         function loadSampleData() {
             console.log('Loading sample data...');
-            
+
             // Clear existing schedule data first to prevent stale UI
             scheduleData = {
                 staff: [],
                 appointments: [],
                 breaks: []
             };
-            
+
             // Clear the grid immediately
             const grid = document.getElementById('scheduleGrid');
             if (grid) {
                 grid.innerHTML = '<div class="text-center p-4"><i class="fas fa-spinner fa-spin"></i> Loading fresh data...</div>';
             }
-            
+
             fetch('/api/unaki/load-sample-data', {
                 method: 'POST',
                 headers: {
@@ -1410,15 +1410,15 @@
         function generateTimeSlots() {
             const slots = [];
             const totalSlots = (SCHEDULE_CONFIG.endHour - SCHEDULE_CONFIG.startHour) * (60 / SCHEDULE_CONFIG.slotMinutes);
-            
+
             for (let i = 0; i < totalSlots; i++) {
                 const totalMinutes = SCHEDULE_CONFIG.startHour * 60 + (i * SCHEDULE_CONFIG.slotMinutes);
                 const hour = Math.floor(totalMinutes / 60);
                 const minute = totalMinutes % 60;
-                
+
                 const timeStr = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
                 const displayTime = formatDisplayTime(hour, minute);
-                
+
                 slots.push({
                     time: timeStr,
                     display: displayTime,
@@ -1506,7 +1506,7 @@
                 if (!appointmentsByStaff[appointment.staffId]) {
                     appointmentsByStaff[appointment.staffId] = {};
                 }
-                
+
                 const startSlotIndex = getSlotIndexFromTime(appointment.startTime);
                 if (startSlotIndex !== -1) {
                     if (!appointmentsByStaff[appointment.staffId][startSlotIndex]) {
@@ -1519,13 +1519,13 @@
             // Render appointment blocks
             Object.keys(appointmentsByStaff).forEach(staffId => {
                 const staffAppointments = appointmentsByStaff[staffId];
-                
+
                 Object.keys(staffAppointments).forEach(slotIndex => {
                     const appointments = staffAppointments[slotIndex];
-                    
+
                     appointments.forEach((appointment, overlapIndex) => {
                         const appointmentBlock = createAppointmentBlock(appointment, parseInt(slotIndex), overlapIndex, appointments.length);
-                        
+
                         // Find the corresponding time slot cell
                         const timeSlotCell = grid.querySelector(`[data-staff-id="${staffId}"][data-slot-index="${slotIndex}"]`);
                         if (timeSlotCell) {
@@ -1540,7 +1540,7 @@
         function createAppointmentBlock(appointment, startSlotIndex, overlapIndex, totalOverlaps) {
             const appointmentBlock = document.createElement('div');
             appointmentBlock.className = 'appointment-block';
-            
+
             // Add service category class
             const serviceCategory = getServiceCategory(appointment.service || appointment.serviceType);
             if (serviceCategory) {
@@ -1560,7 +1560,7 @@
             const endTime = appointment.endTime;
             const durationMinutes = getTimeDifferenceInMinutes(startTime, endTime);
             const durationSlots = durationMinutes / SCHEDULE_CONFIG.slotMinutes;
-            
+
             // Set height based on duration
             const blockHeight = Math.max(60, (durationSlots * 80) - 10); // 80px per slot minus gap
             appointmentBlock.style.height = `${blockHeight}px`;
@@ -1587,41 +1587,41 @@
             const totalMinutes = hour * 60 + minute;
             const startMinutes = SCHEDULE_CONFIG.startHour * 60;
             const slotIndex = Math.floor((totalMinutes - startMinutes) / SCHEDULE_CONFIG.slotMinutes);
-            
+
             if (slotIndex < 0 || hour < SCHEDULE_CONFIG.startHour || hour >= SCHEDULE_CONFIG.endHour) {
                 return -1;
             }
-            
+
             return slotIndex;
         }
 
         function getTimeDifferenceInMinutes(startTime, endTime) {
             const [startHour, startMinute] = startTime.split(':').map(Number);
             const [endHour, endMinute] = endTime.split(':').map(Number);
-            
+
             const startTotalMinutes = startHour * 60 + startMinute;
             const endTotalMinutes = endHour * 60 + endMinute;
-            
+
             return endTotalMinutes - startTotalMinutes;
         }
 
         function getServiceCategory(serviceType) {
             if (!serviceType) return '';
-            
+
             const service = serviceType.toLowerCase();
             if (service.includes('massage') || service.includes('therapy')) return 'massage';
             if (service.includes('facial') || service.includes('skin')) return 'facial';
             if (service.includes('hair') || service.includes('cut') || service.includes('style')) return 'hair';
             if (service.includes('nail') || service.includes('mani') || service.includes('pedi')) return 'nails';
             if (service.includes('body') || service.includes('wrap') || service.includes('scrub')) return 'body';
-            
+
             return '';
         }
 
         function handleSlotClick(staffId, timeStr, event) {
             // Open booking modal with prefilled data
             const modal = new bootstrap.Modal(document.getElementById('bookingModal'));
-            
+
             // Set staff
             const staffSelect = document.getElementById('staffSelect');
             if (staffSelect) {
@@ -1649,110 +1649,10 @@
 
         function renderSchedule() {
             renderScheduleGrid();
-                        appointmentBlock.style.width = `${appointmentWidth}%`;
-                        appointmentBlock.style.zIndex = '10';
-                        appointmentBlock.style.position = 'absolute';
-                        appointmentBlock.style.top = '1px';
-                        appointmentBlock.style.left = '1px';
-                        appointmentBlock.style.height = 'calc(100% - 2px)';
-
-                        // Use consistent service name property
-                        const serviceName = appointment.service || appointment.serviceName || appointment.service_name || 'Service';
-                        const clientName = appointment.clientName || appointment.client_name || 'Unknown Client';
-
-                        appointmentBlock.innerHTML = `
-                            <div class="appointment-client" title="${clientName}">${clientName}</div>
-                            <div class="appointment-service" title="${serviceName}">${serviceName}</div>
-                            <div style="margin-top: auto;">
-                                <div class="appointment-time">${appointment.startTime} - ${appointment.endTime}</div>
-                                <div class="appointment-duration">${durationText}</div>
-                            </div>
-                        `;
-
-                        // Add right-click context menu
-                        appointmentBlock.addEventListener('contextmenu', (e) => {
-                            showAppointmentContextMenu(e, appointment);
-                        });
-
-                        timeSlot.appendChild(appointmentBlock);
-                        timeSlot.dataset.hasAppointment = 'start';
-
-                        // Debug log for consecutive bookings
-                        console.log(`✅ Rendered appointment: ${clientName} at ${appointment.startTime} for staff ${staff.id} (${serviceName})`);
-
-                    } else if (ongoingAppointment && !appointment) {
-                        // This slot is part of an ongoing appointment - make it invisible but blocked
-                        timeSlot.innerHTML = `
-                            <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(102, 126, 234, 0.1); cursor: not-allowed; border: 1px dashed rgba(102, 126, 234, 0.3);"></div>
-                        `;
-                        timeSlot.dataset.hasAppointment = 'ongoing';
-                        timeSlot.style.background = '#f8f9fa';
-                        timeSlot.style.borderTop = '1px dashed rgba(102, 126, 234, 0.3)';
-
-                    } else if (breakItem) {
-                        // Calculate break duration for spanning
-                        const brkStartHour = parseInt(breakItem.startTime.split(':')[0]);
-                        const brkStartMinute = parseInt(breakItem.startTime.split(':')[1]);
-                        const brkEndHour = parseInt(breakItem.endTime.split(':')[0]);
-                        const brkEndMinute = parseInt(breakItem.endTime.split(':')[1]);
-
-                        const brkStartTime = brkStartHour * 60 + brkStartMinute;
-                        const brkEndTime = brkEndHour * 60 + brkEndMinute;
-                        const breakDuration = brkEndTime - brkStartTime;
-
-                        // Calculate the actual width based on exact break duration in minutes
-                        let breakWidth = '100%';
-
-                        if (breakDuration <= 60) {
-                            // For breaks 60 minutes or less, calculate percentage of current slot
-                            const widthPercentage = (breakDuration / 60) * 100;
-                            breakWidth = `${widthPercentage}%`;
-                        } else {
-                            // For breaks longer than 60 minutes, span multiple slots
-                            const fullSlots = Math.floor(breakDuration / 60);
-                            const remainingMinutes = breakDuration % 60;
-                            const remainingPercentage = remainingMinutes > 0 ? (remainingMinutes / 60) * 100 : 0;
-
-                            if (breakDuration === 0) { // Handle zero duration breaks
-                                breakWidth = '0%';
-                            } else if (breakDuration === 60) { // Handle exactly 60 min breaks
-                                breakWidth = '100%';
-                            } else if (remainingMinutes === 0) {
-                                // Exact hour breaks
-                                breakWidth = `calc(${fullSlots * 100}% + ${(fullSlots - 1)}px)`;
-                            } else {
-                                // Breaks with partial minutes
-                                breakWidth = `calc(${(fullSlots * 100) + remainingPercentage}% + ${fullSlots}px)`;
-                            }
-                        }
-
-                        timeSlot.innerHTML = `
-                            <div class="break-block" style="width: ${breakWidth}; z-index: 10; position: absolute; top: 1px; left: 1px; height: calc(100% - 2px);">
-                                <div style="font-size: 10px;"><i class="fas fa-coffee me-1"></i>Break</div>
-                                <div class="break-time" style="font-size: 8px; opacity: 0.9; margin-top: 2px;">${breakItem.startTime} - ${breakItem.endTime}</div>
-                            </div>
-                        `;
-                        timeSlot.dataset.hasBreak = 'start';
-
-                    } else if (ongoingBreak && !breakItem) {
-                        // This slot is part of an ongoing break - make it invisible but blocked
-                        timeSlot.innerHTML = `
-                            <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: transparent; cursor: not-allowed;"></div>
-                        `;
-                        timeSlot.dataset.hasBreak = 'ongoing';
-                        timeSlot.style.background = '#fff3cd';
-                        timeSlot.style.borderTop = 'none';
-                    }
-
-                    grid.appendChild(timeSlot);
-                });
-            });
-
-            setupDragHandlers();
         }
 
         function setupDragHandlers() {
-            const timeSlots = document.querySelectorAll('.time-slot');
+            const timeSlots = document.querySelectorAll('.time-slot-cell'); // Changed to select cells directly
 
             timeSlots.forEach(slot => {
                 slot.addEventListener('mousedown', handleMouseDown);
@@ -1760,6 +1660,7 @@
                 slot.addEventListener('mouseup', handleMouseUp);
             });
         }
+
 
         function handleMouseDown(e) {
             // Prevent drag from starting if clicking on an existing appointment or break
@@ -1830,7 +1731,7 @@
             // Add visual feedback to all selected slots
             for (let i = start; i <= end; i++) {
                 const slot = e.currentTarget.parentNode.children[i];
-                if (slot.classList.contains('time-slot')) {
+                if (slot.classList.contains('time-slot-cell')) { // Ensure we only style the correct cells
                     slot.style.backgroundColor = 'rgba(37, 99, 235, 0.1)';
                 }
             }
@@ -1851,7 +1752,7 @@
             const staffId = dragStart.staffId;
 
             // Clear any lingering background highlights
-            document.querySelectorAll('.time-slot').forEach(slot => {
+            document.querySelectorAll('.time-slot-cell').forEach(slot => { // Changed to select cells
                 slot.style.backgroundColor = '';
             });
 
@@ -1932,7 +1833,7 @@
                 const endHours = Math.floor(endTotalMinutes / 60);
                 const endMins = endTotalMinutes % 60;
 
-                // Store 24-hour format for calculations
+                // Store 24-hour format for backend
                 const endTime24 = `${endHours.toString().padStart(2, '0')}:${endMins.toString().padStart(2, '0')}`;
 
                 // Set 24-hour format in the time input
@@ -2336,7 +2237,7 @@
             if (isDragging) {
                 isDragging = false;
                 // Clean up any lingering visual indicators
-                document.querySelectorAll('.time-slot').forEach(slot => {
+                document.querySelectorAll('.time-slot-cell').forEach(slot => { // Changed to select cells
                     slot.style.backgroundColor = '';
                 });
                 if (dragSelection && dragSelection.parentNode) {
