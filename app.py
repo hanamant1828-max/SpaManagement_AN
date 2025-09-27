@@ -378,8 +378,8 @@ def unaki_load_sample_data():
         from datetime import datetime, date, time
         from models import UnakiBooking
 
-        # First, clear ALL existing UnakiBooking records to ensure clean state
-        target_date = date(2025, 9, 26)
+        # First, clear ALL existing UnakiBooking records for today to ensure clean state
+        target_date = date.today()
         existing_bookings = UnakiBooking.query.filter_by(appointment_date=target_date).all()
 
         print(f"🧹 Clearing {len(existing_bookings)} existing bookings for {target_date}")
@@ -397,6 +397,9 @@ def unaki_load_sample_data():
             UnakiBooking.query.filter_by(appointment_date=target_date).delete()
             db.session.commit()
 
+        # Get today's date
+        today_date = date.today().strftime('%Y-%m-%d')
+        
         # Sample data for demonstration
         sample_bookings = [
             {
@@ -408,7 +411,7 @@ def unaki_load_sample_data():
                 'end_time': '11:30',
                 'duration': 90,
                 'price': 150.0,
-                'date': '2025-09-26'
+                'date': today_date
             },
             {
                 'client_name': 'David Brown',
@@ -419,7 +422,7 @@ def unaki_load_sample_data():
                 'end_time': '15:00',
                 'duration': 60,
                 'price': 120.0,
-                'date': '2025-09-26'
+                'date': today_date
             },
             {
                 'client_name': 'Emma Thompson',
@@ -430,7 +433,7 @@ def unaki_load_sample_data():
                 'end_time': '12:00',
                 'duration': 60,
                 'price': 80.0,
-                'date': '2025-09-26'
+                'date': today_date
             },
             {
                 'client_name': 'Michael Johnson',
@@ -441,7 +444,7 @@ def unaki_load_sample_data():
                 'end_time': '16:30',
                 'duration': 60,
                 'price': 65.0,
-                'date': '2025-09-26'
+                'date': today_date
             },
             {
                 'client_name': 'Sarah Davis',
@@ -452,7 +455,40 @@ def unaki_load_sample_data():
                 'end_time': '10:00',
                 'duration': 60,
                 'price': 95.0,
-                'date': '2025-09-26'
+                'date': today_date
+            },
+            {
+                'client_name': 'Amanda Wilson',
+                'client_phone': '+1-555-0106',
+                'service_name': 'Swedish Massage',
+                'staff_id': 1,
+                'start_time': '13:00',
+                'end_time': '14:00',
+                'duration': 60,
+                'price': 100.0,
+                'date': today_date
+            },
+            {
+                'client_name': 'Robert Taylor',
+                'client_phone': '+1-555-0107',
+                'service_name': 'Classic Facial',
+                'staff_id': 2,
+                'start_time': '16:00',
+                'end_time': '17:00',
+                'duration': 60,
+                'price': 85.0,
+                'date': today_date
+            },
+            {
+                'client_name': 'Lisa Garcia',
+                'client_phone': '+1-555-0108',
+                'service_name': 'Gel Manicure',
+                'staff_id': 3,
+                'start_time': '09:30',
+                'end_time': '10:30',
+                'duration': 60,
+                'price': 45.0,
+                'date': today_date
             }
         ]
 

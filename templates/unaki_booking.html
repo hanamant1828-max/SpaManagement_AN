@@ -1266,19 +1266,19 @@
                         console.log('Sample data loaded:', data.message);
                         // Reload the schedule to show new data
                         loadScheduleForDate();
+                        showNotification('Sample data loaded successfully!', 'success', 3000);
                     } else {
                         console.error('Failed to load sample data:', data.error);
-                        // Fallback to hardcoded data
-                        loadHardcodedSampleData();
+                        showNotification('Failed to load sample data: ' + data.error, 'error', 5000);
                     }
                 } catch (parseError) {
                     console.error('JSON parse error in sample data:', parseError);
-                    loadHardcodedSampleData();
+                    showNotification('Error parsing sample data response', 'error', 5000);
                 }
             })
             .catch(error => {
                 console.error('Error loading sample data:', error);
-                loadHardcodedSampleData();
+                showNotification('Error loading sample data: ' + error.message, 'error', 5000);
             });
         }
 
@@ -2157,6 +2157,7 @@
         }
 
         function refreshSchedule() {
+            console.log('Refreshing schedule...');
             loadScheduleForDate();
         }
 
