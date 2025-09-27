@@ -121,15 +121,6 @@ task = "shell.exec"
 args = "python main.py"
 
 [[workflows.workflow]]
-name = "Project"
-mode = "parallel"
-author = "agent"
-
-[[workflows.workflow.tasks]]
-task = "workflow.run"
-args = "Flask Frontend"
-
-[[workflows.workflow]]
 name = "Start Spa Management App"
 author = 48041676
 mode = "sequential"
@@ -139,20 +130,33 @@ task = "shell.exec"
 args = "export SESSION_SECRET=\"1578063aca108928c78100b516702a5765d2d05e85b4fb8bb29a75db0bfc34ca\" && python main.py"
 
 [[workflows.workflow]]
-name = "Flask Frontend"
+name = "Project"
+mode = "parallel"
 author = "agent"
 
-[workflows.workflow.metadata]
-outputType = "webview"
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Spa Management System"
+
+[[workflows.workflow]]
+name = "Spa Management System"
+author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "python main.py"
 waitForPort = 5000
 
+[workflows.workflow.metadata]
+outputType = "webview"
+
 [[ports]]
 localPort = 5000
 externalPort = 80
+
+[[ports]]
+localPort = 41663
+externalPort = 3000
 
 [agent]
 expertMode = true
