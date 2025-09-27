@@ -10,7 +10,7 @@ run = ["gunicorn", "--bind", "0.0.0.0:5000", "--reuse-port", "main:app"]
 build = ["echo", "No build needed - Flask app ready to deploy"]
 
 [workflows]
-runButton = "Start Spa Management App"
+runButton = "Start Spa System"
 
 [[workflows.workflow]]
 name = "Start Flask App"
@@ -64,7 +64,7 @@ mode = "sequential"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "python main.py"
+args = "export SESSION_SECRET=\"1578063aca108928c78100b516702a5765d2d05e85b4fb8bb29a75db0bfc34ca\" && python main.py"
 
 [[workflows.workflow]]
 name = "Run Spa App"
