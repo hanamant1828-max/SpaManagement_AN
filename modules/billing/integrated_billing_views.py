@@ -239,56 +239,93 @@ def appointment_to_billing(appointment_id):
     try:
         from models import Appointment, UnakiBooking, Customer
 
-        # First try to find in regular Appointment table
-        appointment = Appointment.query.get(appointment_id)
+        # First try to find in UnakiBooking table (primary system)
+        unaki_booking = UnakiBooking.query.get(appointment_id)
         customer_id = None
         customer_name = None
 
-        if appointment:
-            customer_id = appointment.client_id
-            customer_name = appointment.client.full_name if appointment.client else 'Unknown'
-            app.logger.info(f"Found regular appointment {appointment_id}, customer {customer_id} ({customer_name})")
-        else:
-            # Try to find in UnakiBooking table
-            unaki_booking = UnakiBooking.query.get(appointment_id)
-            if unaki_booking:
-                customer_name = unaki_booking.client_name
-                # Try to find customer by phone or name
-                customer = None
-                if unaki_booking.client_phone:
-                    customer = Customer.query.filter_by(phone=unaki_booking.client_phone).first()
+        if unaki_booking:
+            app.logger.info(f"Found UnakiBooking {appointment_id}: {unaki_booking.client_name}")
+            customer_name = unaki_booking.client_name
+            
+            # First try to use existing client_id if it exists
+            if unaki_booking.client_id:
+                customer = Customer.query.get(unaki_booking.client_id)
+                if customer:
+                    customer_id = customer.id
+                    customer_name = customer.full_name
+                    app.logger.info(f"Using existing client_id {customer_id} for UnakiBooking {appointment_id}")
+                else:
+                    app.logger.warning(f"UnakiBooking {appointment_id} has invalid client_id {unaki_booking.client_id}")
+            
+            # If no valid client_id, try to find customer by phone
+            if not customer_id and unaki_booking.client_phone:
+                customer = Customer.query.filter_by(phone=unaki_booking.client_phone).first()
+                if customer:
+                    customer_id = customer.id
+                    customer_name = customer.full_name
+                    # Update the UnakiBooking with the correct client_id
+                    unaki_booking.client_id = customer_id
+                    db.session.commit()
+                    app.logger.info(f"Matched UnakiBooking {appointment_id} to existing customer {customer_id} by phone")
 
-                if not customer and unaki_booking.client_name:
-                    # Try to find by name (split and search)
-                    name_parts = unaki_booking.client_name.strip().split(' ', 1)
-                    first_name = name_parts[0] if name_parts else ''
+            # If still no match, try to find by name
+            if not customer_id and unaki_booking.client_name:
+                name_parts = unaki_booking.client_name.strip().split(' ', 1)
+                first_name = name_parts[0] if name_parts else ''
+                last_name = name_parts[1] if len(name_parts) > 1 else ''
 
-                    if first_name:
+                if first_name:
+                    # Try exact name match first
+                    customer = Customer.query.filter(
+                        Customer.first_name.ilike(first_name),
+                        Customer.last_name.ilike(last_name) if last_name else True
+                    ).first()
+                    
+                    if not customer:
+                        # Try first name only match
                         customer = Customer.query.filter(
                             Customer.first_name.ilike(f'%{first_name}%')
                         ).first()
 
-                if customer:
-                    customer_id = customer.id
-                    app.logger.info(f"Found UnakiBooking {appointment_id}, matched to customer {customer_id} ({customer_name})")
-                else:
-                    # Create a basic customer record for the booking
-                    name_parts = unaki_booking.client_name.strip().split(' ', 1)
-                    first_name = name_parts[0] if name_parts else 'Unknown'
-                    last_name = name_parts[1] if len(name_parts) > 1 else ''
+                    if customer:
+                        customer_id = customer.id
+                        customer_name = customer.full_name
+                        # Update the UnakiBooking with the correct client_id
+                        unaki_booking.client_id = customer_id
+                        db.session.commit()
+                        app.logger.info(f"Matched UnakiBooking {appointment_id} to existing customer {customer_id} by name")
 
-                    new_customer = Customer(
-                        first_name=first_name,
-                        last_name=last_name,
-                        phone=unaki_booking.client_phone,
-                        email=unaki_booking.client_email,
-                        is_active=True
-                    )
-                    db.session.add(new_customer)
-                    db.session.commit()
-                    customer_id = new_customer.id
-                    customer_name = new_customer.full_name
-                    app.logger.info(f"Created new customer {customer_id} ({customer_name}) for UnakiBooking {appointment_id}")
+            # If still no match, create a new customer
+            if not customer_id:
+                name_parts = unaki_booking.client_name.strip().split(' ', 1)
+                first_name = name_parts[0] if name_parts else 'Unknown'
+                last_name = name_parts[1] if len(name_parts) > 1 else ''
+
+                new_customer = Customer(
+                    first_name=first_name,
+                    last_name=last_name,
+                    phone=unaki_booking.client_phone,
+                    email=unaki_booking.client_email,
+                    is_active=True
+                )
+                db.session.add(new_customer)
+                db.session.flush()
+                customer_id = new_customer.id
+                customer_name = new_customer.full_name
+                
+                # Update the UnakiBooking with the new client_id
+                unaki_booking.client_id = customer_id
+                db.session.commit()
+                app.logger.info(f"Created new customer {customer_id} ({customer_name}) for UnakiBooking {appointment_id}")
+
+        else:
+            # Fallback: try to find in regular Appointment table
+            appointment = Appointment.query.get(appointment_id)
+            if appointment and appointment.client_id:
+                customer_id = appointment.client_id
+                customer_name = appointment.client.full_name if appointment.client else 'Unknown'
+                app.logger.info(f"Found regular appointment {appointment_id}, customer {customer_id} ({customer_name})")
             else:
                 raise Exception(f"No appointment or booking found with ID {appointment_id}")
 
