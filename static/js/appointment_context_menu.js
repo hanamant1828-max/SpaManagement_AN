@@ -302,10 +302,24 @@ class AppointmentContextMenu {
     goToBilling(appointmentId) {
         console.log(`🔄 Redirecting to integrated billing for appointment ${appointmentId}`);
         
+        // Find the appointment element to get additional context
+        const appointmentElement = document.querySelector(`[data-appointment-id="${appointmentId}"]`);
+        if (appointmentElement) {
+            console.log(`🎨 Appointment element color: ${appointmentElement.style.background || window.getComputedStyle(appointmentElement).background}`);
+            console.log(`📋 Appointment element classes: ${appointmentElement.className}`);
+            console.log(`👤 Client name: ${appointmentElement.querySelector('.appointment-client')?.textContent || 'Unknown'}`);
+        }
+        
         // Always use the backend route that handles customer matching and creation
         // This ensures consistent behavior and proper error handling
-        console.log(`🔗 Redirecting to: /appointment/${appointmentId}/go-to-billing`);
-        window.location.href = `/appointment/${appointmentId}/go-to-billing`;
+        const redirectUrl = `/appointment/${appointmentId}/go-to-billing`;
+        console.log(`🔗 Redirecting to: ${redirectUrl}`);
+        
+        // Add a small delay to see if there are any JavaScript errors
+        setTimeout(() => {
+            console.log(`⏭️ Executing redirect to: ${redirectUrl}`);
+            window.location.href = redirectUrl;
+        }, 100);
     }
 
     deleteAppointment(appointmentId) {
@@ -391,6 +405,16 @@ class AppointmentContextMenu {
         console.log(`🔍 Found ${appointmentBlocks.length} appointment blocks to initialize`);
 
         appointmentBlocks.forEach((block, index) => {
+            // DIAGNOSTIC: Log block details
+            console.log(`🔍 Block ${index + 1} diagnostic:`, {
+                className: block.className,
+                backgroundStyle: block.style.background,
+                computedBackground: window.getComputedStyle(block).background,
+                hasOnclick: block.hasAttribute('onclick'),
+                appointmentId: this.getAppointmentId(block),
+                innerHTML: block.innerHTML.substring(0, 100) + '...'
+            });
+
             // Remove existing right-click listeners
             const clone = block.cloneNode(true);
             block.parentNode.replaceChild(clone, block);
@@ -403,6 +427,7 @@ class AppointmentContextMenu {
                 const appointmentId = this.getAppointmentId(clone);
                 if (appointmentId) {
                     console.log(`🎯 Right-click detected on appointment ${appointmentId}`);
+                    console.log(`🎨 Appointment block color: ${clone.style.background || window.getComputedStyle(clone).background}`);
                     this.showContextMenu(event.pageX, event.pageY, appointmentId);
                 } else {
                     console.error('No appointment ID found for right-clicked element');

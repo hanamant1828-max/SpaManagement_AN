@@ -2479,18 +2479,27 @@
                 handleAppointmentClick(appointment);
             });
 
-            // Add context menu handler
+            // Add context menu handler - CONSISTENT FOR ALL APPOINTMENT BLOCKS
             appointmentBlock.addEventListener('contextmenu', function(event) {
                 event.preventDefault();
                 event.stopPropagation();
+                
+                console.log(`🎯 Context menu triggered for appointment ${appointment.id}`);
+                console.log(`🎨 Block background: ${appointmentBlock.style.background}`);
+                console.log(`📋 Block classes: ${appointmentBlock.className}`);
 
                 // Call the context menu handler
                 if (typeof window.handleAppointmentRightClick === 'function') {
+                    console.log('🔧 Using window.handleAppointmentRightClick');
                     window.handleAppointmentRightClick(event);
                 } else if (typeof handleAppointmentRightClick === 'function') {
+                    console.log('🔧 Using handleAppointmentRightClick');
                     handleAppointmentRightClick(event);
+                } else if (window.appointmentContextMenu) {
+                    console.log('🔧 Using appointmentContextMenu directly');
+                    window.appointmentContextMenu.showContextMenu(event.pageX, event.pageY, appointment.id);
                 } else {
-                    console.log('Context menu handler not available');
+                    console.log('⚠️ Context menu handler not available, using fallback');
                     // Fallback: show simple context menu
                     showFallbackContextMenu(event, appointment.id);
                 }
@@ -3268,6 +3277,35 @@
             });
         }
 
+        // Diagnostic function to analyze appointment blocks
+        function analyzeAppointmentBlocks() {
+            console.log('🔍 DIAGNOSTIC: Analyzing appointment blocks...');
+            const appointmentBlocks = document.querySelectorAll('.appointment-block');
+            
+            appointmentBlocks.forEach((block, index) => {
+                const appointmentId = block.dataset.appointmentId || block.getAttribute('data-appointment-id');
+                const clientName = block.querySelector('.appointment-client')?.textContent || 'Unknown';
+                const backgroundColor = block.style.background || window.getComputedStyle(block).backgroundColor;
+                const hasContextHandler = !!block.oncontextmenu;
+                
+                console.log(`📊 Block ${index + 1}:`, {
+                    appointmentId,
+                    clientName,
+                    backgroundColor,
+                    hasContextHandler,
+                    className: block.className,
+                    serviceCategory: [...block.classList].find(cls => cls.startsWith('service-category-')) || 'none'
+                });
+                
+                // Check for color-based differences
+                if (backgroundColor.includes('rgb(237, 139, 54)') || backgroundColor.includes('rgb(221, 107, 32)')) {
+                    console.log(`🟠 ORANGE appointment found: ${clientName} (ID: ${appointmentId})`);
+                } else if (backgroundColor.includes('rgb(102, 126, 234)') || backgroundColor.includes('rgb(118, 75, 162)')) {
+                    console.log(`🔵 BLUE appointment found: ${clientName} (ID: ${appointmentId})`);
+                }
+            });
+        }
+
         // Initialize on page load
         document.addEventListener('DOMContentLoaded', function() {
             // Set today's date
@@ -3281,6 +3319,15 @@
             // Start time updates
             updateCurrentDateTime();
             setInterval(updateCurrentDateTime, 1000);
+
+            // Add diagnostic button (remove this in production)
+            setTimeout(() => {
+                const diagnosticBtn = document.createElement('button');
+                diagnosticBtn.textContent = 'Analyze Blocks';
+                diagnosticBtn.style.cssText = 'position:fixed;top:10px;right:10px;z-index:9999;background:red;color:white;padding:5px;';
+                diagnosticBtn.onclick = analyzeAppointmentBlocks;
+                document.body.appendChild(diagnosticBtn);
+            }, 2000);
         });
     </script>
 </body>
