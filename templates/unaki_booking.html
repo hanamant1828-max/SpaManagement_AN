@@ -2396,6 +2396,16 @@
                     }
                 });
             });
+
+            // IMPORTANT: Reinitialize context menu after all appointments are rendered
+            setTimeout(() => {
+                if (window.reinitializeContextMenu) {
+                    console.log('🔄 Reinitializing context menu after appointment rendering...');
+                    window.reinitializeContextMenu();
+                } else {
+                    console.warn('⚠️ reinitializeContextMenu function not available');
+                }
+            }, 100);
         }
 
         function createAppointmentBlock(appointment, startSlotIndex, overlapIndex, totalOverlaps) {
@@ -2677,7 +2687,7 @@
                 staff_id: document.getElementById('editStaffSelect').value,
                 start_time: document.getElementById('editStartTime').value,
                 end_time: document.getElementById('editEndTime').value,
-                status: document.getElementById('editAppointmentStatus').value,
+                status: document.getElementById('editStatus').value,
                 notes: document.getElementById('editAppointmentNotes').value,
                 service_price: document.getElementById('editServicePrice').value
             };
@@ -2711,11 +2721,11 @@
             .then(data => {
                 if (data.success) {
                     showNotification('Appointment updated successfully!', 'success');
-                    
+
                     // Close the modal
                     const modal = bootstrap.Modal.getInstance(document.getElementById('editAppointmentModal'));
                     modal.hide();
-                    
+
                     // Refresh the schedule
                     loadScheduleData();
                 } else {

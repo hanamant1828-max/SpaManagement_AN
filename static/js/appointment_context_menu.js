@@ -101,7 +101,7 @@ function createContextMenu() {
 }
 
 function addAppointmentListeners() {
-    // Target multiple appointment selectors
+    // Target multiple appointment selectors with more comprehensive coverage
     const appointmentSelectors = [
         '.appointment-block',
         '.appointment-item',
@@ -113,7 +113,9 @@ function addAppointmentListeners() {
     
     appointmentSelectors.forEach(selector => {
         const appointments = document.querySelectorAll(selector);
-        appointments.forEach(appointment => {
+        console.log(`🔍 Found ${appointments.length} appointments for selector: ${selector}`);
+        
+        appointments.forEach((appointment, index) => {
             // Remove existing listeners to prevent duplicates
             appointment.removeEventListener('contextmenu', handleAppointmentRightClick);
             
@@ -122,8 +124,32 @@ function addAppointmentListeners() {
             
             // Make sure appointment has cursor pointer
             appointment.style.cursor = 'pointer';
+            
+            // Debug: Log appointment details
+            const appointmentId = appointment.dataset.appointmentId || appointment.getAttribute('data-appointment-id');
+            console.log(`✅ Context menu attached to appointment ${index + 1}: ID ${appointmentId}`);
         });
     });
+    
+    // Also try to find appointments in the entire schedule grid
+    const scheduleGrid = document.getElementById('scheduleGrid');
+    if (scheduleGrid) {
+        const allAppointmentBlocks = scheduleGrid.querySelectorAll('.appointment-block');
+        console.log(`🔍 Total appointment blocks found in schedule grid: ${allAppointmentBlocks.length}`);
+        
+        allAppointmentBlocks.forEach((block, index) => {
+            // Ensure each block has the right-click listener
+            if (!block.hasAttribute('data-context-menu-attached')) {
+                block.removeEventListener('contextmenu', handleAppointmentRightClick);
+                block.addEventListener('contextmenu', handleAppointmentRightClick);
+                block.style.cursor = 'pointer';
+                block.setAttribute('data-context-menu-attached', 'true');
+                
+                const appointmentId = block.dataset.appointmentId || block.getAttribute('data-appointment-id');
+                console.log(`✅ Context menu attached to grid appointment ${index + 1}: ID ${appointmentId}`);
+            }
+        });
+    }
 }
 
 function handleAppointmentRightClick(event) {
@@ -243,9 +269,20 @@ function editAppointment() {
 // Re-initialize context menu when new content is loaded (for dynamic content)
 function reinitializeContextMenu() {
     console.log('🔄 Reinitializing appointment context menu...');
+    
+    // Clear any existing markers
+    document.querySelectorAll('[data-context-menu-attached]').forEach(element => {
+        element.removeAttribute('data-context-menu-attached');
+    });
+    
     setTimeout(() => {
         addAppointmentListeners();
         console.log('✅ Context menu reinitialized');
+        
+        // Verify that all appointment blocks have context menu
+        const totalBlocks = document.querySelectorAll('.appointment-block').length;
+        const attachedBlocks = document.querySelectorAll('[data-context-menu-attached]').length;
+        console.log(`📊 Context menu coverage: ${attachedBlocks}/${totalBlocks} appointment blocks`);
     }, 500);
 }
 
