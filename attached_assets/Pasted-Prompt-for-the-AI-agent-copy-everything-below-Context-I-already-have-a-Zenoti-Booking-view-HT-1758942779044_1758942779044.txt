@@ -1,0 +1,114 @@
+Prompt for the AI agent (copy everything below)
+
+Context:
+I already have a “Zenoti Booking” view (HTML/CSS/JS) with sidebar, calendar, staff grid, a schedule grid container, and an “Add Appointment” modal. I want to integrate a booked day grid UI that renders appointments as blocks across Staff × Time.
+
+Wireframe (visual reference):
+
+┌──────────────────────────────────────────────────────────────────────────┐
+│                         DAY VIEW — STAFF × TIME                          │
+├───────────────┬───────────────8 AM───────────────┬───────────────9 AM────┤
+│ Staff / Time  │                                    │                      │
+├───────────────┼────────────────────────────────────┼──────────────────────┤
+│ Admin/Hanamant│ [Avinash: Body Massage]            │ [Ambika: Mani/Makeup]│
+│               │ 8:00–8:30                          │ 9:00–10:15           │
+│               │            [Akash: Shave]          │          [Pratika:   │
+│               │             8:30–9:00              │           Eyebrow]   │
+│               │                                    │          10:15–11:00 │
+├───────────────┼────────────────────────────────────┼──────────────────────┤
+│ Bharat        │ (no bookings in this window)       │                      │
+└───────────────┴────────────────────────────────────┴──────────────────────┘
+
+
+What to build:
+
+Inside .schedule-grid-container (already in the page), render a timeline grid for a single day:
+
+Rows = staff members (use staffData already loaded).
+
+Columns = time at 30-minute resolution (default window 08:00 → 20:00, make it configurable).
+
+Appointment blocks (from appointmentsData already loaded via /api/unaki/schedule?date=YYYY-MM-DD):
+
+Each block sits in the correct staff column and spans from startTime to endTime.
+
+Show clientName, serviceType, and start–end inside the block.
+
+Color by service category using existing classes:
+
+.appointment-slot.massage, .facial, .body, .hair, .nails.
+
+Handle overlaps: if two bookings collide for the same staff/time, stack side-by-side (not on top of each other), keeping readable widths.
+
+Interactions:
+
+Clicking an empty slot opens Add Appointment modal prefilled with that staffId and start time.
+
+Clicking an appointment block calls an existing handler (e.g., handleAppointmentClick(appointment)).
+
+Keep current buttons and layout intact.
+
+Performance & UX:
+
+Use absolute positioning within each staff column for smooth rendering.
+
+Keep the header row fixed (time labels), and enable horizontal scroll when needed.
+
+Reuse existing CSS tokens and classes where possible (.appointment-slot, gradients, radii, shadows).
+
+Make the visible window (startHour, endHour, slotMinutes) easy to change (constants).
+
+Data you can assume (already present):
+
+staffData: [{ id, name, specialty? }, ...]
+
+appointmentsData: [{ staffId, clientName, serviceType, startTime, endTime, date, amount? }, ...]
+
+startTime / endTime are HH:MM (24h) strings.
+
+selectedDate is set; schedule is reloaded when the date changes.
+
+What to deliver:
+
+Any small CSS additions needed for overlap stacking & sizing (keep consistent with current design).
+
+Updated JS functions (or new ones) to:
+
+Build the time scale and staff columns (renderScheduleGrid()).
+
+Place appointment blocks with overlap handling (renderAppointments()).
+
+Detect empty-slot clicks and open the modal with prefilled values (handleSlotClick(staffId, timeString)).
+
+Keep function names compatible with the existing file where possible (I already have stubs for renderScheduleGrid, renderAppointments, handleSlotClick).
+
+Acceptance criteria:
+
+Appointments display at the correct positions and durations for each staff.
+
+Overlapping appointments for the same staff render side-by-side (no visual collision).
+
+Clicking empty regions brings up the Add Appointment modal with staff/time prefilled.
+
+Works with my current data loaders and keeps the page responsive and scrollable.
+
+No third-party libs added.
+
+If you need sample data, use this:
+
+// staffData
+[
+  { id: 1, name: "Admin / Hanamant" },
+  { id: 2, name: "Bharat" }
+]
+
+// appointmentsData for selectedDate
+[
+  { staffId: 1, clientName: "Avinash", serviceType: "Massage", startTime: "08:00", endTime: "08:30" },
+  { staffId: 1, clientName: "Akash",   serviceType: "Hair",    startTime: "08:30", endTime: "09:00" },
+  { staffId: 1, clientName: "Ambika",  serviceType: "Facial",  startTime: "09:00", endTime: "10:15" },
+  { staffId: 1, clientName: "Pratika", serviceType: "Nails",   startTime: "10:15", endTime: "11:00" }
+]
+
+
+Please generate the updated HTML/CSS/JS (only the new/changed parts) that plug into my existing Zenoti Booking view.
