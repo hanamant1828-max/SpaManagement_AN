@@ -1349,7 +1349,7 @@
                 return;
             }
             
-            // Check for staff conflicts (same staff at overlapping times)
+            // Enhanced overlap detection - check for any time conflicts
             for (let i = 0; i < services.length; i++) {
                 for (let j = i + 1; j < services.length; j++) {
                     if (services[i].staffId === services[j].staffId) {
@@ -1358,12 +1358,32 @@
                         const start2 = new Date(`1970-01-01T${services[j].startTime}:00`);
                         const end2 = new Date(`1970-01-01T${services[j].endTime}:00`);
                         
+                        // Improved overlap detection: appointments overlap if start1 < end2 AND start2 < end1
                         if (start1 < end2 && start2 < end1) {
-                            conflicts.push(`${services[i].staff} has overlapping appointments`);
+                            conflicts.push(`${services[i].staff} has overlapping appointments: ${services[i].startTime}-${services[i].endTime} conflicts with ${services[j].startTime}-${services[j].endTime}`);
                         }
                     }
                 }
             }
+            
+            // Check against existing appointments in the schedule
+            services.forEach((service, index) => {
+                const staffId = parseInt(service.staffId);
+                const serviceStart = new Date(`1970-01-01T${service.startTime}:00`);
+                const serviceEnd = new Date(`1970-01-01T${service.endTime}:00`);
+                
+                // Check against existing appointments
+                scheduleData.appointments.forEach(existingApt => {
+                    if (existingApt.staffId === staffId) {
+                        const existingStart = new Date(`1970-01-01T${existingApt.startTime}:00`);
+                        const existingEnd = new Date(`1970-01-01T${existingApt.endTime}:00`);
+                        
+                        if (serviceStart < existingEnd && serviceEnd > existingStart) {
+                            conflicts.push(`${service.staff} conflicts with existing appointment: ${existingApt.clientName} (${existingApt.startTime}-${existingApt.endTime})`);
+                        }
+                    }
+                });
+            });
             
             // Show availability results
             let availabilityText = 'Availability Check Results:\n\n';

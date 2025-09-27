@@ -594,13 +594,18 @@ def book_appointment_api():
                 break_end_12h = break_end.strftime('%I:%M %p')
                 return jsonify({'error': f'{staff.first_name} {staff.last_name} is on break at {appointment_time.strftime("%I:%M %p")}. Break time: {break_start_12h} - {break_end_12h}'}), 400
 
-        # Check for existing appointments at the same time
-        existing_appointment = get_appointments_by_date(appointment_date)
-        for apt in existing_appointment:
-            if (apt.staff_id == data['staff_id'] and 
-                apt.appointment_date.time() == appointment_time and
-                apt.status != 'cancelled'):
-                return jsonify({'error': f'{staff.first_name} {staff.last_name} already has an appointment at {appointment_time.strftime("%I:%M %p")}'}), 400
+        # Check for existing appointments - improved overlap detection
+        existing_appointments = get_appointments_by_date(appointment_date)
+        for apt in existing_appointments:
+            if apt.staff_id == data['staff_id'] and apt.status != 'cancelled':
+                # Get existing appointment times
+                existing_start = apt.appointment_date
+                existing_service_duration = apt.service.duration if apt.service else 60
+                existing_end = existing_start + timedelta(minutes=existing_service_duration)
+                
+                # Check for any overlap between new appointment and existing appointment
+                if not (appointment_datetime >= existing_end or end_datetime <= existing_start):
+                    return jsonify({'error': f'{staff.first_name} {staff.last_name} has a conflicting appointment from {existing_start.strftime("%I:%M %p")} to {existing_end.strftime("%I:%M %p")}'}), 400
 
         # Get service details for pricing
         service = Service.query.get(data['service_id'])
@@ -960,10 +965,31 @@ def api_unaki_book_appointment():
         appointment_date = datetime.strptime(data['appointment_date'], '%Y-%m-%d').date()
         start_time = datetime.strptime(data['start_time'], '%H:%M').time()
         end_time = datetime.strptime(data['end_time'], '%H:%M').time()
+        
+        # Create datetime objects for overlap checking
+        start_datetime = datetime.combine(appointment_date, start_time)
+        end_datetime = datetime.combine(appointment_date, end_time)
 
-        # Create appointment in UnakiBooking table
+        # Check for overlapping appointments in UnakiBooking table
         from models import UnakiBooking
         from app import db
+        
+        existing_bookings = UnakiBooking.query.filter_by(
+            staff_id=data['staff_id'],
+            appointment_date=appointment_date,
+            status='scheduled'
+        ).all()
+        
+        for booking in existing_bookings:
+            existing_start = datetime.combine(appointment_date, booking.start_time)
+            existing_end = datetime.combine(appointment_date, booking.end_time)
+            
+            # Check for overlap: appointments overlap if start < other_end AND end > other_start
+            if start_datetime < existing_end and end_datetime > existing_start:
+                return jsonify({
+                    'error': f'Time conflict! {booking.client_name} already has an appointment from {booking.start_time.strftime("%I:%M %p")} to {booking.end_time.strftime("%I:%M %p")}',
+                    'success': False
+                }), 400
 
         appointment = UnakiBooking(
             client_name=data['client_name'],
@@ -1000,6 +1026,7 @@ def api_unaki_book_appointment():
         print(f"Error booking Unaki appointment: {e}")
         import traceback
         traceback.print_exc()
+        db.session.rollback()
         return jsonify({'error': str(e), 'success': False}), 500
 
 @app.route('/api/appointment/<int:appointment_id>')
