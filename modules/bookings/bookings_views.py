@@ -5,6 +5,9 @@ from flask import render_template, request, redirect, url_for, flash, jsonify
 from flask_login import login_required, current_user
 from datetime import datetime, date, timedelta, time
 from app import app
+
+# Import appointment display views
+from . import appointment_display_views
 from forms import AppointmentForm, QuickBookingForm
 from .bookings_queries import (
     get_appointments_by_date, get_active_clients, get_active_services, 
