@@ -2402,10 +2402,9 @@
             const appointmentBlock = document.createElement('div');
             appointmentBlock.className = 'appointment-block';
 
-            // Add appointment ID for context menu functionality - ENSURE we use the UnakiBooking ID
+            // Add appointment ID for context menu functionality
             if (appointment.id) {
                 appointmentBlock.setAttribute('data-appointment-id', appointment.id);
-                // Also add as data attribute for easier access
                 appointmentBlock.dataset.appointmentId = appointment.id;
                 console.log(`🔍 Setting appointment block ID: ${appointment.id} for ${appointment.clientName}`);
             }
@@ -2422,9 +2421,6 @@
             const durationMinutes = getTimeDifferenceInMinutes(startTime, endTime);
             const durationSlots = Math.ceil(durationMinutes / SCHEDULE_CONFIG.slotMinutes);
 
-            const slotWidth = SCHEDULE_CONFIG.timeSlotWidth;
-            const blockWidth = (durationSlots * slotWidth) - 4;
-
             // Calculate gradient based on category
             let gradientStyle = `linear-gradient(135deg, #667eea 0%, #764ba2 100%)`; // Default gradient
             switch (serviceCategory) {
@@ -2435,13 +2431,8 @@
                 case 'body': gradientStyle = 'linear-gradient(135deg, #38b2ac 0%, #319795 100%)'; break;
             }
 
-            // Create appointment block with enhanced styling and context menu support
-            const appointmentDiv = document.createElement('div');
-            appointmentDiv.className = `appointment-block ${serviceCategoryClass}`;
-            appointmentDiv.setAttribute('data-appointment-id', appointment.id);
-            appointmentDiv.setAttribute('data-context-menu-attached', 'true'); // Ensure context menu tracking
-            appointmentDiv.style.cssText = `
-                grid-column: ${startColumn} / ${endColumn};
+            // Set basic styles
+            appointmentBlock.style.cssText = `
                 background: ${gradientStyle};
                 color: white;
                 border-radius: 12px;
@@ -2454,16 +2445,19 @@
                 display: flex;
                 flex-direction: column;
                 justify-content: space-between;
-                position: relative;
+                position: absolute;
+                top: 2px;
+                left: 2px;
+                right: 2px;
                 transition: all 0.3s ease;
                 border: 1px solid rgba(255, 255, 255, 0.3);
                 box-shadow: 0 4px 20px rgba(102, 126, 234, 0.4);
                 overflow: hidden;
-                width: calc(100% - 2px);
+                width: ${(durationSlots * SCHEDULE_CONFIG.timeSlotWidth) - 4}px;
             `;
 
             // Add appointment content
-            appointmentDiv.innerHTML = `
+            appointmentBlock.innerHTML = `
                 <div class="appointment-client" style="font-weight: 700; margin-bottom: 2px; font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
                     ${appointment.clientName}
                 </div>
@@ -2476,29 +2470,29 @@
             `;
 
             // Add click handler
-            appointmentDiv.addEventListener('click', (e) => {
+            appointmentBlock.addEventListener('click', (e) => {
                 e.stopPropagation();
                 handleAppointmentClick(appointment);
             });
 
-            // Add context menu handler - ensure it's properly attached
-            appointmentDiv.addEventListener('contextmenu', function(event) {
+            // Add context menu handler
+            appointmentBlock.addEventListener('contextmenu', function(event) {
                 console.log(`🎯 Right-click detected on appointment ${appointment.id} (${appointment.clientName})`);
                 handleAppointmentRightClick(event);
             });
 
             // Add hover effects
-            appointmentDiv.addEventListener('mouseenter', function() {
+            appointmentBlock.addEventListener('mouseenter', function() {
                 this.style.transform = 'translateY(-2px) scale(1.02)';
                 this.style.boxShadow = '0 8px 30px rgba(102, 126, 234, 0.6)';
             });
 
-            appointmentDiv.addEventListener('mouseleave', function() {
+            appointmentBlock.addEventListener('mouseleave', function() {
                 this.style.transform = 'translateY(0) scale(1)';
                 this.style.boxShadow = '0 4px 20px rgba(102, 126, 234, 0.4)';
             });
 
-            return appointmentDiv;
+            return appointmentBlock;
         }
 
 
@@ -3041,7 +3035,18 @@
 
         function renderSchedule() {
             try {
+                console.log('🔄 Starting schedule render...');
+                console.log('📊 Schedule data:', scheduleData);
+                
+                if (!scheduleData || !scheduleData.staff || !scheduleData.appointments) {
+                    console.error('❌ Invalid schedule data:', scheduleData);
+                    document.getElementById('scheduleGrid').innerHTML = '<div class="text-center p-5 text-danger">No schedule data available</div>';
+                    hideLoading();
+                    return;
+                }
+                
                 generateScheduleGrid();
+                
                 // Reinitialize context menu after schedule is rendered
                 console.log('🔄 Reinitializing context menu after schedule render...');
                 if (window.reinitializeContextMenu) {
@@ -3049,6 +3054,7 @@
                         window.reinitializeContextMenu();
                     }, 100);
                 }
+                
                 // Show stats
                 updateStats();
                 hideLoading();
@@ -3056,8 +3062,21 @@
 
             } catch (error) {
                 console.error('❌ Error building schedule grid:', error);
+                console.error('Error details:', error.stack);
                 hideLoading();
                 showNotification('Error loading schedule. Please refresh and try again.', 'error');
+                
+                // Show basic error message in grid
+                const grid = document.getElementById('scheduleGrid');
+                if (grid) {
+                    grid.innerHTML = `
+                        <div class="text-center p-5 text-danger">
+                            <h5>Error Loading Schedule</h5>
+                            <p>Please refresh the page and try again.</p>
+                            <button class="btn btn-primary" onclick="location.reload()">Refresh Page</button>
+                        </div>
+                    `;
+                }
             }
         }
     </script>
