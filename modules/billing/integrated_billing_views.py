@@ -167,28 +167,24 @@ def integrated_billing(customer_id=None):
     if customer_id:
         selected_customer = Customer.query.get(customer_id)
         if selected_customer:
-            # Get all appointments for this customer that are not yet billed
+            # Get all appointments for this customer (both paid and unpaid)
             customer_appointments = Appointment.query.filter(
                 Appointment.client_id == customer_id,
-                Appointment.status.in_(['completed', 'confirmed']),
-                Appointment.is_paid == False
-            ).all()
+                Appointment.status.in_(['completed', 'confirmed', 'scheduled'])
+            ).order_by(Appointment.appointment_date.desc()).all()
 
-            # Get all services this customer has taken (for easy billing)
+            # Get all unique services this customer has taken
             from sqlalchemy import distinct
             customer_service_ids = db.session.query(distinct(Appointment.service_id)).filter(
                 Appointment.client_id == customer_id,
-                Appointment.status.in_(['completed', 'confirmed', 'in_progress'])
+                Appointment.status.in_(['completed', 'confirmed', 'scheduled'])
             ).all()
 
             if customer_service_ids:
-                service_ids = [id[0] for id in customer_service_ids]
-                customer_services = Service.query.filter(
-                    Service.id.in_(service_ids),
-                    Service.is_active == True
-                ).order_by(Service.name).all()
+                service_ids = [sid[0] for sid in customer_service_ids]
+                customer_services = Service.query.filter(Service.id.in_(service_ids)).all()
 
-            print(f"DEBUG: Customer {customer_id} has taken {len(customer_services)} different services")
+            print(f"DEBUG: Customer {customer_id} has {len(customer_appointments)} appointments and {len(customer_services)} unique services")
 
     return render_template('integrated_billing.html',
                          customers=customers,
@@ -200,12 +196,7 @@ def integrated_billing(customer_id=None):
                          today_revenue=today_revenue,
                          selected_customer=selected_customer,
                          customer_appointments=customer_appointments,
-                         customer_services=json.dumps([{
-                             'id': service.id,
-                             'name': service.name,
-                             'price': float(service.price),
-                             'duration': service.duration
-                         } for service in customer_services]))
+                         customer_services=customer_services)
 
 @app.route('/appointment/<int:appointment_id>/go-to-billing')
 @login_required
@@ -353,7 +344,7 @@ def create_professional_invoice():
 
             if float(batch.qty_available) < item['quantity']:
                 return jsonify({
-                    'success': False, 
+                    'success': False,
                     'message': f'Insufficient stock in batch {batch.batch_name}. Available: {batch.qty_available}, Required: {item["quantity"]}'
                 })
 
@@ -536,7 +527,7 @@ def create_professional_invoice():
             db.session.rollback()
             app.logger.error(f"Professional invoice creation failed for user {current_user.id}: {str(e)}")
             return jsonify({
-                'success': False, 
+                'success': False,
                 'message': f'Transaction failed: {str(e)}. All changes have been rolled back.'
             })
 
@@ -607,7 +598,7 @@ def create_integrated_invoice():
 
             if float(batch.qty_available) < item['quantity']:
                 return jsonify({
-                    'success': False, 
+                    'success': False,
                     'message': f'Insufficient stock in batch {batch.batch_name}. Available: {batch.qty_available}, Required: {item["quantity"]}'
                 })
 
@@ -767,7 +758,7 @@ def create_integrated_invoice():
                     )
                     stock_reduced_count += 1
                     stock_operations.append({
-                        'batch_id': batch.id, 
+                        'batch_id': batch.id,
                         'quantity': item_data['quantity'],
                         'batch_name': batch.batch_name
                     })
@@ -793,7 +784,7 @@ def create_integrated_invoice():
             db.session.rollback()
             app.logger.error(f"Invoice creation failed for user {current_user.id}: {str(e)}")
             return jsonify({
-                'success': False, 
+                'success': False,
                 'message': f'Transaction failed: {str(e)}. All changes have been rolled back.'
             })
 
@@ -1038,7 +1029,7 @@ def billing():
     return redirect(url_for('integrated_billing'))
 
 @app.route('/integrated-billing/save-draft', methods=['POST'])
-@login_required 
+@login_required
 def save_invoice_draft():
     """Save invoice as draft for later completion"""
     if not current_user.can_access('billing'):
