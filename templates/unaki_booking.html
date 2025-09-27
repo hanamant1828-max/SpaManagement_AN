@@ -285,6 +285,38 @@
             background: linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%);
         }
 
+        .appointment-actions {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            display: flex;
+            gap: 5px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .appointment-block:hover .appointment-actions {
+            opacity: 1;
+        }
+
+        .action-btn {
+            background: rgba(255, 255, 255, 0.3);
+            border: none;
+            border-radius: 8px;
+            color: white;
+            padding: 4px 8px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+
+        .action-btn:hover {
+            background: rgba(255, 255, 255, 0.5);
+        }
+
+        .edit-btn { color: #f0e68c; }
+        .delete-btn { color: #f08080; }
+
         .appointment-client {
             font-weight: 700;
             margin-bottom: 2px;
@@ -1419,7 +1451,7 @@
             services.forEach((service, index) => {
                 const serviceConflicts = conflicts.filter(c => c.includes(service.staff));
                 const hasConflicts = serviceConflicts.length > 0;
-                
+
                 availabilityText += `${index + 1}. ${service.service}\n`;
                 availabilityText += `   Staff: ${service.staff}\n`;
                 availabilityText += `   Time: ${service.startTime} - ${service.endTime}\n`;
@@ -1456,7 +1488,7 @@
             document.body.appendChild(modal);
             const bootstrapModal = new bootstrap.Modal(modal);
             bootstrapModal.show();
-            
+
             // Clean up modal after hiding
             modal.addEventListener('hidden.bs.modal', () => {
                 modal.remove();
@@ -1538,7 +1570,7 @@
         // Process multiple service bookings
         function bookMultipleServices(bookingData) {
             console.log('📋 Processing multiple service bookings:', bookingData);
-            
+
             const promises = bookingData.services.map((service, index) => {
                 const serviceBookingData = {
                     clientName: bookingData.clientName || document.getElementById('clientSelect').options[document.getElementById('clientSelect').selectedIndex]?.text,
@@ -1595,13 +1627,13 @@
                         // Close modal and refresh schedule
                         const modal = bootstrap.Modal.getInstance(document.getElementById('bookingModal'));
                         if (modal) modal.hide();
-                        
+
                         // Reset form
                         document.getElementById('bookingForm').reset();
                         const servicesContainer = document.getElementById('servicesContainer');
                         servicesContainer.innerHTML = '';
                         serviceRowCount = 0;
-                        
+
                         loadScheduleForDate();
                     } else {
                         let errorMessage = `${successCount} of ${totalCount} services booked successfully. `;
@@ -1610,7 +1642,7 @@
                             errorMessage += `Failures: ${errors}`;
                         }
                         showNotification(errorMessage, 'warning');
-                        
+
                         // Reload schedule to show successful bookings
                         loadScheduleForDate();
                     }
@@ -2171,6 +2203,19 @@
                 appointmentBlock.style.fontSize = '0.75rem';
             }
 
+            // Add action buttons for edit and delete
+            const appointmentActionsDiv = document.createElement('div');
+            appointmentActionsDiv.className = 'appointment-actions';
+            appointmentActionsDiv.innerHTML = `
+                <button class="action-btn edit-btn" onclick="event.stopPropagation(); editAppointment(${appointment.id})" title="Edit">
+                    <i class="fas fa-edit"></i>
+                </button>
+                <button class="action-btn delete-btn" onclick="event.stopPropagation(); deleteAppointment(${appointment.id})" title="Delete">
+                    <i class="fas fa-trash"></i>
+                </button>
+            `;
+            appointmentBlock.appendChild(appointmentActionsDiv);
+
             const clientDiv = document.createElement('div');
             clientDiv.className = 'appointment-client';
             clientDiv.textContent = appointment.clientName;
@@ -2268,7 +2313,44 @@
         }
 
         function handleAppointmentClick(appointment) {
-            showNotification(`Appointment: ${appointment.clientName} - ${appointment.service || appointment.serviceType}`, 'info', 3000);
+            showNotification(`Appointment: ${appointment.clientName} - ${appointment.service}`, 'info', 3000);
+        }
+
+        function editAppointment(appointmentId) {
+            showNotification(`Editing appointment ID: ${appointmentId}`, 'info');
+            // TODO: Implement actual editing logic. This would likely involve:
+            // 1. Fetching appointment details by ID.
+            // 2. Pre-filling the booking modal with these details.
+            // 3. Allowing modifications.
+            // 4. Sending an UPDATE request to the backend.
+            // For now, we'll just show a notification.
+        }
+
+        function deleteAppointment(appointmentId) {
+            if (confirm('Are you sure you want to delete this appointment?')) {
+                showNotification(`Deleting appointment ID: ${appointmentId}...`, 'info');
+                fetch(`/api/unaki/appointments/${appointmentId}`, {
+                    method: 'DELETE'
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.success) {
+                        showNotification('Appointment deleted successfully!', 'success');
+                        refreshSchedule(); // Reload schedule to reflect deletion
+                    } else {
+                        showNotification('Failed to delete appointment: ' + data.error, 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error deleting appointment:', error);
+                    showNotification('Error deleting appointment', 'error');
+                });
+            }
         }
 
         function updateStats() {
@@ -2511,6 +2593,11 @@
         window.selectSuggestedTime = selectSuggestedTime;
         window.performConflictCheck = performConflictCheck;
         window.clearConflictWarning = clearConflictWarning;
+
+        // New functions for edit/delete
+        window.editAppointment = editAppointment;
+        window.deleteAppointment = deleteAppointment;
+        window.viewAppointmentDetails = function(appointmentId) { /* Placeholder for viewing details */ };
 
     </script>
 </body>
