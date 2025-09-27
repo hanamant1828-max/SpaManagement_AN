@@ -312,11 +312,6 @@ def unaki_schedule():
         # Get Unaki bookings for the target date
         unaki_bookings = UnakiBooking.query.filter_by(appointment_date=target_date).all()
 
-        # Debug: Log all bookings found
-        print(f"📋 Found {len(unaki_bookings)} Unaki bookings for {target_date}")
-        for booking in unaki_bookings:
-            print(f"   - ID {booking.id}: {booking.client_name} at {booking.start_time} (Staff: {booking.staff_id})")
-
         # Format staff data
         staff_data = []
         for staff in staff_members:
@@ -352,6 +347,24 @@ def unaki_schedule():
 
         # Format breaks data (simplified for now)
         breaks_data = []
+
+        # Debug: Log appointments by staff ID
+        staff_appointment_counts = {}
+        for apt in appointments_data:
+            staff_id = apt['staffId']
+            if staff_id not in staff_appointment_counts:
+                staff_appointment_counts[staff_id] = []
+            staff_appointment_counts[staff_id].append(apt)
+
+        print(f"🔍 Appointments distribution by staff:")
+        for staff_id, staff_appointments in staff_appointment_counts.items():
+            staff_name = next((s['name'] for s in staff_data if s['id'] == staff_id), f'Staff {staff_id}')
+            print(f"   Staff {staff_id} ({staff_name}): {len(staff_appointments)} appointments")
+            for apt in staff_appointments:
+                print(f"     - {apt['clientName']} - {apt['service']} ({apt['startTime']} - {apt['endTime']})")
+
+        if not appointments_data:
+            print("🔍 No appointments found for this date")
 
         return jsonify({
             'success': True,
@@ -398,97 +411,129 @@ def unaki_load_sample_data():
             db.session.commit()
 
         # Get today's date
-        today_date = date.today().strftime('%Y-%m-%d')
-        
-        # Sample data for demonstration
+        today_str = date.today().strftime('%Y-%m-%d')
+
+        # Get all active staff members for proper distribution
+        from models import User
+        active_staff = User.query.filter_by(is_active=True).all()
+
+        if not active_staff:
+            return jsonify({
+                'success': False,
+                'error': 'No active staff members found. Please add staff members first.'
+            }), 400
+
+        print(f"👥 Found {len(active_staff)} active staff members for sample data")
+
+        # Sample booking data for today - distributed across ALL active staff
         sample_bookings = [
             {
                 'client_name': 'Jessica Williams',
                 'client_phone': '+1-555-0101',
                 'service_name': 'Deep Cleansing Facial',
-                'staff_id': 1,
                 'start_time': '10:00',
                 'end_time': '11:30',
                 'duration': 90,
                 'price': 150.0,
-                'date': today_date
+                'staff_id': active_staff[0].id,  # First active staff
+                'date': today_str,
+                'notes': 'Deep cleansing facial for special occasion'
             },
             {
                 'client_name': 'David Brown',
                 'client_phone': '+1-555-0102',
                 'service_name': 'Relaxation Massage',
-                'staff_id': 2,
                 'start_time': '14:00',
                 'end_time': '15:00',
                 'duration': 60,
                 'price': 120.0,
-                'date': today_date
+                'staff_id': active_staff[min(1, len(active_staff)-1)].id,  # Second staff or first if only one
+                'date': today_str,
+                'notes': 'Full body relaxation massage'
             },
             {
                 'client_name': 'Emma Thompson',
                 'client_phone': '+1-555-0103',
                 'service_name': 'Hair Styling',
-                'staff_id': 3,
                 'start_time': '11:00',
-                'end_time': '12:00',
-                'duration': 60,
+                'end_time': '12:30',
+                'duration': 90,
                 'price': 80.0,
-                'date': today_date
+                'staff_id': active_staff[min(2, len(active_staff)-1)].id,  # Third staff or wrap around
+                'date': today_str,
+                'notes': 'Special event hair styling'
             },
             {
                 'client_name': 'Michael Johnson',
                 'client_phone': '+1-555-0104',
                 'service_name': 'Manicure & Pedicure',
-                'staff_id': 4,
                 'start_time': '15:30',
                 'end_time': '16:30',
                 'duration': 60,
                 'price': 65.0,
-                'date': today_date
+                'staff_id': active_staff[0].id,  # Back to first staff
+                'date': today_str,
+                'notes': 'Complete nail care package'
             },
             {
                 'client_name': 'Sarah Davis',
                 'client_phone': '+1-555-0105',
                 'service_name': 'Body Scrub',
-                'staff_id': 5,
                 'start_time': '09:00',
                 'end_time': '10:00',
                 'duration': 60,
-                'price': 95.0,
-                'date': today_date
+                'price': 90.0,
+                'staff_id': active_staff[min(1, len(active_staff)-1)].id,
+                'date': today_str,
+                'notes': 'Exfoliating body treatment'
             },
             {
                 'client_name': 'Amanda Wilson',
                 'client_phone': '+1-555-0106',
                 'service_name': 'Swedish Massage',
-                'staff_id': 1,
                 'start_time': '13:00',
                 'end_time': '14:00',
                 'duration': 60,
-                'price': 100.0,
-                'date': today_date
+                'price': 110.0,
+                'staff_id': active_staff[min(2, len(active_staff)-1)].id,
+                'date': today_str,
+                'notes': 'Therapeutic Swedish massage'
             },
             {
                 'client_name': 'Robert Taylor',
                 'client_phone': '+1-555-0107',
                 'service_name': 'Classic Facial',
-                'staff_id': 2,
                 'start_time': '16:00',
                 'end_time': '17:00',
                 'duration': 60,
-                'price': 85.0,
-                'date': today_date
+                'price': 95.0,
+                'staff_id': active_staff[0].id,
+                'date': today_str,
+                'notes': 'Rejuvenating facial treatment'
             },
             {
                 'client_name': 'Lisa Garcia',
                 'client_phone': '+1-555-0108',
                 'service_name': 'Gel Manicure',
-                'staff_id': 3,
                 'start_time': '09:30',
                 'end_time': '10:30',
                 'duration': 60,
                 'price': 45.0,
-                'date': today_date
+                'staff_id': active_staff[min(1, len(active_staff)-1)].id,
+                'date': today_str,
+                'notes': 'Long-lasting gel manicure'
+            },
+            {
+                'client_name': 'Hanamant Kumar',
+                'client_phone': '+91-9999999999',
+                'service_name': 'Eyebrow Threading',
+                'start_time': '10:30',
+                'end_time': '11:00',
+                'duration': 30,
+                'price': 25.0,
+                'staff_id': active_staff[min(2, len(active_staff)-1)].id,  # Emily Davis (ID 3) or available staff
+                'date': today_str,
+                'notes': 'Eyebrow service booking for Hanamant'
             }
         ]
 
@@ -515,7 +560,7 @@ def unaki_load_sample_data():
                 start_time=start_time_obj,
                 end_time=end_time_obj,
                 status='confirmed',
-                notes=f'Sample booking for {booking_data["client_name"]}',
+                notes=booking_data['notes'],
                 booking_source='unaki_system',
                 booking_method='sample_data',
                 amount_charged=booking_data['price'],
@@ -525,7 +570,7 @@ def unaki_load_sample_data():
 
             db.session.add(unaki_booking)
             created_bookings += 1
-            print(f"   ✅ Created: {booking_data['client_name']} - {booking_data['service_name']} at {booking_data['start_time']}")
+            print(f"   ✅ Created: {booking_data['client_name']} - {booking_data['service_name']} at {booking_data['start_time']} for Staff ID {booking_data['staff_id']}")
 
         db.session.commit()
         print(f"🎉 Successfully created {created_bookings} fresh sample bookings")
@@ -766,12 +811,12 @@ def zenoti_booking():
     """Zenoti-style appointment booking interface"""
     from models import User, Customer, Appointment
     from datetime import datetime, date
-    
+
     # Get today's data for the interface
     today = date.today()
     staff_members = User.query.filter_by(is_active=True, role='staff').all()
     customers = Customer.query.filter_by(is_active=True).all()
-    
+
     # For now, use static services data since Service model might not exist
     services = [
         {'id': 1, 'name': 'Deep Tissue Massage', 'duration': 60, 'price': 120},
@@ -779,13 +824,13 @@ def zenoti_booking():
         {'id': 3, 'name': 'Gel Manicure', 'duration': 45, 'price': 65},
         {'id': 4, 'name': 'Spa Pedicure', 'duration': 60, 'price': 80},
     ]
-    
+
     # Get today's appointments
     today_appointments = Appointment.query.filter(
         db.func.date(Appointment.appointment_date) == today
     ).all()
-    
-    return render_template('zenoti_booking.html', 
+
+    return render_template('zenoti_booking.html',
                          appointments=today_appointments,
                          staff_members=staff_members,
                          services=services,
@@ -798,28 +843,28 @@ def zenoti_create_booking():
     try:
         from models import Appointment, Customer, User
         from datetime import datetime, timedelta
-        
+
         data = request.get_json()
-        
+
         # Validate required fields
         if not data.get('client_id') or not data.get('services') or not data.get('date') or not data.get('time'):
             return jsonify({'error': 'Missing required fields'}), 400
-            
+
         # Parse date and time
         appointment_datetime = datetime.strptime(f"{data['date']} {data['time']}", "%Y-%m-%d %H:%M")
-        
+
         created_appointments = []
-        
+
         # Create appointment for each service
         for service_data in data['services']:
             # Use service data directly since we're using static services for now
             if not service_data.get('service_id'):
                 continue
-                
+
             # Calculate end time based on service duration
             duration_minutes = service_data.get('duration', 60)
             end_time = appointment_datetime + timedelta(minutes=duration_minutes)
-            
+
             appointment = Appointment(
                 client_id=data['client_id'],
                 service_id=service_data['service_id'],
@@ -830,21 +875,21 @@ def zenoti_create_booking():
                 amount=service_data.get('price', 0),
                 notes=data.get('notes', '')
             )
-            
+
             db.session.add(appointment)
             created_appointments.append(appointment)
-            
+
             # Move start time for next service
             appointment_datetime = end_time
-        
+
         db.session.commit()
-        
+
         return jsonify({
             'success': True,
             'message': f'{len(created_appointments)} appointments created successfully',
             'appointments': [{'id': apt.id, 'date': apt.appointment_date.isoformat()} for apt in created_appointments]
         })
-        
+
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
@@ -856,38 +901,38 @@ def get_staff_availability(staff_id, date):
     try:
         from models import Appointment
         from datetime import datetime, timedelta
-        
+
         target_date = datetime.strptime(date, "%Y-%m-%d").date()
-        
+
         # Get existing appointments for the staff on this date
         existing_appointments = Appointment.query.filter(
             Appointment.staff_id == staff_id,
             db.func.date(Appointment.appointment_date) == target_date
         ).all()
-        
+
         # Generate available time slots (9 AM to 6 PM, 30-minute intervals)
         available_slots = []
         start_time = datetime.combine(target_date, datetime.min.time().replace(hour=9))
         end_time = datetime.combine(target_date, datetime.min.time().replace(hour=18))
-        
+
         current_time = start_time
         while current_time < end_time:
             slot_end = current_time + timedelta(minutes=30)
-            
+
             # Check if this slot conflicts with existing appointments
             conflict = False
             for apt in existing_appointments:
                 if (current_time < apt.end_time and slot_end > apt.appointment_date):
                     conflict = True
                     break
-            
+
             if not conflict:
                 available_slots.append(current_time.strftime("%H:%M"))
-            
+
             current_time += timedelta(minutes=30)
-        
+
         return jsonify({'available_slots': available_slots})
-        
+
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
