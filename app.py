@@ -454,144 +454,216 @@ def unaki_load_sample_data():
             if staff.id == 3 or (hasattr(staff, 'first_name') and staff.first_name == 'Emily' and hasattr(staff, 'last_name') and staff.last_name == 'Davis'):
                 emily_davis = staff
                 break
-        
+
         if not emily_davis:
             emily_davis = active_staff[min(2, len(active_staff)-1)]  # Use third staff as fallback
-        
-        # Sample booking data for today - with consecutive bookings for Emily Davis
+
+        # Sample booking data with variety - Adding comprehensive bookings for Admin User (ID: 11)
         sample_bookings = [
-            # Emily Davis - Consecutive bookings for the whole day (9 AM - 5 PM)
+            # Admin User (ID: 11) - Complete day with various durations
+            {
+                'client_name': 'Emma Watson',
+                'client_phone': '+1-555-1001',
+                'service_name': 'Quick Touch-up',
+                'duration': 5,
+                'price': 25.0,
+                'staff_id': 11,
+                'start_time': '08:00',
+                'end_time': '08:05',
+                'date': today_str,
+                'notes': '5-minute quick service for Admin'
+            },
+            {
+                'client_name': 'Scarlett Johansson',
+                'client_phone': '+1-555-1002',
+                'service_name': 'Express Consultation',
+                'duration': 10,
+                'price': 35.0,
+                'staff_id': 11,
+                'start_time': '08:10',
+                'end_time': '08:20',
+                'date': today_str,
+                'notes': '10-minute consultation with Admin'
+            },
+            {
+                'client_name': 'Jennifer Lawrence',
+                'client_phone': '+1-555-1003',
+                'service_name': 'Quick Eyebrow Trim',
+                'duration': 15,
+                'price': 45.0,
+                'staff_id': 11,
+                'start_time': '08:25',
+                'end_time': '08:40',
+                'date': today_str,
+                'notes': '15-minute eyebrow service'
+            },
+            {
+                'client_name': 'Anne Hathaway',
+                'client_phone': '+1-555-1004',
+                'service_name': 'Mini Facial Express',
+                'duration': 25,
+                'price': 65.0,
+                'staff_id': 11,
+                'start_time': '08:45',
+                'end_time': '09:10',
+                'date': today_str,
+                'notes': '25-minute express facial treatment'
+            },
+            {
+                'client_name': 'Natalie Portman',
+                'client_phone': '+1-555-1005',
+                'service_name': 'Premium Face Treatment',
+                'duration': 45,
+                'price': 95.0,
+                'staff_id': 11,
+                'start_time': '09:15',
+                'end_time': '10:00',
+                'date': today_str,
+                'notes': '45-minute premium facial service'
+            },
+            {
+                'client_name': 'Reese Witherspoon',
+                'client_phone': '+1-555-1006',
+                'service_name': 'Standard Massage',
+                'duration': 60,
+                'price': 120.0,
+                'staff_id': 11,
+                'start_time': '10:05',
+                'end_time': '11:05',
+                'date': today_str,
+                'notes': 'Classic 60-minute massage therapy'
+            },
+            {
+                'client_name': 'Cameron Diaz',
+                'client_phone': '+1-555-1007',
+                'service_name': 'Luxury Spa Package',
+                'duration': 75,
+                'price': 150.0,
+                'staff_id': 11,
+                'start_time': '11:10',
+                'end_time': '12:25',
+                'date': today_str,
+                'notes': '75-minute luxury spa treatment'
+            },
+            {
+                'client_name': 'Julia Roberts',
+                'client_phone': '+1-555-1008',
+                'service_name': 'Extended Wellness Session',
+                'duration': 90,
+                'price': 180.0,
+                'staff_id': 11,
+                'start_time': '12:30',
+                'end_time': '14:00',
+                'date': today_str,
+                'notes': '90-minute comprehensive wellness treatment'
+            },
+            {
+                'client_name': 'Sandra Bullock',
+                'client_phone': '+1-555-1009',
+                'service_name': 'Afternoon Rejuvenation',
+                'duration': 60,
+                'price': 125.0,
+                'staff_id': 11,
+                'start_time': '14:05',
+                'end_time': '15:05',
+                'date': today_str,
+                'notes': 'Afternoon renewal session'
+            },
+            {
+                'client_name': 'Angelina Jolie',
+                'client_phone': '+1-555-1010',
+                'service_name': 'Celebrity Premium Treatment',
+                'duration': 75,
+                'price': 200.0,
+                'staff_id': 11,
+                'start_time': '15:10',
+                'end_time': '16:25',
+                'date': today_str,
+                'notes': 'VIP treatment for celebrity client'
+            },
+            {
+                'client_name': 'Charlize Theron',
+                'client_phone': '+1-555-1011',
+                'service_name': 'Evening Relaxation Package',
+                'duration': 45,
+                'price': 110.0,
+                'staff_id': 11,
+                'start_time': '16:30',
+                'end_time': '17:15',
+                'date': today_str,
+                'notes': 'End-of-day relaxation treatment'
+            },
+
+            # Other staff bookings (reduced to make room for admin)
             {
                 'client_name': 'Rachel Green',
                 'client_phone': '+1-555-0201',
                 'service_name': 'Morning Facial Treatment',
-                'start_time': '09:00',
-                'end_time': '10:00',
                 'duration': 60,
                 'price': 85.0,
-                'staff_id': emily_davis.id,
+                'staff_id': 3,
+                'start_time': '09:00',
+                'end_time': '10:00',
                 'date': today_str,
-                'notes': 'Early morning facial - Emily Davis consecutive booking 1/8'
+                'notes': 'Fresh morning glow treatment'
             },
             {
                 'client_name': 'Monica Geller',
                 'client_phone': '+1-555-0202',
                 'service_name': 'Deep Cleansing Facial',
-                'start_time': '10:00',
-                'end_time': '11:00',
                 'duration': 60,
                 'price': 95.0,
-                'staff_id': emily_davis.id,
+                'staff_id': 3,
+                'start_time': '10:30',
+                'end_time': '11:30',
                 'date': today_str,
-                'notes': 'Deep cleansing treatment - Emily Davis consecutive booking 2/8'
+                'notes': 'Perfectionist client - attention to detail'
             },
             {
                 'client_name': 'Phoebe Buffay',
                 'client_phone': '+1-555-0203',
                 'service_name': 'Relaxation Massage',
-                'start_time': '11:00',
-                'end_time': '12:00',
                 'duration': 60,
-                'price': 110.0,
-                'staff_id': emily_davis.id,
-                'date': today_str,
-                'notes': 'Relaxing massage session - Emily Davis consecutive booking 3/8'
-            },
-            {
-                'client_name': 'Chandler Bing',
-                'client_phone': '+1-555-0204',
-                'service_name': 'Swedish Massage',
-                'start_time': '12:00',
-                'end_time': '13:00',
-                'duration': 60,
-                'price': 120.0,
-                'staff_id': emily_davis.id,
-                'date': today_str,
-                'notes': 'Therapeutic Swedish massage - Emily Davis consecutive booking 4/8'
-            },
-            {
-                'client_name': 'Joey Tribbiani',
-                'client_phone': '+1-555-0205',
-                'service_name': 'Sports Massage',
+                'price': 80.0,
+                'staff_id': 3,
                 'start_time': '13:00',
                 'end_time': '14:00',
-                'duration': 60,
-                'price': 130.0,
-                'staff_id': emily_davis.id,
                 'date': today_str,
-                'notes': 'Post-workout recovery massage - Emily Davis consecutive booking 5/8'
+                'notes': 'Loves essential oils and crystals'
             },
-            {
-                'client_name': 'Ross Geller',
-                'client_phone': '+1-555-0206',
-                'service_name': 'Anti-Aging Facial',
-                'start_time': '14:00',
-                'end_time': '15:00',
-                'duration': 60,
-                'price': 140.0,
-                'staff_id': emily_davis.id,
-                'date': today_str,
-                'notes': 'Premium anti-aging treatment - Emily Davis consecutive booking 6/8'
-            },
-            {
-                'client_name': 'Janice Hosenstein',
-                'client_phone': '+1-555-0207',
-                'service_name': 'Aromatherapy Massage',
-                'start_time': '15:00',
-                'end_time': '16:00',
-                'duration': 60,
-                'price': 125.0,
-                'staff_id': emily_davis.id,
-                'date': today_str,
-                'notes': 'Essential oils aromatherapy - Emily Davis consecutive booking 7/8'
-            },
-            {
-                'client_name': 'Gunther Central',
-                'client_phone': '+1-555-0208',
-                'service_name': 'Evening Relaxation Package',
-                'start_time': '16:00',
-                'end_time': '17:00',
-                'duration': 60,
-                'price': 150.0,
-                'staff_id': emily_davis.id,
-                'date': today_str,
-                'notes': 'Complete relaxation package - Emily Davis consecutive booking 8/8'
-            },
-            
-            # Other staff bookings for variety
             {
                 'client_name': 'Jessica Williams',
                 'client_phone': '+1-555-0101',
                 'service_name': 'Hair Styling Session',
+                'duration': 90,
+                'price': 125.0,
+                'staff_id': 1,
                 'start_time': '10:00',
                 'end_time': '11:30',
-                'duration': 90,
-                'price': 150.0,
-                'staff_id': active_staff[0].id,  # First active staff
                 'date': today_str,
-                'notes': 'Professional hair styling'
+                'notes': 'Special event styling'
             },
             {
                 'client_name': 'David Brown',
                 'client_phone': '+1-555-0102',
                 'service_name': 'Manicure & Pedicure',
+                'duration': 60,
+                'price': 65.0,
+                'staff_id': 2,
                 'start_time': '14:00',
                 'end_time': '15:00',
-                'duration': 60,
-                'price': 80.0,
-                'staff_id': active_staff[min(1, len(active_staff)-1)].id,
                 'date': today_str,
-                'notes': 'Complete nail care service'
+                'notes': 'Businessman grooming session'
             },
             {
                 'client_name': 'Sarah Johnson',
-                'client_phone': '+1-555-0105',
+                'client_phone': '+1-555-0103',
                 'service_name': 'Body Scrub Treatment',
+                'duration': 60,
+                'price': 75.0,
+                'staff_id': 2,
                 'start_time': '09:30',
                 'end_time': '10:30',
-                'duration': 60,
-                'price': 90.0,
-                'staff_id': active_staff[min(1, len(active_staff)-1)].id,
                 'date': today_str,
                 'notes': 'Exfoliating body treatment'
             }
