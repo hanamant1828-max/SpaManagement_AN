@@ -171,17 +171,40 @@ def integrated_billing(customer_id=None):
             from models import UnakiBooking
             
             # Get ALL scheduled and confirmed Unaki bookings for this customer
-            customer_appointments_query = UnakiBooking.query.filter(
-                UnakiBooking.client_name.ilike(f'%{selected_customer.first_name}%'),
-                UnakiBooking.status.in_(['scheduled', 'confirmed'])  # Include both scheduled and confirmed
-            ).order_by(UnakiBooking.appointment_date.desc()).all()
-
-            # Also try to match by phone if available
-            if selected_customer.phone and not customer_appointments_query:
+            customer_appointments_query = []
+            
+            # Method 1: Try to match by client_id first (most reliable)
+            if selected_customer.id:
+                customer_appointments_query = UnakiBooking.query.filter(
+                    UnakiBooking.client_id == selected_customer.id,
+                    UnakiBooking.status.in_(['scheduled', 'confirmed'])
+                ).order_by(UnakiBooking.appointment_date.desc()).all()
+            
+            # Method 2: If no results, try matching by phone (exact match)
+            if not customer_appointments_query and selected_customer.phone:
                 customer_appointments_query = UnakiBooking.query.filter(
                     UnakiBooking.client_phone == selected_customer.phone,
-                    UnakiBooking.status.in_(['scheduled', 'confirmed'])  # Include both scheduled and confirmed
+                    UnakiBooking.status.in_(['scheduled', 'confirmed'])
                 ).order_by(UnakiBooking.appointment_date.desc()).all()
+            
+            # Method 3: If still no results, try matching by name (partial match)
+            if not customer_appointments_query:
+                # Try full name match first
+                full_name = f"{selected_customer.first_name} {selected_customer.last_name}".strip()
+                customer_appointments_query = UnakiBooking.query.filter(
+                    UnakiBooking.client_name.ilike(f'%{full_name}%'),
+                    UnakiBooking.status.in_(['scheduled', 'confirmed'])
+                ).order_by(UnakiBooking.appointment_date.desc()).all()
+                
+                # If still no results, try first name only
+                if not customer_appointments_query:
+                    customer_appointments_query = UnakiBooking.query.filter(
+                        UnakiBooking.client_name.ilike(f'%{selected_customer.first_name}%'),
+                        UnakiBooking.status.in_(['scheduled', 'confirmed'])
+                    ).order_by(UnakiBooking.appointment_date.desc()).all()
+            
+            print(f"DEBUG: Customer {selected_customer.id} ({selected_customer.first_name} {selected_customer.last_name}) phone: {selected_customer.phone}")
+            print(f"DEBUG: Found {len(customer_appointments_query)} Unaki appointments for billing")
 
             # Convert UnakiBooking objects to dictionaries for JSON serialization
             customer_appointments = [appointment.to_dict() for appointment in customer_appointments_query]
@@ -1053,6 +1076,69 @@ def save_invoice_draft():
         return jsonify({'success': True, 'message': 'Draft saved successfully'})
     except Exception as e:
         return jsonify({'success': False, 'message': f'Error saving draft: {str(e)}'})
+
+@app.route('/debug/fix-customer-bookings')
+@login_required
+def debug_fix_customer_bookings():
+    """Debug route to fix customer-booking relationships"""
+    if not current_user.has_role('admin'):
+        flash('Access denied - Admin only', 'danger')
+        return redirect(url_for('dashboard'))
+    
+    try:
+        from models import Customer, UnakiBooking
+        
+        fixed_count = 0
+        total_bookings = 0
+        
+        # Get all UnakiBookings without client_id
+        unmatched_bookings = UnakiBooking.query.filter(
+            UnakiBooking.client_id.is_(None)
+        ).all()
+        
+        for booking in unmatched_bookings:
+            total_bookings += 1
+            customer_match = None
+            
+            # Try to match by phone first
+            if booking.client_phone:
+                customer_match = Customer.query.filter_by(
+                    phone=booking.client_phone,
+                    is_active=True
+                ).first()
+            
+            # If no phone match, try name matching
+            if not customer_match and booking.client_name:
+                name_parts = booking.client_name.strip().split(' ', 1)
+                if len(name_parts) >= 1:
+                    first_name = name_parts[0]
+                    customer_match = Customer.query.filter(
+                        Customer.first_name.ilike(f'%{first_name}%'),
+                        Customer.is_active == True
+                    ).first()
+            
+            # If found a match, update the booking
+            if customer_match:
+                booking.client_id = customer_match.id
+                fixed_count += 1
+                app.logger.info(f"Fixed booking {booking.id}: matched to customer {customer_match.id}")
+        
+        # Commit changes
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': f'Fixed {fixed_count} out of {total_bookings} unmatched bookings',
+            'fixed_count': fixed_count,
+            'total_bookings': total_bookings
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({
+            'success': False,
+            'message': f'Error fixing customer bookings: {str(e)}'
+        })
 
 @app.route('/integrated-billing/print-invoice/<int:invoice_id>')
 @login_required
