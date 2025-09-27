@@ -2402,9 +2402,12 @@
             const appointmentBlock = document.createElement('div');
             appointmentBlock.className = 'appointment-block';
 
-            // Add appointment ID for context menu functionality
+            // Add appointment ID for context menu functionality - ENSURE we use the UnakiBooking ID
             if (appointment.id) {
                 appointmentBlock.setAttribute('data-appointment-id', appointment.id);
+                // Also add as data attribute for easier access
+                appointmentBlock.dataset.appointmentId = appointment.id;
+                console.log(`🔍 Setting appointment block ID: ${appointment.id} for ${appointment.clientName}`);
             }
 
             const serviceCategory = getServiceCategory(appointment.service || appointment.serviceType);
@@ -3016,6 +3019,10 @@
         function renderSchedule() {
             try {
                 generateScheduleGrid();
+                // Reinitialize context menu after schedule is rendered
+                if (window.reinitializeContextMenu) {
+                    window.reinitializeContextMenu();
+                }
             } catch (error) {
                 console.error('Error rendering schedule:', error);
                 const grid = document.getElementById('scheduleGrid');
