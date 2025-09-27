@@ -202,8 +202,26 @@
                                                     {% for appointment in customer_appointments %}
                                                     <tr class="bg-light">
                                                         <td>
-                                                            <strong>{{ appointment.appointment_date.strftime('%d %b %Y') }}</strong><br>
-                                                            <small class="text-muted">{{ appointment.start_time.strftime('%I:%M %p') if appointment.start_time else 'N/A' }} - {{ appointment.end_time.strftime('%I:%M %p') if appointment.end_time else 'N/A' }}</small>
+                                                            <strong>
+                                                                {% if appointment.appointment_date.strftime is defined %}
+                                                                    {{ appointment.appointment_date.strftime('%d %b %Y') }}
+                                                                {% else %}
+                                                                    {{ appointment.appointment_date }}
+                                                                {% endif %}
+                                                            </strong><br>
+                                                            <small class="text-muted">
+                                                                {% if appointment.start_time and appointment.start_time.strftime is defined %}
+                                                                    {{ appointment.start_time.strftime('%I:%M %p') }}
+                                                                {% else %}
+                                                                    {{ appointment.start_time if appointment.start_time else 'N/A' }}
+                                                                {% endif %}
+                                                                -
+                                                                {% if appointment.end_time and appointment.end_time.strftime is defined %}
+                                                                    {{ appointment.end_time.strftime('%I:%M %p') }}
+                                                                {% else %}
+                                                                    {{ appointment.end_time if appointment.end_time else 'N/A' }}
+                                                                {% endif %}
+                                                            </small>
                                                         </td>
                                                         <td>
                                                             <strong>{{ appointment.service_name if appointment.service_name else 'N/A' }}</strong><br>
