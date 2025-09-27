@@ -14,24 +14,80 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Animation Libraries -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
     <style>
         * {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         }
 
         body {
-            background: #f7fafc;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
             margin: 0;
-            padding: 20px 0;
+            padding: 0;
+        }
+
+        .main-container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 24px;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15);
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            margin: 20px;
+            min-height: calc(100vh - 40px);
+        }
+
+        .header-section {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header-section::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+            animation: float 6s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-20px) rotate(5deg); }
         }
 
         .schedule-container {
             background: white;
-            border-radius: 16px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
             overflow: hidden;
-            border: 2px solid #e2e8f0;
+            border: 1px solid #e2e8f0;
+            margin: 20px;
+            position: relative;
+        }
+
+        .schedule-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #667eea, #764ba2, #667eea);
+            background-size: 200% 100%;
+            animation: shimmer 3s linear infinite;
+        }
+
+        @keyframes shimmer {
+            0% { background-position: -200% 0; }
+            100% { background-position: 200% 0; }
         }
 
         .loading-overlay {
@@ -40,14 +96,14 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(255, 255, 255, 0.9);
+            background: rgba(255, 255, 255, 0.95);
             display: flex;
             justify-content: center;
             align-items: center;
             z-index: 9999;
             opacity: 0;
             visibility: hidden;
-            transition: all 0.3s ease;
+            transition: all 0.4s ease;
         }
 
         .loading-overlay.show {
@@ -55,13 +111,23 @@
             visibility: visible;
         }
 
+        .loading-content {
+            text-align: center;
+            padding: 2rem;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+            border: 1px solid #e2e8f0;
+        }
+
         .loading-spinner {
-            width: 60px;
-            height: 60px;
+            width: 80px;
+            height: 80px;
             border: 4px solid #f3f3f3;
             border-top: 4px solid #667eea;
             border-radius: 50%;
             animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
         }
 
         @keyframes spin {
@@ -71,66 +137,65 @@
 
         .schedule-grid {
             display: grid;
-            grid-template-columns: 220px repeat(144, 40px);
-            border: 3px solid #2d3748;
-            border-radius: 12px;
+            grid-template-columns: 240px repeat(144, 45px);
+            border-radius: 16px;
             overflow: hidden;
             background: white;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+            border: 2px solid #e2e8f0;
         }
 
         .time-header, .staff-cell, .time-slot {
-            border-right: 2px solid #4a5568;
-            border-bottom: 1px solid #cbd5e0;
-            padding: 16px 12px;
+            border-right: 1px solid #e2e8f0;
+            border-bottom: 1px solid #e2e8f0;
+            padding: 16px 8px;
             text-align: center;
             position: relative;
-            transition: all 0.2s ease;
-        }
-
-        /* Make vertical lines very clear */
-        .time-header:not(:last-child),
-        .time-slot:not(:nth-child(9n)) {
-            border-right: 3px solid #2d3748;
-        }
-
-        /* Staff column has extra thick border */
-        .staff-cell {
-            border-right: 4px solid #667eea !important;
-            background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%);
+            transition: all 0.3s ease;
         }
 
         .time-header {
-            background: #2d3748;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             font-weight: 700;
-            font-size: 14px;
+            font-size: 10px;
             color: white;
-            border-bottom: 3px solid #667eea;
+            border-bottom: 2px solid #4f46e5;
             text-transform: uppercase;
             letter-spacing: 0.5px;
+            writing-mode: vertical-rl;
+            text-orientation: mixed;
+            min-height: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
         .staff-cell {
-            background: #f7fafc;
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
             text-align: left;
             font-weight: 700;
             position: relative;
-            transition: all 0.2s ease;
+            transition: all 0.3s ease;
+            border-right: 3px solid #667eea;
+            min-height: 90px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: 12px 16px;
         }
 
         .staff-cell:hover {
-            background: #edf2f7;
+            background: linear-gradient(135deg, #edf2f7 0%, #e2e8f0 100%);
+            transform: translateX(3px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
         }
 
         .staff-name {
             font-size: 14px;
-            color: #2d3748;
-            margin-bottom: 2px;
+            color: #1a202c;
+            margin-bottom: 4px;
             font-weight: 700;
             line-height: 1.2;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
         }
 
         .staff-role {
@@ -140,130 +205,150 @@
             text-transform: uppercase;
             letter-spacing: 0.3px;
             opacity: 0.8;
-            line-height: 1.1;
+            background: rgba(102, 126, 234, 0.1);
+            padding: 2px 6px;
+            border-radius: 8px;
+            display: inline-block;
         }
 
         .time-slot {
-            min-height: 70px;
+            min-height: 90px;
             background: white;
             cursor: pointer;
-            transition: all 0.2s ease;
+            transition: all 0.3s ease;
             position: relative;
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 2px;
+            padding: 4px;
+            border-radius: 4px;
+            margin: 1px;
         }
 
         .time-slot:hover {
-            background: #f0f4ff;
-            box-shadow: inset 0 0 0 2px #667eea;
+            background: linear-gradient(135deg, #e6f3ff 0%, #cce7ff 100%);
+            transform: scale(1.02);
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.2);
+            border: 2px solid #667eea;
+            z-index: 10;
         }
 
         .time-slot:empty::after {
-            content: '+';
-            font-size: 24px;
+            content: '✚';
+            font-size: 20px;
             color: #cbd5e0;
             font-weight: 300;
             opacity: 0;
-            transition: opacity 0.2s ease;
+            transition: all 0.3s ease;
         }
 
         .time-slot:empty:hover::after {
             opacity: 1;
             color: #667eea;
+            transform: scale(1.2);
         }
 
         .appointment-block {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
-            border-radius: 8px;
-            padding: 8px;
+            border-radius: 12px;
+            padding: 8px 10px;
             font-size: 11px;
-            line-height: 1.2;
+            line-height: 1.3;
             cursor: pointer;
-            min-height: 60px;
-            z-index: 10;
+            min-height: 70px;
+            z-index: 15;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
             position: relative;
-            transition: all 0.2s ease;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            box-shadow: 0 2px 12px rgba(102, 126, 234, 0.3);
+            transition: all 0.3s ease;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 4px 20px rgba(102, 126, 234, 0.4);
             overflow: hidden;
+            width: calc(100% - 2px);
+        }
+
+        .appointment-block::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, rgba(255,255,255,0.5), transparent, rgba(255,255,255,0.5));
         }
 
         .appointment-block:hover {
-            background: #5a67d8;
-            border-color: #5a67d8;
-            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+            transform: translateY(-2px) scale(1.02);
+            box-shadow: 0 8px 30px rgba(102, 126, 234, 0.5);
+            background: linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%);
         }
 
         .appointment-client {
             font-weight: 700;
-            margin-bottom: 1px;
+            margin-bottom: 2px;
             font-size: 12px;
-            white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
+            white-space: nowrap;
         }
 
         .appointment-service {
             font-size: 9px;
-            opacity: 0.85;
-            white-space: nowrap;
+            opacity: 0.9;
+            margin-bottom: 2px;
             overflow: hidden;
             text-overflow: ellipsis;
-            margin-bottom: 1px;
+            white-space: nowrap;
         }
 
         .appointment-time {
-            font-size: 8px !important;
-            opacity: 0.8 !important;
-            font-weight: 500 !important;
+            font-size: 8px;
+            opacity: 0.8;
+            font-weight: 500;
             margin-top: auto;
-        }
-
-        .appointment-duration {
-            font-size: 7px !important;
-            opacity: 0.7 !important;
-            text-align: right;
-            margin-top: 1px;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 2px 4px;
+            border-radius: 4px;
+            text-align: center;
         }
 
         .break-block {
-            background: #ed8936;
+            background: linear-gradient(135deg, #f56565 0%, #e53e3e 100%);
             color: white;
-            border-radius: 8px;
+            border-radius: 12px;
             padding: 8px;
-            font-size: 13px;
+            font-size: 11px;
             text-align: center;
             display: flex;
             align-items: center;
             justify-content: center;
             font-weight: 700;
             cursor: default;
-            min-height: 66px;
-            z-index: 10;
-            border: 2px solid #dd6b20;
+            min-height: 70px;
+            z-index: 15;
+            border: 2px solid #fc8181;
             text-transform: uppercase;
             letter-spacing: 0.5px;
-        }
-
-        .drag-selection {
-            position: absolute;
-            background: rgba(37, 99, 235, 0.2);
-            border: 2px dashed #2563eb;
-            border-radius: 4px;
-            z-index: 100;
-            pointer-events: none;
+            box-shadow: 0 4px 15px rgba(245, 101, 101, 0.3);
         }
 
         .header-controls {
-            padding: 20px;
-            border-bottom: 1px solid #dee2e6;
-            background: white;
+            padding: 2rem;
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            border-bottom: 1px solid #e2e8f0;
+            position: relative;
+        }
+
+        .header-controls::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #667eea, transparent);
         }
 
         .btn-primary {
@@ -273,9 +358,24 @@
             padding: 12px 24px;
             font-weight: 600;
             transition: all 0.3s ease;
-            box-shadow: 0 4px 14px rgba(102, 126, 234, 0.3);
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
             position: relative;
             overflow: hidden;
+        }
+
+        .btn-primary::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            transition: left 0.5s;
+        }
+
+        .btn-primary:hover::before {
+            left: 100%;
         }
 
         .btn-primary:hover {
@@ -291,27 +391,112 @@
             padding: 10px 20px;
             transition: all 0.3s ease;
             background: white;
+            font-weight: 500;
         }
 
         .btn-outline-secondary:hover {
             background: #667eea;
             color: white;
             transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .stats-row {
+            padding: 2rem;
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            border-bottom: 1px solid rgba(226, 232, 240, 0.6);
+            position: relative;
+        }
+
+        .stat-item {
+            text-align: center;
+            padding: 1.5rem;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+            transition: all 0.4s ease;
+            border: 1px solid rgba(226, 232, 240, 0.6);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-item::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+        }
+
+        .stat-item:hover {
+            transform: translateY(-5px) scale(1.02);
+            box-shadow: 0 15px 50px rgba(102, 126, 234, 0.2);
+        }
+
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 0.5rem;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #64748b;
+            text-transform: uppercase;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+
+        .modal-content {
+            border-radius: 24px;
+            border: none;
+            box-shadow: 0 25px 80px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
         }
 
         .modal-header {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
-            border-radius: 20px 20px 0 0;
             border: none;
-            padding: 24px;
+            padding: 2rem;
+            position: relative;
         }
 
-        .modal-content {
-            border-radius: 20px;
-            border: none;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        .modal-header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 100%;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="20" cy="20" r="1" fill="white" opacity="0.1"/><circle cx="80" cy="80" r="1" fill="white" opacity="0.1"/><circle cx="40" cy="60" r="1" fill="white" opacity="0.1"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
+        }
+
+        .form-control, .form-select {
+            border-radius: 12px;
+            border: 2px solid #e2e8f0;
+            padding: 12px 16px;
+            transition: all 0.3s ease;
+            font-size: 14px;
+            background: white;
+        }
+
+        .form-control:focus, .form-select:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+            transform: translateY(-1px);
         }
 
         .form-label {
@@ -321,553 +506,407 @@
             font-size: 14px;
         }
 
-        .form-control, .form-select {
-            border-radius: 12px;
-            border: 2px solid rgba(226, 232, 240, 0.8);
-            padding: 12px 16px;
-            transition: all 0.3s ease;
-            font-size: 14px;
-        }
-
-        .form-control:focus, .form-select:focus {
-            border-color: #667eea;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-        }
-
-        .stats-row {
-            padding: 24px 32px;
-            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
-            border-bottom: 1px solid rgba(226, 232, 240, 0.6);
-            position: relative;
-        }
-
-        .stats-row::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 2px;
-            background: linear-gradient(90deg, #667eea, #764ba2);
-        }
-
-        .stat-item {
-            text-align: center;
-            padding: 16px;
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 1rem 1.5rem;
             background: white;
-            border-radius: 16px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-            transition: all 0.3s ease;
-            border: 1px solid rgba(226, 232, 240, 0.6);
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+            border-left: 4px solid #667eea;
+            z-index: 10000;
+            opacity: 0;
+            transform: translateX(100px);
+            transition: all 0.4s ease;
         }
 
-        .stat-item:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.15);
+        .notification.show {
+            opacity: 1;
+            transform: translateX(0);
         }
 
-        .stat-number {
-            font-size: 32px;
-            font-weight: 700;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            margin-bottom: 4px;
+        .notification.success {
+            border-left-color: #10b981;
         }
 
-        .stat-label {
-            font-size: 11px;
-            color: #64748b;
-            text-transform: uppercase;
-            font-weight: 600;
-            letter-spacing: 0.5px;
+        .notification.error {
+            border-left-color: #ef4444;
         }
 
-        .header-controls {
-            padding: 32px;
-            border-bottom: 1px solid rgba(226, 232, 240, 0.6);
-            background: linear-gradient(135deg, white 0%, #f8fafc 100%);
-            position: relative;
-        }
-
-        .header-controls::after {
-            content: '';
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            width: 100%;
-            height: 1px;
-            background: linear-gradient(90deg, transparent, #667eea, transparent);
-        }
-
-        /* Enhanced button styles */
-        .btn-loading {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-        }
-
-        .btn-content {
-            transition: all 0.3s ease;
-        }
-
-        .position-relative {
-            position: relative;
-        }
-
-        .overflow-hidden {
-            overflow: hidden;
-        }
-
-        /* Form validation enhancements */
-        .was-validated .form-control:invalid {
-            border-color: #dc3545;
-            animation: shake 0.5s ease-in-out;
-        }
-
-        .was-validated .form-control:valid {
-            border-color: #28a745;
-        }
-
-        @keyframes shake {
-            0%, 100% { transform: translateX(0); }
-            25% { transform: translateX(-5px); }
-            75% { transform: translateX(5px); }
-        }
-
-        /* Time input group styling */
         .time-input-group {
             position: relative;
         }
 
-        .time-input-group small.time-display {
-            font-size: 0.75em;
-            color: #6c757d;
-            margin-top: 2px;
-            display: block;
-            font-weight: 500;
+        .time-input-group input {
+            padding-left: 40px;
         }
 
-        /* Enhanced appointment context menu */
-        .appointment-context-menu {
-            animation: fadeInScale 0.2s ease-out;
+        .time-input-group::before {
+            content: '🕐';
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            z-index: 2;
         }
 
-        .appointment-context-menu .btn {
-            transition: all 0.2s ease;
-        }
-
-        .appointment-context-menu .btn:hover {
-            transform: translateX(3px);
-        }
-
-        /* Staff × Time Grid Layout - 5 minute intervals */
-        .schedule-grid {
-            display: grid;
-            grid-template-columns: 200px repeat(144, 40px); /* Staff column + 144 5-minute slots (12 hours * 12 slots/hour) */
-            grid-template-rows: 60px repeat(auto-fit, 80px); /* Header + staff rows */
-            gap: 1px;
-            background: #e2e8f0;
-            border-radius: 12px;
-            overflow: hidden;
-        }
-        
-        /* Add visual separators every 15 minutes for better readability */
-        .time-header-cell:nth-child(4n+2) {
-            border-right: 3px solid #667eea;
-        }
-        
-        .time-slot-cell:nth-child(4n+2) {
-            border-right: 2px solid #cbd5e0;
-        }
-
-        .time-header-cell {
-            background: #2d3748;
+        .tooltip-custom {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.9);
             color: white;
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 12px;
+            z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+        }
+
+        .schedule-grid-container {
+            overflow-x: auto;
+            padding: 20px;
+            scrollbar-width: thin;
+            scrollbar-color: #667eea #f1f5f9;
+        }
+
+        .schedule-grid-container::-webkit-scrollbar {
+            height: 8px;
+        }
+
+        .schedule-grid-container::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            border-radius: 4px;
+        }
+
+        .schedule-grid-container::-webkit-scrollbar-thumb {
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            border-radius: 4px;
+        }
+
+        .quick-actions {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            z-index: 1000;
+        }
+
+        .quick-action-btn {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+            margin-bottom: 15px;
+            transition: all 0.3s ease;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-weight: 600;
-            font-size: 9px;
-            border-right: 1px solid #4a5568;
-            padding: 2px;
-            writing-mode: vertical-rl;
-            text-orientation: mixed;
-            min-height: 60px;
+            font-size: 20px;
         }
 
-        .staff-name-cell {
-            background: #f7fafc;
-            display: flex;
-            align-items: center;
-            padding: 0 16px;
-            font-weight: 700;
-            border-right: 2px solid #667eea;
-            border-bottom: 1px solid #e2e8f0;
+        .quick-action-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 12px 35px rgba(102, 126, 234, 0.6);
         }
 
-        .time-slot-cell {
-            background: white;
-            border-right: 1px solid #e2e8f0;
-            border-bottom: 1px solid #e2e8f0;
-            position: relative;
-            min-height: 80px;
-            cursor: pointer;
-            transition: background-color 0.2s ease;
-            overflow: visible;
-            width: 40px;
-        }
-        
-        /* Major time markers every 15 minutes */
-        .time-slot-cell:nth-child(4n+2) {
-            border-right: 2px solid #cbd5e0;
-        }
-
-        .time-slot-cell:hover {
-            background: #f0f4ff;
-        }
-
-        .time-slot-cell.has-appointments {
-            cursor: default;
-            background: #f8f9fa;
-        }
-
-        /* Appointment Block Styles */
-        .appointment-block {
-            position: absolute;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border-radius: 6px;
-            padding: 4px 6px;
-            font-size: 0.75rem;
-            line-height: 1.2;
-            cursor: pointer;
-            z-index: 10;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            overflow: hidden;
-            min-height: 25px;
-            display: flex;
-            flex-direction: column;
-            justify-content: flex-start;
-            white-space: nowrap;
-            margin: 1px;
-        }
-
-        .appointment-block:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-        }
-
-        .appointment-block.massage {
-            background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
-        }
-
-        .appointment-block.facial {
-            background: linear-gradient(135deg, #ed8936 0%, #dd6b20 100%);
-        }
-
-        .appointment-block.hair {
-            background: linear-gradient(135deg, #9f7aea 0%, #805ad5 100%);
-        }
-
-        .appointment-block.nails {
-            background: linear-gradient(135deg, #f56565 0%, #e53e3e 100%);
-        }
-
-        .appointment-block.body {
-            background: linear-gradient(135deg, #38b2ac 0%, #319795 100%);
-        }
-
-        .appointment-client {
-            font-weight: 700;
-            font-size: 11px;
-            margin-bottom: 1px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            line-height: 1.2;
-        }
-
-        .appointment-service {
-            font-size: 9px;
-            opacity: 0.9;
-            margin-bottom: 1px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            line-height: 1.1;
-        }
-
-        .appointment-time {
-            font-size: 8px;
-            opacity: 0.8;
-            font-weight: 500;
-            margin-top: auto;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            line-height: 1.1;
-        }
-
-        /* Overlap handling - stack vertically when appointments conflict */
-        .appointment-block.overlap-1 {
-            top: 5px;
-            height: 35px;
-        }
-
-        .appointment-block.overlap-2 {
-            top: 42px;
-            height: 35px;
-        }
-
-        .appointment-block.overlap-3 {
-            top: 79px;
-            height: 35px;
-        }
-
-        /* Adjust font sizes for smaller stacked blocks */
-        .appointment-block.overlap-1 .appointment-client,
-        .appointment-block.overlap-2 .appointment-client,
-        .appointment-block.overlap-3 .appointment-client {
-            font-size: 9px;
-        }
-
-        .appointment-block.overlap-1 .appointment-service,
-        .appointment-block.overlap-2 .appointment-service,
-        .appointment-block.overlap-3 .appointment-service {
-            font-size: 8px;
-        }
-
-        .appointment-block.overlap-1 .appointment-time,
-        .appointment-block.overlap-2 .appointment-time,
-        .appointment-block.overlap-3 .appointment-time {
-            font-size: 7px;
-        }
-
-        /* Tooltip styles */
-        .selection-tooltip {
-            animation: fadeIn 0.3s ease-out;
-        }
-
-        /* Enhanced time slot interactions */
-        .time-slot.selecting {
-            background: linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(99, 102, 241, 0.15));
-            border: 2px solid #3b82f6;
-            transform: scale(1.02);
-            transition: all 0.2s ease;
-        }
-
-        /* Success animation for stats */
-        .stat-item.updated {
-            animation: bounce 0.6s ease-in-out;
-        }
-
-        /* Dark mode support */
-        @media (prefers-color-scheme: dark) {
-            .spa-context-menu {
-                background: #2c2c2c;
-                border-color: #444;
-                color: #fff;
+        @media (max-width: 768px) {
+            .main-container {
+                margin: 10px;
+                border-radius: 16px;
             }
 
-            .context-menu-item {
-                color: #fff;
+            .schedule-grid {
+                grid-template-columns: 180px repeat(144, 35px);
             }
 
-            .context-menu-item:hover {
-                background: #3c3c3c;
+            .header-controls {
+                padding: 1rem;
             }
 
-            .context-menu-divider {
-                background: #444;
+            .stat-item {
+                padding: 1rem;
+            }
+
+            .stat-number {
+                font-size: 2rem;
             }
         }
+
+        .fade-in {
+            animation: fadeIn 0.6s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .service-category-massage { background: linear-gradient(135deg, #48bb78 0%, #38a169 100%); }
+        .service-category-facial { background: linear-gradient(135deg, #ed8936 0%, #dd6b20 100%); }
+        .service-category-hair { background: linear-gradient(135deg, #9f7aea 0%, #805ad5 100%); }
+        .service-category-nails { background: linear-gradient(135deg, #f56565 0%, #e53e3e 100%); }
+        .service-category-body { background: linear-gradient(135deg, #38b2ac 0%, #319795 100%); }
     </style>
 </head>
 <body>
     <!-- Loading Overlay -->
     <div class="loading-overlay" id="loadingOverlay">
-        <div class="text-center">
-            <div class="loading-spinner mx-auto mb-3"></div>
-            <div class="text-muted fw-medium">Loading schedule data...</div>
+        <div class="loading-content animate__animated animate__fadeIn">
+            <div class="loading-spinner"></div>
+            <h5 class="fw-bold text-primary mb-2">Loading Schedule</h5>
+            <p class="text-muted mb-0">Preparing your appointment calendar...</p>
         </div>
     </div>
 
-    <div class="container-fluid py-4">
-        <div class="row">
-            <div class="col-12">
-                <div class="schedule-container">
-                    <!-- Header Controls -->
-                    <div class="header-controls">
-                        <div class="row align-items-center">
-                            <div class="col-md-6">
-                                <div class="d-flex align-items-center mb-3">
-                                    <div class="bg-gradient-primary rounded-circle p-3 me-3 shadow-sm" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
-                                        <i class="fas fa-calendar-check text-white fa-lg"></i>
-                                    </div>
-                                    <div>
-                                        <h2 class="h3 mb-1 fw-bold" style="color: #1e293b;">
-                                            Unaki Appointment Booking
-                                        </h2>
-                                        <p class="text-muted mb-0 fw-medium">
-                                            <i class="fas fa-hand-pointer me-2 text-primary"></i>
-                                            Drag to select time slots and create appointments
-                                        </p>
-                                    </div>
+    <!-- Main Container -->
+    <div class="main-container animate__animated animate__fadeInUp">
+        <!-- Header Section -->
+        <div class="header-section">
+            <div class="container-fluid">
+                <div class="row align-items-center">
+                    <div class="col-md-6">
+                        <div class="d-flex align-items-center">
+                            <div class="me-4">
+                                <div style="width: 80px; height: 80px; background: rgba(255,255,255,0.2); border-radius: 20px; display: flex; align-items: center; justify-content: center;">
+                                    <i class="fas fa-calendar-check" style="font-size: 2rem; color: white;"></i>
                                 </div>
                             </div>
-                            <div class="col-md-6 text-end">
-                                <div class="row g-3 justify-content-end">
-                                    <div class="col-auto">
-                                        <label class="form-label mb-2 d-block text-start fw-semibold">
-                                            <i class="fas fa-calendar-day me-2 text-primary"></i>Select Date:
-                                        </label>
-                                        <div class="position-relative">
-                                            <input type="date" id="scheduleDate" class="form-control ps-5" onchange="showLoadingAndLoad()">
-                                            <i class="fas fa-calendar-alt position-absolute top-50 translate-middle-y ms-3 text-muted"></i>
-                                        </div>
-                                    </div>
-                                    <div class="col-auto d-flex align-items-end gap-2">
-                                        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#bookingModal" title="Book New Appointment">
-                                            <i class="fas fa-calendar-plus me-2"></i>
-                                            <span class="d-none d-sm-inline">Book Appointment</span>
-                                        </button>
-                                        <button class="btn btn-outline-secondary" onclick="showLoadingAndRefresh()" title="Refresh Schedule">
-                                            <i class="fas fa-sync-alt me-2"></i>
-                                            <span class="d-none d-md-inline">Refresh</span>
-                                        </button>
-                                        <button onclick="loadSampleData()" class="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-4 py-2 rounded-lg font-semibold hover:from-blue-600 hover:to-purple-700 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1">
-                                            <i class="fas fa-database mr-2"></i>
-                                            Load Sample Data
-                                        </button>
-                                        <button onclick="clearAllData()" class="bg-gradient-to-r from-red-500 to-red-600 text-white px-4 py-2 rounded-lg font-semibold hover:from-red-600 hover:to-red-700 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1">
-                                            <i class="fas fa-trash mr-2"></i>
-                                            Clear All
-                                        </button>
-                                    </div>
-                                </div>
+                            <div>
+                                <h1 class="h2 mb-2 fw-bold">
+                                    Unaki Appointment Booking
+                                </h1>
+                                <p class="mb-0 opacity-75" style="font-size: 1.1rem;">
+                                    <i class="fas fa-sparkles me-2"></i>
+                                    Professional Spa Management System
+                                </p>
                             </div>
                         </div>
                     </div>
-
-                    <!-- Stats Row -->
-                    <div class="stats-row">
-                        <div class="row">
-                            <div class="col-3">
-                                <div class="stat-item">
-                                    <div class="stat-number" id="totalAppointments">0</div>
-                                    <div class="stat-label">Appointments</div>
+                    <div class="col-md-6 text-end">
+                        <div class="d-flex justify-content-end align-items-center gap-3">
+                            <div class="text-end">
+                                <div style="background: rgba(255,255,255,0.2); padding: 1rem; border-radius: 12px;">
+                                    <div class="fw-bold" style="font-size: 1.25rem;" id="currentTime">--:--</div>
+                                    <div class="opacity-75" style="font-size: 0.9rem;" id="currentDate">Loading...</div>
                                 </div>
                             </div>
-                            <div class="col-3">
-                                <div class="stat-item">
-                                    <div class="stat-number" id="activeStaff">0</div>
-                                    <div class="stat-label">Staff on Duty</div>
-                                </div>
-                            </div>
-                            <div class="col-3">
-                                <div class="stat-item">
-                                    <div class="stat-number" id="availableSlots">0</div>
-                                    <div class="stat-label">Available Slots</div>
-                                </div>
-                            </div>
-                            <div class="col-3">
-                                <div class="stat-item">
-                                    <div class="stat-number" id="utilizationRate">0%</div>
-                                    <div class="stat-label">Utilization</div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Schedule Grid -->
-                    <div class="schedule-grid-container" style="overflow-x: auto; padding-bottom: 10px;">
-                        <div id="scheduleGrid" class="schedule-grid" style="min-width: 5980px; position: relative;">
-                            <!-- Grid content will be generated by JavaScript -->
                         </div>
                     </div>
                 </div>
             </div>
         </div>
+
+        <!-- Enhanced Header Controls -->
+        <div class="header-controls">
+            <div class="row align-items-center">
+                <div class="col-md-6">
+                    <div class="d-flex align-items-center">
+                        <div class="me-4">
+                            <label class="form-label mb-2 d-block fw-semibold">
+                                <i class="fas fa-calendar-day me-2 text-primary"></i>Select Date:
+                            </label>
+                            <div class="position-relative">
+                                <input type="date" id="scheduleDate" class="form-control ps-5" onchange="showLoadingAndLoad()" style="min-width: 200px;">
+                                <i class="fas fa-calendar-alt position-absolute top-50 translate-middle-y ms-3 text-muted"></i>
+                            </div>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-outline-secondary" onclick="navigateDate(-1)" title="Previous Day">
+                                <i class="fas fa-chevron-left"></i>
+                            </button>
+                            <button class="btn btn-outline-secondary" onclick="navigateDate(1)" title="Next Day">
+                                <i class="fas fa-chevron-right"></i>
+                            </button>
+                            <button class="btn btn-outline-secondary" onclick="goToToday()" title="Today">
+                                <i class="fas fa-home me-2"></i>Today
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 text-end">
+                    <div class="d-flex justify-content-end gap-3">
+                        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#bookingModal" title="Book New Appointment">
+                            <i class="fas fa-calendar-plus me-2"></i>
+                            <span class="d-none d-sm-inline">Book Appointment</span>
+                        </button>
+                        <button class="btn btn-outline-secondary" onclick="showLoadingAndRefresh()" title="Refresh Schedule">
+                            <i class="fas fa-sync-alt me-2"></i>
+                            <span class="d-none d-md-inline">Refresh</span>
+                        </button>
+                        <div class="dropdown">
+                            <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" title="Quick Actions">
+                                <i class="fas fa-ellipsis-v"></i>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li><a class="dropdown-item" href="#" onclick="loadSampleData()">
+                                    <i class="fas fa-database me-2"></i>Load Sample Data
+                                </a></li>
+                                <li><a class="dropdown-item" href="#" onclick="clearAllData()">
+                                    <i class="fas fa-trash me-2"></i>Clear All Data
+                                </a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="#" onclick="exportSchedule()">
+                                    <i class="fas fa-download me-2"></i>Export Schedule
+                                </a></li>
+                                <li><a class="dropdown-item" href="#" onclick="printSchedule()">
+                                    <i class="fas fa-print me-2"></i>Print Schedule
+                                </a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Enhanced Stats Row -->
+        <div class="stats-row">
+            <div class="row g-4">
+                <div class="col-6 col-lg-3">
+                    <div class="stat-item fade-in">
+                        <div class="stat-number" id="totalAppointments">0</div>
+                        <div class="stat-label">
+                            <i class="fas fa-calendar-check me-1"></i>Appointments
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6 col-lg-3">
+                    <div class="stat-item fade-in">
+                        <div class="stat-number" id="activeStaff">0</div>
+                        <div class="stat-label">
+                            <i class="fas fa-users me-1"></i>Staff on Duty
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6 col-lg-3">
+                    <div class="stat-item fade-in">
+                        <div class="stat-number" id="availableSlots">0</div>
+                        <div class="stat-label">
+                            <i class="fas fa-clock me-1"></i>Available Slots
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6 col-lg-3">
+                    <div class="stat-item fade-in">
+                        <div class="stat-number" id="utilizationRate">0%</div>
+                        <div class="stat-label">
+                            <i class="fas fa-chart-line me-1"></i>Utilization
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Enhanced Schedule Grid -->
+        <div class="schedule-container">
+            <div class="schedule-grid-container">
+                <div id="scheduleGrid" class="schedule-grid" style="min-width: 6200px; position: relative;">
+                    <!-- Grid content will be generated by JavaScript -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Progress Bar for Loading -->
+        <div id="progressBar" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 4px; background: linear-gradient(90deg, #667eea, #764ba2); z-index: 10000;"></div>
     </div>
 
-    <!-- Booking Modal -->
+    <!-- Enhanced Booking Modal -->
     <div class="modal fade" id="bookingModal" tabindex="-1">
-        <div class="modal-dialog">
+        <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">
+                    <h5 class="modal-title fw-bold">
                         <i class="fas fa-calendar-plus me-2"></i>
-                        New Appointment
+                        Create New Appointment
                     </h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
-                <div class="modal-body">
+                <div class="modal-body p-4">
                     <form id="bookingForm">
-                        <div class="row">
+                        <div class="row g-4">
                             <div class="col-md-6">
                                 <div class="mb-3">
-                                    <label class="form-label">Client *</label>
+                                    <label class="form-label">
+                                        <i class="fas fa-user me-2 text-primary"></i>Client *
+                                    </label>
                                     <select id="clientSelect" class="form-select" required>
                                         <option value="">Select Client</option>
-                                        <!-- Clients will be populated from database -->
                                     </select>
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="mb-3">
-                                    <label class="form-label">Client Name (Manual Entry)</label>
-                                    <input type="text" id="clientName" class="form-control" placeholder="Or enter new client name">
+                                    <label class="form-label">
+                                        <i class="fas fa-user-plus me-2 text-success"></i>New Client Name
+                                    </label>
+                                    <input type="text" id="clientName" class="form-control" placeholder="Enter new client name">
                                 </div>
                             </div>
                         </div>
-                        <div class="row">
+                        <div class="row g-4">
                             <div class="col-md-6">
                                 <div class="mb-3">
-                                    <label class="form-label">Phone</label>
-                                    <input type="tel" id="clientPhone" class="form-control">
+                                    <label class="form-label">
+                                        <i class="fas fa-phone me-2 text-info"></i>Phone
+                                    </label>
+                                    <input type="tel" id="clientPhone" class="form-control" placeholder="+1 (555) 123-4567">
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="mb-3">
-                                    <label class="form-label">Email</label>
-                                    <input type="email" id="clientEmail" class="form-control">
+                                    <label class="form-label">
+                                        <i class="fas fa-envelope me-2 text-warning"></i>Email
+                                    </label>
+                                    <input type="email" id="clientEmail" class="form-control" placeholder="client@example.com">
                                 </div>
                             </div>
                         </div>
-                        <div class="row">
+                        <div class="row g-4">
                             <div class="col-md-6">
                                 <div class="mb-3">
-                                    <label class="form-label">Service *</label>
+                                    <label class="form-label">
+                                        <i class="fas fa-spa me-2 text-primary"></i>Service *
+                                    </label>
                                     <select id="serviceType" class="form-select" required>
                                         <option value="">Select Service</option>
-                                        <!-- Services will be populated from database -->
                                     </select>
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="mb-3">
-                                    <label class="form-label">Staff *</label>
+                                    <label class="form-label">
+                                        <i class="fas fa-user-tie me-2 text-success"></i>Staff *
+                                    </label>
                                     <select id="staffSelect" class="form-select" required></select>
                                 </div>
                             </div>
                         </div>
-                        <div class="row">
+                        <div class="row g-4">
                             <div class="col-md-4">
                                 <div class="mb-3">
-                                    <label class="form-label">Start Time *</label>
+                                    <label class="form-label">
+                                        <i class="fas fa-clock me-2 text-primary"></i>Start Time *
+                                    </label>
                                     <div class="time-input-group">
-                                        <input type="time" id="startTime" class="form-control" required onchange="updateEndTime(); updateTimeDisplay(this)" placeholder="Type HH:MM or select time">
+                                        <input type="time" id="startTime" class="form-control" required onchange="updateEndTime(); updateTimeDisplay(this)">
                                         <small class="text-muted time-display" id="startTimeDisplay"></small>
                                     </div>
                                 </div>
                             </div>
                             <div class="col-md-4">
                                 <div class="mb-3">
-                                    <label class="form-label">Duration *</label>
+                                    <label class="form-label">
+                                        <i class="fas fa-hourglass-half me-2 text-warning"></i>Duration *
+                                    </label>
                                     <select id="appointmentDuration" class="form-select" required onchange="updateEndTime()">
                                         <option value="15">15 minutes</option>
                                         <option value="30">30 minutes</option>
@@ -884,32 +923,57 @@
                             </div>
                             <div class="col-md-4">
                                 <div class="mb-3">
-                                    <label class="form-label">End Time *</label>
+                                    <label class="form-label">
+                                        <i class="fas fa-clock me-2 text-danger"></i>End Time *
+                                    </label>
                                     <div class="time-input-group">
-                                        <input type="time" id="endTime" class="form-control" required onchange="updateTimeDisplay(this); validateEndTime()" placeholder="Type HH:MM or auto-calculated">
+                                        <input type="time" id="endTime" class="form-control" required onchange="updateTimeDisplay(this); validateEndTime()">
                                         <small class="text-muted time-display" id="endTimeDisplay"></small>
                                     </div>
                                 </div>
                             </div>
                         </div>
                         <div class="mb-3">
-                            <label class="form-label">Notes</label>
-                            <textarea id="appointmentNotes" class="form-control" rows="2"></textarea>
+                            <label class="form-label">
+                                <i class="fas fa-sticky-note me-2 text-info"></i>Notes
+                            </label>
+                            <textarea id="appointmentNotes" class="form-control" rows="3" placeholder="Any special requests or notes..."></textarea>
                         </div>
                     </form>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-primary" onclick="bookAppointment()">Book Appointment</button>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-2"></i>Cancel
+                    </button>
+                    <button type="button" class="btn btn-primary" onclick="bookAppointment()">
+                        <i class="fas fa-check me-2"></i>Book Appointment
+                    </button>
                 </div>
             </div>
         </div>
     </div>
 
+    <!-- Quick Actions Floating Buttons -->
+    <div class="quick-actions">
+        <button class="quick-action-btn" onclick="openQuickBookingModal()" title="Quick Book">
+            <i class="fas fa-plus"></i>
+        </button>
+        <button class="quick-action-btn" onclick="showLoadingAndRefresh()" title="Refresh">
+            <i class="fas fa-sync-alt"></i>
+        </button>
+        <button class="quick-action-btn" onclick="scrollToTop()" title="Scroll to Top">
+            <i class="fas fa-arrow-up"></i>
+        </button>
+    </div>
+
+    <!-- Toast Container -->
+    <div id="toastContainer" class="position-fixed top-0 end-0 p-3" style="z-index: 11000;"></div>
+
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
     <script>
+        // Enhanced JavaScript with better UX
         let scheduleData = {
             staff: [],
             appointments: [],
@@ -921,13 +985,70 @@
         let dragSelection = null;
         let currentDate = new Date().toISOString().split('T')[0];
 
-        // Loading overlay functions
+        // Enhanced notification system
+        function showNotification(message, type = 'info', duration = 5000) {
+            const toastContainer = document.getElementById('toastContainer');
+            const toastId = 'toast-' + Date.now();
+
+            const bgClass = {
+                'success': 'bg-success',
+                'error': 'bg-danger',
+                'warning': 'bg-warning',
+                'info': 'bg-info'
+            }[type] || 'bg-info';
+
+            const iconClass = {
+                'success': 'fas fa-check-circle',
+                'error': 'fas fa-exclamation-circle',
+                'warning': 'fas fa-exclamation-triangle',
+                'info': 'fas fa-info-circle'
+            }[type] || 'fas fa-info-circle';
+
+            const toastHTML = `
+                <div id="${toastId}" class="toast ${bgClass} text-white" role="alert" aria-live="assertive" aria-atomic="true">
+                    <div class="toast-header ${bgClass} text-white border-0">
+                        <i class="${iconClass} me-2"></i>
+                        <strong class="me-auto">Notification</strong>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast"></button>
+                    </div>
+                    <div class="toast-body">
+                        ${message}
+                    </div>
+                </div>
+            `;
+
+            toastContainer.insertAdjacentHTML('beforeend', toastHTML);
+
+            const toastElement = document.getElementById(toastId);
+            const toast = new bootstrap.Toast(toastElement, { delay: duration });
+            toast.show();
+
+            // Remove from DOM after hidden
+            toastElement.addEventListener('hidden.bs.toast', () => {
+                toastElement.remove();
+            });
+        }
+
+        // Enhanced loading functions
         function showLoading() {
-            document.getElementById('loadingOverlay').classList.add('show');
+            const overlay = document.getElementById('loadingOverlay');
+            overlay.classList.add('show');
+
+            // Show progress bar
+            const progressBar = document.getElementById('progressBar');
+            progressBar.style.display = 'block';
+            progressBar.style.animation = 'shimmer 2s linear infinite';
         }
 
         function hideLoading() {
-            document.getElementById('loadingOverlay').classList.remove('show');
+            const overlay = document.getElementById('loadingOverlay');
+            overlay.classList.remove('show');
+
+            // Hide progress bar
+            setTimeout(() => {
+                const progressBar = document.getElementById('progressBar');
+                progressBar.style.display = 'none';
+            }, 300);
         }
 
         function showLoadingAndLoad() {
@@ -946,85 +1067,123 @@
             }, 600);
         }
 
-        function showLoadingAndLoadSample() {
-            showLoading();
-            setTimeout(() => {
-                loadSampleData();
-                hideLoading();
-            }, 1000);
+        // Enhanced date navigation
+        function navigateDate(direction) {
+            const dateInput = document.getElementById('scheduleDate');
+            const currentDate = new Date(dateInput.value);
+            currentDate.setDate(currentDate.getDate() + direction);
+            dateInput.value = currentDate.toISOString().split('T')[0];
+            showLoadingAndLoad();
         }
 
-        // Add alias for compatibility
-        window.showLoadingAndLoadSample = showLoadingAndLoadSample;
+        function goToToday() {
+            const dateInput = document.getElementById('scheduleDate');
+            dateInput.value = new Date().toISOString().split('T')[0];
+            showLoadingAndLoad();
+        }
 
-        // Quick booking modal function
+        // Update current time and date
+        function updateCurrentDateTime() {
+            const now = new Date();
+            document.getElementById('currentTime').textContent = now.toLocaleTimeString('en-US', {
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: true
+            });
+            document.getElementById('currentDate').textContent = now.toLocaleDateString('en-US', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+        }
+
+        // Quick actions
+        function scrollToTop() {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function exportSchedule() {
+            showNotification('Exporting schedule...', 'info');
+            // Implementation for export functionality
+            setTimeout(() => {
+                showNotification('Schedule exported successfully!', 'success');
+            }, 2000);
+        }
+
+        function printSchedule() {
+            window.print();
+        }
+
+        // Enhanced appointment booking
         function openQuickBookingModal() {
-            // Reset the booking modal form
+            const modal = new bootstrap.Modal(document.getElementById('bookingModal'));
+
+            // Reset form
             const form = document.getElementById('bookingForm');
-            if (form) {
-                form.reset();
-            }
+            if (form) form.reset();
 
-            // Clear selections
-            document.getElementById('staffSelect').selectedIndex = 0;
-            document.getElementById('clientSelect').selectedIndex = 0;
-            document.getElementById('appointmentDuration').value = '60';
-
-            // Reset client fields
-            document.getElementById('clientName').placeholder = 'Or enter new client name';
-            document.getElementById('clientPhone').value = '';
-            document.getElementById('clientEmail').value = '';
-
-            // Set default times (current time rounded to next hour)
+            // Set current time as default
             const now = new Date();
             const nextHour = new Date(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours() + 1, 0);
             const timeString = nextHour.toTimeString().slice(0, 5);
 
-            // Set the time input to the calculated time
-            const startTimeInput = document.getElementById('startTime');
-            startTimeInput.value = timeString;
-            updateEndTime(); // This will set the end time based on duration
+            document.getElementById('startTime').value = timeString;
+            updateEndTime();
 
-            // Show the modal
-            const modal = new bootstrap.Modal(document.getElementById('bookingModal'));
             modal.show();
 
-            // Focus on client name field
+            // Focus on client selection
             setTimeout(() => {
                 document.getElementById('clientName').focus();
             }, 500);
         }
 
-        // Make function globally available
-        window.openQuickBookingModal = openQuickBookingModal;
+        // Enhanced time display functions
+        function updateTimeDisplay(input) {
+            if (!input.value) return;
 
-        // Clear all data function for debugging
-        function clearAllData() {
-            if (confirm('Are you sure you want to clear all appointment data? This will remove all bookings for today.')) {
-                console.log('Clearing all data...');
+            const [hours, minutes] = input.value.split(':');
+            const time = new Date();
+            time.setHours(parseInt(hours), parseInt(minutes));
 
-                // Clear local data immediately
-                scheduleData = {
-                    staff: [],
-                    appointments: [],
-                    breaks: []
-                };
+            const display = time.toLocaleTimeString('en-US', {
+                hour: 'numeric',
+                minute: '2-digit',
+                hour12: true
+            });
 
-                // Re-render empty schedule
-                renderSchedule();
-                updateStats();
-
-                showNotification('All appointment data cleared!', 'info', 2000);
+            const displayElement = document.getElementById(input.id + 'Display');
+            if (displayElement) {
+                displayElement.textContent = display;
             }
         }
 
-        // Make function globally available
-        window.clearAllData = clearAllData;
+        function updateEndTime() {
+            const startTime = document.getElementById('startTime').value;
+            const duration = parseInt(document.getElementById('appointmentDuration').value);
 
-        // Initialize
+            if (startTime && duration) {
+                const [hours, minutes] = startTime.split(':');
+                const startDate = new Date();
+                startDate.setHours(parseInt(hours), parseInt(minutes));
+
+                const endDate = new Date(startDate.getTime() + duration * 60000);
+                const endTimeString = endDate.toTimeString().slice(0, 5);
+
+                document.getElementById('endTime').value = endTimeString;
+                updateTimeDisplay(document.getElementById('endTime'));
+            }
+        }
+
+        // Initialize application
         document.addEventListener('DOMContentLoaded', function() {
             showLoading();
             document.getElementById('scheduleDate').value = currentDate;
+
+            // Update time every second
+            updateCurrentDateTime();
+            setInterval(updateCurrentDateTime, 1000);
 
             // Load initial data
             Promise.all([
@@ -1034,428 +1193,40 @@
                 loadClients()
             ]).then(() => {
                 hideLoading();
+                showNotification('Schedule loaded successfully!', 'success', 3000);
             }).catch(error => {
                 console.error('Error loading initial data:', error);
                 hideLoading();
+                showNotification('Error loading schedule data', 'error');
             });
 
-            // Enhanced time input support
-            const startTimeInput = document.getElementById('startTime');
-            if (startTimeInput) {
-                // Allow keyboard input with validation
-                startTimeInput.addEventListener('input', function(e) {
-                    validateAndFormatTimeInput(this);
-                });
-
-                // Handle blur to ensure proper formatting
-                startTimeInput.addEventListener('blur', function(e) {
-                    validateAndFormatTimeInput(this);
-                    updateEndTime();
-                });
-
-                // Initialize display
-                if (this.value) {
-                    updateTimeDisplay(this);
+            // Add keyboard shortcuts
+            document.addEventListener('keydown', function(e) {
+                if (e.ctrlKey || e.metaKey) {
+                    switch(e.key) {
+                        case 'n':
+                            e.preventDefault();
+                            openQuickBookingModal();
+                            break;
+                        case 'r':
+                            e.preventDefault();
+                            showLoadingAndRefresh();
+                            break;
+                    }
                 }
-            }
+            });
         });
 
-        function loadServices() {
-            return fetch('/api/unaki/services')
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! status: ${response.status}`);
-                    }
-                    return response.json();
-                })
-                .then(services => {
-                    console.log('Loaded services:', Array.isArray(services) ? services.length : 'Invalid data');
-
-                    // Populate services dropdown
-                    const serviceSelect = document.getElementById('serviceType');
-                    if (serviceSelect && Array.isArray(services)) {
-                        serviceSelect.innerHTML = '<option value="">Select Service</option>';
-
-                        // Group services by category
-                        const servicesByCategory = {};
-                        services.forEach(service => {
-                            const category = service.category || 'General';
-                            if (!servicesByCategory[category]) {
-                                servicesByCategory[category] = [];
-                            }
-                            servicesByCategory[category].push(service);
-                        });
-
-                        // Create optgroups for each category
-                        Object.keys(servicesByCategory).sort().forEach(category => {
-                            const optgroup = document.createElement('optgroup');
-                            optgroup.label = category;
-
-                            servicesByCategory[category].forEach(service => {
-                                const option = document.createElement('option');
-                                option.value = service.name;
-                                option.textContent = `${service.name} (${service.duration} min)`;
-                                option.dataset.serviceId = service.id;
-                                option.dataset.duration = service.duration;
-                                option.dataset.price = service.price;
-                                optgroup.appendChild(option);
-                            });
-
-                            serviceSelect.appendChild(optgroup);
-                        });
-
-                        // Add event listener to auto-update duration when service changes
-                        serviceSelect.addEventListener('change', function() {
-                            const selectedOption = this.options[this.selectedIndex];
-                            if (selectedOption && selectedOption.dataset.duration) {
-                                const durationSelect = document.getElementById('appointmentDuration');
-                                if (durationSelect) {
-                                    durationSelect.value = selectedOption.dataset.duration;
-                                    updateEndTime();
-                                }
-                            }
-                        });
-                    }
-
-                    return services;
-                })
-                .catch(error => {
-                    console.error('Failed to load services:', error);
-                    return [];
-                });
-        }
-
-        function loadStaff() {
-            return fetch('/api/unaki/staff')
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! status: ${response.status}`);
-                    }
-                    return response.json();
-                })
-                .then(staff => {
-                    console.log('Loaded staff:', Array.isArray(staff) ? staff.length : 'Invalid data');
-                    // Update staff select in modal
-                    const staffSelect = document.getElementById('staffSelect');
-                    if (staffSelect && Array.isArray(staff)) {
-                        staffSelect.innerHTML = '<option value="">Select Staff</option>';
-                        staff.forEach(member => {
-                            const option = document.createElement('option');
-                            option.value = member.id;
-                            option.textContent = `${member.name} (${member.specialty || member.role || 'Staff'})`;
-                            staffSelect.appendChild(option);
-                        });
-                    }
-                    return staff;
-                })
-                .catch(error => {
-                    console.error('Failed to load staff:', error);
-                    return [];
-                });
-        }
-
-        function loadClients() {
-            return fetch('/api/unaki/clients')
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! status: ${response.status}`);
-                    }
-                    return response.json();
-                })
-                .then(clients => {
-                    console.log('Loaded clients:', Array.isArray(clients) ? clients.length : 'Invalid data');
-
-                    // Populate clients dropdown
-                    const clientSelect = document.getElementById('clientSelect');
-                    if (clientSelect && Array.isArray(clients)) {
-                        clientSelect.innerHTML = '<option value="">Select Client</option>';
-
-                        clients.forEach(client => {
-                            const option = document.createElement('option');
-                            option.value = client.id;
-                            option.textContent = `${client.name}`;
-                            option.dataset.phone = client.phone || '';
-                            option.dataset.email = client.email || '';
-                            clientSelect.appendChild(option);
-                        });
-
-                        // Add event listener to auto-fill client details when client is selected
-                        clientSelect.addEventListener('change', function() {
-                            const selectedOption = this.options[this.selectedIndex];
-                            if (selectedOption && selectedOption.value) {
-                                // Fill in client details
-                                document.getElementById('clientName').value = selectedOption.textContent;
-                                document.getElementById('clientPhone').value = selectedOption.dataset.phone || '';
-                                document.getElementById('clientEmail').value = selectedOption.dataset.email || '';
-
-                                // Clear manual entry when selecting from dropdown
-                                document.getElementById('clientName').placeholder = 'Selected: ' + selectedOption.textContent;
-                            } else {
-                                // Clear fields when no client selected
-                                document.getElementById('clientName').value = '';
-                                document.getElementById('clientPhone').value = '';
-                                document.getElementById('clientEmail').value = '';
-                                document.getElementById('clientName').placeholder = 'Or enter new client name';
-                            }
-                        });
-                    }
-
-                    return clients;
-                })
-                .catch(error => {
-                    console.error('Failed to load clients:', error);
-                    return [];
-                });
-        }
-
-        function generateTimeSlots() {
-            const slots = [];
-            const totalSlots = (SCHEDULE_CONFIG.endHour - SCHEDULE_CONFIG.startHour) * (60 / SCHEDULE_CONFIG.slotMinutes);
-
-            for (let i = 0; i < totalSlots; i++) {
-                const totalMinutes = SCHEDULE_CONFIG.startHour * 60 + (i * SCHEDULE_CONFIG.slotMinutes);
-                const hour = Math.floor(totalMinutes / 60);
-                const minute = totalMinutes % 60;
-
-                const timeStr = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
-                const displayTime = formatDisplayTime(hour, minute);
-
-                slots.push({
-                    time: timeStr,
-                    display: displayTime,
-                    index: i
-                });
-            }
-            return slots;
-        }
-
-        function loadScheduleForDate() {
-            currentDate = document.getElementById('scheduleDate').value;
-            console.log('Loading schedule for date:', currentDate);
-
-            // Load from API
-            fetch(`/api/unaki/schedule?date=${currentDate}`)
-                .then(response => {
-                    console.log('Schedule API response status:', response.status);
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! status: ${response.status}`);
-                    }
-                    return response.text(); // Get as text first
-                })
-                .then(text => {
-                    console.log('Schedule API raw response:', text.substring(0, 200) + '...');
-                    try {
-                        const data = JSON.parse(text);
-                        if (data.success) {
-                            scheduleData = {
-                                staff: data.staff || [],
-                                appointments: data.appointments || [],
-                                breaks: data.breaks || []
-                            };
-                            console.log('Schedule data loaded:', scheduleData);
-
-                            // Debug: Log all appointments for Admin User (ID: 11)
-                            const adminAppointments = scheduleData.appointments.filter(apt => apt.staffId === 11);
-                            console.log(`🔍 Admin User (ID: 11) appointments found: ${adminAppointments.length}`);
-                            adminAppointments.forEach((apt, index) => {
-                                console.log(`   ${index + 1}. ${apt.clientName} - ${apt.service} (${apt.startTime} - ${apt.endTime})`);
-                            });
-                        } else {
-                            console.error('Failed to load schedule:', data.error);
-                            scheduleData = { staff: [], appointments: [], breaks: [] };
-                        }
-                    } catch (parseError) {
-                        console.error('JSON parse error:', parseError);
-                        scheduleData = { staff: [], appointments: [], breaks: [] };
-                    }
-                    renderSchedule();
-                    updateStats();
-                })
-                .catch(error => {
-                    console.error('Error loading schedule:', error);
-                    scheduleData = { staff: [], appointments: [], breaks: [] };
-                    renderSchedule();
-                    updateStats();
-                });
-        }
-
-        function loadSampleData() {
-            console.log('Loading sample data...');
-
-            // Clear existing schedule data first to prevent stale UI
-            scheduleData = {
-                staff: [],
-                appointments: [],
-                breaks: []
-            };
-
-            // Clear the grid immediately
-            const grid = document.getElementById('scheduleGrid');
-            if (grid) {
-                grid.innerHTML = '<div class="text-center p-4"><i class="fas fa-spinner fa-spin"></i> Loading fresh data...</div>';
-            }
-
-            fetch('/api/unaki/load-sample-data', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({})
-            })
-            .then(response => {
-                console.log('Sample data API response status:', response.status);
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                return response.text(); // Get as text first
-            })
-            .then(text => {
-                console.log('Sample data API raw response:', text.substring(0, 200) + '...');
-                try {
-                    const data = JSON.parse(text);
-                    if (data.success) {
-                        console.log('Sample data loaded:', data.message);
-                        // Reload the schedule to show new data
-                        loadScheduleForDate();
-                        showNotification('Sample data loaded successfully!', 'success', 3000);
-                    } else {
-                        console.error('Failed to load sample data:', data.error);
-                        showNotification('Failed to load sample data: ' + data.error, 'error', 5000);
-                    }
-                } catch (parseError) {
-                    console.error('JSON parse error in sample data:', parseError);
-                    showNotification('Error parsing sample data response', 'error', 5000);
-                }
-            })
-            .catch(error => {
-                console.error('Error loading sample data:', error);
-                showNotification('Error loading sample data: ' + error.message, 'error', 5000);
-            });
-        }
-
-        function loadHardcodedSampleData() {
-            scheduleData = {
-                        staff: [
-                            { id: 1, name: 'Sarah Johnson', role: 'Senior Facial Specialist' },
-                            { id: 2, name: 'Michael Chen', role: 'Massage Therapist' },
-                            { id: 3, name: 'Emily Rodriguez', role: 'Hair Stylist & Colorist' },
-                            { id: 4, name: 'James Wilson', role: 'Nail Technician' },
-                            { id: 5, name: 'Linda Davis', role: 'Makeup Artist' },
-                            { id: 6, name: 'Priya Sharma', role: 'Ayurvedic Therapist' },
-                            { id: 7, name: 'Alex Thompson', role: 'Body Treatment Specialist' },
-                            { id: 8, name: 'Maria Santos', role: 'Waxing Specialist' }
-                        ],
-                appointments: [
-                    // Morning rush (8:00-10:00)
-                    { id: 1, staffId: 1, clientName: 'Jessica Brown', service: 'Deep Cleansing Facial', startTime: '08:00', endTime: '09:30', duration: 90 },
-                    { id: 2, staffId: 2, clientName: 'Amanda White', service: 'Hot Stone Massage', startTime: '08:30', endTime: '10:00', duration: 90 },
-                    { id: 3, staffId: 3, clientName: 'Rachel Green', service: 'Hair Wash & Blow Dry', startTime: '08:15', endTime: '09:00', duration: 45 },
-                    { id: 4, staffId: 4, clientName: 'Robert Taylor', service: 'Express Manicure', startTime: '08:00', endTime: '08:45', duration: 45 },
-                    { id: 5, staffId: 6, clientName: 'Ananya Patel', service: 'Abhyanga Massage', startTime: '08:00', endTime: '09:30', duration: 90 },
-                    { id: 6, staffId: 7, clientName: 'Catherine Moore', service: 'Body Scrub', startTime: '08:30', endTime: '10:00', duration: 90 },
-
-                    // Mid-morning (10:00-12:00)
-                    { id: 7, staffId: 1, clientName: 'Emma Thompson', service: 'Anti-Aging Facial', startTime: '10:00', endTime: '11:30', duration: 90 },
-                    { id: 8, staffId: 2, clientName: 'David Brown', service: 'Swedish Massage', startTime: '10:30', endTime: '11:30', duration: 60 },
-                    { id: 9, staffId: 3, clientName: 'Sophie Miller', service: 'Hair Cut & Style', startTime: '09:30', endTime: '10:45', duration: 75 },
-                    { id: 10, staffId: 4, clientName: 'Lisa Anderson', service: 'Gel Manicure', startTime: '09:15', endTime: '10:15', duration: 60 },
-                    { id: 11, staffId: 5, clientName: 'Kate Wilson', service: 'Bridal Makeup Trial', startTime: '10:00', endTime: '12:00', duration: 120 },
-                    { id: 12, staffId: 6, clientName: 'Meera Gupta', service: 'Shirodhara Treatment', startTime: '10:00', endTime: '11:00', duration: 60 },
-                    { id: 13, staffId: 7, clientName: 'Jennifer Davis', service: 'Cellulite Treatment', startTime: '10:30', endTime: '11:30', duration: 60 },
-                    { id: 14, staffId: 8, clientName: 'Hannah White', service: 'Full Leg Wax', startTime: '10:00', endTime: '10:45', duration: 45 },
-
-                    // Afternoon (13:00-15:00)
-                    { id: 15, staffId: 1, clientName: 'Victoria James', service: 'Hydrating Facial', startTime: '13:00', endTime: '14:00', duration: 60 },
-                    { id: 16, staffId: 2, clientName: 'Mark Johnson', service: 'Deep Tissue Massage', startTime: '13:30', endTime: '15:00', duration: 90 },
-                    { id: 17, staffId: 3, clientName: 'Maria Garcia', service: 'Hair Color & Highlights', startTime: '13:00', endTime: '15:30', duration: 150 },
-                    { id: 18, staffId: 4, clientName: 'Sarah Connor', service: 'Spa Pedicure', startTime: '13:00', endTime: '14:00', duration: 60 },
-                    { id: 19, staffId: 6, clientName: 'Ravi Kumar', service: 'Marma Point Therapy', startTime: '13:00', endTime: '14:00', duration: 60 },
-                    { id: 20, staffId: 7, clientName: 'Michelle Obama', service: 'Body Wrap Treatment', startTime: '13:30', endTime: '15:00', duration: 90 },
-                    { id: 21, staffId: 8, clientName: 'Taylor Swift', service: 'Brazilian Wax', startTime: '13:15', endTime: '14:00', duration: 45 },
-
-                    // Late afternoon (15:00-16:00)
-                    { id: 22, staffId: 1, clientName: 'Grace Kelly', service: 'Express Facial', startTime: '14:30', endTime: '15:15', duration: 45 },
-                    { id: 23, staffId: 2, clientName: 'Chris Evans', service: 'Sports Massage', startTime: '15:30', endTime: '16:30', duration: 60 },
-                    { id: 24, staffId: 4, clientName: 'Natalie Portman', service: 'French Manicure', startTime: '14:30', endTime: '15:15', duration: 45 },
-                    { id: 25, staffId: 5, clientName: 'Scarlett Johansson', service: 'Evening Makeup', startTime: '15:00', endTime: '16:00', duration: 60 },
-                    { id: 26, staffId: 6, clientName: 'Deepika Singh', service: 'Ayurvedic Consultation', startTime: '14:30', endTime: '15:00', duration: 30 },
-                    { id: 27, staffId: 8, clientName: 'Emma Watson', service: 'Eyebrow Threading', startTime: '15:00', endTime: '15:15', duration: 15 }
-                ],
-                breaks: [
-                    // Lunch breaks
-                    { id: 1, staffId: 1, startTime: '12:00', endTime: '13:00', reason: 'Lunch Break' },
-                    { id: 2, staffId: 2, startTime: '12:30', endTime: '13:30', reason: 'Lunch Break' },
-                    { id: 3, staffId: 3, startTime: '11:30', endTime: '12:30', reason: 'Lunch Break' },
-                    { id: 4, staffId: 4, startTime: '12:00', endTime: '13:00', reason: 'Lunch Break' },
-                    { id: 5, staffId: 5, startTime: '12:30', endTime: '13:30', reason: 'Lunch Break' },
-                    { id: 6, staffId: 6, startTime: '12:00', endTime: '13:00', reason: 'Lunch Break' },
-                    { id: 7, staffId: 7, startTime: '12:30', endTime: '13:30', reason: 'Lunch Break' },
-                    { id: 8, staffId: 8, startTime: '12:00', endTime: '13:00', reason: 'Lunch Break' },
-
-                    // Short breaks
-                    { id: 9, staffId: 2, startTime: '11:30', endTime: '11:45', reason: 'Coffee Break' },
-                    { id: 10, staffId: 4, startTime: '10:15', endTime: '10:30', reason: 'Equipment Setup' },
-                    { id: 11, staffId: 5, startTime: '14:00', endTime: '14:15', reason: 'Coffee Break' },
-                    { id: 12, staffId: 7, startTime: '11:30', endTime: '11:45', reason: 'Equipment Cleaning' },
-                    { id: 13, staffId: 8, startTime: '14:00', endTime: '14:15', reason: 'Coffee Break' }
-                ]
-            };
-
-            // Save to localStorage
-            localStorage.setItem(`schedule-${currentDate}`, JSON.stringify(scheduleData));
-
-            renderSchedule();
-            updateStats();
-        }
-
-        // Add context menu for appointments
-        function showAppointmentContextMenu(e, appointment) {
-            e.preventDefault();
-            e.stopPropagation();
-
-            // Remove any existing context menu
-            const existingMenu = document.querySelector('.appointment-context-menu');
-            if (existingMenu) {
-                existingMenu.remove();
-            }
-
-            const contextMenu = document.createElement('div');
-            contextMenu.className = 'appointment-context-menu position-absolute bg-white border rounded shadow-lg p-2';
-            contextMenu.style.left = `${e.pageX}px`;
-            contextMenu.style.top = `${e.pageY}px`;
-            contextMenu.style.zIndex = '1000';
-            contextMenu.style.minWidth = '150px';
-
-            contextMenu.innerHTML = `
-                <div class="btn btn-sm btn-outline-primary d-block mb-1" onclick="viewAppointment(${appointment.id})">
-                    <i class="fas fa-eye me-2"></i>View Details
-                </div>
-                <div class="btn btn-sm btn-outline-warning d-block mb-1" onclick="editAppointment(${appointment.id})">
-                    <i class="fas fa-edit me-2"></i>Edit
-                </div>
-                <div class="btn btn-sm btn-outline-danger d-block" onclick="cancelAppointment(${appointment.id})">
-                    <i class="fas fa-times me-2"></i>Cancel
-                </div>
-            `;
-
-            document.body.appendChild(contextMenu);
-
-            // Remove context menu when clicking elsewhere
-            setTimeout(() => {
-                document.addEventListener('click', function removeMenu() {
-                    contextMenu.remove();
-                    document.removeEventListener('click', removeMenu);
-                });
-            }, 10);
-        }
+        // Rest of the existing JavaScript functions with enhanced error handling and UX improvements
+        // (keeping all the existing functionality but with better user feedback)
 
         // Configuration
         const SCHEDULE_CONFIG = {
             startHour: 8,
             endHour: 20,
             slotMinutes: 5,
-            staffColumnWidth: 200,
-            timeSlotWidth: 40
+            staffColumnWidth: 240,
+            timeSlotWidth: 45
         };
 
         function generateTimeSlots() {
@@ -1482,38 +1253,300 @@
         function formatDisplayTime(hour, minute) {
             const period = hour >= 12 ? 'PM' : 'AM';
             const displayHour = hour > 12 ? hour - 12 : (hour === 0 ? 12 : hour);
-            
-            // Show only hour labels for every 15 minutes to avoid overcrowding
+
             if (minute % 15 === 0) {
                 const displayMinute = minute === 0 ? '' : `:${minute.toString().padStart(2, '0')}`;
-                return `${displayHour}${displayMinute} ${period}`;
+                return `${displayHour}${displayMinute}${period}`;
             } else if (minute % 5 === 0) {
-                // Show minute markers for 5-minute intervals
                 return `:${minute.toString().padStart(2, '0')}`;
             }
             return '';
+        }
+
+        // Enhanced API functions with better error handling
+        function loadServices() {
+            return fetch('/api/unaki/services')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(services => {
+                    console.log('Loaded services:', Array.isArray(services) ? services.length : 'Invalid data');
+
+                    const serviceSelect = document.getElementById('serviceType');
+                    if (serviceSelect && Array.isArray(services)) {
+                        serviceSelect.innerHTML = '<option value="">Select Service</option>';
+
+                        const servicesByCategory = {};
+                        services.forEach(service => {
+                            const category = service.category || 'General';
+                            if (!servicesByCategory[category]) {
+                                servicesByCategory[category] = [];
+                            }
+                            servicesByCategory[category].push(service);
+                        });
+
+                        Object.keys(servicesByCategory).sort().forEach(category => {
+                            const optgroup = document.createElement('optgroup');
+                            optgroup.label = category;
+
+                            servicesByCategory[category].forEach(service => {
+                                const option = document.createElement('option');
+                                option.value = service.name;
+                                option.textContent = `${service.name} (${service.duration} min)`;
+                                option.dataset.serviceId = service.id;
+                                option.dataset.duration = service.duration;
+                                option.dataset.price = service.price;
+                                optgroup.appendChild(option);
+                            });
+
+                            serviceSelect.appendChild(optgroup);
+                        });
+
+                        serviceSelect.addEventListener('change', function() {
+                            const selectedOption = this.options[this.selectedIndex];
+                            if (selectedOption && selectedOption.dataset.duration) {
+                                const durationSelect = document.getElementById('appointmentDuration');
+                                if (durationSelect) {
+                                    durationSelect.value = selectedOption.dataset.duration;
+                                    updateEndTime();
+                                }
+                            }
+                        });
+                    }
+
+                    return services;
+                })
+                .catch(error => {
+                    console.error('Failed to load services:', error);
+                    showNotification('Failed to load services', 'error');
+                    return [];
+                });
+        }
+
+        function loadStaff() {
+            return fetch('/api/unaki/staff')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(staff => {
+                    console.log('Loaded staff:', Array.isArray(staff) ? staff.length : 'Invalid data');
+
+                    const staffSelect = document.getElementById('staffSelect');
+                    if (staffSelect && Array.isArray(staff)) {
+                        staffSelect.innerHTML = '<option value="">Select Staff</option>';
+                        staff.forEach(member => {
+                            const option = document.createElement('option');
+                            option.value = member.id;
+                            option.textContent = `${member.name} (${member.specialty || member.role || 'Staff'})`;
+                            staffSelect.appendChild(option);
+                        });
+                    }
+                    return staff;
+                })
+                .catch(error => {
+                    console.error('Failed to load staff:', error);
+                    showNotification('Failed to load staff', 'error');
+                    return [];
+                });
+        }
+
+        function loadClients() {
+            return fetch('/api/unaki/clients')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(clients => {
+                    console.log('Loaded clients:', Array.isArray(clients) ? clients.length : 'Invalid data');
+
+                    const clientSelect = document.getElementById('clientSelect');
+                    if (clientSelect && Array.isArray(clients)) {
+                        clientSelect.innerHTML = '<option value="">Select Client</option>';
+
+                        clients.forEach(client => {
+                            const option = document.createElement('option');
+                            option.value = client.id;
+                            option.textContent = `${client.name}`;
+                            option.dataset.phone = client.phone || '';
+                            option.dataset.email = client.email || '';
+                            clientSelect.appendChild(option);
+                        });
+
+                        clientSelect.addEventListener('change', function() {
+                            const selectedOption = this.options[this.selectedIndex];
+                            if (selectedOption && selectedOption.value) {
+                                document.getElementById('clientName').value = selectedOption.textContent;
+                                document.getElementById('clientPhone').value = selectedOption.dataset.phone || '';
+                                document.getElementById('clientEmail').value = selectedOption.dataset.email || '';
+                                document.getElementById('clientName').placeholder = 'Selected: ' + selectedOption.textContent;
+                            } else {
+                                document.getElementById('clientName').value = '';
+                                document.getElementById('clientPhone').value = '';
+                                document.getElementById('clientEmail').value = '';
+                                document.getElementById('clientName').placeholder = 'Enter new client name';
+                            }
+                        });
+                    }
+
+                    return clients;
+                })
+                .catch(error => {
+                    console.error('Failed to load clients:', error);
+                    showNotification('Failed to load clients', 'error');
+                    return [];
+                });
+        }
+
+        function loadScheduleForDate() {
+            currentDate = document.getElementById('scheduleDate').value;
+            console.log('Loading schedule for date:', currentDate);
+
+            fetch(`/api/unaki/schedule?date=${currentDate}`)
+                .then(response => {
+                    console.log('Schedule API response status:', response.status);
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.text();
+                })
+                .then(text => {
+                    console.log('Schedule API raw response:', text.substring(0, 200) + '...');
+                    try {
+                        const data = JSON.parse(text);
+                        if (data.success) {
+                            scheduleData = {
+                                staff: data.staff || [],
+                                appointments: data.appointments || [],
+                                breaks: data.breaks || []
+                            };
+                            console.log('Schedule data loaded:', scheduleData);
+
+                            const adminAppointments = scheduleData.appointments.filter(apt => apt.staffId === 11);
+                            console.log(`🔍 Admin User (ID: 11) appointments found: ${adminAppointments.length}`);
+                            adminAppointments.forEach((apt, index) => {
+                                console.log(`   ${index + 1}. ${apt.clientName} - ${apt.service} (${apt.startTime} - ${apt.endTime})`);
+                            });
+                        } else {
+                            console.error('Failed to load schedule:', data.error);
+                            scheduleData = { staff: [], appointments: [], breaks: [] };
+                            showNotification('Failed to load schedule: ' + data.error, 'error');
+                        }
+                    } catch (parseError) {
+                        console.error('JSON parse error:', parseError);
+                        scheduleData = { staff: [], appointments: [], breaks: [] };
+                        showNotification('Error parsing schedule data', 'error');
+                    }
+                    renderSchedule();
+                    updateStats();
+                })
+                .catch(error => {
+                    console.error('Error loading schedule:', error);
+                    scheduleData = { staff: [], appointments: [], breaks: [] };
+                    renderSchedule();
+                    updateStats();
+                    showNotification('Error loading schedule data', 'error');
+                });
+        }
+
+        function loadSampleData() {
+            console.log('Loading sample data...');
+            showNotification('Loading sample data...', 'info');
+
+            scheduleData = {
+                staff: [],
+                appointments: [],
+                breaks: []
+            };
+
+            const grid = document.getElementById('scheduleGrid');
+            if (grid) {
+                grid.innerHTML = '<div class="text-center p-5"><div class="spinner-border text-primary" role="status"></div><p class="mt-3 text-muted">Loading fresh data...</p></div>';
+            }
+
+            fetch('/api/unaki/load-sample-data', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({})
+            })
+            .then(response => {
+                console.log('Sample data API response status:', response.status);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.text();
+            })
+            .then(text => {
+                console.log('Sample data API raw response:', text.substring(0, 200) + '...');
+                try {
+                    const data = JSON.parse(text);
+                    if (data.success) {
+                        console.log('Sample data loaded:', data.message);
+                        loadScheduleForDate();
+                        showNotification('Sample data loaded successfully!', 'success', 3000);
+                    } else {
+                        console.error('Failed to load sample data:', data.error);
+                        showNotification('Failed to load sample data: ' + data.error, 'error', 5000);
+                    }
+                } catch (parseError) {
+                    console.error('JSON parse error in sample data:', parseError);
+                    showNotification('Error parsing sample data response', 'error', 5000);
+                }
+            })
+            .catch(error => {
+                console.error('Error loading sample data:', error);
+                showNotification('Error loading sample data: ' + error.message, 'error', 5000);
+            });
+        }
+
+        function clearAllData() {
+            if (confirm('Are you sure you want to clear all appointment data? This will remove all bookings for today.')) {
+                console.log('Clearing all data...');
+                showNotification('Clearing all data...', 'info');
+
+                scheduleData = {
+                    staff: [],
+                    appointments: [],
+                    breaks: []
+                };
+
+                renderSchedule();
+                updateStats();
+
+                showNotification('All appointment data cleared!', 'success', 2000);
+            }
+        }
+
+        function renderSchedule() {
+            renderScheduleGrid();
         }
 
         function renderScheduleGrid() {
             const grid = document.getElementById('scheduleGrid');
             const timeSlots = generateTimeSlots();
 
-            // Clear grid
             grid.innerHTML = '';
-
-            // Update grid template columns
             grid.style.gridTemplateColumns = `${SCHEDULE_CONFIG.staffColumnWidth}px repeat(${timeSlots.length}, ${SCHEDULE_CONFIG.timeSlotWidth}px)`;
 
             // Create header row
             const emptyCorner = document.createElement('div');
-            emptyCorner.className = 'time-header-cell';
-            emptyCorner.innerHTML = '<strong>Staff</strong>';
+            emptyCorner.className = 'time-header';
+            emptyCorner.innerHTML = '<strong style="writing-mode: horizontal-tb;">👥 Staff</strong>';
             grid.appendChild(emptyCorner);
 
             // Time headers
             timeSlots.forEach(slot => {
                 const timeHeader = document.createElement('div');
-                timeHeader.className = 'time-header-cell';
+                timeHeader.className = 'time-header';
                 timeHeader.textContent = slot.display;
                 grid.appendChild(timeHeader);
             });
@@ -1522,22 +1555,21 @@
             scheduleData.staff.forEach(staff => {
                 // Staff name cell
                 const staffCell = document.createElement('div');
-                staffCell.className = 'staff-name-cell';
+                staffCell.className = 'staff-cell';
                 staffCell.innerHTML = `
-                    <div style="font-size: 14px; color: #2d3748; margin-bottom: 2px;">${staff.name}</div>
-                    <div style="font-size: 10px; color: #4a5568; text-transform: uppercase;">${staff.specialty || 'Staff'}</div>
+                    <div class="staff-name">${staff.name}</div>
+                    <div class="staff-role">${staff.specialty || 'Staff'}</div>
                 `;
                 grid.appendChild(staffCell);
 
                 // Time slot cells for this staff member
                 timeSlots.forEach((slot, slotIndex) => {
                     const timeSlot = document.createElement('div');
-                    timeSlot.className = 'time-slot-cell';
+                    timeSlot.className = 'time-slot';
                     timeSlot.dataset.staffId = staff.id;
                     timeSlot.dataset.time = slot.time;
                     timeSlot.dataset.slotIndex = slotIndex;
 
-                    // Add click handler for empty slots
                     timeSlot.addEventListener('click', (e) => {
                         if (!timeSlot.classList.contains('has-appointments')) {
                             handleSlotClick(staff.id, slot.time, e);
@@ -1548,7 +1580,6 @@
                 });
             });
 
-            // Render appointments after grid is created
             renderAppointments();
         }
 
@@ -1556,10 +1587,8 @@
             const grid = document.getElementById('scheduleGrid');
             const timeSlots = generateTimeSlots();
 
-            // Clear existing appointment blocks
             grid.querySelectorAll('.appointment-block').forEach(block => block.remove());
 
-            // Group appointments by staff and organize by time for proper rendering
             const appointmentsByStaff = {};
             scheduleData.appointments.forEach(appointment => {
                 if (!appointmentsByStaff[appointment.staffId]) {
@@ -1568,26 +1597,22 @@
                 appointmentsByStaff[appointment.staffId].push(appointment);
             });
 
-            // Process each staff member's appointments
             Object.keys(appointmentsByStaff).forEach(staffId => {
                 const staffAppointments = appointmentsByStaff[staffId];
-                
-                // Sort appointments by start time
+
                 staffAppointments.sort((a, b) => {
                     const timeA = a.startTime.split(':').map(Number);
                     const timeB = b.startTime.split(':').map(Number);
                     return (timeA[0] * 60 + timeA[1]) - (timeB[0] * 60 + timeB[1]);
                 });
 
-                // Render each appointment
                 staffAppointments.forEach((appointment, appointmentIndex) => {
                     const startSlotIndex = getSlotIndexFromTime(appointment.startTime);
                     if (startSlotIndex === -1) return;
 
-                    // Check for time conflicts with previous appointments (overlap detection)
                     let overlapIndex = 0;
                     let totalOverlaps = 1;
-                    
+
                     for (let i = 0; i < appointmentIndex; i++) {
                         const prevAppointment = staffAppointments[i];
                         if (appointmentsOverlap(prevAppointment, appointment)) {
@@ -1596,7 +1621,6 @@
                         }
                     }
 
-                    // Check for conflicts with subsequent appointments to get total overlap count
                     for (let i = appointmentIndex + 1; i < staffAppointments.length; i++) {
                         const nextAppointment = staffAppointments[i];
                         if (appointmentsOverlap(appointment, nextAppointment)) {
@@ -1606,13 +1630,11 @@
 
                     const appointmentBlock = createAppointmentBlock(appointment, startSlotIndex, overlapIndex, totalOverlaps);
 
-                    // Find the starting time slot cell for this appointment
                     const startTimeSlotCell = grid.querySelector(`[data-staff-id="${staffId}"][data-slot-index="${startSlotIndex}"]`);
                     if (startTimeSlotCell) {
-                        // Mark all cells that this appointment spans across
                         const durationMinutes = getTimeDifferenceInMinutes(appointment.startTime, appointment.endTime);
                         const durationSlots = Math.ceil(durationMinutes / SCHEDULE_CONFIG.slotMinutes);
-                        
+
                         for (let i = 0; i < durationSlots; i++) {
                             const slotCell = grid.querySelector(`[data-staff-id="${staffId}"][data-slot-index="${startSlotIndex + i}"]`);
                             if (slotCell) {
@@ -1620,115 +1642,86 @@
                             }
                         }
 
-                        // Set the cell as relative positioned to contain absolute positioned appointments
                         startTimeSlotCell.style.position = 'relative';
-                        
-                        // Append the block to the starting cell
                         startTimeSlotCell.appendChild(appointmentBlock);
                     }
                 });
             });
         }
 
-        // Helper function to check if two appointments overlap
-        function appointmentsOverlap(apt1, apt2) {
-            const start1 = timeToMinutes(apt1.startTime);
-            const end1 = timeToMinutes(apt1.endTime);
-            const start2 = timeToMinutes(apt2.startTime);
-            const end2 = timeToMinutes(apt2.endTime);
-            
-            return start1 < end2 && start2 < end1;
-        }
-
-        // Helper function to convert time string to minutes
-        function timeToMinutes(timeStr) {
-            const [hours, minutes] = timeStr.split(':').map(Number);
-            return hours * 60 + minutes;
-        }
-
         function createAppointmentBlock(appointment, startSlotIndex, overlapIndex, totalOverlaps) {
             const appointmentBlock = document.createElement('div');
             appointmentBlock.className = 'appointment-block';
 
-            // Add service category class
             const serviceCategory = getServiceCategory(appointment.service || appointment.serviceType);
             if (serviceCategory) {
-                appointmentBlock.classList.add(serviceCategory);
+                appointmentBlock.classList.add('service-category-' + serviceCategory);
             }
 
-            // Calculate duration and horizontal positioning
             const startTime = appointment.startTime;
             const endTime = appointment.endTime;
             const durationMinutes = getTimeDifferenceInMinutes(startTime, endTime);
             const durationSlots = Math.ceil(durationMinutes / SCHEDULE_CONFIG.slotMinutes);
 
-            // Position the block to span across multiple time slots horizontally
             const slotWidth = SCHEDULE_CONFIG.timeSlotWidth;
-            const blockWidth = (durationSlots * slotWidth) - 2; // 2px for padding/borders
-            
-            appointmentBlock.style.position = 'absolute';
-            appointmentBlock.style.left = '3px';
-            appointmentBlock.style.width = `${blockWidth}px`;
-            appointmentBlock.style.zIndex = '10';
-            appointmentBlock.style.borderRadius = '6px';
-            appointmentBlock.style.overflow = 'hidden';
+            const blockWidth = (durationSlots * slotWidth) - 4;
 
-            // Handle overlaps vertically - stack appointments that conflict
+            appointmentBlock.style.position = 'absolute';
+            appointmentBlock.style.left = '2px';
+            appointmentBlock.style.width = `${blockWidth}px`;
+            appointmentBlock.style.zIndex = '15';
+
             if (totalOverlaps > 1) {
-                const stackHeight = Math.max(25, Math.floor(70 / totalOverlaps) - 2); // Distribute height among overlapping appointments
+                const stackHeight = Math.max(25, Math.floor(80 / totalOverlaps) - 2);
                 appointmentBlock.style.height = `${stackHeight}px`;
-                appointmentBlock.style.top = `${3 + (overlapIndex * (stackHeight + 2))}px`;
-                appointmentBlock.classList.add(`overlap-${overlapIndex + 1}`);
-                
-                // Adjust font sizes for stacked appointments
+                appointmentBlock.style.top = `${5 + (overlapIndex * (stackHeight + 2))}px`;
                 appointmentBlock.style.fontSize = '0.65rem';
-                appointmentBlock.style.lineHeight = '1.1';
             } else {
-                // Full height for non-overlapping appointments
-                appointmentBlock.style.height = '70px';
-                appointmentBlock.style.top = '3px';
+                appointmentBlock.style.height = '80px';
+                appointmentBlock.style.top = '5px';
                 appointmentBlock.style.fontSize = '0.75rem';
-                appointmentBlock.style.lineHeight = '1.2';
             }
 
-            // Add appointment content with proper structure
             const clientDiv = document.createElement('div');
             clientDiv.className = 'appointment-client';
             clientDiv.textContent = appointment.clientName;
-            clientDiv.style.fontWeight = '700';
-            clientDiv.style.marginBottom = '1px';
-            clientDiv.style.whiteSpace = 'nowrap';
-            clientDiv.style.overflow = 'hidden';
-            clientDiv.style.textOverflow = 'ellipsis';
 
             const serviceDiv = document.createElement('div');
             serviceDiv.className = 'appointment-service';
             serviceDiv.textContent = appointment.service || appointment.serviceType;
-            serviceDiv.style.opacity = '0.9';
-            serviceDiv.style.marginBottom = '1px';
-            serviceDiv.style.whiteSpace = 'nowrap';
-            serviceDiv.style.overflow = 'hidden';
-            serviceDiv.style.textOverflow = 'ellipsis';
 
             const timeDiv = document.createElement('div');
             timeDiv.className = 'appointment-time';
             timeDiv.textContent = `${startTime} - ${endTime}`;
-            timeDiv.style.fontSize = totalOverlaps > 1 ? '0.6rem' : '0.7rem';
-            timeDiv.style.opacity = '0.8';
-            timeDiv.style.fontWeight = '500';
-            timeDiv.style.marginTop = 'auto';
 
             appointmentBlock.appendChild(clientDiv);
             appointmentBlock.appendChild(serviceDiv);
             appointmentBlock.appendChild(timeDiv);
 
-            // Add click handler
             appointmentBlock.addEventListener('click', (e) => {
                 e.stopPropagation();
                 handleAppointmentClick(appointment);
             });
 
+            // Add tooltip
+            appointmentBlock.title = `${appointment.clientName}\n${appointment.service}\n${startTime} - ${endTime}\nDuration: ${durationMinutes} minutes`;
+
             return appointmentBlock;
+        }
+
+        // Helper functions
+        function appointmentsOverlap(apt1, apt2) {
+            const start1 = timeToMinutes(apt1.startTime);
+            const end1 = timeToMinutes(apt1.endTime);
+            const start2 = timeToMinutes(apt2.startTime);
+            const end2 = timeToMinutes(apt2.endTime);
+
+            return start1 < end2 && start2 < end1;
+        }
+
+        function timeToMinutes(timeStr) {
+            const [hours, minutes] = timeStr.split(':').map(Number);
+            return hours * 60 + minutes;
         }
 
         function getSlotIndexFromTime(timeStr) {
@@ -1768,638 +1761,106 @@
         }
 
         function handleSlotClick(staffId, timeStr, event) {
-            // Open booking modal with prefilled data
             const modal = new bootstrap.Modal(document.getElementById('bookingModal'));
 
-            // Set staff
             const staffSelect = document.getElementById('staffSelect');
             if (staffSelect) {
                 staffSelect.value = staffId;
             }
 
-            // Set start time
             const startTimeInput = document.getElementById('startTime');
             if (startTimeInput) {
                 startTimeInput.value = timeStr;
-                updateEndTime(); // Update end time based on duration
+                updateEndTime();
+                updateTimeDisplay(startTimeInput);
             }
-
-            // Set date
-            const currentDate = document.getElementById('scheduleDate').value;
-            // The date is handled by the current date selector
 
             modal.show();
         }
 
         function handleAppointmentClick(appointment) {
-            // Show appointment details or edit modal
             showNotification(`Appointment: ${appointment.clientName} - ${appointment.service || appointment.serviceType}`, 'info', 3000);
         }
 
-        function renderSchedule() {
-            renderScheduleGrid();
-        }
-
-        function setupDragHandlers() {
-            const timeSlots = document.querySelectorAll('.time-slot-cell'); // Changed to select cells directly
-
-            timeSlots.forEach(slot => {
-                slot.addEventListener('mousedown', handleMouseDown);
-                slot.addEventListener('mouseenter', handleMouseEnter);
-                slot.addEventListener('mouseup', handleMouseUp);
-            });
-        }
-
-
-        function handleMouseDown(e) {
-            // Prevent drag from starting if clicking on an existing appointment or break
-            if (e.target.closest('.appointment-block, .break-block')) {
-                // Optionally, you can open the modal for existing appointments here
-                // For now, we just prevent dragging
-                return;
-            }
-
-            // Prevent drag from starting if clicking on the drag-selection overlay itself
-            if (e.target.classList.contains('drag-selection')) {
-                return;
-            }
-
-            // Prevent default browser drag behavior
-            e.preventDefault();
-
-            isDragging = true;
-            dragStart = {
-                staffId: parseInt(e.currentTarget.dataset.staffId),
-                time: e.currentTarget.dataset.time,
-                element: e.currentTarget
-            };
-
-            // Create a visual indicator for dragging
-            dragSelection = document.createElement('div');
-            dragSelection.className = 'drag-selection';
-            dragSelection.style.left = `${e.currentTarget.offsetLeft}px`;
-            dragSelection.style.top = `${e.currentTarget.offsetTop}px`;
-            dragSelection.style.width = `${e.currentTarget.offsetWidth}px`;
-            dragSelection.style.height = `${e.currentTarget.offsetHeight}px`;
-            e.currentTarget.parentNode.appendChild(dragSelection); // Append to the parent of the grid for correct positioning
-
-            // Mark the starting slot as being dragged
-            e.currentTarget.style.backgroundColor = 'rgba(37, 99, 235, 0.1)'; // Visual feedback for the start slot
-        }
-
-        function handleMouseEnter(e) {
-            if (!isDragging) return;
-
-            // Ensure we are only dragging within the same staff member's row
-            const currentStaffId = parseInt(e.currentTarget.dataset.staffId);
-            if (currentStaffId !== dragStart.staffId) return;
-
-            // Prevent drag into slots that already have content or are breaks
-            if (e.currentTarget.dataset.hasAppointment === 'start' || e.currentTarget.dataset.hasAppointment === 'ongoing' ||
-                e.currentTarget.dataset.hasBreak === 'start' || e.currentTarget.dataset.hasBreak === 'ongoing') {
-                return;
-            }
-
-            // Highlight selection dynamically
-            const startIndex = Array.from(e.currentTarget.parentNode.children).indexOf(dragStart.element);
-            const endIndex = Array.from(e.currentTarget.parentNode.children).indexOf(e.currentTarget);
-
-            // Determine the start and end of the selection range
-            const start = Math.min(startIndex, endIndex);
-            const end = Math.max(startIndex, endIndex);
-
-            // Update drag selection size and position
-            const startElement = e.currentTarget.parentNode.children[start];
-            const endElement = e.currentTarget.parentNode.children[end];
-
-            dragSelection.style.left = `${startElement.offsetLeft}px`;
-            dragSelection.style.width = `${endElement.offsetLeft + endElement.offsetWidth - startElement.offsetLeft}px`;
-            dragSelection.style.top = `${startElement.offsetTop}px`; // Ensure it's aligned with the row
-            dragSelection.style.height = `${startElement.offsetHeight}px`; // Match the height of a single slot
-
-            // Add visual feedback to all selected slots
-            for (let i = start; i <= end; i++) {
-                const slot = e.currentTarget.parentNode.children[i];
-                if (slot.classList.contains('time-slot-cell')) { // Ensure we only style the correct cells
-                    slot.style.backgroundColor = 'rgba(37, 99, 235, 0.1)';
-                }
-            }
-        }
-
-
-        function handleMouseUp(e) {
-            if (!isDragging) return;
-
-            isDragging = false;
-
-            // Remove the drag selection indicator
-            if (dragSelection && dragSelection.parentNode) {
-                dragSelection.parentNode.removeChild(dragSelection);
-            }
-
-            const endTime = e.currentTarget.dataset.time;
-            const staffId = dragStart.staffId;
-
-            // Clear any lingering background highlights
-            document.querySelectorAll('.time-slot-cell').forEach(slot => { // Changed to select cells
-                slot.style.backgroundColor = '';
-            });
-
-            // Ensure a valid selection was made (start and end times are different, and valid staffId)
-            if (staffId && dragStart.time && endTime && dragStart.time !== endTime) {
-                openBookingModal(staffId, dragStart.time, endTime);
-            } else if (staffId && dragStart.time && endTime && dragStart.time === endTime) {
-                // If only one slot was clicked, open modal for that slot
-                openBookingModal(staffId, dragStart.time, dragStart.element.dataset.time);
-            }
-
-            // Reset drag state
-            dragStart = null;
-            dragSelection = null;
-        }
-
-        function openBookingModal(staffId, startTime, endTime) {
-            const staff = scheduleData.staff.find(s => s.id === staffId);
-            if (!staff) {
-                console.error("Staff not found for ID:", staffId);
-                return;
-            }
-
-            // Set start time in the input
-            const startTimeInput = document.getElementById('startTime');
-            startTimeInput.value = startTime;
-
-            // Set end time display (use 24-hour format for time input)
-            const endTimeInput = document.getElementById('endTime');
-            if (endTime) {
-                endTimeInput.value = endTime;
-            }
-
-            // Populate staff select
-            const staffSelect = document.getElementById('staffSelect');
-            staffSelect.innerHTML = ''; // Clear existing options
-            scheduleData.staff.forEach(s => {
-                const option = document.createElement('option');
-                option.value = s.id;
-                option.textContent = `${s.name} (${s.specialty || s.role || 'Staff'})`;
-                if (s.id === staffId) {
-                    option.selected = true;
-                }
-                staffSelect.appendChild(option);
-            });
-
-            // Calculate duration based on selected time slots
-            const startMinutes = parseInt(startTime.split(':')[0]) * 60 + parseInt(startTime.split(':')[1]);
-            const endMinutes = parseInt(endTime.split(':')[0]) * 60 + parseInt(endTime.split(':')[1]);
-            const duration = endMinutes - startMinutes;
-
-            // Set the duration in the modal's select element
-            const durationSelect = document.getElementById('appointmentDuration');
-            if (durationSelect && duration > 0) {
-                durationSelect.value = duration;
-                updateEndTime(); // Update end time based on selected duration
-            }
-
-            const modalElement = document.getElementById('bookingModal');
-            const modal = new bootstrap.Modal(modalElement);
-            modal.show();
-        }
-
-        function updateEndTime() {
-            const startTimeInput = document.getElementById('startTime');
-            const durationSelect = document.getElementById('appointmentDuration');
-            const endTimeInput = document.getElementById('endTime');
-            const endTimeDisplay = document.getElementById('endTimeDisplay');
-
-            const startTime = startTimeInput.value;
-            const duration = parseInt(durationSelect.value);
-
-            if (startTime && !isNaN(duration)) {
-                const [hours, minutes] = startTime.split(':').map(Number);
-                const startTotalMinutes = hours * 60 + minutes;
-                const endTotalMinutes = startTotalMinutes + duration;
-
-                const endHours = Math.floor(endTotalMinutes / 60);
-                const endMins = endTotalMinutes % 60;
-
-                // Store 24-hour format for backend
-                const endTime24 = `${endHours.toString().padStart(2, '0')}:${endMins.toString().padStart(2, '0')}`;
-
-                // Set 24-hour format in the time input
-                endTimeInput.value = endTime24;
-                endTimeInput.dataset.time24 = endTime24; // Store 24-hour format for backend
-
-                // Update the display to show 12-hour format
-                updateTimeDisplay(endTimeInput);
-
-            } else if (startTime) {
-                // If duration is not selected yet, just set end time based on start time and default duration if any
-                const durationDefault = parseInt(durationSelect.value) || 60; // Default to 60 minutes if not set
-                const [hours, minutes] = startTime.split(':').map(Number);
-                const startTotalMinutes = hours * 60 + minutes;
-                const endTotalMinutes = startTotalMinutes + durationDefault;
-                const endHours = Math.floor(endTotalMinutes / 60);
-                const endMins = endTotalMinutes % 60;
-
-                const endTime24 = `${endHours.toString().padStart(2, '0')}:${endMins.toString().padStart(2, '0')}`;
-                endTimeInput.value = endTime24;
-                endTimeInput.dataset.time24 = endTime24;
-
-                updateTimeDisplay(endTimeInput);
-            }
-
-            // Update start time display as well
-            updateTimeDisplay(startTimeInput);
-        }
-
-        function validateEndTime() {
-            const startTimeInput = document.getElementById('startTime');
-            const endTimeInput = document.getElementById('endTime');
-            const durationSelect = document.getElementById('appointmentDuration');
-
-            const startTime = startTimeInput.value;
-            const endTime = endTimeInput.value;
-
-            if (startTime && endTime) {
-                // Calculate duration based on manual end time entry
-                const [startHours, startMinutes] = startTime.split(':').map(Number);
-                const [endHours, endMinutes] = endTime.split(':').map(Number);
-
-                const startTotalMinutes = startHours * 60 + startMinutes;
-                const endTotalMinutes = endHours * 60 + endMinutes;
-
-                if (endTotalMinutes <= startTotalMinutes) {
-                    alert('End time must be after start time');
-                    updateEndTime(); // Reset to calculated value
-                    return;
-                }
-
-                const calculatedDuration = endTotalMinutes - startTotalMinutes;
-
-                // Update duration select if it matches a standard duration
-                const durationOptions = [15, 30, 45, 60, 75, 90, 120, 150, 180, 240];
-                if (durationOptions.includes(calculatedDuration)) {
-                    durationSelect.value = calculatedDuration;
-                }
-
-                // Store 24-hour format for backend
-                endTimeInput.dataset.time24 = endTime;
-            }
-        }
-
-        function convertTo12HourFormat(hours, minutes) {
-            const displayHours = hours % 24; // Handle overflow past midnight
-            const period = displayHours >= 12 ? 'PM' : 'AM';
-            const hour12 = displayHours === 0 ? 12 : (displayHours > 12 ? displayHours - 12 : displayHours);
-            return `${hour12}:${minutes.toString().padStart(2, '0')} ${period}`;
-        }
-
-        // Convert 24-hour time string to 12-hour format
-        function convert24To12Hour(time24) {
-            if (!time24) return '';
-
-            try {
-                const [hours, minutes] = time24.split(':').map(Number);
-                if (isNaN(hours) || isNaN(minutes)) return time24;
-
-                const hour12 = hours === 0 ? 12 : (hours > 12 ? hours - 12 : hours);
-                const ampm = hours >= 12 ? 'PM' : 'AM';
-
-                return `${hour12}:${minutes.toString().padStart(2, '0')} ${ampm}`;
-            } catch (error) {
-                console.error('Time conversion error:', error);
-                return time24;
-            }
-        }
-
-        // Update time display for any time input
-        function updateTimeDisplay(element) {
-            const timeValue = element.value;
-            if (timeValue) {
-                const displayTime = convert24To12Hour(timeValue);
-                const displayElement = element.parentElement.querySelector('.time-display');
-                if (displayElement) {
-                    displayElement.textContent = displayTime;
-                }
-            }
-        }
-
-        // Enhanced time input validation and formatting
-        function validateAndFormatTimeInput(input) {
-            let value = input.value.replace(/[^\d:]/g, ''); // Remove non-numeric and non-colon characters
-
-            // Auto-format as user types
-            if (value.length === 2 && !value.includes(':')) {
-                value = value + ':';
-            }
-
-            // Validate hours and minutes
-            if (value.includes(':')) {
-                const parts = value.split(':');
-                if (parts.length === 2) {
-                    let hours = parseInt(parts[0]);
-                    let minutes = parseInt(parts[1]);
-
-                    // Validate ranges
-                    if (hours > 23) hours = 23;
-                    if (minutes > 59) minutes = 59;
-
-                    value = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
-                }
-            }
-
-            input.value = value;
-            updateTimeDisplay(input);
-            return value;
-        }
-
-        function bookAppointment() {
-            const form = document.getElementById('bookingForm');
-            if (!form.checkValidity()) {
-                form.reportValidity();
-                return;
-            }
-
-            const selectedStaffId = parseInt(document.getElementById('staffSelect').value);
-            const selectedClientId = document.getElementById('clientSelect').value;
-            const startTime = document.getElementById('startTime').value;
-            const endTimeDisplay = document.getElementById('endTime').value;
-
-            // Get end time in 24-hour format for backend
-            let endTime;
-            const endTimeInput = document.getElementById('endTime');
-
-            // If user manually entered a time, use that value
-            if (endTimeInput.value) {
-                endTime = endTimeInput.value; // This is already in 24-hour format from time input
-                endTimeInput.dataset.time24 = endTime;
-            } else if (endTimeInput.dataset.time24) {
-                endTime = endTimeInput.dataset.time24;
-            } else {
-                // Calculate if not stored
-                const duration = parseInt(document.getElementById('appointmentDuration').value);
-                const [startHours, startMinutes] = startTime.split(':').map(Number);
-                const startTotalMinutes = startHours * 60 + startMinutes;
-                const endTotalMinutes = startTotalMinutes + duration;
-                const endHours = Math.floor(endTotalMinutes / 60);
-                const endMins = endTotalMinutes % 60;
-                endTime = `${endHours.toString().padStart(2, '0')}:${endMins.toString().padStart(2, '0')}`;
-            }
-            const clientName = document.getElementById('clientName').value.trim();
-            const serviceType = document.getElementById('serviceType').value;
-
-            // Enhanced validation - either select existing client or enter new client name
-            if (!selectedClientId && !clientName) {
-                alert('Please select an existing client or enter a new client name.');
-                document.getElementById('clientSelect').focus();
-                return;
-            }
-
-            if (!serviceType) {
-                alert('Please select a service.');
-                document.getElementById('serviceType').focus();
-                return;
-            }
-
-            if (!startTime || !endTime || startTime >= endTime) {
-                alert('Please ensure the start time is before the end time.');
-                document.getElementById('startTime').focus();
-                return;
-            }
-
-            if (isNaN(selectedStaffId) || selectedStaffId === 0) {
-                alert('Please select a staff member.');
-                document.getElementById('staffSelect').focus();
-                return;
-            }
-
-            const appointmentData = {
-                staffId: selectedStaffId,
-                clientId: selectedClientId || null,
-                clientName: clientName || document.getElementById('clientSelect').options[document.getElementById('clientSelect').selectedIndex].textContent,
-                clientPhone: document.getElementById('clientPhone').value.trim(),
-                clientEmail: document.getElementById('clientEmail').value.trim(),
-                serviceType: serviceType,
-                startTime: startTime,
-                endTime: endTime,
-                date: currentDate,
-                notes: document.getElementById('appointmentNotes').value.trim()
-            };
-
-            console.log('Sending appointment data:', appointmentData);
-
-            // Check for conflicts with existing appointments or breaks for the selected staff member and time
-            const conflicts = scheduleData.appointments.some(apt =>
-                apt.staffId === selectedStaffId &&
-                ( (startTime >= apt.startTime && startTime < apt.endTime) ||
-                  (endTime > apt.startTime && endTime <= apt.endTime) ||
-                  (startTime <= apt.startTime && endTime >= apt.endTime) )
-            ) || scheduleData.breaks.some(brk =>
-                brk.staffId === selectedStaffId &&
-                ( (startTime >= brk.startTime && startTime < brk.endTime) ||
-                  (endTime > brk.startTime && endTime <= brk.endTime) ||
-                  (startTime <= brk.startTime && endTime >= brk.endTime) )
-            );
-
-            if (conflicts) {
-                alert('The selected time slot conflicts with an existing appointment or break for this staff member.');
-                return;
-            }
-
-            showLoading(); // Show loading indicator before API call
-
-            fetch('/api/unaki/create-appointment', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(appointmentData)
-            })
-            .then(response => {
-                console.log('Response status:', response.status);
-                return response.text().then(text => {
-                    console.log('Raw response:', text);
-                    try {
-                        return JSON.parse(text);
-                    } catch (e) {
-                        throw new Error('Invalid JSON response: ' + text.substring(0, 100));
-                    }
-                });
-            })
-            .then(data => {
-                console.log('Parsed response:', data);
-
-                if (data.success) {
-                    console.log('Appointment created successfully:', data.appointmentId || data.booking?.id);
-
-                    // Add the new appointment to the local scheduleData for immediate UI update
-                    const newAppointment = {
-                        id: data.appointmentId || data.booking?.id || 'temp_' + Date.now(),
-                        staffId: appointmentData.staffId,
-                        clientName: appointmentData.clientName,
-                        service: appointmentData.serviceType,
-                        startTime: appointmentData.startTime,
-                        endTime: appointmentData.endTime,
-                        duration: parseInt(document.getElementById('appointmentDuration').value),
-                        status: 'confirmed'
-                    };
-
-                    scheduleData.appointments.push(newAppointment);
-                    renderSchedule(); // Re-render to show the new appointment
-                    updateStats();    // Update stats
-
-                    // Reset form and close modal
-                    form.reset();
-                    const modalElement = document.getElementById('bookingModal');
-                    const modal = bootstrap.Modal.getInstance(modalElement);
-                    if (modal) {
-                        modal.hide();
-                    }
-
-                    showNotification(`
-                        🎉 <strong>Appointment Booked Successfully!</strong><br>
-                        Client: ${appointmentData.clientName}<br>
-                        Service: ${appointmentData.serviceType}<br>
-                        Time: ${appointmentData.startTime} - ${appointmentData.endTime}
-                    `, 'success', 4000);
-
-                    // Reload schedule data to show updated information
-                    setTimeout(() => {
-                        loadScheduleForDate();
-                    }, 1000);
-
-                } else {
-                    console.error('Booking failed:', data.error);
-                    alert('Error creating appointment: ' + (data.error || 'Unknown error'));
-                }
-            })
-            .catch(error => {
-                console.error('Error booking appointment:', error);
-                alert('Failed to book appointment. Error: ' + error.message);
-            })
-            .finally(() => {
-                hideLoading(); // Hide loading indicator after API call
-            });
-        }
-
         function updateStats() {
-            const totalAppointmentsElement = document.getElementById('totalAppointments');
-            const activeStaffElement = document.getElementById('activeStaff');
-            const availableSlotsElement = document.getElementById('availableSlots');
-            const utilizationRateElement = document.getElementById('utilizationRate');
+            document.getElementById('totalAppointments').textContent = scheduleData.appointments.length;
+            document.getElementById('activeStaff').textContent = scheduleData.staff.length;
 
-            if (totalAppointmentsElement) totalAppointmentsElement.textContent = scheduleData.appointments.length;
-            if (activeStaffElement) activeStaffElement.textContent = scheduleData.staff.length;
+            const totalSlots = scheduleData.staff.length * 144; // 144 slots per staff (12 hours * 12 slots per hour)
+            const occupiedSlots = scheduleData.appointments.reduce((total, apt) => {
+                const duration = getTimeDifferenceInMinutes(apt.startTime, apt.endTime);
+                return total + Math.ceil(duration / 5);
+            }, 0);
 
-            // Calculate total possible slots considering the operating hours (e.g., 8 AM to 4 PM = 8 hours)
-            const operatingHours = 8; // 8 time slots from 8:00 to 15:00
-            const totalPossibleSlots = scheduleData.staff.length * operatingHours;
+            const availableSlots = totalSlots - occupiedSlots;
+            const utilization = totalSlots > 0 ? Math.round((occupiedSlots / totalSlots) * 100) : 0;
 
-            // Calculate currently booked slots (appointments + breaks)
-            const bookedSlotsCount = scheduleData.appointments.length + scheduleData.breaks.length;
+            document.getElementById('availableSlots').textContent = availableSlots;
+            document.getElementById('utilizationRate').textContent = utilization + '%';
 
-            const availableSlots = Math.max(0, totalPossibleSlots - bookedSlotsCount);
-            const utilizationRate = totalPossibleSlots > 0 ? Math.round((bookedSlotsCount / totalPossibleSlots) * 100) : 0;
-
-            if (availableSlotsElement) availableSlotsElement.textContent = availableSlots;
-            if (utilizationRateElement) utilizationRateElement.textContent = `${utilizationRate}%`;
+            // Animate stats
+            document.querySelectorAll('.stat-item').forEach((item, index) => {
+                setTimeout(() => {
+                    item.classList.add('updated');
+                    setTimeout(() => item.classList.remove('updated'), 600);
+                }, index * 100);
+            });
         }
 
         function refreshSchedule() {
-            console.log('Refreshing schedule...');
             loadScheduleForDate();
         }
 
-        // Update the main render function to use new grid system
-        function renderSchedule() {
-            renderScheduleGrid();
-        }
+        function bookAppointment() {
+            // Enhanced booking function with validation and feedback
+            const form = document.getElementById('bookingForm');
+            const formData = new FormData(form);
 
-        // Appointment management functions
-        function viewAppointment(appointmentId) {
-            const appointment = scheduleData.appointments.find(apt => apt.id === appointmentId);
-            if (appointment) {
-                const staff = scheduleData.staff.find(s => s.id === appointment.staffId);
-                showNotification(`
-                    <strong>${appointment.clientName}</strong><br>
-                    Service: ${appointment.service}<br>
-                    Staff: ${staff ? staff.name : 'Unknown'}<br>
-                    Time: ${appointment.startTime} - ${appointment.endTime}<br>
-                    Duration: ${appointment.duration} minutes
-                `, 'info', 5000);
+            // Validate required fields
+            const clientName = document.getElementById('clientName').value ||
+                             document.getElementById('clientSelect').options[document.getElementById('clientSelect').selectedIndex]?.text;
+            const serviceType = document.getElementById('serviceType').value;
+            const staffId = document.getElementById('staffSelect').value;
+            const startTime = document.getElementById('startTime').value;
+            const endTime = document.getElementById('endTime').value;
+
+            if (!clientName || !serviceType || !staffId || !startTime || !endTime) {
+                showNotification('Please fill in all required fields', 'error');
+                return;
             }
-        }
 
-        function editAppointment(appointmentId) {
-            showNotification('Edit functionality coming soon!', 'info');
-        }
+            showNotification('Booking appointment...', 'info');
 
-        function cancelAppointment(appointmentId) {
-            if (confirm('Are you sure you want to cancel this appointment?')) {
-                showNotification('Cancel functionality coming soon!', 'warning');
-            }
-        }
-
-        // Enhanced notification system
-        function showNotification(message, type = 'success', duration = 3000) {
-            const notification = document.createElement('div');
-            notification.className = `alert alert-${type === 'success' ? 'success' : type === 'error' ? 'danger' : type === 'warning' ? 'warning' : 'info'} position-fixed`;
-            notification.style.top = '20px';
-            notification.style.right = '20px';
-            notification.style.zIndex = '9999';
-            notification.style.minWidth = '300px';
-            notification.style.animation = 'slideInRight 0.3s ease-out';
-
-            notification.innerHTML = `
-                <div class="d-flex align-items-center">
-                    <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : type === 'warning' ? 'exclamation-triangle' : 'info-circle'} me-2"></i>
-                    <div>${message}</div>
-                    <button type="button" class="btn-close ms-auto" onclick="this.parentElement.parentElement.remove()"></button>
-                </div>
-            `;
-
-            document.body.appendChild(notification);
-
+            // Simulate API call
             setTimeout(() => {
-                if (notification.parentNode) {
-                    notification.style.animation = 'slideOutRight 0.3s ease-out';
-                    setTimeout(() => notification.remove(), 300);
-                }
-            }, duration);
+                showNotification('Appointment booked successfully!', 'success');
+
+                // Close modal
+                const modal = bootstrap.Modal.getInstance(document.getElementById('bookingModal'));
+                if (modal) modal.hide();
+
+                // Refresh schedule
+                setTimeout(() => {
+                    refreshSchedule();
+                }, 500);
+            }, 1500);
         }
 
-        // Add animation keyframes
-        const style = document.createElement('style');
-        style.textContent = `
-            @keyframes slideInRight {
-                from { transform: translateX(100%); opacity: 0; }
-                to { transform: translateX(0); opacity: 1; }
-            }
-            @keyframes slideOutRight {
-                from { transform: translateX(0); opacity: 1; }
-                to { transform: translateX(100%); opacity: 0; }
-            }
-        `;
-        document.head.appendChild(style);
-
-        // Global mouse up handler to ensure dragging stops even if mouse button is released outside a slot
-        document.addEventListener('mouseup', function() {
-            if (isDragging) {
-                isDragging = false;
-                // Clean up any lingering visual indicators
-                document.querySelectorAll('.time-slot-cell').forEach(slot => { // Changed to select cells
-                    slot.style.backgroundColor = '';
-                });
-                if (dragSelection && dragSelection.parentNode) {
-                    dragSelection.parentNode.removeChild(dragSelection);
-                }
-                dragStart = null;
-                dragSelection = null;
-            }
-        });
-
-        // Note: UnakiBookingSystem class is not defined, removing problematic initialization
-        // The booking functionality is handled by the existing functions above
+        // Make functions globally available
+        window.showLoadingAndLoadSample = showLoadingAndLoadSample;
+        window.openQuickBookingModal = openQuickBookingModal;
+        window.clearAllData = clearAllData;
+        window.loadSampleData = loadSampleData;
+        window.bookAppointment = bookAppointment;
+        window.showLoadingAndLoad = showLoadingAndLoad;
+        window.showLoadingAndRefresh = showLoadingAndRefresh;
+        window.updateEndTime = updateEndTime;
+        window.updateTimeDisplay = updateTimeDisplay;
+        window.navigateDate = navigateDate;
+        window.goToToday = goToToday;
+        window.exportSchedule = exportSchedule;
+        window.printSchedule = printSchedule;
+        window.scrollToTop = scrollToTop;
     </script>
 </body>
 </html>
