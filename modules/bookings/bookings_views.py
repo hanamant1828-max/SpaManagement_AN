@@ -1206,6 +1206,114 @@ def api_all_appointments():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/check-conflicts', methods=['POST'])
+@login_required
+def api_check_conflicts():
+    """API endpoint for real-time conflict checking"""
+    if not current_user.can_access('bookings'):
+        return jsonify({'error': 'Access denied'}), 403
+
+    try:
+        data = request.get_json()
+        
+        # Validate required fields
+        required_fields = ['staff_id', 'start_time', 'end_time', 'date']
+        for field in required_fields:
+            if field not in data:
+                return jsonify({'error': f'Missing required field: {field}'}), 400
+
+        staff_id = int(data['staff_id'])
+        start_time = data['start_time']
+        end_time = data['end_time']
+        check_date = datetime.strptime(data['date'], '%Y-%m-%d').date()
+        
+        # Get existing appointments for this staff on this date
+        from models import UnakiBooking
+        existing_bookings = UnakiBooking.query.filter(
+            UnakiBooking.staff_id == staff_id,
+            UnakiBooking.appointment_date == check_date,
+            UnakiBooking.status.in_(['scheduled', 'confirmed'])
+        ).all()
+        
+        conflicts = []
+        suggestions = []
+        
+        # Convert times to minutes for easier comparison
+        def time_to_minutes(time_str):
+            hours, minutes = map(int, time_str.split(':'))
+            return hours * 60 + minutes
+        
+        start_minutes = time_to_minutes(start_time)
+        end_minutes = time_to_minutes(end_time)
+        
+        # Check for conflicts
+        for booking in existing_bookings:
+            booking_start = time_to_minutes(booking.start_time.strftime('%H:%M'))
+            booking_end = time_to_minutes(booking.end_time.strftime('%H:%M'))
+            
+            # Check overlap
+            if start_minutes < booking_end and end_minutes > booking_start:
+                conflicts.append({
+                    'id': booking.id,
+                    'client_name': booking.client_name,
+                    'service_name': booking.service_name,
+                    'start_time': booking.start_time.strftime('%H:%M'),
+                    'end_time': booking.end_time.strftime('%H:%M'),
+                    'status': booking.status
+                })
+        
+        # Generate suggestions if conflicts exist
+        if conflicts:
+            service_duration = end_minutes - start_minutes
+            
+            # Find available slots
+            for hour in range(9, 18):  # Business hours
+                for minute in [0, 15, 30, 45]:  # 15-minute intervals
+                    slot_start_minutes = hour * 60 + minute
+                    slot_end_minutes = slot_start_minutes + service_duration
+                    
+                    if slot_end_minutes >= 18 * 60:  # Don't go past business hours
+                        continue
+                    
+                    # Check if this slot conflicts with any existing booking
+                    slot_has_conflict = False
+                    for booking in existing_bookings:
+                        booking_start = time_to_minutes(booking.start_time.strftime('%H:%M'))
+                        booking_end = time_to_minutes(booking.end_time.strftime('%H:%M'))
+                        
+                        if slot_start_minutes < booking_end and slot_end_minutes > booking_start:
+                            slot_has_conflict = True
+                            break
+                    
+                    if not slot_has_conflict:
+                        start_time_str = f"{hour:02d}:{minute:02d}"
+                        end_hour = slot_end_minutes // 60
+                        end_minute = slot_end_minutes % 60
+                        end_time_str = f"{end_hour:02d}:{end_minute:02d}"
+                        
+                        suggestions.append({
+                            'start_time': start_time_str,
+                            'end_time': end_time_str,
+                            'display': f"{start_time_str} - {end_time_str}"
+                        })
+                        
+                        if len(suggestions) >= 5:  # Limit to 5 suggestions
+                            break
+                if len(suggestions) >= 5:
+                    break
+        
+        return jsonify({
+            'has_conflicts': len(conflicts) > 0,
+            'conflicts': conflicts,
+            'suggestions': suggestions,
+            'staff_id': staff_id,
+            'requested_time': f"{start_time} - {end_time}"
+        })
+
+    except Exception as e:
+        print(f"Error in conflict checking: {e}")
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/bookings/update-status/<int:appointment_id>', methods=['POST'])
 @login_required
 def update_appointment_status(appointment_id):

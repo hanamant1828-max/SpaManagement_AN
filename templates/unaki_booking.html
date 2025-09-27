@@ -656,6 +656,32 @@
         .service-category-hair { background: linear-gradient(135deg, #9f7aea 0%, #805ad5 100%); }
         .service-category-nails { background: linear-gradient(135deg, #f56565 0%, #e53e3e 100%); }
         .service-category-body { background: linear-gradient(135deg, #38b2ac 0%, #319795 100%); }
+
+        /* Conflict Detection Styles */
+        .conflict-warning {
+            color: #ef4444;
+            font-size: 11px;
+            font-weight: 600;
+            margin-top: 5px;
+            display: block;
+        }
+
+        .suggested-time {
+            color: #3b82f6;
+            cursor: pointer;
+            text-decoration: underline;
+            font-size: 12px;
+            margin-left: 5px;
+        }
+
+        .suggested-time:hover {
+            color: #2563eb;
+        }
+
+        .conflict-detected-slot {
+            border: 2px solid #ef4444 !important;
+            background-color: rgba(239, 68, 68, 0.1) !important;
+        }
     </style>
 </head>
 <body>
@@ -853,7 +879,7 @@
                                 </div>
                             </div>
                         </div>
-                        
+
                         <div class="row g-4 mb-4">
                             <div class="col-md-6">
                                 <div class="mb-3">
@@ -883,7 +909,7 @@
                                     <i class="fas fa-plus me-1"></i>Add Service
                                 </button>
                             </div>
-                            
+
                             <div id="servicesContainer">
                                 <!-- Services will be dynamically added here -->
                             </div>
@@ -1134,11 +1160,11 @@
         function addServiceRow() {
             serviceRowCount++;
             const servicesContainer = document.getElementById('servicesContainer');
-            
+
             const serviceRow = document.createElement('div');
             serviceRow.className = 'service-row mb-3 p-3 border rounded';
             serviceRow.id = `serviceRow_${serviceRowCount}`;
-            
+
             serviceRow.innerHTML = `
                 <div class="row g-3 align-items-end">
                     <div class="col-md-3">
@@ -1172,16 +1198,16 @@
                     </div>
                 </div>
             `;
-            
+
             servicesContainer.appendChild(serviceRow);
-            
+
             // Populate dropdowns
             populateServiceDropdown(serviceRowCount);
             populateStaffDropdown(serviceRowCount);
-            
+
             // Add event listeners
             setupServiceRowEventListeners(serviceRowCount);
-            
+
             // Set default start time for services
             if (serviceRowCount === 1) {
                 const now = new Date();
@@ -1207,7 +1233,7 @@
             if (serviceRow) {
                 serviceRow.remove();
                 calculateTotals();
-                
+
                 // Show remove button on remaining rows if more than one
                 const remainingRows = document.querySelectorAll('.service-row');
                 remainingRows.forEach((row, index) => {
@@ -1248,7 +1274,7 @@
                     option.textContent = `${staff.name} (${staff.specialty})`;
                     staffSelect.appendChild(option);
                 });
-                
+
                 // Auto-select first available staff for better UX
                 if (staffData.length > 0) {
                     staffSelect.value = staffData[0].id;
@@ -1260,7 +1286,7 @@
         function setupServiceRowEventListeners(rowId) {
             const serviceSelect = document.querySelector(`[data-row="${rowId}"].service-select`);
             const priceInput = document.querySelector(`[data-row="${rowId}"].service-price`);
-            
+
             serviceSelect.addEventListener('change', function() {
                 const selectedOption = this.options[this.selectedIndex];
                 if (selectedOption.dataset.price) {
@@ -1276,11 +1302,11 @@
             const startTimeInput = document.querySelector(`[data-row="${rowId}"].start-time`);
             const endTimeInput = document.querySelector(`[data-row="${rowId}"].end-time`);
             const serviceSelect = document.querySelector(`[data-row="${rowId}"].service-select`);
-            
+
             if (startTimeInput.value && serviceSelect.value) {
                 const selectedOption = serviceSelect.options[serviceSelect.selectedIndex];
                 const duration = parseInt(selectedOption.dataset.duration) || 60;
-                
+
                 const startTime = new Date(`2000-01-01T${startTimeInput.value}:00`);
                 const endTime = new Date(startTime.getTime() + duration * 60000);
                 endTimeInput.value = endTime.toTimeString().slice(0, 5);
@@ -1291,29 +1317,29 @@
         function calculateTotals() {
             let totalDuration = 0;
             let subtotal = 0;
-            
+
             document.querySelectorAll('.service-row').forEach(row => {
                 const serviceSelect = row.querySelector('.service-select');
                 const priceInput = row.querySelector('.service-price');
-                
+
                 if (serviceSelect.value && priceInput.value) {
                     const selectedOption = serviceSelect.options[serviceSelect.selectedIndex];
                     const duration = parseInt(selectedOption.dataset.duration) || 0;
                     const price = parseFloat(priceInput.value) || 0;
-                    
+
                     totalDuration += duration;
                     subtotal += price;
                 }
             });
-            
+
             // Update totals display
             const hours = Math.floor(totalDuration / 60);
             const minutes = totalDuration % 60;
             const durationText = hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
-            
+
             document.getElementById('totalDuration').value = durationText;
             document.getElementById('subtotalPrice').value = `$${subtotal.toFixed(2)}`;
-            
+
             const discount = parseFloat(document.getElementById('discountAmount').value) || 0;
             const grandTotal = Math.max(0, subtotal - discount);
             document.getElementById('grandTotal').value = `$${grandTotal.toFixed(2)}`;
@@ -1324,17 +1350,17 @@
             const services = [];
             let isValid = true;
             let conflicts = [];
-            
+
             document.querySelectorAll('.service-row').forEach(row => {
                 const serviceSelect = row.querySelector('.service-select');
                 const staffSelect = row.querySelector('.staff-select');
                 const startTime = row.querySelector('.start-time');
-                
+
                 if (!serviceSelect.value || !staffSelect.value || !startTime.value) {
                     isValid = false;
                     return;
                 }
-                
+
                 services.push({
                     service: serviceSelect.options[serviceSelect.selectedIndex].text,
                     staff: staffSelect.options[staffSelect.selectedIndex].text,
@@ -1343,12 +1369,12 @@
                     endTime: row.querySelector('.end-time').value
                 });
             });
-            
+
             if (!isValid) {
                 showNotification('Please fill in all service details before checking availability', 'warning');
                 return;
             }
-            
+
             // Enhanced overlap detection - check for any time conflicts
             for (let i = 0; i < services.length; i++) {
                 for (let j = i + 1; j < services.length; j++) {
@@ -1357,7 +1383,7 @@
                         const end1 = new Date(`1970-01-01T${services[i].endTime}:00`);
                         const start2 = new Date(`1970-01-01T${services[j].startTime}:00`);
                         const end2 = new Date(`1970-01-01T${services[j].endTime}:00`);
-                        
+
                         // Improved overlap detection: appointments overlap if start1 < end2 AND start2 < end1
                         if (start1 < end2 && start2 < end1) {
                             conflicts.push(`${services[i].staff} has overlapping appointments: ${services[i].startTime}-${services[i].endTime} conflicts with ${services[j].startTime}-${services[j].endTime}`);
@@ -1365,26 +1391,26 @@
                     }
                 }
             }
-            
+
             // Check against existing appointments in the schedule
             services.forEach((service, index) => {
                 const staffId = parseInt(service.staffId);
                 const serviceStart = new Date(`1970-01-01T${service.startTime}:00`);
                 const serviceEnd = new Date(`1970-01-01T${service.endTime}:00`);
-                
+
                 // Check against existing appointments
                 scheduleData.appointments.forEach(existingApt => {
                     if (existingApt.staffId === staffId) {
                         const existingStart = new Date(`1970-01-01T${existingApt.startTime}:00`);
                         const existingEnd = new Date(`1970-01-01T${existingApt.endTime}:00`);
-                        
+
                         if (serviceStart < existingEnd && serviceEnd > existingStart) {
                             conflicts.push(`${service.staff} conflicts with existing appointment: ${existingApt.clientName} (${existingApt.startTime}-${existingApt.endTime})`);
                         }
                     }
                 });
             });
-            
+
             // Show availability results
             let availabilityText = 'Availability Check Results:\n\n';
             services.forEach((service, index) => {
@@ -1393,14 +1419,14 @@
                 availabilityText += `   Time: ${service.startTime} - ${service.endTime}\n`;
                 availabilityText += `   Status: ${conflicts.length > 0 ? '⚠️ Conflict Detected' : '✅ Available'}\n\n`;
             });
-            
+
             if (conflicts.length > 0) {
                 availabilityText += 'Conflicts:\n' + conflicts.join('\n');
                 showNotification('Time conflicts detected! Please adjust the schedule.', 'warning');
             } else {
                 showNotification('All services are available!', 'success');
             }
-            
+
             alert(availabilityText);
         }
 
@@ -1408,35 +1434,35 @@
         function bookMultiServiceAppointment() {
             const clientSelect = document.getElementById('clientSelect');
             const clientName = document.getElementById('clientName');
-            
+
             // Validate client selection
             if (!clientSelect.value && !clientName.value) {
                 showNotification('Please select a client or enter a new client name', 'error');
                 return;
             }
-            
+
             // Validate services
             const serviceRows = document.querySelectorAll('.service-row');
             if (serviceRows.length === 0) {
                 showNotification('Please add at least one service', 'error');
                 return;
             }
-            
+
             let isValid = true;
             const services = [];
-            
+
             serviceRows.forEach((row, index) => {
                 const serviceSelect = row.querySelector('.service-select');
                 const staffSelect = row.querySelector('.staff-select');
                 const startTime = row.querySelector('.start-time');
                 const endTime = row.querySelector('.end-time');
                 const price = row.querySelector('.service-price');
-                
+
                 if (!serviceSelect.value || !staffSelect.value || !startTime.value) {
                     isValid = false;
                     return;
                 }
-                
+
                 services.push({
                     serviceName: serviceSelect.options[serviceSelect.selectedIndex].text.split(' (')[0],
                     serviceId: serviceSelect.value,
@@ -1448,12 +1474,12 @@
                     duration: parseInt(serviceSelect.options[serviceSelect.selectedIndex].dataset.duration) || 60
                 });
             });
-            
+
             if (!isValid) {
                 showNotification('Please fill in all required fields for each service', 'error');
                 return;
             }
-            
+
             // Prepare booking data
             const bookingData = {
                 clientId: clientSelect.value,
@@ -1466,12 +1492,12 @@
                 totalAmount: parseFloat(document.getElementById('grandTotal').value.replace('$', '')) || 0,
                 appointmentDate: currentDate
             };
-            
+
             console.log('Booking multi-service appointment:', bookingData);
-            
+
             // Show booking in progress
             showLoading();
-            
+
             // Process each service booking
             bookMultipleServices(bookingData);
         }
@@ -1494,7 +1520,7 @@
                     notes: bookingData.notes + (index > 0 ? ` (Service ${index + 1} of ${bookingData.services.length})` : ''),
                     amount_charged: service.price - (bookingData.discount / bookingData.services.length)
                 };
-                
+
                 return fetch('/api/unaki/book-appointment', {
                     method: 'POST',
                     headers: {
@@ -1503,20 +1529,20 @@
                     body: JSON.stringify(serviceBookingData)
                 });
             });
-            
+
             Promise.all(promises)
                 .then(responses => {
                     return Promise.all(responses.map(response => response.json()));
                 })
                 .then(results => {
                     hideLoading();
-                    
+
                     const successCount = results.filter(result => result.success).length;
                     const totalCount = results.length;
-                    
+
                     if (successCount === totalCount) {
                         showNotification(`All ${totalCount} services booked successfully!`, 'success');
-                        
+
                         // Close modal and refresh schedule
                         const modal = bootstrap.Modal.getInstance(document.getElementById('bookingModal'));
                         modal.hide();
@@ -2245,6 +2271,161 @@
             }, 1500);
         }
 
+        // Conflict Detection Functions
+        function checkRealTimeConflicts(selectedStaffId, selectedServiceId, startTime, endTime) {
+            const conflicts = [];
+            const selectedStartTime = timeToMinutes(startTime);
+            const selectedEndTime = timeToMinutes(endTime);
+
+            scheduleData.appointments.forEach(appointment => {
+                if (appointment.staffId === selectedStaffId) {
+                    const existingStartTime = timeToMinutes(appointment.startTime);
+                    const existingEndTime = timeToMinutes(appointment.endTime);
+
+                    if (selectedStartTime < existingEndTime && selectedEndTime > existingStartTime) {
+                        conflicts.push({
+                            appointment: appointment,
+                            message: `Conflict with ${appointment.clientName} (${appointment.startTime} - ${appointment.endTime})`
+                        });
+                    }
+                }
+            });
+
+            return conflicts;
+        }
+
+        function selectSuggestedTime(time) {
+            // This function would update the start time input in the modal and trigger re-checking
+            const startTimeInput = document.querySelector('.service-row.active .start-time'); // Assuming active row
+            if (startTimeInput) {
+                startTimeInput.value = time;
+                updateServiceEndTime(startTimeInput.dataset.row);
+                performConflictCheck(startTimeInput.dataset.row); // Re-check for the specific row
+            }
+        }
+
+        function performConflictCheck(rowId) {
+            const serviceSelect = document.querySelector(`[data-row="${rowId}"].service-select`);
+            const staffSelect = document.querySelector(`[data-row="${rowId}"].staff-select`);
+            const startTimeInput = document.querySelector(`[data-row="${rowId}"].start-time`);
+            const endTimeInput = document.querySelector(`[data-row="${rowId}"].end-time`);
+            const conflictWarningElement = document.querySelector(`[data-row="${rowId}"] .conflict-warning`);
+            const timeSlotElements = document.querySelectorAll(`[data-staff-id="${staffSelect.value}"]`); // Get all slots for the selected staff
+
+            // Clear previous warnings and highlighting
+            if (conflictWarningElement) conflictWarningElement.remove();
+            timeSlotElements.forEach(slot => slot.classList.remove('conflict-detected-slot'));
+
+            if (!serviceSelect.value || !staffSelect.value || !startTimeInput.value || !endTimeInput.value) {
+                return; // Not enough info to check
+            }
+
+            const serviceDuration = parseInt(serviceSelect.options[serviceSelect.selectedIndex].dataset.duration) || 60;
+            const conflicts = checkRealTimeConflicts(staffSelect.value, serviceSelect.value, startTimeInput.value, endTimeInput.value);
+
+            if (conflicts.length > 0) {
+                const warningMessage = `Conflict Detected! ${conflicts.map(c => c.message).join(', ')}`;
+                const warningDiv = document.createElement('div');
+                warningDiv.className = 'conflict-warning';
+                warningDiv.innerHTML = warningMessage;
+
+                // Add suggested times if needed
+                const suggestedTimes = generateSuggestedTimes(staffSelect.value, startTimeInput.value, serviceDuration);
+                if (suggestedTimes.length > 0) {
+                    const suggestionsHTML = suggestedTimes.map(time =>
+                        `<span class="suggested-time" onclick="selectSuggestedTime('${time}')">${time}</span>`
+                    ).join(' ');
+                    warningDiv.innerHTML += ` Suggest alternative: ${suggestionsHTML}`;
+                }
+
+                // Append warning below the start time input for the specific row
+                const parentDiv = startTimeInput.closest('.row');
+                if (parentDiv) {
+                    parentDiv.parentNode.insertBefore(warningDiv, parentDiv.nextSibling);
+                }
+
+                // Highlight conflicting slots in the schedule grid (simplified highlighting)
+                const conflictingSlots = getConflictingSlots(staffSelect.value, startTimeInput.value, endTimeInput.value);
+                conflictingSlots.forEach(slotIndex => {
+                    const slotElement = document.querySelector(`[data-staff-id="${staffSelect.value}"][data-slot-index="${slotIndex}"]`);
+                    if (slotElement) slotElement.classList.add('conflict-detected-slot');
+                });
+
+            }
+        }
+
+        function getConflictingSlots(staffId, startTime, endTime) {
+            const conflicting = [];
+            const selectedStart = timeToMinutes(startTime);
+            const selectedEnd = timeToMinutes(endTime);
+
+            scheduleData.appointments.forEach(apt => {
+                if (apt.staffId === staffId) {
+                    const aptStart = timeToMinutes(apt.startTime);
+                    const aptEnd = timeToMinutes(apt.endTime);
+
+                    if (selectedStart < aptEnd && selectedEnd > aptStart) {
+                        // Add all slots covered by the conflict
+                        for (let i = getSlotIndexFromTime(apt.startTime); i < getSlotIndexFromTime(apt.endTime); i++) {
+                            if (i >= 0) conflicting.push(i);
+                        }
+                        for (let i = getSlotIndexFromTime(startTime); i < getSlotIndexFromTime(endTime); i++) {
+                            if (i >= 0) conflicting.push(i);
+                        }
+                    }
+                }
+            });
+            return [...new Set(conflicting)]; // Unique slots
+        }
+
+        function generateSuggestedTimes(staffId, startTime, durationMinutes) {
+            const suggestions = [];
+            const currentSlotIndex = getSlotIndexFromTime(startTime);
+            const scheduleStartMinutes = SCHEDULE_CONFIG.startHour * 60;
+            const scheduleEndMinutes = SCHEDULE_CONFIG.endHour * 60;
+
+            // Check for next few available slots
+            for (let i = 1; i <= 5; i++) { // Suggest up to 5 alternatives
+                const nextSlotIndex = currentSlotIndex + i;
+                const nextSlotTimeMinutes = scheduleStartMinutes + (nextSlotIndex * SCHEDULE_CONFIG.slotMinutes);
+
+                if (nextSlotTimeMinutes >= scheduleEndMinutes) break; // Don't go beyond schedule end
+
+                const nextStartTimeStr = formatTimeFromMinutes(nextSlotTimeMinutes);
+                const nextEndTimeStr = formatTimeFromMinutes(nextSlotTimeMinutes + durationMinutes);
+
+                // Ensure the suggested slot is within the schedule hours
+                if (timeToMinutes(nextEndTimeStr) > scheduleEndMinutes) continue;
+
+                const conflicts = checkRealTimeConflicts(staffId, null, nextStartTimeStr, nextEndTimeStr);
+                if (conflicts.length === 0) {
+                    suggestions.push(nextStartTimeStr);
+                } else {
+                    // If the conflict is not with the *same* appointment, we can skip slots occupied by it
+                    // This logic needs to be more robust for complex scenarios
+                }
+            }
+            return suggestions;
+        }
+
+        function formatTimeFromMinutes(totalMinutes) {
+            const hours = Math.floor(totalMinutes / 60);
+            const minutes = totalMinutes % 60;
+            return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+        }
+
+
+        function clearConflictWarning(rowId) {
+            const warningElement = document.querySelector(`[data-row="${rowId}"] .conflict-warning`);
+            if (warningElement) {
+                warningElement.remove();
+            }
+            // Also remove highlighting from slots
+            const staffId = document.querySelector(`[data-row="${rowId}"].staff-select`).value;
+            const timeSlotElements = document.querySelectorAll(`[data-staff-id="${staffId}"]`);
+            timeSlotElements.forEach(slot => slot.classList.remove('conflict-detected-slot'));
+        }
+
         // Make functions globally available
         window.showLoadingAndLoadSample = showLoadingAndLoadSample;
         window.openQuickBookingModal = openQuickBookingModal;
@@ -2260,6 +2441,13 @@
         window.exportSchedule = exportSchedule;
         window.printSchedule = printSchedule;
         window.scrollToTop = scrollToTop;
+
+        // Conflict detection functions
+        window.checkRealTimeConflicts = checkRealTimeConflicts;
+        window.selectSuggestedTime = selectSuggestedTime;
+        window.performConflictCheck = performConflictCheck;
+        window.clearConflictWarning = clearConflictWarning;
+
     </script>
 </body>
 </html>
