@@ -780,8 +780,8 @@ def get_customer_packages(client_id):
         from models import CustomerPackage
         # Get active packages
         packages = CustomerPackage.query.filter_by(
-            client_id=client_id,
-            is_active=True
+            customer_id=client_id,
+            status='active'
         ).all()
 
         package_data = []
