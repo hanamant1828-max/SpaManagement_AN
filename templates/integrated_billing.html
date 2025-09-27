@@ -674,12 +674,21 @@ document.addEventListener('DOMContentLoaded', function() {
     if (customerSelect) {
         customerSelect.addEventListener('change', function() {
             const selectedCustomerId = this.value;
+            
+            // Get current customer ID from URL to prevent unnecessary redirects
+            const currentPath = window.location.pathname;
+            const currentCustomerId = currentPath.match(/\/integrated-billing\/(\d+)$/)?.[1];
+            
             if (selectedCustomerId) {
-                // Reload page with selected customer
-                window.location.href = `/integrated-billing/${selectedCustomerId}`;
+                // Only redirect if the selected customer is different from current
+                if (selectedCustomerId !== currentCustomerId) {
+                    window.location.href = `/integrated-billing/${selectedCustomerId}`;
+                }
             } else {
-                // Reload page without customer selection
-                window.location.href = '/integrated-billing';
+                // Only redirect if we're currently viewing a specific customer
+                if (currentCustomerId) {
+                    window.location.href = '/integrated-billing';
+                }
             }
         });
     }
@@ -2201,8 +2210,13 @@ document.getElementById('billingForm').addEventListener('submit', function(e) {
             const customerSelect = document.getElementById('client_id');
             if (customerSelect) {
                 customerSelect.value = '{{ selected_customer.id }}';
-                // Trigger change event to load customer packages
-                customerSelect.dispatchEvent(new Event('change'));
+                // Only trigger change event if we're not already on this customer's billing page
+                const currentPath = window.location.pathname;
+                const currentCustomerId = currentPath.match(/\/integrated-billing\/(\d+)$/)?.[1];
+                if (currentCustomerId !== '{{ selected_customer.id }}') {
+                    // Trigger change event to load customer packages
+                    customerSelect.dispatchEvent(new Event('change'));
+                }
 
                 // Show notification about auto-selection
                 const notification = document.createElement('div');
@@ -2219,7 +2233,12 @@ document.getElementById('billingForm').addEventListener('submit', function(e) {
                 // Insert notification after the header
                 const container = document.querySelector('.container-fluid');
                 const firstRow = container.querySelector('.row');
-                firstRow.parentNode.insertBefore(notification, firstRow.nextSibling);
+                if (firstRow && firstRow.parentNode) {
+                    firstRow.parentNode.insertBefore(notification, firstRow.nextSibling);
+                } else {
+                    // Fallback: insert at the top of the container
+                    container.insertBefore(notification, container.firstChild);
+                }
 
                 // Auto-populate services from customer appointments  
                 {% if customer_appointments %}
