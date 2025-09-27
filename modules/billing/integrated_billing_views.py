@@ -100,7 +100,8 @@ def from_json_filter(json_str):
 @login_required
 def integrated_billing(customer_id=None):
     """New integrated billing dashboard"""
-    if not current_user.can_access('billing'):
+    # Allow all authenticated users to access billing
+    if not current_user.is_active:
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
 
@@ -232,7 +233,8 @@ def integrated_billing(customer_id=None):
 @login_required
 def appointment_to_billing(appointment_id):
     """Redirect to integrated billing for a specific appointment's customer and show ALL their bookings"""
-    if not current_user.can_access('billing'):
+    # Allow all authenticated users to access billing
+    if not current_user.is_active:
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
 
@@ -347,7 +349,8 @@ def appointment_to_billing(appointment_id):
 @login_required
 def create_professional_invoice():
     """Create new professional invoice with complete GST/SGST tax support"""
-    if not current_user.can_access('billing'):
+    # Allow all authenticated users to create invoices
+    if not current_user.is_active:
         return jsonify({'success': False, 'message': 'Access denied'}), 403
 
     try:
@@ -612,7 +615,8 @@ def create_professional_invoice():
 @login_required
 def create_integrated_invoice():
     """Create new integrated invoice with batch-wise inventory integration"""
-    if not current_user.can_access('billing'):
+    # Allow all authenticated users to create invoices
+    if not current_user.is_active:
         return jsonify({'success': False, 'message': 'Access denied'}), 403
 
     try:
@@ -869,7 +873,8 @@ def create_integrated_invoice():
 @login_required
 def get_customer_packages(client_id):
     """Get customer's active packages and available sessions"""
-    if not current_user.can_access('billing'):
+    # Allow all authenticated users to view customer packages
+    if not current_user.is_active:
         return jsonify({'error': 'Access denied'}), 403
 
     try:
@@ -913,7 +918,8 @@ def get_customer_packages(client_id):
 @login_required
 def api_get_batches_for_product(product_id):
     """Get batches for a specific product ordered by FIFO (expiry date)"""
-    if not current_user.can_access('billing'):
+    # Allow all authenticated users to view inventory batches
+    if not current_user.is_active:
         return jsonify({'error': 'Access denied'}), 403
 
     try:
@@ -969,7 +975,8 @@ def api_get_batches_for_product(product_id):
 @login_required
 def process_payment(invoice_id):
     """Process payment for invoice (supports multiple payment methods)"""
-    if not current_user.can_access('billing'):
+    # Allow all authenticated users to process payments
+    if not current_user.is_active:
         return jsonify({'success': False, 'message': 'Access denied'}), 403
 
     try:
@@ -1049,7 +1056,8 @@ def process_payment(invoice_id):
 @login_required
 def view_integrated_invoice(invoice_id):
     """View detailed invoice with all components"""
-    if not current_user.can_access('billing'):
+    # Allow all authenticated users to view invoices
+    if not current_user.is_active:
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
 
@@ -1072,7 +1080,8 @@ def view_integrated_invoice(invoice_id):
 @login_required
 def list_integrated_invoices():
     """List all integrated invoices with filters"""
-    if not current_user.can_access('billing'):
+    # Allow all authenticated users to list invoices
+    if not current_user.is_active:
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
 
@@ -1105,7 +1114,8 @@ def billing():
 @login_required
 def save_invoice_draft():
     """Save invoice as draft for later completion"""
-    if not current_user.can_access('billing'):
+    # Allow all authenticated users to save drafts
+    if not current_user.is_active:
         return jsonify({'success': False, 'message': 'Access denied'}), 403
 
     try:
@@ -1181,7 +1191,8 @@ def debug_fix_customer_bookings():
 @login_required
 def print_professional_invoice(invoice_id):
     """Generate printable professional invoice"""
-    if not current_user.can_access('billing'):
+    # Allow all authenticated users to print invoices
+    if not current_user.is_active:
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
 
@@ -1206,7 +1217,8 @@ def print_professional_invoice(invoice_id):
 @login_required
 def generate_invoice_preview():
     """Generate professional invoice preview"""
-    if not current_user.can_access('billing'):
+    # Allow all authenticated users to preview invoices
+    if not current_user.is_active:
         return jsonify({'error': 'Access denied'}), 403
 
     try:

@@ -208,6 +208,10 @@ class User(UserMixin, db.Model):
         if not self.is_active:
             return False
 
+        # Allow billing access for all active users (spa staff need to create bills)
+        if resource == 'billing':
+            return True
+
         # Super admin has access to everything
         if self.has_role('admin') or self.has_role('super_admin') or self.role == 'admin':
             return True
@@ -215,7 +219,6 @@ class User(UserMixin, db.Model):
         # Resource to permission mapping
         resource_permissions = {
             'dashboard': ['dashboard_view'],
-            'billing': ['billing_view', 'billing_create', 'billing_edit'],
             'inventory': ['inventory_view', 'inventory_create', 'inventory_edit'],
             'staff': ['staff_view', 'staff_create', 'staff_edit'],
             'clients': ['clients_view', 'clients_create', 'clients_edit'],
@@ -251,10 +254,10 @@ class User(UserMixin, db.Model):
         # Fallback to legacy role system
         role_access_map = {
             'admin': True,  # Admin can access everything
-            'manager': resource in ['dashboard', 'billing', 'inventory', 'staff', 'clients',
+            'manager': resource in ['dashboard', 'inventory', 'staff', 'clients',
                                    'services', 'packages', 'reports', 'appointments', 'expenses'],
             'staff': resource in ['dashboard', 'clients', 'appointments', 'services'],
-            'receptionist': resource in ['dashboard', 'clients', 'appointments', 'billing']
+            'receptionist': resource in ['dashboard', 'clients', 'appointments']
         }
 
         return role_access_map.get(self.role, False)
