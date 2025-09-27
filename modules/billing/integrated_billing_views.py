@@ -171,19 +171,22 @@ def integrated_billing(customer_id=None):
             from models import UnakiBooking
             
             # Get only CURRENT Unaki bookings (not completed/paid) - save time
-            customer_appointments = UnakiBooking.query.filter(
+            customer_appointments_query = UnakiBooking.query.filter(
                 UnakiBooking.client_name.ilike(f'%{selected_customer.first_name}%'),
                 UnakiBooking.status.in_(['confirmed', 'scheduled']),
                 UnakiBooking.payment_status.in_(['pending', 'unpaid'])  # Only unpaid appointments
             ).order_by(UnakiBooking.appointment_date.desc()).all()
 
             # Also try to match by phone if available
-            if selected_customer.phone and not customer_appointments:
-                customer_appointments = UnakiBooking.query.filter(
+            if selected_customer.phone and not customer_appointments_query:
+                customer_appointments_query = UnakiBooking.query.filter(
                     UnakiBooking.client_phone == selected_customer.phone,
                     UnakiBooking.status.in_(['confirmed', 'scheduled']),
                     UnakiBooking.payment_status.in_(['pending', 'unpaid'])
                 ).order_by(UnakiBooking.appointment_date.desc()).all()
+
+            # Convert UnakiBooking objects to dictionaries for JSON serialization
+            customer_appointments = [appointment.to_dict() for appointment in customer_appointments_query]
 
             # Get services from Unaki appointments by matching service names
             unaki_service_names = [apt.service_name for apt in customer_appointments if apt.service_name]
