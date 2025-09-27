@@ -767,7 +767,7 @@ function validateStock(quantityInput) {
 // Global variable to store customer package data for benefit calculations
 let customerPackageData = null;
 
-// Load customer packages
+// Load customer packages and auto-populate services
 document.getElementById('client_id').addEventListener('change', function() {
     const clientId = this.value;
     const packagesDiv = document.getElementById('customerPackages');
@@ -836,6 +836,122 @@ document.getElementById('client_id').addEventListener('change', function() {
             customerPackageData = null;
         });
 });
+
+// Auto-populate customer services when page loads with pre-selected customer
+document.addEventListener('DOMContentLoaded', function() {
+    const selectedCustomerId = document.getElementById('client_id').value;
+    if (selectedCustomerId) {
+        console.log('Auto-populating services for pre-selected customer:', selectedCustomerId);
+        autoPopulateCustomerServices(selectedCustomerId);
+    }
+});
+
+// Function to auto-populate customer's historical services
+function autoPopulateCustomerServices(customerId) {
+    if (!customerId) return;
+
+    // Check if customer_services data is passed from backend
+    const customerServicesData = {{ customer_services | safe }};
+    
+    if (customerServicesData && customerServicesData.length > 0) {
+        console.log('Auto-populating services for customer:', customerServicesData);
+        
+        // Clear existing service rows except the first one
+        const servicesContainer = document.getElementById('servicesContainer');
+        const firstRow = servicesContainer.querySelector('.service-row');
+        servicesContainer.innerHTML = '';
+        servicesContainer.appendChild(firstRow);
+        
+        // Populate services
+        customerServicesData.forEach((service, index) => {
+            if (index === 0) {
+                // Use first row
+                const firstServiceSelect = firstRow.querySelector('select[name="service_ids[]"]');
+                firstServiceSelect.value = service.id;
+                
+                // Add visual indicator
+                firstRow.style.borderLeft = '3px solid #28a745';
+                firstRow.style.backgroundColor = 'rgba(40, 167, 69, 0.1)';
+                firstRow.style.padding = '10px';
+                firstRow.style.borderRadius = '5px';
+                firstRow.style.marginBottom = '10px';
+                
+                // Add label
+                const existingLabel = firstRow.querySelector('.auto-service-label');
+                if (!existingLabel) {
+                    const label = document.createElement('small');
+                    label.className = 'auto-service-label text-success fw-bold';
+                    label.innerHTML = '<i class="fas fa-history me-1"></i>Previously booked service';
+                    firstRow.appendChild(label);
+                }
+            } else {
+                // Add new rows for additional services
+                addServiceRowWithData(service);
+            }
+        });
+        
+        // Show notification
+        const notification = document.createElement('div');
+        notification.className = 'alert alert-info alert-dismissible fade show';
+        notification.innerHTML = `
+            <i class="fas fa-info-circle me-2"></i>
+            <strong>Auto-populated services:</strong> Found ${customerServicesData.length} services this customer has previously booked.
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        
+        const form = document.getElementById('billingForm');
+        form.insertBefore(notification, form.firstChild);
+        
+        // Auto-dismiss notification after 5 seconds
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.remove();
+            }
+        }, 5000);
+        
+        // Update calculations
+        updateTaxCalculations();
+    }
+}
+
+// Function to add a service row with pre-filled data
+function addServiceRowWithData(serviceData) {
+    const container = document.getElementById('servicesContainer');
+    const newRow = container.children[0].cloneNode(true);
+
+    // Set service value
+    const serviceSelect = newRow.querySelector('select[name="service_ids[]"]');
+    serviceSelect.value = serviceData.id;
+    
+    // Set default quantity
+    const quantityInput = newRow.querySelector('input[name="service_quantities[]"]');
+    quantityInput.value = '1';
+    
+    // Clear appointment ID
+    const appointmentInput = newRow.querySelector('input[name="appointment_ids[]"]');
+    appointmentInput.value = '';
+    
+    // Style the row to indicate it's auto-populated
+    newRow.style.borderLeft = '3px solid #28a745';
+    newRow.style.backgroundColor = 'rgba(40, 167, 69, 0.1)';
+    newRow.style.padding = '10px';
+    newRow.style.borderRadius = '5px';
+    newRow.style.marginBottom = '10px';
+    
+    // Change button to remove
+    const button = newRow.querySelector('button');
+    button.className = 'btn btn-danger btn-sm';
+    button.innerHTML = '<i class="fas fa-minus"></i>';
+    button.onclick = function() { this.closest('.service-row').remove(); updateTaxCalculations(); };
+    
+    // Add label
+    const label = document.createElement('small');
+    label.className = 'auto-service-label text-success fw-bold d-block';
+    label.innerHTML = '<i class="fas fa-history me-1"></i>Previously booked service';
+    newRow.appendChild(label);
+
+    container.appendChild(newRow);
+}
 
 // Professional Tax Calculation Functions
 function updateTaxCalculations() {

@@ -107,9 +107,9 @@ def integrated_billing(customer_id=None):
     # Get data for billing interface
     customers = Customer.query.filter_by(is_active=True).order_by(Customer.first_name, Customer.last_name).all()
     services = Service.query.filter_by(is_active=True).order_by(Service.name).all()
-    
+
     print(f"DEBUG: Found {len(customers)} customers and {len(services)} services for billing interface")
-    
+
     # Debug: Print first few services to verify data
     if services:
         for i, service in enumerate(services[:3]):
@@ -162,6 +162,7 @@ def integrated_billing(customer_id=None):
 
     # Handle customer-specific billing data
     customer_appointments = []
+    customer_services = []
     selected_customer = None
     if customer_id:
         selected_customer = Customer.query.get(customer_id)
@@ -173,6 +174,22 @@ def integrated_billing(customer_id=None):
                 Appointment.is_paid == False
             ).all()
 
+            # Get all services this customer has taken (for easy billing)
+            from sqlalchemy import distinct
+            customer_service_ids = db.session.query(distinct(Appointment.service_id)).filter(
+                Appointment.client_id == customer_id,
+                Appointment.status.in_(['completed', 'confirmed', 'in_progress'])
+            ).all()
+
+            if customer_service_ids:
+                service_ids = [id[0] for id in customer_service_ids]
+                customer_services = Service.query.filter(
+                    Service.id.in_(service_ids),
+                    Service.is_active == True
+                ).order_by(Service.name).all()
+
+            print(f"DEBUG: Customer {customer_id} has taken {len(customer_services)} different services")
+
     return render_template('integrated_billing.html',
                          customers=customers,
                          services=services,
@@ -182,7 +199,13 @@ def integrated_billing(customer_id=None):
                          pending_amount=pending_amount,
                          today_revenue=today_revenue,
                          selected_customer=selected_customer,
-                         customer_appointments=customer_appointments)
+                         customer_appointments=customer_appointments,
+                         customer_services=json.dumps([{
+                             'id': service.id,
+                             'name': service.name,
+                             'price': float(service.price),
+                             'duration': service.duration
+                         } for service in customer_services]))
 
 @app.route('/appointment/<int:appointment_id>/go-to-billing')
 @login_required
@@ -386,7 +409,7 @@ def create_professional_invoice():
 
             invoice_number = f"INV-{current_date.strftime('%Y%m%d')}-{invoice_sequence:04d}"
 
-            # Create enhanced invoice with professional fields
+            # Create enhanced invoice
             invoice = EnhancedInvoice()
             invoice.invoice_number = invoice_number
             invoice.client_id = int(client_id)
