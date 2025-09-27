@@ -448,115 +448,152 @@ def unaki_load_sample_data():
 
         print(f"👥 Found {len(active_staff)} active staff members for sample data")
 
-        # Sample booking data for today - distributed across ALL active staff
+        # Find Emily Davis ID specifically for consecutive bookings
+        emily_davis = None
+        for staff in active_staff:
+            if staff.id == 3 or (hasattr(staff, 'first_name') and staff.first_name == 'Emily' and hasattr(staff, 'last_name') and staff.last_name == 'Davis'):
+                emily_davis = staff
+                break
+        
+        if not emily_davis:
+            emily_davis = active_staff[min(2, len(active_staff)-1)]  # Use third staff as fallback
+        
+        # Sample booking data for today - with consecutive bookings for Emily Davis
         sample_bookings = [
+            # Emily Davis - Consecutive bookings for the whole day (9 AM - 5 PM)
+            {
+                'client_name': 'Rachel Green',
+                'client_phone': '+1-555-0201',
+                'service_name': 'Morning Facial Treatment',
+                'start_time': '09:00',
+                'end_time': '10:00',
+                'duration': 60,
+                'price': 85.0,
+                'staff_id': emily_davis.id,
+                'date': today_str,
+                'notes': 'Early morning facial - Emily Davis consecutive booking 1/8'
+            },
+            {
+                'client_name': 'Monica Geller',
+                'client_phone': '+1-555-0202',
+                'service_name': 'Deep Cleansing Facial',
+                'start_time': '10:00',
+                'end_time': '11:00',
+                'duration': 60,
+                'price': 95.0,
+                'staff_id': emily_davis.id,
+                'date': today_str,
+                'notes': 'Deep cleansing treatment - Emily Davis consecutive booking 2/8'
+            },
+            {
+                'client_name': 'Phoebe Buffay',
+                'client_phone': '+1-555-0203',
+                'service_name': 'Relaxation Massage',
+                'start_time': '11:00',
+                'end_time': '12:00',
+                'duration': 60,
+                'price': 110.0,
+                'staff_id': emily_davis.id,
+                'date': today_str,
+                'notes': 'Relaxing massage session - Emily Davis consecutive booking 3/8'
+            },
+            {
+                'client_name': 'Chandler Bing',
+                'client_phone': '+1-555-0204',
+                'service_name': 'Swedish Massage',
+                'start_time': '12:00',
+                'end_time': '13:00',
+                'duration': 60,
+                'price': 120.0,
+                'staff_id': emily_davis.id,
+                'date': today_str,
+                'notes': 'Therapeutic Swedish massage - Emily Davis consecutive booking 4/8'
+            },
+            {
+                'client_name': 'Joey Tribbiani',
+                'client_phone': '+1-555-0205',
+                'service_name': 'Sports Massage',
+                'start_time': '13:00',
+                'end_time': '14:00',
+                'duration': 60,
+                'price': 130.0,
+                'staff_id': emily_davis.id,
+                'date': today_str,
+                'notes': 'Post-workout recovery massage - Emily Davis consecutive booking 5/8'
+            },
+            {
+                'client_name': 'Ross Geller',
+                'client_phone': '+1-555-0206',
+                'service_name': 'Anti-Aging Facial',
+                'start_time': '14:00',
+                'end_time': '15:00',
+                'duration': 60,
+                'price': 140.0,
+                'staff_id': emily_davis.id,
+                'date': today_str,
+                'notes': 'Premium anti-aging treatment - Emily Davis consecutive booking 6/8'
+            },
+            {
+                'client_name': 'Janice Hosenstein',
+                'client_phone': '+1-555-0207',
+                'service_name': 'Aromatherapy Massage',
+                'start_time': '15:00',
+                'end_time': '16:00',
+                'duration': 60,
+                'price': 125.0,
+                'staff_id': emily_davis.id,
+                'date': today_str,
+                'notes': 'Essential oils aromatherapy - Emily Davis consecutive booking 7/8'
+            },
+            {
+                'client_name': 'Gunther Central',
+                'client_phone': '+1-555-0208',
+                'service_name': 'Evening Relaxation Package',
+                'start_time': '16:00',
+                'end_time': '17:00',
+                'duration': 60,
+                'price': 150.0,
+                'staff_id': emily_davis.id,
+                'date': today_str,
+                'notes': 'Complete relaxation package - Emily Davis consecutive booking 8/8'
+            },
+            
+            # Other staff bookings for variety
             {
                 'client_name': 'Jessica Williams',
                 'client_phone': '+1-555-0101',
-                'service_name': 'Deep Cleansing Facial',
+                'service_name': 'Hair Styling Session',
                 'start_time': '10:00',
                 'end_time': '11:30',
                 'duration': 90,
                 'price': 150.0,
                 'staff_id': active_staff[0].id,  # First active staff
                 'date': today_str,
-                'notes': 'Deep cleansing facial for special occasion'
+                'notes': 'Professional hair styling'
             },
             {
                 'client_name': 'David Brown',
                 'client_phone': '+1-555-0102',
-                'service_name': 'Relaxation Massage',
+                'service_name': 'Manicure & Pedicure',
                 'start_time': '14:00',
                 'end_time': '15:00',
                 'duration': 60,
-                'price': 120.0,
-                'staff_id': active_staff[min(1, len(active_staff)-1)].id,  # Second staff or first if only one
-                'date': today_str,
-                'notes': 'Full body relaxation massage'
-            },
-            {
-                'client_name': 'Emma Thompson',
-                'client_phone': '+1-555-0103',
-                'service_name': 'Hair Styling',
-                'start_time': '11:00',
-                'end_time': '12:30',
-                'duration': 90,
                 'price': 80.0,
-                'staff_id': active_staff[min(2, len(active_staff)-1)].id,  # Third staff or wrap around
+                'staff_id': active_staff[min(1, len(active_staff)-1)].id,
                 'date': today_str,
-                'notes': 'Special event hair styling'
+                'notes': 'Complete nail care service'
             },
             {
-                'client_name': 'Michael Johnson',
-                'client_phone': '+1-555-0104',
-                'service_name': 'Manicure & Pedicure',
-                'start_time': '15:30',
-                'end_time': '16:30',
-                'duration': 60,
-                'price': 65.0,
-                'staff_id': active_staff[0].id,  # Back to first staff
-                'date': today_str,
-                'notes': 'Complete nail care package'
-            },
-            {
-                'client_name': 'Sarah Davis',
+                'client_name': 'Sarah Johnson',
                 'client_phone': '+1-555-0105',
-                'service_name': 'Body Scrub',
-                'start_time': '09:00',
-                'end_time': '10:00',
+                'service_name': 'Body Scrub Treatment',
+                'start_time': '09:30',
+                'end_time': '10:30',
                 'duration': 60,
                 'price': 90.0,
                 'staff_id': active_staff[min(1, len(active_staff)-1)].id,
                 'date': today_str,
                 'notes': 'Exfoliating body treatment'
-            },
-            {
-                'client_name': 'Amanda Wilson',
-                'client_phone': '+1-555-0106',
-                'service_name': 'Swedish Massage',
-                'start_time': '13:00',
-                'end_time': '14:00',
-                'duration': 60,
-                'price': 110.0,
-                'staff_id': active_staff[min(2, len(active_staff)-1)].id,
-                'date': today_str,
-                'notes': 'Therapeutic Swedish massage'
-            },
-            {
-                'client_name': 'Robert Taylor',
-                'client_phone': '+1-555-0107',
-                'service_name': 'Classic Facial',
-                'start_time': '16:00',
-                'end_time': '17:00',
-                'duration': 60,
-                'price': 95.0,
-                'staff_id': active_staff[0].id,
-                'date': today_str,
-                'notes': 'Rejuvenating facial treatment'
-            },
-            {
-                'client_name': 'Lisa Garcia',
-                'client_phone': '+1-555-0108',
-                'service_name': 'Gel Manicure',
-                'start_time': '09:30',
-                'end_time': '10:30',
-                'duration': 60,
-                'price': 45.0,
-                'staff_id': active_staff[min(1, len(active_staff)-1)].id,
-                'date': today_str,
-                'notes': 'Long-lasting gel manicure'
-            },
-            {
-                'client_name': 'Hanamant Kumar',
-                'client_phone': '+91-9999999999',
-                'service_name': 'Eyebrow Threading',
-                'start_time': '10:30',
-                'end_time': '11:00',
-                'duration': 30,
-                'price': 25.0,
-                'staff_id': active_staff[min(2, len(active_staff)-1)].id,  # Emily Davis (ID 3) or available staff
-                'date': today_str,
-                'notes': 'Eyebrow service booking for Hanamant'
             }
         ]
 
