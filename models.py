@@ -1041,6 +1041,7 @@ class UnakiBooking(db.Model):
     staff_name = db.Column(db.String(100), nullable=False)  # Denormalized for quick access
 
     # Service Details
+    service_id = db.Column(db.Integer, db.ForeignKey('service.id'), nullable=True)  # FK to service table
     service_name = db.Column(db.String(100), nullable=False)
     service_duration = db.Column(db.Integer, nullable=False)  # in minutes
     service_price = db.Column(db.Float, default=0.0)
@@ -1073,6 +1074,7 @@ class UnakiBooking(db.Model):
     # Relationships
     assigned_staff = db.relationship('User', backref='unaki_bookings', foreign_keys=[staff_id])
     client = db.relationship('Customer', backref='unaki_bookings', foreign_keys=[client_id])
+    service = db.relationship('Service', backref='unaki_bookings', foreign_keys=[service_id])
 
     def to_dict(self):
         """Convert booking to dictionary for API responses"""
@@ -1084,6 +1086,7 @@ class UnakiBooking(db.Model):
             'client_email': self.client_email,
             'staff_id': self.staff_id,
             'staff_name': self.staff_name,
+            'service_id': self.service_id,
             'service_name': self.service_name,
             'service_duration': self.service_duration,
             'service_price': float(self.service_price) if self.service_price else 0.0,

@@ -846,6 +846,7 @@ def unaki_create_appointment():
             client_email=client_email,
             staff_id=int(data['staffId']),
             staff_name=staff.full_name,
+            service_id=service.id if service else None,
             service_name=data['serviceType'].strip(),
             service_duration=duration,
             service_price=service_price,
@@ -1308,9 +1309,10 @@ def unaki_update_booking(booking_id):
         booking.notes = data.get('notes', '').strip()
         booking.updated_at = datetime.utcnow()
 
-        # Update service price if available
+        # Update service price and service_id if available
         service = Service.query.filter_by(name=data['serviceName'], is_active=True).first()
         if service:
+            booking.service_id = service.id
             booking.service_price = float(service.price)
             booking.amount_charged = float(service.price)
 

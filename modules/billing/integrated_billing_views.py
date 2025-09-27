@@ -189,7 +189,7 @@ def integrated_billing(customer_id=None):
             customer_appointments = [appointment.to_dict() for appointment in customer_appointments_query]
 
             # Get services from Unaki appointments by matching service names
-            unaki_service_names = [apt.service_name for apt in customer_appointments if apt.service_name]
+            unaki_service_names = [apt.get('service_name') for apt in customer_appointments if apt.get('service_name')]
             if unaki_service_names:
                 customer_services = Service.query.filter(Service.name.in_(unaki_service_names)).all()
 
