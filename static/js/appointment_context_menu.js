@@ -300,35 +300,43 @@ class AppointmentContextMenu {
     }
 
     goToBilling(appointmentId) {
-        console.log(`Redirecting to integrated billing for appointment ${appointmentId}`);
+        console.log(`🔄 Redirecting to integrated billing for appointment ${appointmentId}`);
         
         // First try to get client_id from DOM element
         const appointmentElement = document.querySelector(`[data-appointment-id="${appointmentId}"]`);
         const clientId = appointmentElement?.dataset?.clientId || 
                         appointmentElement?.getAttribute('data-client-id');
         
-        if (clientId) {
-            console.log(`Found client_id: ${clientId} for appointment ${appointmentId}`);
+        if (clientId && clientId !== 'null' && clientId !== 'undefined') {
+            console.log(`✅ Found client_id: ${clientId} for appointment ${appointmentId}`);
+            console.log(`🔗 Redirecting to: /integrated-billing/${clientId}`);
             window.location.href = `/integrated-billing/${clientId}`;
         } else {
-            // Fetch client data from API
-            console.log(`Fetching client data for appointment ${appointmentId} from API`);
+            // Fetch client data from API first
+            console.log(`📡 Fetching client data for appointment ${appointmentId} from API`);
             
             fetch(`/api/unaki/appointment/${appointmentId}/client-data`)
-                .then(response => response.json())
+                .then(response => {
+                    console.log(`📡 API response status: ${response.status}`);
+                    return response.json();
+                })
                 .then(data => {
+                    console.log(`📡 API response data:`, data);
                     if (data.success && data.client_id) {
-                        console.log(`API returned client_id: ${data.client_id} for appointment ${appointmentId}`);
+                        console.log(`✅ API returned client_id: ${data.client_id} for appointment ${appointmentId}`);
+                        console.log(`🔗 Redirecting to: /integrated-billing/${data.client_id}`);
                         window.location.href = `/integrated-billing/${data.client_id}`;
                     } else {
-                        console.warn(`No client_id from API, using fallback redirect for appointment ${appointmentId}`);
-                        // Fallback to appointment-based redirect
+                        console.warn(`⚠️ No client_id from API, using fallback redirect for appointment ${appointmentId}`);
+                        // Use the fallback route that handles customer creation/matching
+                        console.log(`🔗 Fallback redirect to: /appointment/${appointmentId}/go-to-billing`);
                         window.location.href = `/appointment/${appointmentId}/go-to-billing`;
                     }
                 })
                 .catch(error => {
-                    console.error('Error fetching client data:', error);
+                    console.error('❌ Error fetching client data:', error);
                     // Fallback redirect on error
+                    console.log(`🔗 Error fallback redirect to: /appointment/${appointmentId}/go-to-billing`);
                     window.location.href = `/appointment/${appointmentId}/go-to-billing`;
                 });
         }

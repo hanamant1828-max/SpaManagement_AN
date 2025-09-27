@@ -251,7 +251,7 @@ def appointment_to_billing(appointment_id):
         customer_name = None
 
         if unaki_booking:
-            app.logger.info(f"Found UnakiBooking {appointment_id}: {unaki_booking.client_name}")
+            app.logger.info(f"✅ Found UnakiBooking {appointment_id}: {unaki_booking.client_name}")
             customer_name = unaki_booking.client_name
             
             # First try to use existing client_id if it exists
@@ -260,9 +260,9 @@ def appointment_to_billing(appointment_id):
                 if customer:
                     customer_id = customer.id
                     customer_name = customer.full_name
-                    app.logger.info(f"Using existing client_id {customer_id} for UnakiBooking {appointment_id}")
+                    app.logger.info(f"✅ Using existing client_id {customer_id} for UnakiBooking {appointment_id}")
                 else:
-                    app.logger.warning(f"UnakiBooking {appointment_id} has invalid client_id {unaki_booking.client_id}")
+                    app.logger.warning(f"⚠️ UnakiBooking {appointment_id} has invalid client_id {unaki_booking.client_id}")
             
             # If no valid client_id, try to find customer by phone
             if not customer_id and unaki_booking.client_phone:
@@ -273,7 +273,7 @@ def appointment_to_billing(appointment_id):
                     # Update the UnakiBooking with the correct client_id
                     unaki_booking.client_id = customer_id
                     db.session.commit()
-                    app.logger.info(f"Matched UnakiBooking {appointment_id} to existing customer {customer_id} by phone")
+                    app.logger.info(f"✅ Matched UnakiBooking {appointment_id} to existing customer {customer_id} by phone")
 
             # If still no match, try to find by name
             if not customer_id and unaki_booking.client_name:
@@ -300,7 +300,7 @@ def appointment_to_billing(appointment_id):
                         # Update the UnakiBooking with the correct client_id
                         unaki_booking.client_id = customer_id
                         db.session.commit()
-                        app.logger.info(f"Matched UnakiBooking {appointment_id} to existing customer {customer_id} by name")
+                        app.logger.info(f"✅ Matched UnakiBooking {appointment_id} to existing customer {customer_id} by name")
 
             # If still no match, create a new customer
             if not customer_id:
@@ -323,7 +323,7 @@ def appointment_to_billing(appointment_id):
                 # Update the UnakiBooking with the new client_id
                 unaki_booking.client_id = customer_id
                 db.session.commit()
-                app.logger.info(f"Created new customer {customer_id} ({customer_name}) for UnakiBooking {appointment_id}")
+                app.logger.info(f"✅ Created new customer {customer_id} ({customer_name}) for UnakiBooking {appointment_id}")
 
         else:
             # Fallback: try to find in regular Appointment table
@@ -331,7 +331,7 @@ def appointment_to_billing(appointment_id):
             if appointment and appointment.client_id:
                 customer_id = appointment.client_id
                 customer_name = appointment.client.full_name if appointment.client else 'Unknown'
-                app.logger.info(f"Found regular appointment {appointment_id}, customer {customer_id} ({customer_name})")
+                app.logger.info(f"✅ Found regular appointment {appointment_id}, customer {customer_id} ({customer_name})")
             else:
                 raise Exception(f"No appointment or booking found with ID {appointment_id}")
 
@@ -339,15 +339,17 @@ def appointment_to_billing(appointment_id):
             raise Exception(f"Could not determine customer for appointment {appointment_id}")
 
         # Flash a success message showing we're loading all bookings for this customer
-        flash(f'Loading all confirmed bookings for {customer_name} ready for billing', 'info')
+        flash(f'🎯 Loading integrated billing for {customer_name} - showing all pending appointments ready for billing', 'info')
 
-        # Redirect to integrated billing with customer_id - this will automatically load ALL their bookings
-        return redirect(url_for('integrated_billing', customer_id=customer_id))
+        # CRITICAL FIX: Ensure we redirect to integrated billing, NOT back to Unaki booking
+        app.logger.info(f"🔗 Redirecting to integrated billing with customer_id: {customer_id}")
+        return redirect(f'/integrated-billing/{customer_id}')
 
     except Exception as e:
-        app.logger.error(f"Error redirecting to billing for appointment {appointment_id}: {str(e)}")
+        app.logger.error(f"❌ Error redirecting to billing for appointment {appointment_id}: {str(e)}")
         flash(f'Error accessing billing for this appointment: {str(e)}', 'danger')
-        return redirect(url_for('dashboard'))
+        # Even on error, don't redirect back to Unaki booking - go to billing page
+        return redirect('/integrated-billing')
 
 @app.route('/integrated-billing/create-professional', methods=['POST'])
 @login_required
