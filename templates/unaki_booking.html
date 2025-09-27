@@ -1242,6 +1242,14 @@
             }, 300);
         }
 
+        function showLoadingAndLoadSample() {
+            showLoading();
+            setTimeout(() => {
+                loadSampleData();
+                hideLoading();
+            }, 800);
+        }
+
         function showLoadingAndLoad() {
             showLoading();
             setTimeout(() => {
@@ -1304,6 +1312,35 @@
 
         function printSchedule() {
             window.print();
+        }
+
+        function clearAllData() {
+            if (confirm('Are you sure you want to clear all appointment data? This action cannot be undone.')) {
+                showLoading();
+                
+                fetch('/api/unaki/clear-all-data', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    hideLoading();
+                    if (data.success) {
+                        showNotification(data.message, 'success');
+                        // Reload the schedule after clearing data
+                        loadScheduleForDate();
+                    } else {
+                        showNotification('Error clearing data: ' + data.error, 'error');
+                    }
+                })
+                .catch(error => {
+                    hideLoading();
+                    console.error('Error clearing data:', error);
+                    showNotification('Error clearing data. Please try again.', 'error');
+                });
+            }
         }
 
         // Multi-service booking system
@@ -1797,6 +1834,32 @@
                     console.error('❌ Error booking appointments:', error);
                     showNotification('Network error while booking appointments. Please try again.', 'error');
                 });
+        }
+
+        // Load sample data function
+        function loadSampleData() {
+            showNotification('Loading sample data...', 'info');
+            
+            fetch('/api/unaki/load-sample-data', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showNotification(data.message, 'success');
+                    // Reload the schedule after loading sample data
+                    loadScheduleForDate();
+                } else {
+                    showNotification('Error loading sample data: ' + data.error, 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error loading sample data:', error);
+                showNotification('Error loading sample data: HTTP error! status: 502', 'error');
+            });
         }
 
         // Enhanced time display functions
