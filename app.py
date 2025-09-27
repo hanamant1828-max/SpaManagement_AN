@@ -1338,7 +1338,13 @@ def unaki_delete_appointment(appointment_id):
         from models import UnakiBooking
         from datetime import datetime
 
-        data = request.get_json() or {}
+        # Handle both JSON and non-JSON requests
+        data = {}
+        if request.is_json:
+            data = request.get_json() or {}
+        elif request.form:
+            data = request.form.to_dict()
+        
         reason = data.get('reason', 'Deleted by user')
 
         booking = UnakiBooking.query.get(appointment_id)

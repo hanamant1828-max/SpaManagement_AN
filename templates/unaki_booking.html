@@ -2358,7 +2358,13 @@
             if (confirm('Are you sure you want to delete this appointment?')) {
                 showNotification(`Deleting appointment ID: ${appointmentId}...`, 'info');
                 fetch(`/api/unaki/appointments/${appointmentId}`, {
-                    method: 'DELETE'
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        reason: 'Deleted by user'
+                    })
                 })
                 .then(response => {
                     if (!response.ok) {
