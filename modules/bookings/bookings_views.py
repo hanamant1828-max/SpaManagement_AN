@@ -1197,6 +1197,228 @@ def appointments_schedule():
                          staff_members=staff_members,
                          time_slots=time_slots,
                          staff_availability=staff_availability,
+
+
+@app.route('/api/check-availability', methods=['POST'])
+@login_required
+def check_availability():
+    """API endpoint to check staff availability and conflicts"""
+    if not current_user.can_access('bookings'):
+        return jsonify({'error': 'Access denied'}), 403
+
+    try:
+        data = request.get_json()
+        staff_id = data.get('staff_id')
+        start_time = data.get('start_time')
+        end_time = data.get('end_time')
+
+        if not all([staff_id, start_time, end_time]):
+            return jsonify({'error': 'Missing required fields'}), 400
+
+        # Parse datetime strings
+        start_dt = datetime.strptime(start_time, '%Y-%m-%d %H:%M')
+        end_dt = datetime.strptime(end_time, '%Y-%m-%d %H:%M')
+
+        # Check for existing appointments that overlap
+        existing_appointments = Appointment.query.filter(
+            Appointment.staff_id == staff_id,
+            Appointment.appointment_date < end_dt,
+            Appointment.end_time > start_dt,
+            Appointment.status.in_(['scheduled', 'confirmed', 'in_progress'])
+        ).all()
+
+        if existing_appointments:
+            # Found conflicts
+            conflict_apt = existing_appointments[0]
+            conflict_client = conflict_apt.client.full_name if conflict_apt.client else 'Unknown Client'
+            conflict_time = f"{conflict_apt.appointment_date.strftime('%H:%M')} – {conflict_apt.end_time.strftime('%H:%M')}"
+            conflict_message = f"{conflict_apt.assigned_staff.full_name} already booked {conflict_time} with {conflict_client}"
+            
+            return jsonify({
+                'conflict': True,
+                'conflict_with': conflict_message
+            })
+        else:
+            return jsonify({
+                'conflict': False,
+                'message': 'Time slot is available'
+            })
+
+    except Exception as e:
+        print(f"Error checking availability: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/save-multi-appointment', methods=['POST'])
+@login_required
+def save_multi_appointment():
+    """API endpoint to save multiple appointments in one booking"""
+    if not current_user.can_access('bookings'):
+        return jsonify({'error': 'Access denied'}), 403
+
+    try:
+        data = request.get_json()
+        appointments_data = data.get('appointments', [])
+        notes = data.get('notes', '')
+
+        if not appointments_data:
+            return jsonify({'error': 'No appointments provided'}), 400
+
+        created_appointments = []
+
+        for apt_data in appointments_data:
+            # Validate required fields
+            required_fields = ['client_id', 'service_id', 'staff_id', 'appointment_date', 'start_time', 'end_time']
+            if not all(field in apt_data for field in required_fields):
+                return jsonify({'error': 'Missing required fields in appointment data'}), 400
+
+            # Parse date and times
+            appointment_date_str = apt_data['appointment_date']
+            start_time = apt_data['start_time']
+            end_time = apt_data['end_time']
+            
+            start_datetime = datetime.strptime(f"{appointment_date_str} {start_time}", '%Y-%m-%d %H:%M')
+            end_datetime = datetime.strptime(f"{appointment_date_str} {end_time}", '%Y-%m-%d %H:%M')
+
+            # Get service for pricing
+            service = Service.query.get(apt_data['service_id'])
+            if not service:
+                return jsonify({'error': f'Service not found: {apt_data["service_id"]}'}), 404
+
+            # Create appointment
+            appointment = Appointment(
+                client_id=apt_data['client_id'],
+                service_id=apt_data['service_id'],
+                staff_id=apt_data['staff_id'],
+                appointment_date=start_datetime,
+                end_time=end_datetime,
+                notes=notes,
+                status='scheduled',
+                amount=service.price,
+                payment_status='pending',
+                created_at=datetime.utcnow(),
+                updated_at=datetime.utcnow()
+            )
+
+            db.session.add(appointment)
+            created_appointments.append(appointment)
+
+        # Commit all appointments
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'message': f'Successfully created {len(created_appointments)} appointments',
+            'appointment_ids': [apt.id for apt in created_appointments]
+        })
+
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error saving multi-appointment: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/unaki/staff')
+@login_required
+def unaki_staff_api():
+    """API endpoint to get staff data for Unaki booking system"""
+    try:
+        staff_members = get_staff_members()
+        staff_data = []
+        
+        for staff in staff_members:
+            staff_info = {
+                'id': staff.id,
+                'name': staff.full_name or staff.username,
+                'specialty': getattr(staff, 'designation', staff.role if hasattr(staff, 'role') else 'General'),
+            }
+            staff_data.append(staff_info)
+        
+        return jsonify(staff_data)
+        
+    except Exception as e:
+        print(f"Error in unaki_staff_api: {e}")
+        return jsonify({'error': 'Server error'}), 500
+
+@app.route('/api/unaki/services')
+@login_required
+def unaki_services_api():
+    """API endpoint to get services data for Unaki booking system"""
+    try:
+        services = get_active_services()
+        services_data = []
+        
+        for service in services:
+            service_info = {
+                'id': service.id,
+                'name': service.name,
+                'duration': service.duration,
+                'price': float(service.price),
+                'category': service.category
+            }
+            services_data.append(service_info)
+        
+        return jsonify(services_data)
+        
+    except Exception as e:
+        print(f"Error in unaki_services_api: {e}")
+        return jsonify({'error': 'Server error'}), 500
+
+@app.route('/api/unaki/clients')
+@login_required
+def unaki_clients_api():
+    """API endpoint to get clients data for Unaki booking system"""
+    try:
+        clients = get_active_clients()
+        clients_data = []
+        
+        for client in clients:
+            client_info = {
+                'id': client.id,
+                'name': client.full_name,
+                'phone': client.phone or '',
+                'email': client.email or ''
+            }
+            clients_data.append(client_info)
+        
+        return jsonify(clients_data)
+        
+    except Exception as e:
+        print(f"Error in unaki_clients_api: {e}")
+        return jsonify({'error': 'Server error'}), 500
+
+@app.route('/api/unaki/schedule')
+@login_required
+def unaki_schedule_api():
+    """API endpoint to get schedule data for Unaki booking system"""
+    try:
+        date_str = request.args.get('date', datetime.now().strftime('%Y-%m-%d'))
+        target_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+        
+        # Get appointments for the date
+        appointments_data = []
+        appointments = get_appointments_by_date(target_date)
+        
+        for appointment in appointments:
+            appointment_info = {
+                'id': appointment.id,
+                'staffId': appointment.staff_id,
+                'clientName': appointment.client.full_name if appointment.client else 'Unknown',
+                'serviceType': appointment.service.category if appointment.service else 'Service',
+                'startTime': appointment.appointment_date.strftime('%H:%M'),
+                'endTime': appointment.end_time.strftime('%H:%M') if appointment.end_time else None,
+                'status': appointment.status
+            }
+            appointments_data.append(appointment_info)
+        
+        return jsonify({
+            'success': True,
+            'date': date_str,
+            'appointments': appointments_data
+        })
+        
+    except Exception as e:
+        print(f"Error in unaki_schedule_api: {e}")
+        return jsonify({'success': False, 'error': 'Server error'}), 500
+
                          clients=clients,
                          services=services,
                          timedelta=timedelta)
