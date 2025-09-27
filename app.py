@@ -244,6 +244,14 @@ except Exception as e:
 try:
     from modules.billing.integrated_billing_views import *
     print("✅ Integrated billing views imported")
+    # Verify that the appointment_to_billing route is registered
+    from flask import current_app
+    with app.app_context():
+        rules = [rule.rule for rule in app.url_map.iter_rules()]
+        if '/appointment/<int:appointment_id>/go-to-billing' in rules:
+            print("✅ Appointment billing route registered successfully")
+        else:
+            print("⚠️ Appointment billing route not found in URL map")
 except Exception as e:
     print(f"⚠️ Integrated billing views import error: {e}")
 

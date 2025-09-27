@@ -333,23 +333,27 @@ def appointment_to_billing(appointment_id):
                 customer_name = appointment.client.full_name if appointment.client else 'Unknown'
                 app.logger.info(f"✅ Found regular appointment {appointment_id}, customer {customer_id} ({customer_name})")
             else:
-                raise Exception(f"No appointment or booking found with ID {appointment_id}")
+                # No appointment found - flash error and redirect to billing
+                flash('Appointment not found. Please select a customer manually.', 'warning')
+                return redirect(url_for('integrated_billing'))
 
         if not customer_id:
-            raise Exception(f"Could not determine customer for appointment {appointment_id}")
+            # Could not determine customer - flash error and redirect to billing
+            flash('Could not determine customer for this appointment. Please select a customer manually.', 'warning')
+            return redirect(url_for('integrated_billing'))
 
         # Flash a success message showing we're loading all bookings for this customer
         flash(f'🎯 Loading integrated billing for {customer_name} - showing all pending appointments ready for billing', 'info')
 
-        # CRITICAL FIX: Ensure we redirect to integrated billing, NOT back to Unaki booking
+        # CRITICAL FIX: Use url_for to ensure correct routing
         app.logger.info(f"🔗 Redirecting to integrated billing with customer_id: {customer_id}")
-        return redirect(f'/integrated-billing/{customer_id}')
+        return redirect(url_for('integrated_billing', customer_id=customer_id))
 
     except Exception as e:
         app.logger.error(f"❌ Error redirecting to billing for appointment {appointment_id}: {str(e)}")
         flash(f'Error accessing billing for this appointment: {str(e)}', 'danger')
         # Even on error, don't redirect back to Unaki booking - go to billing page
-        return redirect('/integrated-billing')
+        return redirect(url_for('integrated_billing'))
 
 @app.route('/integrated-billing/create-professional', methods=['POST'])
 @login_required
