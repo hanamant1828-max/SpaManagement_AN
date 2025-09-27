@@ -183,11 +183,19 @@ def appointment_to_billing(appointment_id):
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
     
-    from models import Appointment
-    appointment = Appointment.query.get_or_404(appointment_id)
-    
-    # Redirect to integrated billing with customer_id
-    return redirect(url_for('integrated_billing', customer_id=appointment.client_id))
+    try:
+        from models import Appointment
+        appointment = Appointment.query.get_or_404(appointment_id)
+        
+        # Log the redirection for debugging
+        app.logger.info(f"Redirecting to integrated billing for appointment {appointment_id}, customer {appointment.client_id}")
+        
+        # Redirect to integrated billing with customer_id
+        return redirect(url_for('integrated_billing', customer_id=appointment.client_id))
+    except Exception as e:
+        app.logger.error(f"Error redirecting to billing for appointment {appointment_id}: {str(e)}")
+        flash(f'Error accessing billing for this appointment: {str(e)}', 'danger')
+        return redirect(url_for('dashboard'))
 
 @app.route('/integrated-billing/create-professional', methods=['POST'])
 @login_required
