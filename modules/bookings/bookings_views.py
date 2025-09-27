@@ -1197,6 +1197,9 @@ def appointments_schedule():
                          staff_members=staff_members,
                          time_slots=time_slots,
                          staff_availability=staff_availability,
+                         clients=clients,
+                         services=services,
+                         timedelta=timedelta)
 
 
 @app.route('/api/check-availability', methods=['POST'])
