@@ -528,9 +528,11 @@
             border: 1px solid rgba(255, 255, 255, 0.2);
             overflow: hidden;
             min-height: 60px;
+            height: 70px;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
+            white-space: nowrap;
         }
 
         .appointment-block:hover {
@@ -560,43 +562,68 @@
 
         .appointment-client {
             font-weight: 700;
-            font-size: 12px;
-            margin-bottom: 2px;
+            font-size: 11px;
+            margin-bottom: 1px;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
+            line-height: 1.2;
         }
 
         .appointment-service {
-            font-size: 10px;
+            font-size: 9px;
             opacity: 0.9;
-            margin-bottom: 2px;
+            margin-bottom: 1px;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
+            line-height: 1.1;
         }
 
         .appointment-time {
-            font-size: 9px;
+            font-size: 8px;
             opacity: 0.8;
             font-weight: 500;
             margin-top: auto;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            line-height: 1.1;
         }
 
-        /* Overlap handling */
+        /* Overlap handling - stack vertically when appointments conflict */
         .appointment-block.overlap-1 {
-            width: 48%;
-            left: 0;
+            top: 5px;
+            height: 35px;
         }
 
         .appointment-block.overlap-2 {
-            width: 48%;
-            left: 52%;
+            top: 42px;
+            height: 35px;
         }
 
         .appointment-block.overlap-3 {
-            width: 30%;
-            left: 35%;
+            top: 79px;
+            height: 35px;
+        }
+
+        /* Adjust font sizes for smaller stacked blocks */
+        .appointment-block.overlap-1 .appointment-client,
+        .appointment-block.overlap-2 .appointment-client,
+        .appointment-block.overlap-3 .appointment-client {
+            font-size: 9px;
+        }
+
+        .appointment-block.overlap-1 .appointment-service,
+        .appointment-block.overlap-2 .appointment-service,
+        .appointment-block.overlap-3 .appointment-service {
+            font-size: 8px;
+        }
+
+        .appointment-block.overlap-1 .appointment-time,
+        .appointment-block.overlap-2 .appointment-time,
+        .appointment-block.overlap-3 .appointment-time {
+            font-size: 7px;
         }
 
         /* Tooltip styles */
@@ -1526,11 +1553,22 @@
                     appointments.forEach((appointment, overlapIndex) => {
                         const appointmentBlock = createAppointmentBlock(appointment, parseInt(slotIndex), overlapIndex, appointments.length);
 
-                        // Find the corresponding time slot cell
-                        const timeSlotCell = grid.querySelector(`[data-staff-id="${staffId}"][data-slot-index="${slotIndex}"]`);
-                        if (timeSlotCell) {
-                            timeSlotCell.classList.add('has-appointments');
-                            timeSlotCell.appendChild(appointmentBlock);
+                        // Find the starting time slot cell for this appointment
+                        const startTimeSlotCell = grid.querySelector(`[data-staff-id="${staffId}"][data-slot-index="${slotIndex}"]`);
+                        if (startTimeSlotCell) {
+                            // Mark all cells that this appointment spans across
+                            const durationMinutes = getTimeDifferenceInMinutes(appointment.startTime, appointment.endTime);
+                            const durationSlots = Math.ceil(durationMinutes / SCHEDULE_CONFIG.slotMinutes);
+                            
+                            for (let i = 0; i < durationSlots; i++) {
+                                const slotCell = grid.querySelector(`[data-staff-id="${staffId}"][data-slot-index="${parseInt(slotIndex) + i}"]`);
+                                if (slotCell) {
+                                    slotCell.classList.add('has-appointments');
+                                }
+                            }
+
+                            // Append the block to the starting cell
+                            startTimeSlotCell.appendChild(appointmentBlock);
                         }
                     });
                 });
@@ -1547,24 +1585,30 @@
                 appointmentBlock.classList.add(serviceCategory);
             }
 
-            // Handle overlaps
-            if (totalOverlaps > 1) {
-                appointmentBlock.classList.add(`overlap-${overlapIndex + 1}`);
-            } else {
-                appointmentBlock.style.width = '95%';
-                appointmentBlock.style.left = '2.5%';
-            }
-
-            // Calculate duration and position
+            // Calculate duration and horizontal positioning
             const startTime = appointment.startTime;
             const endTime = appointment.endTime;
             const durationMinutes = getTimeDifferenceInMinutes(startTime, endTime);
-            const durationSlots = durationMinutes / SCHEDULE_CONFIG.slotMinutes;
+            const durationSlots = Math.ceil(durationMinutes / SCHEDULE_CONFIG.slotMinutes);
 
-            // Set height based on duration
-            const blockHeight = Math.max(60, (durationSlots * 80) - 10); // 80px per slot minus gap
-            appointmentBlock.style.height = `${blockHeight}px`;
+            // Position the block to span across multiple time slots horizontally
+            const slotWidth = SCHEDULE_CONFIG.timeSlotWidth;
+            const blockWidth = (durationSlots * slotWidth) - 4; // 4px for padding/borders
+            
+            appointmentBlock.style.position = 'absolute';
+            appointmentBlock.style.left = '2px';
             appointmentBlock.style.top = '5px';
+            appointmentBlock.style.width = `${blockWidth}px`;
+            appointmentBlock.style.height = '70px'; // Fixed height for all appointments
+            appointmentBlock.style.zIndex = '10';
+
+            // Handle overlaps vertically (stack appointments on top of each other)
+            if (totalOverlaps > 1) {
+                const stackHeight = 35; // Reduced height when stacked
+                appointmentBlock.style.height = `${stackHeight}px`;
+                appointmentBlock.style.top = `${5 + (overlapIndex * (stackHeight + 2))}px`;
+                appointmentBlock.classList.add(`overlap-${overlapIndex + 1}`);
+            }
 
             // Add appointment content
             appointmentBlock.innerHTML = `
