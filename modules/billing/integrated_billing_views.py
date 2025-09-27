@@ -8,6 +8,7 @@ from app import app, db
 from datetime import datetime
 import json
 from models import Customer, Service, Appointment
+from sqlalchemy import and_
 try:
     from modules.inventory.models import InventoryProduct, InventoryBatch
 except ImportError:
@@ -104,8 +105,17 @@ def integrated_billing(customer_id=None):
         return redirect(url_for('dashboard'))
 
     # Get data for billing interface
-    customers = Customer.query.filter_by(is_active=True).all()
-    services = Service.query.filter_by(is_active=True).all()
+    customers = Customer.query.filter_by(is_active=True).order_by(Customer.first_name, Customer.last_name).all()
+    services = Service.query.filter_by(is_active=True).order_by(Service.name).all()
+    
+    print(f"DEBUG: Found {len(customers)} customers and {len(services)} services for billing interface")
+    
+    # Debug: Print first few services to verify data
+    if services:
+        for i, service in enumerate(services[:3]):
+            print(f"Service {i+1}: {service.name} - ₹{service.price}")
+    else:
+        print("WARNING: No active services found in database!")
 
     # Get inventory products with stock information
     inventory_items = []

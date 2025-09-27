@@ -167,7 +167,7 @@
                                             <option value="">Select Service</option>
                                             {% for service in services %}
                                             <option value="{{ service.id }}" data-price="{{ service.price }}">
-                                                {{ service.name }} - ₹{{ service.price }}
+                                                {{ service.name }} - ₹{{ "{:,.2f}".format(service.price) }}
                                             </option>
                                             {% endfor %}
                                         </select>
@@ -517,6 +517,17 @@
 
 <script>
 var availableBatches = []; // Global array to hold all available batches
+
+// Debug: Check if services are loaded in template
+document.addEventListener('DOMContentLoaded', function() {
+    const serviceSelects = document.querySelectorAll('select[name="service_ids[]"]');
+    serviceSelects.forEach((select, index) => {
+        console.log(`Service select ${index + 1} has ${select.options.length - 1} services loaded`);
+        if (select.options.length <= 1) {
+            console.error('Services dropdown is empty! Check backend data loading.');
+        }
+    });
+});
 
 // Add service row
 function addServiceRow() {
