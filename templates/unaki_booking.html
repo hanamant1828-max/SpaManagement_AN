@@ -1355,8 +1355,9 @@
                 const serviceSelect = row.querySelector('.service-select');
                 const staffSelect = row.querySelector('.staff-select');
                 const startTime = row.querySelector('.start-time');
+                const endTime = row.querySelector('.end-time');
 
-                if (!serviceSelect.value || !staffSelect.value || !startTime.value) {
+                if (!serviceSelect.value || !staffSelect.value || !startTime.value || !endTime.value) {
                     isValid = false;
                     return;
                 }
@@ -1364,9 +1365,9 @@
                 services.push({
                     service: serviceSelect.options[serviceSelect.selectedIndex].text,
                     staff: staffSelect.options[staffSelect.selectedIndex].text,
-                    staffId: staffSelect.value,
+                    staffId: parseInt(staffSelect.value),
                     startTime: startTime.value,
-                    endTime: row.querySelector('.end-time').value
+                    endTime: endTime.value
                 });
             });
 
@@ -1375,16 +1376,18 @@
                 return;
             }
 
-            // Enhanced overlap detection - check for any time conflicts
+            console.log('🔍 Checking availability for services:', services);
+
+            // Enhanced overlap detection - check for any time conflicts between new services
             for (let i = 0; i < services.length; i++) {
                 for (let j = i + 1; j < services.length; j++) {
                     if (services[i].staffId === services[j].staffId) {
-                        const start1 = new Date(`1970-01-01T${services[i].startTime}:00`);
-                        const end1 = new Date(`1970-01-01T${services[i].endTime}:00`);
-                        const start2 = new Date(`1970-01-01T${services[j].startTime}:00`);
-                        const end2 = new Date(`1970-01-01T${services[j].endTime}:00`);
+                        const start1 = timeToMinutes(services[i].startTime);
+                        const end1 = timeToMinutes(services[i].endTime);
+                        const start2 = timeToMinutes(services[j].startTime);
+                        const end2 = timeToMinutes(services[j].endTime);
 
-                        // Improved overlap detection: appointments overlap if start1 < end2 AND start2 < end1
+                        // Check for overlap: appointments overlap if start1 < end2 AND start2 < end1
                         if (start1 < end2 && start2 < end1) {
                             conflicts.push(`${services[i].staff} has overlapping appointments: ${services[i].startTime}-${services[i].endTime} conflicts with ${services[j].startTime}-${services[j].endTime}`);
                         }
@@ -1394,15 +1397,15 @@
 
             // Check against existing appointments in the schedule
             services.forEach((service, index) => {
-                const staffId = parseInt(service.staffId);
-                const serviceStart = new Date(`1970-01-01T${service.startTime}:00`);
-                const serviceEnd = new Date(`1970-01-01T${service.endTime}:00`);
+                const staffId = service.staffId;
+                const serviceStart = timeToMinutes(service.startTime);
+                const serviceEnd = timeToMinutes(service.endTime);
 
                 // Check against existing appointments
                 scheduleData.appointments.forEach(existingApt => {
                     if (existingApt.staffId === staffId) {
-                        const existingStart = new Date(`1970-01-01T${existingApt.startTime}:00`);
-                        const existingEnd = new Date(`1970-01-01T${existingApt.endTime}:00`);
+                        const existingStart = timeToMinutes(existingApt.startTime);
+                        const existingEnd = timeToMinutes(existingApt.endTime);
 
                         if (serviceStart < existingEnd && serviceEnd > existingStart) {
                             conflicts.push(`${service.staff} conflicts with existing appointment: ${existingApt.clientName} (${existingApt.startTime}-${existingApt.endTime})`);
@@ -1414,20 +1417,50 @@
             // Show availability results
             let availabilityText = 'Availability Check Results:\n\n';
             services.forEach((service, index) => {
+                const serviceConflicts = conflicts.filter(c => c.includes(service.staff));
+                const hasConflicts = serviceConflicts.length > 0;
+                
                 availabilityText += `${index + 1}. ${service.service}\n`;
                 availabilityText += `   Staff: ${service.staff}\n`;
                 availabilityText += `   Time: ${service.startTime} - ${service.endTime}\n`;
-                availabilityText += `   Status: ${conflicts.length > 0 ? '⚠️ Conflict Detected' : '✅ Available'}\n\n`;
+                availabilityText += `   Status: ${hasConflicts ? '⚠️ Conflict Detected' : '✅ Available'}\n\n`;
             });
 
             if (conflicts.length > 0) {
-                availabilityText += 'Conflicts:\n' + conflicts.join('\n');
+                availabilityText += 'Conflicts Found:\n' + conflicts.join('\n');
                 showNotification('Time conflicts detected! Please adjust the schedule.', 'warning');
             } else {
                 showNotification('All services are available!', 'success');
             }
 
-            alert(availabilityText);
+            // Use modal instead of alert for better UX
+            const modal = document.createElement('div');
+            modal.className = 'modal fade';
+            modal.innerHTML = `
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">${conflicts.length > 0 ? '⚠️ Availability Check Results' : '✅ Availability Check Results'}</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <pre style="white-space: pre-wrap; font-family: inherit;">${availabilityText}</pre>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                            ${conflicts.length === 0 ? '<button type="button" class="btn btn-primary" onclick="bookMultiServiceAppointment(); bootstrap.Modal.getInstance(this.closest(\'.modal\')).hide();">Book Appointments</button>' : ''}
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+            const bootstrapModal = new bootstrap.Modal(modal);
+            bootstrapModal.show();
+            
+            // Clean up modal after hiding
+            modal.addEventListener('hidden.bs.modal', () => {
+                modal.remove();
+            });
         }
 
         // Book multi-service appointment
@@ -1504,22 +1537,26 @@
 
         // Process multiple service bookings
         function bookMultipleServices(bookingData) {
+            console.log('📋 Processing multiple service bookings:', bookingData);
+            
             const promises = bookingData.services.map((service, index) => {
                 const serviceBookingData = {
-                    client_name: bookingData.clientName || document.getElementById('clientSelect').options[document.getElementById('clientSelect').selectedIndex]?.text,
-                    client_phone: bookingData.clientPhone,
-                    client_email: bookingData.clientEmail,
-                    staff_id: service.staffId,
-                    staff_name: service.staffName.split(' (')[0],
-                    service_name: service.serviceName,
-                    service_duration: service.duration,
-                    service_price: service.price,
-                    appointment_date: bookingData.appointmentDate,
-                    start_time: service.startTime,
-                    end_time: service.endTime,
+                    clientName: bookingData.clientName || document.getElementById('clientSelect').options[document.getElementById('clientSelect').selectedIndex]?.text,
+                    clientPhone: bookingData.clientPhone,
+                    clientEmail: bookingData.clientEmail,
+                    staffId: parseInt(service.staffId),
+                    staffName: service.staffName.split(' (')[0],
+                    serviceName: service.serviceName,
+                    serviceDuration: service.duration,
+                    servicePrice: service.price,
+                    date: bookingData.appointmentDate,
+                    startTime: service.startTime,
+                    endTime: service.endTime,
                     notes: bookingData.notes + (index > 0 ? ` (Service ${index + 1} of ${bookingData.services.length})` : ''),
                     amount_charged: service.price - (bookingData.discount / bookingData.services.length)
                 };
+
+                console.log(`📤 Sending booking request ${index + 1}:`, serviceBookingData);
 
                 return fetch('/api/unaki/book-appointment', {
                     method: 'POST',
@@ -1532,29 +1569,56 @@
 
             Promise.all(promises)
                 .then(responses => {
-                    return Promise.all(responses.map(response => response.json()));
+                    console.log('📥 Received responses:', responses);
+                    return Promise.all(responses.map(async (response, index) => {
+                        const text = await response.text();
+                        console.log(`Response ${index + 1}:`, text);
+                        try {
+                            return JSON.parse(text);
+                        } catch (e) {
+                            console.error(`Failed to parse response ${index + 1}:`, e);
+                            return { success: false, error: 'Invalid response format' };
+                        }
+                    }));
                 })
                 .then(results => {
                     hideLoading();
+                    console.log('📊 All results:', results);
 
                     const successCount = results.filter(result => result.success).length;
                     const totalCount = results.length;
+                    const failedResults = results.filter(result => !result.success);
 
                     if (successCount === totalCount) {
                         showNotification(`All ${totalCount} services booked successfully!`, 'success');
 
                         // Close modal and refresh schedule
                         const modal = bootstrap.Modal.getInstance(document.getElementById('bookingModal'));
-                        modal.hide();
+                        if (modal) modal.hide();
+                        
+                        // Reset form
+                        document.getElementById('bookingForm').reset();
+                        const servicesContainer = document.getElementById('servicesContainer');
+                        servicesContainer.innerHTML = '';
+                        serviceRowCount = 0;
+                        
                         loadScheduleForDate();
                     } else {
-                        showNotification(`${successCount} of ${totalCount} services booked successfully. Some bookings failed.`, 'warning');
+                        let errorMessage = `${successCount} of ${totalCount} services booked successfully. `;
+                        if (failedResults.length > 0) {
+                            const errors = failedResults.map(r => r.error).join('; ');
+                            errorMessage += `Failures: ${errors}`;
+                        }
+                        showNotification(errorMessage, 'warning');
+                        
+                        // Reload schedule to show successful bookings
+                        loadScheduleForDate();
                     }
                 })
                 .catch(error => {
                     hideLoading();
-                    console.error('Error booking appointments:', error);
-                    showNotification('Error booking appointments. Please try again.', 'error');
+                    console.error('❌ Error booking appointments:', error);
+                    showNotification('Network error while booking appointments. Please try again.', 'error');
                 });
         }
 
