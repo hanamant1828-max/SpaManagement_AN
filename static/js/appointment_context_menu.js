@@ -113,6 +113,7 @@ function addAppointmentListeners() {
     
     // Also target staff header columns for staff-level context menu
     const staffSelectors = [
+        '.staff-cell',
         '.staff-header-column',
         '.staff-name',
         '.staff-row'
@@ -231,21 +232,25 @@ function handleStaffHeaderRightClick(event) {
     const staffElement = event.currentTarget;
     
     // Debug: Log staff header information
+    console.log('🎯 Staff header right-click detected!');
     console.log('🔍 Right-click staff element:', staffElement);
     console.log('🔍 Staff element class:', staffElement.className);
     console.log('🔍 Staff data attributes:', staffElement.dataset);
     
-    // Get staff name and ID
+    // Get staff name and ID from multiple possible sources
     const staffName = staffElement.querySelector('.staff-name')?.textContent || 
                      staffElement.textContent?.trim() || 
                      staffElement.dataset.staffName || 
+                     staffElement.getAttribute('data-staff-name') ||
                      'Unknown Staff';
     
     const staffId = staffElement.dataset.staffId || 
                    staffElement.getAttribute('data-staff-id') ||
-                   staffElement.closest('[data-staff-id]')?.dataset.staffId;
+                   staffElement.closest('[data-staff-id]')?.dataset.staffId ||
+                   staffElement.getAttribute('data-staff') ||
+                   extractStaffIdFromElement(staffElement);
     
-    console.log('🔍 Right-clicked staff:', staffName, 'ID:', staffId);
+    console.log('🎯 Staff header click - Staff:', staffName, 'ID:', staffId);
     
     // Set current appointment ID to null since this is a staff header click
     currentAppointmentId = null;
@@ -254,8 +259,19 @@ function handleStaffHeaderRightClick(event) {
     window.currentStaffId = staffId;
     window.currentStaffName = staffName;
     
-    // Show context menu at cursor position (same menu for now)
+    // Show context menu at cursor position
     showContextMenu(event.pageX, event.pageY);
+}
+
+function extractStaffIdFromElement(element) {
+    // Try to extract staff ID from various attributes or text content
+    const allAttributes = Array.from(element.attributes);
+    for (let attr of allAttributes) {
+        if (attr.name.includes('staff') || attr.name.includes('id')) {
+            return attr.value;
+        }
+    }
+    return null;
 }
 
 function showContextMenu(x, y) {
