@@ -69,8 +69,12 @@ class StaffScheduleInfo:
 class StaffScheduleService:
     """Professional service for managing staff schedules and availability"""
     
-    def __init__(self):
-        self.slot_duration = 30  # Default 30-minute slots
+    def __init__(self, slot_duration=15):
+        # Support flexible slot durations: 5, 10, 15, 30, 45, 60 minutes
+        self.valid_durations = [5, 10, 15, 30, 45, 60]
+        if slot_duration not in self.valid_durations:
+            slot_duration = 15  # Default to 15-minute slots for more flexibility
+        self.slot_duration = slot_duration
     
     def parse_break_time(self, break_time_string: str) -> Tuple[Optional[str], Optional[str]]:
         """
@@ -253,7 +257,7 @@ class StaffScheduleService:
                         iso_time=current_time.isoformat(),
                         reason="Staff not scheduled"
                     ))
-                    current_time += timedelta(minutes=service_duration)
+                    current_time += timedelta(minutes=self.slot_duration)
                 
                 return slots
         
@@ -267,10 +271,10 @@ class StaffScheduleService:
             earliest_start = datetime.combine(target_date, time(9, 0))
             latest_end = datetime.combine(target_date, time(18, 0))
         
-        # Generate slots within the time range
+        # Generate slots within the time range using flexible slot duration
         current_time = earliest_start
         while current_time < latest_end:
-            slot_end = current_time + timedelta(minutes=service_duration)
+            slot_end = current_time + timedelta(minutes=self.slot_duration)
             
             # Determine slot status
             status = self._determine_slot_status(
@@ -301,7 +305,7 @@ class StaffScheduleService:
                         break
             
             slots.append(slot)
-            current_time += timedelta(minutes=service_duration)
+            current_time += timedelta(minutes=self.slot_duration)
         
         return slots
     

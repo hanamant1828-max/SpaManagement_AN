@@ -354,19 +354,31 @@ def calendar_booking():
                 'notes': schedule_info.get('notes', 'No shift scheduled or day off')
             }
 
-    # Generate time slots from 8 AM to 8 PM with 30-minute intervals
-    time_slots = []
-    start_hour = 8
-    end_hour = 20
-
-    for hour in range(start_hour, end_hour):
-        for minutes in [0, 30]:
-            slot_time = datetime.combine(selected_date, datetime.min.time().replace(hour=hour, minute=minutes))
+    # Generate flexible time slots from 8 AM to 8 PM with configurable intervals
+    def generate_flexible_time_slots(start_hour=8, end_hour=20, slot_duration=15):
+        """Generate time slots with flexible durations (5, 10, 15, 30, 45, 60 minutes)"""
+        time_slots = []
+        start_time = datetime.combine(selected_date, datetime.min.time().replace(hour=start_hour))
+        end_time = datetime.combine(selected_date, datetime.min.time().replace(hour=end_hour))
+        
+        current_time = start_time
+        while current_time < end_time:
             time_slots.append({
-                'start_time': slot_time,
-                'end_time': slot_time + timedelta(minutes=30),
-                'duration': 30
+                'start_time': current_time,
+                'end_time': current_time + timedelta(minutes=slot_duration),
+                'duration': slot_duration
             })
+            current_time += timedelta(minutes=slot_duration)
+        
+        return time_slots
+    
+    # Get slot duration from request parameter or default to 15 minutes
+    slot_duration = int(request.args.get('slot_duration', 15))
+    valid_durations = [5, 10, 15, 30, 45, 60]
+    if slot_duration not in valid_durations:
+        slot_duration = 15
+    
+    time_slots = generate_flexible_time_slots(slot_duration=slot_duration)
 
     # Get existing appointments for the selected date
     existing_appointments = get_appointments_by_date(selected_date)
@@ -443,7 +455,7 @@ def calendar_booking():
 
                     # Check if current slot overlaps with this appointment
                     slot_start = time_slot['start_time']
-                    slot_end = slot_start + timedelta(minutes=15) # Assuming a minimum slot of 15 mins for checking overlap
+                    slot_end = slot_start + timedelta(minutes=slot_duration) # Use flexible slot duration for checking overlap
 
                     if not (slot_end <= apt_start or slot_start >= apt_end):
                         is_blocked_by_appointment = True
@@ -717,7 +729,12 @@ def staff_availability():
     clients = Customer.query.filter_by(is_active=True).order_by(Customer.first_name, Customer.last_name).all()
     services = Service.query.filter_by(is_active=True).order_by(Service.name).all()
 
-    # Generate time slots for the day (8 AM to 10 PM in 30-minute intervals)
+    # Generate flexible time slots for the day (8 AM to 10 PM with configurable intervals)
+    slot_duration = int(request.args.get('slot_duration', 15))
+    valid_durations = [5, 10, 15, 30, 45, 60]
+    if slot_duration not in valid_durations:
+        slot_duration = 15
+    
     time_slots = []
     start_time = datetime.combine(selected_date, time(8, 0))
     end_time = datetime.combine(selected_date, time(22, 0))
@@ -728,7 +745,7 @@ def staff_availability():
             'start_time': current_time,
             'display_time': current_time.strftime('%I:%M %p')
         })
-        current_time += timedelta(minutes=30)
+        current_time += timedelta(minutes=slot_duration)
 
     # Get existing appointments for the selected date
     existing_appointments = Appointment.query.filter(
@@ -846,7 +863,7 @@ def staff_availability():
 
                     # Check if current slot overlaps with this appointment
                     slot_start = time_slot['start_time']
-                    slot_end = slot_start + timedelta(minutes=15) # Assuming a minimum slot of 15 mins for checking overlap
+                    slot_end = slot_start + timedelta(minutes=slot_duration) # Use flexible slot duration for checking overlap
 
                     if not (slot_end <= apt_start or slot_start >= apt_end):
                         is_blocked_by_appointment = True
@@ -1143,7 +1160,12 @@ def appointments_schedule():
     # Get staff members
     staff_members = get_staff_members()
 
-    # Generate time slots for the day (9 AM to 6 PM, 30-minute intervals)
+    # Generate flexible time slots for the day (9 AM to 6 PM with configurable intervals)
+    slot_duration = int(request.args.get('slot_duration', 15))
+    valid_durations = [5, 10, 15, 30, 45, 60]
+    if slot_duration not in valid_durations:
+        slot_duration = 15
+    
     time_slots = []
     start_time = datetime.combine(selected_date, datetime.min.time().replace(hour=9))
     end_time = datetime.combine(selected_date, datetime.min.time().replace(hour=18))
@@ -1152,10 +1174,10 @@ def appointments_schedule():
     while current_time < end_time:
         time_slots.append({
             'start_time': current_time,
-            'end_time': current_time + timedelta(minutes=30),
-            'duration': 30
+            'end_time': current_time + timedelta(minutes=slot_duration),
+            'duration': slot_duration
         })
-        current_time += timedelta(minutes=30)
+        current_time += timedelta(minutes=slot_duration)
 
     # Get existing appointments for the selected date
     existing_appointments = get_appointments_by_date(selected_date)
