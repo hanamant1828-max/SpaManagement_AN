@@ -1029,49 +1029,49 @@ class UnakiBooking(db.Model):
     __table_args__ = {'extend_existing': True}
 
     id = db.Column(db.Integer, primary_key=True)
-    
+
     # Client Information
     client_name = db.Column(db.String(100), nullable=False)
     client_phone = db.Column(db.String(20))
     client_email = db.Column(db.String(120))
-    
+
     # Staff Assignment
     staff_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     staff_name = db.Column(db.String(100), nullable=False)  # Denormalized for quick access
-    
+
     # Service Details
     service_name = db.Column(db.String(100), nullable=False)
     service_duration = db.Column(db.Integer, nullable=False)  # in minutes
     service_price = db.Column(db.Float, default=0.0)
-    
+
     # Appointment Timing
     appointment_date = db.Column(db.Date, nullable=False)
     start_time = db.Column(db.Time, nullable=False)
     end_time = db.Column(db.Time, nullable=False)
-    
+
     # Status and Notes
     status = db.Column(db.String(20), default='scheduled')  # scheduled, confirmed, in_progress, completed, cancelled, no_show
     notes = db.Column(db.Text)
     internal_notes = db.Column(db.Text)  # Staff-only notes
-    
+
     # Booking Source and Method
     booking_source = db.Column(db.String(50), default='unaki_system')  # unaki_system, phone, walk_in, online
     booking_method = db.Column(db.String(50), default='drag_select')  # drag_select, quick_book, manual
-    
+
     # Payment Information
     amount_charged = db.Column(db.Float, default=0.0)
     payment_status = db.Column(db.String(20), default='pending')  # pending, paid, partial, cancelled
     payment_method = db.Column(db.String(20))  # cash, card, upi, online
-    
+
     # Timestamps
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     confirmed_at = db.Column(db.DateTime)
     completed_at = db.Column(db.DateTime)
-    
+
     # Relationships
     assigned_staff = db.relationship('User', backref='unaki_bookings', foreign_keys=[staff_id])
-    
+
     def to_dict(self):
         """Convert booking to dictionary for API responses"""
         return {
@@ -1095,7 +1095,7 @@ class UnakiBooking(db.Model):
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None
         }
-    
+
     def get_duration_display(self):
         """Get human-readable duration"""
         if self.service_duration >= 60:
@@ -1107,21 +1107,21 @@ class UnakiBooking(db.Model):
                 return f"{hours}h"
         else:
             return f"{self.service_duration}m"
-    
+
     def get_time_range_display(self):
         """Get formatted time range display"""
         start_12h = self.start_time.strftime('%I:%M %p')
         end_12h = self.end_time.strftime('%I:%M %p')
         return f"{start_12h} - {end_12h}"
-    
+
     def can_be_cancelled(self):
         """Check if booking can be cancelled"""
         return self.status in ['scheduled', 'confirmed']
-    
+
     def can_be_rescheduled(self):
         """Check if booking can be rescheduled"""
         return self.status in ['scheduled', 'confirmed']
-    
+
     def __repr__(self):
         return f'<UnakiBooking {self.id}: {self.client_name} - {self.service_name} on {self.appointment_date}>'
 
