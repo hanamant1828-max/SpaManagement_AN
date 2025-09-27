@@ -161,8 +161,8 @@
                                 <div class="card border-info">
                                     <div class="card-header bg-info text-white">
                                         <h6 class="mb-0">
-                                            <i class="fas fa-user me-2"></i>{{ selected_customer.full_name }}'s Current Bookings
-                                            <span class="badge bg-primary text-white ms-2">{{ customer_appointments|length }} Ready to Bill</span>
+                                            <i class="fas fa-user me-2"></i>{{ selected_customer.full_name }}'s Confirmed Bookings
+                                            <span class="badge bg-primary text-white ms-2">{{ customer_appointments|length }} Confirmed</span>
                                         </h6>
                                     </div>
                                     <div class="card-body">
@@ -184,7 +184,7 @@
                                         {% if customer_appointments %}
                                         <hr>
                                         <h6 class="text-success mb-3">
-                                            <i class="fas fa-clock me-1"></i>Current Bookings Ready for Billing:
+                                            <i class="fas fa-clock me-1"></i>All Confirmed Bookings:
                                         </h6>
                                         <div class="table-responsive">
                                             <table class="table table-sm table-bordered">
@@ -249,7 +249,7 @@
                                         {% else %}
                                         <div class="alert alert-info">
                                             <i class="fas fa-info-circle me-2"></i>
-                                            <strong>No current bookings found.</strong> This customer has no pending appointments to bill.
+                                            <strong>No confirmed bookings found.</strong> This customer has no confirmed appointments.
                                         </div>
                                         {% endif %}
 
@@ -1018,7 +1018,7 @@ function validateStock(quantityInput) {
         if (requested > available) {
             quantityInput.style.borderColor = '#dc3545'; // Red border for invalid input
             if (availableStockDiv) {
-                availableStockDiv.innerHTML = `<span class="batch-warning">Available: ${available} (Insufficient stock!)</span>`;
+                availableStockDiv.innerHTML = '<span class="batch-warning">Available: ' + available + ' (Insufficient stock!)</span>';
             }
             quantityInput.setCustomValidity('Insufficient stock');
         } else {

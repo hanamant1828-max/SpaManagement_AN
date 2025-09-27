@@ -170,19 +170,17 @@ def integrated_billing(customer_id=None):
             # Import UnakiBooking model
             from models import UnakiBooking
             
-            # Get only CURRENT Unaki bookings (not completed/paid) - save time
+            # Get ALL confirmed Unaki bookings for this customer
             customer_appointments_query = UnakiBooking.query.filter(
                 UnakiBooking.client_name.ilike(f'%{selected_customer.first_name}%'),
-                UnakiBooking.status.in_(['confirmed', 'scheduled']),
-                UnakiBooking.payment_status.in_(['pending', 'unpaid'])  # Only unpaid appointments
+                UnakiBooking.status == 'confirmed'  # Only confirmed appointments
             ).order_by(UnakiBooking.appointment_date.desc()).all()
 
             # Also try to match by phone if available
             if selected_customer.phone and not customer_appointments_query:
                 customer_appointments_query = UnakiBooking.query.filter(
                     UnakiBooking.client_phone == selected_customer.phone,
-                    UnakiBooking.status.in_(['confirmed', 'scheduled']),
-                    UnakiBooking.payment_status.in_(['pending', 'unpaid'])
+                    UnakiBooking.status == 'confirmed'  # Only confirmed appointments
                 ).order_by(UnakiBooking.appointment_date.desc()).all()
 
             # Convert UnakiBooking objects to dictionaries for JSON serialization
@@ -193,7 +191,7 @@ def integrated_billing(customer_id=None):
             if unaki_service_names:
                 customer_services = Service.query.filter(Service.name.in_(unaki_service_names)).all()
 
-            print(f"DEBUG: Customer {customer_id} has {len(customer_appointments)} current unpaid Unaki appointments and {len(customer_services)} services ready for billing")
+            print(f"DEBUG: Customer {customer_id} has {len(customer_appointments)} confirmed Unaki appointments and {len(customer_services)} services ready for billing")
 
     return render_template('integrated_billing.html',
                          customers=customers,
