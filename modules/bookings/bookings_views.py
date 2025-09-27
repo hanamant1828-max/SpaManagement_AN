@@ -1426,6 +1426,7 @@ def unaki_schedule_api():
                          services=services,
                          timedelta=timedelta)
 
+
 @app.route('/appointments/book', methods=['GET', 'POST'])
 @login_required
 def appointments_book():
