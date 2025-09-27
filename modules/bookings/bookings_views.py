@@ -2234,6 +2234,8 @@ def appointment_go_to_billing(appointment_id):
         return redirect(url_for('dashboard'))
     
     try:
+        # Import db from app
+        from app import db
         # First try to find in UnakiBooking table
         from models import UnakiBooking, Customer
         unaki_booking = UnakiBooking.query.get(appointment_id)
@@ -2284,6 +2286,6 @@ def appointment_go_to_billing(appointment_id):
         return redirect(url_for('unaki_booking'))
         
     except Exception as e:
-        app.logger.error(f"Error in appointment_go_to_billing: {e}")
+        print(f"Error in appointment_go_to_billing: {e}")
         flash('Error accessing billing information', 'error')
         return redirect(url_for('unaki_booking'))
