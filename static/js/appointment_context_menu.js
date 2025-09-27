@@ -111,6 +111,14 @@ function addAppointmentListeners() {
         '[data-appointment-id]'
     ];
     
+    // Also target staff header columns for staff-level context menu
+    const staffSelectors = [
+        '.staff-header-column',
+        '.staff-name',
+        '.staff-row'
+    ];
+    
+    // Add listeners for appointment blocks
     appointmentSelectors.forEach(selector => {
         const appointments = document.querySelectorAll(selector);
         console.log(`🔍 Found ${appointments.length} appointments for selector: ${selector}`);
@@ -128,6 +136,29 @@ function addAppointmentListeners() {
             // Debug: Log appointment details
             const appointmentId = appointment.dataset.appointmentId || appointment.getAttribute('data-appointment-id');
             console.log(`✅ Context menu attached to appointment ${index + 1}: ID ${appointmentId}`);
+        });
+    });
+    
+    // Add listeners for staff header columns
+    staffSelectors.forEach(selector => {
+        const staffHeaders = document.querySelectorAll(selector);
+        console.log(`🔍 Found ${staffHeaders.length} staff headers for selector: ${selector}`);
+        
+        staffHeaders.forEach((staffHeader, index) => {
+            // Remove existing listeners to prevent duplicates
+            staffHeader.removeEventListener('contextmenu', handleStaffHeaderRightClick);
+            
+            // Add right-click listener
+            staffHeader.addEventListener('contextmenu', handleStaffHeaderRightClick);
+            
+            // Make sure staff header has cursor pointer
+            staffHeader.style.cursor = 'pointer';
+            
+            // Debug: Log staff header details
+            const staffName = staffHeader.querySelector('.staff-name')?.textContent || 
+                             staffHeader.textContent || 
+                             staffHeader.dataset.staffName;
+            console.log(`✅ Context menu attached to staff header ${index + 1}: ${staffName}`);
         });
     });
     
@@ -192,6 +223,41 @@ function handleAppointmentRightClick(event) {
     showContextMenu(event.pageX, event.pageY);
 }
 
+function handleStaffHeaderRightClick(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    
+    // Get staff information from the header element
+    const staffElement = event.currentTarget;
+    
+    // Debug: Log staff header information
+    console.log('🔍 Right-click staff element:', staffElement);
+    console.log('🔍 Staff element class:', staffElement.className);
+    console.log('🔍 Staff data attributes:', staffElement.dataset);
+    
+    // Get staff name and ID
+    const staffName = staffElement.querySelector('.staff-name')?.textContent || 
+                     staffElement.textContent?.trim() || 
+                     staffElement.dataset.staffName || 
+                     'Unknown Staff';
+    
+    const staffId = staffElement.dataset.staffId || 
+                   staffElement.getAttribute('data-staff-id') ||
+                   staffElement.closest('[data-staff-id]')?.dataset.staffId;
+    
+    console.log('🔍 Right-clicked staff:', staffName, 'ID:', staffId);
+    
+    // Set current appointment ID to null since this is a staff header click
+    currentAppointmentId = null;
+    
+    // Store staff information for context menu actions
+    window.currentStaffId = staffId;
+    window.currentStaffName = staffName;
+    
+    // Show context menu at cursor position (same menu for now)
+    showContextMenu(event.pageX, event.pageY);
+}
+
 function showContextMenu(x, y) {
     if (!contextMenu) return;
     
@@ -227,8 +293,18 @@ function hideContextMenu() {
 function goToIntegratedBilling() {
     hideContextMenu();
     
+    // Handle staff header clicks - bill all appointments for that staff
+    if (!currentAppointmentId && window.currentStaffId) {
+        console.log('🔄 Navigating to integrated billing for staff:', window.currentStaffName, 'ID:', window.currentStaffId);
+        
+        // Navigate to staff billing route or integrated billing with staff filter
+        window.location.href = `/integrated-billing?staff_id=${window.currentStaffId}`;
+        return;
+    }
+    
+    // Handle individual appointment clicks
     if (!currentAppointmentId) {
-        alert('No appointment selected');
+        alert('No appointment or staff selected');
         return;
     }
     
@@ -241,8 +317,18 @@ function goToIntegratedBilling() {
 function viewAppointmentDetails() {
     hideContextMenu();
     
+    // Handle staff header clicks - show staff schedule or details
+    if (!currentAppointmentId && window.currentStaffId) {
+        console.log('👁️ Viewing staff details:', window.currentStaffName, 'ID:', window.currentStaffId);
+        
+        // Navigate to staff management or staff schedule
+        window.location.href = `/staff-management?staff_id=${window.currentStaffId}`;
+        return;
+    }
+    
+    // Handle individual appointment clicks
     if (!currentAppointmentId) {
-        alert('No appointment selected');
+        alert('No appointment or staff selected');
         return;
     }
     
@@ -255,8 +341,18 @@ function viewAppointmentDetails() {
 function editAppointment() {
     hideContextMenu();
     
+    // Handle staff header clicks - edit staff or create new appointment
+    if (!currentAppointmentId && window.currentStaffId) {
+        console.log('✏️ Creating new appointment for staff:', window.currentStaffName, 'ID:', window.currentStaffId);
+        
+        // Navigate to create new appointment with staff pre-selected
+        window.location.href = `/unaki-booking?staff_id=${window.currentStaffId}`;
+        return;
+    }
+    
+    // Handle individual appointment clicks
     if (!currentAppointmentId) {
-        alert('No appointment selected');
+        alert('No appointment or staff selected');
         return;
     }
     
