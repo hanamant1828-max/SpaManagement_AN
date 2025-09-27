@@ -171,41 +171,45 @@ def integrated_billing(customer_id=None):
             # Import UnakiBooking model
             from models import UnakiBooking
             
-            # Get ALL scheduled and confirmed Unaki bookings for this customer
+            # Get ALL unpaid/pending Unaki bookings for this customer (billing-ready appointments)
             customer_appointments_query = []
             
-            # Method 1: Try to match by client_id first (most reliable)
+            # Method 1: Try to match by client_id first (most reliable) - filter for billing
             if selected_customer.id:
                 customer_appointments_query = UnakiBooking.query.filter(
                     UnakiBooking.client_id == selected_customer.id,
-                    UnakiBooking.status.in_(['scheduled', 'confirmed'])
-                ).order_by(UnakiBooking.appointment_date.desc()).all()
+                    UnakiBooking.payment_status.in_(['pending', 'partial']),
+                    UnakiBooking.status.in_(['scheduled', 'confirmed', 'completed'])
+                ).order_by(UnakiBooking.appointment_date.desc(), UnakiBooking.start_time.asc()).all()
             
-            # Method 2: If no results, try matching by phone (exact match)
+            # Method 2: If no results, try matching by phone (exact match) - filter for billing
             if not customer_appointments_query and selected_customer.phone:
                 customer_appointments_query = UnakiBooking.query.filter(
                     UnakiBooking.client_phone == selected_customer.phone,
-                    UnakiBooking.status.in_(['scheduled', 'confirmed'])
-                ).order_by(UnakiBooking.appointment_date.desc()).all()
+                    UnakiBooking.payment_status.in_(['pending', 'partial']),
+                    UnakiBooking.status.in_(['scheduled', 'confirmed', 'completed'])
+                ).order_by(UnakiBooking.appointment_date.desc(), UnakiBooking.start_time.asc()).all()
             
-            # Method 3: If still no results, try matching by name (partial match)
+            # Method 3: If still no results, try matching by name (partial match) - filter for billing
             if not customer_appointments_query:
                 # Try full name match first
                 full_name = f"{selected_customer.first_name} {selected_customer.last_name}".strip()
                 customer_appointments_query = UnakiBooking.query.filter(
                     UnakiBooking.client_name.ilike(f'%{full_name}%'),
-                    UnakiBooking.status.in_(['scheduled', 'confirmed'])
-                ).order_by(UnakiBooking.appointment_date.desc()).all()
+                    UnakiBooking.payment_status.in_(['pending', 'partial']),
+                    UnakiBooking.status.in_(['scheduled', 'confirmed', 'completed'])
+                ).order_by(UnakiBooking.appointment_date.desc(), UnakiBooking.start_time.asc()).all()
                 
                 # If still no results, try first name only
                 if not customer_appointments_query:
                     customer_appointments_query = UnakiBooking.query.filter(
                         UnakiBooking.client_name.ilike(f'%{selected_customer.first_name}%'),
-                        UnakiBooking.status.in_(['scheduled', 'confirmed'])
-                    ).order_by(UnakiBooking.appointment_date.desc()).all()
+                        UnakiBooking.payment_status.in_(['pending', 'partial']),
+                        UnakiBooking.status.in_(['scheduled', 'confirmed', 'completed'])
+                    ).order_by(UnakiBooking.appointment_date.desc(), UnakiBooking.start_time.asc()).all()
             
             print(f"DEBUG: Customer {selected_customer.id} ({selected_customer.first_name} {selected_customer.last_name}) phone: {selected_customer.phone}")
-            print(f"DEBUG: Found {len(customer_appointments_query)} Unaki appointments for billing")
+            print(f"DEBUG: Found {len(customer_appointments_query)} billing-ready Unaki appointments (pending/partial payment only)")
 
             # Convert UnakiBooking objects to dictionaries for JSON serialization
             customer_appointments = [appointment.to_dict() for appointment in customer_appointments_query]

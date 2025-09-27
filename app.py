@@ -947,6 +947,42 @@ def zenoti_booking():
     from datetime import datetime, date
 
     # Get today's data for the interface
+
+
+@app.route('/api/unaki/appointment/<int:appointment_id>/client-data')
+def get_appointment_client_data(appointment_id):
+    """Get client data for a specific appointment for billing integration"""
+    try:
+        from models import UnakiBooking
+        
+        appointment = UnakiBooking.query.get(appointment_id)
+        if not appointment:
+            return jsonify({
+                'success': False,
+                'error': 'Appointment not found'
+            }), 404
+        
+        return jsonify({
+            'success': True,
+            'client_id': appointment.client_id,
+            'client_name': appointment.client_name,
+            'client_phone': appointment.client_phone,
+            'service_name': appointment.service_name,
+            'service_price': appointment.service_price,
+            'payment_status': appointment.payment_status,
+            'status': appointment.status,
+            'appointment_date': appointment.appointment_date.strftime('%Y-%m-%d'),
+            'start_time': appointment.start_time.strftime('%H:%M'),
+            'end_time': appointment.end_time.strftime('%H:%M')
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
     today = date.today()
     staff_members = User.query.filter_by(is_active=True, role='staff').all()
     customers = Customer.query.filter_by(is_active=True).all()

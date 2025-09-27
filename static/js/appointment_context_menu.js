@@ -48,7 +48,7 @@ class AppointmentContextMenu {
                     </li>
                     <li class="context-menu-divider"></li>
                     <li class="context-menu-item" data-action="billing">
-                        <i class="fas fa-dollar-sign"></i> Go to Billing
+                        <i class="fas fa-dollar-sign"></i> Go to Integrated Billing
                     </li>
                     <li class="context-menu-item danger" data-action="delete">
                         <i class="fas fa-trash"></i> Delete Appointment
@@ -300,10 +300,38 @@ class AppointmentContextMenu {
     }
 
     goToBilling(appointmentId) {
-        console.log(`Redirecting to billing for appointment ${appointmentId}`);
+        console.log(`Redirecting to integrated billing for appointment ${appointmentId}`);
         
-        // Redirect to the existing appointment billing route
-        window.location.href = `/appointment/${appointmentId}/go-to-billing`;
+        // First try to get client_id from DOM element
+        const appointmentElement = document.querySelector(`[data-appointment-id="${appointmentId}"]`);
+        const clientId = appointmentElement?.dataset?.clientId || 
+                        appointmentElement?.getAttribute('data-client-id');
+        
+        if (clientId) {
+            console.log(`Found client_id: ${clientId} for appointment ${appointmentId}`);
+            window.location.href = `/integrated-billing/${clientId}`;
+        } else {
+            // Fetch client data from API
+            console.log(`Fetching client data for appointment ${appointmentId} from API`);
+            
+            fetch(`/api/unaki/appointment/${appointmentId}/client-data`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success && data.client_id) {
+                        console.log(`API returned client_id: ${data.client_id} for appointment ${appointmentId}`);
+                        window.location.href = `/integrated-billing/${data.client_id}`;
+                    } else {
+                        console.warn(`No client_id from API, using fallback redirect for appointment ${appointmentId}`);
+                        // Fallback to appointment-based redirect
+                        window.location.href = `/appointment/${appointmentId}/go-to-billing`;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching client data:', error);
+                    // Fallback redirect on error
+                    window.location.href = `/appointment/${appointmentId}/go-to-billing`;
+                });
+        }
     }
 
     deleteAppointment(appointmentId) {
