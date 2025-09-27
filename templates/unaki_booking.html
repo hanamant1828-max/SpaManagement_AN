@@ -314,15 +314,15 @@
             background: rgba(255, 255, 255, 0.5);
         }
 
-        .edit-btn { 
-            color: #f0e68c; 
+        .edit-btn {
+            color: #f0e68c;
         }
         .edit-btn:hover {
             background: rgba(240, 230, 140, 0.3);
         }
 
-        .delete-btn { 
-            color: #f08080; 
+        .delete-btn {
+            color: #f08080;
         }
         .delete-btn:hover {
             background: rgba(240, 128, 128, 0.3);
@@ -2627,6 +2627,17 @@
         window.deleteAppointment = deleteAppointment;
         window.viewAppointmentDetails = function(appointmentId) { /* Placeholder for viewing details */ };
 
+        function renderSchedule() {
+            try {
+                generateScheduleGrid();
+            } catch (error) {
+                console.error('Error rendering schedule:', error);
+                const grid = document.getElementById('scheduleGrid');
+                if (grid) {
+                    grid.innerHTML = '<div class="text-center p-5"><p class="text-muted">Error loading schedule. Please refresh.</p></div>';
+                }
+            }
+        }
     </script>
 </body>
 </html>
