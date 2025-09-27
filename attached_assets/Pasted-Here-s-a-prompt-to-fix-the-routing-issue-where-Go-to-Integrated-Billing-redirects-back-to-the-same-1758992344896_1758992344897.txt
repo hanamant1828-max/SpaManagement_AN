@@ -1,0 +1,79 @@
+Here's a prompt to fix the routing issue where "Go to Integrated Billing" redirects back to the same Unaki booking page:
+PROMPT TO FIX ROUTING ISSUE:
+PROBLEM: Right-click "Go to Integrated Billing" is redirecting back to Unaki booking page instead of the integrated billing page.
+
+ROOT CAUSE ANALYSIS:
+1. Check if the JavaScript function `redirectToBilling()` has correct URL
+2. Verify the backend route mapping for integrated billing
+3. Ensure no URL conflicts between Unaki booking and integrated billing
+
+FIXES NEEDED:
+
+1. **JavaScript Function Fix:**
+```javascript
+function redirectToBilling(clientId) {
+    // WRONG: window.location.href = '/unaki-booking/' + clientId;
+    // CORRECT:
+    window.location.href = '/integrated-billing/' + clientId;
+    
+    // Or if integrated billing has different route:
+    // window.location.href = '/billing/integrated/' + clientId;
+}
+
+Backend Route Verification:
+Check your Flask/Django routes file for conflicts:
+
+python# Make sure you have:
+@app.route('/integrated-billing/<int:client_id>')
+def integrated_billing_with_client(client_id):
+    # Load client data and unpaid appointments
+    
+# NOT:
+@app.route('/unaki-booking/<int:client_id>')  # This might be conflicting
+
+Context Menu Action Fix:
+
+javascriptcase 'goto-billing':
+    if (this.currentAppointment.clientId) {
+        // ENSURE CORRECT URL PATH
+        window.location.href = `/integrated-billing/${this.currentAppointment.clientId}`;
+    } else {
+        // Fallback to general billing page
+        window.location.href = '/integrated-billing';
+    }
+    break;
+
+Debug Steps:
+
+
+Add console.log to see actual URL being called
+Check browser network tab for the actual request
+Verify route definitions in your backend
+Check if there's URL rewriting/redirects happening
+
+
+URL Pattern Check:
+Ensure your integrated billing page URL is different from Unaki booking:
+
+
+Unaki Booking: /unaki-booking/ or /appointments/
+Integrated Billing: /integrated-billing/ or /billing/
+
+
+Template/HTML Verification:
+Make sure the integrated billing template is being served from correct route and not accidentally serving the Unaki booking template.
+
+TESTING:
+
+Right-click appointment
+Click "Go to Integrated Billing"
+Should redirect to: /integrated-billing/{client_id}
+Should show billing page with customer pre-selected
+Should NOT show Unaki booking scheduler
+
+DEBUG COMMAND:
+Add this to your JavaScript to see where it's actually going:
+javascriptconsole.log('Redirecting to:', `/integrated-billing/${clientId}`);
+window.location.href = `/integrated-billing/${clientId}`;
+
+This prompt identifies the most common causes of the routing issue and provides specific fixes for the redirect problem.
