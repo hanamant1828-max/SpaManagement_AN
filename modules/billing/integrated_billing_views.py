@@ -22,7 +22,7 @@ def number_to_words(amount):
         ones = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine']
         teens = ['Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen']
         tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety']
-        
+
         def convert_hundreds(num):
             result = ''
             if num >= 100:
@@ -37,46 +37,46 @@ def number_to_words(amount):
             if num > 0:
                 result += ones[num] + ' '
             return result
-        
+
         if amount == 0:
             return 'Zero Rupees Only'
-        
+
         rupees = int(amount)
         paise = int((amount - rupees) * 100)
-        
+
         result = ''
-        
+
         # Handle crores
         if rupees >= 10000000:
             crores = rupees // 10000000
             result += convert_hundreds(crores) + 'Crore '
             rupees %= 10000000
-        
+
         # Handle lakhs
         if rupees >= 100000:
             lakhs = rupees // 100000
             result += convert_hundreds(lakhs) + 'Lakh '
             rupees %= 100000
-        
+
         # Handle thousands
         if rupees >= 1000:
             thousands = rupees // 1000
             result += convert_hundreds(thousands) + 'Thousand '
             rupees %= 1000
-        
+
         # Handle remaining rupees
         if rupees > 0:
             result += convert_hundreds(rupees)
-        
+
         result = result.strip()
         if result:
             result = 'Rupees ' + result
         else:
             result = 'Rupees Zero'
-        
+
         if paise > 0:
             result += ' and ' + convert_hundreds(paise).strip() + ' Paise'
-        
+
         result += ' Only'
         return result
     except:
@@ -182,14 +182,14 @@ def appointment_to_billing(appointment_id):
     if not current_user.can_access('billing'):
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
-    
+
     try:
         from models import Appointment, UnakiBooking, Customer
-        
+
         # First try to find in regular Appointment table
         appointment = Appointment.query.get(appointment_id)
         customer_id = None
-        
+
         if appointment:
             customer_id = appointment.client_id
             app.logger.info(f"Found regular appointment {appointment_id}, customer {customer_id}")
@@ -201,18 +201,18 @@ def appointment_to_billing(appointment_id):
                 customer = None
                 if unaki_booking.client_phone:
                     customer = Customer.query.filter_by(phone=unaki_booking.client_phone).first()
-                
+
                 if not customer and unaki_booking.client_name:
                     # Try to find by name (split and search)
                     name_parts = unaki_booking.client_name.strip().split(' ', 1)
                     first_name = name_parts[0] if name_parts else ''
                     last_name = name_parts[1] if len(name_parts) > 1 else ''
-                    
+
                     if first_name:
                         customer = Customer.query.filter(
                             Customer.first_name.ilike(f'%{first_name}%')
                         ).first()
-                
+
                 if customer:
                     customer_id = customer.id
                     app.logger.info(f"Found UnakiBooking {appointment_id}, matched to customer {customer_id}")
@@ -221,7 +221,7 @@ def appointment_to_billing(appointment_id):
                     name_parts = unaki_booking.client_name.strip().split(' ', 1)
                     first_name = name_parts[0] if name_parts else 'Unknown'
                     last_name = name_parts[1] if len(name_parts) > 1 else ''
-                    
+
                     new_customer = Customer(
                         first_name=first_name,
                         last_name=last_name,
@@ -235,13 +235,13 @@ def appointment_to_billing(appointment_id):
                     app.logger.info(f"Created new customer {customer_id} for UnakiBooking {appointment_id}")
             else:
                 raise Exception(f"No appointment or booking found with ID {appointment_id}")
-        
+
         if not customer_id:
             raise Exception(f"Could not determine customer for appointment {appointment_id}")
-        
+
         # Redirect to integrated billing with customer_id
         return redirect(url_for('integrated_billing', customer_id=customer_id))
-        
+
     except Exception as e:
         app.logger.error(f"Error redirecting to billing for appointment {appointment_id}: {str(e)}")
         flash(f'Error accessing billing for this appointment: {str(e)}', 'danger')
@@ -255,7 +255,7 @@ def create_professional_invoice():
         return jsonify({'success': False, 'message': 'Access denied'}), 403
 
     try:
-        from models import Customer, Service, EnhancedInvoice, InvoiceItem
+        from models import Service, EnhancedInvoice, InvoiceItem
         from modules.inventory.models import InventoryBatch, InventoryProduct
         from modules.inventory.queries import create_consumption_record
         import datetime
@@ -304,12 +304,12 @@ def create_professional_invoice():
         sgst_rate = float(request.form.get('sgst_rate', 9)) / 100
         igst_rate = float(request.form.get('igst_rate', 0)) / 100
         is_interstate = request.form.get('is_interstate') == 'on'
-        
+
         discount_type = request.form.get('discount_type', 'amount')
         discount_value = float(request.form.get('discount_value', 0))
         additional_charges = float(request.form.get('additional_charges', 0))
         tips_amount = float(request.form.get('tips_amount', 0))
-        
+
         payment_terms = request.form.get('payment_terms', 'immediate')
         payment_method = request.form.get('payment_method', 'cash')
 
@@ -318,7 +318,7 @@ def create_professional_invoice():
             batch = InventoryBatch.query.get(item['batch_id'])
             if not batch or batch.is_expired:
                 return jsonify({'success': False, 'message': f'Invalid or expired batch for product ID {item["product_id"]}'})
-            
+
             if float(batch.qty_available) < item['quantity']:
                 return jsonify({
                     'success': False, 
@@ -350,7 +350,7 @@ def create_professional_invoice():
         cgst_amount = 0
         sgst_amount = 0
         igst_amount = 0
-        
+
         if is_interstate:
             igst_amount = net_subtotal * igst_rate
         else:
@@ -365,7 +365,7 @@ def create_professional_invoice():
             # Generate professional invoice number
             current_date = datetime.datetime.now()
             latest_invoice = db.session.query(EnhancedInvoice).order_by(EnhancedInvoice.id.desc()).first()
-            
+
             if latest_invoice and latest_invoice.invoice_number.startswith(f"INV-{current_date.strftime('%Y%m%d')}"):
                 try:
                     last_sequence = int(latest_invoice.invoice_number.split('-')[-1])
@@ -374,7 +374,7 @@ def create_professional_invoice():
                     invoice_sequence = 1
             else:
                 invoice_sequence = 1
-            
+
             invoice_number = f"INV-{current_date.strftime('%Y%m%d')}-{invoice_sequence:04d}"
 
             # Create enhanced invoice with professional fields
@@ -382,7 +382,7 @@ def create_professional_invoice():
             invoice.invoice_number = invoice_number
             invoice.client_id = int(client_id)
             invoice.invoice_date = current_date
-            
+
             # Professional billing fields
             invoice.services_subtotal = services_subtotal
             invoice.inventory_subtotal = inventory_subtotal
@@ -393,7 +393,7 @@ def create_professional_invoice():
             invoice.tips_amount = tips_amount
             invoice.total_amount = total_amount
             invoice.balance_due = total_amount
-            
+
             # Store GST fields properly
             invoice.cgst_rate = cgst_rate * 100
             invoice.sgst_rate = sgst_rate * 100
@@ -404,7 +404,7 @@ def create_professional_invoice():
             invoice.is_interstate = is_interstate
             invoice.additional_charges = additional_charges
             invoice.payment_terms = payment_terms
-            
+
             # Tax breakdown for legacy support
             tax_breakdown = {
                 'cgst_rate': cgst_rate * 100,
@@ -418,7 +418,7 @@ def create_professional_invoice():
                 'payment_terms': payment_terms,
                 'payment_method': payment_method
             }
-            
+
             invoice.notes = json.dumps(tax_breakdown)
             invoice.payment_methods = json.dumps({payment_method: total_amount})
 
@@ -447,7 +447,7 @@ def create_professional_invoice():
             # Create invoice items for inventory and reduce stock
             inventory_items_created = 0
             stock_reduced_count = 0
-            
+
             for item_data in inventory_data:
                 batch = InventoryBatch.query.get(item_data['batch_id'])
                 product = InventoryProduct.query.get(item_data['product_id'])
@@ -520,7 +520,7 @@ def create_integrated_invoice():
         return jsonify({'success': False, 'message': 'Access denied'}), 403
 
     try:
-        from models import Customer, Service, EnhancedInvoice, InvoiceItem
+        from models import Service, EnhancedInvoice, InvoiceItem
         from modules.inventory.models import InventoryBatch, InventoryProduct
         from modules.inventory.queries import create_consumption_record
         import datetime
@@ -583,11 +583,11 @@ def create_integrated_invoice():
             if batch.selling_price:
                 actual_price = float(batch.selling_price)
                 submitted_price = item['unit_price']
-                
+
                 # Allow up to 50% discount, but prevent price inflation or excessive discounts
                 min_allowed_price = actual_price * 0.5  # 50% discount max
                 max_allowed_price = actual_price * 1.1   # 10% markup max for rounding
-                
+
                 if submitted_price < min_allowed_price or submitted_price > max_allowed_price:
                     # Log suspicious price manipulation attempt
                     app.logger.warning(f"Price manipulation attempt detected: User {current_user.id} tried to set price {submitted_price} for batch {batch.batch_name} (actual: {actual_price})")
@@ -608,7 +608,7 @@ def create_integrated_invoice():
             service = Service.query.get(service_data['service_id'])
             if not service:
                 return jsonify({'success': False, 'message': f'Service not found: {service_data["service_id"]}'})
-            
+
             # For services, we don't accept client price input - always use actual service price
             # This prevents any service price manipulation
             # Note: If custom service pricing is needed in the future, implement proper authorization checks
@@ -643,7 +643,7 @@ def create_integrated_invoice():
         try:
                 # Get latest invoice to generate sequential number
                 latest_invoice = db.session.query(EnhancedInvoice).order_by(EnhancedInvoice.id.desc()).first()
-                
+
                 if latest_invoice and latest_invoice.invoice_number.startswith(f"INV-{datetime.datetime.now().strftime('%Y%m%d')}"):
                     # Extract sequence number from existing invoice number
                     try:
@@ -654,7 +654,7 @@ def create_integrated_invoice():
                 else:
                     # First invoice of the day
                     invoice_sequence = 1
-                
+
                 invoice_number = f"INV-{datetime.datetime.now().strftime('%Y%m%d')}-{invoice_sequence:04d}"
 
                 # Create enhanced invoice
@@ -699,7 +699,7 @@ def create_integrated_invoice():
                 inventory_items_created = 0
                 stock_reduced_count = 0
                 stock_operations = []  # Track all operations for potential rollback
-                
+
                 for item_data in inventory_data:
                     batch = InventoryBatch.query.get(item_data['batch_id'])
                     product = InventoryProduct.query.get(item_data['product_id'])
@@ -1012,7 +1012,7 @@ def save_invoice_draft():
     """Save invoice as draft for later completion"""
     if not current_user.can_access('billing'):
         return jsonify({'success': False, 'message': 'Access denied'}), 403
-    
+
     try:
         # Implementation for saving draft invoices
         return jsonify({'success': True, 'message': 'Draft saved successfully'})
@@ -1026,11 +1026,11 @@ def print_professional_invoice(invoice_id):
     if not current_user.can_access('billing'):
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
-    
+
     from models import EnhancedInvoice, InvoiceItem
     invoice = EnhancedInvoice.query.get_or_404(invoice_id)
     invoice_items = InvoiceItem.query.filter_by(invoice_id=invoice_id).all()
-    
+
     # Parse tax details from notes
     import json
     tax_details = {}
@@ -1038,7 +1038,7 @@ def print_professional_invoice(invoice_id):
         tax_details = json.loads(invoice.notes) if invoice.notes else {}
     except:
         pass
-    
+
     return render_template('professional_invoice_print.html',
                          invoice=invoice,
                          invoice_items=invoice_items,
@@ -1050,7 +1050,7 @@ def generate_invoice_preview():
     """Generate professional invoice preview"""
     if not current_user.can_access('billing'):
         return jsonify({'error': 'Access denied'}), 403
-    
+
     try:
         data = request.json or {}
         # Generate preview HTML
@@ -1091,12 +1091,12 @@ def generate_invoice_preview():
             </div>
         </div>
         """
-        
+
         return jsonify({
             'success': True,
             'preview_html': preview_html
         })
-        
+
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
 
