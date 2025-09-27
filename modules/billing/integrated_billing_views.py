@@ -7,6 +7,7 @@ from flask_login import login_required, current_user
 from app import app, db
 from datetime import datetime
 import json
+from models import Customer, Service, Appointment
 try:
     from modules.inventory.models import InventoryProduct, InventoryBatch
 except ImportError:
@@ -94,8 +95,9 @@ def from_json_filter(json_str):
         return {}
 
 @app.route('/integrated-billing')
+@app.route('/integrated-billing/<int:customer_id>')
 @login_required
-def integrated_billing():
+def integrated_billing(customer_id=None):
     """New integrated billing dashboard"""
     if not current_user.can_access('billing'):
         flash('Access denied', 'danger')
@@ -148,6 +150,20 @@ def integrated_billing():
         app.logger.error(f"Error calculating today's revenue: {str(e)}")
         today_revenue = 0
 
+    # Handle customer-specific billing data
+    customer_appointments = []
+    selected_customer = None
+    if customer_id:
+        from models import Customer, Appointment
+        selected_customer = Customer.query.get(customer_id)
+        if selected_customer:
+            # Get all appointments for this customer that are not yet billed
+            customer_appointments = Appointment.query.filter(
+                Appointment.client_id == customer_id,
+                Appointment.status.in_(['completed', 'confirmed']),
+                Appointment.is_paid == False
+            ).all()
+
     return render_template('integrated_billing.html',
                          customers=customers,
                          services=services,
@@ -155,7 +171,23 @@ def integrated_billing():
                          recent_invoices=recent_invoices,
                          total_revenue=total_revenue,
                          pending_amount=pending_amount,
-                         today_revenue=today_revenue)
+                         today_revenue=today_revenue,
+                         selected_customer=selected_customer,
+                         customer_appointments=customer_appointments)
+
+@app.route('/appointment/<int:appointment_id>/go-to-billing')
+@login_required
+def appointment_to_billing(appointment_id):
+    """Redirect to integrated billing for a specific appointment's customer"""
+    if not current_user.can_access('billing'):
+        flash('Access denied', 'danger')
+        return redirect(url_for('dashboard'))
+    
+    from models import Appointment
+    appointment = Appointment.query.get_or_404(appointment_id)
+    
+    # Redirect to integrated billing with customer_id
+    return redirect(url_for('integrated_billing', customer_id=appointment.client_id))
 
 @app.route('/integrated-billing/create-professional', methods=['POST'])
 @login_required

@@ -1755,5 +1755,69 @@ document.getElementById('billingForm').addEventListener('submit', function(e) {
                 alert('Invoice ID not found. Cannot send via WhatsApp.');
             }
         }
+        
+        // Auto-select customer and load appointments if coming from appointment context menu
+        document.addEventListener('DOMContentLoaded', function() {
+            // Auto-select customer if provided from appointment context menu
+            {% if selected_customer %}
+            const customerSelect = document.getElementById('client_id');
+            if (customerSelect) {
+                customerSelect.value = '{{ selected_customer.id }}';
+                // Trigger change event to load customer packages
+                customerSelect.dispatchEvent(new Event('change'));
+                
+                // Show notification about auto-selection
+                const notification = document.createElement('div');
+                notification.className = 'alert alert-info alert-dismissible fade show mt-3';
+                notification.innerHTML = `
+                    <i class="fas fa-info-circle me-2"></i>
+                    <strong>Customer Auto-Selected:</strong> {{ selected_customer.full_name }}
+                    {% if customer_appointments|length > 0 %}
+                    <br><small>{{ customer_appointments|length }} pending appointment{{ 's' if customer_appointments|length != 1 else '' }} ready for billing</small>
+                    {% endif %}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                `;
+                
+                // Insert notification after the header
+                const container = document.querySelector('.container-fluid');
+                const firstRow = container.querySelector('.row');
+                firstRow.parentNode.insertBefore(notification, firstRow.nextSibling);
+                
+                // Auto-populate services from customer appointments  
+                {% if customer_appointments %}
+                populateCustomerAppointments();
+                {% endif %}
+            }
+            {% endif %}
+        });
+
+        // Function to populate services from customer appointments
+        {% if customer_appointments %}
+        function populateCustomerAppointments() {
+            const appointments = {{ customer_appointments | tojson }};
+            
+            if (appointments && appointments.length > 0) {
+                // Add success message
+                const successAlert = document.createElement('div');
+                successAlert.className = 'alert alert-success alert-dismissible fade show mt-3';
+                successAlert.innerHTML = `
+                    <i class="fas fa-check-circle me-2"></i>
+                    <strong>Services Ready for Billing:</strong> ${appointments.length} service${appointments.length !== 1 ? 's' : ''} from pending appointments
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                `;
+                
+                const container = document.querySelector('.container-fluid'); 
+                const billingCard = container.querySelector('.card');
+                billingCard.parentNode.insertBefore(successAlert, billingCard);
+                
+                // Auto-dismiss after 8 seconds
+                setTimeout(() => {
+                    if (successAlert.parentNode) {
+                        successAlert.remove();
+                    }
+                }, 8000);
+            }
+        }
+        {% endif %}
 </script>
 {% endblock %}
