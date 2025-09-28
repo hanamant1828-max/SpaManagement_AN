@@ -960,7 +960,7 @@ def api_get_batches_for_product(product_id):
     """Get batches for a specific product ordered by FIFO (expiry date)"""
     # Allow all authenticated users to view inventory batches
     if not current_user.is_active:
-        return jsonify({'error': 'Access denied'}), 403
+        return jsonify({'success': False, 'error': 'Access denied', 'batches': []}), 403
 
     try:
         from modules.inventory.models import InventoryBatch
@@ -1007,7 +1007,8 @@ def api_get_batches_for_product(product_id):
     except Exception as e:
         return jsonify({
             'success': False,
-            'error': f'Error fetching batches: {str(e)}'
+            'error': f'Error fetching batches: {str(e)}',
+            'batches': []
         }), 500
 
 

@@ -1192,35 +1192,17 @@ function addServiceRow() {
             }
         }
 
-        // Helper functions must be defined before addUnakiAppointmentToBill is called
-        
-        // Function to find or create empty service row
-        function findEmptyServiceRow() {
-            const serviceRows = document.querySelectorAll('.service-row');
-            for (let row of serviceRows) {
-                const serviceSelect = row.querySelector('select[name="service_ids[]"]');
-                if (!serviceSelect.value) {
-                    return row;
-                }
-            }
-            return null;
+        // Helper function to ensure billing calculations are triggered properly
+        function ensureBillingCalculation() {
+            console.log('Ensuring billing calculation is up to date...');
+            // Small delay to ensure DOM updates are complete
+            setTimeout(() => {
+                updateTaxCalculations();
+            }, 50);
         }
-        // Ensure all functions are globally available
-        window.addServiceRow = addServiceRow;
-        window.addAppointmentToBill = addAppointmentToBill;
-        window.previewInvoice = previewInvoice;
-        window.proceedWithInvoiceCreation = proceedWithInvoiceCreation;
-        window.saveAsDraft = saveAsDraft;
-        window.sendQuotation = sendQuotation;
-        window.clearForm = clearForm;
-        window.findEmptyServiceRow = findEmptyServiceRow;
-        window.autoFillCurrentServices = autoFillCurrentServices;
-        window.viewFullCustomerHistory = viewFullCustomerHistory;
-        window.handleServiceSelection = handleServiceSelection;
 
 
-
-// Auto-fill customer's current Unaki appointments
+        // Auto-fill customer's current Unaki appointments
         function autoFillCurrentServices() {
             {% if selected_customer and customer_appointments %}
             const servicesContainer = document.getElementById('servicesContainer');
@@ -1621,38 +1603,6 @@ document.getElementById('client_id').addEventListener('change', function() {
         });
 });
 
-// Auto-populate customer services when page loads with pre-selected customer
-document.addEventListener('DOMContentLoaded', function() {
-    // Auto-select customer dropdown when redirecting from appointment
-    const urlParams = new URLSearchParams(window.location.search);
-    const preselectedClientId = "{{ preselected_client_id if preselected_client_id else '' }}";
-    const clientName = urlParams.get('client_name') || "{{ preselected_client_name if preselected_client_name else '' }}";
-
-    if (preselectedClientId) {
-        const customerDropdown = document.getElementById('client_id');
-        if (customerDropdown) {
-            // Set the dropdown value to the preselected client ID
-            customerDropdown.value = preselectedClientId;
-
-            // Trigger change event to load customer data
-            customerDropdown.dispatchEvent(new Event('change'));
-
-            console.log('Auto-selected customer from appointment:', preselectedClientId, clientName);
-
-            // Show success message to user
-            if (typeof showNotification === 'function') {
-                showNotification(`Customer ${clientName} auto-selected from appointment`, 'success');
-            }
-        }
-    }
-
-    const selectedCustomerId = document.getElementById('client_id').value;
-    if (selectedCustomerId) {
-        console.log('Auto-populating services for pre-selected customer:', selectedCustomerId);
-        autoPopulateCustomerServices(selectedCustomerId);
-    }
-});
-
 // Function to auto-populate customer's historical services
         function autoPopulateCustomerServices(customerId) {
     if (!customerId) return;
@@ -1891,15 +1841,6 @@ function updateTaxCalculations() {
         document.getElementById('display_additional').textContent = '₹0.00';
         document.getElementById('display_total').textContent = '₹0.00';
     }
-}
-
-// Helper function to ensure billing calculations are triggered properly
-function ensureBillingCalculation() {
-    console.log('Ensuring billing calculation is up to date...');
-    // Small delay to ensure DOM updates are complete
-    setTimeout(() => {
-        updateTaxCalculations();
-    }, 50);
 }
 
 // Helper function to format currency
@@ -2824,44 +2765,24 @@ document.getElementById('billingForm').addEventListener('submit', function(e) {
             console.log('Setting up tax calculation listeners...');
 
             // Tax rate inputs
-            const taxInputs = document.querySelectorAll('.tax-input');
+            const taxInputs = document.querySelectorAll('.tax-input, .billing-input');
             taxInputs.forEach(input => {
                 input.addEventListener('input', updateTaxCalculations);
                 input.addEventListener('change', updateTaxCalculations);
             });
 
-            // Billing inputs (discount, additional charges, tips)
-            const billingInputs = document.querySelectorAll('.billing-input');
-            billingInputs.forEach(input => {
-                input.addEventListener('input', updateTaxCalculations);
-                input.addEventListener('change', updateTaxCalculations);
-            });
-
-            // Interstate checkbox
-            const interstateCheckbox = document.getElementById('is_interstate');
-            if (interstateCheckbox) {
-                interstateCheckbox.addEventListener('change', function() {
-                    toggleTaxType();
-                    updateTaxCalculations();
-                });
-            }
-
-            // Service and product quantity/price changes
-            document.addEventListener('input', function(event) {
-                if (event.target.matches('input[name="service_quantities[]"]') ||
-                    event.target.matches('input[name="product_quantities[]"]') ||
-                    event.target.matches('input[name="product_prices[]"]')) {
+            // Service selection listeners
+            document.addEventListener('change', function(e) {
+                if (e.target.matches('select[name="service_ids[]"]') || 
+                    e.target.matches('input[name="service_quantities[]"]') ||
+                    e.target.matches('input[name="product_quantities[]"]') ||
+                    e.target.matches('input[name="product_prices[]"]')) {
                     updateTaxCalculations();
                 }
             });
 
-            // Service selection changes
-            document.addEventListener('change', function(event) {
-                if (event.target.matches('select[name="service_ids[]"]')) {
-                    handleServiceSelection(event.target);
-                    updateTaxCalculations();
-                }
-            });
+            // Initial calculation
+            updateTaxCalculations();
 
             console.log('Tax calculation listeners set up successfully');
         }
@@ -3086,5 +3007,47 @@ function handleServiceSelection(selectElement) {
     }
 }
 
+// Initialize components and event listeners
+        window.addServiceRow = addServiceRow;
+        window.addAppointmentToBill = addAppointmentToBill;
+        window.previewInvoice = previewInvoice;
+        window.proceedWithInvoiceCreation = proceedWithInvoiceCreation;
+        window.saveAsDraft = saveAsDraft;
+        window.sendQuotation = sendQuotation;
+        window.clearForm = clearForm;
+        window.findEmptyServiceRow = findEmptyServiceRow;
+        window.autoFillCurrentServices = autoFillCurrentServices;
+        window.viewFullCustomerHistory = viewFullCustomerHistory;
+        window.handleServiceSelection = handleServiceSelection;
+        window.updateTaxCalculations = updateTaxCalculations;
+        window.loadBatchesForProduct = loadBatchesForProduct;
+        window.validateInventoryQuantity = validateInventoryQuantity;
+
+        // Set up tax calculation listeners
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Setting up tax calculation listeners...');
+
+            // Tax input listeners
+            const taxInputs = document.querySelectorAll('.tax-input, .billing-input');
+            taxInputs.forEach(input => {
+                input.addEventListener('input', updateTaxCalculations);
+                input.addEventListener('change', updateTaxCalculations);
+            });
+
+            // Service selection listeners
+            document.addEventListener('change', function(e) {
+                if (e.target.matches('select[name="service_ids[]"]') || 
+                    e.target.matches('input[name="service_quantities[]"]') ||
+                    e.target.matches('input[name="product_quantities[]"]') ||
+                    e.target.matches('input[name="product_prices[]"]')) {
+                    updateTaxCalculations();
+                }
+            });
+
+            // Initial calculation
+            updateTaxCalculations();
+
+            console.log('Tax calculation listeners set up successfully');
+        });
 </script>
 {% endblock %}
