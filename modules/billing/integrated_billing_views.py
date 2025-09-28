@@ -199,7 +199,7 @@ def integrated_billing(customer_id=None):
 
     # Handle customer-specific billing data
     customer_appointments = []
-    customer_services = []
+    customer_services = []  # This will be a list of dictionaries, not Service objects
     selected_customer = None
     if customer_id:
         selected_customer = Customer.query.get(customer_id)
@@ -249,7 +249,22 @@ def integrated_billing(customer_id=None):
             # Get services from Unaki appointments by matching service names
             unaki_service_names = [apt.get('service_name') for apt in customer_appointments if apt.get('service_name')]
             if unaki_service_names:
-                customer_services = Service.query.filter(Service.name.in_(unaki_service_names)).all()
+                customer_services_objects = Service.query.filter(Service.name.in_(unaki_service_names)).all()
+                # Convert Service objects to dictionaries for JSON serialization
+                customer_services = [
+                    {
+                        'id': service.id,
+                        'name': service.name,
+                        'description': service.description,
+                        'price': float(service.price),
+                        'duration': service.duration,
+                        'category': service.category,
+                        'is_active': service.is_active
+                    }
+                    for service in customer_services_objects
+                ]
+            else:
+                customer_services = []
 
             print(f"DEBUG: Customer {customer_id} has {len(customer_appointments)} ready-to-bill Unaki appointments and {len(customer_services)} services ready for billing")
 
