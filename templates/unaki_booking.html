@@ -253,17 +253,23 @@
             opacity: 0.6;
             background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%) !important;
         }
-
-        .staff-not-working:hover {
-            background: linear-gradient(135deg, #e5e7eb 0%, #d1d5db 100%) !important;
+        .staff-holiday {
+            opacity: 0.6;
+            background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%) !important; /* Light green for holiday */
+            border-left: 3px solid #34d399 !important;
         }
-
+        .staff-absent {
+            opacity: 0.7;
+            background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%) !important; /* Light red for absent */
+            border-left: 3px solid #f87171 !important;
+        }
+        .staff-error {
+            opacity: 0.7;
+            background: linear-gradient(135deg, #fed7d7 0%, #fca5a5 100%) !important; /* Stronger red for error */
+            border-left: 3px solid #ef4444 !important;
+        }
         .staff-completed {
             border-left: 4px solid #10b981 !important;
-        }
-
-        .staff-absent {
-            border-left: 4px solid #f59e0b !important;
         }
 
         .text-success { color: #10b981 !important; }
@@ -2050,7 +2056,7 @@
         // Process staff data with shift logs integration
         function processStaffData(staffArray) {
             console.log('📊 Processing staff data with shift logs integration...');
-            
+
             return staffArray.map(staff => {
                 // Enhanced staff processing with shift log data
                 const processedStaff = {
@@ -2058,7 +2064,7 @@
                     name: staff.name,
                     specialty: staff.specialty || 'General',
                     role: staff.role || 'Staff',
-                    
+
                     // Shift information from shift logs
                     shift_start: staff.shift_start || '09:00',
                     shift_end: staff.shift_end || '17:00',
@@ -2066,18 +2072,18 @@
                     break_end: staff.break_end,
                     break_duration: staff.break_duration,
                     break_display: staff.break_display || 'No Break',
-                    
-                    // Working status from shift logs
-                    is_working: staff.is_working !== undefined ? staff.is_working : true,
-                    shift_status: staff.shift_status || 'not_scheduled',
-                    availability_status: staff.availability_status || 'Unknown',
-                    shift_display: staff.shift_display || `${staff.shift_start || '09:00'} - ${staff.shift_end || '17:00'}`,
-                    
+
                     // Shift logs metadata
                     has_shift_log: staff.has_shift_log || false,
                     has_shift_management: staff.has_shift_management || false,
                     shift_management_id: staff.shift_management_id,
-                    shift_log_id: staff.shift_log_id
+                    shift_log_id: staff.shift_log_id,
+
+                    // Working status from shift logs
+                    is_working: staff.is_working !== undefined ? staff.is_working : true,
+                    shift_status: staff.shift_status || 'not_scheduled',
+                    availability_status: staff.availability_status || 'Unknown',
+                    shift_display: staff.shift_display || `${staff.shift_start || '09:00'} - ${staff.shift_end || '17:00'}`
                 };
 
                 // Log detailed staff information
@@ -2087,7 +2093,7 @@
                 console.log(`   Break: ${processedStaff.break_display}`);
                 console.log(`   Working: ${processedStaff.is_working ? 'Yes' : 'No'}`);
                 console.log(`   Has Shift Log: ${processedStaff.has_shift_log ? 'Yes' : 'No'}`);
-                
+
                 return processedStaff;
             });
         }
@@ -2423,7 +2429,29 @@
                 // Staff name cell with enhanced shift logs integration
                 const staffCell = document.createElement('div');
                 staffCell.className = 'staff-cell';
-                
+
+                // Get status indicator class
+                let statusClass = 'status-not-scheduled';
+                switch (staff.shift_status) {
+                    case 'scheduled':
+                        statusClass = 'status-working';
+                        break;
+                    case 'completed':
+                        statusClass = 'status-completed';
+                        break;
+                    case 'absent':
+                        statusClass = 'status-absent';
+                        break;
+                    case 'holiday':
+                        statusClass = 'status-holiday';
+                        break;
+                    case 'error':
+                        statusClass = 'status-error';
+                        break;
+                    default:
+                        statusClass = 'status-not-scheduled';
+                }
+
                 // Add CSS class based on availability status
                 if (!staff.is_working) {
                     staffCell.classList.add('staff-not-working');
@@ -2431,8 +2459,12 @@
                     staffCell.classList.add('staff-completed');
                 } else if (staff.shift_status === 'absent') {
                     staffCell.classList.add('staff-absent');
+                } else if (staff.shift_status === 'holiday') {
+                    staffCell.classList.add('staff-holiday');
+                } else if (staff.shift_status === 'error') {
+                    staffCell.classList.add('staff-error');
                 }
-                
+
                 // Build status indicator
                 let statusIndicator = '';
                 switch (staff.shift_status) {
@@ -2451,7 +2483,7 @@
                     default:
                         statusIndicator = '<i class="fas fa-question-circle text-muted" title="Not Scheduled"></i>';
                 }
-                
+
                 staffCell.innerHTML = `
                     <div class="staff-name">
                         ${statusIndicator} ${staff.name}
@@ -2470,7 +2502,7 @@
                             <small>No shift log</small>
                         </div>` : ''}
                 `;
-                
+
                 // Add tooltip with detailed shift information
                 staffCell.title = `
 Staff: ${staff.name}
@@ -2479,7 +2511,7 @@ Shift: ${staff.shift_display}
 Break: ${staff.break_display}
 Shift Log: ${staff.has_shift_log ? 'Yes' : 'No'}
                 `.trim();
-                
+
                 grid.appendChild(staffCell);
 
                 // Time slot cells for this staff member

@@ -370,99 +370,136 @@ def unaki_schedule():
         # Enhanced shift logs integration for staff data
         staff_data = []
         for staff in staff_members:
-            # Get shift management for this staff member
-            shift_management = ShiftManagement.query.filter(
-                ShiftManagement.staff_id == staff.id,
-                ShiftManagement.from_date <= target_date,
-                ShiftManagement.to_date >= target_date
-            ).first()
-
-            # Get specific shift log for this date
-            shift_log = None
-            if shift_management:
-                shift_log = ShiftLogs.query.filter(
-                    ShiftLogs.shift_management_id == shift_management.id,
-                    ShiftLogs.individual_date == target_date
+            try:
+                # Get shift management for this staff member
+                shift_management = ShiftManagement.query.filter(
+                    ShiftManagement.staff_id == staff.id,
+                    ShiftManagement.from_date <= target_date,
+                    ShiftManagement.to_date >= target_date
                 ).first()
 
-            # Enhanced staff availability logic based on shift logs
-            if shift_log:
-                shift_start = shift_log.shift_start_time.strftime('%H:%M') if shift_log.shift_start_time else '09:00'
-                shift_end = shift_log.shift_end_time.strftime('%H:%M') if shift_log.shift_end_time else '17:00'
-                break_start = shift_log.break_start_time.strftime('%H:%M') if shift_log.break_start_time else None
-                break_end = shift_log.break_end_time.strftime('%H:%M') if shift_log.break_end_time else None
-                shift_status = shift_log.status
-                
-                # Determine working status based on shift log status
-                is_working = shift_status in ['scheduled', 'completed']
-                availability_status = {
-                    'scheduled': 'Working',
-                    'completed': 'Completed Shift',
-                    'absent': 'Absent',
-                    'holiday': 'Holiday'
-                }.get(shift_status, 'Unknown')
-                
-                # Calculate break duration if break times exist
-                break_duration = None
-                break_display = 'No Break'
-                if break_start and break_end:
-                    break_display = shift_log.get_break_time_display()
-                    # Calculate minutes for duration
-                    break_start_mins = int(break_start.split(':')[0]) * 60 + int(break_start.split(':')[1])
-                    break_end_mins = int(break_end.split(':')[0]) * 60 + int(break_end.split(':')[1])
-                    break_duration = break_end_mins - break_start_mins
-                
-                # Shift display with duration
-                shift_start_mins = int(shift_start.split(':')[0]) * 60 + int(shift_start.split(':')[1])
-                shift_end_mins = int(shift_end.split(':')[0]) * 60 + int(shift_end.split(':')[1])
-                total_shift_mins = shift_end_mins - shift_start_mins
-                shift_hours = total_shift_mins // 60
-                shift_mins = total_shift_mins % 60
-                shift_display = f"{shift_start} - {shift_end} ({shift_hours}h {shift_mins}m)"
-                
-            else:
-                # No shift log found - use defaults or shift management
+                # Get specific shift log for this date
+                shift_log = None
                 if shift_management:
-                    # Use shift management default times if no specific log
-                    shift_start = '09:00'
-                    shift_end = '17:00'
-                    is_working = True
-                    availability_status = 'Scheduled (Default)'
-                    shift_status = 'no_log'
-                else:
-                    # No shift management at all
-                    shift_start = '09:00'
-                    shift_end = '17:00'
-                    is_working = False
-                    availability_status = 'Not Scheduled'
-                    shift_status = 'not_scheduled'
-                
-                break_start = None
-                break_end = None
-                break_duration = None
-                break_display = 'No Break'
-                shift_display = f"{shift_start} - {shift_end} (Default)"
+                    shift_log = ShiftLogs.query.filter(
+                        ShiftLogs.shift_management_id == shift_management.id,
+                        ShiftLogs.individual_date == target_date
+                    ).first()
 
-            staff_info = {
-                'id': staff.id,
-                'name': staff.full_name or f"{staff.first_name} {staff.last_name}",
-                'specialty': getattr(staff, 'specialization', staff.role if hasattr(staff, 'role') else 'General'),
-                'shift_start': shift_start,
-                'shift_end': shift_end,
-                'break_start': break_start,
-                'break_end': break_end,
-                'break_duration': break_duration,
-                'break_display': break_display,
-                'is_working': is_working,
-                'shift_status': shift_status,
-                'availability_status': availability_status,
-                'shift_display': shift_display,
-                'has_shift_log': shift_log is not None,
-                'has_shift_management': shift_management is not None,
-                'shift_management_id': shift_management.id if shift_management else None,
-                'shift_log_id': shift_log.id if shift_log else None
-            }
-            staff_data.append(staff_info)
+                # Enhanced staff availability logic based on shift logs
+                if shift_log:
+                    shift_start = shift_log.shift_start_time.strftime('%H:%M') if shift_log.shift_start_time else '09:00'
+                    shift_end = shift_log.shift_end_time.strftime('%H:%M') if shift_log.shift_end_time else '17:00'
+                    break_start = shift_log.break_start_time.strftime('%H:%M') if shift_log.break_start_time else None
+                    break_end = shift_log.break_end_time.strftime('%H:%M') if shift_log.break_end_time else None
+                    shift_status = shift_log.status
+                    
+                    # Determine working status based on shift log status
+                    is_working = shift_status in ['scheduled', 'completed']
+                    availability_status = {
+                        'scheduled': 'Working',
+                        'completed': 'Completed Shift',
+                        'absent': 'Absent',
+                        'holiday': 'Holiday'
+                    }.get(shift_status, 'Unknown')
+                    
+                    # Calculate break duration if break times exist
+                    break_duration = None
+                    break_display = 'No Break'
+                    if break_start and break_end:
+                        try:
+                            break_display = shift_log.get_break_time_display()
+                            # Calculate minutes for duration
+                            break_start_mins = int(break_start.split(':')[0]) * 60 + int(break_start.split(':')[1])
+                            break_end_mins = int(break_end.split(':')[0]) * 60 + int(break_end.split(':')[1])
+                            break_duration = break_end_mins - break_start_mins
+                        except Exception as break_error:
+                            print(f"Break calculation error for staff {staff.id}: {break_error}")
+                            break_display = 'Break Error'
+                    
+                    # Shift display with duration
+                    try:
+                        shift_start_mins = int(shift_start.split(':')[0]) * 60 + int(shift_start.split(':')[1])
+                        shift_end_mins = int(shift_end.split(':')[0]) * 60 + int(shift_end.split(':')[1])
+                        total_shift_mins = shift_end_mins - shift_start_mins
+                        shift_hours = total_shift_mins // 60
+                        shift_mins = total_shift_mins % 60
+                        shift_display = f"{shift_start} - {shift_end} ({shift_hours}h {shift_mins}m)"
+                    except Exception as shift_error:
+                        print(f"Shift calculation error for staff {staff.id}: {shift_error}")
+                        shift_display = f"{shift_start} - {shift_end}"
+                    
+                else:
+                    # No shift log found - use defaults or shift management
+                    if shift_management:
+                        # Use shift management default times if no specific log
+                        shift_start = '09:00'
+                        shift_end = '17:00'
+                        is_working = True
+                        availability_status = 'Scheduled (Default)'
+                        shift_status = 'no_log'
+                    else:
+                        # No shift management at all
+                        shift_start = '09:00'
+                        shift_end = '17:00'
+                        is_working = False
+                        availability_status = 'Not Scheduled'
+                        shift_status = 'not_scheduled'
+                    
+                    break_start = None
+                    break_end = None
+                    break_duration = None
+                    break_display = 'No Break'
+                    shift_display = f"{shift_start} - {shift_end} (Default)"
+
+                staff_info = {
+                    'id': staff.id,
+                    'name': staff.full_name or f"{staff.first_name} {staff.last_name}",
+                    'specialty': getattr(staff, 'specialization', staff.role if hasattr(staff, 'role') else 'General'),
+                    'role': getattr(staff, 'role', 'Staff'),
+                    'shift_start': shift_start,
+                    'shift_end': shift_end,
+                    'break_start': break_start,
+                    'break_end': break_end,
+                    'break_duration': break_duration,
+                    'break_display': break_display,
+                    'is_working': is_working,
+                    'shift_status': shift_status,
+                    'availability_status': availability_status,
+                    'shift_display': shift_display,
+                    'has_shift_log': shift_log is not None,
+                    'has_shift_management': shift_management is not None,
+                    'shift_management_id': shift_management.id if shift_management else None,
+                    'shift_log_id': shift_log.id if shift_log else None,
+                    'is_active': staff.is_active
+                }
+                staff_data.append(staff_info)
+                
+            except Exception as staff_error:
+                print(f"Error processing staff {staff.id}: {staff_error}")
+                # Add basic staff info even if shift processing fails
+                staff_info = {
+                    'id': staff.id,
+                    'name': staff.full_name or f"{staff.first_name} {staff.last_name}",
+                    'specialty': getattr(staff, 'role', 'Staff'),
+                    'role': getattr(staff, 'role', 'Staff'),
+                    'shift_start': '09:00',
+                    'shift_end': '17:00',
+                    'break_start': None,
+                    'break_end': None,
+                    'break_duration': None,
+                    'break_display': 'No Break',
+                    'is_working': staff.is_active,
+                    'shift_status': 'error',
+                    'availability_status': 'Error Loading',
+                    'shift_display': '09:00 - 17:00 (Error)',
+                    'has_shift_log': False,
+                    'has_shift_management': False,
+                    'shift_management_id': None,
+                    'shift_log_id': None,
+                    'is_active': staff.is_active
+                }
+                staff_data.append(staff_info)
 
         # Format Unaki bookings data
         appointments_data = []
