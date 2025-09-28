@@ -916,19 +916,30 @@ def unaki_create_appointment_impl(data=None):
             except Exception as ce:
                 print(f"Warning: Could not create customer record: {ce}")
 
-        # Ensure we have a valid client name
+        # Ensure we have a valid client name - CRITICAL FIX
         if not final_client_name:
             if customer:
                 final_client_name = customer.full_name
+            elif final_client_id:
+                # Try to get customer again if we have an ID but no name
+                customer = Customer.query.get(final_client_id)
+                if customer:
+                    final_client_name = customer.full_name
+                else:
+                    final_client_name = f"Client {final_client_id}"
             else:
                 final_client_name = "Unknown Client"
                 
         print(f"Creating booking with client_name: '{final_client_name}', client_id: {final_client_id}")
 
-        # Create UnakiBooking entry with proper client_id
+        # Final validation - ensure we never create a booking without client_name
+        if not final_client_name or final_client_name.strip() == '':
+            final_client_name = f"Client {final_client_id}" if final_client_id else "Unknown Client"
+            
+        # Create UnakiBooking entry with only client_id (client_name for display only)
         unaki_booking = UnakiBooking(
-            client_id=final_client_id,  # Always store the actual client_id
-            client_name=final_client_name,
+            client_id=final_client_id,  # Store only the client_id as requested
+            client_name=final_client_name.strip(),  # Ensure not empty
             client_phone=client_phone,
             client_email=client_email,
             staff_id=int(data['staffId']),
