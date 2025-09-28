@@ -32,6 +32,7 @@ def main():
 
         # Start the server with host configuration for Replit
         logger.info("🚀 Starting Flask development server...")
+        # Configure for Replit proxy compatibility
         app.run(host="0.0.0.0", port=port, debug=True, threaded=True, use_reloader=False)
 
     except ImportError as e:

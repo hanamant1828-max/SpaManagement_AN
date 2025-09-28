@@ -136,10 +136,10 @@ author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "workflow.run"
-args = "Spa Management System"
+args = "Flask Spa App"
 
 [[workflows.workflow]]
-name = "Spa Management System"
+name = "Flask Spa App"
 author = "agent"
 
 [[workflows.workflow.tasks]]
@@ -153,10 +153,6 @@ outputType = "webview"
 [[ports]]
 localPort = 5000
 externalPort = 80
-
-[[ports]]
-localPort = 39591
-externalPort = 3000
 
 [agent]
 expertMode = true
