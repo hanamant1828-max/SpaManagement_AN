@@ -105,6 +105,11 @@ def integrated_billing(customer_id=None):
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
 
+    # Allow all authenticated users to access billing
+    if not current_user.is_active:
+        flash('Access denied', 'danger')
+        return redirect(url_for('dashboard'))
+
     # Extract client parameters from URL for auto-selection
     client_name = request.args.get('client_name', '')
     client_phone = request.args.get('client_phone', '')
@@ -114,8 +119,8 @@ def integrated_billing(customer_id=None):
     customers = Customer.query.filter_by(is_active=True).order_by(Customer.first_name, Customer.last_name).all()
     services = Service.query.filter_by(is_active=True).order_by(Service.name).all()
     # Fetch staff for the dropdown
-    from models import Staff
-    staff_members = Staff.query.filter_by(is_active=True).order_by(Staff.name).all()
+    from models import User
+    staff_members = User.query.filter_by(is_active=True).order_by(User.full_name).all()
 
     print(f"DEBUG: Found {len(customers)} customers and {len(services)} services for billing interface")
 
@@ -413,7 +418,7 @@ def create_professional_invoice():
         return jsonify({'success': False, 'message': 'Access denied'}), 403
 
     try:
-        from models import Service, EnhancedInvoice, InvoiceItem, Staff
+        from models import Service, EnhancedInvoice, InvoiceItem, User
         from modules.inventory.models import InventoryBatch, InventoryProduct
         from modules.inventory.queries import create_consumption_record
         import datetime
@@ -687,7 +692,7 @@ def create_integrated_invoice():
         return jsonify({'success': False, 'message': 'Access denied'}), 403
 
     try:
-        from models import Service, EnhancedInvoice, InvoiceItem
+        from models import Service, EnhancedInvoice, InvoiceItem, User
         from modules.inventory.models import InventoryBatch, InventoryProduct
         from modules.inventory.queries import create_consumption_record
         import datetime
@@ -1150,9 +1155,9 @@ def view_integrated_invoice(invoice_id):
     staff_names = {}
     service_staff_ids = {item.staff_id for item in service_items if item.staff_id}
     if service_staff_ids:
-        from models import Staff
-        staffs = Staff.query.filter(Staff.id.in_(service_staff_ids)).all()
-        staff_names = {staff.id: staff.name for staff in staffs}
+        from models import User
+        staffs = User.query.filter(User.id.in_(service_staff_ids)).all()
+        staff_names = {staff.id: staff.full_name for staff in staffs}
 
     return render_template('integrated_invoice_detail.html',
                          invoice=invoice,
@@ -1298,9 +1303,9 @@ def print_professional_invoice(invoice_id):
     service_items = [item for item in invoice_items if item.item_type == 'service']
     service_staff_ids = {item.staff_id for item in service_items if item.staff_id}
     if service_staff_ids:
-        from models import Staff
-        staffs = Staff.query.filter(Staff.id.in_(service_staff_ids)).all()
-        staff_names = {staff.id: staff.name for staff in staffs}
+        from models import User
+        staffs = User.query.filter(User.id.in_(service_staff_ids)).all()
+        staff_names = {staff.id: staff.full_name for staff in staffs}
 
     return render_template('professional_invoice_print.html',
                          invoice=invoice,
