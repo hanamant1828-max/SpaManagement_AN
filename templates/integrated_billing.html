@@ -761,6 +761,192 @@ function addServiceRow() {
             }
         }
 
+        // Function to find or create empty service row
+        function findEmptyServiceRow() {
+            const serviceRows = document.querySelectorAll('.service-row');
+            for (let row of serviceRows) {
+                const serviceSelect = row.querySelector('select[name="service_ids[]"]');
+                if (!serviceSelect.value) {
+                    return row;
+                }
+            }
+            return null;
+        }
+
+        // Function to add and return a new service row reference
+        function addServiceRowAndGetReference() {
+            addServiceRow();
+            const allRows = document.querySelectorAll('.service-row');
+            return allRows[allRows.length - 1];
+        }
+
+        // Function to find matching service ID by name
+        function findMatchingServiceId(serviceName) {
+            const serviceSelects = document.querySelectorAll('select[name="service_ids[]"]');
+            const firstSelect = serviceSelects[0];
+            
+            if (!firstSelect) return null;
+            
+            for (let option of firstSelect.options) {
+                if (option.value && option.text.toLowerCase().includes(serviceName.toLowerCase())) {
+                    return option.value;
+                }
+            }
+            return null;
+        }
+
+        // Validate service row prices function
+        function validateServiceRowPrices() {
+            const serviceRows = document.querySelectorAll('.service-row');
+            let hasErrors = false;
+            
+            serviceRows.forEach((row, index) => {
+                const serviceSelect = row.querySelector('select[name="service_ids[]"]');
+                if (serviceSelect && serviceSelect.value) {
+                    const selectedOption = serviceSelect.options[serviceSelect.selectedIndex];
+                    if (selectedOption && !selectedOption.dataset.price) {
+                        console.warn(`Row ${index + 1}: Service has no price data`);
+                        hasErrors = true;
+                    }
+                }
+            });
+            
+            return !hasErrors;
+        }
+
+        // Preview invoice function
+        function previewInvoice() {
+            console.log('Generating invoice preview...');
+            
+            // Validate form first
+            const clientSelect = document.getElementById('client_id');
+            if (!clientSelect || !clientSelect.value) {
+                showNotification('Please select a customer first', 'warning');
+                return;
+            }
+
+            // Check if there are any services or products
+            const serviceRows = document.querySelectorAll('.service-row');
+            const productRows = document.querySelectorAll('.product-row');
+            
+            let hasServices = false;
+            let hasProducts = false;
+
+            serviceRows.forEach(row => {
+                const serviceSelect = row.querySelector('select[name="service_ids[]"]');
+                if (serviceSelect && serviceSelect.value) {
+                    hasServices = true;
+                }
+            });
+
+            productRows.forEach(row => {
+                const productSelect = row.querySelector('select[name="product_ids[]"]');
+                if (productSelect && productSelect.value) {
+                    hasProducts = true;
+                }
+            });
+
+            if (!hasServices && !hasProducts) {
+                showNotification('Please add at least one service or product to preview', 'warning');
+                return;
+            }
+
+            // Generate preview data
+            const customerName = clientSelect.options[clientSelect.selectedIndex].text;
+            const totalAmount = document.getElementById('display_total').textContent;
+            
+            // Create preview modal content
+            const previewModal = document.getElementById('invoicePreviewModal');
+            const previewBody = document.getElementById('invoicePreviewBody');
+            
+            if (previewModal && previewBody) {
+                previewBody.innerHTML = `
+                    <div class="invoice-preview">
+                        <div class="text-center mb-4">
+                            <h3>INVOICE PREVIEW</h3>
+                            <p class="text-muted">Spa Management System</p>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <strong>Customer:</strong> ${customerName}
+                            </div>
+                            <div class="col-md-6 text-end">
+                                <strong>Total Amount:</strong> ${totalAmount}
+                            </div>
+                        </div>
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            This is a preview. Click "Proceed with Invoice Creation" to generate the actual invoice.
+                        </div>
+                    </div>
+                `;
+                
+                // Show the modal
+                const modal = new bootstrap.Modal(previewModal);
+                modal.show();
+            } else {
+                showNotification('Preview modal not found', 'error');
+            }
+        }
+
+        // Proceed with invoice creation
+        function proceedWithInvoiceCreation() {
+            console.log('Proceeding with invoice creation...');
+            
+            // Close preview modal
+            const previewModal = bootstrap.Modal.getInstance(document.getElementById('invoicePreviewModal'));
+            if (previewModal) {
+                previewModal.hide();
+            }
+            
+            // Submit the billing form
+            const billingForm = document.getElementById('billingForm');
+            if (billingForm) {
+                // Set form action to professional invoice creation
+                billingForm.action = '/integrated-billing/create-professional';
+                billingForm.method = 'POST';
+                billingForm.submit();
+            }
+        }
+
+        // Save as draft function
+        function saveAsDraft() {
+            console.log('Saving invoice as draft...');
+            showNotification('Draft functionality coming soon!', 'info');
+        }
+
+        // Send quotation function
+        function sendQuotation() {
+            console.log('Sending quotation...');
+            showNotification('Quotation functionality coming soon!', 'info');
+        }
+
+        // Clear form function
+        function clearForm() {
+            if (confirm('Are you sure you want to clear all form data?')) {
+                const billingForm = document.getElementById('billingForm');
+                if (billingForm) {
+                    billingForm.reset();
+                    // Reset calculations
+                    updateTaxCalculations();
+                    showNotification('Form cleared successfully', 'success');
+                }
+            }
+        }
+
+        // Make functions globally available
+        window.addUnakiAppointmentToBill = addUnakiAppointmentToBill;
+        window.addAppointmentToBill = addAppointmentToBill;
+        window.previewInvoice = previewInvoice;
+        window.proceedWithInvoiceCreation = proceedWithInvoiceCreation;
+        window.saveAsDraft = saveAsDraft;
+        window.sendQuotation = sendQuotation;
+        window.clearForm = clearForm;
+        window.findEmptyServiceRow = findEmptyServiceRow;
+        window.addServiceRowAndGetReference = addServiceRowAndGetReference;
+        window.findMatchingServiceId = findMatchingServiceId;
+        window.validateServiceRowPrices = validateServiceRowPrices;
+
         // Function to add Unaki appointment directly to billing
         function addUnakiAppointmentToBill(appointmentId, serviceName, servicePrice, serviceDuration) {
             console.log('Adding Unaki appointment to bill:', appointmentId, serviceName, servicePrice, serviceDuration);
