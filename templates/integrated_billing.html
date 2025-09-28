@@ -518,7 +518,7 @@ function showNotification(message, type = 'info') {
 }
 
 // CRITICAL: Define addUnakiAppointmentToBill function with proper price handling
-window.addUnakiAppointmentToBill = function addUnakiAppointmentToBill(appointmentId, serviceName, servicePrice, serviceDuration) {
+function addUnakiAppointmentToBill(appointmentId, serviceName, servicePrice, serviceDuration) {
     console.log('=== Adding Unaki appointment to bill ===');
     console.log('Appointment ID:', appointmentId);
     console.log('Service Name:', serviceName);
@@ -630,6 +630,7 @@ window.addUnakiAppointmentToBill = function addUnakiAppointmentToBill(appointmen
                 showNotification(`✅ Added ${serviceName} (₹${finalServicePrice}) to bill successfully!`, 'success');
                 
                 console.log('=== Successfully added service to bill ===');
+                return true;
                 
             } else {
                 console.warn(`No matching service found for: ${serviceName}`);
@@ -649,6 +650,7 @@ window.addUnakiAppointmentToBill = function addUnakiAppointmentToBill(appointmen
 
                 // Show warning notification
                 showNotification(`⚠️ Service "${serviceName}" not found in system. Please select manually from dropdown.`, 'warning');
+                return false;
             }
         } else {
             throw new Error('No service row available for adding appointment');
@@ -656,10 +658,20 @@ window.addUnakiAppointmentToBill = function addUnakiAppointmentToBill(appointmen
     } catch (error) {
         console.error('❌ Error adding Unaki appointment to bill:', error);
         showNotification(`❌ Error adding appointment to bill: ${error.message}`, 'danger');
+        return false;
     }
 }
 
-// Functions are already globally available via window assignment
+// Make it globally available immediately
+window.addUnakiAppointmentToBill = addUnakiAppointmentToBill;
+
+// Ensure all critical functions are globally available
+window.findEmptyServiceRow = findEmptyServiceRow;
+window.addUnakiAppointmentToBill = addUnakiAppointmentToBill;
+window.autoFillCurrentServices = autoFillCurrentServices;
+window.handleServiceSelection = handleServiceSelection;
+window.updateTaxCalculations = updateTaxCalculations;
+
 console.log('All required functions have been defined and made globally available');
 
 // Show notification function
@@ -943,6 +955,9 @@ window.addAppointmentToBill = function addAppointmentToBill(appointmentId, servi
             showNotification('No current Unaki appointments found to auto-fill', 'warning');
             {% endif %}
         }
+
+        // Make autoFillCurrentServices globally available
+        window.autoFillCurrentServices = autoFillCurrentServices;
 
 // View full customer history
 function viewFullCustomerHistory() {
