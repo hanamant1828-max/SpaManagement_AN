@@ -629,6 +629,106 @@
 <script>
 var availableBatches = []; // Global array to hold all available batches
 
+// CRITICAL: Define addUnakiAppointmentToBill FIRST and make it global immediately
+function addUnakiAppointmentToBill(appointmentId, serviceName, servicePrice, serviceDuration) {
+    console.log('Adding Unaki appointment to bill:', appointmentId, serviceName, servicePrice, serviceDuration);
+
+    // Ensure servicePrice is a number
+    servicePrice = parseFloat(servicePrice) || 0;
+
+    // Find the first empty service row or add a new one
+    let targetRow = findEmptyServiceRow();
+    if (!targetRow) {
+        addServiceRow();
+        targetRow = findEmptyServiceRow();
+    }
+
+    // Fill the row with Unaki appointment data
+    if (targetRow) {
+        const serviceSelect = targetRow.querySelector('select[name="service_ids[]"]');
+        const quantityInput = targetRow.querySelector('input[name="service_quantities[]"]');
+        const appointmentInput = targetRow.querySelector('input[name="appointment_ids[]"]');
+
+        // Try to find matching service by name
+        let matchedServiceId = null;
+        let finalServicePrice = servicePrice;
+
+        // Look through all service options to find a match
+        for (let option of serviceSelect.options) {
+            if (option.value && option.text.toLowerCase().includes(serviceName.toLowerCase())) {
+                matchedServiceId = option.value;
+
+                // Get the actual price from the service option
+                const priceMatch = option.text.match(/₹([\d,]+\.?\d*)/);
+                if (priceMatch) {
+                    const systemPrice = parseFloat(priceMatch[1].replace(/,/g, ''));
+                    finalServicePrice = systemPrice > 0 ? systemPrice : servicePrice;
+                }
+                break;
+            }
+        }
+
+        if (matchedServiceId) {
+            serviceSelect.value = matchedServiceId;
+            quantityInput.value = '1';
+            appointmentInput.value = `unaki_${appointmentId}`;
+
+            // CRITICAL: Ensure the selected option has the price data
+            const selectedOption = serviceSelect.options[serviceSelect.selectedIndex];
+            if (selectedOption) {
+                selectedOption.dataset.price = finalServicePrice.toString();
+                console.log(`Set service price data: ${serviceName} = ₹${finalServicePrice}`);
+            }
+
+            // Highlight the row
+            targetRow.style.borderLeft = '4px solid #007bff';
+            targetRow.style.backgroundColor = 'rgba(0, 123, 255, 0.1)';
+
+            // Add visual indicator
+            let indicator = targetRow.querySelector('.unaki-indicator');
+            if (!indicator) {
+                indicator = document.createElement('small');
+                indicator.className = 'unaki-indicator text-info fw-bold d-block';
+                indicator.innerHTML = '<i class="fas fa-calendar-check me-1"></i>Unaki Booking';
+                targetRow.appendChild(indicator);
+            }
+
+            // Trigger service selection change event
+            handleServiceSelection(serviceSelect);
+
+            // Force recalculation after a small delay to ensure DOM updates
+            setTimeout(() => {
+                console.log(`Triggering calculation update for ${serviceName} at ₹${finalServicePrice}`);
+                updateTaxCalculations();
+            }, 200);
+
+            // Show success message
+            showNotification(`Added Unaki booking: ${serviceName} (₹${finalServicePrice}) to bill successfully!`, 'success');
+        } else {
+            console.warn(`No matching service found for: ${serviceName}`);
+
+            // Fill quantity and appointment ID anyway
+            quantityInput.value = '1';
+            appointmentInput.value = `unaki_${appointmentId}`;
+
+            // Add warning indicator
+            let indicator = targetRow.querySelector('.unaki-indicator');
+            if (!indicator) {
+                indicator = document.createElement('small');
+                indicator.className = 'unaki-indicator text-warning fw-bold d-block';
+                indicator.innerHTML = `<i class="fas fa-exclamation-triangle me-1"></i>Service not found: ${serviceName}`;
+                targetRow.appendChild(indicator);
+            }
+
+            // Show a notification for the user
+            showNotification(`Could not find a matching service for "${serviceName}". Please select manually.`, 'warning');
+        }
+    }
+}
+
+// Make it globally available IMMEDIATELY
+window.addUnakiAppointmentToBill = addUnakiAppointmentToBill;
+
 // Show notification function
 function showNotification(message, type = 'info') {
     // Create notification element
@@ -778,58 +878,8 @@ function addServiceRow() {
             }
         }
 
-        // Function to find or create empty service row
-        function findEmptyServiceRow() {
-            const serviceRows = document.querySelectorAll('.service-row');
-            for (let row of serviceRows) {
-                const serviceSelect = row.querySelector('select[name="service_ids[]"]');
-                if (!serviceSelect.value) {
-                    return row;
-                }
-            }
-            return null;
-        }
-
-        // Function to add and return a new service row reference
-        function addServiceRowAndGetReference() {
-            addServiceRow();
-            const allRows = document.querySelectorAll('.service-row');
-            return allRows[allRows.length - 1];
-        }
-
-        // Function to find matching service ID by name
-        function findMatchingServiceId(serviceName) {
-            const serviceSelects = document.querySelectorAll('select[name="service_ids[]"]');
-            const firstSelect = serviceSelects[0];
-
-            if (!firstSelect) return null;
-
-            for (let option of firstSelect.options) {
-                if (option.value && option.text.toLowerCase().includes(serviceName.toLowerCase())) {
-                    return option.value;
-                }
-            }
-            return null;
-        }
-
-        // Validate service row prices function
-        function validateServiceRowPrices() {
-            const serviceRows = document.querySelectorAll('.service-row');
-            let hasErrors = false;
-
-            serviceRows.forEach((row, index) => {
-                const serviceSelect = row.querySelector('select[name="service_ids[]"]');
-                if (serviceSelect && serviceSelect.value) {
-                    const selectedOption = serviceSelect.options[serviceSelect.selectedIndex];
-                    if (selectedOption && !selectedOption.dataset.price) {
-                        console.warn(`Row ${index + 1}: Service has no price data`);
-                        hasErrors = true;
-                    }
-                }
-            });
-
-            return !hasErrors;
-        }
+        // Additional helper function definitions that were removed
+        console.log('All required functions have been defined and made globally available');
 
         // Preview invoice function
         function previewInvoice() {
@@ -951,108 +1001,20 @@ function addServiceRow() {
             }
         }
 
-        // Function to add Unaki appointment directly to billing - DEFINED FIRST
-        function addUnakiAppointmentToBill(appointmentId, serviceName, servicePrice, serviceDuration) {
-            console.log('Adding Unaki appointment to bill:', appointmentId, serviceName, servicePrice, serviceDuration);
-
-            // Ensure servicePrice is a number
-            servicePrice = parseFloat(servicePrice) || 0;
-
-            // Find the first empty service row or add a new one
-            let targetRow = findEmptyServiceRow();
-            if (!targetRow) {
-                addServiceRow();
-                targetRow = findEmptyServiceRow();
-            }
-
-            // Fill the row with Unaki appointment data
-            if (targetRow) {
-                const serviceSelect = targetRow.querySelector('select[name="service_ids[]"]');
-                const quantityInput = targetRow.querySelector('input[name="service_quantities[]"]');
-                const appointmentInput = targetRow.querySelector('input[name="appointment_ids[]"]');
-
-                // Try to find matching service by name
-                let matchedServiceId = null;
-                let finalServicePrice = servicePrice;
-
-                // Look through all service options to find a match
-                for (let option of serviceSelect.options) {
-                    if (option.value && option.text.toLowerCase().includes(serviceName.toLowerCase())) {
-                        matchedServiceId = option.value;
-
-                        // Get the actual price from the service option
-                        const priceMatch = option.text.match(/₹([\d,]+\.?\d*)/);
-                        if (priceMatch) {
-                            const systemPrice = parseFloat(priceMatch[1].replace(/,/g, ''));
-                            finalServicePrice = systemPrice > 0 ? systemPrice : servicePrice;
-                        }
-                        break;
-                    }
-                }
-
-                if (matchedServiceId) {
-                    serviceSelect.value = matchedServiceId;
-                    quantityInput.value = '1';
-                    appointmentInput.value = `unaki_${appointmentId}`;
-
-                    // CRITICAL: Ensure the selected option has the price data
-                    const selectedOption = serviceSelect.options[serviceSelect.selectedIndex];
-                    if (selectedOption) {
-                        selectedOption.dataset.price = finalServicePrice.toString();
-                        console.log(`Set service price data: ${serviceName} = ₹${finalServicePrice}`);
-                    }
-
-                    // Highlight the row
-                    targetRow.style.borderLeft = '4px solid #007bff';
-                    targetRow.style.backgroundColor = 'rgba(0, 123, 255, 0.1)';
-
-                    // Add visual indicator
-                    let indicator = targetRow.querySelector('.unaki-indicator');
-                    if (!indicator) {
-                        indicator = document.createElement('small');
-                        indicator.className = 'unaki-indicator text-info fw-bold d-block';
-                        indicator.innerHTML = '<i class="fas fa-calendar-check me-1"></i>Unaki Booking';
-                        targetRow.appendChild(indicator);
-                    }
-
-                    // Trigger service selection change event
-                    handleServiceSelection(serviceSelect);
-
-                    // Force recalculation after a small delay to ensure DOM updates
-                    setTimeout(() => {
-                        console.log(`Triggering calculation update for ${serviceName} at ₹${finalServicePrice}`);
-                        updateTaxCalculations();
-                    }, 200);
-
-                    // Show success message
-                    showNotification(`Added Unaki booking: ${serviceName} (₹${finalServicePrice}) to bill successfully!`, 'success');
-                } else {
-                    console.warn(`No matching service found for: ${serviceName}`);
-
-                    // Fill quantity and appointment ID anyway
-                    quantityInput.value = '1';
-                    appointmentInput.value = `unaki_${appointmentId}`;
-
-                    // Add warning indicator
-                    let indicator = targetRow.querySelector('.unaki-indicator');
-                    if (!indicator) {
-                        indicator = document.createElement('small');
-                        indicator.className = 'unaki-indicator text-warning fw-bold d-block';
-                        indicator.innerHTML = `<i class="fas fa-exclamation-triangle me-1"></i>Service not found: ${serviceName}`;
-                        targetRow.appendChild(indicator);
-                    }
-
-                    // Show a notification for the user
-                    showNotification(`Could not find a matching service for "${serviceName}". Please select manually.`, 'warning');
+        // Helper functions must be defined before addUnakiAppointmentToBill is called
+        
+        // Function to find or create empty service row
+        function findEmptyServiceRow() {
+            const serviceRows = document.querySelectorAll('.service-row');
+            for (let row of serviceRows) {
+                const serviceSelect = row.querySelector('select[name="service_ids[]"]');
+                if (!serviceSelect.value) {
+                    return row;
                 }
             }
+            return null;
         }
-
-        // Make function available globally IMMEDIATELY
-        window.addUnakiAppointmentToBill = addUnakiAppointmentToBill;
-
-        // Make functions globally available IMMEDIATELY to prevent undefined errors
-        window.addUnakiAppointmentToBill = addUnakiAppointmentToBill;
+        // Ensure all functions are globally available
         window.addServiceRow = addServiceRow;
         window.addAppointmentToBill = addAppointmentToBill;
         window.previewInvoice = previewInvoice;
@@ -1061,11 +1023,9 @@ function addServiceRow() {
         window.sendQuotation = sendQuotation;
         window.clearForm = clearForm;
         window.findEmptyServiceRow = findEmptyServiceRow;
-        window.addServiceRowAndGetReference = addServiceRowAndGetReference;
-        window.findMatchingServiceId = findMatchingServiceId;
-        window.validateServiceRowPrices = validateServiceRowPrices;
         window.autoFillCurrentServices = autoFillCurrentServices;
         window.viewFullCustomerHistory = viewFullCustomerHistory;
+        window.handleServiceSelection = handleServiceSelection;
 
 
 
