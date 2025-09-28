@@ -770,6 +770,88 @@ def api_get_consumption(consumption_id):
         print(f"Error in api_get_consumption: {e}")
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/inventory/consumption/<int:consumption_id>', methods=['PUT'])
+@login_required
+def api_update_consumption(consumption_id):
+    """Update consumption record"""
+    try:
+        from decimal import Decimal
+        data = request.get_json()
+
+        consumption = InventoryConsumption.query.get(consumption_id)
+        if not consumption:
+            return jsonify({'error': 'Consumption record not found'}), 404
+
+        # Store old values for quantity adjustment
+        old_quantity = consumption.quantity
+        old_batch_id = consumption.batch_id
+
+        # Update consumption fields
+        if 'date' in data:
+            from datetime import datetime
+            consumption.created_at = datetime.strptime(data['date'], '%Y-%m-%d')
+
+        if 'reference' in data:
+            consumption.reference = data['reference']
+
+        if 'quantity' in data:
+            new_quantity = Decimal(str(data['quantity']))
+            consumption.quantity = new_quantity
+
+        if 'issued_to' in data:
+            consumption.issued_to = data['issued_to']
+
+        if 'purpose' in data:
+            consumption.purpose = data['purpose']
+
+        if 'notes' in data:
+            consumption.notes = data['notes']
+
+        # Handle batch change or quantity change
+        if 'batch_id' in data and data['batch_id']:
+            new_batch_id = int(data['batch_id'])
+            new_batch = InventoryBatch.query.get(new_batch_id)
+            if not new_batch:
+                return jsonify({'error': 'New batch not found'}), 404
+
+            # If batch changed, restore stock to old batch and consume from new batch
+            if new_batch_id != old_batch_id:
+                # Restore quantity to old batch
+                old_batch = InventoryBatch.query.get(old_batch_id)
+                if old_batch:
+                    old_batch.qty_available = old_batch.qty_available + old_quantity
+
+                # Check if new batch has enough stock
+                if consumption.quantity > new_batch.qty_available:
+                    return jsonify({'error': f'Insufficient stock in new batch. Available: {new_batch.qty_available}, Required: {consumption.quantity}'}), 400
+
+                # Consume from new batch
+                new_batch.qty_available = new_batch.qty_available - consumption.quantity
+                consumption.batch_id = new_batch_id
+
+            else:
+                # Same batch, just adjust quantity difference
+                quantity_difference = consumption.quantity - old_quantity
+                if quantity_difference > 0:
+                    # Need more stock
+                    if quantity_difference > consumption.batch.qty_available:
+                        return jsonify({'error': f'Insufficient stock for increase. Available: {consumption.batch.qty_available}, Additional needed: {quantity_difference}'}), 400
+                    consumption.batch.qty_available = consumption.batch.qty_available - quantity_difference
+                else:
+                    # Return excess stock
+                    consumption.batch.qty_available = consumption.batch.qty_available + abs(quantity_difference)
+
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'message': 'Consumption record updated successfully'
+        })
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error in api_update_consumption: {e}")
+        return jsonify({'error': str(e)}), 500
+
 # ============ BATCH-CENTRIC ADJUSTMENT ENDPOINTS ============
 
 @app.route('/api/inventory/adjustments', methods=['GET'])
