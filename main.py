@@ -12,7 +12,8 @@ logger = logging.getLogger(__name__)
 if os.environ.get("DATABASE_URL"):
     logger.info("✅ DATABASE_URL available for PostgreSQL")
 else:
-    logger.warning("⚠️ DATABASE_URL not found - PostgreSQL connection may fail")
+    logger.error("❌ DATABASE_URL not found - PostgreSQL connection required")
+    sys.exit(1)
 
 # Set PORT from environment if available (for Replit deployment)
 port = int(os.environ.get("PORT", 5000))
