@@ -1,89 +1,90 @@
 # Spa Management System
 
 ## Overview
-This is a comprehensive Flask-based spa management system that handles customer management, appointments, staff scheduling, inventory, billing, and packages. The system provides a complete solution for spa operations with an advanced database structure and modern web interface.
-
-## Project Architecture
-- **Backend**: Flask (Python) with SQLAlchemy ORM
-- **Database**: SQLite for development (configured for PostgreSQL compatibility)
-- **Frontend**: HTML templates with Bootstrap, jQuery, and JavaScript
-- **Authentication**: Flask-Login with role-based access control
-- **Deployment**: Configured for Replit with gunicorn for production
-
-## Key Features
-- Customer management with facial recognition support
-- Staff management with shift scheduling
-- Service and package management
-- Inventory management with batch tracking
-- Comprehensive billing and invoicing system
-- Appointment booking and management
-- Role-based permission system
-- Reporting and analytics
-
-## Current Configuration
-- **Development Server**: Flask dev server on port 5000
-- **Production Deployment**: Gunicorn with autoscale deployment target
-- **Database**: SQLite with proper PRAGMA settings for concurrent access
-- **Environment**: Configured for Replit environment with proxy support
-- **Database Location**: `hanamantdatabase/workspace.db`
+A comprehensive Flask-based spa management system featuring appointment booking, client management, billing, inventory tracking, staff scheduling, and reporting. This is an imported GitHub project now configured to run in the Replit environment.
 
 ## Recent Changes
-- 2025-09-28: **Successfully configured for Replit environment with SQLite database**
-  - ✅ Installed all Python dependencies from requirements.txt
-  - ✅ Configured SQLite database with optimized settings (WAL mode, foreign keys enabled)
-  - ✅ Updated Flask application configuration for SQLite compatibility
-  - ✅ Set up Flask Frontend workflow running on port 5000 with webview output
-  - ✅ Created admin user with credentials (admin/admin123)
-  - ✅ Configured deployment settings for production use with gunicorn and autoscale
-  - ✅ All core modules loading successfully (auth, dashboard, clients, services, inventory, etc.)
-  - ✅ Application running smoothly in Replit environment with SQLite backend
-  - ✅ Import and setup process completed - application is ready for use and deployment
-
-- 2025-09-28: **Successfully fixed billing calculation system**
-  - ✅ Enhanced `updateTaxCalculations()` function with comprehensive debugging
-  - ✅ Improved `addUnakiAppointmentToBill()` function for better service addition
-  - ✅ Added proper price data validation and DOM update handling
-  - ✅ Implemented enhanced billing calculation logging and error detection
-  - ✅ Fixed service selection logic to ensure proper billing totals
-  - ✅ Verified system loads 30 customers and 24 services correctly
-  - ✅ Billing system now properly calculates and displays totals when services are added
-  - ✅ All billing calculation functions working correctly with enhanced debugging
-
-- 2025-09-28: **Successfully restored "Add to Bill" button functionality**
-  - ✅ Fixed SQLAlchemy ORDER BY error by replacing `full_name` property with actual database columns
-  - ✅ Changed `User.query.order_by(User.full_name)` → `User.query.order_by(User.first_name, User.last_name)`
-  - ✅ Changed `Customer.query.order_by(Customer.full_name)` → `Customer.query.order_by(Customer.first_name, Customer.last_name)`
-  - ✅ Restored individual "Add to Bill" buttons for each appointment in customer booking table
-  - ✅ Button now calls `addUnakiAppointmentToBill()` function with appointment details
-  - ✅ Users can add specific appointments to bills instead of only using bulk auto-fill
-  - ✅ All modules loading successfully with no ORDER BY errors
-
-## Project Structure
-```
-/
-├── app.py                 # Main Flask application configuration
-├── main.py               # Application entry point
-├── models.py             # Database models
-├── modules/              # Modular application components
-│   ├── auth/            # Authentication module
-│   ├── billing/         # Billing and invoicing
-│   ├── staff/           # Staff management and scheduling
-│   ├── inventory/       # Inventory management
-│   ├── packages/        # Package management
-│   └── ...              # Other modules
-├── templates/           # HTML templates
-├── static/             # CSS, JS, and assets
-└── hanamantdatabase/   # SQLite database files
-```
+- **2024-09-28**: Imported from GitHub and configured for Replit environment
+- **2024-09-28**: Migrated from SQLite to PostgreSQL database
+- **2024-09-28**: Updated Flask configuration for Replit proxy compatibility
 
 ## User Preferences
-- Production-ready design with professional UI
-- Modular architecture for maintainability
-- Comprehensive error handling and logging
-- Security-focused with proper authentication
+- Using Flask with PostgreSQL backend
+- Modular architecture with separate modules for different features
+- Development environment setup with debug logging enabled
 
-## Development Notes
-- SQLite configured with WAL mode for better concurrency
-- Flask app configured with proper proxy headers for Replit
-- All routes registered through modular blueprint system
-- Environment variables properly configured for security
+## Project Architecture
+
+### Main Application Structure
+- `app.py` - Main Flask application configuration and initialization
+- `main.py` - Application entry point with error handling
+- `models.py` - Database models and schemas
+- `routes.py` - Application routes (legacy)
+- `forms.py` - WTForms form definitions
+- `utils.py` - Utility functions
+
+### Module Structure
+The application uses a modular architecture in the `modules/` directory:
+
+- **auth/** - Authentication and user management
+- **billing/** - Billing and invoice management
+- **bookings/** - Appointment booking system
+- **checkin/** - Client check-in functionality
+- **clients/** - Customer/client management
+- **dashboard/** - Main dashboard views
+- **expenses/** - Expense tracking
+- **inventory/** - Inventory management with stock control
+- **notifications/** - Notification system
+- **packages/** - Package and membership management
+- **reports/** - Reporting and analytics
+- **services/** - Service catalog management
+- **settings/** - System settings and configuration
+- **staff/** - Staff management and scheduling
+
+### Templates
+- `templates/` - Jinja2 templates for all views
+- `templates/base.html` - Base template with navigation
+- Organized by module for maintainability
+
+### Database Configuration
+- **Production**: PostgreSQL via DATABASE_URL environment variable
+- **Features**: Connection pooling, pre-ping, and proper error handling
+- **Models**: SQLAlchemy with declarative base
+
+### Key Features
+1. **Appointment Booking**: Comprehensive booking system with conflict detection
+2. **Billing System**: Integrated billing with invoice generation
+3. **Inventory Management**: Stock tracking with batch management
+4. **Staff Scheduling**: Shift management and availability tracking
+5. **Client Management**: Customer profiles and history
+6. **Package Management**: Membership and prepaid packages
+7. **Reporting**: Analytics and business intelligence
+8. **Multi-user Support**: Role-based access control
+
+### Environment Variables Required
+- `SESSION_SECRET` - Flask session security key
+- `DATABASE_URL` - PostgreSQL connection string
+- `PORT` - Server port (defaults to 5000)
+
+### Development Setup
+- Debug mode enabled for development
+- CSRF protection disabled for development
+- Cache control configured for Replit environment
+- ProxyFix middleware for proper HTTPS handling
+
+### External Dependencies
+- Flask ecosystem (Flask-SQLAlchemy, Flask-Login, Flask-WTF)
+- PostgreSQL (psycopg2-binary)
+- Gunicorn for production deployment
+- Various utilities (pandas, openpyxl, requests, etc.)
+
+## Architecture Decisions
+- **Date**: 2024-09-28 - Chose PostgreSQL over SQLite for better concurrency and production readiness
+- **Date**: 2024-09-28 - Maintained existing modular architecture to preserve functionality
+- **Date**: 2024-09-28 - Configured for Replit's proxy system with appropriate headers and CORS
+
+## Next Steps
+- Test all module imports and route registrations
+- Verify database table creation
+- Test the web interface functionality
+- Configure deployment settings
