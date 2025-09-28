@@ -951,7 +951,7 @@ function addServiceRow() {
             }
         }
 
-        // Function to add Unaki appointment directly to billing
+        // Function to add Unaki appointment directly to billing - DEFINED FIRST
         function addUnakiAppointmentToBill(appointmentId, serviceName, servicePrice, serviceDuration) {
             console.log('Adding Unaki appointment to bill:', appointmentId, serviceName, servicePrice, serviceDuration);
 
@@ -1048,9 +1048,12 @@ function addServiceRow() {
             }
         }
 
-        // Make functions globally available
-        window.addServiceRow = addServiceRow;
+        // Make function available globally IMMEDIATELY
         window.addUnakiAppointmentToBill = addUnakiAppointmentToBill;
+
+        // Make functions globally available IMMEDIATELY to prevent undefined errors
+        window.addUnakiAppointmentToBill = addUnakiAppointmentToBill;
+        window.addServiceRow = addServiceRow;
         window.addAppointmentToBill = addAppointmentToBill;
         window.previewInvoice = previewInvoice;
         window.proceedWithInvoiceCreation = proceedWithInvoiceCreation;
