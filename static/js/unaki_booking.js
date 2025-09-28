@@ -422,9 +422,12 @@ function loadClients() {
         .then(clients => {
             console.log('Loaded clients:', clients.length);
 
+            // Get data for form
             const clientSelect = document.getElementById('clientSelect');
+            const clientNameInput = document.getElementById('clientName');
+
             if (clientSelect && Array.isArray(clients)) {
-                clientSelect.innerHTML = '<option value="">Select Client</option>';
+                clientSelect.innerHTML = '<option value="">Select Existing Client</option>';
 
                 clients.forEach(client => {
                     const option = document.createElement('option');
@@ -435,13 +438,31 @@ function loadClients() {
                     clientSelect.appendChild(option);
                 });
 
+                // Handle client selection
                 clientSelect.addEventListener('change', function() {
                     const selectedOption = this.options[this.selectedIndex];
-                    if (selectedOption && selectedOption.dataset.phone) {
+                    if (selectedOption && selectedOption.value) {
+                        // Clear new client name when existing client is selected
+                        if (clientNameInput) clientNameInput.value = '';
+
                         document.getElementById('clientPhone').value = selectedOption.dataset.phone;
                         document.getElementById('clientEmail').value = selectedOption.dataset.email || '';
+                    } else {
+                        // Clear phone/email when no client selected
+                        document.getElementById('clientPhone').value = '';
+                        document.getElementById('clientEmail').value = '';
                     }
                 });
+
+                // Handle new client name input
+                if (clientNameInput) {
+                    clientNameInput.addEventListener('input', function() {
+                        if (this.value.trim()) {
+                            // Clear client select when new name is entered
+                            clientSelect.value = '';
+                        }
+                    });
+                }
             }
             return clients;
         })
@@ -553,7 +574,7 @@ function renderScheduleGrid() {
 
 function getServiceCategory(serviceName) {
     if (!serviceName) return '';
-    
+
     const service = serviceName.toLowerCase();
     if (service.includes('massage')) return 'service-category-massage';
     if (service.includes('facial')) return 'service-category-facial';
@@ -565,14 +586,14 @@ function getServiceCategory(serviceName) {
 
 function openBookingModal(staffId, timeStr) {
     console.log(`📅 Opening booking modal for staff ${staffId} at ${timeStr}`);
-    
+
     // Set the modal form data
     const staffSelect = document.getElementById('appointmentStaff');
     if (staffSelect) staffSelect.value = staffId;
-    
+
     const timeInput = document.getElementById('appointmentTime');
     if (timeInput) timeInput.value = timeStr;
-    
+
     // Open the modal
     const modal = new bootstrap.Modal(document.getElementById('bookingModal'));
     modal.show();
@@ -595,7 +616,7 @@ function refreshSchedule() {
 
 function loadSampleData() {
     console.log('🔄 Loading sample data...');
-    
+
     scheduleData = {
         staff: [
             { id: 1, name: 'Sarah Johnson', specialty: 'Massage Therapist', role: 'Senior' },
@@ -637,13 +658,21 @@ function bookMultiServiceAppointment() {
     console.log('📝 Booking multi-service appointment...');
 
     const clientId = document.getElementById('clientSelect').value;
-    const appointmentDate = document.getElementById('scheduleDate').value;
-    const notes = document.getElementById('appointmentNotes').value;
+    const clientNameInput = document.getElementById('clientName');
+    let selectedClientId = clientId;
+    let newClientName = '';
 
-    if (!clientId) {
-        showNotification('Please select a client', 'error');
+    if (clientNameInput && clientNameInput.value.trim()) {
+        newClientName = clientNameInput.value.trim();
+    }
+
+    if (!selectedClientId && !newClientName) {
+        showNotification('Please select an existing client or enter a new client name.', 'error');
         return;
     }
+
+    const appointmentDate = document.getElementById('scheduleDate').value;
+    const notes = document.getElementById('appointmentNotes').value;
 
     const services = [];
     document.querySelectorAll('.service-row').forEach(row => {
@@ -670,7 +699,8 @@ function bookMultiServiceAppointment() {
     }
 
     const bookingData = {
-        client_id: clientId,
+        client_id: selectedClientId || null, // Use null if it's a new client
+        client_name: newClientName || null,  // Pass new client name if provided
         appointment_date: appointmentDate,
         services: services,
         notes: notes
@@ -681,7 +711,14 @@ function bookMultiServiceAppointment() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(bookingData)
     })
-    .then(response => response.json())
+    .then(response => {
+        if (!response.ok) {
+            return response.json().then(err => {
+                throw new Error(err.error || `HTTP error! status: ${response.status}`);
+            });
+        }
+        return response.json();
+    })
     .then(data => {
         if (data.success) {
             showNotification('Appointment booked successfully!', 'success');
@@ -693,14 +730,14 @@ function bookMultiServiceAppointment() {
     })
     .catch(error => {
         console.error('Booking error:', error);
-        showNotification('Error booking appointment', 'error');
+        showNotification('Error booking appointment: ' + error.message, 'error');
     });
 }
 
 function checkAvailability() {
     console.log('🔍 Checking availability...');
     showNotification('Checking staff availability...', 'info');
-    
+
     // Simulate availability check
     setTimeout(() => {
         showNotification('All selected staff are available!', 'success');
@@ -710,20 +747,20 @@ function checkAvailability() {
 // Initialize the application
 document.addEventListener('DOMContentLoaded', function() {
     console.log('🚀 Initializing Unaki Booking System...');
-    
+
     // Initialize date
     document.getElementById('scheduleDate').value = new Date().toISOString().split('T')[0];
-    
+
     // Update time display
     updateCurrentDateTime();
     setInterval(updateCurrentDateTime, 1000);
-    
+
     // Load initial data
     Promise.all([loadServices(), loadStaff(), loadClients()])
         .then(() => {
             console.log('✅ All data loaded');
             loadScheduleForDate();
-            
+
             // Add first service row
             addServiceRow();
         })
@@ -733,10 +770,10 @@ document.addEventListener('DOMContentLoaded', function() {
             loadSampleData();
             addServiceRow();
         });
-    
+
     // Set up discount calculation
     document.getElementById('discountAmount').addEventListener('input', calculateTotals);
-    
+
     showNotification('Unaki Booking System loaded successfully!', 'success');
 });
 
