@@ -674,39 +674,43 @@ function bookMultiServiceAppointment() {
     const appointmentDate = document.getElementById('scheduleDate').value;
     const notes = document.getElementById('appointmentNotes').value;
 
-    const services = [];
-    document.querySelectorAll('.service-row').forEach(row => {
-        const serviceId = row.querySelector('.service-select').value;
-        const staffId = row.querySelector('.staff-select').value;
-        const startTime = row.querySelector('.start-time').value;
-        const endTime = row.querySelector('.end-time').value;
-        const price = row.querySelector('.service-price').value;
-
-        if (serviceId && staffId && startTime) {
-            services.push({
-                service_id: serviceId,
-                staff_id: staffId,
-                start_time: startTime,
-                end_time: endTime,
-                price: parseFloat(price) || 0
-            });
-        }
-    });
-
-    if (services.length === 0) {
+    // Get the first service for the booking (backend expects single service)
+    const firstServiceRow = document.querySelector('.service-row');
+    if (!firstServiceRow) {
         showNotification('Please add at least one service', 'error');
         return;
     }
 
+    const serviceSelect = firstServiceRow.querySelector('.service-select');
+    const staffSelect = firstServiceRow.querySelector('.staff-select');
+    const startTimeInput = firstServiceRow.querySelector('.start-time');
+    const endTimeInput = firstServiceRow.querySelector('.end-time');
+    const priceInput = firstServiceRow.querySelector('.service-price');
+
+    if (!serviceSelect.value || !staffSelect.value || !startTimeInput.value) {
+        showNotification('Please fill in all required fields for the service', 'error');
+        return;
+    }
+
+    // Get service name from the selected option
+    const serviceOption = serviceSelect.options[serviceSelect.selectedIndex];
+    const serviceName = serviceOption.textContent.split('(')[0].trim(); // Extract name before price
+
     const bookingData = {
-        client_id: selectedClientId || null, // Use null if it's a new client
-        client_name: newClientName || null,  // Pass new client name if provided
-        appointment_date: appointmentDate,
-        services: services,
+        clientId: selectedClientId || null,
+        clientName: newClientName || (selectedClientId ? '' : 'Unknown'),
+        clientPhone: document.getElementById('clientPhone').value || '',
+        clientEmail: document.getElementById('clientEmail').value || '',
+        staffId: parseInt(staffSelect.value),
+        serviceType: serviceName,
+        servicePrice: parseFloat(priceInput.value) || 0,
+        startTime: startTimeInput.value,
+        endTime: endTimeInput.value,
+        date: appointmentDate,
         notes: notes
     };
 
-    fetch('/api/unaki/appointments/book', {
+    fetch('/api/unaki/book-appointment', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(bookingData)
