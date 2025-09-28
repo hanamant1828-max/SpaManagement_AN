@@ -695,7 +695,18 @@ document.addEventListener('DOMContentLoaded', function() {
 // Add service row
 function addServiceRow() {
     const container = document.getElementById('servicesContainer');
-    const newRow = container.children[0].cloneNode(true);
+    if (!container) {
+        console.error('Services container not found');
+        return;
+    }
+    
+    const firstRow = container.children[0];
+    if (!firstRow) {
+        console.error('No service rows found to clone');
+        return;
+    }
+    
+    const newRow = firstRow.cloneNode(true);
 
     // Clear values
     newRow.querySelectorAll('select, input').forEach(input => {
@@ -708,11 +719,17 @@ function addServiceRow() {
 
     // Change button to remove
     const button = newRow.querySelector('button');
-    button.className = 'btn btn-danger btn-sm';
-    button.innerHTML = '<i class="fas fa-minus"></i>';
-    button.onclick = function() { this.closest('.service-row').remove(); updateTaxCalculations(); };
+    if (button) {
+        button.className = 'btn btn-danger btn-sm';
+        button.innerHTML = '<i class="fas fa-minus"></i>';
+        button.onclick = function() { 
+            this.closest('.service-row').remove(); 
+            updateTaxCalculations(); 
+        };
+    }
 
     container.appendChild(newRow);
+    return newRow;
 }
 
 // Function to add appointment directly to billing
@@ -934,19 +951,6 @@ function addServiceRow() {
             }
         }
 
-        // Make functions globally available
-        window.addUnakiAppointmentToBill = addUnakiAppointmentToBill;
-        window.addAppointmentToBill = addAppointmentToBill;
-        window.previewInvoice = previewInvoice;
-        window.proceedWithInvoiceCreation = proceedWithInvoiceCreation;
-        window.saveAsDraft = saveAsDraft;
-        window.sendQuotation = sendQuotation;
-        window.clearForm = clearForm;
-        window.findEmptyServiceRow = findEmptyServiceRow;
-        window.addServiceRowAndGetReference = addServiceRowAndGetReference;
-        window.findMatchingServiceId = findMatchingServiceId;
-        window.validateServiceRowPrices = validateServiceRowPrices;
-
         // Function to add Unaki appointment directly to billing
         function addUnakiAppointmentToBill(appointmentId, serviceName, servicePrice, serviceDuration) {
             console.log('Adding Unaki appointment to bill:', appointmentId, serviceName, servicePrice, serviceDuration);
@@ -955,23 +959,10 @@ function addServiceRow() {
             servicePrice = parseFloat(servicePrice) || 0;
 
             // Find the first empty service row or add a new one
-            const serviceRows = document.querySelectorAll('.service-row');
-            let targetRow = null;
-
-            // Look for empty row
-            for (let row of serviceRows) {
-                const serviceSelect = row.querySelector('select[name="service_ids[]"]');
-                if (!serviceSelect.value) {
-                    targetRow = row;
-                    break;
-                }
-            }
-
-            // If no empty row found, add new one
+            let targetRow = findEmptyServiceRow();
             if (!targetRow) {
                 addServiceRow();
-                const allRows = document.querySelectorAll('.service-row');
-                targetRow = allRows[allRows.length - 1];
+                targetRow = findEmptyServiceRow();
             }
 
             // Fill the row with Unaki appointment data
@@ -989,7 +980,7 @@ function addServiceRow() {
                     if (option.value && option.text.toLowerCase().includes(serviceName.toLowerCase())) {
                         matchedServiceId = option.value;
                         
-                        // If service has a different price in system, use that, otherwise use appointment price
+                        // Get the actual price from the service option
                         const priceMatch = option.text.match(/₹([\d,]+\.?\d*)/);
                         if (priceMatch) {
                             const systemPrice = parseFloat(priceMatch[1].replace(/,/g, ''));
@@ -1002,7 +993,7 @@ function addServiceRow() {
                 if (matchedServiceId) {
                     serviceSelect.value = matchedServiceId;
                     quantityInput.value = '1';
-                    appointmentInput.value = `unaki_${appointmentId}`; // Prefix to identify Unaki appointments
+                    appointmentInput.value = `unaki_${appointmentId}`;
 
                     // CRITICAL: Ensure the selected option has the price data
                     const selectedOption = serviceSelect.options[serviceSelect.selectedIndex];
@@ -1023,6 +1014,9 @@ function addServiceRow() {
                         indicator.innerHTML = '<i class="fas fa-calendar-check me-1"></i>Unaki Booking';
                         targetRow.appendChild(indicator);
                     }
+
+                    // Trigger service selection change event
+                    handleServiceSelection(serviceSelect);
 
                     // Force recalculation after a small delay to ensure DOM updates
                     setTimeout(() => {
@@ -1053,6 +1047,24 @@ function addServiceRow() {
                 }
             }
         }
+
+        // Make functions globally available
+        window.addServiceRow = addServiceRow;
+        window.addUnakiAppointmentToBill = addUnakiAppointmentToBill;
+        window.addAppointmentToBill = addAppointmentToBill;
+        window.previewInvoice = previewInvoice;
+        window.proceedWithInvoiceCreation = proceedWithInvoiceCreation;
+        window.saveAsDraft = saveAsDraft;
+        window.sendQuotation = sendQuotation;
+        window.clearForm = clearForm;
+        window.findEmptyServiceRow = findEmptyServiceRow;
+        window.addServiceRowAndGetReference = addServiceRowAndGetReference;
+        window.findMatchingServiceId = findMatchingServiceId;
+        window.validateServiceRowPrices = validateServiceRowPrices;
+        window.autoFillCurrentServices = autoFillCurrentServices;
+        window.viewFullCustomerHistory = viewFullCustomerHistory;
+
+        
 
 // Auto-fill customer's current Unaki appointments
         function autoFillCurrentServices() {
