@@ -63,7 +63,7 @@ def professional_packages():
     ).order_by(desc(PackageUsageHistory.created_at)).limit(10).all()
 
     # Get customers for assignment
-    customers = Customer.query.filter_by(is_active=True).order_by(Customer.full_name).all()
+    customers = Customer.query.filter_by(is_active=True).order_by(Customer.first_name, Customer.last_name).all()
 
     # Get services for package creation
     services = Service.query.filter_by(is_active=True).order_by(Service.name).all()
