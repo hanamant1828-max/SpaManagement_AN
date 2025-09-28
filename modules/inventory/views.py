@@ -10,10 +10,6 @@ import json
 @login_required
 def inventory_dashboard():
     """Inventory dashboard main page"""
-    if not current_user.can_access('inventory'):
-        flash('Access denied', 'danger')
-        return redirect(url_for('dashboard'))
-
     try:
         return render_template('inventory_dashboard.html')
     except Exception as e:

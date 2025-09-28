@@ -56,7 +56,7 @@
             </button>
         </li>
         <li class="nav-item" role="presentation">
-            <a class="nav-link" href="{{ url_for('inventory_reports') }}">
+            <a class="nav-link" href="{{ url_for('reports') }}">
                 <i class="fas fa-chart-bar me-1"></i>Reports
             </a>
         </li>
@@ -158,7 +158,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
 
                 console.log(`${tabName} content loaded successfully`);
-                
+
                 // Call specific initialization functions after content loads
                 if (tabName === 'batches' && window.initializeBatchManagement) {
                     console.log('🔧 Calling batch initialization after dynamic loading...');
