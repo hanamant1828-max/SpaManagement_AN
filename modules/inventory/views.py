@@ -533,6 +533,63 @@ def api_get_available_batches():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/inventory/batches/for-adjustment', methods=['GET'])
+@login_required
+def api_get_batches_for_adjustment():
+    """Get batches available for inventory adjustments"""
+    try:
+        from .models import InventoryBatch
+        from datetime import date
+        from sqlalchemy.orm import joinedload
+        
+        # Get all active batches (not expired)
+        batches = InventoryBatch.query.options(
+            joinedload(InventoryBatch.product),
+            joinedload(InventoryBatch.location)
+        ).filter(
+            InventoryBatch.status == 'active',
+            or_(
+                InventoryBatch.expiry_date == None,
+                InventoryBatch.expiry_date >= date.today()
+            )
+        ).order_by(InventoryBatch.expiry_date.asc().nullslast(), InventoryBatch.batch_name).all()
+        
+        batch_data = []
+        for batch in batches:
+            product_name = batch.product.name if batch.product else 'Unassigned'
+            location_name = batch.location.name if batch.location else 'Unassigned'
+            unit = batch.product.unit_of_measure if batch.product else 'pcs'
+            
+            # Create display text for dropdown
+            expiry_text = f", Exp: {batch.expiry_date.strftime('%d/%m/%Y')}" if batch.expiry_date else ""
+            dropdown_display = f"{batch.batch_name} ({product_name}{expiry_text}) - Available: {batch.qty_available} {unit}"
+            
+            batch_info = {
+                'id': batch.id,
+                'batch_name': batch.batch_name,
+                'product_id': batch.product_id,
+                'product_name': product_name,
+                'location_id': batch.location_id,
+                'location_name': location_name,
+                'qty_available': float(batch.qty_available or 0),
+                'unit_cost': float(batch.unit_cost or 0),
+                'unit': unit,
+                'expiry_date': batch.expiry_date.isoformat() if batch.expiry_date else None,
+                'days_to_expiry': batch.days_to_expiry,
+                'is_expired': batch.is_expired,
+                'status': batch.status,
+                'dropdown_display': dropdown_display
+            }
+            batch_data.append(batch_info)
+        
+        return jsonify({
+            'success': True,
+            'batches': batch_data
+        })
+    except Exception as e:
+        print(f"Error in api_get_batches_for_adjustment: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
 # ============ BATCH-CENTRIC CONSUMPTION ENDPOINTS ============
 
 @app.route('/api/inventory/consumption', methods=['GET'])

@@ -351,9 +351,7 @@
                     data.batches.forEach(batch => {
                         const option = document.createElement('option');
                         option.value = batch.id;
-                        const expiryText = batch.expiry_date ?
-                            `, Exp: ${new Date(batch.expiry_date).toLocaleDateString('en-GB')}` : '';
-                        option.textContent = `${batch.batch_name} (${batch.product_name}${expiryText}, Stock: ${batch.qty_available})`;
+                        option.textContent = batch.dropdown_display;
                         option.dataset.productName = batch.product_name;
                         option.dataset.productId = batch.product_id || '';
                         option.dataset.locationId = batch.location_id || '';
@@ -363,6 +361,8 @@
                         option.dataset.unitCost = batch.unit_cost;
                         batchSelect.appendChild(option);
                     });
+                } else {
+                    console.log('No batches found or invalid response:', data);
                 }
             })
             .catch(error => {
