@@ -1144,10 +1144,6 @@ class UnakiStaff(db.Model):
     active = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-    # Relationships
-    appointments = db.relationship('UnakiAppointment', backref='staff_member', lazy=True)
-    breaks = db.relationship('UnakiBreak', backref='staff_member', lazy=True)
-
     def to_dict(self):
         return {
             'id': self.id,
@@ -1161,7 +1157,7 @@ class UnakiAppointment(db.Model):
     __tablename__ = 'unaki_appointments'
 
     id = db.Column(db.Integer, primary_key=True)
-    staff_id = db.Column(db.Integer, db.ForeignKey('unaki_staff.id'), nullable=False)
+    staff_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     client_name = db.Column(db.String(100), nullable=False)
     service = db.Column(db.String(100), nullable=False)
     start_time = db.Column(db.DateTime, nullable=False)
@@ -1170,6 +1166,9 @@ class UnakiAppointment(db.Model):
     notes = db.Column(db.Text)
     appointment_date = db.Column(db.Date, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    # Relationship to User table
+    staff_member = db.relationship('User', backref='unaki_appointments')
 
     def to_dict(self):
         return {
@@ -1189,13 +1188,16 @@ class UnakiBreak(db.Model):
     __table_args__ = {'extend_existing': True}
 
     id = db.Column(db.Integer, primary_key=True)
-    staff_id = db.Column(db.Integer, db.ForeignKey('unaki_staff.id'), nullable=False)
+    staff_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     break_type = db.Column(db.String(50), nullable=False)
     start_time = db.Column(db.DateTime, nullable=False)
     end_time = db.Column(db.DateTime, nullable=False)
     break_date = db.Column(db.Date, nullable=False)
     notes = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    # Relationship to User table
+    staff_member = db.relationship('User', backref='unaki_breaks')
 
     def to_dict(self):
         return {
