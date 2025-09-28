@@ -858,7 +858,6 @@ def unaki_create_appointment_impl(data=None):
         # Handle customer identification and creation
         customer = None
         final_client_id = None
-        final_client_name = client_name
         client_phone = data.get('clientPhone', '').strip()
         client_email = data.get('clientEmail', '').strip()
 
@@ -867,7 +866,6 @@ def unaki_create_appointment_impl(data=None):
             customer = Customer.query.get(client_id)
             if customer:
                 final_client_id = customer.id
-                final_client_name = customer.full_name
                 # Use customer's existing contact info if not provided in form
                 if not client_phone:
                     client_phone = customer.phone or ''
@@ -879,9 +877,12 @@ def unaki_create_appointment_impl(data=None):
                 if not customer.email and client_email:
                     customer.email = client_email
                 db.session.commit()
-                print(f"Using existing customer ID {final_client_id}: {final_client_name}")
+                print(f"Using existing customer ID {final_client_id}: {customer.full_name}")
             else:
-                print(f"Warning: Client ID {client_id} not found, will create new customer")
+                return jsonify({
+                    'success': False,
+                    'error': f'Client ID {client_id} not found'
+                }), 400
         
         # Priority 2: If no valid client_id, try to find by phone or email
         if not final_client_id:
@@ -892,13 +893,12 @@ def unaki_create_appointment_impl(data=None):
             
             if customer:
                 final_client_id = customer.id
-                final_client_name = customer.full_name
-                print(f"Found existing customer by contact info: {final_client_name}")
+                print(f"Found existing customer by contact info: {customer.full_name}")
 
-        # Priority 3: Create new customer if none found
-        if not final_client_id and final_client_name:
+        # Priority 3: Create new customer if none found and we have a name
+        if not final_client_id and client_name:
             try:
-                name_parts = final_client_name.split(' ', 1)
+                name_parts = client_name.split(' ', 1)
                 first_name = name_parts[0] if name_parts else 'Unknown'
                 last_name = name_parts[1] if len(name_parts) > 1 else ''
 
@@ -912,34 +912,22 @@ def unaki_create_appointment_impl(data=None):
                 db.session.add(customer)
                 db.session.flush()  # Get the ID without committing
                 final_client_id = customer.id
-                print(f"Created new customer ID {final_client_id}: {final_client_name}")
+                print(f"Created new customer ID {final_client_id}: {customer.full_name}")
             except Exception as ce:
                 print(f"Warning: Could not create customer record: {ce}")
 
-        # Ensure we have a valid client name - CRITICAL FIX
-        if not final_client_name:
-            if customer:
-                final_client_name = customer.full_name
-            elif final_client_id:
-                # Try to get customer again if we have an ID but no name
-                customer = Customer.query.get(final_client_id)
-                if customer:
-                    final_client_name = customer.full_name
-                else:
-                    final_client_name = f"Client {final_client_id}"
-            else:
-                final_client_name = "Unknown Client"
+        # Ensure we have a valid client_id
+        if not final_client_id:
+            return jsonify({
+                'success': False,
+                'error': 'Client ID is required. Please provide a valid client ID or client information to create a new customer.'
+            }), 400
                 
-        print(f"Creating booking with client_name: '{final_client_name}', client_id: {final_client_id}")
-
-        # Final validation - ensure we never create a booking without client_name
-        if not final_client_name or final_client_name.strip() == '':
-            final_client_name = f"Client {final_client_id}" if final_client_id else "Unknown Client"
+        print(f"Creating booking with client_id: {final_client_id}")
             
-        # Create UnakiBooking entry with only client_id (client_name for display only)
+        # Create UnakiBooking entry with only client_id
         unaki_booking = UnakiBooking(
             client_id=final_client_id,  # Store only the client_id as requested
-            client_name=final_client_name.strip(),  # Ensure not empty
             client_phone=client_phone,
             client_email=client_email,
             staff_id=int(data['staffId']),
@@ -970,11 +958,11 @@ def unaki_create_appointment_impl(data=None):
             'message': f'Appointment booked successfully for Client ID: {final_client_id}',
             'appointmentId': unaki_booking.id,
             'clientId': final_client_id,
-            'clientName': final_client_name,
+            'clientName': customer.full_name if customer else f'Client {final_client_id}',
             'booking': unaki_booking.to_dict() if hasattr(unaki_booking, 'to_dict') else {
                 'id': unaki_booking.id,
                 'client_id': unaki_booking.client_id,
-                'client_name': unaki_booking.client_name,
+                'client_name': customer.full_name if customer else f'Client {final_client_id}',
                 'service_name': unaki_booking.service_name,
                 'start_time': unaki_booking.start_time.strftime('%H:%M'),
                 'end_time': unaki_booking.end_time.strftime('%H:%M')

@@ -1034,8 +1034,7 @@ class UnakiBooking(db.Model):
     id = db.Column(db.Integer, primary_key=True)
 
     # Client Information
-    client_id = db.Column(db.Integer, db.ForeignKey('client.id'), nullable=True)  # FK to customer table
-    client_name = db.Column(db.String(100), nullable=False)
+    client_id = db.Column(db.Integer, db.ForeignKey('client.id'), nullable=False)  # FK to customer table (required now)
     client_phone = db.Column(db.String(20))
     client_email = db.Column(db.String(120))
 
@@ -1084,7 +1083,7 @@ class UnakiBooking(db.Model):
         return {
             'id': self.id,
             'client_id': self.client_id,
-            'client_name': self.client_name,
+            'client_name': self.client.full_name if self.client else 'Unknown Client',
             'client_phone': self.client_phone,
             'client_email': self.client_email,
             'staff_id': self.staff_id,
@@ -1132,7 +1131,8 @@ class UnakiBooking(db.Model):
         return self.status in ['scheduled', 'confirmed']
 
     def __repr__(self):
-        return f'<UnakiBooking {self.id}: {self.client_name} - {self.service_name} on {self.appointment_date}>'
+        client_name = self.client.full_name if self.client else f'Client {self.client_id}'
+        return f'<UnakiBooking {self.id}: {client_name} - {self.service_name} on {self.appointment_date}>'
 
 class UnakiStaff(db.Model):
     __tablename__ = 'unaki_staff'
