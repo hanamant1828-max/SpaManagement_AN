@@ -1059,9 +1059,7 @@ window.addAppointmentToBill = function addAppointmentToBill(appointmentId, servi
             }
         }
 
-        // Helper functions must be defined before addUnakiAppointmentToBill is called
-        
-        // Function to find or create empty service row
+        // Helper function to find or create empty service row
         function findEmptyServiceRow() {
             const serviceRows = document.querySelectorAll('.service-row');
             for (let row of serviceRows) {
@@ -1659,7 +1657,7 @@ function updateTaxCalculations() {
                         if (priceMatch) {
                             price = parseFloat(priceMatch[1].replace(/,/g, ''));
                             // Set the data-price for future calculations
-                            selectedOption.dataset.price = price.toString();
+                            selectedOption.dataset.price = price;
                         }
                     }
                     console.log(`Service ${index + 1}: ${selectedOption.text} - Price: ₹${price}`);
@@ -2913,38 +2911,42 @@ function handleServiceSelection(selectElement) {
     const selectedOption = selectElement.options[selectElement.selectedIndex];
 
     if (selectedOption && selectedOption.value) {
-        // Extract price from data attribute or option text
         let price = selectedOption.dataset.price;
 
-        if (!price) {
-            // Try to extract price from option text
+        // If data-price is not set, extract from option text
+        if (!price || price === '0' || price === '0.00') {
             const priceMatch = selectedOption.text.match(/₹([\d,]+\.?\d*)/);
             if (priceMatch) {
-                price = parseFloat(priceMatch[1].replace(/,/g, ''));
-                // Store it for future use
-                selectedOption.dataset.price = price.toString();
+                price = parseFloat(priceMatch[1].replace(/,/g, '')).toFixed(2);
+                // Set the data-price for future use
+                selectedOption.dataset.price = price;
             }
         }
 
-        if (price) {
-            console.log(`Service selected: ${selectedOption.text}, Price: ₹${price}`);
+        if (price && price !== '0' && price !== '0.00') {
             updateServicePrice(selectElement.value, price);
 
-            // Trigger calculation update
-            setTimeout(() => {
-                updateTaxCalculations();
-            }, 50);
+            // Set data attribute on the service row for billing calculations
+            const serviceRow = selectElement.closest('.service-row');
+            if (serviceRow) {
+                serviceRow.setAttribute('data-servicePrice', price);
+            }
+
+            console.log(`Service selected: ${selectedOption.text}, Price: ₹${price}`);
         } else {
-            console.warn('No price found for selected service:', selectedOption.text);
             updateServicePrice(selectElement.value, '0.00');
         }
     } else {
-        // Reset for empty selection
+        // If no service selected, reset price
         updateServicePrice(selectElement.value, '0.00');
-        setTimeout(() => {
-            updateTaxCalculations();
-        }, 50);
     }
+
+    // Trigger recalculation
+    setTimeout(() => {
+        if (typeof updateTaxCalculations === 'function') {
+            updateTaxCalculations();
+        }
+    }, 100);
 }
 
 </script>
