@@ -292,8 +292,24 @@ def api_time_slots():
 @app.route('/api/appointment/<int:appointment_id>/customer-id')
 @login_required
 def api_get_appointment_customer_id(appointment_id):
-    """API endpoint to get customer ID from appointment ID"""
+    """API endpoint to get customer ID from appointment ID - works with both Appointment and UnakiBooking tables"""
     try:
+        # First try to find in UnakiBooking table (primary system)
+        try:
+            from models import UnakiBooking
+            unaki_appointment = UnakiBooking.query.get(appointment_id)
+            if unaki_appointment:
+                return jsonify({
+                    'success': True,
+                    'appointment_id': appointment_id,
+                    'customer_id': unaki_appointment.client_id,
+                    'customer_name': unaki_appointment.client_name,
+                    'customer_phone': unaki_appointment.client_phone
+                })
+        except ImportError:
+            pass
+        
+        # Fallback to regular Appointment table
         appointment = Appointment.query.get(appointment_id)
         if not appointment:
             return jsonify({
@@ -305,7 +321,8 @@ def api_get_appointment_customer_id(appointment_id):
             'success': True,
             'appointment_id': appointment_id,
             'customer_id': appointment.client_id,
-            'customer_name': appointment.client.full_name if appointment.client else None
+            'customer_name': appointment.client.full_name if appointment.client else None,
+            'customer_phone': appointment.client.phone if appointment.client else None
         })
         
     except Exception as e:
