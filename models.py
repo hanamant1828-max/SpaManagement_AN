@@ -313,74 +313,108 @@ class ShiftLogs(db.Model):
     def __repr__(self):
         return f'<ShiftLogs {self.individual_date} - Management {self.shift_management_id}>'
 
-class Customer(db.Model):
-    __tablename__ = 'client'  # Keep table name for backward compatibility
+# Simplified Client Model for Unaki Booking System
+class Client(db.Model):
+    """Simplified client model for Unaki booking system"""
+    __tablename__ = 'client'
+    __table_args__ = (
+        db.Index('idx_client_phone', 'phone'),
+        db.Index('idx_client_name', 'name'),
+        {'extend_existing': True}
+    )
 
     id = db.Column(db.Integer, primary_key=True)
-    first_name = db.Column(db.String(50), nullable=False)
-    last_name = db.Column(db.String(50), nullable=False)
-    email = db.Column(db.String(120), unique=True, nullable=True, index=True)
-    phone = db.Column(db.String(20), nullable=False)
-    date_of_birth = db.Column(db.Date)
-    gender = db.Column(db.String(10))
-    address = db.Column(db.Text)
+    name = db.Column(db.String(100), nullable=False)
+    phone = db.Column(db.String(20), nullable=False, unique=True)
+    is_active = db.Column(db.Boolean, default=True, nullable=False)  # Restore for compatibility
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    last_visit = db.Column(db.DateTime)
-    total_visits = db.Column(db.Integer, default=0)
-    total_spent = db.Column(db.Float, default=0.0)
-    is_active = db.Column(db.Boolean, default=True)
-
-    # Customer preferences and notes
-    preferences = db.Column(db.Text)
-    allergies = db.Column(db.Text)
-    notes = db.Column(db.Text)
-    face_encoding = db.Column(db.Text)  # Store face encoding as JSON string
-    face_image_url = db.Column(db.String(255))  # Store face image path
-
-    # Loyalty status
-    loyalty_points = db.Column(db.Integer, default=0)
-    is_vip = db.Column(db.Boolean, default=False)
-
-    # Communication preferences
-    preferred_communication = db.Column(db.String(20), default='email')  # email, sms, whatsapp
-    marketing_consent = db.Column(db.Boolean, default=True)
-    reminder_preferences = db.Column(db.Text)  # JSON for reminder settings
-
-    # Advanced customer tracking
-    referral_source = db.Column(db.String(100))
-    lifetime_value = db.Column(db.Float, default=0.0)
-    last_no_show = db.Column(db.DateTime)
-    no_show_count = db.Column(db.Integer, default=0)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     # Relationships
-    appointments = db.relationship('Appointment', backref='client', lazy=True)
-    # Note: Customer package assignments will be handled separately with new package system
+    appointments = db.relationship('Appointment', back_populates='client', lazy=True)
+    unaki_bookings = db.relationship('UnakiBooking', back_populates='client', lazy=True)
 
     @property
     def full_name(self):
-        return f"{self.first_name} {self.last_name}"
+        """For backward compatibility"""
+        return self.name
 
-    @full_name.setter
-    def full_name(self, value):
-        """Allow setting full name by splitting into first and last name"""
-        if value and ' ' in value:
-            names = value.split(' ', 1)
-            self.first_name = names[0]
-            self.last_name = names[1] if len(names) > 1 else ''
-        elif value:
-            self.first_name = value
-            self.last_name = ''
+    @staticmethod
+    def format_phone(phone):
+        """Format phone number by removing non-digits"""
+        if not phone:
+            return None
+        # Remove all non-digit characters
+        digits = ''.join(filter(str.isdigit, phone))
+        return digits
+
+    @staticmethod
+    def validate_phone(phone):
+        """Validate phone number length"""
+        if not phone:
+            return False
+        formatted = Client.format_phone(phone)
+        return formatted and 10 <= len(formatted) <= 15
+
+    @staticmethod
+    def validate_name(name):
+        """Validate client name"""
+        if not name:
+            return False
+        stripped = name.strip()
+        return len(stripped) >= 2
+
+    def to_dict(self):
+        """Convert client to dictionary for API responses"""
+        return {
+            'id': self.id,
+            'name': self.name,
+            'phone': self.phone,
+            'is_active': self.is_active,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None
+        }
+
+    def __repr__(self):
+        return f'<Client {self.id}: {self.name} ({self.phone})>'
+
+# Keep Customer class for backward compatibility, inheriting from Client
+class Customer(Client):
+    """Backward compatibility wrapper for Client model"""
+    
+    @property
+    def first_name(self):
+        """Extract first name from full name for compatibility"""
+        if ' ' in self.name:
+            return self.name.split(' ', 1)[0]
+        return self.name
+    
+    @first_name.setter
+    def first_name(self, value):
+        """Set first name - updates the full name"""
+        if hasattr(self, '_last_name_cache'):
+            self.name = f"{value} {self._last_name_cache}".strip()
+        else:
+            self.name = value
+    
+    @property
+    def last_name(self):
+        """Extract last name from full name for compatibility"""
+        if ' ' in self.name:
+            return self.name.split(' ', 1)[1]
+        return ''
+    
+    @last_name.setter
+    def last_name(self, value):
+        """Set last name - updates the full name"""
+        self._last_name_cache = value
+        first = self.first_name if hasattr(self, 'name') else ''
+        self.name = f"{first} {value}".strip()
 
     @property
     def status(self):
-        if not self.is_active:
-            return 'Inactive'
-        elif self.last_visit and (datetime.utcnow() - self.last_visit).days > 90:
-            return 'Inactive Customer'
-        elif self.total_visits >= 10:
-            return 'Loyal Customer'
-        else:
-            return 'Regular Customer'
+        """Basic status for backward compatibility"""
+        return 'Active'
 
 class Service(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -444,7 +478,8 @@ class Appointment(db.Model):
     is_paid = db.Column(db.Boolean, default=False)
     inventory_deducted = db.Column(db.Boolean, default=False)  # Track if inventory was deducted
 
-    # Relationships - use existing backref from User model
+    # Relationships
+    client = db.relationship('Client', back_populates='appointments')
     # staff relationship is already created by User.appointments backref='assigned_staff'
 
     def process_inventory_deduction(self):
@@ -1076,7 +1111,7 @@ class UnakiBooking(db.Model):
 
     # Relationships
     assigned_staff = db.relationship('User', backref='unaki_bookings', foreign_keys=[staff_id])
-    client = db.relationship('Customer', backref='unaki_bookings', foreign_keys=[client_id])
+    client = db.relationship('Client', back_populates='unaki_bookings', foreign_keys=[client_id])
     service = db.relationship('Service', backref='unaki_bookings', foreign_keys=[service_id])
 
     def to_dict(self):

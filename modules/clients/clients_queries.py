@@ -3,42 +3,38 @@ Customers-related database queries
 """
 from sqlalchemy import or_, func
 from app import db
-from models import Customer, Appointment, Communication
+from models import Client, Customer, Appointment, Communication
 
 def get_all_customers():
     """Get all active customers"""
-    return Customer.query.filter_by(is_active=True).order_by(Customer.first_name).all()
+    return Client.query.filter_by(is_active=True).order_by(Client.name).all()
 
 def get_customer_by_id(customer_id):
     """Get customer by ID"""
-    return Customer.query.get(customer_id)
+    return Client.query.get(customer_id)
 
 def get_customer_by_phone(phone):
     """Get customer by phone number"""
-    return Customer.query.filter_by(phone=phone, is_active=True).first()
+    return Client.query.filter_by(phone=phone, is_active=True).first()
 
 def get_customer_by_email(email):
-    """Get customer by email address"""
-    if email and email.strip():
-        return Customer.query.filter_by(email=email, is_active=True).first()
+    """Get customer by email address - deprecated in simplified model"""
     return None
 
 def search_customers(query):
-    """Search customers by name, phone, or email"""
-    return Customer.query.filter(
-        Customer.is_active == True,
+    """Search customers by name or phone"""
+    return Client.query.filter(
+        Client.is_active == True,
         or_(
-            Customer.first_name.ilike(f'%{query}%'),
-            Customer.last_name.ilike(f'%{query}%'),
-            Customer.phone.ilike(f'%{query}%'),
-            Customer.email.ilike(f'%{query}%')
+            Client.name.ilike(f'%{query}%'),
+            Client.phone.ilike(f'%{query}%')
         )
-    ).order_by(Customer.first_name).all()
+    ).order_by(Client.name).all()
 
 def create_customer(customer_data):
     """Create a new customer"""
     try:
-        customer = Customer(**customer_data)
+        customer = Client(**customer_data)
         db.session.add(customer)
         db.session.commit()
         return customer
@@ -49,7 +45,7 @@ def create_customer(customer_data):
 def update_customer(customer_id, customer_data):
     """Update an existing customer"""
     try:
-        customer = Customer.query.get(customer_id)
+        customer = Client.query.get(customer_id)
         if customer:
             for key, value in customer_data.items():
                 setattr(customer, key, value)
@@ -62,9 +58,8 @@ def update_customer(customer_id, customer_data):
 
 def delete_customer(customer_id):
     """Soft delete a customer"""
-    from models import Customer
     try:
-        customer = Customer.query.get(customer_id)
+        customer = Client.query.get(customer_id)
         if customer:
             customer.is_active = False
             db.session.commit()
@@ -85,7 +80,7 @@ def get_customer_communications(customer_id):
 
 def get_customer_stats(customer_id):
     """Get customer statistics"""
-    customer = Customer.query.get(customer_id)
+    customer = Client.query.get(customer_id)
     if not customer:
         return None
     
@@ -98,7 +93,7 @@ def get_customer_stats(customer_id):
     return {
         'total_appointments': total_appointments,
         'total_spent': total_spent,
-        'last_visit': customer.last_visit,
+        'last_visit': None,  # Simplified client model doesn't track last_visit
         'member_since': customer.created_at
     }
 

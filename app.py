@@ -54,12 +54,23 @@ app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1) # needed for url_for 
 # Handle trailing slash variations
 app.url_map.strict_slashes = False
 
-# Configure the database - use SQLite only
-app.config["SQLALCHEMY_DATABASE_URI"] = compute_sqlite_uri()
-app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
-    "pool_pre_ping": True,
-}
-print(f"Using SQLite database: {app.config['SQLALCHEMY_DATABASE_URI']}")
+# Configure the database - use PostgreSQL if available, fallback to SQLite
+database_url = os.environ.get("DATABASE_URL")
+if database_url:
+    print("✅ DATABASE_URL available")
+    app.config["SQLALCHEMY_DATABASE_URI"] = database_url
+    app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
+        "pool_recycle": 300,
+        "pool_pre_ping": True,
+    }
+    print(f"Using PostgreSQL database: {database_url[:50]}...")
+else:
+    print("⚠️  DATABASE_URL not available, using SQLite fallback")
+    app.config["SQLALCHEMY_DATABASE_URI"] = compute_sqlite_uri()
+    app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
+        "pool_pre_ping": True,
+    }
+    print(f"Using SQLite database: {app.config['SQLALCHEMY_DATABASE_URI']}")
 
 # Configure cache control for Replit environment
 app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
@@ -235,6 +246,14 @@ except Exception as e:
     print(f"⚠️ Shift scheduler views import error: {e}")
 
 try:
+    from modules.clients.client_api import client_api_bp
+    app.register_blueprint(client_api_bp)
+    print("✅ Client API blueprint registered successfully")
+except Exception as e:
+    print(f"⚠️ Error registering client API blueprint: {e}")
+    print("Client API will not be available")
+
+try:
     from modules.billing.integrated_billing_views import *
     print("✅ Integrated billing views imported")
     # Verify that the appointment_to_billing route is registered
@@ -297,18 +316,16 @@ def unaki_staff():
 
 @app.route('/api/unaki/clients')
 def unaki_clients():
-    """Get all active clients for Unaki booking"""
+    """Get all clients for Unaki booking - simplified version"""
     try:
-        from modules.clients.clients_queries import get_all_customers
-        clients = get_all_customers()
+        from models import Client
+        clients = Client.query.order_by(Client.name).all()
         clients_data = []
         for client in clients:
             clients_data.append({
                 'id': client.id,
-                'name': client.full_name or f"{client.first_name} {client.last_name}",
-                'phone': client.phone,
-                'email': client.email,
-                'is_active': client.is_active
+                'name': client.name,
+                'phone': client.phone
             })
         return jsonify(clients_data)
     except Exception as e:

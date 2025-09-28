@@ -1060,8 +1060,9 @@ def api_unaki_book_appointment():
             }), 400
 
         # Get client information before creating the booking
-        client = Customer.query.get(client_id)
-        client_display_name = client.full_name if client else f'Client {client_id}'
+        from models import Client
+        client = Client.query.get(client_id)
+        client_display_name = client.name if client else f'Client {client_id}'
         
         appointment = UnakiBooking(
             client_id=int(client_id),
