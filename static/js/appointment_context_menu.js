@@ -48,7 +48,7 @@ class AppointmentContextMenu {
                     </li>
                     <li class="context-menu-divider"></li>
                     <li class="context-menu-item" data-action="billing">
-                        <i class="fas fa-dollar-sign"></i> Go to Billing
+                        <i class="fas fa-dollar-sign"></i> govto integrated billing
                     </li>
                     <li class="context-menu-item danger" data-action="delete">
                         <i class="fas fa-trash"></i> Delete Appointment
@@ -300,10 +300,26 @@ class AppointmentContextMenu {
     }
 
     goToBilling(appointmentId) {
-        console.log(`Redirecting to billing for appointment ${appointmentId}`);
+        console.log(`Redirecting to integrated billing for appointment ${appointmentId}`);
         
-        // Redirect to the existing appointment billing route
-        window.location.href = `/appointment/${appointmentId}/go-to-billing`;
+        // First get the customer ID from the appointment
+        fetch(`/api/appointment/${appointmentId}/customer-id`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.customer_id) {
+                    // Redirect to integrated billing with customer ID
+                    window.location.href = `/integrated-billing/${data.customer_id}`;
+                } else {
+                    console.error('Failed to get customer ID:', data.error);
+                    // Fallback to general integrated billing page
+                    window.location.href = '/integrated-billing';
+                }
+            })
+            .catch(error => {
+                console.error('Error getting customer ID:', error);
+                // Fallback to general integrated billing page
+                window.location.href = '/integrated-billing';
+            });
     }
 
     deleteAppointment(appointmentId) {

@@ -289,6 +289,31 @@ def api_time_slots():
         'service_id': service_id
     })
 
+@app.route('/api/appointment/<int:appointment_id>/customer-id')
+@login_required
+def api_get_appointment_customer_id(appointment_id):
+    """API endpoint to get customer ID from appointment ID"""
+    try:
+        appointment = Appointment.query.get(appointment_id)
+        if not appointment:
+            return jsonify({
+                'success': False,
+                'error': 'Appointment not found'
+            }), 404
+        
+        return jsonify({
+            'success': True,
+            'appointment_id': appointment_id,
+            'customer_id': appointment.client_id,
+            'customer_name': appointment.client.full_name if appointment.client else None
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
 @app.route('/calendar-booking')
 @login_required
 def calendar_booking():
