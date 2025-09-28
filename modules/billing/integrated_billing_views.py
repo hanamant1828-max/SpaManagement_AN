@@ -104,6 +104,11 @@ def integrated_billing(customer_id=None):
     if not current_user.is_active:
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
+    
+    # Extract client parameters from URL for auto-selection
+    client_name = request.args.get('client_name', '')
+    client_phone = request.args.get('client_phone', '')
+    appointment_id = request.args.get('appointment_id', '')
 
     # Get data for billing interface
     customers = Customer.query.filter_by(is_active=True).order_by(Customer.first_name, Customer.last_name).all()
@@ -227,7 +232,11 @@ def integrated_billing(customer_id=None):
                          today_revenue=today_revenue,
                          selected_customer=selected_customer,
                          customer_appointments=customer_appointments,
-                         customer_services=customer_services)
+                         customer_services=customer_services,
+                         preselected_client_id=customer_id,
+                         preselected_client_name=client_name,
+                         preselected_client_phone=client_phone,
+                         appointment_id=appointment_id)
 
 @app.route('/appointment/<int:appointment_id>/go-to-billing')
 @login_required
