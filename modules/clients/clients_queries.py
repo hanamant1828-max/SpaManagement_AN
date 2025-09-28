@@ -7,7 +7,12 @@ from models import Client, Customer, Appointment, Communication
 
 def get_all_customers():
     """Get all active customers"""
-    return Client.query.filter_by(is_active=True).order_by(Client.name).all()
+    try:
+        return Client.query.filter_by(is_active=True).order_by(Client.name).all()
+    except Exception as e:
+        # Fallback if name column doesn't exist
+        print(f"Error in get_all_customers: {e}")
+        return Client.query.filter_by(is_active=True).all()
 
 def get_customer_by_id(customer_id):
     """Get customer by ID"""
@@ -23,17 +28,34 @@ def get_customer_by_email(email):
 
 def search_customers(query):
     """Search customers by name or phone"""
-    return Client.query.filter(
-        Client.is_active == True,
-        or_(
-            Client.name.ilike(f'%{query}%'),
+    try:
+        return Client.query.filter(
+            Client.is_active == True,
+            or_(
+                Client.name.ilike(f'%{query}%'),
+                Client.phone.ilike(f'%{query}%')
+            )
+        ).order_by(Client.name).all()
+    except Exception as e:
+        # Fallback if name column doesn't exist
+        print(f"Error in search_customers: {e}")
+        return Client.query.filter(
+            Client.is_active == True,
             Client.phone.ilike(f'%{query}%')
-        )
-    ).order_by(Client.name).all()
+        ).all()
 
 def create_customer(customer_data):
     """Create a new customer"""
     try:
+        # Ensure name field is populated from first_name and last_name if provided
+        if 'first_name' in customer_data and 'last_name' in customer_data:
+            first_name = customer_data.get('first_name', '').strip()
+            last_name = customer_data.get('last_name', '').strip()
+            customer_data['name'] = f"{first_name} {last_name}".strip()
+        elif 'name' not in customer_data or not customer_data['name']:
+            # Fallback name generation
+            customer_data['name'] = customer_data.get('first_name', 'New Client')
+        
         customer = Client(**customer_data)
         db.session.add(customer)
         db.session.commit()
@@ -47,6 +69,12 @@ def update_customer(customer_id, customer_data):
     try:
         customer = Client.query.get(customer_id)
         if customer:
+            # Ensure name field is populated from first_name and last_name if provided
+            if 'first_name' in customer_data and 'last_name' in customer_data:
+                first_name = customer_data.get('first_name', '').strip()
+                last_name = customer_data.get('last_name', '').strip()
+                customer_data['name'] = f"{first_name} {last_name}".strip()
+            
             for key, value in customer_data.items():
                 setattr(customer, key, value)
             db.session.commit()
