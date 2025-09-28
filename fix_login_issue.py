@@ -6,7 +6,8 @@ from werkzeug.security import generate_password_hash
 
 # Set environment variables
 os.environ["SESSION_SECRET"] = "1578063aca108928c78100b516702a5765d2d05e85b4fb8bb29a75db0bfc34ca"
-os.environ["DATABASE_URL"] = "postgresql://replit:postgres@localhost:5432/spa_management"
+# Use SQLite database (comment out PostgreSQL)
+# os.environ["DATABASE_URL"] = "postgresql://replit:postgres@localhost:5432/spa_management"
 
 from app import app, db
 
