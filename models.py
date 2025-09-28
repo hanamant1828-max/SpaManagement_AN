@@ -1236,8 +1236,13 @@ class UnakiBreak(db.Model):
     is_subscription_deduction = db.Column(db.Boolean, default=False)
     is_extra_charge = db.Column(db.Boolean, default=False)  # Beyond package/subscription
 
+    # Staff assignment for services
+    staff_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
+    staff_name = db.Column(db.String(100))  # Denormalized for quick access
+
     # Relationships
     appointment = db.relationship('Appointment', backref='invoice_items')
+    assigned_staff = db.relationship('User', backref='invoice_service_items', foreign_keys=[staff_id])
     # Note: Package relationships handled separately with new package system
     # Note: Inventory relationships are handled in the inventory module to avoid circular imports
 

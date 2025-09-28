@@ -288,7 +288,8 @@
                             </h6>
                             <div id="servicesContainer">
                                 <div class="service-row row mb-2">
-                                    <div class="col-md-5">
+                                    <div class="col-md-4">
+                                        <label class="form-label text-muted small">Service</label>
                                         <select class="form-select" name="service_ids[]" onchange="handleServiceSelection(this)">
                                             <option value="">Select Service</option>
                                             {% for service in services %}
@@ -298,14 +299,28 @@
                                             {% endfor %}
                                         </select>
                                     </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label text-muted small">Staff Member <span class="text-danger">*</span></label>
+                                        <select class="form-select" name="staff_ids[]" required>
+                                            <option value="">Select Staff</option>
+                                            {% for staff_member in staff_members %}
+                                            <option value="{{ staff_member.id }}">
+                                                {{ staff_member.full_name }} - {{ staff_member.designation or staff_member.role }}
+                                            </option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
                                     <div class="col-md-2">
+                                        <label class="form-label text-muted small">Quantity</label>
                                         <input type="number" class="form-control" name="service_quantities[]" placeholder="Qty" min="1" value="1" step="0.5">
                                     </div>
-                                    <div class="col-md-3">
-                                        <input type="number" class="form-control" name="appointment_ids[]" placeholder="Appointment ID (Optional)">
-                                    </div>
                                     <div class="col-md-2">
-                                        <button type="button" class="btn btn-success btn-sm" onclick="addServiceRow()">
+                                        <label class="form-label text-muted small">Appointment ID</label>
+                                        <input type="number" class="form-control" name="appointment_ids[]" placeholder="Optional">
+                                    </div>
+                                    <div class="col-md-1">
+                                        <label class="form-label text-muted small">&nbsp;</label>
+                                        <button type="button" class="btn btn-success btn-sm w-100" onclick="addServiceRow()">
                                             <i class="fas fa-plus"></i>
                                         </button>
                                     </div>
@@ -1009,7 +1024,7 @@ function addServiceRow() {
     // Change button to remove
     const button = newRow.querySelector('button');
     if (button) {
-        button.className = 'btn btn-danger btn-sm';
+        button.className = 'btn btn-danger btn-sm w-100';
         button.innerHTML = '<i class="fas fa-minus"></i>';
         button.onclick = function() { 
             this.closest('.service-row').remove(); 
@@ -1231,6 +1246,7 @@ function addServiceRow() {
 
                 if (targetRow) {
                     const serviceSelect = targetRow.querySelector('select[name="service_ids[]"]');
+                    const staffSelect = targetRow.querySelector('select[name="staff_ids[]"]');
                     const quantityInput = targetRow.querySelector('input[name="service_quantities[]"]');
                     const appointmentInput = targetRow.querySelector('input[name="appointment_ids[]"]');
 
@@ -1255,6 +1271,11 @@ function addServiceRow() {
                         serviceSelect.value = matchedServiceId;
                         quantityInput.value = '1';
                         appointmentInput.value = `unaki_${appointment.id}`;
+
+                        // Auto-select staff if available from appointment data
+                        if (appointment.staff_id && staffSelect) {
+                            staffSelect.value = appointment.staff_id;
+                        }
 
                         // Update the option's data-price attribute if needed
                         const selectedOption = serviceSelect.options[serviceSelect.selectedIndex];
@@ -1285,6 +1306,11 @@ function addServiceRow() {
                         quantityInput.value = '1';
                         appointmentInput.value = `unaki_${appointment.id}`;
 
+                        // Auto-select staff if available
+                        if (appointment.staff_id && staffSelect) {
+                            staffSelect.value = appointment.staff_id;
+                        }
+
                         // Add warning indicator
                         let indicator = targetRow.querySelector('.unaki-indicator');
                         if (!indicator) {
@@ -1302,7 +1328,7 @@ function addServiceRow() {
                 updateTaxCalculations();
             }, 100);
 
-            showNotification(`Auto-filled ${servicesAdded} of ${customerAppointments.length} Unaki appointments!`, servicesAdded > 0 ? 'success' : 'warning');
+            showNotification(`Auto-filled ${servicesAdded} of ${customerAppointments.length} Unaki appointments with staff assignments!`, servicesAdded > 0 ? 'success' : 'warning');
             {% else %}
             showNotification('No current Unaki appointments found to auto-fill', 'warning');
             {% endif %}

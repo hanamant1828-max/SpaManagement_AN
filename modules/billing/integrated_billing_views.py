@@ -104,7 +104,7 @@ def integrated_billing(customer_id=None):
     if not current_user.is_active:
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
-    
+
     # Extract client parameters from URL for auto-selection
     client_name = request.args.get('client_name', '')
     client_phone = request.args.get('client_phone', '')
@@ -113,6 +113,9 @@ def integrated_billing(customer_id=None):
     # Get data for billing interface
     customers = Customer.query.filter_by(is_active=True).order_by(Customer.first_name, Customer.last_name).all()
     services = Service.query.filter_by(is_active=True).order_by(Service.name).all()
+    # Fetch staff for the dropdown
+    from models import Staff
+    staff_members = Staff.query.filter_by(is_active=True).order_by(Staff.name).all()
 
     print(f"DEBUG: Found {len(customers)} customers and {len(services)} services for billing interface")
 
@@ -146,14 +149,14 @@ def integrated_billing(customer_id=None):
         total_revenue = db.session.query(db.func.sum(EnhancedInvoice.total_amount)).filter(
             EnhancedInvoice.payment_status == 'paid'
         ).scalar() or 0
-        
+
         # If no data, try regular Invoice table as fallback
         if total_revenue == 0:
             from models import Invoice
             total_revenue = db.session.query(db.func.sum(Invoice.total_amount)).filter(
                 Invoice.payment_status == 'paid'
             ).scalar() or 0
-            
+
     except Exception as e:
         app.logger.error(f"Error calculating total revenue: {str(e)}")
         # Generate some demo revenue for display
@@ -164,14 +167,14 @@ def integrated_billing(customer_id=None):
         pending_amount = db.session.query(db.func.sum(EnhancedInvoice.balance_due)).filter(
             EnhancedInvoice.payment_status.in_(['pending', 'partial'])
         ).scalar() or 0
-        
+
         # If no data, try regular Invoice table as fallback
         if pending_amount == 0:
             from models import Invoice
             pending_amount = db.session.query(db.func.sum(Invoice.total_amount)).filter(
                 Invoice.payment_status.in_(['pending', 'partial'])
             ).scalar() or 0
-            
+
     except Exception as e:
         app.logger.error(f"Error calculating pending amount: {str(e)}")
         # Generate some demo pending amount
@@ -183,7 +186,7 @@ def integrated_billing(customer_id=None):
             EnhancedInvoice.payment_status == 'paid',
             db.func.date(EnhancedInvoice.invoice_date) == datetime.now().date()
         ).scalar() or 0
-        
+
         # If no data, try regular Invoice table as fallback
         if today_revenue == 0:
             from models import Invoice
@@ -191,7 +194,7 @@ def integrated_billing(customer_id=None):
                 Invoice.payment_status == 'paid',
                 db.func.date(Invoice.created_at) == datetime.now().date()
             ).scalar() or 0
-            
+
     except Exception as e:
         app.logger.error(f"Error calculating today's revenue: {str(e)}")
         # Generate some demo today's revenue
@@ -206,24 +209,24 @@ def integrated_billing(customer_id=None):
         if selected_customer:
             # Import UnakiBooking model
             from models import UnakiBooking
-            
+
             # Get ALL scheduled and confirmed Unaki bookings for this customer
             customer_appointments_query = []
-            
+
             # Method 1: Try to match by client_id first (most reliable)
             if selected_customer.id:
                 customer_appointments_query = UnakiBooking.query.filter(
                     UnakiBooking.client_id == selected_customer.id,
                     UnakiBooking.status.in_(['scheduled', 'confirmed'])
                 ).order_by(UnakiBooking.appointment_date.desc()).all()
-            
+
             # Method 2: If no results, try matching by phone (exact match)
             if not customer_appointments_query and selected_customer.phone:
                 customer_appointments_query = UnakiBooking.query.filter(
                     UnakiBooking.client_phone == selected_customer.phone,
                     UnakiBooking.status.in_(['scheduled', 'confirmed'])
                 ).order_by(UnakiBooking.appointment_date.desc()).all()
-            
+
             # Method 3: If still no results, try matching by name (partial match)
             if not customer_appointments_query:
                 # Try full name match first
@@ -232,14 +235,14 @@ def integrated_billing(customer_id=None):
                     UnakiBooking.client_name.ilike(f'%{full_name}%'),
                     UnakiBooking.status.in_(['scheduled', 'confirmed'])
                 ).order_by(UnakiBooking.appointment_date.desc()).all()
-                
+
                 # If still no results, try first name only
                 if not customer_appointments_query:
                     customer_appointments_query = UnakiBooking.query.filter(
                         UnakiBooking.client_name.ilike(f'%{selected_customer.first_name}%'),
                         UnakiBooking.status.in_(['scheduled', 'confirmed'])
                     ).order_by(UnakiBooking.appointment_date.desc()).all()
-            
+
             print(f"DEBUG: Customer {selected_customer.id} ({selected_customer.first_name} {selected_customer.last_name}) phone: {selected_customer.phone}")
             print(f"DEBUG: Found {len(customer_appointments_query)} Unaki appointments for billing")
 
@@ -271,6 +274,7 @@ def integrated_billing(customer_id=None):
     return render_template('integrated_billing.html',
                          customers=customers,
                          services=services,
+                         staff_members=staff_members, # Pass staff members to template
                          inventory_items=inventory_items,
                          recent_invoices=recent_invoices,
                          total_revenue=total_revenue,
@@ -304,7 +308,7 @@ def appointment_to_billing(appointment_id):
         if unaki_booking:
             app.logger.info(f"Found UnakiBooking {appointment_id}: {unaki_booking.client_name}")
             customer_name = unaki_booking.client_name
-            
+
             # First try to use existing client_id if it exists
             if unaki_booking.client_id:
                 customer = Customer.query.get(unaki_booking.client_id)
@@ -314,7 +318,7 @@ def appointment_to_billing(appointment_id):
                     app.logger.info(f"Using existing client_id {customer_id} for UnakiBooking {appointment_id}")
                 else:
                     app.logger.warning(f"UnakiBooking {appointment_id} has invalid client_id {unaki_booking.client_id}")
-            
+
             # If no valid client_id, try to find customer by phone
             if not customer_id and unaki_booking.client_phone:
                 customer = Customer.query.filter_by(phone=unaki_booking.client_phone).first()
@@ -338,7 +342,7 @@ def appointment_to_billing(appointment_id):
                         Customer.first_name.ilike(first_name),
                         Customer.last_name.ilike(last_name) if last_name else True
                     ).first()
-                    
+
                     if not customer:
                         # Try first name only match
                         customer = Customer.query.filter(
@@ -370,7 +374,7 @@ def appointment_to_billing(appointment_id):
                 db.session.flush()
                 customer_id = new_customer.id
                 customer_name = new_customer.full_name
-                
+
                 # Update the UnakiBooking with the new client_id
                 unaki_booking.client_id = customer_id
                 db.session.commit()
@@ -409,7 +413,7 @@ def create_professional_invoice():
         return jsonify({'success': False, 'message': 'Access denied'}), 403
 
     try:
-        from models import Service, EnhancedInvoice, InvoiceItem
+        from models import Service, EnhancedInvoice, InvoiceItem, Staff
         from modules.inventory.models import InventoryBatch, InventoryProduct
         from modules.inventory.queries import create_consumption_record
         import datetime
@@ -428,13 +432,19 @@ def create_professional_invoice():
         service_ids = request.form.getlist('service_ids[]')
         service_quantities = request.form.getlist('service_quantities[]')
         appointment_ids = request.form.getlist('appointment_ids[]')
+        staff_ids = request.form.getlist('staff_ids[]')
 
         for i, service_id in enumerate(service_ids):
             if service_id:
+                staff_id = staff_ids[i] if i < len(staff_ids) and staff_ids[i] else None
+                if not staff_id:
+                    return jsonify({'success': False, 'message': f'Please select staff for service {i+1}'})
+
                 services_data.append({
                     'service_id': int(service_id),
                     'quantity': float(service_quantities[i]) if i < len(service_quantities) else 1,
-                    'appointment_id': int(appointment_ids[i]) if i < len(appointment_ids) and appointment_ids[i] else None
+                    'appointment_id': int(appointment_ids[i]) if i < len(appointment_ids) and appointment_ids[i] else None,
+                    'staff_id': int(staff_id)
                 })
 
         # Parse inventory data
@@ -595,6 +605,8 @@ def create_professional_invoice():
                     item.unit_price = service.price
                     item.original_amount = service.price * service_data['quantity']
                     item.final_amount = service.price * service_data['quantity']
+                    # Add staff_id to the invoice item
+                    item.staff_id = service_data.get('staff_id')
                     db.session.add(item)
                     service_items_created += 1
 
@@ -694,13 +706,19 @@ def create_integrated_invoice():
         service_ids = request.form.getlist('service_ids[]')
         service_quantities = request.form.getlist('service_quantities[]')
         appointment_ids = request.form.getlist('appointment_ids[]')
+        staff_ids = request.form.getlist('staff_ids[]')
 
         for i, service_id in enumerate(service_ids):
             if service_id:
+                staff_id = staff_ids[i] if i < len(staff_ids) and staff_ids[i] else None
+                if not staff_id:
+                    return jsonify({'success': False, 'message': f'Please select staff for service {i+1}'})
+
                 services_data.append({
                     'service_id': int(service_id),
                     'quantity': float(service_quantities[i]) if i < len(service_quantities) else 1,
-                    'appointment_id': int(appointment_ids[i]) if i < len(appointment_ids) and appointment_ids[i] else None
+                    'appointment_id': int(appointment_ids[i]) if i < len(appointment_ids) and appointment_ids[i] else None,
+                    'staff_id': int(staff_id)
                 })
 
         # Parse batch-wise inventory data
@@ -847,6 +865,8 @@ def create_integrated_invoice():
                         item.unit_price = service.price
                         item.original_amount = service.price * service_data['quantity']
                         item.final_amount = service.price * service_data['quantity']
+                        # Add staff_id to the invoice item
+                        item.staff_id = service_data.get('staff_id')
                         db.session.add(item)
                         service_items_created += 1
 
@@ -1126,11 +1146,20 @@ def view_integrated_invoice(invoice_id):
     service_items = [item for item in invoice_items if item.item_type == 'service']
     inventory_items = [item for item in invoice_items if item.item_type == 'inventory']
 
+    # Fetch staff names for services
+    staff_names = {}
+    service_staff_ids = {item.staff_id for item in service_items if item.staff_id}
+    if service_staff_ids:
+        from models import Staff
+        staffs = Staff.query.filter(Staff.id.in_(service_staff_ids)).all()
+        staff_names = {staff.id: staff.name for staff in staffs}
+
     return render_template('integrated_invoice_detail.html',
                          invoice=invoice,
                          service_items=service_items,
                          inventory_items=inventory_items,
-                         payments=payments)
+                         payments=payments,
+                         staff_names=staff_names) # Pass staff names to template
 
 @app.route('/integrated-billing/invoices')
 @login_required
@@ -1187,29 +1216,29 @@ def debug_fix_customer_bookings():
     if not current_user.has_role('admin'):
         flash('Access denied - Admin only', 'danger')
         return redirect(url_for('dashboard'))
-    
+
     try:
         from models import Customer, UnakiBooking
-        
+
         fixed_count = 0
         total_bookings = 0
-        
+
         # Get all UnakiBookings without client_id
         unmatched_bookings = UnakiBooking.query.filter(
             UnakiBooking.client_id.is_(None)
         ).all()
-        
+
         for booking in unmatched_bookings:
             total_bookings += 1
             customer_match = None
-            
+
             # Try to match by phone first
             if booking.client_phone:
                 customer_match = Customer.query.filter_by(
                     phone=booking.client_phone,
                     is_active=True
                 ).first()
-            
+
             # If no phone match, try name matching
             if not customer_match and booking.client_name:
                 name_parts = booking.client_name.strip().split(' ', 1)
@@ -1219,23 +1248,23 @@ def debug_fix_customer_bookings():
                         Customer.first_name.ilike(f'%{first_name}%'),
                         Customer.is_active == True
                     ).first()
-            
+
             # If found a match, update the booking
             if customer_match:
                 booking.client_id = customer_match.id
                 fixed_count += 1
                 app.logger.info(f"Fixed booking {booking.id}: matched to customer {customer_match.id}")
-        
+
         # Commit changes
         db.session.commit()
-        
+
         return jsonify({
             'success': True,
             'message': f'Fixed {fixed_count} out of {total_bookings} unmatched bookings',
             'fixed_count': fixed_count,
             'total_bookings': total_bookings
         })
-        
+
     except Exception as e:
         db.session.rollback()
         return jsonify({
@@ -1264,10 +1293,20 @@ def print_professional_invoice(invoice_id):
     except:
         pass
 
+    # Fetch staff names for services
+    staff_names = {}
+    service_items = [item for item in invoice_items if item.item_type == 'service']
+    service_staff_ids = {item.staff_id for item in service_items if item.staff_id}
+    if service_staff_ids:
+        from models import Staff
+        staffs = Staff.query.filter(Staff.id.in_(service_staff_ids)).all()
+        staff_names = {staff.id: staff.name for staff in staffs}
+
     return render_template('professional_invoice_print.html',
                          invoice=invoice,
                          invoice_items=invoice_items,
-                         tax_details=tax_details)
+                         tax_details=tax_details,
+                         staff_names=staff_names) # Pass staff names to template
 
 @app.route('/api/invoice-preview', methods=['POST'])
 @login_required
