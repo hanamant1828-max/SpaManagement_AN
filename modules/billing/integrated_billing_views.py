@@ -120,7 +120,7 @@ def integrated_billing(customer_id=None):
     services = Service.query.filter_by(is_active=True).order_by(Service.name).all()
     # Fetch staff for the dropdown
     from models import User
-    staff_members = User.query.filter_by(is_active=True).order_by(User.full_name).all()
+    staff_members = User.query.filter_by(is_active=True).order_by(User.first_name, User.last_name).all()
 
     print(f"DEBUG: Found {len(customers)} customers and {len(services)} services for billing interface")
 
