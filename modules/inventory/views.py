@@ -651,12 +651,16 @@ def api_create_consumption():
         if quantity > batch.qty_available:
             return jsonify({'error': f'Insufficient stock. Available: {batch.qty_available}, Required: {quantity}'}), 400
 
+        # Get purpose from data if provided
+        purpose = data.get('purpose', 'other')  # Default to 'other' if not provided
+
         # Create consumption record
         consumption = InventoryConsumption(
             batch_id=batch_id,
             quantity=quantity,
             issued_to=issued_to,
             reference=reference,
+            purpose=purpose,
             notes=notes,
             created_by=current_user.id
         )
