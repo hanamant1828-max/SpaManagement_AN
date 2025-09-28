@@ -771,73 +771,180 @@ function addServiceRow() {
 
                 // Try to find matching service by name
                 let matchedServiceId = null;
+                let servicePrice = servicePrice || 0;
+
+                // Look through all service options to find a match
                 for (let option of serviceSelect.options) {
-                    if (option.text.toLowerCase().includes(serviceName.toLowerCase())) {
+                    if (option.value && option.text.toLowerCase().includes(serviceName.toLowerCase())) {
                         matchedServiceId = option.value;
+                        // Extract price from option text if available
+                        const priceMatch = option.text.match(/₹([\d,]+\.?\d*)/);
+                        if (priceMatch) {
+                            servicePrice = parseFloat(priceMatch[1].replace(/,/g, ''));
+                        }
                         break;
                     }
                 }
 
                 if (matchedServiceId) {
                     serviceSelect.value = matchedServiceId;
+                    quantityInput.value = '1';
+                    appointmentInput.value = `unaki_${appointmentId}`; // Prefix to identify Unaki appointments
+
+                    // Update the option's data-price attribute if needed
+                    const selectedOption = serviceSelect.options[serviceSelect.selectedIndex];
+                    if (selectedOption && !selectedOption.dataset.price) {
+                        selectedOption.dataset.price = servicePrice;
+                    }
+
+                    // Highlight the row
+                    targetRow.style.borderLeft = '4px solid #007bff';
+                    targetRow.style.backgroundColor = 'rgba(0, 123, 255, 0.1)';
+
+                    // Add visual indicator
+                    let indicator = targetRow.querySelector('.unaki-indicator');
+                    if (!indicator) {
+                        indicator = document.createElement('small');
+                        indicator.className = 'unaki-indicator text-info fw-bold d-block';
+                        indicator.innerHTML = '<i class="fas fa-calendar-check me-1"></i>Unaki Booking';
+                        targetRow.appendChild(indicator);
+                    }
+
+                    // Update calculations
+                    updateTaxCalculations();
+
+                    // Show success message
+                    showNotification(`Added Unaki booking: ${serviceName} to bill successfully!`, 'success');
                 } else {
-                    // If no exact match, show the service name in a custom way
-                    console.log('No exact service match found for:', serviceName);
+                    // If no exact match, create a custom entry or show warning
+                    console.warn(`No matching service found for: ${serviceName}`);
+
+                    // Fill quantity and appointment ID
+                    quantityInput.value = '1';
+                    appointmentInput.value = `unaki_${appointmentId}`;
+
+                    // Add warning indicator
+                    let indicator = targetRow.querySelector('.unaki-indicator');
+                    if (!indicator) {
+                        indicator = document.createElement('small');
+                        indicator.className = 'unaki-indicator text-warning fw-bold d-block';
+                        indicator.innerHTML = `<i class="fas fa-exclamation-triangle me-1"></i>Service not found: ${serviceName}`;
+                        targetRow.appendChild(indicator);
+                    }
+
+                    // Show a notification for the user
+                    showNotification(`Could not find a matching service for "${serviceName}". Added as custom entry.`, 'warning');
                 }
-
-                quantityInput.value = '1';
-                appointmentInput.value = `unaki_${appointmentId}`; // Prefix to identify Unaki appointments
-
-                // Highlight the row differently for Unaki appointments
-                targetRow.style.borderLeft = '4px solid #007bff';
-                targetRow.style.backgroundColor = 'rgba(0, 123, 255, 0.1)';
-
-                // Add visual indicator
-                const indicator = document.createElement('small');
-                indicator.className = 'text-info fw-bold d-block';
-                indicator.innerHTML = '<i class="fas fa-calendar-check me-1"></i>Unaki Booking';
-                targetRow.appendChild(indicator);
-
-                // Update calculations
-                updateTaxCalculations();
-
-                // Show success message
-                showNotification(`Added Unaki booking: ${serviceName} to bill successfully!`, 'success');
             }
         }
 
 // Auto-fill customer's current Unaki appointments
-function autoFillCurrentServices() {
-    {% if selected_customer and customer_appointments %}
-    const servicesContainer = document.getElementById('servicesContainer');
+        function autoFillCurrentServices() {
+            {% if selected_customer and customer_appointments %}
+            const servicesContainer = document.getElementById('servicesContainer');
 
-    // Clear existing service rows except the first one
-    const serviceRows = servicesContainer.querySelectorAll('.service-row');
-    for (let i = 1; i < serviceRows.length; i++) {
-        serviceRows[i].remove();
-    }
+            // Clear existing service rows except the first one
+            const serviceRows = servicesContainer.querySelectorAll('.service-row');
+            for (let i = 1; i < serviceRows.length; i++) {
+                serviceRows[i].remove();
+            }
 
-    // Get customer's Unaki appointments
-    const customerAppointments = {{ customer_appointments | tojson }};
+            // Get customer's Unaki appointments
+            const customerAppointments = {{ customer_appointments | tojson }};
+            let servicesAdded = 0;
 
-    customerAppointments.forEach((appointment, index) => {
-        // Use the addUnakiAppointmentToBill function to properly add each appointment
-        addUnakiAppointmentToBill(
-            appointment.id, 
-            appointment.service_name, 
-            appointment.service_price, 
-            appointment.service_duration
-        );
-    });
+            customerAppointments.forEach((appointment, index) => {
+                // Find or create a service row
+                let targetRow = null;
 
-    // Update tax calculations
-    updateTaxCalculations();
+                if (index === 0) {
+                    // Use the first existing row
+                    targetRow = servicesContainer.querySelector('.service-row');
+                } else {
+                    // Create new row
+                    addServiceRow();
+                    const allRows = servicesContainer.querySelectorAll('.service-row');
+                    targetRow = allRows[allRows.length - 1];
+                }
 
-    showNotification(`Auto-filled ${customerAppointments.length} Unaki appointments!`, 'success');
-    {% else %}
-    showNotification('No current Unaki appointments found to auto-fill', 'warning');
-    {% endif %}
-}
+                if (targetRow) {
+                    const serviceSelect = targetRow.querySelector('select[name="service_ids[]"]');
+                    const quantityInput = targetRow.querySelector('input[name="service_quantities[]"]');
+                    const appointmentInput = targetRow.querySelector('input[name="appointment_ids[]"]');
+
+                    // Try to find matching service by name
+                    let matchedServiceId = null;
+                    let servicePrice = appointment.service_price || 0;
+
+                    // Look through all service options to find a match
+                    for (let option of serviceSelect.options) {
+                        if (option.value && option.text.toLowerCase().includes(appointment.service_name.toLowerCase())) {
+                            matchedServiceId = option.value;
+                            // Extract price from option text if available
+                            const priceMatch = option.text.match(/₹([\d,]+\.?\d*)/);
+                            if (priceMatch) {
+                                servicePrice = parseFloat(priceMatch[1].replace(/,/g, ''));
+                            }
+                            break;
+                        }
+                    }
+
+                    if (matchedServiceId) {
+                        serviceSelect.value = matchedServiceId;
+                        quantityInput.value = '1';
+                        appointmentInput.value = `unaki_${appointment.id}`;
+
+                        // Update the option's data-price attribute if needed
+                        const selectedOption = serviceSelect.options[serviceSelect.selectedIndex];
+                        if (selectedOption && !selectedOption.dataset.price) {
+                            selectedOption.dataset.price = servicePrice;
+                        }
+
+                        // Highlight the row
+                        targetRow.style.borderLeft = '4px solid #007bff';
+                        targetRow.style.backgroundColor = 'rgba(0, 123, 255, 0.1)';
+
+                        // Add visual indicator
+                        let indicator = targetRow.querySelector('.unaki-indicator');
+                        if (!indicator) {
+                            indicator = document.createElement('small');
+                            indicator.className = 'unaki-indicator text-info fw-bold d-block';
+                            indicator.innerHTML = '<i class="fas fa-calendar-check me-1"></i>Unaki Booking';
+                            targetRow.appendChild(indicator);
+                        }
+
+                        servicesAdded++;
+                    } else {
+                        // If no exact match, create a custom entry or show warning
+                        console.warn(`No matching service found for: ${appointment.service_name}`);
+
+                        // You could optionally add it as a custom service here
+                        // For now, just fill the quantity and appointment ID
+                        quantityInput.value = '1';
+                        appointmentInput.value = `unaki_${appointment.id}`;
+
+                        // Add warning indicator
+                        let indicator = targetRow.querySelector('.unaki-indicator');
+                        if (!indicator) {
+                            indicator = document.createElement('small');
+                            indicator.className = 'unaki-indicator text-warning fw-bold d-block';
+                            indicator.innerHTML = `<i class="fas fa-exclamation-triangle me-1"></i>Service not found: ${appointment.service_name}`;
+                            targetRow.appendChild(indicator);
+                        }
+                    }
+                }
+            });
+
+            // Force update tax calculations after all services are added
+            setTimeout(() => {
+                updateTaxCalculations();
+            }, 100);
+
+            showNotification(`Auto-filled ${servicesAdded} of ${customerAppointments.length} Unaki appointments!`, servicesAdded > 0 ? 'success' : 'warning');
+            {% else %}
+            showNotification('No current Unaki appointments found to auto-fill', 'warning');
+            {% endif %}
+        }
 
 // View full customer history
 function viewFullCustomerHistory() {
@@ -1361,31 +1468,34 @@ function calculateServicesSubtotal() {
         const quantityInput = row.querySelector('input[name="service_quantities[]"]');
 
         if (serviceSelect && serviceSelect.value && quantityInput && quantityInput.value) {
-            const originalPrice = parseFloat(serviceSelect.options[serviceSelect.selectedIndex].dataset.price) || 0;
-            const quantity = parseFloat(quantityInput.value) || 1; // Default to 1 if empty
-            const serviceId = parseInt(serviceSelect.value);
-            const serviceName = serviceSelect.options[serviceSelect.selectedIndex].text;
+            const selectedOption = serviceSelect.options[serviceSelect.selectedIndex];
+            if (selectedOption && selectedOption.dataset.price) {
+                const originalPrice = parseFloat(selectedOption.dataset.price);
+                const quantity = parseFloat(quantityInput.value) || 1; // Default to 1 if empty
+                const serviceId = parseInt(serviceSelect.value);
+                const serviceName = selectedOption.text;
 
-            // Check if customer has package benefits for this service
-            let finalPrice = originalPrice * quantity;
-            let packageBenefit = null;
+                // Check if customer has package benefits for this service
+                let finalPrice = originalPrice * quantity;
+                let packageBenefit = null;
 
-            if (customerPackageData && customerPackageData.packages) {
-                packageBenefit = checkServicePackageBenefit(serviceId, serviceName, originalPrice, quantity);
-                if (packageBenefit) {
-                    finalPrice = packageBenefit.finalPrice;
+                if (customerPackageData && customerPackageData.packages) {
+                    packageBenefit = checkServicePackageBenefit(serviceId, serviceName, originalPrice, quantity);
+                    if (packageBenefit) {
+                        finalPrice = packageBenefit.finalPrice;
 
-                    // Update service display to show package benefit
-                    updateServiceDisplayWithBenefit(row, packageBenefit, index);
+                        // Update service display to show package benefit
+                        updateServiceDisplayWithBenefit(row, packageBenefit, index);
+                    }
                 }
-            }
 
-            if (!packageBenefit) {
-                // Clear any previous package benefit display
-                clearServiceBenefitDisplay(row, index);
-            }
+                if (!packageBenefit) {
+                    // Clear any previous package benefit display
+                    clearServiceBenefitDisplay(row, index);
+                }
 
-            total += finalPrice;
+                total += finalPrice;
+            }
         }
     });
     return total;
