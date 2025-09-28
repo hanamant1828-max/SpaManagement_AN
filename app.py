@@ -64,7 +64,9 @@ app.url_map.strict_slashes = False
 # Configure the database - use SQLite
 app.config["SQLALCHEMY_DATABASE_URI"] = compute_sqlite_uri()
 app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
-    "pool_pre_ping": True,
+    "connect_args": {
+        "check_same_thread": False  # Allow SQLite to be used across threads
+    }
 }
 print(f"Using SQLite database: {app.config['SQLALCHEMY_DATABASE_URI']}")
 
