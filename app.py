@@ -348,11 +348,11 @@ def unaki_clients():
 
 @app.route('/api/unaki/schedule')
 def unaki_schedule():
-    """Get schedule data for Unaki booking"""
+    """Get schedule data for Unaki booking with shift logs integration"""
     try:
         from datetime import datetime, date, timedelta
         from modules.staff.staff_queries import get_staff_members
-        from models import UnakiBooking
+        from models import UnakiBooking, ShiftManagement, ShiftLogs
 
         # Get date parameter
         date_str = request.args.get('date', date.today().strftime('%Y-%m-%d'))
@@ -367,16 +367,52 @@ def unaki_schedule():
         # Get Unaki bookings for the target date
         unaki_bookings = UnakiBooking.query.filter_by(appointment_date=target_date).all()
 
-        # Format staff data
+        # Format staff data with shift logs integration
         staff_data = []
         for staff in staff_members:
+            # Get shift management for this staff member
+            shift_management = ShiftManagement.query.filter(
+                ShiftManagement.staff_id == staff.id,
+                ShiftManagement.from_date <= target_date,
+                ShiftManagement.to_date >= target_date
+            ).first()
+
+            # Get specific shift log for this date
+            shift_log = None
+            if shift_management:
+                shift_log = ShiftLogs.query.filter(
+                    ShiftLogs.shift_management_id == shift_management.id,
+                    ShiftLogs.individual_date == target_date
+                ).first()
+
+            # Determine staff availability based on shift logs
+            if shift_log and shift_log.status in ['scheduled', 'completed']:
+                shift_start = shift_log.shift_start_time.strftime('%H:%M') if shift_log.shift_start_time else '09:00'
+                shift_end = shift_log.shift_end_time.strftime('%H:%M') if shift_log.shift_end_time else '17:00'
+                is_working = True
+                break_start = shift_log.break_start_time.strftime('%H:%M') if shift_log.break_start_time else None
+                break_end = shift_log.break_end_time.strftime('%H:%M') if shift_log.break_end_time else None
+                shift_status = shift_log.status
+            else:
+                # No shift scheduled or not a working day
+                shift_start = '09:00'
+                shift_end = '17:00'
+                is_working = False
+                break_start = None
+                break_end = None
+                shift_status = 'not_scheduled'
+
             staff_info = {
                 'id': staff.id,
                 'name': staff.full_name or f"{staff.first_name} {staff.last_name}",
                 'specialty': getattr(staff, 'specialization', staff.role if hasattr(staff, 'role') else 'General'),
-                'shift_start': '09:00',
-                'shift_end': '17:00',
-                'is_working': True
+                'shift_start': shift_start,
+                'shift_end': shift_end,
+                'break_start': break_start,
+                'break_end': break_end,
+                'is_working': is_working,
+                'shift_status': shift_status,
+                'has_shift_log': shift_log is not None
             }
             staff_data.append(staff_info)
 
@@ -400,8 +436,33 @@ def unaki_schedule():
             }
             appointments_data.append(appointment_info)
 
-        # Format breaks data (simplified for now)
+        # Format breaks data from shift logs
         breaks_data = []
+        for staff in staff_members:
+            # Get shift management for this staff member
+            shift_management = ShiftManagement.query.filter(
+                ShiftManagement.staff_id == staff.id,
+                ShiftManagement.from_date <= target_date,
+                ShiftManagement.to_date >= target_date
+            ).first()
+
+            if shift_management:
+                shift_log = ShiftLogs.query.filter(
+                    ShiftLogs.shift_management_id == shift_management.id,
+                    ShiftLogs.individual_date == target_date
+                ).first()
+
+                # Add break data if available
+                if shift_log and shift_log.break_start_time and shift_log.break_end_time:
+                    break_info = {
+                        'id': f'break_{staff.id}_{target_date}',
+                        'staff_id': staff.id,
+                        'start_time': shift_log.break_start_time.strftime('%H:%M'),
+                        'end_time': shift_log.break_end_time.strftime('%H:%M'),
+                        'type': 'break',
+                        'title': 'Break Time'
+                    }
+                    breaks_data.append(break_info)
 
         # Debug: Log appointments by staff ID
         staff_appointment_counts = {}

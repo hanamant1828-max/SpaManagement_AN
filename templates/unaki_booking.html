@@ -215,6 +215,31 @@
             display: inline-block;
         }
 
+        .staff-shift {
+            font-size: 10px;
+            color: #4a5568;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+            opacity: 0.8;
+            margin-top: 4px;
+            padding: 2px 6px;
+            border-radius: 8px;
+            background: rgba(76, 175, 80, 0.1);
+        }
+        .staff-break {
+            font-size: 9px;
+            color: #f56565;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+            opacity: 0.8;
+            margin-top: 4px;
+            padding: 2px 6px;
+            border-radius: 8px;
+            background: rgba(245, 101, 101, 0.1);
+        }
+
         .time-slot {
             min-height: 90px;
             background: white;
@@ -2068,20 +2093,29 @@
                 .then(staff => {
                     console.log('Loaded staff:', Array.isArray(staff) ? staff.length : 'Invalid data');
 
-                    // Store staff data globally for multi-service booking
-                    staffData = staff || [];
+                    // Process and set staff data globally with shift information
+                    window.staffData = processStaffData(staff || []);
+
+                    // Log staff availability for debugging
+                    console.log('📊 Staff Availability Summary:');
+                    window.staffData.forEach(staff => {
+                        console.log(`   ${staff.name}: ${staff.availability_status} (${staff.shift_display})`);
+                        if (staff.break_display && staff.break_display !== 'No Break') {
+                            console.log(`     Break: ${staff.break_display}`);
+                        }
+                    });
 
                     const staffSelect = document.getElementById('staffSelect');
-                    if (staffSelect && Array.isArray(staff)) {
+                    if (staffSelect && Array.isArray(window.staffData)) {
                         staffSelect.innerHTML = '<option value="">Select Staff</option>';
-                        staff.forEach(member => {
+                        window.staffData.forEach(member => {
                             const option = document.createElement('option');
                             option.value = member.id;
                             option.textContent = `${member.name} (${member.specialty || member.role || 'Staff'})`;
                             staffSelect.appendChild(option);
                         });
                     }
-                    return staff;
+                    return window.staffData;
                 })
                 .catch(error => {
                     console.error('Failed to load staff:', error);
@@ -2163,10 +2197,16 @@
                             };
                             console.log('Schedule data loaded:', scheduleData);
 
-                            const adminAppointments = scheduleData.appointments.filter(apt => apt.staffId === 11);
-                            console.log(`🔍 Admin User (ID: 11) appointments found: ${adminAppointments.length}`);
-                            adminAppointments.forEach((apt, index) => {
-                                console.log(`   ${index + 1}. ${apt.clientName} - ${apt.service} (${apt.startTime} - ${apt.endTime})`);
+                            // Process and set staff data globally with shift information
+                            window.staffData = processStaffData(scheduleData.staff || []);
+
+                            // Log staff availability for debugging
+                            console.log('📊 Staff Availability Summary:');
+                            window.staffData.forEach(staff => {
+                                console.log(`   ${staff.name}: ${staff.availability_status} (${staff.shift_display})`);
+                                if (staff.break_display && staff.break_display !== 'No Break') {
+                                    console.log(`     Break: ${staff.break_display}`);
+                                }
                             });
                         } else {
                             console.error('Failed to load schedule:', data.error);
@@ -2303,13 +2343,16 @@
             });
 
             // Create staff rows
-            scheduleData.staff.forEach(staff => {
+            window.staffData.forEach(staff => {
                 // Staff name cell
                 const staffCell = document.createElement('div');
                 staffCell.className = 'staff-cell';
                 staffCell.innerHTML = `
                     <div class="staff-name">${staff.name}</div>
-                    <div class="staff-role">${staff.specialty || 'Staff'}</div>
+                    <div class="staff-role">${staff.specialty}</div>
+                    <div class="staff-shift">${staff.shift_display || 'Not Scheduled'}</div>
+                    ${staff.break_display && staff.break_display !== 'No Break' ? 
+                        `<div class="staff-break">Break: ${staff.break_display}</div>` : ''}
                 `;
                 grid.appendChild(staffCell);
 
@@ -2666,9 +2709,9 @@
 
         function populateEditStaffDropdown() {
             const staffSelect = document.getElementById('editStaffSelect');
-            if (staffSelect && staffData.length > 0) {
+            if (staffSelect && window.staffData.length > 0) {
                 staffSelect.innerHTML = '<option value="">Select Staff</option>';
-                staffData.forEach(staff => {
+                window.staffData.forEach(staff => {
                     const option = document.createElement('option');
                     option.value = staff.id;
                     option.textContent = `${staff.name} (${staff.specialty || staff.role || 'Staff'})`;
@@ -2744,7 +2787,7 @@
 
                     // Close the modal
                     const modal = bootstrap.Modal.getInstance(document.getElementById('editAppointmentModal'));
-                    modal.hide();
+                    if (modal) modal.hide();
 
                     // Refresh the schedule
                     loadScheduleData();
@@ -2798,9 +2841,9 @@
 
         function updateStats() {
             document.getElementById('totalAppointments').textContent = scheduleData.appointments.length;
-            document.getElementById('activeStaff').textContent = scheduleData.staff.length;
+            document.getElementById('activeStaff').textContent = window.staffData.length;
 
-            const totalSlots = scheduleData.staff.length * 144; // 144 slots per staff (12 hours * 12 slots per hour)
+            const totalSlots = window.staffData.length * 144; // 144 slots per staff (12 hours * 12 slots per hour)
             const occupiedSlots = scheduleData.appointments.reduce((total, apt) => {
                 const duration = getTimeDifferenceInMinutes(apt.startTime, apt.endTime);
                 return total + Math.ceil(duration / 5);
@@ -3077,7 +3120,7 @@
                 // Show stats
                 updateStats();
                 hideLoading();
-                console.log(`📊 Schedule loaded: ${scheduleData.appointments.length} appointments, ${scheduleData.staff.length} staff members`);
+                console.log(`📊 Schedule loaded: ${scheduleData.appointments.length} appointments, ${window.staffData.length} staff members`);
 
             } catch (error) {
                 console.error('❌ Error building schedule grid:', error);
@@ -3280,6 +3323,66 @@
             updateCurrentDateTime();
             setInterval(updateCurrentDateTime, 1000);
         });
+
+        // Process staff data with shift logs integration
+        function processStaffData(staffData) {
+            return staffData.map(staff => {
+                return {
+                    ...staff,
+                    shift_display: staff.is_working 
+                        ? `${formatTime(staff.shift_start)} - ${formatTime(staff.shift_end)}` 
+                        : 'Not Scheduled',
+                    break_display: staff.break_start && staff.break_end 
+                        ? `${formatTime(staff.break_start)} - ${formatTime(staff.break_end)}`
+                        : 'No Break',
+                    availability_status: staff.is_working ? 'available' : 'not_scheduled'
+                };
+            });
+        }
+
+        // Format time for display
+        function formatTime(timeString) {
+            if (!timeString) return '';
+            const [hours, minutes] = timeString.split(':');
+            const date = new Date();
+            date.setHours(parseInt(hours), parseInt(minutes));
+            return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+        }
+
+        // Helper to convert time string to minutes
+        function timeToMinutes(timeString) {
+            const [hours, minutes] = timeString.split(':').map(Number);
+            return hours * 60 + minutes;
+        }
+
+        // Check if staff is available at specific time based on shift logs
+        function isStaffAvailableAtTime(staff, timeString) {
+            if (!staff.is_working) {
+                return false;
+            }
+
+            const timeMinutes = timeToMinutes(timeString);
+            const shiftStart = timeToMinutes(staff.shift_start);
+            const shiftEnd = timeToMinutes(staff.shift_end);
+
+            // Check if time is within shift hours
+            if (timeMinutes < shiftStart || timeMinutes >= shiftEnd) {
+                return false;
+            }
+
+            // Check if time conflicts with break
+            if (staff.break_start && staff.break_end) {
+                const breakStart = timeToMinutes(staff.break_start);
+                const breakEnd = timeToMinutes(staff.break_end);
+
+                if (timeMinutes >= breakStart && timeMinutes < breakEnd) {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
     </script>
 </body>
 </html>
