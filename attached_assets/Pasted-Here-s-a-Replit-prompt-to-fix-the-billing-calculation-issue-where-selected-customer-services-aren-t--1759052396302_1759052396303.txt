@@ -1,0 +1,61 @@
+Here's a Replit prompt to fix the billing calculation issue where selected customer services aren't showing the correct total amount:
+
+**Fix Billing Calculation - Customer Service Total Issue**
+
+**Problem:** When customer is selected, individual services show amounts but the final billing total shows ₹0.00 instead of the sum of all services.
+
+**1. Check Service Selection Logic**
+- Verify that when "Add to Bill" buttons are clicked, the services are actually being added to the billing calculation
+- Ensure the service amounts are being captured and stored properly
+
+**2. Debug the Billing Calculation Function**
+Add console logging to track the calculation:
+```javascript
+function calculateBillingTotal() {
+    console.log('Calculating billing total...');
+    let subtotal = 0;
+    
+    // Get all selected services
+    const selectedServices = document.querySelectorAll('.selected-service');
+    selectedServices.forEach(service => {
+        const amount = parseFloat(service.dataset.amount || 0);
+        console.log('Adding service amount:', amount);
+        subtotal += amount;
+    });
+    
+    console.log('Subtotal before tax:', subtotal);
+    updateBillingDisplay(subtotal);
+}
+```
+
+**3. Fix Service Addition to Bill**
+Ensure the "Add to Bill" button properly adds services:
+```javascript
+function addToBill(serviceElement) {
+    serviceElement.classList.add('selected-service');
+    const amount = serviceElement.querySelector('.amount').textContent;
+    serviceElement.dataset.amount = amount.replace('₹', '');
+    calculateBillingTotal();
+}
+```
+
+**4. Update Tax Calculation Display**
+Fix the final billing section to show correct amounts:
+```javascript
+function updateBillingDisplay(subtotal) {
+    document.getElementById('subtotalAmount').textContent = `₹${subtotal.toFixed(2)}`;
+    
+    const cgst = subtotal * 0.09;
+    const sgst = subtotal * 0.09;
+    const total = subtotal + cgst + sgst;
+    
+    document.getElementById('totalAmount').textContent = `₹${total.toFixed(2)}`;
+}
+```
+
+**5. Verify Data Flow**
+- Check that service amounts from the appointment data are correctly parsed
+- Ensure the billing calculation triggers when services are selected
+- Verify tax calculations are applied to the correct subtotal
+
+This should fix the issue where individual service amounts aren't being summed properly in the final billing total.

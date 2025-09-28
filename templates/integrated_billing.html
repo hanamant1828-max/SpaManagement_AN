@@ -813,11 +813,16 @@ function addServiceRow() {
                     quantityInput.value = '1';
                     appointmentInput.value = `unaki_${appointmentId}`; // Prefix to identify Unaki appointments
 
-                    // Update the option's data-price attribute if needed
+                    // Update the option's data-price attribute to ensure proper calculation
                     const selectedOption = serviceSelect.options[serviceSelect.selectedIndex];
-                    if (selectedOption && !selectedOption.dataset.price) {
-                        selectedOption.dataset.price = servicePrice;
+                    if (selectedOption) {
+                        selectedOption.dataset.price = servicePrice.toString();
+                        console.log(`Set service price data: ${serviceName} = ₹${servicePrice}`);
                     }
+
+                    // Mark the row as selected for billing calculations
+                    targetRow.classList.add('selected-service');
+                    targetRow.dataset.amount = servicePrice.toString();
 
                     // Highlight the row
                     targetRow.style.borderLeft = '4px solid #007bff';
@@ -832,8 +837,14 @@ function addServiceRow() {
                         targetRow.appendChild(indicator);
                     }
 
-                    // Update calculations
-                    updateTaxCalculations();
+                    // Trigger service selection handler to ensure proper setup
+                    handleServiceSelection(serviceSelect);
+
+                    // Update calculations with a small delay to ensure DOM is updated
+                    setTimeout(() => {
+                        updateTaxCalculations();
+                        console.log(`Added service to bill: ${serviceName} for ₹${servicePrice}`);
+                    }, 100);
 
                     // Show success message
                     showNotification(`Added Unaki booking: ${serviceName} to bill successfully!`, 'success');
@@ -1402,13 +1413,16 @@ function addServiceRowWithData(serviceData) {
 
 // Professional Tax Calculation Functions
 function updateTaxCalculations() {
+    console.log('Calculating billing total...');
     try {
         let servicesSubtotal = 0;
         let inventorySubtotal = 0;
 
         // Calculate services subtotal - include ALL service rows (manually added and auto-populated)
         const serviceRows = document.querySelectorAll('.service-row');
-        serviceRows.forEach(row => {
+        console.log(`Found ${serviceRows.length} service rows to calculate`);
+        
+        serviceRows.forEach((row, index) => {
             const serviceSelect = row.querySelector('select[name="service_ids[]"]');
             const quantityInput = row.querySelector('input[name="service_quantities[]"]');
 
@@ -1417,27 +1431,36 @@ function updateTaxCalculations() {
                 if (selectedOption && selectedOption.dataset.price) {
                     const price = parseFloat(selectedOption.dataset.price) || 0;
                     const quantity = parseFloat(quantityInput.value) || 1;
-                    servicesSubtotal += price * quantity;
-                    console.log(`Service calculation: ${selectedOption.text} - Price: ${price}, Qty: ${quantity}, Subtotal: ${price * quantity}`);
+                    const lineTotal = price * quantity;
+                    servicesSubtotal += lineTotal;
+                    console.log(`Service ${index + 1}: ${selectedOption.text} - Price: ₹${price}, Qty: ${quantity}, Line Total: ₹${lineTotal}`);
+                } else {
+                    console.log(`Service ${index + 1}: Missing price data or selection`);
                 }
+            } else {
+                console.log(`Service ${index + 1}: Missing select or quantity input`);
             }
         });
 
         // Calculate inventory subtotal
         const productRows = document.querySelectorAll('.product-row');
-        productRows.forEach(row => {
+        console.log(`Found ${productRows.length} product rows to calculate`);
+        
+        productRows.forEach((row, index) => {
             const quantityInput = row.querySelector('input[name="product_quantities[]"]');
             const priceInput = row.querySelector('input[name="product_prices[]"]');
 
-            if (quantityInput && priceInput) {
+            if (quantityInput && priceInput && quantityInput.value && priceInput.value) {
                 const quantity = parseFloat(quantityInput.value) || 0;
                 const price = parseFloat(priceInput.value) || 0;
-                inventorySubtotal += quantity * price;
+                const lineTotal = quantity * price;
+                inventorySubtotal += lineTotal;
+                console.log(`Product ${index + 1}: Qty: ${quantity}, Price: ₹${price}, Line Total: ₹${lineTotal}`);
             }
         });
 
         const grossSubtotal = servicesSubtotal + inventorySubtotal;
-        console.log(`Tax calculation update: Services: ₹${servicesSubtotal}, Inventory: ₹${inventorySubtotal}, Total: ₹${grossSubtotal}`);
+        console.log(`Subtotal before tax: Services: ₹${servicesSubtotal.toFixed(2)}, Inventory: ₹${inventorySubtotal.toFixed(2)}, Total: ₹${grossSubtotal.toFixed(2)}`);
 
         // Get discount
         const discountType = document.getElementById('discount_type').value;
@@ -1486,7 +1509,7 @@ function updateTaxCalculations() {
         // Update tax summary information
         updateTaxSummaryDisplay(isInterstate, totalTaxAmount, taxableAmount);
 
-        console.log(`Final calculation: Subtotal: ₹${grossSubtotal}, Tax: ₹${totalTaxAmount}, Total: ₹${totalAmount}`);
+        console.log(`Final calculation: Subtotal: ₹${grossSubtotal.toFixed(2)}, Tax: ₹${totalTaxAmount.toFixed(2)}, Total: ₹${totalAmount.toFixed(2)}`);
 
     } catch (error) {
         console.error('Error in updateTaxCalculations:', error);
@@ -1498,6 +1521,15 @@ function updateTaxCalculations() {
         document.getElementById('display_additional').textContent = '₹0.00';
         document.getElementById('display_total').textContent = '₹0.00';
     }
+}
+
+// Helper function to ensure billing calculations are triggered properly
+function ensureBillingCalculation() {
+    console.log('Ensuring billing calculation is up to date...');
+    // Small delay to ensure DOM updates are complete
+    setTimeout(() => {
+        updateTaxCalculations();
+    }, 50);
 }
 
 // Helper function to format currency
