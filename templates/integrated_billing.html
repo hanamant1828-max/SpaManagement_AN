@@ -1214,7 +1214,7 @@ function addServiceRow() {
             }
 
             // Get customer's Unaki appointments
-            const customerAppointments = {{ customer_appointments | tojson }};
+            const customerAppointments = {{ customer_appointments | tojson | safe }};
             let servicesAdded = 0;
 
             customerAppointments.forEach((appointment, index) => {
@@ -1608,7 +1608,7 @@ document.getElementById('client_id').addEventListener('change', function() {
     if (!customerId) return;
 
     // Check if customer_services data is passed from backend
-    const customerServicesData = {{ customer_services | safe }};
+    const customerServicesData = {{ customer_services | tojson | safe }};
 
     if (customerServicesData && customerServicesData.length > 0) {
         console.log('Auto-populating services for customer:', customerServicesData);
