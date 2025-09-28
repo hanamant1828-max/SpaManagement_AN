@@ -720,6 +720,35 @@ def api_update_location(location_id):
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/inventory/batches/<int:batch_id>', methods=['GET'])
+@login_required
+def api_get_batch(batch_id):
+    """Get a single batch by ID for editing"""
+    try:
+        batch = InventoryBatch.query.get(batch_id)
+        if not batch:
+            return jsonify({'error': 'Batch not found'}), 404
+
+        return jsonify({
+            'batch': {
+                'id': batch.id,
+                'batch_name': batch.batch_name,
+                'product_id': batch.product_id,
+                'location_id': batch.location_id,
+                'product_name': batch.product.name if batch.product else 'Not Assigned',
+                'location_name': batch.location.name if batch.location else 'Not Assigned',
+                'created_date': batch.created_date.isoformat() if batch.created_date else None,
+                'mfg_date': batch.mfg_date.isoformat() if batch.mfg_date else None,
+                'expiry_date': batch.expiry_date.isoformat() if batch.expiry_date else None,
+                'qty_available': float(batch.qty_available or 0),
+                'unit_cost': float(batch.unit_cost or 0),
+                'selling_price': float(batch.selling_price or 0) if batch.selling_price else None,
+                'status': batch.status
+            }
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/api/inventory/batches/<int:batch_id>', methods=['PUT'])
 @login_required
 def api_update_batch(batch_id):
@@ -767,6 +796,31 @@ def api_update_batch(batch_id):
         return jsonify({
             'success': True,
             'message': 'Batch updated successfully'
+        })
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/inventory/batches/<int:batch_id>', methods=['DELETE'])
+@login_required
+def api_delete_batch(batch_id):
+    """Delete a batch"""
+    try:
+        batch = InventoryBatch.query.get(batch_id)
+        if not batch:
+            return jsonify({'error': 'Batch not found'}), 404
+
+        # Check if batch has stock
+        if batch.qty_available and batch.qty_available > 0:
+            return jsonify({'error': 'Cannot delete batch with available stock. Please consume or adjust stock to zero first.'}), 400
+
+        # Delete the batch
+        db.session.delete(batch)
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'message': 'Batch deleted successfully'
         })
     except Exception as e:
         db.session.rollback()
