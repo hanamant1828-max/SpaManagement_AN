@@ -112,6 +112,18 @@ def ping():
     """Simple health check endpoint"""
     return 'OK'
 
+@app.route('/debug-routes')
+def debug_routes():
+    """Debug route to check registered routes"""
+    routes = []
+    for rule in app.url_map.iter_rules():
+        routes.append({
+            'endpoint': rule.endpoint,
+            'methods': list(rule.methods),
+            'rule': str(rule)
+        })
+    return {'routes': routes}
+
 # Add favicon route to prevent 404 errors
 @app.route('/favicon.ico')
 def favicon():
@@ -888,6 +900,7 @@ def unaki_create_appointment():
 
 
 @app.route('/unaki-booking')
+@app.route('/unaki_booking')
 @login_required
 def unaki_booking():
     """Unaki Appointment Booking page"""
