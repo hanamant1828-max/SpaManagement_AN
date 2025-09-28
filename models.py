@@ -934,94 +934,7 @@ class Expense(db.Model):
     notes = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-class Invoice(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    invoice_number = db.Column(db.String(20), unique=True, nullable=False)
-    client_id = db.Column(db.Integer, db.ForeignKey('client.id'), nullable=False)
-    appointment_id = db.Column(db.Integer, db.ForeignKey('appointment.id'))
-    invoice_date = db.Column(db.DateTime, default=datetime.utcnow)
-    due_date = db.Column(db.DateTime)
-    subtotal = db.Column(db.Float, nullable=False)
-    tax_amount = db.Column(db.Float, default=0.0)
-    discount_amount = db.Column(db.Float, default=0.0)
-    tips_amount = db.Column(db.Float, default=0.0)
-    total_amount = db.Column(db.Float, nullable=False)
-    payment_status = db.Column(db.String(20), default='pending')  # pending, paid, partial
-    payment_method = db.Column(db.String(20))  # cash, card, online
-    notes = db.Column(db.Text)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-    # Relationship
-    customer = db.relationship('Customer', backref='invoices')
-    appointment = db.relationship('Appointment', backref='invoice', uselist=False)
-
-# Enhanced Billing Models for Integrated Billing System
-class EnhancedInvoice(db.Model):
-    """Enhanced invoice model supporting services, packages, subscriptions, and inventory"""
-    __tablename__ = 'enhanced_invoice'
-
-    id = db.Column(db.Integer, primary_key=True)
-    invoice_number = db.Column(db.String(20), unique=True, nullable=False)
-    client_id = db.Column(db.Integer, db.ForeignKey('client.id'), nullable=False)
-    invoice_date = db.Column(db.DateTime, default=datetime.utcnow)
-    due_date = db.Column(db.DateTime)
-
-    # Billing Components
-    services_subtotal = db.Column(db.Float, default=0.0)
-    packages_deduction = db.Column(db.Float, default=0.0)
-    subscription_deduction = db.Column(db.Float, default=0.0)
-    inventory_subtotal = db.Column(db.Float, default=0.0)
-
-    # Calculations
-    gross_subtotal = db.Column(db.Float, default=0.0)  # Before deductions
-    total_deductions = db.Column(db.Float, default=0.0)  # Package + Subscription
-    net_subtotal = db.Column(db.Float, default=0.0)  # After deductions
-
-    # Professional Tax Structure
-    cgst_rate = db.Column(db.Float, default=0.0)  # CGST rate percentage
-    sgst_rate = db.Column(db.Float, default=0.0)  # SGST rate percentage
-    igst_rate = db.Column(db.Float, default=0.0)  # IGST rate percentage
-    cgst_amount = db.Column(db.Float, default=0.0)  # CGST amount
-    sgst_amount = db.Column(db.Float, default=0.0)  # SGST amount
-    igst_amount = db.Column(db.Float, default=0.0)  # IGST amount
-    is_interstate = db.Column(db.Boolean, default=False)  # Interstate transaction flag
-
-    # Additional Professional Fields
-    additional_charges = db.Column(db.Float, default=0.0)  # Delivery, handling, etc.
-    discount_type = db.Column(db.String(20), default='amount')  # amount or percentage
-    discount_rate = db.Column(db.Float, default=0.0)  # Discount percentage if applicable
-
-    # Payment Terms
-    payment_terms = db.Column(db.String(50), default='immediate')  # immediate, net_15, net_30, advance
-    due_date = db.Column(db.DateTime)
-
-    # Final amounts
-    tax_amount = db.Column(db.Float, default=0.0)  # Total tax (CGST + SGST + IGST)
-    discount_amount = db.Column(db.Float, default=0.0)
-    tips_amount = db.Column(db.Float, default=0.0)
-    total_amount = db.Column(db.Float, nullable=False)
-
-    # Payment tracking
-    payment_status = db.Column(db.String(20), default='pending')  # pending, partial, paid, overdue
-    payment_methods = db.Column(db.Text)  # JSON for multiple payment methods
-    amount_paid = db.Column(db.Float, default=0.0)
-    balance_due = db.Column(db.Float, default=0.0)
-
-    notes = db.Column(db.Text)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-
-    # Relationships
-    customer = db.relationship('Customer', backref='enhanced_invoices')
-    invoice_items = db.relationship('InvoiceItem', backref='invoice', lazy=True, cascade='all, delete-orphan')
-    invoice_payments = db.relationship('InvoicePayment', backref='invoice', lazy=True, cascade='all, delete-orphan')
-
-class InvoiceItem(db.Model):
-    """Individual items on an invoice (services, inventory items, etc.)"""
-    __tablename__ = 'invoice_item'
-
-    id = db.Column(db.Integer, primary_key=True)
-    invoice_id = db.Column(db.Integer, db.ForeignKey('enhanced_invoice.id'), nullable=False)
 
 
 
@@ -1209,59 +1122,7 @@ class UnakiBreak(db.Model):
         }
 
 
-    # Item details
-    item_type = db.Column(db.String(20), nullable=False)  # service, package_service, inventory, subscription
-    item_id = db.Column(db.Integer)  # ID of service/inventory item
-    appointment_id = db.Column(db.Integer, db.ForeignKey('appointment.id'))  # For service items
-    # Note: Package ID references handled differently with new package system
 
-    # Batch-level inventory integration
-    product_id = db.Column(db.Integer, db.ForeignKey('inventory_products.id'))  # For inventory items
-    batch_id = db.Column(db.Integer, db.ForeignKey('inventory_batches.id'))  # For batch tracking
-
-    # Descriptions
-    item_name = db.Column(db.String(200), nullable=False)
-    description = db.Column(db.Text)
-    batch_name = db.Column(db.String(100))  # Store batch name for display
-
-    # Pricing
-    quantity = db.Column(db.Float, default=1.0)
-    unit_price = db.Column(db.Float, default=0.0)
-    original_amount = db.Column(db.Float, default=0.0)  # Before any deductions
-    deduction_amount = db.Column(db.Float, default=0.0)  # Package/subscription deduction
-    final_amount = db.Column(db.Float, default=0.0)  # Amount actually charged
-
-    # Status indicators
-    is_package_deduction = db.Column(db.Boolean, default=False)
-    is_subscription_deduction = db.Column(db.Boolean, default=False)
-    is_extra_charge = db.Column(db.Boolean, default=False)  # Beyond package/subscription
-
-    # Relationships
-    appointment = db.relationship('Appointment', backref='invoice_items')
-    # Note: Package relationships handled separately with new package system
-    # Note: Inventory relationships are handled in the inventory module to avoid circular imports
-
-class InvoicePayment(db.Model):
-    """Multiple payment records for a single invoice supporting mixed payment methods"""
-    __tablename__ = 'invoice_payment'
-
-    id = db.Column(db.Integer, primary_key=True)
-    invoice_id = db.Column(db.Integer, db.ForeignKey('enhanced_invoice.id'), nullable=False)
-
-    payment_method = db.Column(db.String(20), nullable=False)  # cash, card, upi, wallet
-    amount = db.Column(db.Float, nullable=False)
-    payment_date = db.Column(db.DateTime, default=datetime.utcnow)
-
-    # Payment method specific details
-    card_last4 = db.Column(db.String(4))  # Last 4 digits of card
-    transaction_id = db.Column(db.String(100))  # UPI/online transaction ID
-    reference_number = db.Column(db.String(100))
-
-    notes = db.Column(db.Text)
-    processed_by = db.Column(db.Integer, db.ForeignKey('user.id'))
-
-    # Relationships
-    processor = db.relationship('User', backref='processed_payments')
 
 class StaffSchedule(db.Model):
     id = db.Column(db.Integer, primary_key=True)
