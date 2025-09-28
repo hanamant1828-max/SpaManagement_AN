@@ -1059,8 +1059,13 @@ def api_unaki_book_appointment():
                 'success': False
             }), 400
 
+        # Get client information before creating the booking
+        client = Customer.query.get(client_id)
+        client_display_name = client.full_name if client else f'Client {client_id}'
+        
         appointment = UnakiBooking(
             client_id=int(client_id),
+            client_name=client_display_name,  # Add the missing client_name field
             client_phone=data.get('client_phone', '') or data.get('clientPhone', ''),
             client_email=data.get('client_email', '') or data.get('clientEmail', ''),
             staff_id=int(staff_id),
@@ -1083,10 +1088,6 @@ def api_unaki_book_appointment():
         db.session.commit()
 
         print(f"✅ Appointment booked successfully: ID {appointment.id}")
-
-        # Get client name from the relationship
-        client = Customer.query.get(client_id)
-        client_display_name = client.full_name if client else f'Client {client_id}'
 
         return jsonify({
             'success': True,

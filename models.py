@@ -1035,6 +1035,7 @@ class UnakiBooking(db.Model):
 
     # Client Information
     client_id = db.Column(db.Integer, db.ForeignKey('client.id'), nullable=False)  # FK to customer table (required now)
+    client_name = db.Column(db.String(100), nullable=False)  # Denormalized client name for quick access
     client_phone = db.Column(db.String(20))
     client_email = db.Column(db.String(120))
 
