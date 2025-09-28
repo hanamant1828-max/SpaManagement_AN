@@ -291,7 +291,7 @@
                             <div id="servicesContainer">
                                 <div class="service-row row mb-2">
                                     <div class="col-md-5">
-                                        <select class="form-select" name="service_ids[]">
+                                        <select class="form-select" name="service_ids[]" onchange="handleServiceSelection(this)">
                                             <option value="">Select Service</option>
                                             {% for service in services %}
                                             <option value="{{ service.id }}" data-price="{{ service.price }}">
@@ -1138,25 +1138,25 @@ document.addEventListener('DOMContentLoaded', function() {
     const urlParams = new URLSearchParams(window.location.search);
     const preselectedClientId = "{{ preselected_client_id if preselected_client_id else '' }}";
     const clientName = urlParams.get('client_name') || "{{ preselected_client_name if preselected_client_name else '' }}";
-    
+
     if (preselectedClientId) {
         const customerDropdown = document.getElementById('client_id');
         if (customerDropdown) {
             // Set the dropdown value to the preselected client ID
             customerDropdown.value = preselectedClientId;
-            
+
             // Trigger change event to load customer data
             customerDropdown.dispatchEvent(new Event('change'));
-            
+
             console.log('Auto-selected customer from appointment:', preselectedClientId, clientName);
-            
+
             // Show success message to user
             if (typeof showNotification === 'function') {
                 showNotification(`Customer ${clientName} auto-selected from appointment`, 'success');
             }
         }
     }
-    
+
     const selectedCustomerId = document.getElementById('client_id').value;
     if (selectedCustomerId) {
         console.log('Auto-populating services for pre-selected customer:', selectedCustomerId);
@@ -2117,13 +2117,13 @@ document.getElementById('billingForm').addEventListener('submit', function(e) {
         document.addEventListener('DOMContentLoaded', function() {
             console.log('Integrated billing page loaded, initializing...');
             loadAvailableBatches();
-            
+
             // Auto-fill appointment services when customer is pre-selected
             {% if customer_appointments and customer_appointments|length > 0 %}
             console.log('Auto-filling {{ customer_appointments|length }} appointment services...');
             autoFillCurrentServices();
             {% endif %}
-            
+
             updateTaxCalculations(); // Initial calculation update based on default values
             toggleTaxType(); // Apply initial tax type settings
 
@@ -2272,5 +2272,59 @@ document.getElementById('billingForm').addEventListener('submit', function(e) {
             }
         }
         {% endif %}
+
+        // Helper function to update service price in the UI
+        function updateServicePrice(serviceId, price) {
+            const serviceRows = document.querySelectorAll('.service-row');
+            let targetRow = null;
+
+            // Find the row associated with the selected service ID
+            serviceRows.forEach(row => {
+                const selectElement = row.querySelector('select[name="service_ids[]"]');
+                if (selectElement && selectElement.value === serviceId) {
+                    targetRow = row;
+                }
+            });
+
+            if (targetRow) {
+                const priceInput = targetRow.querySelector('input[name="service_prices[]"]'); // Assuming such input exists or needs to be added
+                if (priceInput) {
+                    priceInput.value = parseFloat(price).toFixed(2);
+                }
+            } else if (serviceId === '') { // Handle deselection or "Select Service"
+                // If no service is selected, we don't need to update a price input
+            } else {
+                // If the service is not found in existing rows, it might be a new one
+                // Or an auto-populated one. We need to ensure the price is set correctly.
+                // For auto-populated, the price should be handled by handleServiceSelection itself.
+                console.log(`Could not find row for service ID: ${serviceId} to update price directly.`);
+            }
+        }
+
+
+function handleServiceSelection(selectElement) {
+    const selectedOption = selectElement.options[selectElement.selectedIndex];
+    let price = 0;
+
+    if (selectedOption && selectedOption.dataset.price) {
+        price = selectedOption.dataset.price;
+    } else if (selectedOption && selectedOption.textContent) {
+        // Try to extract price from option text for auto-populated services
+        const priceMatch = selectedOption.textContent.match(/₹([\d,]+\.?\d*)/);
+        if (priceMatch) {
+            price = priceMatch[1].replace(/,/g, '');
+        }
+    }
+
+    if (price > 0) {
+        updateServicePrice(selectElement.value, price);
+    } else {
+        updateServicePrice(selectElement.value, '0.00');
+    }
+
+    // Trigger calculation update
+    updateTaxCalculations();
+}
+
 </script>
 {% endblock %}
