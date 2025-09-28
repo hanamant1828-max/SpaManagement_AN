@@ -788,6 +788,20 @@ function addUnakiAppointmentToBill(appointmentId, serviceName, servicePrice, ser
 window.addUnakiAppointmentToBill = addUnakiAppointmentToBill;
 window.findEmptyServiceRow = findEmptyServiceRow;
 
+// Additional safety: Ensure functions are available on DOMContentLoaded
+document.addEventListener('DOMContentLoaded', function() {
+    // Double-check and re-assign functions to ensure they're available
+    if (typeof window.addUnakiAppointmentToBill !== 'function') {
+        window.addUnakiAppointmentToBill = addUnakiAppointmentToBill;
+        console.log('Re-assigned addUnakiAppointmentToBill function');
+    }
+    if (typeof window.findEmptyServiceRow !== 'function') {
+        window.findEmptyServiceRow = findEmptyServiceRow;
+        console.log('Re-assigned findEmptyServiceRow function');
+    }
+    console.log('All billing functions confirmed available');
+});
+
 // Show notification function
 function showNotification(message, type = 'info') {
     // Create notification element

@@ -2325,9 +2325,9 @@ def appointment_go_to_billing(appointment_id):
         
         # If appointment not found or has no client
         flash('Appointment not found or no client associated. Please ensure the appointment has a valid customer record.', 'warning')
-        return redirect(url_for('unaki_booking'))
+        return redirect('/unaki-booking')
         
     except Exception as e:
         print(f"Error in appointment_go_to_billing: {e}")
         flash('Error accessing billing information', 'error')
-        return redirect(url_for('unaki_booking'))
+        return redirect('/unaki-booking')
