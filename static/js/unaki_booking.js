@@ -424,45 +424,24 @@ function loadClients() {
 
             // Get data for form
             const clientSelect = document.getElementById('clientSelect');
-            const clientNameInput = document.getElementById('clientName');
 
             if (clientSelect && Array.isArray(clients)) {
-                clientSelect.innerHTML = '<option value="">Select Existing Client</option>';
+                clientSelect.innerHTML = '<option value="">Search by name or phone number...</option>';
 
                 clients.forEach(client => {
                     const option = document.createElement('option');
                     option.value = client.id;
-                    option.textContent = client.name;
+                    // Display format: "Name - Phone" for easy searching
+                    const displayText = `${client.name}${client.phone ? ' - ' + client.phone : ''}`;
+                    option.textContent = displayText;
                     option.dataset.phone = client.phone || '';
                     option.dataset.email = client.email || '';
+                    option.dataset.name = client.name;
                     clientSelect.appendChild(option);
                 });
 
-                // Handle client selection
-                clientSelect.addEventListener('change', function() {
-                    const selectedOption = this.options[this.selectedIndex];
-                    if (selectedOption && selectedOption.value) {
-                        // Clear new client name when existing client is selected
-                        if (clientNameInput) clientNameInput.value = '';
-
-                        document.getElementById('clientPhone').value = selectedOption.dataset.phone;
-                        document.getElementById('clientEmail').value = selectedOption.dataset.email || '';
-                    } else {
-                        // Clear phone/email when no client selected
-                        document.getElementById('clientPhone').value = '';
-                        document.getElementById('clientEmail').value = '';
-                    }
-                });
-
-                // Handle new client name input
-                if (clientNameInput) {
-                    clientNameInput.addEventListener('input', function() {
-                        if (this.value.trim()) {
-                            // Clear client select when new name is entered
-                            clientSelect.value = '';
-                        }
-                    });
-                }
+                // Add search functionality
+                makeSelectSearchable(clientSelect);
             }
             return clients;
         })
@@ -471,6 +450,29 @@ function loadClients() {
             showNotification('Failed to load clients', 'error');
             return [];
         });
+}
+
+// Helper function to make select searchable
+function makeSelectSearchable(selectElement) {
+    const options = Array.from(selectElement.options).slice(1); // Skip first option
+    
+    selectElement.addEventListener('input', function() {
+        const searchTerm = this.value.toLowerCase();
+        
+        // Clear existing options except first one
+        this.innerHTML = '<option value="">Search by name or phone number...</option>';
+        
+        // Filter and add matching options
+        const filteredOptions = options.filter(option => {
+            const name = (option.dataset.name || '').toLowerCase();
+            const phone = (option.dataset.phone || '').toLowerCase();
+            return name.includes(searchTerm) || phone.includes(searchTerm);
+        });
+        
+        filteredOptions.forEach(option => {
+            this.appendChild(option.cloneNode(true));
+        });
+    });
 }
 
 function loadScheduleForDate() {
@@ -657,28 +659,20 @@ function loadSampleData() {
 function bookMultiServiceAppointment() {
     console.log('📝 Booking multi-service appointment...');
 
-    const clientId = document.getElementById('clientSelect').value;
-    const clientNameInput = document.getElementById('clientName');
-    let selectedClientId = clientId;
-    let clientName = '';
+    const clientSelect = document.getElementById('clientSelect');
+    const selectedClientId = clientSelect.value;
 
-    // Priority 1: Use selected client ID
-    if (selectedClientId) {
-        // Get client name from the selected option
-        const selectedOption = document.getElementById('clientSelect').options[document.getElementById('clientSelect').selectedIndex];
-        clientName = selectedOption.textContent || 'Client';
-        console.log(`Using existing client ID: ${selectedClientId}, Name: ${clientName}`);
-    } 
-    // Priority 2: Use new client name only if no client ID is selected
-    else if (clientNameInput && clientNameInput.value.trim()) {
-        clientName = clientNameInput.value.trim();
-        selectedClientId = null; // Will be handled by backend
-        console.log(`Creating new client: ${clientName}`);
-    } 
-    else {
-        showNotification('Please select an existing client or enter a new client name.', 'error');
+    // Only proceed if a client is selected
+    if (!selectedClientId) {
+        showNotification('Please select an existing client from the dropdown.', 'error');
         return;
     }
+
+    // Get client information from selected option
+    const selectedOption = clientSelect.options[clientSelect.selectedIndex];
+    const clientName = selectedOption.dataset.name || selectedOption.textContent.split(' - ')[0];
+    
+    console.log(`Using existing client ID: ${selectedClientId}, Name: ${clientName}`);
 
     const appointmentDate = document.getElementById('scheduleDate').value;
     const notes = document.getElementById('appointmentNotes').value;
@@ -706,10 +700,10 @@ function bookMultiServiceAppointment() {
     const serviceName = serviceOption.textContent.split('(')[0].trim(); // Extract name before price
 
     const bookingData = {
-        clientId: selectedClientId ? parseInt(selectedClientId) : null,
+        clientId: parseInt(selectedClientId),
         clientName: clientName,
-        clientPhone: document.getElementById('clientPhone').value || '',
-        clientEmail: document.getElementById('clientEmail').value || '',
+        clientPhone: selectedOption.dataset.phone || '',
+        clientEmail: selectedOption.dataset.email || '',
         staffId: parseInt(staffSelect.value),
         serviceType: serviceName,
         servicePrice: parseFloat(priceInput.value) || 0,
@@ -736,7 +730,7 @@ function bookMultiServiceAppointment() {
     })
     .then(data => {
         if (data.success) {
-            showNotification('Appointment booked successfully!', 'success');
+            showNotification('Appointment booked successfully for Client ID: ' + selectedClientId + '!', 'success');
             bootstrap.Modal.getInstance(document.getElementById('bookingModal')).hide();
             refreshSchedule();
         } else {

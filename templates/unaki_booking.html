@@ -190,34 +190,17 @@
                     <form id="bookingForm">
                         <!-- Client Information -->
                         <div class="row g-4 mb-4">
-                            <div class="col-md-6">
+                            <div class="col-md-12">
                                 <label class="form-label">
-                                    <i class="fas fa-user me-2 text-primary"></i>Client *
+                                    <i class="fas fa-user me-2 text-primary"></i>Select Existing Client *
                                 </label>
                                 <select id="clientSelect" class="form-select" required>
-                                    <option value="">Select Client</option>
+                                    <option value="">Search by name or phone number...</option>
                                 </select>
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">
-                                    <i class="fas fa-user-plus me-2 text-success"></i>New Client Name
-                                </label>
-                                <input type="text" id="clientName" class="form-control" placeholder="Enter new client name">
-                            </div>
-                        </div>
-
-                        <div class="row g-4 mb-4">
-                            <div class="col-md-6">
-                                <label class="form-label">
-                                    <i class="fas fa-phone me-2 text-info"></i>Phone
-                                </label>
-                                <input type="tel" id="clientPhone" class="form-control" placeholder="+1 (555) 123-4567">
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">
-                                    <i class="fas fa-envelope me-2 text-warning"></i>Email
-                                </label>
-                                <input type="email" id="clientEmail" class="form-control" placeholder="client@example.com">
+                                <small class="form-text text-muted mt-1">
+                                    <i class="fas fa-info-circle me-1"></i>
+                                    Only existing clients can be selected. Contact admin to add new clients.
+                                </small>
                             </div>
                         </div>
 
