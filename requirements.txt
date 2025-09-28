@@ -95,3 +95,10 @@ requests
 sqlalchemy
 werkzeug
 wtforms
+flask
+flask-login
+flask-sqlalchemy
+flask-wtf
+gunicorn
+psycopg2-binary
+python-dotenv
