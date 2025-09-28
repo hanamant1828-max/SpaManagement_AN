@@ -165,9 +165,31 @@ class FlexibleScheduler {
         block.appendChild(serviceDiv);
         block.appendChild(timeDiv);
         
+        // Add click event for appointment details
         block.addEventListener('click', () => this.showAppointmentDetails(appointment));
         
+        // Add right-click context menu functionality
+        block.addEventListener('contextmenu', (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            
+            console.log(`🎯 Right-click detected on appointment ${appointment.id}`);
+            
+            // Get context menu instance
+            const contextMenu = window.appointmentContextMenu;
+            if (contextMenu) {
+                contextMenu.showContextMenu(event.pageX, event.pageY, appointment.id);
+            } else {
+                console.error('Context menu not available');
+            }
+        });
+        
+        // Mark as context menu ready
+        block.setAttribute('data-context-menu-ready', 'true');
+        
         staffColumn.appendChild(block);
+        
+        console.log(`✅ Appointment block rendered with context menu: ${appointment.id}`);
     }
     
     renderBreaks() {

@@ -48,7 +48,7 @@ class AppointmentContextMenu {
                     </li>
                     <li class="context-menu-divider"></li>
                     <li class="context-menu-item" data-action="billing">
-                        <i class="fas fa-dollar-sign"></i> govto integrated billing
+                        <i class="fas fa-dollar-sign"></i> Go to Billing
                     </li>
                     <li class="context-menu-item danger" data-action="delete">
                         <i class="fas fa-trash"></i> Delete Appointment
@@ -266,25 +266,48 @@ class AppointmentContextMenu {
     }
 
     viewAppointment(appointmentId) {
-        // Implement view appointment functionality
         console.log(`Viewing appointment ${appointmentId}`);
-        // You can implement a modal or navigation to appointment details
-        alert(`View appointment ${appointmentId} (implement actual view functionality)`);
+        
+        // Fetch appointment details from API
+        fetch(`/api/unaki/bookings/${appointmentId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.booking) {
+                    this.showAppointmentDetailsModal(data.booking);
+                } else {
+                    console.error('Failed to fetch appointment details:', data.error);
+                    this.showToast('Failed to load appointment details: ' + (data.error || 'Unknown error'), 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching appointment details:', error);
+                this.showToast('Error loading appointment details. Please try again.', 'error');
+            });
     }
 
     editAppointment(appointmentId) {
         console.log(`Editing appointment ${appointmentId}`);
-        // Open edit modal or form
-        if (typeof openEditAppointmentModal === 'function') {
-            openEditAppointmentModal(appointmentId);
-        } else {
-            alert(`Edit appointment ${appointmentId} (implement actual edit functionality)`);
-        }
+        
+        // Fetch appointment details first
+        fetch(`/api/unaki/bookings/${appointmentId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.booking) {
+                    this.showEditAppointmentModal(data.booking);
+                } else {
+                    console.error('Failed to fetch appointment details:', data.error);
+                    this.showToast('Failed to load appointment details for editing: ' + (data.error || 'Unknown error'), 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching appointment details for editing:', error);
+                this.showToast('Error loading appointment for editing. Please try again.', 'error');
+            });
     }
 
     rescheduleAppointment(appointmentId) {
         console.log(`Rescheduling appointment ${appointmentId}`);
-        alert(`Reschedule appointment ${appointmentId} (implement actual reschedule functionality)`);
+        this.showToast('Reschedule functionality will be available in the next update', 'info');
     }
 
     completeAppointment(appointmentId) {
@@ -358,8 +381,8 @@ class AppointmentContextMenu {
 
     deleteAppointment(appointmentId) {
         if (confirm('Are you sure you want to delete this appointment? This action cannot be undone.')) {
-            // Make API call to delete appointment
-            fetch(`/api/unaki/appointments/${appointmentId}`, {
+            // Make API call to delete appointment using correct endpoint
+            fetch(`/api/unaki/bookings/${appointmentId}`, {
                 method: 'DELETE',
                 headers: {
                     'Content-Type': 'application/json',
@@ -384,12 +407,12 @@ class AppointmentContextMenu {
                     }
                 } else {
                     console.error('Failed to delete appointment:', data.error);
-                    alert('Failed to delete appointment: ' + data.error);
+                    this.showToast('Failed to delete appointment: ' + data.error, 'error');
                 }
             })
             .catch(error => {
                 console.error('Error deleting appointment:', error);
-                alert('Error deleting appointment. Please try again.');
+                this.showToast('Error deleting appointment. Please try again.', 'error');
             });
         }
     }
@@ -421,13 +444,412 @@ class AppointmentContextMenu {
                 }
             } else {
                 console.error(`Failed to update appointment status:`, data.error);
-                alert(`Failed to update appointment status: ${data.error}`);
+                this.showToast(`Failed to update appointment status: ${data.error}`, 'error');
             }
         })
         .catch(error => {
             console.error('Error updating appointment status:', error);
-            alert('Error updating appointment status. Please try again.');
+            this.showToast('Error updating appointment status. Please try again.', 'error');
         });
+    }
+
+    showAppointmentDetailsModal(appointment) {
+        console.log('📋 Showing appointment details modal:', appointment);
+        
+        // Create modal HTML
+        const modalHTML = `
+            <div class="modal fade" id="appointmentDetailsModal" tabindex="-1">
+                <div class="modal-dialog modal-lg">
+                    <div class="modal-content">
+                        <div class="modal-header bg-primary text-white">
+                            <h5 class="modal-title">
+                                <i class="fas fa-eye me-2"></i>Appointment Details
+                            </h5>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <h6 class="fw-bold text-primary mb-3">Client Information</h6>
+                                    <div class="mb-2">
+                                        <strong>Name:</strong> ${appointment.client_name || 'N/A'}
+                                    </div>
+                                    <div class="mb-2">
+                                        <strong>Phone:</strong> ${appointment.client_phone || 'N/A'}
+                                    </div>
+                                    <div class="mb-2">
+                                        <strong>Email:</strong> ${appointment.client_email || 'N/A'}
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <h6 class="fw-bold text-success mb-3">Service Information</h6>
+                                    <div class="mb-2">
+                                        <strong>Service:</strong> ${appointment.service_name || 'N/A'}
+                                    </div>
+                                    <div class="mb-2">
+                                        <strong>Duration:</strong> ${appointment.service_duration || 'N/A'} minutes
+                                    </div>
+                                    <div class="mb-2">
+                                        <strong>Price:</strong> ₹${appointment.service_price || '0'}
+                                    </div>
+                                </div>
+                            </div>
+                            <hr>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <h6 class="fw-bold text-info mb-3">Schedule Information</h6>
+                                    <div class="mb-2">
+                                        <strong>Date:</strong> ${new Date(appointment.appointment_date).toLocaleDateString()}
+                                    </div>
+                                    <div class="mb-2">
+                                        <strong>Time:</strong> ${appointment.start_time} - ${appointment.end_time}
+                                    </div>
+                                    <div class="mb-2">
+                                        <strong>Staff:</strong> ${appointment.staff_name || 'N/A'}
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <h6 class="fw-bold text-warning mb-3">Status & Payment</h6>
+                                    <div class="mb-2">
+                                        <strong>Status:</strong> 
+                                        <span class="badge bg-${this.getStatusBadgeClass(appointment.status)}">${appointment.status || 'scheduled'}</span>
+                                    </div>
+                                    <div class="mb-2">
+                                        <strong>Payment:</strong> 
+                                        <span class="badge bg-${this.getPaymentBadgeClass(appointment.payment_status)}">${appointment.payment_status || 'pending'}</span>
+                                    </div>
+                                    <div class="mb-2">
+                                        <strong>Amount:</strong> ₹${appointment.amount_charged || appointment.service_price || '0'}
+                                    </div>
+                                </div>
+                            </div>
+                            ${appointment.notes ? `
+                                <hr>
+                                <div class="row">
+                                    <div class="col-12">
+                                        <h6 class="fw-bold text-secondary mb-3">Notes</h6>
+                                        <div class="bg-light p-3 rounded">${appointment.notes}</div>
+                                    </div>
+                                </div>
+                            ` : ''}
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-outline-primary" onclick="appointmentContextMenu.editAppointment(${appointment.id})">
+                                <i class="fas fa-edit me-1"></i>Edit
+                            </button>
+                            <button type="button" class="btn btn-outline-success" onclick="appointmentContextMenu.goToBilling(${appointment.id})">
+                                <i class="fas fa-dollar-sign me-1"></i>Billing
+                            </button>
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // Remove existing modal
+        const existingModal = document.getElementById('appointmentDetailsModal');
+        if (existingModal) {
+            existingModal.remove();
+        }
+        
+        // Add modal to document
+        document.body.insertAdjacentHTML('beforeend', modalHTML);
+        
+        // Show modal
+        const modal = new bootstrap.Modal(document.getElementById('appointmentDetailsModal'));
+        modal.show();
+    }
+
+    showEditAppointmentModal(appointment) {
+        console.log('✏️ Showing edit appointment modal:', appointment);
+        
+        // Create edit modal HTML
+        const modalHTML = `
+            <div class="modal fade" id="editAppointmentModal" tabindex="-1">
+                <div class="modal-dialog modal-lg">
+                    <div class="modal-content">
+                        <div class="modal-header bg-warning text-dark">
+                            <h5 class="modal-title">
+                                <i class="fas fa-edit me-2"></i>Edit Appointment
+                            </h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <form id="editAppointmentForm">
+                            <div class="modal-body">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <h6 class="fw-bold text-primary mb-3">Client Information</h6>
+                                        <div class="mb-3">
+                                            <label for="editClientName" class="form-label">Client Name *</label>
+                                            <input type="text" class="form-control" id="editClientName" value="${appointment.client_name || ''}" required>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="editClientPhone" class="form-label">Phone</label>
+                                            <input type="tel" class="form-control" id="editClientPhone" value="${appointment.client_phone || ''}">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="editClientEmail" class="form-label">Email</label>
+                                            <input type="email" class="form-control" id="editClientEmail" value="${appointment.client_email || ''}">
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <h6 class="fw-bold text-success mb-3">Service Information</h6>
+                                        <div class="mb-3">
+                                            <label for="editServiceName" class="form-label">Service *</label>
+                                            <input type="text" class="form-control" id="editServiceName" value="${appointment.service_name || ''}" required>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="editServiceDuration" class="form-label">Duration (minutes)</label>
+                                            <input type="number" class="form-control" id="editServiceDuration" value="${appointment.service_duration || 60}" min="5" max="480">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="editServicePrice" class="form-label">Price (₹)</label>
+                                            <input type="number" class="form-control" id="editServicePrice" value="${appointment.service_price || 0}" min="0" step="0.01">
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <h6 class="fw-bold text-info mb-3">Schedule Information</h6>
+                                        <div class="mb-3">
+                                            <label for="editAppointmentDate" class="form-label">Date *</label>
+                                            <input type="date" class="form-control" id="editAppointmentDate" value="${appointment.appointment_date}" required>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="editStartTime" class="form-label">Start Time *</label>
+                                            <input type="time" class="form-control" id="editStartTime" value="${appointment.start_time}" required>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="editEndTime" class="form-label">End Time *</label>
+                                            <input type="time" class="form-control" id="editEndTime" value="${appointment.end_time}" required>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <h6 class="fw-bold text-warning mb-3">Status & Notes</h6>
+                                        <div class="mb-3">
+                                            <label for="editStatus" class="form-label">Status</label>
+                                            <select class="form-control" id="editStatus">
+                                                <option value="scheduled" ${appointment.status === 'scheduled' ? 'selected' : ''}>Scheduled</option>
+                                                <option value="confirmed" ${appointment.status === 'confirmed' ? 'selected' : ''}>Confirmed</option>
+                                                <option value="in_progress" ${appointment.status === 'in_progress' ? 'selected' : ''}>In Progress</option>
+                                                <option value="completed" ${appointment.status === 'completed' ? 'selected' : ''}>Completed</option>
+                                                <option value="cancelled" ${appointment.status === 'cancelled' ? 'selected' : ''}>Cancelled</option>
+                                                <option value="no_show" ${appointment.status === 'no_show' ? 'selected' : ''}>No Show</option>
+                                            </select>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="editPaymentStatus" class="form-label">Payment Status</label>
+                                            <select class="form-control" id="editPaymentStatus">
+                                                <option value="pending" ${appointment.payment_status === 'pending' ? 'selected' : ''}>Pending</option>
+                                                <option value="paid" ${appointment.payment_status === 'paid' ? 'selected' : ''}>Paid</option>
+                                                <option value="partial" ${appointment.payment_status === 'partial' ? 'selected' : ''}>Partial</option>
+                                                <option value="refunded" ${appointment.payment_status === 'refunded' ? 'selected' : ''}>Refunded</option>
+                                            </select>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="editNotes" class="form-label">Notes</label>
+                                            <textarea class="form-control" id="editNotes" rows="3">${appointment.notes || ''}</textarea>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-save me-1"></i>Save Changes
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // Remove existing modal
+        const existingModal = document.getElementById('editAppointmentModal');
+        if (existingModal) {
+            existingModal.remove();
+        }
+        
+        // Add modal to document
+        document.body.insertAdjacentHTML('beforeend', modalHTML);
+        
+        // Show modal
+        const modal = new bootstrap.Modal(document.getElementById('editAppointmentModal'));
+        modal.show();
+        
+        // Add form submit handler
+        document.getElementById('editAppointmentForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            this.saveAppointmentChanges(appointment.id, modal);
+        });
+    }
+
+    saveAppointmentChanges(appointmentId, modal) {
+        console.log(`💾 Saving changes for appointment ${appointmentId}`);
+        
+        // Collect form data
+        const formData = {
+            client_name: document.getElementById('editClientName').value,
+            client_phone: document.getElementById('editClientPhone').value,
+            client_email: document.getElementById('editClientEmail').value,
+            service_name: document.getElementById('editServiceName').value,
+            service_duration: parseInt(document.getElementById('editServiceDuration').value),
+            service_price: parseFloat(document.getElementById('editServicePrice').value),
+            appointment_date: document.getElementById('editAppointmentDate').value,
+            start_time: document.getElementById('editStartTime').value,
+            end_time: document.getElementById('editEndTime').value,
+            status: document.getElementById('editStatus').value,
+            payment_status: document.getElementById('editPaymentStatus').value,
+            notes: document.getElementById('editNotes').value
+        };
+        
+        // Send update request
+        fetch(`/api/unaki/bookings/${appointmentId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(formData)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                console.log('✅ Appointment updated successfully');
+                modal.hide();
+                
+                // Show success message
+                if (typeof showNotification === 'function') {
+                    showNotification('Appointment updated successfully', 'success');
+                } else {
+                    this.showToast('Appointment updated successfully!', 'success');
+                }
+                
+                // Refresh schedule
+                if (typeof refreshSchedule === 'function') {
+                    refreshSchedule();
+                } else if (typeof location !== 'undefined') {
+                    location.reload();
+                }
+            } else {
+                console.error('Failed to update appointment:', data.error);
+                this.showToast('Failed to update appointment: ' + (data.error || 'Unknown error'), 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error updating appointment:', error);
+            this.showToast('Error updating appointment. Please try again.', 'error');
+        });
+    }
+
+    getStatusBadgeClass(status) {
+        const statusClasses = {
+            'scheduled': 'primary',
+            'confirmed': 'info',
+            'in_progress': 'warning',
+            'completed': 'success',
+            'cancelled': 'danger',
+            'no_show': 'secondary'
+        };
+        return statusClasses[status] || 'secondary';
+    }
+
+    getPaymentBadgeClass(paymentStatus) {
+        const paymentClasses = {
+            'pending': 'warning',
+            'paid': 'success',
+            'partial': 'info',
+            'refunded': 'danger'
+        };
+        return paymentClasses[paymentStatus] || 'secondary';
+    }
+
+    // Utility method to safely escape HTML and prevent XSS
+    escapeHtml(text) {
+        if (typeof text !== 'string') return text;
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    // Show toast notifications instead of alert dialogs
+    showToast(message, type = 'info') {
+        // Remove any existing toasts first
+        const existingToasts = document.querySelectorAll('.custom-toast');
+        existingToasts.forEach(toast => toast.remove());
+
+        // Create toast element
+        const toast = document.createElement('div');
+        toast.className = `custom-toast toast-${type}`;
+        
+        // Set toast styles
+        toast.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: ${this.getToastColor(type)};
+            color: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            z-index: 10000;
+            font-weight: 500;
+            font-size: 14px;
+            max-width: 350px;
+            opacity: 0;
+            transform: translateX(100%);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        `;
+
+        // Escape the message to prevent XSS
+        toast.textContent = message;
+        
+        // Add icon
+        const icon = document.createElement('i');
+        icon.className = this.getToastIcon(type);
+        icon.style.marginRight = '8px';
+        toast.prepend(icon);
+
+        // Add to document
+        document.body.appendChild(toast);
+
+        // Animate in
+        setTimeout(() => {
+            toast.style.opacity = '1';
+            toast.style.transform = 'translateX(0)';
+        }, 10);
+
+        // Auto-remove after delay
+        setTimeout(() => {
+            toast.style.opacity = '0';
+            toast.style.transform = 'translateX(100%)';
+            setTimeout(() => {
+                if (toast.parentNode) {
+                    toast.parentNode.removeChild(toast);
+                }
+            }, 300);
+        }, type === 'error' ? 5000 : 3000); // Error messages stay longer
+    }
+
+    getToastColor(type) {
+        const colors = {
+            'success': '#28a745',
+            'error': '#dc3545',
+            'warning': '#ffc107',
+            'info': '#17a2b8'
+        };
+        return colors[type] || colors.info;
+    }
+
+    getToastIcon(type) {
+        const icons = {
+            'success': 'fas fa-check-circle',
+            'error': 'fas fa-exclamation-circle',
+            'warning': 'fas fa-exclamation-triangle',
+            'info': 'fas fa-info-circle'
+        };
+        return icons[type] || icons.info;
     }
 
     reinitializeForAppointments() {
