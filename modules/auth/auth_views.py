@@ -3,7 +3,7 @@ Authentication views and routes
 """
 import os
 from flask import render_template, request, redirect, url_for, flash, jsonify, session
-from flask_login import login_user, logout_user, current_user
+from flask_login import login_user, logout_user, current_user, login_required
 from sqlalchemy import func, or_, and_
 from app import app, db
 from forms import LoginForm
@@ -31,17 +31,6 @@ def verify_pwd(stored, given):
     except Exception:
         return False
 
-@app.route('/test')
-def test_route():
-    """Simple test route to check connectivity"""
-    return '''<!DOCTYPE html>
-<html><head><title>Test Page</title></head>
-<body style="font-family: Arial; padding: 50px; text-align: center;">
-<h1 style="color: green;">✅ SUCCESS!</h1>
-<h2>Spa Management System is Working</h2>
-<p>If you can see this page, the server is working correctly.</p>
-<p><a href="/login" style="background: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Go to Login Page</a></p>
-</body></html>'''
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -184,6 +173,105 @@ def logout():
     logout_user()
     flash('You have been logged out successfully', 'info')
     return redirect(url_for('login'))
+
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    """User registration route - Admin only in production"""
+    if current_user.is_authenticated:
+        return redirect(url_for('dashboard'))
+    
+    # Disable public registration in production - admin only
+    import os
+    if os.environ.get('FLASK_ENV') != 'development':
+        flash('Registration is disabled. Please contact an administrator.', 'warning')
+        return redirect(url_for('login'))
+    
+    from forms import UserRegistrationForm
+    form = UserRegistrationForm()
+    
+    if form.validate_on_submit():
+        try:
+            from models import User
+            from werkzeug.security import generate_password_hash
+            
+            # Create new user
+            user = User(
+                username=form.username.data.lower().strip(),
+                email=form.email.data.lower().strip(),
+                first_name=form.first_name.data.strip(),
+                last_name=form.last_name.data.strip(),
+                phone=form.phone.data.strip() if form.phone.data else None,
+                password_hash=generate_password_hash(form.password.data),
+                role='staff',  # Default role for new registrations
+                is_active=True
+            )
+            
+            db.session.add(user)
+            db.session.commit()
+            
+            flash('Registration successful! You can now log in.', 'success')
+            return redirect(url_for('login'))
+            
+        except Exception as e:
+            db.session.rollback()
+            flash('Registration failed. Please try again.', 'danger')
+            print(f"Registration error: {e}")
+    
+    return render_template('register.html', form=form)
+
+@app.route('/profile', methods=['GET', 'POST'])
+@login_required
+def user_profile():
+    """User profile management route"""
+    from forms import UserProfileForm
+    form = UserProfileForm(obj=current_user)
+    
+    if form.validate_on_submit():
+        try:
+            # Update user profile
+            current_user.first_name = form.first_name.data.strip()
+            current_user.last_name = form.last_name.data.strip()
+            current_user.email = form.email.data.lower().strip()
+            current_user.phone = form.phone.data.strip() if form.phone.data else None
+            current_user.date_of_birth = form.date_of_birth.data
+            current_user.gender = form.gender.data if form.gender.data else None
+            current_user.notes_bio = form.notes_bio.data.strip() if form.notes_bio.data else None
+            
+            db.session.commit()
+            flash('Profile updated successfully!', 'success')
+            return redirect(url_for('user_profile'))
+            
+        except Exception as e:
+            db.session.rollback()
+            flash('Profile update failed. Please try again.', 'danger')
+            print(f"Profile update error: {e}")
+    
+    return render_template('user_profile.html', form=form, user=current_user)
+
+@app.route('/change-password', methods=['GET', 'POST'])
+@login_required
+def change_password():
+    """Change password route"""
+    from forms import ChangePasswordForm
+    form = ChangePasswordForm()
+    
+    if form.validate_on_submit():
+        try:
+            from werkzeug.security import generate_password_hash
+            
+            # Update password
+            current_user.password_hash = generate_password_hash(form.new_password.data)
+            db.session.commit()
+            
+            flash('Password changed successfully!', 'success')
+            return redirect(url_for('user_profile'))
+            
+        except Exception as e:
+            db.session.rollback()
+            flash('Password change failed. Please try again.', 'danger')
+            print(f"Password change error: {e}")
+    
+    return render_template('change_password.html', form=form)
 
 # Dev-only admin reset route (guarded)
 @app.route("/dev/reset-admin", methods=['POST'])

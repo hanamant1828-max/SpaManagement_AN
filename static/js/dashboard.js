@@ -84,24 +84,38 @@ function setupDashboardButtonHandlers() {
 }
 
 function initializeDashboard() {
-    // Initialize charts and widgets
-    initializeCharts();
-    updateDateTime();
-    setupNotifications();
+    console.log('Initializing dashboard charts...');
 
-    // Update time every minute
-    setInterval(updateDateTime, 60000);
+    try {
+        // Initialize charts if Chart.js is available
+        if (typeof Chart !== 'undefined') {
+            initializeCharts();
+        }
+
+        // Initialize other dashboard components
+        // Placeholder for initializeWidgets as it's not defined in the original code
+        if (typeof initializeWidgets === 'function') {
+            initializeWidgets();
+        }
+
+        console.log('Dashboard initialization completed');
+    } catch (error) {
+        console.error('Dashboard initialization error:', error);
+    }
+    updateDateTime(); // Ensure updateDateTime is called on load
+    setupNotifications(); // Ensure notifications are set up on load
+    setInterval(updateDateTime, 60000); // Update time every minute
 }
 
 function initializeCharts() {
     console.log('Initializing dashboard charts...');
-    
+
     // Check if Chart.js is loaded
     if (!window.Chart) {
         console.error('Chart.js not loaded');
         return;
     }
-    
+
     // Initialize all new charts
     createRevenueChart();
     createServiceChart();

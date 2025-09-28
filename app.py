@@ -159,6 +159,57 @@ def init_app():
             db.create_all()
             print("SQLite database tables created successfully")
             print(f"Database file location: {app.config['SQLALCHEMY_DATABASE_URI']}")
+            
+            # Create default permissions if they don't exist
+            try:
+                from models import Permission
+                default_permissions = [
+                    {'name': 'dashboard_view', 'display_name': 'View Dashboard', 'description': 'Access to main dashboard', 'module': 'dashboard'},
+                    {'name': 'staff_view', 'display_name': 'View Staff', 'description': 'View staff information', 'module': 'staff'},
+                    {'name': 'staff_create', 'display_name': 'Create Staff', 'description': 'Add new staff members', 'module': 'staff'},
+                    {'name': 'staff_edit', 'display_name': 'Edit Staff', 'description': 'Modify staff information', 'module': 'staff'},
+                    {'name': 'staff_delete', 'display_name': 'Delete Staff', 'description': 'Remove staff members', 'module': 'staff'},
+                    {'name': 'clients_view', 'display_name': 'View Clients', 'description': 'View client information', 'module': 'clients'},
+                    {'name': 'clients_create', 'display_name': 'Create Clients', 'description': 'Add new clients', 'module': 'clients'},
+                    {'name': 'clients_edit', 'display_name': 'Edit Clients', 'description': 'Modify client information', 'module': 'clients'},
+                    {'name': 'clients_delete', 'display_name': 'Delete Clients', 'description': 'Remove clients', 'module': 'clients'},
+                    {'name': 'services_view', 'display_name': 'View Services', 'description': 'View services and pricing', 'module': 'services'},
+                    {'name': 'services_create', 'display_name': 'Create Services', 'description': 'Add new services', 'module': 'services'},
+                    {'name': 'services_edit', 'display_name': 'Edit Services', 'description': 'Modify services and pricing', 'module': 'services'},
+                    {'name': 'services_delete', 'display_name': 'Delete Services', 'description': 'Remove services', 'module': 'services'},
+                    {'name': 'appointments_view', 'display_name': 'View Appointments', 'description': 'View appointment bookings', 'module': 'bookings'},
+                    {'name': 'appointments_create', 'display_name': 'Create Appointments', 'description': 'Book new appointments', 'module': 'bookings'},
+                    {'name': 'appointments_edit', 'display_name': 'Edit Appointments', 'description': 'Modify appointments', 'module': 'bookings'},
+                    {'name': 'appointments_delete', 'display_name': 'Delete Appointments', 'description': 'Cancel appointments', 'module': 'bookings'},
+                    {'name': 'billing_view', 'display_name': 'View Billing', 'description': 'Access billing information', 'module': 'billing'},
+                    {'name': 'billing_create', 'display_name': 'Create Bills', 'description': 'Generate invoices and bills', 'module': 'billing'},
+                    {'name': 'billing_edit', 'display_name': 'Edit Bills', 'description': 'Modify billing information', 'module': 'billing'},
+                    {'name': 'inventory_view', 'display_name': 'View Inventory', 'description': 'Access inventory information', 'module': 'inventory'},
+                    {'name': 'inventory_create', 'display_name': 'Create Inventory', 'description': 'Add inventory items', 'module': 'inventory'},
+                    {'name': 'inventory_edit', 'display_name': 'Edit Inventory', 'description': 'Modify inventory items', 'module': 'inventory'},
+                    {'name': 'packages_view', 'display_name': 'View Packages', 'description': 'View service packages', 'module': 'packages'},
+                    {'name': 'packages_create', 'display_name': 'Create Packages', 'description': 'Create service packages', 'module': 'packages'},
+                    {'name': 'packages_edit', 'display_name': 'Edit Packages', 'description': 'Modify service packages', 'module': 'packages'},
+                    {'name': 'reports_view', 'display_name': 'View Reports', 'description': 'Access business reports', 'module': 'reports'},
+                    {'name': 'expenses_view', 'display_name': 'View Expenses', 'description': 'View business expenses', 'module': 'expenses'},
+                    {'name': 'expenses_create', 'display_name': 'Create Expenses', 'description': 'Add new expenses', 'module': 'expenses'},
+                    {'name': 'expenses_edit', 'display_name': 'Edit Expenses', 'description': 'Modify expenses', 'module': 'expenses'},
+                    {'name': 'settings_view', 'display_name': 'View Settings', 'description': 'Access system settings', 'module': 'settings'},
+                    {'name': 'settings_edit', 'display_name': 'Edit Settings', 'description': 'Modify system settings', 'module': 'settings'},
+                ]
+                
+                for perm_data in default_permissions:
+                    existing_permission = Permission.query.filter_by(name=perm_data['name']).first()
+                    if not existing_permission:
+                        permission = Permission(**perm_data)
+                        db.session.add(permission)
+                
+                db.session.commit()
+                print("Default permissions created successfully")
+                
+            except Exception as e:
+                db.session.rollback()
+                print(f"Warning: Could not create default permissions: {e}")
         except Exception as e:
             print(f"SQLite database initialization warning: {e}")
             print("Continuing with existing SQLite database...")
@@ -257,8 +308,13 @@ try:
 except Exception as e:
     print(f"⚠️ Integrated billing views import error: {e}")
 
-# Skip other problematic imports that cause route conflicts
-print("⚠️ Skipping other staff, notifications, and packages views to avoid conflicts")
+# Import user management views
+try:
+    from modules.user_management.user_views import *
+    print("User management routes registered successfully")
+except Exception as e:
+    print(f"Error importing user management routes: {e}")
+    print("User management will not be available")
 
 # Routes are imported via module views, avoiding import conflicts
 
@@ -484,57 +540,10 @@ def unaki_load_sample_data():
                 'notes': '5-minute quick service for Admin'
             },
             {
-                'client_name': 'Scarlett Johansson',
-                'client_phone': '+1-555-1002',
-                'service_name': 'Express Consultation',
-                'duration': 10,
-                'price': 35.0,
-                'staff_id': 11,
-                'start_time': '08:10',
-                'end_time': '08:20',
-                'date': today_str,
-                'notes': '10-minute consultation with Admin'
-            },
-            {
-                'client_name': 'Jennifer Lawrence',
-                'client_phone': '+1-555-1003',
-                'service_name': 'Quick Eyebrow Trim',
-                'duration': 15,
-                'price': 45.0,
-                'staff_id': 11,
-                'start_time': '08:25',
-                'end_time': '08:40',
-                'date': today_str,
-                'notes': '15-minute eyebrow service'
-            },
-            {
-                'client_name': 'Anne Hathaway',
-                'client_phone': '+1-555-1004',
-                'service_name': 'Mini Facial Express',
-                'duration': 25,
-                'price': 65.0,
-                'staff_id': 11,
-                'start_time': '08:45',
-                'end_time': '09:10',
-                'date': today_str,
-                'notes': '25-minute express facial treatment'
-            },
-            {
-                'client_name': 'Natalie Portman',
-                'client_phone': '+1-555-1005',
-                'service_name': 'Premium Face Treatment',
-                'duration': 45,
-                'price': 95.0,
-                'staff_id': 11,
-                'start_time': '09:15',
-                'end_time': '10:00',
-                'date': today_str,
-                'notes': '45-minute premium facial service'
-            },
-            {
-                'client_name': 'Reese Witherspoon',
-                'client_phone': '+1-555-1006',
-                'service_name': 'Standard Massage',
+                'client_name': 'David Brown', 
+                'client_phone': '+1-555-0102',
+                'service_name': 'Swedish Massage',
+                'start_time': '14:00',
                 'duration': 60,
                 'price': 120.0,
                 'staff_id': 11,
@@ -938,7 +947,339 @@ def role_management():
     if not current_user.can_access('settings'):
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
-    return render_template('settings.html')
+
+    from models import Role, Permission
+    from forms import RoleForm, PermissionForm, BusinessSettingsForm
+
+    # Get all roles and permissions
+    roles = Role.query.all()
+    permissions = Permission.query.all()
+
+    # Initialize forms
+    role_form = RoleForm()
+    permission_form = PermissionForm()
+    business_form = BusinessSettingsForm()  # Add this for template compatibility
+
+    return render_template('role_management.html',
+                         roles=roles,
+                         permissions=permissions,
+                         role_form=role_form,
+                         permission_form=permission_form,
+                         business_form=business_form)
+
+@app.route('/add_role', methods=['POST'])
+@login_required
+def add_role():
+    """Add new role"""
+    if not current_user.can_access('settings'):
+        flash('Access denied', 'danger')
+        return redirect(url_for('dashboard'))
+
+    from models import Role
+    from forms import RoleForm
+
+    form = RoleForm()
+    if form.validate_on_submit():
+        try:
+            role = Role(
+                name=form.name.data,
+                display_name=form.display_name.data,
+                description=form.description.data,
+                is_active=form.is_active.data
+            )
+            db.session.add(role)
+            db.session.commit()
+            flash('Role added successfully!', 'success')
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error adding role: {str(e)}', 'danger')
+    else:
+        for field, errors in form.errors.items():
+            for error in errors:
+                flash(f'{getattr(form, field).label.text}: {error}', 'danger')
+
+    return redirect(url_for('role_management'))
+
+@app.route('/add_permission', methods=['POST'])
+@login_required
+def add_permission():
+    """Add new permission"""
+    if not current_user.can_access('settings'):
+        flash('Access denied', 'danger')
+        return redirect(url_for('dashboard'))
+
+    from models import Permission
+    from forms import PermissionForm
+
+    form = PermissionForm()
+    if form.validate_on_submit():
+        try:
+            permission = Permission(
+                name=form.name.data,
+                display_name=form.name.data,
+                description=form.description.data,
+                module='general',
+                is_active=form.is_active.data
+            )
+            db.session.add(permission)
+            db.session.commit()
+            flash('Permission added successfully!', 'success')
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error adding permission: {str(e)}', 'danger')
+    else:
+        for field, errors in form.errors.items():
+            for error in errors:
+                flash(f'{getattr(form, field).label.text}: {error}', 'danger')
+
+    return redirect(url_for('role_management'))
+
+@app.route('/edit_role/<int:role_id>', methods=['POST'])
+@login_required
+def edit_role(role_id):
+    """Edit existing role"""
+    if not current_user.can_access('settings'):
+        flash('Access denied', 'danger')
+        return redirect(url_for('dashboard'))
+
+    from models import Role
+    from forms import RoleForm
+
+    role = Role.query.get_or_404(role_id)
+    form = RoleForm()
+
+    if form.validate_on_submit():
+        try:
+            # Prevent editing admin role name
+            if role.name == 'admin' and form.name.data != 'admin':
+                flash('Cannot change admin role name', 'danger')
+                return redirect(url_for('role_management'))
+
+            role.name = form.name.data
+            role.display_name = form.display_name.data
+            role.description = form.description.data
+            role.is_active = form.is_active.data
+            db.session.commit()
+            flash('Role updated successfully!', 'success')
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error updating role: {str(e)}', 'danger')
+    else:
+        for field, errors in form.errors.items():
+            for error in errors:
+                flash(f'{getattr(form, field).label.text}: {error}', 'danger')
+
+    return redirect(url_for('role_management'))
+
+@app.route('/delete_role/<int:role_id>', methods=['POST'])
+@login_required
+def delete_role(role_id):
+    """Delete role"""
+    if not current_user.can_access('settings'):
+        flash('Access denied', 'danger')
+        return redirect(url_for('dashboard'))
+
+    from models import Role
+
+    try:
+        role = Role.query.get_or_404(role_id)
+        
+        # Prevent deleting admin role
+        if role.name == 'admin':
+            flash('Cannot delete admin role', 'danger')
+            return redirect(url_for('role_management'))
+
+        # Check if role is being used by users
+        if role.users:
+            flash(f'Cannot delete role "{role.display_name}" as it is assigned to {len(role.users)} users', 'danger')
+            return redirect(url_for('role_management'))
+
+        db.session.delete(role)
+        db.session.commit()
+        flash('Role deleted successfully!', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error deleting role: {str(e)}', 'danger')
+
+    return redirect(url_for('role_management'))
+
+@app.route('/api/roles/<int:role_id>', methods=['GET'])
+@login_required
+def api_get_role(role_id):
+    """API endpoint to get role details for editing"""
+    if not current_user.can_access('settings'):
+        return jsonify({'error': 'Access denied'}), 403
+
+    from models import Role
+
+    try:
+        role = Role.query.get_or_404(role_id)
+        return jsonify({
+            'success': True,
+            'role': {
+                'id': role.id,
+                'name': role.name,
+                'display_name': role.display_name,
+                'description': role.description or '',
+                'is_active': role.is_active
+            }
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/roles/<int:role_id>', methods=['DELETE'])
+@login_required
+def api_delete_role(role_id):
+    """API endpoint to delete role"""
+    if not current_user.can_access('settings'):
+        return jsonify({'error': 'Access denied'}), 403
+
+    from models import Role
+
+    try:
+        role = Role.query.get_or_404(role_id)
+        
+        # Prevent deleting admin role
+        if role.name == 'admin':
+            return jsonify({'error': 'Cannot delete admin role'}), 400
+
+        # Check if role is being used by users
+        if role.users:
+            return jsonify({'error': f'Cannot delete role as it is assigned to {len(role.users)} users'}), 400
+
+        db.session.delete(role)
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Role deleted successfully'
+        })
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/roles', methods=['POST'])
+@login_required
+def api_create_role():
+    """API endpoint to create a new role"""
+    if not current_user.can_access('settings'):
+        return jsonify({'error': 'Access denied'}), 403
+
+    from models import Role
+
+    data = request.get_json()
+    if not data:
+        return jsonify({'error': 'No data provided'}), 400
+
+    try:
+        # Check if role name already exists
+        existing_role = Role.query.filter_by(name=data.get('name')).first()
+        if existing_role:
+            return jsonify({'error': 'Role name already exists'}), 400
+
+        role = Role(
+            name=data.get('name'),
+            display_name=data.get('display_name', data.get('name')),
+            description=data.get('description', ''),
+            is_active=True
+        )
+        db.session.add(role)
+        db.session.commit()
+        return jsonify({
+            'success': True,
+            'message': 'Role created successfully',
+            'role_id': role.id
+        }), 201
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/roles/<int:role_id>/permissions', methods=['GET'])
+@login_required
+def api_get_role_permissions(role_id):
+    """API endpoint to get role permissions"""
+    if not current_user.can_access('settings'):
+        return jsonify({'error': 'Access denied'}), 403
+
+    from models import Role
+
+    try:
+        role = Role.query.get_or_404(role_id)
+        role_permissions = [rp.permission.name for rp in role.permissions]
+        return jsonify({
+            'success': True,
+            'role_name': role.display_name,
+            'permissions': role_permissions
+        }), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/permissions', methods=['GET'])
+@login_required
+def api_get_all_permissions():
+    """API endpoint to get all permissions"""
+    if not current_user.can_access('settings'):
+        return jsonify({'error': 'Access denied'}), 403
+
+    from models import Permission
+
+    try:
+        permissions = Permission.query.filter_by(is_active=True).order_by(Permission.module, Permission.display_name).all()
+        permissions_data = []
+        for permission in permissions:
+            permissions_data.append({
+                'id': permission.id,
+                'name': permission.name,
+                'display_name': permission.display_name,
+                'description': permission.description,
+                'module': permission.module,
+                'is_active': permission.is_active
+            })
+        
+        return jsonify({
+            'success': True,
+            'permissions': permissions_data
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/roles/<int:role_id>/permissions', methods=['POST'])
+@login_required
+def api_update_role_permissions(role_id):
+    """API endpoint to update role permissions"""
+    if not current_user.can_access('settings'):
+        return jsonify({'error': 'Access denied'}), 403
+
+    from models import Role, Permission, RolePermission
+
+    data = request.get_json()
+    if not data:
+        return jsonify({'error': 'No data provided'}), 400
+
+    try:
+        role = Role.query.get_or_404(role_id)
+        if role.name == 'admin':
+            return jsonify({'error': 'Cannot modify admin role permissions'}), 400
+
+        # Clear existing permissions
+        RolePermission.query.filter_by(role_id=role_id).delete()
+
+        # Add new permissions
+        permission_names = data.get('permissions', [])
+        for perm_name in permission_names:
+            permission = Permission.query.filter_by(name=perm_name).first()
+            if permission:
+                role_perm = RolePermission(role_id=role_id, permission_id=permission.id)
+                db.session.add(role_perm)
+
+        db.session.commit()
+        return jsonify({
+            'success': True,
+            'message': 'Permissions updated successfully'
+        }), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
 
 # Department Management Routes moved to routes.py to avoid conflicts
 
@@ -1380,12 +1721,110 @@ def unaki_update_booking(booking_id):
             'error': str(e)
         }), 500
 
-@app.route('/api/unaki/appointments/<int:appointment_id>', methods=['DELETE'])
-def unaki_delete_appointment(appointment_id):
-    """Delete appointment in Unaki system"""
+# UNAKI BOOKING VIEW ROUTES
+@app.route('/unaki-booking')
+@login_required
+def unaki_bookings():
+    """Display the Unaki booking form with dropdowns populated from database"""
     try:
+        from modules.clients.clients_queries import get_all_customers
+        from modules.services.services_queries import get_all_services
+        from modules.staff.staff_queries import get_staff_members
         from models import UnakiBooking
-        from datetime import datetime
+        from datetime import date
+
+        # Get all required data for dropdowns
+        clients = get_all_customers()
+        services = get_all_services()
+        staff_members = get_staff_members()
+
+        # Get recent bookings for display
+        existing_bookings = UnakiBooking.query.order_by(UnakiBooking.created_at.desc()).limit(10).all()
+
+        # Pass today's date
+        today = date.today().strftime('%Y-%m-%d')
+
+        return render_template('unaki_bookings.html', 
+                             clients=clients,
+                             services=services, 
+                             staff_members=staff_members,
+                             existing_bookings=existing_bookings,
+                             today=today)
+
+    except Exception as e:
+        print(f"Error in unaki_bookings: {e}")
+        flash('Error loading booking form. Please try again.', 'danger')
+        return redirect(url_for('dashboard'))
+
+@app.route('/book-appointment', methods=['POST'])
+@login_required
+def book_appointment():
+    """Handle Unaki booking form submission with strict time-overlap conflict checking"""
+    try:
+        from datetime import datetime, timedelta, time, date
+        from models import UnakiBooking, Service, Customer, User
+
+        # Extract form data
+        client_id = request.form.get('client_id', type=int)
+        staff_id = request.form.get('staff_id', type=int)
+        service_ids = request.form.get('service_ids', '')  # Comma-separated IDs
+        appointment_date_str = request.form.get('appointment_date')
+        start_time_str = request.form.get('start_time')
+        notes = request.form.get('notes', '')
+        total_duration = request.form.get('duration', type=int)
+
+        # Validate required fields
+        if not all([client_id, staff_id, service_ids, appointment_date_str, start_time_str]):
+            flash('Missing required booking information', 'danger')
+            return redirect(url_for('unaki_bookings'))
+
+        # Parse date and time
+        try:
+            appointment_date = datetime.strptime(appointment_date_str, '%Y-%m-%d').date()
+            start_time_obj = datetime.strptime(start_time_str, '%H:%M').time()
+        except ValueError:
+            flash('Invalid date or time format', 'danger')
+            return redirect(url_for('unaki_bookings'))
+
+        # Get service details and calculate total duration and price
+        selected_service_ids = [int(id.strip()) for id in service_ids.split(',') if id.strip()]
+        services = Service.query.filter(Service.id.in_(selected_service_ids)).all()
+
+        if not services:
+            flash('Selected services not found', 'danger')
+            return redirect(url_for('unaki_bookings'))
+
+        # Calculate totals
+        total_duration_calculated = sum(service.duration for service in services)
+        total_price = sum(float(service.price) for service in services)
+        service_names = ', '.join(service.name for service in services)
+
+        # Calculate end time
+        start_datetime = datetime.combine(appointment_date, start_time_obj)
+        end_datetime = start_datetime + timedelta(minutes=total_duration_calculated)
+        end_time_obj = end_datetime.time()
+
+        # Validate that appointment is not in the past
+        current_datetime = datetime.now()
+        if start_datetime < current_datetime:
+            flash('Cannot book appointments in the past', 'danger')
+            return redirect(url_for('unaki_bookings'))
+
+        # CRITICAL STRICT TIME-OVERLAP CONFLICT CHECK
+        # Check if new booking overlaps with any existing booking for the same staff member
+        # Overlap logic: Two time ranges overlap if:
+        # - New booking starts before existing booking ends AND
+        # - New booking ends after existing booking starts
+        conflicting_booking = UnakiBooking.query.filter(
+            UnakiBooking.staff_id == staff_id,
+            UnakiBooking.appointment_date == appointment_date,
+            UnakiBooking.status.in_(['scheduled', 'confirmed', 'in_progress']),
+            # Time overlap condition using SQLAlchemy and_ operator
+            db.and_(
+                start_time_obj < UnakiBooking.end_time,    # New start < Existing end
+                end_time_obj > UnakiBooking.start_time     # New end > Existing start
+            )
+        ).first()
 
         # Handle both JSON and non-JSON requests
         data = {}

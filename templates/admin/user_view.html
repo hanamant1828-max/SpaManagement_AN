@@ -1,0 +1,202 @@
+
+{% extends "base.html" %}
+
+{% block title %}View User - {{ user.username }} - Spa & Salon Management Suite{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="h3 mb-0">
+                    <i class="fas fa-user me-2"></i>User Details - {{ user.username }}
+                </h1>
+                <div class="btn-group">
+                    <a href="{{ url_for('admin_edit_user', user_id=user.id) }}" class="btn btn-primary">
+                        <i class="fas fa-edit me-2"></i>Edit User
+                    </a>
+                    <a href="{{ url_for('admin_users') }}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left me-2"></i>Back to Users
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Basic Information</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Username:</label>
+                                <p class="form-control-plaintext">{{ user.username }}</p>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Email:</label>
+                                <p class="form-control-plaintext">{{ user.email or 'Not provided' }}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">First Name:</label>
+                                <p class="form-control-plaintext">{{ user.first_name }}</p>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Last Name:</label>
+                                <p class="form-control-plaintext">{{ user.last_name }}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Phone:</label>
+                                <p class="form-control-plaintext">{{ user.phone or 'Not provided' }}</p>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Designation:</label>
+                                <p class="form-control-plaintext">{{ user.designation or 'Not specified' }}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Role:</label>
+                                <p class="form-control-plaintext">
+                                    {% if user.dynamic_role %}
+                                        <span class="badge bg-info">{{ user.dynamic_role.display_name }}</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">{{ user.role or 'No Role' }}</span>
+                                    {% endif %}
+                                </p>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Department:</label>
+                                <p class="form-control-plaintext">
+                                    {% if user.staff_department %}
+                                        {{ user.staff_department.display_name }}
+                                    {% else %}
+                                        Not assigned
+                                    {% endif %}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Status:</label>
+                                <p class="form-control-plaintext">
+                                    {% if user.is_active %}
+                                        <span class="badge bg-success">Active</span>
+                                    {% else %}
+                                        <span class="badge bg-danger">Inactive</span>
+                                    {% endif %}
+                                </p>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Member Since:</label>
+                                <p class="form-control-plaintext">{{ stats.member_since }}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Statistics</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span>Total Appointments:</span>
+                            <span class="badge bg-primary">{{ stats.total_appointments }}</span>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span>Active Appointments:</span>
+                            <span class="badge bg-success">{{ stats.active_appointments }}</span>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span>Last Login:</span>
+                            <small class="text-muted">{{ stats.last_login }}</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h5 class="mb-0">Quick Actions</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <a href="{{ url_for('admin_edit_user', user_id=user.id) }}" class="btn btn-primary">
+                            <i class="fas fa-edit me-2"></i>Edit User
+                        </a>
+                        {% if user.is_active %}
+                        <button class="btn btn-warning" onclick="toggleUserStatus({{ user.id }}, false)">
+                            <i class="fas fa-ban me-2"></i>Deactivate User
+                        </button>
+                        {% else %}
+                        <button class="btn btn-success" onclick="toggleUserStatus({{ user.id }}, true)">
+                            <i class="fas fa-check me-2"></i>Activate User
+                        </button>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function toggleUserStatus(userId, activate) {
+    const action = activate ? 'activate' : 'deactivate';
+    const endpoint = activate ? `/admin/users/activate/${userId}` : `/admin/users/delete/${userId}`;
+    
+    if (confirm(`Are you sure you want to ${action} this user?`)) {
+        fetch(endpoint, { method: 'POST' })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload();
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            })
+            .catch(error => {
+                alert('Error: ' + error.message);
+            });
+    }
+}
+</script>
+{% endblock %}

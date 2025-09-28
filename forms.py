@@ -3,7 +3,7 @@ Flask-WTF forms for the Spa Management System
 """
 from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, BooleanField, SubmitField, TextAreaField, SelectField, SelectMultipleField, IntegerField, FloatField, DateField, TimeField, DateTimeField, HiddenField
-from wtforms.validators import DataRequired, Email, Length, Optional, NumberRange, ValidationError
+from wtforms.validators import DataRequired, Email, Length, Optional, NumberRange, ValidationError, EqualTo
 from wtforms.widgets import TextArea
 
 class LoginForm(FlaskForm):
@@ -197,11 +197,67 @@ class RecurringAppointmentForm(FlaskForm):
 class BusinessSettingsForm(FlaskForm):
     """Business settings form"""
     business_name = StringField('Business Name', validators=[DataRequired(), Length(max=100)])
-    address = TextAreaField('Address', validators=[Optional()])
-    phone = StringField('Phone', validators=[Optional(), Length(max=20)])
-    email = StringField('Email', validators=[Optional(), Email()])
-    business_hours = TextAreaField('Business Hours', validators=[Optional()])
+    business_phone = StringField('Business Phone', validators=[Optional(), Length(max=20)])
+    business_email = StringField('Business Email', validators=[Optional(), Email()])
+    business_address = TextAreaField('Business Address', validators=[Optional()])
+    tax_rate = FloatField('Tax Rate (%)', validators=[Optional(), NumberRange(min=0, max=100)])
+    currency = SelectField('Currency', choices=[
+        ('USD', 'US Dollar ($)'),
+        ('EUR', 'Euro (€)'),
+        ('GBP', 'British Pound (£)'),
+        ('INR', 'Indian Rupee (₹)'),
+        ('CAD', 'Canadian Dollar (C$)'),
+        ('AUD', 'Australian Dollar (A$)')
+    ], default='USD')
+    timezone = SelectField('Timezone', choices=[
+        ('UTC', 'UTC'),
+        ('US/Eastern', 'Eastern Time'),
+        ('US/Central', 'Central Time'),
+        ('US/Mountain', 'Mountain Time'),
+        ('US/Pacific', 'Pacific Time'),
+        ('Europe/London', 'London'),
+        ('Europe/Paris', 'Paris'),
+        ('Asia/Kolkata', 'India Standard Time'),
+        ('Asia/Tokyo', 'Japan Standard Time')
+    ], default='UTC')
     submit = SubmitField('Save Settings')
+
+class AdminUserForm(FlaskForm):
+    """Admin user creation/edit form"""
+    username = StringField('Username', validators=[DataRequired(), Length(min=3, max=50)])
+    email = StringField('Email', validators=[Optional(), Email()])
+    first_name = StringField('First Name', validators=[DataRequired(), Length(max=50)])
+    last_name = StringField('Last Name', validators=[DataRequired(), Length(max=50)])
+    phone = StringField('Phone', validators=[Optional(), Length(max=20)])
+    role_id = SelectField('Role', coerce=int, validators=[Optional()])
+    department_id = SelectField('Department', coerce=int, validators=[Optional()])
+    designation = StringField('Designation', validators=[Optional(), Length(max=100)])
+    password = PasswordField('Password', validators=[Optional(), Length(min=6)])
+    confirm_password = PasswordField('Confirm Password', validators=[Optional(), EqualTo('password')])
+    is_active = BooleanField('Active', default=True)
+    submit = SubmitField('Save User')
+
+    def validate_password(self, field):
+        # Only require password for new users (no user.id means create mode)
+        if not hasattr(self, '_obj') or not self._obj:
+            if not field.data:
+                raise ValidationError('Password is required for new users.')
+
+class RoleForm(FlaskForm):
+    """Role management form"""
+    name = StringField('Role Name', validators=[DataRequired(), Length(max=50)])
+    display_name = StringField('Display Name', validators=[Optional(), Length(max=100)])
+    description = TextAreaField('Description', validators=[Optional()])
+    is_active = BooleanField('Active', default=True)
+    submit = SubmitField('Save Role')
+
+class PermissionForm(FlaskForm):
+    """Permission management form"""
+    name = StringField('Permission Name', validators=[DataRequired(), Length(max=50)])
+    description = TextAreaField('Description', validators=[Optional()])
+    category = StringField('Category', validators=[Optional(), Length(max=50)])
+    is_active = BooleanField('Active', default=True)
+    submit = SubmitField('Save Permission')
 
 class AdvancedCustomerForm(FlaskForm):
     """Advanced customer form with additional fields"""
@@ -219,6 +275,185 @@ class AdvancedCustomerForm(FlaskForm):
     notes = TextAreaField('Notes', validators=[Optional()])
     is_active = BooleanField('Active', default=True)
     submit = SubmitField('Save Customer')
+
+class UserRegistrationForm(FlaskForm):
+    """User registration form with security validations"""
+    username = StringField('Username', validators=[
+        DataRequired(message='Username is required'),
+        Length(min=3, max=20, message='Username must be between 3-20 characters')
+    ])
+    email = StringField('Email', validators=[
+        DataRequired(message='Email is required'),
+        Email(message='Please enter a valid email address')
+    ])
+    first_name = StringField('First Name', validators=[
+        DataRequired(message='First name is required'),
+        Length(max=50, message='First name must be less than 50 characters')
+    ])
+    last_name = StringField('Last Name', validators=[
+        DataRequired(message='Last name is required'),
+        Length(max=50, message='Last name must be less than 50 characters')
+    ])
+    phone = StringField('Phone', validators=[
+        Optional(),
+        Length(max=20, message='Phone must be less than 20 characters')
+    ])
+    password = PasswordField('Password', validators=[
+        DataRequired(message='Password is required'),
+        Length(min=8, message='Password must be at least 8 characters long')
+    ])
+    confirm_password = PasswordField('Confirm Password', validators=[
+        DataRequired(message='Please confirm your password')
+    ])
+    submit = SubmitField('Register')
+
+    def validate_password(self, field):
+        """Custom password strength validation"""
+        password = field.data
+        if password:
+            import re
+            if not re.search(r'[A-Z]', password):
+                raise ValidationError('Password must contain at least one uppercase letter.')
+            if not re.search(r'[a-z]', password):
+                raise ValidationError('Password must contain at least one lowercase letter.')
+            if not re.search(r'[0-9]', password):
+                raise ValidationError('Password must contain at least one number.')
+            if not re.search(r'[!@#$%^&*(),.?":{}|<>]', password):
+                raise ValidationError('Password must contain at least one special character.')
+
+    def validate_confirm_password(self, field):
+        """Validate password confirmation matches"""
+        if self.password.data != field.data:
+            raise ValidationError('Passwords do not match.')
+
+    def validate_username(self, field):
+        """Check if username already exists"""
+        from models import User
+        if User.query.filter_by(username=field.data).first():
+            raise ValidationError('Username already exists. Please choose a different one.')
+
+    def validate_email(self, field):
+        """Check if email already exists"""
+        from models import User
+        if User.query.filter_by(email=field.data).first():
+            raise ValidationError('Email already exists. Please use a different email address.')
+
+class UserProfileForm(FlaskForm):
+    """User profile management form"""
+    first_name = StringField('First Name', validators=[
+        DataRequired(message='First name is required'),
+        Length(max=50, message='First name must be less than 50 characters')
+    ])
+    last_name = StringField('Last Name', validators=[
+        DataRequired(message='Last name is required'),
+        Length(max=50, message='Last name must be less than 50 characters')
+    ])
+    email = StringField('Email', validators=[
+        DataRequired(message='Email is required'),
+        Email(message='Please enter a valid email address')
+    ])
+    phone = StringField('Phone', validators=[
+        Optional(),
+        Length(max=20, message='Phone must be less than 20 characters')
+    ])
+    date_of_birth = DateField('Date of Birth', validators=[Optional()])
+    gender = SelectField('Gender', choices=[
+        ('', 'Select Gender'),
+        ('male', 'Male'),
+        ('female', 'Female'),
+        ('other', 'Other')
+    ], validators=[Optional()])
+    notes_bio = TextAreaField('Bio/Notes', validators=[
+        Optional(),
+        Length(max=500, message='Bio must be less than 500 characters')
+    ])
+    submit = SubmitField('Update Profile')
+
+    def validate_email(self, field):
+        """Check if email already exists for other users"""
+        from models import User
+        from flask_login import current_user
+        user = User.query.filter_by(email=field.data).first()
+        if user and user.id != current_user.id:
+            raise ValidationError('Email already exists. Please use a different email address.')
+
+class ChangePasswordForm(FlaskForm):
+    """Change password form"""
+    current_password = PasswordField('Current Password', validators=[
+        DataRequired(message='Current password is required')
+    ])
+    new_password = PasswordField('New Password', validators=[
+        DataRequired(message='New password is required'),
+        Length(min=8, message='Password must be at least 8 characters long')
+    ])
+    confirm_password = PasswordField('Confirm New Password', validators=[
+        DataRequired(message='Please confirm your new password')
+    ])
+    submit = SubmitField('Change Password')
+
+    def validate_current_password(self, field):
+        """Validate current password is correct"""
+        from flask_login import current_user
+        if not current_user.check_password(field.data):
+            raise ValidationError('Current password is incorrect.')
+
+    def validate_new_password(self, field):
+        """Custom password strength validation"""
+        password = field.data
+        if password:
+            import re
+            if not re.search(r'[A-Z]', password):
+                raise ValidationError('Password must contain at least one uppercase letter.')
+            if not re.search(r'[a-z]', password):
+                raise ValidationError('Password must contain at least one lowercase letter.')
+            if not re.search(r'[0-9]', password):
+                raise ValidationError('Password must contain at least one number.')
+            if not re.search(r'[!@#$%^&*(),.?":{}|<>]', password):
+                raise ValidationError('Password must contain at least one special character.')
+
+    def validate_confirm_password(self, field):
+        """Validate password confirmation matches"""
+        if self.new_password.data != field.data:
+            raise ValidationError('Passwords do not match.')
+
+class AdminUserForm(FlaskForm):
+    """Admin form for managing users"""
+    username = StringField('Username', validators=[
+        DataRequired(message='Username is required'),
+        Length(min=3, max=20, message='Username must be between 3-20 characters')
+    ])
+    email = StringField('Email', validators=[
+        DataRequired(message='Email is required'),
+        Email(message='Please enter a valid email address')
+    ])
+    first_name = StringField('First Name', validators=[
+        DataRequired(message='First name is required'),
+        Length(max=50, message='First name must be less than 50 characters')
+    ])
+    last_name = StringField('Last Name', validators=[
+        DataRequired(message='Last name is required'),
+        Length(max=50, message='Last name must be less than 50 characters')
+    ])
+    phone = StringField('Phone', validators=[
+        Optional(),
+        Length(max=20, message='Phone must be less than 20 characters')
+    ])
+    role_id = SelectField('Role', coerce=int, validators=[Optional()])
+    department_id = SelectField('Department', coerce=int, validators=[Optional()])
+    designation = StringField('Designation', validators=[
+        Optional(),
+        Length(max=100, message='Designation must be less than 100 characters')
+    ])
+    is_active = BooleanField('Active', default=True)
+    password = PasswordField('Password (leave blank to keep current)', validators=[
+        Optional(),
+        Length(min=8, message='Password must be at least 8 characters long')
+    ])
+    confirm_password = PasswordField('Confirm Password', validators=[
+        Optional(),
+        EqualTo('password', message='Passwords must match')
+    ])
+    submit = SubmitField('Save User')
 
 class AdvancedUserForm(FlaskForm):
     """Advanced user form with additional fields"""
@@ -259,13 +494,30 @@ class PaymentForm(FlaskForm):
 class RoleForm(FlaskForm):
     """Role form"""
     name = StringField('Role Name', validators=[DataRequired(), Length(max=50)])
+    display_name = StringField('Display Name', validators=[Optional(), Length(max=100)])
     description = TextAreaField('Description', validators=[Optional()])
+    is_active = BooleanField('Active', default=True)
     submit = SubmitField('Save Role')
+
+    def validate_name(self, field):
+        """Custom validation for role name"""
+        if field.data:
+            # Convert to lowercase for consistency
+            field.data = field.data.lower().strip()
+            # Check for valid characters
+            import re
+            if not re.match(r'^[a-z_]+$', field.data):
+                raise ValidationError('Role name can only contain lowercase letters and underscores.')
+            # Reserved role names
+            reserved_names = ['admin', 'superuser', 'root', 'system']
+            if field.data in reserved_names and not hasattr(self, '_editing_admin'):
+                raise ValidationError('This role name is reserved.')
 
 class PermissionForm(FlaskForm):
     """Permission form"""
     name = StringField('Permission Name', validators=[DataRequired(), Length(max=50)])
     description = TextAreaField('Description', validators=[Optional()])
+    is_active = BooleanField('Active', default=True)
     submit = SubmitField('Save Permission')
 
 class CategoryForm(FlaskForm):
