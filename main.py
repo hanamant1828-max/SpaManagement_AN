@@ -8,12 +8,8 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Use PostgreSQL database from environment
-if os.environ.get("DATABASE_URL"):
-    logger.info("✅ DATABASE_URL available for PostgreSQL")
-else:
-    logger.error("❌ DATABASE_URL not found - PostgreSQL connection required")
-    sys.exit(1)
+# Using SQLite database (no external database required)
+logger.info("✅ Using SQLite database for local storage")
 
 # Set PORT from environment if available (for Replit deployment)
 port = int(os.environ.get("PORT", 5000))

@@ -5,11 +5,11 @@ A comprehensive Flask-based spa management system featuring appointment booking,
 
 ## Recent Changes
 - **2024-09-28**: Imported from GitHub and configured for Replit environment
-- **2024-09-28**: Migrated from SQLite to PostgreSQL database
+- **2024-09-28**: Configured to use SQLite database for local storage
 - **2024-09-28**: Updated Flask configuration for Replit proxy compatibility
 
 ## User Preferences
-- Using Flask with PostgreSQL backend
+- Using Flask with SQLite backend for local development
 - Modular architecture with separate modules for different features
 - Development environment setup with debug logging enabled
 
@@ -47,9 +47,10 @@ The application uses a modular architecture in the `modules/` directory:
 - Organized by module for maintainability
 
 ### Database Configuration
-- **Production**: PostgreSQL via DATABASE_URL environment variable
-- **Features**: Connection pooling, pre-ping, and proper error handling
+- **Database**: SQLite with local file storage in `hanamantdatabase/` directory
+- **Features**: WAL mode, foreign key constraints, thread-safe configuration
 - **Models**: SQLAlchemy with declarative base
+- **Location**: Automatically creates database files based on instance identifier
 
 ### Key Features
 1. **Appointment Booking**: Comprehensive booking system with conflict detection
@@ -63,8 +64,8 @@ The application uses a modular architecture in the `modules/` directory:
 
 ### Environment Variables Required
 - `SESSION_SECRET` - Flask session security key
-- `DATABASE_URL` - PostgreSQL connection string
 - `PORT` - Server port (defaults to 5000)
+- `SPA_DB_INSTANCE` - Optional database instance identifier (uses REPL_SLUG or 'default')
 
 ### Development Setup
 - Debug mode enabled for development
@@ -79,7 +80,7 @@ The application uses a modular architecture in the `modules/` directory:
 - Various utilities (pandas, openpyxl, requests, etc.)
 
 ## Architecture Decisions
-- **Date**: 2024-09-28 - Chose PostgreSQL over SQLite for better concurrency and production readiness
+- **Date**: 2024-09-28 - Using SQLite for local development and easy deployment in Replit environment
 - **Date**: 2024-09-28 - Maintained existing modular architecture to preserve functionality
 - **Date**: 2024-09-28 - Configured for Replit's proxy system with appropriate headers and CORS
 
