@@ -367,7 +367,7 @@ def unaki_schedule():
         # Get Unaki bookings for the target date
         unaki_bookings = UnakiBooking.query.filter_by(appointment_date=target_date).all()
 
-        # Format staff data with shift logs integration
+        # Enhanced shift logs integration for staff data
         staff_data = []
         for staff in staff_members:
             # Get shift management for this staff member
@@ -385,22 +385,63 @@ def unaki_schedule():
                     ShiftLogs.individual_date == target_date
                 ).first()
 
-            # Determine staff availability based on shift logs
-            if shift_log and shift_log.status in ['scheduled', 'completed']:
+            # Enhanced staff availability logic based on shift logs
+            if shift_log:
                 shift_start = shift_log.shift_start_time.strftime('%H:%M') if shift_log.shift_start_time else '09:00'
                 shift_end = shift_log.shift_end_time.strftime('%H:%M') if shift_log.shift_end_time else '17:00'
-                is_working = True
                 break_start = shift_log.break_start_time.strftime('%H:%M') if shift_log.break_start_time else None
                 break_end = shift_log.break_end_time.strftime('%H:%M') if shift_log.break_end_time else None
                 shift_status = shift_log.status
+                
+                # Determine working status based on shift log status
+                is_working = shift_status in ['scheduled', 'completed']
+                availability_status = {
+                    'scheduled': 'Working',
+                    'completed': 'Completed Shift',
+                    'absent': 'Absent',
+                    'holiday': 'Holiday'
+                }.get(shift_status, 'Unknown')
+                
+                # Calculate break duration if break times exist
+                break_duration = None
+                break_display = 'No Break'
+                if break_start and break_end:
+                    break_display = shift_log.get_break_time_display()
+                    # Calculate minutes for duration
+                    break_start_mins = int(break_start.split(':')[0]) * 60 + int(break_start.split(':')[1])
+                    break_end_mins = int(break_end.split(':')[0]) * 60 + int(break_end.split(':')[1])
+                    break_duration = break_end_mins - break_start_mins
+                
+                # Shift display with duration
+                shift_start_mins = int(shift_start.split(':')[0]) * 60 + int(shift_start.split(':')[1])
+                shift_end_mins = int(shift_end.split(':')[0]) * 60 + int(shift_end.split(':')[1])
+                total_shift_mins = shift_end_mins - shift_start_mins
+                shift_hours = total_shift_mins // 60
+                shift_mins = total_shift_mins % 60
+                shift_display = f"{shift_start} - {shift_end} ({shift_hours}h {shift_mins}m)"
+                
             else:
-                # No shift scheduled or not a working day
-                shift_start = '09:00'
-                shift_end = '17:00'
-                is_working = False
+                # No shift log found - use defaults or shift management
+                if shift_management:
+                    # Use shift management default times if no specific log
+                    shift_start = '09:00'
+                    shift_end = '17:00'
+                    is_working = True
+                    availability_status = 'Scheduled (Default)'
+                    shift_status = 'no_log'
+                else:
+                    # No shift management at all
+                    shift_start = '09:00'
+                    shift_end = '17:00'
+                    is_working = False
+                    availability_status = 'Not Scheduled'
+                    shift_status = 'not_scheduled'
+                
                 break_start = None
                 break_end = None
-                shift_status = 'not_scheduled'
+                break_duration = None
+                break_display = 'No Break'
+                shift_display = f"{shift_start} - {shift_end} (Default)"
 
             staff_info = {
                 'id': staff.id,
@@ -410,9 +451,16 @@ def unaki_schedule():
                 'shift_end': shift_end,
                 'break_start': break_start,
                 'break_end': break_end,
+                'break_duration': break_duration,
+                'break_display': break_display,
                 'is_working': is_working,
                 'shift_status': shift_status,
-                'has_shift_log': shift_log is not None
+                'availability_status': availability_status,
+                'shift_display': shift_display,
+                'has_shift_log': shift_log is not None,
+                'has_shift_management': shift_management is not None,
+                'shift_management_id': shift_management.id if shift_management else None,
+                'shift_log_id': shift_log.id if shift_log else None
             }
             staff_data.append(staff_info)
 
@@ -1423,6 +1471,79 @@ def unaki_update_booking(booking_id):
         print(f"Error in unaki_update_booking: {e}")
         import traceback
         traceback.print_exc()
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@app.route('/api/unaki/staff/<int:staff_id>/shift-logs/<date_str>')
+def unaki_get_staff_shift_logs(staff_id, date_str):
+    """Get detailed shift logs for specific staff and date"""
+    try:
+        from datetime import datetime
+        
+        # Parse date
+        target_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+        
+        # Get staff member
+        staff = User.query.get(staff_id)
+        if not staff:
+            return jsonify({
+                'success': False,
+                'error': 'Staff member not found'
+            }), 404
+        
+        # Get shift management
+        shift_management = ShiftManagement.query.filter(
+            ShiftManagement.staff_id == staff_id,
+            ShiftManagement.from_date <= target_date,
+            ShiftManagement.to_date >= target_date
+        ).first()
+        
+        # Get shift log
+        shift_log = None
+        if shift_management:
+            shift_log = ShiftLogs.query.filter(
+                ShiftLogs.shift_management_id == shift_management.id,
+                ShiftLogs.individual_date == target_date
+            ).first()
+        
+        # Prepare response
+        response_data = {
+            'success': True,
+            'staff_id': staff_id,
+            'staff_name': staff.full_name or f"{staff.first_name} {staff.last_name}",
+            'date': date_str,
+            'has_shift_management': shift_management is not None,
+            'has_shift_log': shift_log is not None
+        }
+        
+        if shift_management:
+            response_data['shift_management'] = {
+                'id': shift_management.id,
+                'from_date': shift_management.from_date.strftime('%Y-%m-%d'),
+                'to_date': shift_management.to_date.strftime('%Y-%m-%d'),
+                'created_at': shift_management.created_at.isoformat(),
+                'updated_at': shift_management.updated_at.isoformat()
+            }
+        
+        if shift_log:
+            response_data['shift_log'] = {
+                'id': shift_log.id,
+                'individual_date': shift_log.individual_date.strftime('%Y-%m-%d'),
+                'shift_start_time': shift_log.shift_start_time.strftime('%H:%M') if shift_log.shift_start_time else None,
+                'shift_end_time': shift_log.shift_end_time.strftime('%H:%M') if shift_log.shift_end_time else None,
+                'break_start_time': shift_log.break_start_time.strftime('%H:%M') if shift_log.break_start_time else None,
+                'break_end_time': shift_log.break_end_time.strftime('%H:%M') if shift_log.break_end_time else None,
+                'break_display': shift_log.get_break_time_display(),
+                'status': shift_log.status,
+                'created_at': shift_log.created_at.isoformat()
+            }
+        
+        return jsonify(response_data)
+        
+    except Exception as e:
+        print(f"Error getting staff shift logs: {e}")
         return jsonify({
             'success': False,
             'error': str(e)

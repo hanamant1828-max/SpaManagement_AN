@@ -240,6 +240,37 @@
             background: rgba(245, 101, 101, 0.1);
         }
 
+        .staff-warning {
+            font-size: 8px;
+            color: #f59e0b;
+            margin-top: 2px;
+            padding: 1px 4px;
+            border-radius: 4px;
+            background: rgba(245, 158, 11, 0.1);
+        }
+
+        .staff-not-working {
+            opacity: 0.6;
+            background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%) !important;
+        }
+
+        .staff-not-working:hover {
+            background: linear-gradient(135deg, #e5e7eb 0%, #d1d5db 100%) !important;
+        }
+
+        .staff-completed {
+            border-left: 4px solid #10b981 !important;
+        }
+
+        .staff-absent {
+            border-left: 4px solid #f59e0b !important;
+        }
+
+        .text-success { color: #10b981 !important; }
+        .text-warning { color: #f59e0b !important; }
+        .text-info { color: #3b82f6 !important; }
+        .text-muted { color: #6b7280 !important; }
+
         .time-slot {
             min-height: 90px;
             background: white;
@@ -2016,6 +2047,51 @@
             return '';
         }
 
+        // Process staff data with shift logs integration
+        function processStaffData(staffArray) {
+            console.log('📊 Processing staff data with shift logs integration...');
+            
+            return staffArray.map(staff => {
+                // Enhanced staff processing with shift log data
+                const processedStaff = {
+                    id: staff.id,
+                    name: staff.name,
+                    specialty: staff.specialty || 'General',
+                    role: staff.role || 'Staff',
+                    
+                    // Shift information from shift logs
+                    shift_start: staff.shift_start || '09:00',
+                    shift_end: staff.shift_end || '17:00',
+                    break_start: staff.break_start,
+                    break_end: staff.break_end,
+                    break_duration: staff.break_duration,
+                    break_display: staff.break_display || 'No Break',
+                    
+                    // Working status from shift logs
+                    is_working: staff.is_working !== undefined ? staff.is_working : true,
+                    shift_status: staff.shift_status || 'not_scheduled',
+                    availability_status: staff.availability_status || 'Unknown',
+                    shift_display: staff.shift_display || `${staff.shift_start || '09:00'} - ${staff.shift_end || '17:00'}`,
+                    
+                    // Shift logs metadata
+                    has_shift_log: staff.has_shift_log || false,
+                    has_shift_management: staff.has_shift_management || false,
+                    shift_management_id: staff.shift_management_id,
+                    shift_log_id: staff.shift_log_id
+                };
+
+                // Log detailed staff information
+                console.log(`👤 ${processedStaff.name}:`);
+                console.log(`   Shift: ${processedStaff.shift_display}`);
+                console.log(`   Status: ${processedStaff.availability_status}`);
+                console.log(`   Break: ${processedStaff.break_display}`);
+                console.log(`   Working: ${processedStaff.is_working ? 'Yes' : 'No'}`);
+                console.log(`   Has Shift Log: ${processedStaff.has_shift_log ? 'Yes' : 'No'}`);
+                
+                return processedStaff;
+            });
+        }
+
         // Enhanced API functions with better error handling
         function loadServices() {
             return fetch('/api/unaki/services')
@@ -2344,16 +2420,66 @@
 
             // Create staff rows
             window.staffData.forEach(staff => {
-                // Staff name cell
+                // Staff name cell with enhanced shift logs integration
                 const staffCell = document.createElement('div');
                 staffCell.className = 'staff-cell';
+                
+                // Add CSS class based on availability status
+                if (!staff.is_working) {
+                    staffCell.classList.add('staff-not-working');
+                } else if (staff.shift_status === 'completed') {
+                    staffCell.classList.add('staff-completed');
+                } else if (staff.shift_status === 'absent') {
+                    staffCell.classList.add('staff-absent');
+                }
+                
+                // Build status indicator
+                let statusIndicator = '';
+                switch (staff.shift_status) {
+                    case 'scheduled':
+                        statusIndicator = '<i class="fas fa-clock text-success" title="Scheduled"></i>';
+                        break;
+                    case 'completed':
+                        statusIndicator = '<i class="fas fa-check-circle text-primary" title="Completed"></i>';
+                        break;
+                    case 'absent':
+                        statusIndicator = '<i class="fas fa-exclamation-triangle text-warning" title="Absent"></i>';
+                        break;
+                    case 'holiday':
+                        statusIndicator = '<i class="fas fa-calendar-times text-info" title="Holiday"></i>';
+                        break;
+                    default:
+                        statusIndicator = '<i class="fas fa-question-circle text-muted" title="Not Scheduled"></i>';
+                }
+                
                 staffCell.innerHTML = `
-                    <div class="staff-name">${staff.name}</div>
+                    <div class="staff-name">
+                        ${statusIndicator} ${staff.name}
+                    </div>
                     <div class="staff-role">${staff.specialty}</div>
-                    <div class="staff-shift">${staff.shift_display || 'Not Scheduled'}</div>
+                    <div class="staff-shift ${staff.is_working ? 'text-success' : 'text-muted'}">
+                        ${staff.shift_display || 'Not Scheduled'}
+                    </div>
                     ${staff.break_display && staff.break_display !== 'No Break' ? 
-                        `<div class="staff-break">Break: ${staff.break_display}</div>` : ''}
+                        `<div class="staff-break">
+                            <i class="fas fa-coffee me-1"></i>Break: ${staff.break_display}
+                        </div>` : ''}
+                    ${!staff.has_shift_log ? 
+                        `<div class="staff-warning">
+                            <i class="fas fa-exclamation-circle text-warning me-1"></i>
+                            <small>No shift log</small>
+                        </div>` : ''}
                 `;
+                
+                // Add tooltip with detailed shift information
+                staffCell.title = `
+Staff: ${staff.name}
+Status: ${staff.availability_status}
+Shift: ${staff.shift_display}
+Break: ${staff.break_display}
+Shift Log: ${staff.has_shift_log ? 'Yes' : 'No'}
+                `.trim();
+                
                 grid.appendChild(staffCell);
 
                 // Time slot cells for this staff member
