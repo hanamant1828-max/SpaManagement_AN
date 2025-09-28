@@ -369,19 +369,19 @@
                                 <div class="row mb-3">
                                     <div class="col-md-3">
                                         <label for="cgst_rate" class="form-label">CGST Rate (%)</label>
-                                        <input type="number" class="form-control" id="cgst_rate" name="cgst_rate" value="9" step="0.01" min="0" max="50" onchange="updateTaxCalculations()">
+                                        <input type="number" class="form-control tax-input" id="cgst_rate" name="cgst_rate" value="9" step="0.01" min="0" max="50">
                                     </div>
                                     <div class="col-md-3">
                                         <label for="sgst_rate" class="form-label">SGST Rate (%)</label>
-                                        <input type="number" class="form-control" id="sgst_rate" name="sgst_rate" value="9" step="0.01" min="0" max="50" onchange="updateTaxCalculations()">
+                                        <input type="number" class="form-control tax-input" id="sgst_rate" name="sgst_rate" value="9" step="0.01" min="0" max="50">
                                     </div>
                                     <div class="col-md-3">
                                         <label for="igst_rate" class="form-label">IGST Rate (%) <small class="text-muted">Interstate</small></label>
-                                        <input type="number" class="form-control" id="igst_rate" name="igst_rate" value="0" step="0.01" min="0" max="50" onchange="updateTaxCalculations()">
+                                        <input type="number" class="form-control tax-input" id="igst_rate" name="igst_rate" value="0" step="0.01" min="0" max="50">
                                     </div>
                                     <div class="col-md-3">
                                         <div class="form-check mt-4">
-                                            <input class="form-check-input" type="checkbox" id="is_interstate" name="is_interstate" onchange="toggleTaxType()">
+                                            <input class="form-check-input" type="checkbox" id="is_interstate" name="is_interstate">
                                             <label class="form-label" for="is_interstate">
                                                 Interstate Transaction
                                             </label>
@@ -393,66 +393,88 @@
                                 <div class="row mb-3">
                                     <div class="col-md-3">
                                         <label for="discount_type" class="form-label">Discount Type</label>
-                                        <select class="form-select" id="discount_type" name="discount_type" onchange="updateTaxCalculations()">
+                                        <select class="form-select billing-input" id="discount_type" name="discount_type">
                                             <option value="amount">Amount (₹)</option>
                                             <option value="percentage">Percentage (%)</option>
                                         </select>
                                     </div>
                                     <div class="col-md-3">
                                         <label for="discount_value" class="form-label">Discount Value</label>
-                                        <input type="number" class="form-control" id="discount_value" name="discount_value" value="0" step="0.01" min="0" onchange="updateTaxCalculations()">
+                                        <input type="number" class="form-control billing-input" id="discount_value" name="discount_value" value="0" step="0.01" min="0">
                                     </div>
                                     <div class="col-md-3">
                                         <label for="additional_charges" class="form-label">Additional Charges (₹)</label>
-                                        <input type="number" class="form-control" id="additional_charges" name="additional_charges" value="0" step="0.01" min="0" onchange="updateTaxCalculations()">
+                                        <input type="number" class="form-control billing-input" id="additional_charges" name="additional_charges" value="0" step="0.01" min="0">
                                     </div>
                                     <div class="col-md-3">
                                         <label for="tips_amount" class="form-label">Tips (₹)</label>
-                                        <input type="number" class="form-control" id="tips_amount" name="tips_amount" value="0" step="0.01" min="0" onchange="updateTaxCalculations()">
+                                        <input type="number" class="form-control billing-input" id="tips_amount" name="tips_amount" value="0" step="0.01" min="0">
                                     </div>
                                 </div>
 
                                 <!-- Live Tax Calculation Display -->
                                 <div class="row">
                                     <div class="col-12">
-                                        <div class="card bg-light">
+                                        <div class="card bg-light border-2 border-primary">
+                                            <div class="card-header bg-primary text-white text-center">
+                                                <h6 class="mb-0"><i class="fas fa-rupee-sign me-2"></i>Live Billing Calculation</h6>
+                                            </div>
                                             <div class="card-body">
                                                 <div class="row text-center">
                                                     <div class="col-md-2">
-                                                        <div class="border-end">
-                                                            <h6 class="text-muted mb-1">Subtotal</h6>
-                                                            <h5 class="mb-0" id="display_subtotal">₹0.00</h5>
+                                                        <div class="border-end pe-3">
+                                                            <h6 class="text-muted mb-1 fw-bold">Subtotal</h6>
+                                                            <h4 class="mb-0 text-primary fw-bold" id="display_subtotal">₹0.00</h4>
                                                         </div>
                                                     </div>
                                                     <div class="col-md-2">
-                                                        <div class="border-end">
-                                                            <h6 class="text-muted mb-1">Discount</h6>
-                                                            <h5 class="mb-0 text-danger" id="display_discount">₹0.00</h5>
+                                                        <div class="border-end pe-3">
+                                                            <h6 class="text-muted mb-1 fw-bold">Discount</h6>
+                                                            <h4 class="mb-0 text-danger fw-bold" id="display_discount">₹0.00</h4>
                                                         </div>
                                                     </div>
                                                     <div class="col-md-2">
-                                                        <div class="border-end">
-                                                            <h6 class="text-muted mb-1">CGST</h6>
-                                                            <h5 class="mb-0 text-info" id="display_cgst">₹0.00</h5>
+                                                        <div class="border-end pe-3">
+                                                            <h6 class="text-muted mb-1 fw-bold">CGST</h6>
+                                                            <h4 class="mb-0 text-info fw-bold" id="display_cgst">₹0.00</h4>
                                                         </div>
                                                     </div>
                                                     <div class="col-md-2">
-                                                        <div class="border-end">
-                                                            <h6 class="text-muted mb-1">SGST</h6>
-                                                            <h5 class="mb-0 text-info" id="display_sgst">₹0.00</h5>
+                                                        <div class="border-end pe-3">
+                                                            <h6 class="text-muted mb-1 fw-bold">SGST</h6>
+                                                            <h4 class="mb-0 text-info fw-bold" id="display_sgst">₹0.00</h4>
                                                         </div>
                                                     </div>
                                                     <div class="col-md-2">
-                                                        <div class="border-end">
-                                                            <h6 class="text-muted mb-1">Additional</h6>
-                                                            <h5 class="mb-0 text-warning" id="display_additional">₹0.00</h5>
+                                                        <div class="border-end pe-3">
+                                                            <h6 class="text-muted mb-1 fw-bold">Additional</h6>
+                                                            <h4 class="mb-0 text-warning fw-bold" id="display_additional">₹0.00</h4>
                                                         </div>
                                                     </div>
                                                     <div class="col-md-2">
-                                                        <div>
-                                                            <h6 class="text-muted mb-1">Total</h6>
-                                                            <h4 class="mb-0 text-success" id="display_total">₹0.00</h4>
+                                                        <div class="ps-3">
+                                                            <h6 class="text-muted mb-1 fw-bold">FINAL TOTAL</h6>
+                                                            <h3 class="mb-0 text-success fw-bold bg-light p-2 rounded border" id="display_total">₹0.00</h3>
                                                         </div>
+                                                    </div>
+                                                </div>
+                                                
+                                                <!-- Tax Summary Row -->
+                                                <div class="row mt-3 pt-3 border-top">
+                                                    <div class="col-md-4">
+                                                        <small class="text-muted">
+                                                            <strong>Tax Type:</strong> <span id="tax_type_display">Intrastate (CGST + SGST)</span>
+                                                        </small>
+                                                    </div>
+                                                    <div class="col-md-4">
+                                                        <small class="text-muted">
+                                                            <strong>Total Tax:</strong> <span id="total_tax_display" class="text-info fw-bold">₹0.00</span>
+                                                        </small>
+                                                    </div>
+                                                    <div class="col-md-4">
+                                                        <small class="text-muted">
+                                                            <strong>Tax %:</strong> <span id="tax_percentage_display" class="text-info fw-bold">18.00%</span>
+                                                        </small>
                                                     </div>
                                                 </div>
                                             </div>
@@ -1380,85 +1402,135 @@ function addServiceRowWithData(serviceData) {
 
 // Professional Tax Calculation Functions
 function updateTaxCalculations() {
-    let servicesSubtotal = 0;
-    let inventorySubtotal = 0;
+    try {
+        let servicesSubtotal = 0;
+        let inventorySubtotal = 0;
 
-    // Calculate services subtotal - include ALL service rows (manually added and auto-populated)
-    const serviceRows = document.querySelectorAll('.service-row');
-    serviceRows.forEach(row => {
-        const serviceSelect = row.querySelector('select[name="service_ids[]"]');
-        const quantityInput = row.querySelector('input[name="service_quantities[]"]');
+        // Calculate services subtotal - include ALL service rows (manually added and auto-populated)
+        const serviceRows = document.querySelectorAll('.service-row');
+        serviceRows.forEach(row => {
+            const serviceSelect = row.querySelector('select[name="service_ids[]"]');
+            const quantityInput = row.querySelector('input[name="service_quantities[]"]');
 
-        if (serviceSelect && serviceSelect.value && quantityInput) {
-            const selectedOption = serviceSelect.options[serviceSelect.selectedIndex];
-            if (selectedOption && selectedOption.dataset.price) {
-                const price = parseFloat(selectedOption.dataset.price);
-                const quantity = parseFloat(quantityInput.value) || 1;
-                servicesSubtotal += price * quantity;
-                console.log(`Service calculation: ${selectedOption.text} - Price: ${price}, Qty: ${quantity}, Subtotal: ${price * quantity}`);
+            if (serviceSelect && serviceSelect.value && quantityInput) {
+                const selectedOption = serviceSelect.options[serviceSelect.selectedIndex];
+                if (selectedOption && selectedOption.dataset.price) {
+                    const price = parseFloat(selectedOption.dataset.price) || 0;
+                    const quantity = parseFloat(quantityInput.value) || 1;
+                    servicesSubtotal += price * quantity;
+                    console.log(`Service calculation: ${selectedOption.text} - Price: ${price}, Qty: ${quantity}, Subtotal: ${price * quantity}`);
+                }
             }
+        });
+
+        // Calculate inventory subtotal
+        const productRows = document.querySelectorAll('.product-row');
+        productRows.forEach(row => {
+            const quantityInput = row.querySelector('input[name="product_quantities[]"]');
+            const priceInput = row.querySelector('input[name="product_prices[]"]');
+
+            if (quantityInput && priceInput) {
+                const quantity = parseFloat(quantityInput.value) || 0;
+                const price = parseFloat(priceInput.value) || 0;
+                inventorySubtotal += quantity * price;
+            }
+        });
+
+        const grossSubtotal = servicesSubtotal + inventorySubtotal;
+        console.log(`Tax calculation update: Services: ₹${servicesSubtotal}, Inventory: ₹${inventorySubtotal}, Total: ₹${grossSubtotal}`);
+
+        // Get discount
+        const discountType = document.getElementById('discount_type').value;
+        const discountValue = parseFloat(document.getElementById('discount_value').value) || 0;
+        let discountAmount = 0;
+
+        if (discountType === 'percentage') {
+            discountAmount = (grossSubtotal * discountValue) / 100;
+        } else {
+            // Amount discount
+            discountAmount = discountValue;
         }
-    });
+        // Ensure discount amount doesn't exceed gross subtotal
+        discountAmount = Math.min(discountAmount, grossSubtotal);
 
-    // Calculate inventory subtotal
-    const productRows = document.querySelectorAll('.product-row');
-    productRows.forEach(row => {
-        const quantityInput = row.querySelector('input[name="product_quantities[]"]');
-        const priceInput = row.querySelector('input[name="product_prices[]"]');
+        const taxableAmount = Math.max(0, grossSubtotal - discountAmount);
 
-        if (quantityInput && priceInput) {
-            const quantity = parseFloat(quantityInput.value) || 0;
-            const price = parseFloat(priceInput.value) || 0;
-            inventorySubtotal += quantity * price;
+        // Calculate taxes
+        const isInterstate = document.getElementById('is_interstate').checked;
+        let cgstAmount = 0, sgstAmount = 0, igstAmount = 0;
+
+        if (isInterstate) {
+            const igstRate = parseFloat(document.getElementById('igst_rate').value) || 0;
+            igstAmount = (taxableAmount * igstRate) / 100;
+        } else {
+            const cgstRate = parseFloat(document.getElementById('cgst_rate').value) || 0;
+            const sgstRate = parseFloat(document.getElementById('sgst_rate').value) || 0;
+            cgstAmount = (taxableAmount * cgstRate) / 100;
+            sgstAmount = (taxableAmount * sgstRate) / 100;
         }
-    });
 
-    const grossSubtotal = servicesSubtotal + inventorySubtotal;
-    console.log(`Tax calculation update: Services: ₹${servicesSubtotal}, Inventory: ₹${inventorySubtotal}, Total: ₹${grossSubtotal}`);
+        const additionalCharges = parseFloat(document.getElementById('additional_charges').value) || 0;
+        const tipsAmount = parseFloat(document.getElementById('tips_amount').value) || 0;
 
-    // Get discount
-    const discountType = document.getElementById('discount_type').value;
-    const discountValue = parseFloat(document.getElementById('discount_value').value) || 0;
-    let discountAmount = 0;
+        const totalTaxAmount = cgstAmount + sgstAmount + igstAmount;
+        const totalAmount = taxableAmount + totalTaxAmount + additionalCharges + tipsAmount;
 
-    if (discountType === 'percentage') {
-        discountAmount = (grossSubtotal * discountValue) / 100;
-    } else {
-        // Amount discount
-        discountAmount = discountValue;
+        // Update display with proper formatting
+        document.getElementById('display_subtotal').textContent = formatCurrency(grossSubtotal);
+        document.getElementById('display_discount').textContent = formatCurrency(discountAmount);
+        document.getElementById('display_cgst').textContent = formatCurrency(cgstAmount + igstAmount);
+        document.getElementById('display_sgst').textContent = formatCurrency(sgstAmount);
+        document.getElementById('display_additional').textContent = formatCurrency(additionalCharges + tipsAmount);
+        document.getElementById('display_total').textContent = formatCurrency(totalAmount);
+
+        // Update tax summary information
+        updateTaxSummaryDisplay(isInterstate, totalTaxAmount, taxableAmount);
+
+        console.log(`Final calculation: Subtotal: ₹${grossSubtotal}, Tax: ₹${totalTaxAmount}, Total: ₹${totalAmount}`);
+
+    } catch (error) {
+        console.error('Error in updateTaxCalculations:', error);
+        // Set default values on error
+        document.getElementById('display_subtotal').textContent = '₹0.00';
+        document.getElementById('display_discount').textContent = '₹0.00';
+        document.getElementById('display_cgst').textContent = '₹0.00';
+        document.getElementById('display_sgst').textContent = '₹0.00';
+        document.getElementById('display_additional').textContent = '₹0.00';
+        document.getElementById('display_total').textContent = '₹0.00';
     }
-    // Ensure discount amount doesn't exceed gross subtotal
-    discountAmount = Math.min(discountAmount, grossSubtotal);
+}
 
+// Helper function to format currency
+function formatCurrency(amount) {
+    return `₹${(amount || 0).toFixed(2)}`;
+}
 
-    const taxableAmount = grossSubtotal - discountAmount;
+// Update tax summary display
+function updateTaxSummaryDisplay(isInterstate, totalTaxAmount, taxableAmount) {
+    try {
+        const taxTypeDisplay = document.getElementById('tax_type_display');
+        const totalTaxDisplay = document.getElementById('total_tax_display');
+        const taxPercentageDisplay = document.getElementById('tax_percentage_display');
 
-    // Calculate taxes
-    const isInterstate = document.getElementById('is_interstate').checked;
-    let cgstAmount = 0, sgstAmount = 0, igstAmount = 0;
+        if (taxTypeDisplay) {
+            taxTypeDisplay.textContent = isInterstate ? 'Interstate (IGST)' : 'Intrastate (CGST + SGST)';
+        }
 
-    if (isInterstate) {
-        const igstRate = parseFloat(document.getElementById('igst_rate').value) || 0;
-        igstAmount = (taxableAmount * igstRate) / 100;
-    } else {
-        const cgstRate = parseFloat(document.getElementById('cgst_rate').value) || 0;
-        const sgstRate = parseFloat(document.getElementById('sgst_rate').value) || 0;
-        cgstAmount = (taxableAmount * cgstRate) / 100;
-        sgstAmount = (taxableAmount * sgstRate) / 100;
+        if (totalTaxDisplay) {
+            totalTaxDisplay.textContent = formatCurrency(totalTaxAmount);
+        }
+
+        if (taxPercentageDisplay) {
+            const cgstRate = parseFloat(document.getElementById('cgst_rate').value) || 0;
+            const sgstRate = parseFloat(document.getElementById('sgst_rate').value) || 0;
+            const igstRate = parseFloat(document.getElementById('igst_rate').value) || 0;
+            
+            const totalTaxRate = isInterstate ? igstRate : (cgstRate + sgstRate);
+            taxPercentageDisplay.textContent = `${totalTaxRate.toFixed(2)}%`;
+        }
+    } catch (error) {
+        console.error('Error updating tax summary display:', error);
     }
-
-    const additionalCharges = parseFloat(document.getElementById('additional_charges').value) || 0;
-    const tipsAmount = parseFloat(document.getElementById('tips_amount').value) || 0;
-
-    const totalAmount = taxableAmount + cgstAmount + sgstAmount + igstAmount + additionalCharges + tipsAmount;
-
-    // Update display
-    document.getElementById('display_subtotal').textContent = `₹${grossSubtotal.toFixed(2)}`;
-    document.getElementById('display_discount').textContent = `₹${discountAmount.toFixed(2)}`;
-    document.getElementById('display_cgst').textContent = `₹${(cgstAmount + igstAmount).toFixed(2)}`;
-    document.getElementById('display_sgst').textContent = `₹${sgstAmount.toFixed(2)}`;
-    document.getElementById('display_additional').textContent = `₹${(additionalCharges + tipsAmount).toFixed(2)}`;
-    document.getElementById('display_total').textContent = `₹${totalAmount.toFixed(2)}`;
 }
 
 function calculateServicesSubtotal() {
@@ -1684,28 +1756,44 @@ function calculateInventorySubtotal() {
 }
 
 function toggleTaxType() {
-    const isInterstate = document.getElementById('is_interstate').checked;
-    const cgstInput = document.getElementById('cgst_rate');
-    const sgstInput = document.getElementById('sgst_rate');
-    const igstInput = document.getElementById('igst_rate');
+    try {
+        const isInterstate = document.getElementById('is_interstate').checked;
+        const cgstInput = document.getElementById('cgst_rate');
+        const sgstInput = document.getElementById('sgst_rate');
+        const igstInput = document.getElementById('igst_rate');
 
-    if (isInterstate) {
-        cgstInput.value = 0;
-        sgstInput.value = 0;
-        cgstInput.disabled = true;
-        sgstInput.disabled = true;
-        igstInput.disabled = false;
-        if (igstInput.value === '0') igstInput.value = '18'; // Default IGST to 18% if not set
-    } else {
-        igstInput.value = 0;
-        igstInput.disabled = true;
-        cgstInput.disabled = false;
-        sgstInput.disabled = false;
-        if (cgstInput.value === '0') cgstInput.value = '9'; // Default CGST to 9% if not set
-        if (sgstInput.value === '0') sgstInput.value = '9'; // Default SGST to 9% if not set
+        if (isInterstate) {
+            // Interstate transaction - use IGST only
+            cgstInput.value = 0;
+            sgstInput.value = 0;
+            cgstInput.disabled = true;
+            sgstInput.disabled = true;
+            igstInput.disabled = false;
+            if (parseFloat(igstInput.value) === 0) igstInput.value = '18'; // Default IGST to 18%
+            
+            // Visual feedback
+            cgstInput.classList.add('text-muted');
+            sgstInput.classList.add('text-muted');
+            igstInput.classList.remove('text-muted');
+        } else {
+            // Intrastate transaction - use CGST + SGST
+            igstInput.value = 0;
+            igstInput.disabled = true;
+            cgstInput.disabled = false;
+            sgstInput.disabled = false;
+            if (parseFloat(cgstInput.value) === 0) cgstInput.value = '9'; // Default CGST to 9%
+            if (parseFloat(sgstInput.value) === 0) sgstInput.value = '9'; // Default SGST to 9%
+            
+            // Visual feedback
+            igstInput.classList.add('text-muted');
+            cgstInput.classList.remove('text-muted');
+            sgstInput.classList.remove('text-muted');
+        }
+
+        updateTaxCalculations();
+    } catch (error) {
+        console.error('Error in toggleTaxType:', error);
     }
-
-    updateTaxCalculations();
 }
 
 // Payment Method Management
@@ -1988,15 +2076,17 @@ document.getElementById('payment_method').addEventListener('change', function() 
     }
 });
 
-// Auto-update calculations when any input changes
+// Auto-update calculations when any input changes (integrated with new system)
 document.addEventListener('input', function(e) {
-    if (e.target.matches('input[name="service_quantities[]"], .quantity-input, .unit-price, #discount_value, #additional_charges, #tips_amount')) {
-        updateTaxCalculations();
+    if (e.target.matches('input[name="service_quantities[]"], .quantity-input, .unit-price, .tax-input, .billing-input')) {
+        // Debounce rapid input changes
+        clearTimeout(window.taxCalculationTimeout);
+        window.taxCalculationTimeout = setTimeout(updateTaxCalculations, 200);
     }
 });
 
 document.addEventListener('change', function(e) {
-    if (e.target.matches('select[name="service_ids[]"], #discount_type, #cgst_rate, #sgst_rate, #igst_rate')) {
+    if (e.target.matches('select[name="service_ids[]"], .billing-input, .tax-input, #is_interstate')) {
         updateTaxCalculations();
     }
 });
@@ -2266,12 +2356,63 @@ document.getElementById('billingForm').addEventListener('submit', function(e) {
             autoFillCurrentServices();
             {% endif %}
 
-            updateTaxCalculations(); // Initial calculation update based on default values
-            toggleTaxType(); // Apply initial tax type settings
+            // Initialize tax calculations
+            setTimeout(() => {
+                updateTaxCalculations(); // Initial calculation update based on default values
+                toggleTaxType(); // Apply initial tax type settings
+            }, 500);
 
             // Add event listeners for real-time package benefit calculation
             setupServiceChangeListeners();
+            setupTaxCalculationListeners();
         });
+
+        // Setup comprehensive event listeners for tax calculations
+        function setupTaxCalculationListeners() {
+            console.log('Setting up tax calculation listeners...');
+
+            // Tax rate inputs
+            const taxInputs = document.querySelectorAll('.tax-input');
+            taxInputs.forEach(input => {
+                input.addEventListener('input', updateTaxCalculations);
+                input.addEventListener('change', updateTaxCalculations);
+            });
+
+            // Billing inputs (discount, additional charges, tips)
+            const billingInputs = document.querySelectorAll('.billing-input');
+            billingInputs.forEach(input => {
+                input.addEventListener('input', updateTaxCalculations);
+                input.addEventListener('change', updateTaxCalculations);
+            });
+
+            // Interstate checkbox
+            const interstateCheckbox = document.getElementById('is_interstate');
+            if (interstateCheckbox) {
+                interstateCheckbox.addEventListener('change', function() {
+                    toggleTaxType();
+                    updateTaxCalculations();
+                });
+            }
+
+            // Service and product quantity/price changes
+            document.addEventListener('input', function(event) {
+                if (event.target.matches('input[name="service_quantities[]"]') ||
+                    event.target.matches('input[name="product_quantities[]"]') ||
+                    event.target.matches('input[name="product_prices[]"]')) {
+                    updateTaxCalculations();
+                }
+            });
+
+            // Service selection changes
+            document.addEventListener('change', function(event) {
+                if (event.target.matches('select[name="service_ids[]"]')) {
+                    handleServiceSelection(event.target);
+                    updateTaxCalculations();
+                }
+            });
+
+            console.log('Tax calculation listeners set up successfully');
+        }
 
         // Setup event listeners for service selection changes
         function setupServiceChangeListeners() {
