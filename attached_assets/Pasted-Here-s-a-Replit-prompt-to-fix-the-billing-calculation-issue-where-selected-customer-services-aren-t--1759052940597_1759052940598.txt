@@ -1,0 +1,135 @@
+Here's a Replit prompt to fix the billing calculation issue where selected customer services aren't adding to the final total:
+
+**Fix Billing Total Calculation - Replit Debug Prompt:**
+
+**Problem Analysis:**
+The issue is in the `updateTaxCalculations()` function. Services are being selected and showing individual amounts, but the subtotal calculation isn't properly aggregating them into the final total.
+
+**1. Debug the Service Selection Logic**
+Add logging to track service selection:
+```javascript
+function updateTaxCalculations() {
+    console.log('=== BILLING CALCULATION DEBUG ===');
+    let servicesSubtotal = 0;
+    
+    const serviceRows = document.querySelectorAll('.service-row');
+    console.log(`Found ${serviceRows.length} service rows`);
+    
+    serviceRows.forEach((row, index) => {
+        const serviceSelect = row.querySelector('select[name="service_ids[]"]');
+        const quantityInput = row.querySelector('input[name="service_quantities[]"]');
+        
+        console.log(`Row ${index + 1}:`, {
+            hasService: !!serviceSelect?.value,
+            serviceName: serviceSelect?.options[serviceSelect?.selectedIndex]?.text,
+            price: serviceSelect?.options[serviceSelect?.selectedIndex]?.dataset?.price,
+            quantity: quantityInput?.value
+        });
+        
+        if (serviceSelect?.value && quantityInput?.value) {
+            const selectedOption = serviceSelect.options[serviceSelect.selectedIndex];
+            const price = parseFloat(selectedOption.dataset.price) || 0;
+            const quantity = parseFloat(quantityInput.value) || 1;
+            const lineTotal = price * quantity;
+            
+            servicesSubtotal += lineTotal;
+            console.log(`Added: ₹${price} × ${quantity} = ₹${lineTotal}`);
+        }
+    });
+    
+    console.log(`Total services subtotal: ₹${servicesSubtotal}`);
+    // Continue with rest of calculation...
+}
+```
+
+**2. Fix the addUnakiAppointmentToBill Function**
+The issue might be that when services are added from appointments, their `data-price` attribute isn't being set correctly:
+
+```javascript
+function addUnakiAppointmentToBill(appointmentId, serviceName, servicePrice, serviceDuration) {
+    // Find empty row or create new one
+    let targetRow = findEmptyServiceRow() || addServiceRowAndGetReference();
+    
+    if (targetRow) {
+        const serviceSelect = targetRow.querySelector('select[name="service_ids[]"]');
+        const quantityInput = targetRow.querySelector('input[name="service_quantities[]"]');
+        
+        // Find matching service and ensure price is set
+        let matchedServiceId = findMatchingServiceId(serviceName);
+        
+        if (matchedServiceId) {
+            serviceSelect.value = matchedServiceId;
+            quantityInput.value = '1';
+            
+            // CRITICAL: Ensure the selected option has the price data
+            const selectedOption = serviceSelect.options[serviceSelect.selectedIndex];
+            if (selectedOption && !selectedOption.dataset.price) {
+                selectedOption.dataset.price = servicePrice.toString();
+            }
+            
+            // Mark row as containing valid data
+            targetRow.classList.add('has-service-data');
+            
+            // Force recalculation
+            setTimeout(() => {
+                updateTaxCalculations();
+            }, 100);
+        }
+    }
+}
+```
+
+**3. Ensure Price Data Persistence**
+Add a function to verify all service rows have proper price data:
+```javascript
+function validateServiceRowPrices() {
+    const serviceRows = document.querySelectorAll('.service-row');
+    let hasErrors = false;
+    
+    serviceRows.forEach((row, index) => {
+        const serviceSelect = row.querySelector('select[name="service_ids[]"]');
+        if (serviceSelect?.value) {
+            const selectedOption = serviceSelect.options[serviceSelect.selectedIndex];
+            if (!selectedOption.dataset.price) {
+                console.error(`Row ${index + 1} missing price data for service:`, selectedOption.text);
+                hasErrors = true;
+            }
+        }
+    });
+    
+    return !hasErrors;
+}
+```
+
+**4. Fix the Event Listeners**
+Ensure calculations trigger properly when services are added:
+```javascript
+// Add this to your document ready function
+document.addEventListener('change', function(e) {
+    if (e.target.matches('select[name="service_ids[]"]') || 
+        e.target.matches('input[name="service_quantities[]"]')) {
+        // Validate and recalculate
+        setTimeout(() => {
+            if (validateServiceRowPrices()) {
+                updateTaxCalculations();
+            }
+        }, 50);
+    }
+});
+```
+
+**5. Test the Fix**
+Add a debug button to manually check calculations:
+```javascript
+// Add this button temporarily for testing
+function debugBillingCalculation() {
+    console.log('=== MANUAL DEBUG ===');
+    validateServiceRowPrices();
+    updateTaxCalculations();
+    
+    const finalTotal = document.getElementById('display_total').textContent;
+    console.log('Final displayed total:', finalTotal);
+}
+```
+
+The root cause is likely that either the `data-price` attributes aren't being set correctly when services are auto-added, or the calculation function isn't finding the service rows properly. This debugging approach will help identify exactly where the breakdown occurs.
