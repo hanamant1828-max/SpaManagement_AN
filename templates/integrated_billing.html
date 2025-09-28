@@ -1273,9 +1273,41 @@ function addServiceRowWithData(serviceData) {
 
 // Professional Tax Calculation Functions
 function updateTaxCalculations() {
-    const servicesSubtotal = calculateServicesSubtotal();
-    const inventorySubtotal = calculateInventorySubtotal();
+    let servicesSubtotal = 0;
+    let inventorySubtotal = 0;
+
+    // Calculate services subtotal - include ALL service rows (manually added and auto-populated)
+    const serviceRows = document.querySelectorAll('.service-row');
+    serviceRows.forEach(row => {
+        const serviceSelect = row.querySelector('select[name="service_ids[]"]');
+        const quantityInput = row.querySelector('input[name="service_quantities[]"]');
+
+        if (serviceSelect && serviceSelect.value && quantityInput) {
+            const selectedOption = serviceSelect.options[serviceSelect.selectedIndex];
+            if (selectedOption && selectedOption.dataset.price) {
+                const price = parseFloat(selectedOption.dataset.price);
+                const quantity = parseFloat(quantityInput.value) || 1;
+                servicesSubtotal += price * quantity;
+                console.log(`Service calculation: ${selectedOption.text} - Price: ${price}, Qty: ${quantity}, Subtotal: ${price * quantity}`);
+            }
+        }
+    });
+
+    // Calculate inventory subtotal
+    const productRows = document.querySelectorAll('.product-row');
+    productRows.forEach(row => {
+        const quantityInput = row.querySelector('input[name="product_quantities[]"]');
+        const priceInput = row.querySelector('input[name="product_prices[]"]');
+
+        if (quantityInput && priceInput) {
+            const quantity = parseFloat(quantityInput.value) || 0;
+            const price = parseFloat(priceInput.value) || 0;
+            inventorySubtotal += quantity * price;
+        }
+    });
+
     const grossSubtotal = servicesSubtotal + inventorySubtotal;
+    console.log(`Tax calculation update: Services: ₹${servicesSubtotal}, Inventory: ₹${inventorySubtotal}, Total: ₹${grossSubtotal}`);
 
     // Get discount
     const discountType = document.getElementById('discount_type').value;
