@@ -452,26 +452,68 @@ function loadClients() {
         });
 }
 
-// Helper function to make select searchable
+// Helper function to make select searchable with better implementation
 function makeSelectSearchable(selectElement) {
-    const options = Array.from(selectElement.options).slice(1); // Skip first option
+    // Store all original options
+    const allOptions = Array.from(selectElement.options).slice(1); // Skip first option
+    let isSearchMode = false;
     
-    selectElement.addEventListener('input', function() {
+    // Handle keyup for search
+    selectElement.addEventListener('keyup', function(e) {
+        // Don't interfere with arrow keys and enter
+        if (['ArrowUp', 'ArrowDown', 'Enter', 'Tab'].includes(e.key)) {
+            return;
+        }
+        
         const searchTerm = this.value.toLowerCase();
         
-        // Clear existing options except first one
+        // If there's no search term, show all options
+        if (!searchTerm || searchTerm === '') {
+            this.innerHTML = '<option value="">Search by name or phone number...</option>';
+            allOptions.forEach(option => {
+                this.appendChild(option.cloneNode(true));
+            });
+            isSearchMode = false;
+            return;
+        }
+        
+        // Enter search mode
+        isSearchMode = true;
+        
+        // Clear and rebuild with filtered options
         this.innerHTML = '<option value="">Search by name or phone number...</option>';
         
-        // Filter and add matching options
-        const filteredOptions = options.filter(option => {
+        // Filter options based on name or phone
+        const filteredOptions = allOptions.filter(option => {
             const name = (option.dataset.name || '').toLowerCase();
             const phone = (option.dataset.phone || '').toLowerCase();
-            return name.includes(searchTerm) || phone.includes(searchTerm);
+            const text = option.textContent.toLowerCase();
+            return name.includes(searchTerm) || phone.includes(searchTerm) || text.includes(searchTerm);
         });
         
+        // Add filtered options
         filteredOptions.forEach(option => {
             this.appendChild(option.cloneNode(true));
         });
+        
+        // Show dropdown
+        this.size = Math.min(filteredOptions.length + 1, 8);
+    });
+    
+    // Handle selection
+    selectElement.addEventListener('change', function() {
+        if (this.value && isSearchMode) {
+            isSearchMode = false;
+            this.size = 1; // Reset to normal dropdown
+        }
+    });
+    
+    // Handle blur to reset size
+    selectElement.addEventListener('blur', function() {
+        setTimeout(() => {
+            this.size = 1;
+            isSearchMode = false;
+        }, 200);
     });
 }
 
@@ -700,10 +742,7 @@ function bookMultiServiceAppointment() {
     const serviceName = serviceOption.textContent.split('(')[0].trim(); // Extract name before price
 
     const bookingData = {
-        clientId: parseInt(selectedClientId),
-        clientName: clientName,
-        clientPhone: selectedOption.dataset.phone || '',
-        clientEmail: selectedOption.dataset.email || '',
+        clientId: parseInt(selectedClientId),  // Only client ID is needed
         staffId: parseInt(staffSelect.value),
         serviceType: serviceName,
         servicePrice: parseFloat(priceInput.value) || 0,

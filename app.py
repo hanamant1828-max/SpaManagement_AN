@@ -753,8 +753,8 @@ def unaki_book_appointment():
     try:
         data = request.get_json()
         
-        # Validate required fields
-        required_fields = ['staffId', 'clientName', 'serviceType', 'startTime', 'endTime']
+        # Validate required fields - only clientId is needed for client identification
+        required_fields = ['staffId', 'clientId', 'serviceType', 'startTime', 'endTime']
         for field in required_fields:
             if field not in data or not data[field]:
                 return jsonify({

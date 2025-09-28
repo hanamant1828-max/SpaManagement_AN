@@ -964,10 +964,10 @@ def api_unaki_book_appointment():
         start_time_str = data.get('start_time') or data.get('startTime')
         end_time_str = data.get('end_time') or data.get('endTime')
         
-        # Check for missing required fields
+        # Check for missing required fields - prioritize client_id over client_name
         missing_fields = []
-        if not client_name:
-            missing_fields.append('client_name')
+        if not client_id and not client_name:
+            missing_fields.append('client_id or client_name')
         if not staff_id:
             missing_fields.append('staff_id')
         if not service_name:
