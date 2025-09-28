@@ -660,13 +660,22 @@ function bookMultiServiceAppointment() {
     const clientId = document.getElementById('clientSelect').value;
     const clientNameInput = document.getElementById('clientName');
     let selectedClientId = clientId;
-    let newClientName = '';
+    let clientName = '';
 
-    if (clientNameInput && clientNameInput.value.trim()) {
-        newClientName = clientNameInput.value.trim();
-    }
-
-    if (!selectedClientId && !newClientName) {
+    // Priority 1: Use selected client ID
+    if (selectedClientId) {
+        // Get client name from the selected option
+        const selectedOption = document.getElementById('clientSelect').options[document.getElementById('clientSelect').selectedIndex];
+        clientName = selectedOption.textContent || 'Client';
+        console.log(`Using existing client ID: ${selectedClientId}, Name: ${clientName}`);
+    } 
+    // Priority 2: Use new client name only if no client ID is selected
+    else if (clientNameInput && clientNameInput.value.trim()) {
+        clientName = clientNameInput.value.trim();
+        selectedClientId = null; // Will be handled by backend
+        console.log(`Creating new client: ${clientName}`);
+    } 
+    else {
         showNotification('Please select an existing client or enter a new client name.', 'error');
         return;
     }
@@ -697,8 +706,8 @@ function bookMultiServiceAppointment() {
     const serviceName = serviceOption.textContent.split('(')[0].trim(); // Extract name before price
 
     const bookingData = {
-        clientId: selectedClientId || null,
-        clientName: newClientName || (selectedClientId ? '' : 'Unknown'),
+        clientId: selectedClientId ? parseInt(selectedClientId) : null,
+        clientName: clientName,
         clientPhone: document.getElementById('clientPhone').value || '',
         clientEmail: document.getElementById('clientEmail').value || '',
         staffId: parseInt(staffSelect.value),
@@ -709,6 +718,8 @@ function bookMultiServiceAppointment() {
         date: appointmentDate,
         notes: notes
     };
+
+    console.log('Booking data being sent:', bookingData);
 
     fetch('/api/unaki/book-appointment', {
         method: 'POST',

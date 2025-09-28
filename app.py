@@ -780,13 +780,20 @@ def unaki_create_appointment_impl(data=None):
 
         print(f"Received booking data: {data}")
 
-        # Validate required fields
-        required_fields = ['staffId', 'clientName', 'serviceType', 'startTime', 'endTime']
+        # Validate required fields - prioritize clientId over clientName
+        required_fields = ['staffId', 'serviceType', 'startTime', 'endTime']
         missing_fields = []
 
         for field in required_fields:
             if field not in data or not data[field] or str(data[field]).strip() == '':
                 missing_fields.append(field)
+
+        # Check for client identification - either clientId or clientName is required
+        client_id = data.get('clientId')
+        client_name = data.get('clientName', '').strip()
+        
+        if not client_id and not client_name:
+            missing_fields.append('clientId or clientName')
 
         if missing_fields:
             return jsonify({
@@ -848,20 +855,66 @@ def unaki_create_appointment_impl(data=None):
                 'error': f'Time slot conflicts with existing booking(s) for {staff.full_name}: {", ".join(conflict_details)}'
             }), 400
 
-        # Try to find or create customer record
+        # Handle customer identification and creation
         customer = None
+        final_client_id = None
+        final_client_name = client_name
         client_phone = data.get('clientPhone', '').strip()
         client_email = data.get('clientEmail', '').strip()
 
-        if client_phone:
-            customer = Customer.query.filter_by(phone=client_phone).first()
-        elif client_email:
-            customer = Customer.query.filter_by(email=client_email).first()
+        # Priority 1: Use existing client ID if provided
+        if client_id:
+            customer = Customer.query.get(client_id)
+            if customer:
+                final_client_id = customer.id
+                final_client_name = customer.full_name
+                # Update phone and email from form if they're empty in customer record
+                if not customer.phone and client_phone:
+                    customer.phone = client_phone
+                if not customer.email and client_email:
+                    customer.email = client_email
+                db.session.commit()
+                print(f"Using existing customer ID {final_client_id}: {final_client_name}")
+            else:
+                print(f"Warning: Client ID {client_id} not found, will create new customer")
+        
+        # Priority 2: If no valid client_id, try to find by phone or email
+        if not final_client_id:
+            if client_phone:
+                customer = Customer.query.filter_by(phone=client_phone).first()
+            elif client_email:
+                customer = Customer.query.filter_by(email=client_email).first()
+            
+            if customer:
+                final_client_id = customer.id
+                final_client_name = customer.full_name
+                print(f"Found existing customer by contact info: {final_client_name}")
 
-        # Create UnakiBooking entry
+        # Priority 3: Create new customer if none found
+        if not final_client_id and final_client_name:
+            try:
+                name_parts = final_client_name.split(' ', 1)
+                first_name = name_parts[0] if name_parts else 'Unknown'
+                last_name = name_parts[1] if len(name_parts) > 1 else ''
+
+                customer = Customer(
+                    first_name=first_name,
+                    last_name=last_name,
+                    phone=client_phone if client_phone else None,
+                    email=client_email if client_email else None,
+                    is_active=True
+                )
+                db.session.add(customer)
+                db.session.flush()  # Get the ID without committing
+                final_client_id = customer.id
+                print(f"Created new customer ID {final_client_id}: {final_client_name}")
+            except Exception as ce:
+                print(f"Warning: Could not create customer record: {ce}")
+
+        # Create UnakiBooking entry with proper client_id
         unaki_booking = UnakiBooking(
-            client_id=int(data['clientId']) if data.get('clientId') else (customer.id if customer else None),
-            client_name=data['clientName'].strip(),
+            client_id=final_client_id,  # Always store the actual client_id
+            client_name=final_client_name,
             client_phone=client_phone,
             client_email=client_email,
             staff_id=int(data['staffId']),
@@ -889,10 +942,13 @@ def unaki_create_appointment_impl(data=None):
 
         return jsonify({
             'success': True,
-            'message': 'Appointment booked successfully',
+            'message': f'Appointment booked successfully for Client ID: {final_client_id}',
             'appointmentId': unaki_booking.id,
+            'clientId': final_client_id,
+            'clientName': final_client_name,
             'booking': unaki_booking.to_dict() if hasattr(unaki_booking, 'to_dict') else {
                 'id': unaki_booking.id,
+                'client_id': unaki_booking.client_id,
                 'client_name': unaki_booking.client_name,
                 'service_name': unaki_booking.service_name,
                 'start_time': unaki_booking.start_time.strftime('%H:%M'),
