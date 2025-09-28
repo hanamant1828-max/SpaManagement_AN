@@ -765,6 +765,9 @@ function addServiceRow() {
         function addUnakiAppointmentToBill(appointmentId, serviceName, servicePrice, serviceDuration) {
             console.log('Adding Unaki appointment to bill:', appointmentId, serviceName, servicePrice, serviceDuration);
 
+            // Ensure servicePrice is a number
+            servicePrice = parseFloat(servicePrice) || 0;
+
             // Find the first empty service row or add a new one
             const serviceRows = document.querySelectorAll('.service-row');
             let targetRow = null;
@@ -793,16 +796,18 @@ function addServiceRow() {
 
                 // Try to find matching service by name
                 let matchedServiceId = null;
-                let servicePrice = servicePrice || 0;
+                let finalServicePrice = servicePrice;
 
                 // Look through all service options to find a match
                 for (let option of serviceSelect.options) {
                     if (option.value && option.text.toLowerCase().includes(serviceName.toLowerCase())) {
                         matchedServiceId = option.value;
-                        // Extract price from option text if available
+                        
+                        // If service has a different price in system, use that, otherwise use appointment price
                         const priceMatch = option.text.match(/₹([\d,]+\.?\d*)/);
                         if (priceMatch) {
-                            servicePrice = parseFloat(priceMatch[1].replace(/,/g, ''));
+                            const systemPrice = parseFloat(priceMatch[1].replace(/,/g, ''));
+                            finalServicePrice = systemPrice > 0 ? systemPrice : servicePrice;
                         }
                         break;
                     }
@@ -813,16 +818,12 @@ function addServiceRow() {
                     quantityInput.value = '1';
                     appointmentInput.value = `unaki_${appointmentId}`; // Prefix to identify Unaki appointments
 
-                    // Update the option's data-price attribute to ensure proper calculation
+                    // CRITICAL: Ensure the selected option has the price data
                     const selectedOption = serviceSelect.options[serviceSelect.selectedIndex];
                     if (selectedOption) {
-                        selectedOption.dataset.price = servicePrice.toString();
-                        console.log(`Set service price data: ${serviceName} = ₹${servicePrice}`);
+                        selectedOption.dataset.price = finalServicePrice.toString();
+                        console.log(`Set service price data: ${serviceName} = ₹${finalServicePrice}`);
                     }
-
-                    // Mark the row as selected for billing calculations
-                    targetRow.classList.add('selected-service');
-                    targetRow.dataset.amount = servicePrice.toString();
 
                     // Highlight the row
                     targetRow.style.borderLeft = '4px solid #007bff';
@@ -837,22 +838,18 @@ function addServiceRow() {
                         targetRow.appendChild(indicator);
                     }
 
-                    // Trigger service selection handler to ensure proper setup
-                    handleServiceSelection(serviceSelect);
-
-                    // Update calculations with a small delay to ensure DOM is updated
+                    // Force recalculation after a small delay to ensure DOM updates
                     setTimeout(() => {
+                        console.log(`Triggering calculation update for ${serviceName} at ₹${finalServicePrice}`);
                         updateTaxCalculations();
-                        console.log(`Added service to bill: ${serviceName} for ₹${servicePrice}`);
-                    }, 100);
+                    }, 200);
 
                     // Show success message
-                    showNotification(`Added Unaki booking: ${serviceName} to bill successfully!`, 'success');
+                    showNotification(`Added Unaki booking: ${serviceName} (₹${finalServicePrice}) to bill successfully!`, 'success');
                 } else {
-                    // If no exact match, create a custom entry or show warning
                     console.warn(`No matching service found for: ${serviceName}`);
-
-                    // Fill quantity and appointment ID
+                    
+                    // Fill quantity and appointment ID anyway
                     quantityInput.value = '1';
                     appointmentInput.value = `unaki_${appointmentId}`;
 
@@ -866,7 +863,7 @@ function addServiceRow() {
                     }
 
                     // Show a notification for the user
-                    showNotification(`Could not find a matching service for "${serviceName}". Added as custom entry.`, 'warning');
+                    showNotification(`Could not find a matching service for "${serviceName}". Please select manually.`, 'warning');
                 }
             }
         }
@@ -1413,7 +1410,7 @@ function addServiceRowWithData(serviceData) {
 
 // Professional Tax Calculation Functions
 function updateTaxCalculations() {
-    console.log('Calculating billing total...');
+    console.log('=== BILLING CALCULATION DEBUG ===');
     try {
         let servicesSubtotal = 0;
         let inventorySubtotal = 0;
@@ -1426,19 +1423,38 @@ function updateTaxCalculations() {
             const serviceSelect = row.querySelector('select[name="service_ids[]"]');
             const quantityInput = row.querySelector('input[name="service_quantities[]"]');
 
-            if (serviceSelect && serviceSelect.value && quantityInput) {
+            console.log(`Row ${index + 1}:`, {
+                hasService: !!serviceSelect?.value,
+                serviceName: serviceSelect?.options[serviceSelect?.selectedIndex]?.text,
+                price: serviceSelect?.options[serviceSelect?.selectedIndex]?.dataset?.price,
+                quantity: quantityInput?.value
+            });
+
+            if (serviceSelect && serviceSelect.value && quantityInput && quantityInput.value) {
                 const selectedOption = serviceSelect.options[serviceSelect.selectedIndex];
-                if (selectedOption && selectedOption.dataset.price) {
-                    const price = parseFloat(selectedOption.dataset.price) || 0;
+                if (selectedOption) {
+                    // Try to get price from data attribute first, then extract from text
+                    let price = parseFloat(selectedOption.dataset.price) || 0;
+                    
+                    if (price === 0) {
+                        // Try to extract price from option text if data-price is missing
+                        const priceMatch = selectedOption.text.match(/₹([\d,]+\.?\d*)/);
+                        if (priceMatch) {
+                            price = parseFloat(priceMatch[1].replace(/,/g, ''));
+                            // Set the data-price for future calculations
+                            selectedOption.dataset.price = price.toString();
+                        }
+                    }
+                    
                     const quantity = parseFloat(quantityInput.value) || 1;
                     const lineTotal = price * quantity;
                     servicesSubtotal += lineTotal;
-                    console.log(`Service ${index + 1}: ${selectedOption.text} - Price: ₹${price}, Qty: ${quantity}, Line Total: ₹${lineTotal}`);
+                    console.log(`Added: Service ${index + 1}: ₹${price} × ${quantity} = ₹${lineTotal}`);
                 } else {
-                    console.log(`Service ${index + 1}: Missing price data or selection`);
+                    console.log(`Service ${index + 1}: No selected option found`);
                 }
             } else {
-                console.log(`Service ${index + 1}: Missing select or quantity input`);
+                console.log(`Service ${index + 1}: Missing service selection or quantity`);
             }
         });
 
@@ -1460,7 +1476,9 @@ function updateTaxCalculations() {
         });
 
         const grossSubtotal = servicesSubtotal + inventorySubtotal;
-        console.log(`Subtotal before tax: Services: ₹${servicesSubtotal.toFixed(2)}, Inventory: ₹${inventorySubtotal.toFixed(2)}, Total: ₹${grossSubtotal.toFixed(2)}`);
+        console.log(`Total services subtotal: ₹${servicesSubtotal.toFixed(2)}`);
+        console.log(`Total inventory subtotal: ₹${inventorySubtotal.toFixed(2)}`);
+        console.log(`Gross subtotal: ₹${grossSubtotal.toFixed(2)}`);
 
         // Get discount
         const discountType = document.getElementById('discount_type').value;
@@ -2377,6 +2395,44 @@ document.getElementById('billingForm').addEventListener('submit', function(e) {
             }
         }
 
+        // Add debug function for manual testing
+        function debugBillingCalculation() {
+            console.log('=== MANUAL DEBUG TRIGGERED ===');
+            validateServiceRowPrices();
+            updateTaxCalculations();
+            
+            const finalTotal = document.getElementById('display_total').textContent;
+            console.log('Final displayed total:', finalTotal);
+        }
+
+        // Validate that all service rows have proper price data
+        function validateServiceRowPrices() {
+            const serviceRows = document.querySelectorAll('.service-row');
+            let hasErrors = false;
+            
+            serviceRows.forEach((row, index) => {
+                const serviceSelect = row.querySelector('select[name="service_ids[]"]');
+                if (serviceSelect && serviceSelect.value) {
+                    const selectedOption = serviceSelect.options[serviceSelect.selectedIndex];
+                    if (!selectedOption.dataset.price) {
+                        console.error(`Row ${index + 1} missing price data for service:`, selectedOption.text);
+                        hasErrors = true;
+                        
+                        // Try to extract and set price from text
+                        const priceMatch = selectedOption.text.match(/₹([\d,]+\.?\d*)/);
+                        if (priceMatch) {
+                            const price = parseFloat(priceMatch[1].replace(/,/g, ''));
+                            selectedOption.dataset.price = price.toString();
+                            console.log(`Fixed price data for ${selectedOption.text}: ₹${price}`);
+                            hasErrors = false;
+                        }
+                    }
+                }
+            });
+            
+            return !hasErrors;
+        }
+
         // Initialize on page load
         document.addEventListener('DOMContentLoaded', function() {
             console.log('Integrated billing page loaded, initializing...');
@@ -2397,6 +2453,18 @@ document.getElementById('billingForm').addEventListener('submit', function(e) {
             // Add event listeners for real-time package benefit calculation
             setupServiceChangeListeners();
             setupTaxCalculationListeners();
+            
+            // Add enhanced change event listeners
+            document.addEventListener('change', function(e) {
+                if (e.target.matches('select[name="service_ids[]"]') || 
+                    e.target.matches('input[name="service_quantities[]"]')) {
+                    console.log('Service selection or quantity changed, updating calculations...');
+                    setTimeout(() => {
+                        validateServiceRowPrices();
+                        updateTaxCalculations();
+                    }, 100);
+                }
+            });
         });
 
         // Setup comprehensive event listeners for tax calculations
@@ -2630,26 +2698,28 @@ document.getElementById('billingForm').addEventListener('submit', function(e) {
 
 function handleServiceSelection(selectElement) {
     const selectedOption = selectElement.options[selectElement.selectedIndex];
-    let price = 0;
-
-    if (selectedOption && selectedOption.dataset.price) {
-        price = selectedOption.dataset.price;
-    } else if (selectedOption && selectedOption.textContent) {
-        // Try to extract price from option text for auto-populated services
-        const priceMatch = selectedOption.textContent.match(/₹([\d,]+\.?\d*)/);
-        if (priceMatch) {
-            price = priceMatch[1].replace(/,/g, '');
+    
+    if (selectedOption && selectElement.value) {
+        // Ensure price data is available
+        let price = parseFloat(selectedOption.dataset.price) || 0;
+        
+        if (price === 0) {
+            // Try to extract price from option text
+            const priceMatch = selectedOption.textContent.match(/₹([\d,]+\.?\d*)/);
+            if (priceMatch) {
+                price = parseFloat(priceMatch[1].replace(/,/g, ''));
+                // Set the data-price attribute for future use
+                selectedOption.dataset.price = price.toString();
+            }
         }
+        
+        console.log(`Service selected: ${selectedOption.text}, Price: ₹${price}`);
     }
-
-    if (price > 0) {
-        updateServicePrice(selectElement.value, price);
-    } else {
-        updateServicePrice(selectElement.value, '0.00');
-    }
-
-    // Trigger calculation update
-    updateTaxCalculations();
+    
+    // Always trigger calculation update
+    setTimeout(() => {
+        updateTaxCalculations();
+    }, 50);
 }
 
 </script>
