@@ -1,0 +1,111 @@
+# Replit Agent Prompt: Fix Integrated Billing & Service Management Issues
+
+## ROLE
+You are an expert Python/Flask developer with expertise in billing systems, JavaScript, and database operations.
+
+## CONTEXT
+The Integrated Billing view has critical bugs affecting:
+1. **Unaki booking "Add to Bill" functionality** - amounts not calculating correctly
+2. **Package deduction logic** - customer packages not being applied properly
+3. **Service price data** - missing or incorrect price attributes in dropdowns
+
+## CURRENT ISSUES
+
+### Issue 1: Add to Bill Button Not Working
+- When clicking "Add to Bill" for Unaki bookings, the service gets added but **price is not calculated** in billing totals
+- The `addUnakiAppointmentToBill()` function is not properly setting service prices
+- Service options may be missing `data-price` attributes
+
+### Issue 2: Package Logic Not Applied
+- Customer packages (unlimited, prepaid, service packages) are loaded but **deductions not calculated**
+- The `checkServicePackageBenefit()` function exists but may not be properly integrated
+- Package benefits should automatically reduce billing amounts
+
+### Issue 3: Price Calculation Errors
+- `updateTaxCalculations()` function not getting correct service prices
+- Services added via "Add to Bill" show ₹0.00 in calculations
+- Missing price validation in service selection
+
+## SPECIFIC BUGS TO FIX
+
+### Bug 1: Service Price Data Missing
+```javascript
+// PROBLEM: This line in addUnakiAppointmentToBill() may not work
+selectedOption.dataset.price = finalServicePrice.toString();
+
+// SOLUTION NEEDED: Ensure all service options have proper data-price attributes
+```
+
+### Bug 2: Package Benefit Integration
+```javascript
+// PROBLEM: Package benefits calculated but not applied to billing
+// The calculateServicesSubtotal() function exists but may not be called properly
+```
+
+### Bug 3: Backend Service Price Loading
+```python
+# PROBLEM: Service dropdown may not be populated with correct prices
+# Template: {% for service in services %} - check if services have prices
+```
+
+## DEBUGGING TASKS
+
+### Task 1: Fix Service Price Loading
+1. **Check the backend route** that loads the integrated billing page
+2. **Ensure services are passed with proper price data** to the template
+3. **Verify service dropdown rendering** includes `data-price` attributes
+4. **Debug the services context variable** in the view function
+
+### Task 2: Fix addUnakiAppointmentToBill Function
+1. **Ensure service matching logic** properly finds services by name
+2. **Fix price setting** - make sure `data-price` attribute is set correctly
+3. **Force calculation update** after adding service
+4. **Add proper error handling** for missing services
+
+### Task 3: Integrate Package Logic
+1. **Check customerPackageData loading** - ensure it's populated when customer is selected
+2. **Fix calculateServicesSubtotal()** to use package benefits
+3. **Ensure updateTaxCalculations()** calls the correct subtotal calculation
+4. **Test package deduction display** in the UI
+
+### Task 4: Backend Integration
+1. **Check the Flask route** for `/integrated-billing/<customer_id>`
+2. **Verify customer_services and customer_appointments** are properly loaded
+3. **Ensure services context** includes all necessary data (id, name, price)
+4. **Check package loading endpoint** `/integrated-billing/customer-packages/<client_id>`
+
+## EXPECTED OUTCOMES
+After fixing these issues:
+- ✅ "Add to Bill" button properly adds services with correct prices
+- ✅ Billing calculations include service prices automatically
+- ✅ Customer packages apply discounts/deductions correctly
+- ✅ Total amount calculation is accurate
+- ✅ Package benefits display properly in the UI
+
+## CODE REVIEW AREAS
+Focus on these files/sections:
+1. **Backend Flask route** for integrated billing
+2. **Service dropdown template rendering**
+3. **JavaScript functions**: `addUnakiAppointmentToBill`, `updateTaxCalculations`, `calculateServicesSubtotal`
+4. **Package loading and benefit calculation logic**
+5. **Database queries** for services, packages, and appointments
+
+## TESTING CHECKLIST
+After implementing fixes, test:
+- [ ] Select customer with Unaki bookings
+- [ ] Click "Add to Bill" for multiple services
+- [ ] Verify prices appear in billing calculations
+- [ ] Test with customer who has active packages
+- [ ] Confirm package deductions are applied
+- [ ] Check final total includes all calculations
+
+## PRIORITY
+🔴 **HIGH PRIORITY** - This affects core billing functionality and revenue calculations. Fix immediately.
+
+## DEBUG APPROACH
+1. Start with the backend - ensure data is properly loaded
+2. Fix JavaScript service price handling
+3. Integrate package logic step by step
+4. Test each fix thoroughly before moving to the next issue
+
+Remember: The billing system must be accurate for financial integrity. Test all calculations carefully.
