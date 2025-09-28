@@ -2117,6 +2117,13 @@ document.getElementById('billingForm').addEventListener('submit', function(e) {
         document.addEventListener('DOMContentLoaded', function() {
             console.log('Integrated billing page loaded, initializing...');
             loadAvailableBatches();
+            
+            // Auto-fill appointment services when customer is pre-selected
+            {% if customer_appointments and customer_appointments|length > 0 %}
+            console.log('Auto-filling {{ customer_appointments|length }} appointment services...');
+            autoFillCurrentServices();
+            {% endif %}
+            
             updateTaxCalculations(); // Initial calculation update based on default values
             toggleTaxType(); // Apply initial tax type settings
 
