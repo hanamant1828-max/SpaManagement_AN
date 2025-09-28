@@ -517,17 +517,27 @@ function showNotification(message, type = 'info') {
     }, 5000);
 }
 
-// CRITICAL: Define addUnakiAppointmentToBill function with ALL dependencies  
+// CRITICAL: Define addUnakiAppointmentToBill function with proper price handling
 window.addUnakiAppointmentToBill = function addUnakiAppointmentToBill(appointmentId, serviceName, servicePrice, serviceDuration) {
-    console.log('Adding Unaki appointment to bill:', appointmentId, serviceName, servicePrice, serviceDuration);
+    console.log('=== Adding Unaki appointment to bill ===');
+    console.log('Appointment ID:', appointmentId);
+    console.log('Service Name:', serviceName);
+    console.log('Service Price:', servicePrice);
+    console.log('Service Duration:', serviceDuration);
 
     try {
         // Ensure servicePrice is a number
         servicePrice = parseFloat(servicePrice) || 0;
+        console.log('Parsed service price:', servicePrice);
+
+        if (servicePrice <= 0) {
+            console.warn('Warning: Service price is 0 or invalid');
+        }
 
         // Find the first empty service row or add a new one
         let targetRow = findEmptyServiceRow();
         if (!targetRow) {
+            console.log('No empty service row found, adding new row...');
             if (typeof addServiceRow === 'function') {
                 addServiceRow();
                 targetRow = findEmptyServiceRow();
@@ -550,65 +560,81 @@ window.addUnakiAppointmentToBill = function addUnakiAppointmentToBill(appointmen
             let matchedServiceId = null;
             let finalServicePrice = servicePrice;
 
+            console.log('Searching for matching service in dropdown...');
+            
             // Look through all service options to find a match
             for (let option of serviceSelect.options) {
                 if (option.value && option.text.toLowerCase().includes(serviceName.toLowerCase())) {
                     matchedServiceId = option.value;
+                    console.log('Found matching service:', option.text, 'ID:', matchedServiceId);
 
-                    // Get the actual price from the service option
+                    // Get the actual price from the service option text
                     const priceMatch = option.text.match(/₹([\d,]+\.?\d*)/);
                     if (priceMatch) {
                         const systemPrice = parseFloat(priceMatch[1].replace(/,/g, ''));
                         finalServicePrice = systemPrice > 0 ? systemPrice : servicePrice;
+                        console.log('Extracted system price:', systemPrice, 'Final price:', finalServicePrice);
                     }
                     break;
                 }
             }
 
             if (matchedServiceId) {
+                console.log('Setting service selection and price...');
+                
+                // Set the service selection
                 serviceSelect.value = matchedServiceId;
                 quantityInput.value = '1';
                 appointmentInput.value = `unaki_${appointmentId}`;
 
-                // CRITICAL: Ensure the selected option has the price data
+                // CRITICAL: Set the price data on the selected option
                 const selectedOption = serviceSelect.options[serviceSelect.selectedIndex];
                 if (selectedOption) {
                     selectedOption.dataset.price = finalServicePrice.toString();
-                    console.log(`Set service price data: ${serviceName} = ₹${finalServicePrice}`);
+                    console.log(`✅ Set price data: ${serviceName} = ₹${finalServicePrice}`);
                 }
 
-                // Highlight the row
-                targetRow.style.borderLeft = '4px solid #007bff';
-                targetRow.style.backgroundColor = 'rgba(0, 123, 255, 0.1)';
+                // Highlight the row visually
+                targetRow.style.borderLeft = '4px solid #28a745';
+                targetRow.style.backgroundColor = 'rgba(40, 167, 69, 0.1)';
+                targetRow.style.padding = '10px';
+                targetRow.style.borderRadius = '5px';
 
                 // Add visual indicator
                 let indicator = targetRow.querySelector('.unaki-indicator');
                 if (!indicator) {
                     indicator = document.createElement('small');
-                    indicator.className = 'unaki-indicator text-info fw-bold d-block';
-                    indicator.innerHTML = '<i class="fas fa-calendar-check me-1"></i>Unaki Booking';
+                    indicator.className = 'unaki-indicator text-success fw-bold d-block mt-1';
+                    indicator.innerHTML = `<i class="fas fa-calendar-check me-1"></i>Unaki Booking - ₹${finalServicePrice}`;
                     targetRow.appendChild(indicator);
                 }
 
                 // Trigger service selection change event
+                console.log('Triggering service selection handler...');
                 if (typeof handleServiceSelection === 'function') {
                     handleServiceSelection(serviceSelect);
                 }
 
-                // Force recalculation after a small delay to ensure DOM updates
+                // Force billing calculation update
+                console.log('Updating billing calculations...');
                 setTimeout(() => {
-                    console.log(`Triggering calculation update for ${serviceName} at ₹${finalServicePrice}`);
                     if (typeof updateTaxCalculations === 'function') {
                         updateTaxCalculations();
+                        console.log('✅ Billing calculations updated');
+                    } else {
+                        console.error('updateTaxCalculations function not available');
                     }
-                }, 200);
+                }, 100);
 
                 // Show success message
-                showNotification(`Added Unaki booking: ${serviceName} (₹${finalServicePrice}) to bill successfully!`, 'success');
+                showNotification(`✅ Added ${serviceName} (₹${finalServicePrice}) to bill successfully!`, 'success');
+                
+                console.log('=== Successfully added service to bill ===');
+                
             } else {
                 console.warn(`No matching service found for: ${serviceName}`);
 
-                // Fill quantity and appointment ID anyway
+                // Fill quantity and appointment ID anyway for manual selection
                 quantityInput.value = '1';
                 appointmentInput.value = `unaki_${appointmentId}`;
 
@@ -616,20 +642,20 @@ window.addUnakiAppointmentToBill = function addUnakiAppointmentToBill(appointmen
                 let indicator = targetRow.querySelector('.unaki-indicator');
                 if (!indicator) {
                     indicator = document.createElement('small');
-                    indicator.className = 'unaki-indicator text-warning fw-bold d-block';
-                    indicator.innerHTML = `<i class="fas fa-exclamation-triangle me-1"></i>Service not found: ${serviceName}`;
+                    indicator.className = 'unaki-indicator text-warning fw-bold d-block mt-1';
+                    indicator.innerHTML = `<i class="fas fa-exclamation-triangle me-1"></i>Service "${serviceName}" not found in system`;
                     targetRow.appendChild(indicator);
                 }
 
-                // Show a notification for the user
-                showNotification(`Could not find a matching service for "${serviceName}". Please select manually.`, 'warning');
+                // Show warning notification
+                showNotification(`⚠️ Service "${serviceName}" not found in system. Please select manually from dropdown.`, 'warning');
             }
         } else {
             throw new Error('No service row available for adding appointment');
         }
     } catch (error) {
-        console.error('Error adding Unaki appointment to bill:', error);
-        showNotification(`Error adding appointment to bill: ${error.message}`, 'error');
+        console.error('❌ Error adding Unaki appointment to bill:', error);
+        showNotification(`❌ Error adding appointment to bill: ${error.message}`, 'danger');
     }
 }
 
@@ -1449,27 +1475,53 @@ function formatCurrency(amount) {
 
 function calculateServicesSubtotal() {
     let total = 0;
+    console.log('=== Calculating Services Subtotal ===');
+    
     document.querySelectorAll('.service-row').forEach((row, index) => {
         const serviceSelect = row.querySelector('select[name="service_ids[]"]');
         const quantityInput = row.querySelector('input[name="service_quantities[]"]');
 
+        console.log(`Row ${index + 1} - Checking service row...`);
+        
         if (serviceSelect && serviceSelect.value && quantityInput && quantityInput.value) {
             const selectedOption = serviceSelect.options[serviceSelect.selectedIndex];
-            if (selectedOption && selectedOption.dataset.price) {
-                const originalPrice = parseFloat(selectedOption.dataset.price);
-                const quantity = parseFloat(quantityInput.value) || 1; // Default to 1 if empty
+            const quantity = parseFloat(quantityInput.value) || 1;
+            
+            console.log(`Row ${index + 1} - Service: ${selectedOption.text}, Quantity: ${quantity}`);
+            
+            let price = 0;
+            
+            // Try multiple methods to get the price
+            if (selectedOption.dataset.price) {
+                price = parseFloat(selectedOption.dataset.price);
+                console.log(`Row ${index + 1} - Price from dataset: ₹${price}`);
+            } else {
+                // Extract price from option text as fallback
+                const priceMatch = selectedOption.text.match(/₹([\d,]+\.?\d*)/);
+                if (priceMatch) {
+                    price = parseFloat(priceMatch[1].replace(/,/g, ''));
+                    // Set it for future use
+                    selectedOption.dataset.price = price.toString();
+                    console.log(`Row ${index + 1} - Price extracted from text: ₹${price}`);
+                } else {
+                    console.log(`Row ${index + 1} - No price found in text: ${selectedOption.text}`);
+                }
+            }
+            
+            if (price > 0) {
                 const serviceId = parseInt(serviceSelect.value);
                 const serviceName = selectedOption.text;
 
                 // Check if customer has package benefits for this service
-                let finalPrice = originalPrice * quantity;
+                let finalPrice = price * quantity;
                 let packageBenefit = null;
 
                 if (customerPackageData && customerPackageData.packages) {
-                    packageBenefit = checkServicePackageBenefit(serviceId, serviceName, originalPrice, quantity);
+                    packageBenefit = checkServicePackageBenefit(serviceId, serviceName, price, quantity);
                     if (packageBenefit) {
                         finalPrice = packageBenefit.finalPrice;
-
+                        console.log(`Row ${index + 1} - Package benefit applied: ₹${price * quantity} → ₹${finalPrice}`);
+                        
                         // Update service display to show package benefit
                         updateServiceDisplayWithBenefit(row, packageBenefit, index);
                     }
@@ -1481,9 +1533,16 @@ function calculateServicesSubtotal() {
                 }
 
                 total += finalPrice;
+                console.log(`Row ${index + 1} - Line total: ₹${finalPrice} (Running total: ₹${total})`);
+            } else {
+                console.log(`Row ${index + 1} - Skipped due to zero price`);
             }
+        } else {
+            console.log(`Row ${index + 1} - Skipped (no service selected or quantity)`);
         }
     });
+    
+    console.log(`=== Services Subtotal: ₹${total} ===`);
     return total;
 }
 
@@ -2266,45 +2325,64 @@ document.getElementById('billingForm').addEventListener('submit', function(e) {
 
 
 function handleServiceSelection(selectElement) {
+    console.log('=== Service Selection Handler ===');
     const selectedOption = selectElement.options[selectElement.selectedIndex];
 
     if (selectedOption && selectedOption.value) {
+        console.log('Selected service:', selectedOption.text);
+        
         let price = selectedOption.dataset.price;
+        console.log('Initial price from dataset:', price);
 
         // If data-price is not set, extract from option text
-        if (!price || price === '0' || price === '0.00') {
+        if (!price || price === '0' || price === '0.00' || price === '') {
+            console.log('Price not found in dataset, extracting from text...');
             const priceMatch = selectedOption.text.match(/₹([\d,]+\.?\d*)/);
             if (priceMatch) {
                 price = parseFloat(priceMatch[1].replace(/,/g, '')).toFixed(2);
                 // Set the data-price for future use
                 selectedOption.dataset.price = price;
+                console.log('Extracted and set price:', price);
+            } else {
+                console.log('No price found in option text:', selectedOption.text);
             }
         }
 
-        if (price && price !== '0' && price !== '0.00') {
-            updateServicePrice(selectElement.value, price);
-
+        if (price && parseFloat(price) > 0) {
+            console.log(`✅ Valid price found: ₹${price}`);
+            
             // Set data attribute on the service row for billing calculations
             const serviceRow = selectElement.closest('.service-row');
             if (serviceRow) {
-                serviceRow.setAttribute('data-servicePrice', price);
+                serviceRow.setAttribute('data-service-price', price);
+                serviceRow.setAttribute('data-service-name', selectedOption.text);
+                console.log('Set row attributes for billing calculation');
             }
 
             console.log(`Service selected: ${selectedOption.text}, Price: ₹${price}`);
         } else {
-            updateServicePrice(selectElement.value, '0.00');
+            console.log('⚠️ No valid price found, setting to 0.00');
+            const serviceRow = selectElement.closest('.service-row');
+            if (serviceRow) {
+                serviceRow.setAttribute('data-service-price', '0.00');
+            }
         }
     } else {
+        console.log('No service selected, clearing price data');
         // If no service selected, reset price
-        updateServicePrice(selectElement.value, '0.00');
+        const serviceRow = selectElement.closest('.service-row');
+        if (serviceRow) {
+            serviceRow.setAttribute('data-service-price', '0.00');
+        }
     }
 
-    // Trigger recalculation
-    setTimeout(() => {
-        if (typeof updateTaxCalculations === 'function') {
-            updateTaxCalculations();
-        }
-    }, 100);
+    // Trigger recalculation immediately
+    console.log('Triggering billing calculation update...');
+    if (typeof updateTaxCalculations === 'function') {
+        updateTaxCalculations();
+    } else {
+        console.error('updateTaxCalculations function not available');
+    }
 }
 
 </script>
