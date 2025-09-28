@@ -4,6 +4,7 @@ from app import app, db
 from .models import InventoryProduct, InventoryCategory, InventoryLocation, InventoryBatch, InventoryAdjustment, InventoryConsumption, InventoryTransfer
 from .queries import *
 from datetime import datetime, date
+from sqlalchemy import or_, desc
 import json
 
 @app.route('/inventory')
@@ -455,20 +456,28 @@ def api_get_batches_for_consumption():
         from datetime import date
 
         # Load batches with their related product and location data
+        # Show all active batches, but prioritize those with available stock
         batches = InventoryBatch.query.options(
             joinedload(InventoryBatch.product),
             joinedload(InventoryBatch.location)
         ).filter(
-            InventoryBatch.status == 'active',
-            InventoryBatch.qty_available > 0
-        ).order_by(InventoryBatch.expiry_date.asc().nullslast(), InventoryBatch.batch_name).all()
+            InventoryBatch.status == 'active'
+        ).order_by(
+            InventoryBatch.qty_available.desc().nullslast(),
+            InventoryBatch.expiry_date.asc().nullslast(), 
+            InventoryBatch.batch_name
+        ).all()
 
         batch_data = []
+        print(f"📊 Total batches found for consumption: {len(batches)}")
+        
         for batch in batches:
             qty_available = float(batch.qty_available or 0)
             unit = batch.product.unit_of_measure if batch.product else 'pcs'
             product_name = batch.product.name if batch.product else 'Unassigned'
             location_name = batch.location.name if batch.location else 'Unassigned'
+
+            print(f"📦 Processing batch: {batch.batch_name}, Status: {batch.status}, Qty: {qty_available}")
 
             # Create dropdown display text
             expiry_text = f", Exp: {batch.expiry_date.strftime('%d/%m/%Y')}" if batch.expiry_date else ""
@@ -542,17 +551,15 @@ def api_get_batches_for_adjustment():
         from datetime import date
         from sqlalchemy.orm import joinedload
         
-        # Get all active batches (not expired)
+        # Get all active batches (include all for adjustments, even with 0 stock)
         batches = InventoryBatch.query.options(
             joinedload(InventoryBatch.product),
             joinedload(InventoryBatch.location)
         ).filter(
-            InventoryBatch.status == 'active',
-            or_(
-                InventoryBatch.expiry_date == None,
-                InventoryBatch.expiry_date >= date.today()
-            )
+            InventoryBatch.status == 'active'
         ).order_by(InventoryBatch.expiry_date.asc().nullslast(), InventoryBatch.batch_name).all()
+        
+        print(f"🔧 Total batches found for adjustment: {len(batches)}")
         
         batch_data = []
         for batch in batches:
