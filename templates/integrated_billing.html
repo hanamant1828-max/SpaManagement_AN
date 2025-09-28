@@ -2170,7 +2170,17 @@ document.getElementById('billingForm').addEventListener('submit', function(e) {
                 if (event.target.matches('select[name="service_ids[]"]') || 
                     event.target.matches('input[name="service_quantities[]"]')) {
                     // Service or quantity changed, update calculations
+                    handleServiceSelection(event.target);
                     setTimeout(updateTaxCalculations, 100); // Small delay to ensure DOM is updated
+                }
+            });
+
+            // Monitor input changes for quantities
+            document.addEventListener('input', function(event) {
+                if (event.target.matches('input[name="service_quantities[]"]') ||
+                    event.target.matches('input[name="product_quantities[]"]') ||
+                    event.target.matches('input[name="product_prices[]"]')) {
+                    setTimeout(updateTaxCalculations, 100);
                 }
             });
 
@@ -2184,7 +2194,8 @@ document.getElementById('billingForm').addEventListener('submit', function(e) {
                             const quantityInput = node.querySelector('input[name="service_quantities[]"]');
 
                             if (serviceSelect) {
-                                serviceSelect.addEventListener('change', () => {
+                                serviceSelect.addEventListener('change', (e) => {
+                                    handleServiceSelection(e.target);
                                     setTimeout(updateTaxCalculations, 100);
                                 });
                             }
