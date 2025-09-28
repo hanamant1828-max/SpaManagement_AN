@@ -1166,2118 +1166,1461 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
     <script>
-        // Enhanced JavaScript with better UX
-        let scheduleData = {
-            staff: [],
-            appointments: [],
-            breaks: []
-        };
+    var availableBatches = []; // Global array to hold all available batches
+    let customerPackageData = null; // Global variable to store customer package data
 
-        let isDragging = false;
-        let dragStart = null;
-        let dragSelection = null;
-        let currentDate = new Date().toISOString().split('T')[0];
+    // =====================================================
+    // CORE HELPER FUNCTIONS
+    // =====================================================
 
-        // Enhanced notification system
-        function showNotification(message, type = 'info', duration = 5000) {
-            const toastContainer = document.getElementById('toastContainer');
-            const toastId = 'toast-' + Date.now();
-
-            const bgClass = {
-                'success': 'bg-success',
-                'error': 'bg-danger',
-                'warning': 'bg-warning',
-                'info': 'bg-info'
-            }[type] || 'bg-info';
-
-            const iconClass = {
-                'success': 'fas fa-check-circle',
-                'error': 'fas fa-exclamation-circle',
-                'warning': 'fas fa-exclamation-triangle',
-                'info': 'fas fa-info-circle'
-            }[type] || 'fas fa-info-circle';
-
-            const toastHTML = `
-                <div id="${toastId}" class="toast ${bgClass} text-white" role="alert" aria-live="assertive" aria-atomic="true">
-                    <div class="toast-header ${bgClass} text-white border-0">
-                        <i class="${iconClass} me-2"></i>
-                        <strong class="me-auto">Notification</strong>
-                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast"></button>
-                    </div>
-                    <div class="toast-body">
-                        ${message}
-                    </div>
-                </div>
-            `;
-
-            toastContainer.insertAdjacentHTML('beforeend', toastHTML);
-
-            const toastElement = document.getElementById(toastId);
-            const toast = new bootstrap.Toast(toastElement, { delay: duration });
-            toast.show();
-
-            // Remove from DOM after hidden
-            toastElement.addEventListener('hidden.bs.toast', () => {
-                toastElement.remove();
-            });
-        }
-
-        // Enhanced loading functions
-        function showLoading() {
-            const overlay = document.getElementById('loadingOverlay');
-            overlay.classList.add('show');
-
-            // Show progress bar
-            const progressBar = document.getElementById('progressBar');
-            progressBar.style.display = 'block';
-            progressBar.style.animation = 'shimmer 2s linear infinite';
-        }
-
-        function hideLoading() {
-            const overlay = document.getElementById('loadingOverlay');
-            overlay.classList.remove('show');
-
-            // Hide progress bar
-            setTimeout(() => {
-                const progressBar = document.getElementById('progressBar');
-                progressBar.style.display = 'none';
-            }, 300);
-        }
-
-        function showLoadingAndLoadSample() {
-            showLoading();
-            setTimeout(() => {
-                loadSampleData();
-                hideLoading();
-            }, 800);
-        }
-
-        function showLoadingAndLoad() {
-            showLoading();
-            setTimeout(() => {
-                loadScheduleForDate();
-                hideLoading();
-            }, 800);
-        }
-
-        function showLoadingAndRefresh() {
-            showLoading();
-            setTimeout(() => {
-                refreshSchedule();
-                hideLoading();
-            }, 600);
-        }
-
-        // Enhanced date navigation
-        function navigateDate(direction) {
-            const dateInput = document.getElementById('scheduleDate');
-            const currentDate = new Date(dateInput.value);
-            currentDate.setDate(currentDate.getDate() + direction);
-            dateInput.value = currentDate.toISOString().split('T')[0];
-            showLoadingAndLoad();
-        }
-
-        function goToToday() {
-            const dateInput = document.getElementById('scheduleDate');
-            dateInput.value = new Date().toISOString().split('T')[0];
-            showLoadingAndLoad();
-        }
-
-        // Update current time and date
-        function updateCurrentDateTime() {
-            const now = new Date();
-            document.getElementById('currentTime').textContent = now.toLocaleTimeString('en-US', {
-                hour: '2-digit',
-                minute: '2-digit',
-                hour12: true
-            });
-            document.getElementById('currentDate').textContent = now.toLocaleDateString('en-US', {
-                weekday: 'long',
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric'
-            });
-        }
-
-        // Quick actions
-        function scrollToTop() {
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        }
-
-        function exportSchedule() {
-            showNotification('Exporting schedule...', 'info');
-            // Implementation for export functionality
-            setTimeout(() => {
-                showNotification('Schedule exported successfully!', 'success');
-            }, 2000);
-        }
-
-        function printSchedule() {
-            window.print();
-        }
-
-        function clearAllData() {
-            if (confirm('Are you sure you want to clear all appointment data? This action cannot be undone.')) {
-                showLoading();
-
-                fetch('/api/unaki/clear-all-data', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    }
-                })
-                .then(response => response.json())
-                .then(data => {
-                    hideLoading();
-                    if (data.success) {
-                        showNotification(data.message, 'success');
-                        // Reload the schedule after clearing data
-                        loadScheduleForDate();
-                    } else {
-                        showNotification('Error clearing data: ' + data.error, 'error');
-                    }
-                })
-                .catch(error => {
-                    hideLoading();
-                    console.error('Error clearing data:', error);
-                    showNotification('Error clearing data. Please try again.', 'error');
-                });
+    function findEmptyServiceRow() {
+        const serviceRows = document.querySelectorAll('.service-row');
+        for (let row of serviceRows) {
+            const serviceSelect = row.querySelector('select[name="service_ids[]"]');
+            if (!serviceSelect.value) {
+                return row;
             }
         }
+        return null;
+    }
 
-        // Multi-service booking system
-        let serviceRowCount = 0;
-        let servicesData = [];
-        let staffData = [];
+    function showNotification(message, type = 'info') {
+        const notification = document.createElement('div');
+        notification.className = alert alert-${type} alert-dismissible fade show position-fixed;
+        notification.style.cssText = `
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+            min-width: 300px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        `;
+        notification.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
 
-        // Enhanced appointment booking
-        function openQuickBookingModal() {
-            const modal = new bootstrap.Modal(document.getElementById('bookingModal'));
-
-            // Reset form
-            const form = document.getElementById('bookingForm');
-            if (form) form.reset();
-
-            // Clear services container and add first service row
-            const servicesContainer = document.getElementById('servicesContainer');
-            servicesContainer.innerHTML = '';
-            serviceRowCount = 0;
-            addServiceRow();
-
-            modal.show();
-
-            // Focus on client selection
-            setTimeout(() => {
-                document.getElementById('clientName').focus();
-            }, 500);
-        }
-
-        // Add a new service row
-        function addServiceRow() {
-            serviceRowCount++;
-            const servicesContainer = document.getElementById('servicesContainer');
-
-            const serviceRow = document.createElement('div');
-            serviceRow.className = 'service-row mb-3 p-3 border rounded';
-            serviceRow.id = `serviceRow_${serviceRowCount}`;
-
-            serviceRow.innerHTML = `
-                <div class="row g-3 align-items-end">
-                    <div class="col-md-3">
-                        <label class="form-label">Service *</label>
-                        <select class="form-select service-select" data-row="${serviceRowCount}" required>
-                            <option value="">Select Service</option>
-                        </select>
-                    </div>
-                    <div class="col-md-2">
-                        <label class="form-label">Staff *</label>
-                        <select class="form-select staff-select" data-row="${serviceRowCount}" required>
-                            <option value="">Select Staff</option>
-                        </select>
-                    </div>
-                    <div class="col-md-2">
-                        <label class="form-label">Start Time *</label>
-                        <input type="time" class="form-control start-time" data-row="${serviceRowCount}" required onchange="updateServiceEndTime(${serviceRowCount})">
-                    </div>
-                    <div class="col-md-2">
-                        <label class="form-label">End Time</label>
-                        <input type="time" class="form-control end-time" data-row="${serviceRowCount}" readonly>
-                    </div>
-                    <div class="col-md-2">
-                        <label class="form-label">Price ($)</label>
-                        <input type="number" class="form-control service-price" data-row="${serviceRowCount}" step="0.01" readonly>
-                    </div>
-                    <div class="col-md-1">
-                        <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeServiceRow(${serviceRowCount})" ${serviceRowCount === 1 ? 'style="display:none"' : ''}>
-                            <i class="fas fa-times"></i>
-                        </button>
-                    </div>
-                </div>
-            `;
-
-            servicesContainer.appendChild(serviceRow);
-
-            // Populate dropdowns
-            populateServiceDropdown(serviceRowCount);
-            populateStaffDropdown(serviceRowCount);
-
-            // Add event listeners
-            setupServiceRowEventListeners(serviceRowCount);
-
-            // Set default start time for services
-            if (serviceRowCount === 1) {
-                const now = new Date();
-                const nextHour = new Date(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours() + 1, 0);
-                const timeString = nextHour.toTimeString().slice(0, 5);
-                serviceRow.querySelector('.start-time').value = timeString;
-            } else {
-                // For subsequent services, start after the previous service ends
-                const previousRows = document.querySelectorAll('.service-row');
-                const lastRow = previousRows[previousRows.length - 2]; // Get previous row
-                if (lastRow) {
-                    const lastEndTime = lastRow.querySelector('.end-time').value;
-                    if (lastEndTime) {
-                        serviceRow.querySelector('.start-time').value = lastEndTime;
-                    }
-                }
+        document.body.appendChild(notification);
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.parentNode.removeChild(notification);
             }
-        }
+        }, 5000);
+    }
 
-        // Remove a service row
-        function removeServiceRow(rowId) {
-            const serviceRow = document.getElementById(`serviceRow_${rowId}`);
-            if (serviceRow) {
-                serviceRow.remove();
-                calculateTotals();
+    function formatCurrency(amount) {
+        return ₹${(amount || 0).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})};
+    }
 
-                // Show remove button on remaining rows if more than one
-                const remainingRows = document.querySelectorAll('.service-row');
-                remainingRows.forEach((row, index) => {
-                    const removeBtn = row.querySelector('.btn-outline-danger');
-                    if (remainingRows.length > 1) {
-                        removeBtn.style.display = 'block';
-                    } else {
-                        removeBtn.style.display = 'none';
-                    }
-                });
-            }
-        }
+    // =====================================================
+    // FIXED UNAKI APPOINTMENT BILLING FUNCTION
+    // =====================================================
 
-        // Populate service dropdown
-        function populateServiceDropdown(rowId) {
-            const serviceSelect = document.querySelector(`[data-row="${rowId}"].service-select`);
-            if (serviceSelect && servicesData.length > 0) {
-                serviceSelect.innerHTML = '<option value="">Select Service</option>';
-                servicesData.forEach(service => {
-                    const option = document.createElement('option');
-                    option.value = service.id || service.name;
-                    option.textContent = `${service.name} ($${service.price}) - ${service.duration}min`;
-                    option.dataset.price = service.price;
-                    option.dataset.duration = service.duration;
-                    serviceSelect.appendChild(option);
-                });
-            }
-        }
+    function addUnakiAppointmentToBill(appointmentId, serviceName, servicePrice, serviceDuration) {
+        console.log('Adding Unaki appointment to bill:', appointmentId, serviceName, servicePrice, serviceDuration);
 
-        // Populate staff dropdown
-        function populateStaffDropdown(rowId) {
-            const staffSelect = document.querySelector(`[data-row="${rowId}"].staff-select`);
-            if (staffSelect && staffData.length > 0) {
-                staffSelect.innerHTML = '<option value="">Select Staff</option>';
-                staffData.forEach(staff => {
-                    const option = document.createElement('option');
-                    option.value = staff.id;
-                    option.textContent = `${staff.name} (${staff.specialty || staff.role || 'Staff'})`;
-                    staffSelect.appendChild(option);
-                });
+        try {
+            servicePrice = parseFloat(servicePrice) || 0;
 
-                // Auto-select first available staff for better UX
-                if (staffData.length > 0) {
-                    staffSelect.value = staffData[0].id;
-                }
-            }
-        }
-
-        // Setup event listeners for service row
-        function setupServiceRowEventListeners(rowId) {
-            const serviceSelect = document.querySelector(`[data-row="${rowId}"].service-select`);
-            const priceInput = document.querySelector(`[data-row="${rowId}"].service-price`);
-
-            serviceSelect.addEventListener('change', function() {
-                const selectedOption = this.options[this.selectedIndex];
-                if (selectedOption.dataset.price) {
-                    priceInput.value = selectedOption.dataset.price;
-                    updateServiceEndTime(rowId);
-                    calculateTotals();
-                }
-            });
-        }
-
-        // Update end time for a specific service
-        function updateServiceEndTime(rowId) {
-            const startTimeInput = document.querySelector(`[data-row="${rowId}"].start-time`);
-            const endTimeInput = document.querySelector(`[data-row="${rowId}"].end-time`);
-            const serviceSelect = document.querySelector(`[data-row="${rowId}"].service-select`);
-
-            if (startTimeInput.value && serviceSelect.value) {
-                const selectedOption = serviceSelect.options[serviceSelect.selectedIndex];
-                const duration = parseInt(selectedOption.dataset.duration) || 60;
-
-                const startTime = new Date(`2000-01-01T${startTimeInput.value}:00`);
-                const endTime = new Date(startTime.getTime() + duration * 60000);
-                endTimeInput.value = endTime.toTimeString().slice(0, 5);
-            }
-        }
-
-        // Calculate totals
-        function calculateTotals() {
-            let totalDuration = 0;
-            let subtotal = 0;
-
-            document.querySelectorAll('.service-row').forEach(row => {
-                const serviceSelect = row.querySelector('.service-select');
-                const priceInput = row.querySelector('.service-price');
-
-                if (serviceSelect.value && priceInput.value) {
-                    const selectedOption = serviceSelect.options[serviceSelect.selectedIndex];
-                    const duration = parseInt(selectedOption.dataset.duration) || 0;
-                    const price = parseFloat(priceInput.value) || 0;
-
-                    totalDuration += duration;
-                    subtotal += price;
-                }
-            });
-
-            // Update totals display
-            const hours = Math.floor(totalDuration / 60);
-            const minutes = totalDuration % 60;
-            const durationText = hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
-
-            document.getElementById('totalDuration').value = durationText;
-            document.getElementById('subtotalPrice').value = `$${subtotal.toFixed(2)}`;
-
-            const discount = parseFloat(document.getElementById('discountAmount').value) || 0;
-            const grandTotal = Math.max(0, subtotal - discount);
-            document.getElementById('grandTotal').value = `$${grandTotal.toFixed(2)}`;
-        }
-
-        // Check availability for all services
-        function checkAvailability() {
-            const services = [];
-            let isValid = true;
-            let conflicts = [];
-
-            document.querySelectorAll('.service-row').forEach(row => {
-                const serviceSelect = row.querySelector('.service-select');
-                const staffSelect = row.querySelector('.staff-select');
-                const startTime = row.querySelector('.start-time');
-                const endTime = row.querySelector('.end-time');
-
-                if (!serviceSelect.value || !staffSelect.value || !startTime.value || !endTime.value) {
-                    isValid = false;
-                    return;
-                }
-
-                services.push({
-                    service: serviceSelect.options[serviceSelect.selectedIndex].text,
-                    staff: staffSelect.options[staffSelect.selectedIndex].text,
-                    staffId: parseInt(staffSelect.value),
-                    startTime: startTime.value,
-                    endTime: endTime.value
-                });
-            });
-
-            if (!isValid) {
-                showNotification('Please fill in all service details before checking availability', 'warning');
-                return;
+            if (servicePrice === 0) {
+                console.warn('Service price is 0 or invalid:', servicePrice);
             }
 
-            console.log('🔍 Checking availability for services:', services);
-
-            // Enhanced overlap detection - check for any time conflicts between new services
-            for (let i = 0; i < services.length; i++) {
-                for (let j = i + 1; j < services.length; j++) {
-                    if (services[i].staffId === services[j].staffId) {
-                        const start1 = timeToMinutes(services[i].startTime);
-                        const end1 = timeToMinutes(services[i].endTime);
-                        const start2 = timeToMinutes(services[j].startTime);
-                        const end2 = timeToMinutes(services[j].endTime);
-
-                        // Check for overlap: appointments overlap if start1 < end2 AND start2 < end1
-                        if (start1 < end2 && start2 < end1) {
-                            conflicts.push(`${services[i].staff} has overlapping appointments: ${services[i].startTime}-${services[i].endTime} conflicts with ${services[j].startTime}-${services[j].endTime}`);
-                        }
-                    }
-                }
+            let targetRow = findEmptyServiceRow();
+            if (!targetRow) {
+                addServiceRow();
+                targetRow = findEmptyServiceRow();
             }
 
-            // Check against existing appointments in the schedule
-            services.forEach((service, index) => {
-                const staffId = service.staffId;
-                const serviceStart = timeToMinutes(service.startTime);
-                const serviceEnd = timeToMinutes(service.endTime);
-
-                // Check against existing appointments
-                scheduleData.appointments.forEach(existingApt => {
-                    if (existingApt.staffId === staffId) {
-                        const existingStart = timeToMinutes(existingApt.startTime);
-                        const existingEnd = timeToMinutes(existingApt.endTime);
-
-                        if (serviceStart < existingEnd && serviceEnd > existingStart) {
-                            conflicts.push(`${service.staff} conflicts with existing appointment: ${existingApt.clientName} (${existingApt.startTime}-${existingApt.endTime})`);
-                        }
-                    }
-                });
-            });
-
-            // Show availability results
-            let availabilityText = 'Availability Check Results:\n\n';
-            services.forEach((service, index) => {
-                const serviceConflicts = conflicts.filter(c => c.includes(service.staff));
-                const hasConflicts = serviceConflicts.length > 0;
-
-                availabilityText += `${index + 1}. ${service.service}\n`;
-                availabilityText += `   Staff: ${service.staff}\n`;
-                availabilityText += `   Time: ${service.startTime} - ${service.endTime}\n`;
-                availabilityText += `   Status: ${hasConflicts ? '⚠️ Conflict Detected' : '✅ Available'}\n\n`;
-            });
-
-            if (conflicts.length > 0) {
-                availabilityText += 'Conflicts Found:\n' + conflicts.join('\n');
-                showNotification('Time conflicts detected! Please adjust the schedule.', 'warning');
-            } else {
-                showNotification('All services are available!', 'success');
+            if (!targetRow) {
+                throw new Error('Cannot create service row');
             }
 
-            // Use modal instead of alert for better UX
-            const modal = document.createElement('div');
-            modal.className = 'modal fade';
-            modal.innerHTML = `
-                <div class="modal-dialog">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h5 class="modal-title">${conflicts.length > 0 ? '⚠️ Availability Check Results' : '✅ Availability Check Results'}</h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                        </div>
-                        <div class="modal-body">
-                            <pre style="white-space: pre-wrap; font-family: inherit;">${availabilityText}</pre>
-                        </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                            ${conflicts.length === 0 ? '<button type="button" class="btn btn-primary" onclick="bookMultiServiceAppointment(); bootstrap.Modal.getInstance(this.closest(\'.modal\')).hide();">Book Appointments</button>' : ''}
-                        </div>
-                    </div>
-                </div>
-            `;
-            document.body.appendChild(modal);
-            const bootstrapModal = new bootstrap.Modal(modal);
-            bootstrapModal.show();
+            const serviceSelect = targetRow.querySelector('select[name="service_ids[]"]');
+            const quantityInput = targetRow.querySelector('input[name="service_quantities[]"]');
+            const appointmentInput = targetRow.querySelector('input[name="appointment_ids[]"]');
 
-            // Clean up modal after hiding
-            modal.addEventListener('hidden.bs.modal', () => {
-                modal.remove();
-            });
-        }
-
-        // Book multi-service appointment
-        function bookMultiServiceAppointment() {
-            const clientSelect = document.getElementById('clientSelect');
-            const clientName = document.getElementById('clientName');
-
-            // Validate client selection
-            if (!clientSelect.value && !clientName.value) {
-                showNotification('Please select a client or enter a new client name', 'error');
-                return;
+            if (!serviceSelect || !quantityInput || !appointmentInput) {
+                throw new Error('Required form elements not found in service row');
             }
 
-            // Validate services
-            const serviceRows = document.querySelectorAll('.service-row');
-            if (serviceRows.length === 0) {
-                showNotification('Please add at least one service', 'error');
-                return;
-            }
-
-            let isValid = true;
-            const services = [];
-
-            serviceRows.forEach((row, index) => {
-                const serviceSelect = row.querySelector('.service-select');
-                const staffSelect = row.querySelector('.staff-select');
-                const startTime = row.querySelector('.start-time');
-                const endTime = row.querySelector('.end-time');
-                const price = row.querySelector('.service-price');
-
-                if (!serviceSelect.value || !staffSelect.value || !startTime.value) {
-                    isValid = false;
-                    return;
-                }
-
-                services.push({
-                    serviceName: serviceSelect.options[serviceSelect.selectedIndex].text.split(' (')[0],
-                    serviceId: serviceSelect.value,
-                    staffId: staffSelect.value,
-                    staffName: staffSelect.options[staffSelect.selectedIndex].text,
-                    startTime: startTime.value,
-                    endTime: endTime.value,
-                    price: parseFloat(price.value) || 0,
-                    duration: parseInt(serviceSelect.options[serviceSelect.selectedIndex].dataset.duration) || 60
-                });
-            });
-
-            if (!isValid) {
-                showNotification('Please fill in all required fields for each service', 'error');
-                return;
-            }
-
-            // Prepare booking data
-            const bookingData = {
-                clientId: clientSelect.value,
-                clientName: clientName.value,
-                clientPhone: document.getElementById('clientPhone').value,
-                clientEmail: document.getElementById('clientEmail').value,
-                services: services,
-                notes: document.getElementById('appointmentNotes').value,
-                discount: parseFloat(document.getElementById('discountAmount').value) || 0,
-                totalAmount: parseFloat(document.getElementById('grandTotal').value.replace('$', '')) || 0,
-                appointmentDate: currentDate
-            };
-
-            console.log('Booking multi-service appointment:', bookingData);
-
-            // Show booking in progress
-            showLoading();
-
-            // Process each service booking
-            bookMultipleServices(bookingData);
-        }
-
-        // Process multiple service bookings
-        function bookMultipleServices(bookingData) {
-            console.log('📋 Processing multiple service bookings:', bookingData);
-
-            const promises = bookingData.services.map((service, index) => {
-                const serviceBookingData = {
-                    clientId: bookingData.clientId,
-                    clientName: bookingData.clientName || document.getElementById('clientSelect').options[document.getElementById('clientSelect').selectedIndex]?.text,
-                    clientPhone: bookingData.clientPhone,
-                    clientEmail: bookingData.clientEmail,
-                    staffId: parseInt(service.staffId),
-                    staffName: service.staffName.split(' (')[0],
-                    serviceName: service.serviceName,
-                    serviceDuration: service.duration,
-                    servicePrice: service.price,
-                    date: bookingData.appointmentDate,
-                    startTime: service.startTime,
-                    endTime: service.endTime,
-                    notes: bookingData.notes + (index > 0 ? ` (Service ${index + 1} of ${bookingData.services.length})` : ''),
-                    amount_charged: service.price - (bookingData.discount / bookingData.services.length)
-                };
-
-                console.log(` uitgenodigd Sending booking request ${index + 1}:`, serviceBookingData);
-
-                return fetch('/api/unaki/book-appointment', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(serviceBookingData)
-                });
-            });
-
-            Promise.all(promises)
-                .then(responses => {
-                    console.log('📥 Received responses:', responses);
-                    return Promise.all(responses.map(async (response, index) => {
-                        const text = await response.text();
-                        console.log(`Response ${index + 1}:`, text);
-                        try {
-                            return JSON.parse(text);
-                        } catch (e) {
-                            console.error(`Failed to parse response ${index + 1}:`, e);
-                            return { success: false, error: 'Invalid response format' };
-                        }
-                    }));
-                })
-                .then(results => {
-                    hideLoading();
-                    console.log('📊 All results:', results);
-
-                    const successCount = results.filter(result => result.success).length;
-                    const totalCount = results.length;
-                    const failedResults = results.filter(result => !result.success);
-
-                    if (successCount === totalCount) {
-                        showNotification(`All ${totalCount} services booked successfully!`, 'success');
-
-                        // Close modal and refresh schedule
-                        const modal = bootstrap.Modal.getInstance(document.getElementById('bookingModal'));
-                        if (modal) modal.hide();
-
-                        // Reset form
-                        document.getElementById('bookingForm').reset();
-                        const servicesContainer = document.getElementById('servicesContainer');
-                        servicesContainer.innerHTML = '';
-                        serviceRowCount = 0;
-
-                        loadScheduleForDate();
-                    } else {
-                        let errorMessage = `${successCount} of ${totalCount} services booked successfully. `;
-                        if (failedResults.length > 0) {
-                            const errors = failedResults.map(r => r.error).join('; ');
-                            errorMessage += `Failures: ${errors}`;
-                        }
-                        showNotification(errorMessage, 'warning');
-
-                        // Reload schedule to show successful bookings
-                        loadScheduleForDate();
-                    }
-                })
-                .catch(error => {
-                    hideLoading();
-                    console.error('❌ Error booking appointments:', error);
-                    showNotification('Network error while booking appointments. Please try again.', 'error');
-                });
-        }
-
-        // Load sample data function
-        function loadSampleData() {
-            showNotification('Loading sample data...', 'info');
-
-            fetch('/api/unaki/load-sample-data', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    showNotification(data.message, 'success');
-                    // Reload the schedule after loading sample data
-                    loadScheduleForDate();
-                } else {
-                    showNotification('Error loading sample data: ' + data.error, 'error');
-                }
-            })
-            .catch(error => {
-                console.error('Error loading sample data:', error);
-                showNotification('Error loading sample data: HTTP error! status: 502', 'error');
-            });
-        }
-
-        // Enhanced time display functions
-        function updateTimeDisplay(input) {
-            if (!input.value) return;
-
-            const [hours, minutes] = input.value.split(':');
-            const time = new Date();
-            time.setHours(parseInt(hours), parseInt(minutes));
-
-            const display = time.toLocaleTimeString('en-US', {
-                hour: '2-digit',
-                minute: '2-digit',
-                hour12: true
-            });
-
-            const displayElement = document.getElementById(input.id + 'Display');
-            if (displayElement) {
-                displayElement.textContent = display;
-            }
-        }
-
-        function updateEndTime() {
-            const startTime = document.getElementById('startTime').value;
-            const duration = parseInt(document.getElementById('appointmentDuration').value);
-
-            if (startTime && duration) {
-                const [hours, minutes] = startTime.split(':');
-                const startDate = new Date();
-                startDate.setHours(parseInt(hours), parseInt(minutes));
-
-                const endDate = new Date(startDate.getTime() + duration * 60000);
-                const endTimeString = endDate.toTimeString().slice(0, 5);
-
-                document.getElementById('endTime').value = endTimeString;
-                updateTimeDisplay(document.getElementById('endTime'));
-            }
-        }
-
-        // Initialize application
-        document.addEventListener('DOMContentLoaded', function() {
-            showLoading();
-            document.getElementById('scheduleDate').value = currentDate;
-
-            // Update time every second
-            updateCurrentDateTime();
-            setInterval(updateCurrentDateTime, 1000);
-
-            // Load initial data
-            Promise.all([
-                loadScheduleForDate(),
-                loadServices(),
-                loadStaff(),
-                loadClients()
-            ]).then(() => {
-                hideLoading();
-                showNotification('Schedule loaded successfully!', 'success', 3000);
-            }).catch(error => {
-                console.error('Error loading initial data:', error);
-                hideLoading();
-                showNotification('Error loading schedule data', 'error');
-            });
-
-            // Add keyboard shortcuts
-            document.addEventListener('keydown', function(e) {
-                if (e.ctrlKey || e.metaKey) {
-                    switch(e.key) {
-                        case 'n':
-                            e.preventDefault();
-                            openQuickBookingModal();
-                            break;
-                        case 'r':
-                            e.preventDefault();
-                            showLoadingAndRefresh();
-                            break;
-                    }
-                }
-            });
-        });
-
-        // Rest of the existing JavaScript functions with enhanced error handling and UX improvements
-        // (keeping all the existing functionality but with better user feedback)
-
-        // Configuration
-        const SCHEDULE_CONFIG = {
-            startHour: 8,
-            endHour: 20,
-            slotMinutes: 5,
-            staffColumnWidth: 240,
-            timeSlotWidth: 45
-        };
-
-        function generateTimeSlots() {
-            const slots = [];
-            const totalSlots = (SCHEDULE_CONFIG.endHour - SCHEDULE_CONFIG.startHour) * (60 / SCHEDULE_CONFIG.slotMinutes);
-
-            for (let i = 0; i < totalSlots; i++) {
-                const totalMinutes = SCHEDULE_CONFIG.startHour * 60 + (i * SCHEDULE_CONFIG.slotMinutes);
-                const hour = Math.floor(totalMinutes / 60);
-                const minute = totalMinutes % 60;
-
-                const timeStr = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
-                const displayTime = formatDisplayTime(hour, minute);
-
-                slots.push({
-                    time: timeStr,
-                    display: displayTime,
-                    index: i
-                });
-            }
-            return slots;
-        }
-
-        function formatDisplayTime(hour, minute) {
-            const period = hour >= 12 ? 'PM' : 'AM';
-            const displayHour = hour > 12 ? hour - 12 : (hour === 0 ? 12 : hour);
-
-            if (minute % 15 === 0) {
-                const displayMinute = minute === 0 ? '' : `:${minute.toString().padStart(2, '0')}`;
-                return `${displayHour}${displayMinute}${period}`;
-            } else if (minute % 5 === 0) {
-                return `:${minute.toString().padStart(2, '0')}`;
-            }
-            return '';
-        }
-
-        // Enhanced API functions with better error handling
-        function loadServices() {
-            return fetch('/api/unaki/services')
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! status: ${response.status}`);
-                    }
-                    return response.json();
-                })
-                .then(services => {
-                    console.log('Loaded services:', Array.isArray(services) ? services.length : 'Invalid data');
-
-                    // Store services data globally for multi-service booking
-                    servicesData = services || [];
-
-                    const serviceSelect = document.getElementById('serviceType');
-                    if (serviceSelect && Array.isArray(services)) {
-                        serviceSelect.innerHTML = '<option value="">Select Service</option>';
-
-                        const servicesByCategory = {};
-                        services.forEach(service => {
-                            const category = service.category || 'General';
-                            if (!servicesByCategory[category]) {
-                                servicesByCategory[category] = [];
-                            }
-                            servicesByCategory[category].push(service);
-                        });
-
-                        Object.keys(servicesByCategory).sort().forEach(category => {
-                            const optgroup = document.createElement('optgroup');
-                            optgroup.label = category;
-
-                            servicesByCategory[category].forEach(service => {
-                                const option = document.createElement('option');
-                                option.value = service.name;
-                                option.textContent = `${service.name} (${service.duration} min)`;
-                                option.dataset.serviceId = service.id;
-                                option.dataset.duration = service.duration;
-                                option.dataset.price = service.price;
-                                optgroup.appendChild(option);
-                            });
-
-                            serviceSelect.appendChild(optgroup);
-                        });
-
-                        serviceSelect.addEventListener('change', function() {
-                            const selectedOption = this.options[this.selectedIndex];
-                            if (selectedOption && selectedOption.dataset.duration) {
-                                const durationSelect = document.getElementById('appointmentDuration');
-                                if (durationSelect) {
-                                    durationSelect.value = selectedOption.dataset.duration;
-                                    updateEndTime();
-                                }
-                            }
-                        });
-                    }
-
-                    return services;
-                })
-                .catch(error => {
-                    console.error('Failed to load services:', error);
-                    showNotification('Failed to load services', 'error');
-                    return [];
-                });
-        }
-
-        function loadStaff() {
-            return fetch('/api/unaki/staff')
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! status: ${response.status}`);
-                    }
-                    return response.json();
-                })
-                .then(staff => {
-                    console.log('Loaded staff:', Array.isArray(staff) ? staff.length : 'Invalid data');
-
-                    // Store staff data globally for multi-service booking
-                    staffData = staff || [];
-
-                    const staffSelect = document.getElementById('staffSelect');
-                    if (staffSelect && Array.isArray(staff)) {
-                        staffSelect.innerHTML = '<option value="">Select Staff</option>';
-                        staff.forEach(member => {
-                            const option = document.createElement('option');
-                            option.value = member.id;
-                            option.textContent = `${member.name} (${member.specialty || member.role || 'Staff'})`;
-                            staffSelect.appendChild(option);
-                        });
-                    }
-                    return staff;
-                })
-                .catch(error => {
-                    console.error('Failed to load staff:', error);
-                    showNotification('Failed to load staff', 'error');
-                    return [];
-                });
-        }
-
-        function loadClients() {
-            return fetch('/api/unaki/clients')
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! status: ${response.status}`);
-                    }
-                    return response.json();
-                })
-                .then(clients => {
-                    console.log('Loaded clients:', Array.isArray(clients) ? clients.length : 'Invalid data');
-
-                    const clientSelect = document.getElementById('clientSelect');
-                    if (clientSelect && Array.isArray(clients)) {
-                        clientSelect.innerHTML = '<option value="">Select Client</option>';
-
-                        clients.forEach(client => {
-                            const option = document.createElement('option');
-                            option.value = client.id;
-                            option.textContent = `${client.name}`;
-                            option.dataset.phone = client.phone || '';
-                            option.dataset.email = client.email || '';
-                            clientSelect.appendChild(option);
-                        });
-
-                        clientSelect.addEventListener('change', function() {
-                            const selectedOption = this.options[this.selectedIndex];
-                            if (selectedOption && selectedOption.value) {
-                                document.getElementById('clientName').value = selectedOption.textContent;
-                                document.getElementById('clientPhone').value = selectedOption.dataset.phone || '';
-                                document.getElementById('clientEmail').value = selectedOption.dataset.email || '';
-                                document.getElementById('clientName').placeholder = 'Selected: ' + selectedOption.textContent;
-                            } else {
-                                document.getElementById('clientName').value = '';
-                                document.getElementById('clientPhone').value = '';
-                                document.getElementById('clientEmail').value = '';
-                                document.getElementById('clientName').placeholder = 'Enter new client name';
-                            }
-                        });
-                    }
-
-                    return clients;
-                })
-                .catch(error => {
-                    console.error('Failed to load clients:', error);
-                    showNotification('Failed to load clients', 'error');
-                    return [];
-                });
-        }
-
-        function loadScheduleForDate() {
-            currentDate = document.getElementById('scheduleDate').value;
-            console.log('Loading schedule for date:', currentDate);
-
-            fetch(`/api/unaki/schedule?date=${currentDate}`)
-                .then(response => {
-                    console.log('Schedule API response status:', response.status);
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! status: ${response.status}`);
-                    }
-                    return response.text();
-                })
-                .then(text => {
-                    console.log('Schedule API raw response:', text.substring(0, 200) + '...');
-                    try {
-                        const data = JSON.parse(text);
-                        if (data.success) {
-                            scheduleData = {
-                                staff: data.staff || [],
-                                appointments: data.appointments || [],
-                                breaks: data.breaks || []
-                            };
-                            console.log('Schedule data loaded:', scheduleData);
-
-                            const adminAppointments = scheduleData.appointments.filter(apt => apt.staffId === 11);
-                            console.log(`🔍 Admin User (ID: 11) appointments found: ${adminAppointments.length}`);
-                            adminAppointments.forEach((apt, index) => {
-                                console.log(`   ${index + 1}. ${apt.clientName} - ${apt.service} (${apt.startTime} - ${apt.endTime})`);
-                            });
-                        } else {
-                            console.error('Failed to load schedule:', data.error);
-                            scheduleData = { staff: [], appointments: [], breaks: [] };
-                            showNotification('Failed to load schedule: ' + data.error, 'error');
-                        }
-                    } catch (parseError) {
-                        console.error('JSON parse error:', parseError);
-                        scheduleData = { staff: [], appointments: [], breaks: [] };
-                        showNotification('Error parsing schedule data', 'error');
-                    }
-                    renderSchedule();
-                    updateStats();
-                })
-                .catch(error => {
-                    console.error('Error loading schedule:', error);
-                    scheduleData = { staff: [], appointments: [], breaks: [] };
-                    renderSchedule();
-                    updateStats();
-                    showNotification('Error loading schedule data', 'error');
-                });
-        }
-
-        function loadSampleData() {
-            console.log('Loading sample data...');
-            showNotification('Loading sample data...', 'info');
-
-            scheduleData = {
-                staff: [],
-                appointments: [],
-                breaks: []
-            };
-
-            const grid = document.getElementById('scheduleGrid');
-            if (grid) {
-                grid.innerHTML = '<div class="text-center p-5"><div class="spinner-border text-primary" role="status"></div><p class="mt-3 text-muted">Loading fresh data...</p></div>';
-            }
-
-            fetch('/api/unaki/load-sample-data', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({})
-            })
-            .then(response => {
-                console.log('Sample data API response status:', response.status);
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                return response.text();
-            })
-            .then(text => {
-                console.log('Sample data API raw response:', text.substring(0, 200) + '...');
-                try {
-                    const data = JSON.parse(text);
-                    if (data.success) {
-                        console.log('Sample data loaded:', data.message);
-                        loadScheduleForDate();
-                        showNotification('Sample data loaded successfully!', 'success', 3000);
-                    } else {
-                        console.error('Failed to load sample data:', data.error);
-                        showNotification('Failed to load sample data: ' + data.error, 'error', 5000);
-                    }
-                } catch (parseError) {
-                    console.error('JSON parse error in sample data:', parseError);
-                    showNotification('Error parsing sample data response', 'error', 5000);
-                }
-            })
-            .catch(error => {
-                console.error('Error loading sample data:', error);
-                showNotification('Error loading sample data: ' + error.message, 'error', 5000);
-            });
-        }
-
-        function clearAllData() {
-            if (confirm('Are you sure you want to clear all appointment data? This will remove all bookings for today.')) {
-                console.log('Clearing all data...');
-                showNotification('Clearing all data...', 'info');
-
-                handleClearAllData() // Call the new API handler
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            scheduleData = {
-                                staff: [],
-                                appointments: [],
-                                breaks: []
-                            };
-                            renderSchedule();
-                            updateStats();
-                            showNotification('All appointment data cleared!', 'success', 2000);
-                        } else {
-                            showNotification('Failed to clear data: ' + data.error, 'error');
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error clearing data:', error);
-                        showNotification('Error clearing data: ' + error.message, 'error');
-                    });
-            }
-        }
-
-        // Add clear all data API endpoint handler
-        function handleClearAllData() {
-            return fetch('/api/unaki/bookings', {
-                method: 'DELETE',
-                headers: {
-                    'Content-Type': 'application/json',
-                }
-            });
-        }
-
-        // Generate schedule grid HTML
-        function generateScheduleGrid() {
-            const grid = document.getElementById('scheduleGrid');
-            const timeSlots = generateTimeSlots();
-
-            grid.innerHTML = '';
-            grid.style.gridTemplateColumns = `${SCHEDULE_CONFIG.staffColumnWidth}px repeat(${timeSlots.length}, ${SCHEDULE_CONFIG.timeSlotWidth}px)`;
-
-            // Create header row
-            const emptyCorner = document.createElement('div');
-            emptyCorner.className = 'time-header';
-            emptyCorner.innerHTML = '<strong style="writing-mode: horizontal-tb;">👥 Staff</strong>';
-            grid.appendChild(emptyCorner);
-
-            // Time headers
-            timeSlots.forEach(slot => {
-                const timeHeader = document.createElement('div');
-                timeHeader.className = 'time-header';
-                timeHeader.textContent = slot.display;
-                grid.appendChild(timeHeader);
-            });
-
-            // Create staff rows
-            scheduleData.staff.forEach(staff => {
-                // Staff name cell
-                const staffCell = document.createElement('div');
-                staffCell.className = 'staff-cell';
-                staffCell.innerHTML = `
-                    <div class="staff-name">${staff.name}</div>
-                    <div class="staff-role">${staff.specialty || 'Staff'}</div>
-                `;
-                grid.appendChild(staffCell);
-
-                // Time slot cells for this staff member
-                timeSlots.forEach((slot, slotIndex) => {
-                    const timeSlot = document.createElement('div');
-                    timeSlot.className = 'time-slot';
-                    timeSlot.dataset.staffId = staff.id;
-                    timeSlot.dataset.time = slot.time;
-                    timeSlot.dataset.slotIndex = slotIndex;
-
-                    timeSlot.addEventListener('click', (e) => {
-                        if (!timeSlot.classList.contains('has-appointments')) {
-                            handleSlotClick(staff.id, slot.time, e);
-                        }
-                    });
-
-                    grid.appendChild(timeSlot);
-                });
-            });
-
-            renderAppointments();
-        }
-
-        function renderAppointments() {
-            const grid = document.getElementById('scheduleGrid');
-            const timeSlots = generateTimeSlots();
-
-            grid.querySelectorAll('.appointment-block').forEach(block => block.remove());
-
-            const appointmentsByStaff = {};
-            scheduleData.appointments.forEach(appointment => {
-                if (!appointmentsByStaff[appointment.staffId]) {
-                    appointmentsByStaff[appointment.staffId] = [];
-                }
-                appointmentsByStaff[appointment.staffId].push(appointment);
-            });
-
-            Object.keys(appointmentsByStaff).forEach(staffId => {
-                const staffAppointments = appointmentsByStaff[staffId];
-
-                staffAppointments.sort((a, b) => {
-                    const timeA = a.startTime.split(':').map(Number);
-                    const timeB = b.startTime.split(':').map(Number);
-                    return (timeA[0] * 60 + timeA[1]) - (timeB[0] * 60 + timeB[1]);
-                });
-
-                staffAppointments.forEach((appointment, appointmentIndex) => {
-                    const startSlotIndex = getSlotIndexFromTime(appointment.startTime);
-                    if (startSlotIndex === -1) return;
-
-                    let overlapIndex = 0;
-                    let totalOverlaps = 1;
-
-                    for (let i = 0; i < appointmentIndex; i++) {
-                        const prevAppointment = staffAppointments[i];
-                        if (appointmentsOverlap(prevAppointment, appointment)) {
-                            overlapIndex++;
-                            totalOverlaps = Math.max(totalOverlaps, overlapIndex + 1);
-                        }
-                    }
-
-                    for (let i = appointmentIndex + 1; i < staffAppointments.length; i++) {
-                        const nextAppointment = staffAppointments[i];
-                        if (appointmentsOverlap(appointment, nextAppointment)) {
-                            totalOverlaps++;
-                        }
-                    }
-
-                    const appointmentBlock = createAppointmentBlock(appointment, startSlotIndex, overlapIndex, totalOverlaps);
-
-                    const startTimeSlotCell = grid.querySelector(`[data-staff-id="${staffId}"][data-slot-index="${startSlotIndex}"]`);
-                    if (startTimeSlotCell) {
-                        const durationMinutes = getTimeDifferenceInMinutes(appointment.startTime, appointment.endTime);
-                        const durationSlots = Math.ceil(durationMinutes / SCHEDULE_CONFIG.slotMinutes);
-
-                        for (let i = 0; i < durationSlots; i++) {
-                            const slotCell = grid.querySelector(`[data-staff-id="${staffId}"][data-slot-index="${startSlotIndex + i}"]`);
-                            if (slotCell) {
-                                slotCell.classList.add('has-appointments');
+            let matchedServiceId = null;
+            let finalServicePrice = servicePrice;
+
+            // Enhanced service matching - try multiple approaches
+            for (let option of serviceSelect.options) {
+                if (option.value) {
+                    const optionText = option.text.toLowerCase();
+                    const searchName = serviceName.toLowerCase();
+
+                    // Try exact match first
+                    if (optionText.includes(searchName)) {
+                        matchedServiceId = option.value;
+
+                        // Extract price from option text if available
+                        const priceMatch = option.text.match(/₹([\d,]+\.?\d*)/);
+                        if (priceMatch) {
+                            const systemPrice = parseFloat(priceMatch[1].replace(/,/g, ''));
+                            if (systemPrice > 0) {
+                                finalServicePrice = systemPrice;
                             }
                         }
-
-                        startTimeSlotCell.style.position = 'relative';
-                        startTimeSlotCell.appendChild(appointmentBlock);
-                    }
-                });
-            });
-        }
-
-        function createAppointmentBlock(appointment, startSlotIndex, overlapIndex, totalOverlaps) {
-            const appointmentBlock = document.createElement('div');
-            appointmentBlock.className = 'appointment-block';
-
-            // Add appointment ID for context menu functionality
-            if (appointment.id) {
-                appointmentBlock.setAttribute('data-appointment-id', appointment.id);
-                appointmentBlock.dataset.appointmentId = appointment.id;
-                console.log(`🔍 Setting appointment block ID: ${appointment.id} for ${appointment.clientName}`);
-            }
-
-            const serviceCategory = getServiceCategory(appointment.service || appointment.serviceType);
-            let serviceCategoryClass = '';
-            if (serviceCategory) {
-                appointmentBlock.classList.add('service-category-' + serviceCategory);
-                serviceCategoryClass = 'service-category-' + serviceCategory;
-            }
-
-            const startTime = appointment.startTime;
-            const endTime = appointment.endTime;
-            const durationMinutes = getTimeDifferenceInMinutes(startTime, endTime);
-            const durationSlots = Math.ceil(durationMinutes / SCHEDULE_CONFIG.slotMinutes);
-
-            // Calculate gradient based on category
-            let gradientStyle = `linear-gradient(135deg, #667eea 0%, #764ba2 100%)`; // Default gradient
-            switch (serviceCategory) {
-                case 'massage': gradientStyle = 'linear-gradient(135deg, #48bb78 0%, #38a169 100%)'; break;
-                case 'facial': gradientStyle = 'linear-gradient(135deg, #ed8936 0%, #dd6b20 100%)'; break;
-                case 'hair': gradientStyle = 'linear-gradient(135deg, #9f7aea 0%, #805ad5 100%)'; break;
-                case 'nails': gradientStyle = 'linear-gradient(135deg, #f56565 0%, #e53e3e 100%)'; break;
-                case 'body': gradientStyle = 'linear-gradient(135deg, #38b2ac 0%, #319795 100%)'; break;
-            }
-
-            // Set basic styles
-            appointmentBlock.style.cssText = `
-                background: ${gradientStyle};
-                color: white;
-                border-radius: 12px;
-                padding: 8px 10px;
-                font-size: 11px;
-                line-height: 1.3;
-                cursor: pointer;
-                min-height: 70px;
-                z-index: 15;
-                display: flex;
-                flex-direction: column;
-                justify-content: space-between;
-                position: absolute;
-                top: 2px;
-                left: 2px;
-                right: 2px;
-                transition: all 0.3s ease;
-                border: 1px solid rgba(255, 255, 255, 0.3);
-                box-shadow: 0 4px 20px rgba(102, 126, 234, 0.4);
-                overflow: hidden;
-                width: ${(durationSlots * SCHEDULE_CONFIG.timeSlotWidth) - 4}px;
-            `;
-
-            // Add appointment content
-            appointmentBlock.innerHTML = `
-                <div class="appointment-client" style="font-weight: 700; margin-bottom: 2px; font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                    ${appointment.clientName}
-                </div>
-                <div class="appointment-service" style="font-size: 9px; opacity: 0.9; margin-bottom: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                    ${appointment.service}
-                </div>
-                <div class="appointment-time" style="font-size: 8px; opacity: 0.8; font-weight: 500; margin-top: auto; background: rgba(255, 255, 255, 0.2); padding: 2px 4px; border-radius: 4px; text-align: center;">
-                    ${appointment.startTime} - ${appointment.endTime}
-                </div>
-            `;
-
-            // Add click handler
-            appointmentBlock.addEventListener('click', (e) => {
-                e.stopPropagation();
-                handleAppointmentClick(appointment);
-            });
-
-            // Add context menu handler
-            appointmentBlock.addEventListener('contextmenu', function(event) {
-                event.preventDefault();
-                event.stopPropagation();
-
-                // Call the context menu handler
-                if (typeof window.handleAppointmentRightClick === 'function') {
-                    window.handleAppointmentRightClick(event);
-                } else if (typeof handleAppointmentRightClick === 'function') {
-                    handleAppointmentRightClick(event);
-                } else {
-                    console.log('Context menu handler not available');
-                    // Fallback: show simple context menu
-                    showFallbackContextMenu(event, appointment.id);
-                }
-            });
-
-            // Add hover effects
-            appointmentBlock.addEventListener('mouseenter', function() {
-                this.style.transform = 'translateY(-2px) scale(1.02)';
-                this.style.boxShadow = '0 8px 30px rgba(102, 126, 234, 0.6)';
-            });
-
-            appointmentBlock.addEventListener('mouseleave', function() {
-                this.style.transform = 'translateY(0) scale(1)';
-                this.style.boxShadow = '0 4px 20px rgba(102, 126, 234, 0.4)';
-            });
-
-            return appointmentBlock;
-        }
-
-
-        // Helper functions
-        function appointmentsOverlap(apt1, apt2) {
-            const start1 = timeToMinutes(apt1.startTime);
-            const end1 = timeToMinutes(apt1.endTime);
-            const start2 = timeToMinutes(apt2.startTime);
-            const end2 = timeToMinutes(apt2.endTime);
-
-            return start1 < end2 && start2 < end1;
-        }
-
-        function timeToMinutes(timeStr) {
-            const [hours, minutes] = timeStr.split(':').map(Number);
-            return hours * 60 + minutes;
-        }
-
-        function getSlotIndexFromTime(timeStr) {
-            const [hour, minute] = timeStr.split(':').map(Number);
-            const totalMinutes = hour * 60 + minute;
-            const startMinutes = SCHEDULE_CONFIG.startHour * 60;
-            const slotIndex = Math.floor((totalMinutes - startMinutes) / SCHEDULE_CONFIG.slotMinutes);
-
-            if (slotIndex < 0 || hour < SCHEDULE_CONFIG.startHour || hour >= SCHEDULE_CONFIG.endHour) {
-                return -1;
-            }
-
-            return slotIndex;
-        }
-
-        function getTimeDifferenceInMinutes(startTime, endTime) {
-            const [startHour, startMinute] = startTime.split(':').map(Number);
-            const [endHour, endMinute] = endTime.split(':').map(Number);
-
-            const startTotalMinutes = startHour * 60 + startMinute;
-            const endTotalMinutes = endHour * 60 + endMinute;
-
-            return endTotalMinutes - startTotalMinutes;
-        }
-
-        function getServiceCategory(serviceType) {
-            if (!serviceType) return '';
-
-            const service = serviceType.toLowerCase();
-            if (service.includes('massage') || service.includes('therapy')) return 'massage';
-            if (service.includes('facial') || service.includes('skin')) return 'facial';
-            if (service.includes('hair') || service.includes('cut') || service.includes('style')) return 'hair';
-            if (service.includes('nail') || service.includes('mani') || service.includes('pedi')) return 'nails';
-            if (service.includes('body') || service.includes('wrap') || service.includes('scrub')) return 'body';
-
-            return '';
-        }
-
-        function handleSlotClick(staffId, timeStr, event) {
-            const modal = new bootstrap.Modal(document.getElementById('bookingModal'));
-
-            const staffSelect = document.getElementById('staffSelect');
-            if (staffSelect) {
-                staffSelect.value = staffId;
-            }
-
-            const startTimeInput = document.getElementById('startTime');
-            if (startTimeInput) {
-                startTimeInput.value = timeStr;
-                updateEndTime();
-                updateTimeDisplay(startTimeInput);
-            }
-
-            modal.show();
-        }
-
-        function handleAppointmentClick(appointment) {
-            showNotification(`Appointment: ${appointment.clientName} - ${appointment.service}`, 'info', 3000);
-        }
-
-        function editAppointment(appointmentId) {
-            console.log('Editing appointment:', appointmentId);
-
-            // Find the appointment in the schedule data
-            const appointment = scheduleData.appointments.find(apt => apt.id === appointmentId);
-            if (!appointment) {
-                showNotification('Appointment not found', 'error');
-                return;
-            }
-
-            console.log('Found appointment to edit:', appointment);
-
-            // Ensure dropdowns are populated first
-            Promise.all([
-                populateEditServiceDropdown(),
-                populateEditStaffDropdown()
-            ]).then(() => {
-                // Populate the edit form
-                document.getElementById('editAppointmentId').value = appointmentId;
-                document.getElementById('editClientName').value = appointment.clientName;
-                document.getElementById('editClientPhone').value = appointment.clientPhone || '';
-
-                // Set service by name (find matching option)
-                const serviceSelect = document.getElementById('editServiceSelect');
-                let foundService = false;
-                for (let option of serviceSelect.options) {
-                    if (option.value === appointment.serviceName || option.textContent.includes(appointment.serviceName)) {
-                        serviceSelect.value = option.value;
-                        foundService = true;
                         break;
                     }
-                }
-                // If not found by name, try to find by ID if available
-                if (!foundService && appointment.serviceId) {
-                    serviceSelect.value = appointment.serviceId;
-                }
 
-                document.getElementById('editStaffSelect').value = appointment.staffId;
-                document.getElementById('editAppointmentDate').value = appointment.appointment_date || currentDate;
-                document.getElementById('editStartTime').value = appointment.startTime;
-                document.getElementById('editEndTime').value = appointment.endTime;
-                document.getElementById('editStatus').value = appointment.status || 'confirmed';
-                document.getElementById('editServicePrice').value = appointment.amount || 0;
-                document.getElementById('editAppointmentNotes').value = appointment.notes || '';
+                    // Try partial word matching
+                    const nameWords = searchName.split(' ');
+                    const optionWords = optionText.split(' ');
+                    let matchCount = 0;
 
-                // Update end time and price when service or start time changes
-                updateEditEndTime();
+                    nameWords.forEach(word => {
+                        if (optionWords.some(optWord => optWord.includes(word) || word.includes(optWord))) {
+                            matchCount++;
+                        }
+                    });
+
+                    if (matchCount >= Math.ceil(nameWords.length / 2) && !matchedServiceId) {
+                        matchedServiceId = option.value;
+
+                        const priceMatch = option.text.match(/₹([\d,]+\.?\d*)/);
+                        if (priceMatch) {
+                            const systemPrice = parseFloat(priceMatch[1].replace(/,/g, ''));
+                            if (systemPrice > 0) {
+                                finalServicePrice = systemPrice;
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (matchedServiceId) {
+                serviceSelect.value = matchedServiceId;
+                quantityInput.value = '1';
+                appointmentInput.value = unaki_${appointmentId};
+
+                // CRITICAL: Ensure the selected option has the correct price data
                 const selectedOption = serviceSelect.options[serviceSelect.selectedIndex];
-                if (selectedOption && selectedOption.dataset.price) {
-                    document.getElementById('editServicePrice').value = selectedOption.dataset.price;
+                if (selectedOption) {
+                    selectedOption.setAttribute('data-price', finalServicePrice.toString());
+                    selectedOption.dataset.price = finalServicePrice.toString();
+                    console.log(Set price data for ${serviceName}: ₹${finalServicePrice});
                 }
 
-                // Show the modal
-                const modal = new bootstrap.Modal(document.getElementById('editAppointmentModal'));
-                modal.show();
+                // Visual feedback
+                targetRow.style.borderLeft = '4px solid #007bff';
+                targetRow.style.backgroundColor = 'rgba(0, 123, 255, 0.1)';
+
+                // Add Unaki indicator
+                let indicator = targetRow.querySelector('.unaki-indicator');
+                if (!indicator) {
+                    indicator = document.createElement('small');
+                    indicator.className = 'unaki-indicator text-info fw-bold d-block mt-1';
+                    indicator.innerHTML = '<i class="fas fa-calendar-check me-1"></i>Unaki Booking Added';
+                    targetRow.appendChild(indicator);
+                }
+
+                // Force trigger service selection handling
+                handleServiceSelection(serviceSelect);
+
+                // Force calculation updates
+                setTimeout(() => {
+                    updateTaxCalculations();
+                }, 100);
+
+                setTimeout(() => {
+                    updateTaxCalculations();
+                }, 300);
+
+                showNotification(Added ${serviceName} (₹${finalServicePrice}) to bill, 'success');
+                return true;
+            } else {
+                quantityInput.value = '1';
+                appointmentInput.value = unaki_${appointmentId};
+
+                let indicator = targetRow.querySelector('.unaki-indicator');
+                if (!indicator) {
+                    indicator = document.createElement('small');
+                    indicator.className = 'unaki-indicator text-warning fw-bold d-block mt-1';
+                    indicator.innerHTML = <i class="fas fa-exclamation-triangle me-1"></i>Service "${serviceName}" not found - Please select manually;
+                    targetRow.appendChild(indicator);
+                }
+
+                showNotification(Service "${serviceName}" not found in dropdown. Please select manually., 'warning');
+                return false;
+            }
+        } catch (error) {
+            console.error('Error adding Unaki appointment to bill:', error);
+            showNotification(Error adding appointment: ${error.message}, 'error');
+            return false;
+        }
+    }
+
+    // =====================================================
+    // SERVICE HANDLING FUNCTIONS
+    // =====================================================
+
+    function handleServiceSelection(selectElement) {
+        console.log('Handle service selection triggered');
+
+        const selectedOption = selectElement.options[selectElement.selectedIndex];
+
+        if (selectedOption && selectedOption.value) {
+            let price = selectedOption.dataset.price || selectedOption.getAttribute('data-price');
+
+            if (!price || price === '0' || price === '') {
+                const priceMatch = selectedOption.text.match(/₹([\d,]+\.?\d*)/);
+                if (priceMatch) {
+                    price = parseFloat(priceMatch[1].replace(/,/g, ''));
+                    selectedOption.setAttribute('data-price', price.toString());
+                    selectedOption.dataset.price = price.toString();
+                }
+            }
+
+            price = parseFloat(price) || 0;
+            console.log(Service selected: "${selectedOption.text}" with price: ₹${price});
+
+            setTimeout(() => {
+                updateTaxCalculations();
+            }, 50);
+        } else {
+            console.log('Service deselected');
+            setTimeout(() => {
+                updateTaxCalculations();
+            }, 50);
+        }
+    }
+
+    function addServiceRow() {
+        const container = document.getElementById('servicesContainer');
+        if (!container) {
+            console.error('Services container not found');
+            return;
+        }
+
+        const firstRow = container.children[0];
+        if (!firstRow) {
+            console.error('No service rows found to clone');
+            return;
+        }
+
+        const newRow = firstRow.cloneNode(true);
+
+        // Clear values
+        newRow.querySelectorAll('select, input').forEach(input => {
+            if (input.type === 'number') {
+                input.value = input.name.includes('quantities') ? '1' : '';
+            } else {
+                input.value = '';
+            }
+        });
+
+        // Change button to remove
+        const button = newRow.querySelector('button');
+        if (button) {
+            button.className = 'btn btn-danger btn-sm';
+            button.innerHTML = '<i class="fas fa-minus"></i>';
+            button.onclick = function() { 
+                this.closest('.service-row').remove(); 
+                updateTaxCalculations(); 
+            };
+        }
+
+        container.appendChild(newRow);
+        return newRow;
+    }
+
+    // =====================================================
+    // PACKAGE BENEFIT FUNCTIONS
+    // =====================================================
+
+    function checkServicePackageBenefit(serviceId, serviceName, originalPrice, quantity) {
+        if (!customerPackageData || !customerPackageData.packages) {
+            return null;
+        }
+
+        quantity = Math.max(1, quantity);
+        console.log(Checking package benefits for service ID ${serviceId}: ${serviceName});
+
+        // Priority order: unlimited > service_package > prepaid
+        for (const pkg of customerPackageData.packages) {
+            if (!pkg.is_active) continue;
+
+            console.log(Checking package: ${pkg.package_name} (${pkg.package_type}));
+
+            // 1. Check unlimited membership (highest priority)
+            if (pkg.package_type === 'membership') {
+                for (const session of pkg.sessions) {
+                    if (session.benefit_type === 'unlimited' && session.service_id === serviceId) {
+                        console.log(Unlimited benefit found for service ${serviceId});
+                        return {
+                            type: 'unlimited',
+                            packageName: pkg.package_name,
+                            originalPrice: originalPrice * quantity,
+                            finalPrice: 0,
+                            discount: originalPrice * quantity,
+                            description: FREE via ${pkg.package_name} (Unlimited)
+                        };
+                    }
+                }
+            }
+
+            // 2. Check service package benefits
+            if (pkg.package_type === 'service_package') {
+                for (const session of pkg.sessions) {
+                    if (session.service_id === serviceId && session.sessions_remaining > 0) {
+                        const sessionsToCover = Math.min(quantity, session.sessions_remaining);
+                        const sessionsToPayFor = Math.max(0, quantity - sessionsToCover);
+
+                        const totalServicePrice = originalPrice * quantity;
+                        const coveredAmount = sessionsToCover * originalPrice;
+                        const finalPrice = sessionsToPayFor * originalPrice;
+
+                        console.log(Service package benefit: ${sessionsToCover}/${quantity} sessions covered);
+
+                        return {
+                            type: sessionsToPayFor === 0 ? 'service_package_full' : 'service_package_partial',
+                            packageName: pkg.package_name,
+                            originalPrice: totalServicePrice,
+                            finalPrice: finalPrice,
+                            discount: coveredAmount,
+                            description: sessionsToPayFor === 0 ? 
+                                All ${sessionsToCover} sessions FREE via ${pkg.package_name} :
+                                ${sessionsToCover} of ${quantity} sessions FREE via ${pkg.package_name},
+                            sessionsRemaining: session.sessions_remaining,
+                            sessionsCovered: sessionsToCover,
+                            sessionsToPayFor: sessionsToPayFor
+                        };
+                    }
+                }
+            }
+
+            // 3. Check prepaid package benefits
+            if (pkg.package_type === 'prepaid') {
+                for (const session of pkg.sessions) {
+                    if (session.benefit_type === 'prepaid' && session.balance_remaining > 0) {
+                        const serviceTotal = originalPrice * quantity;
+
+                        if (session.balance_remaining >= serviceTotal) {
+                            console.log(Full prepaid coverage: ₹${serviceTotal} from ₹${session.balance_remaining} balance);
+                            return {
+                                type: 'prepaid_full',
+                                packageName: pkg.package_name,
+                                originalPrice: serviceTotal,
+                                finalPrice: 0,
+                                discount: serviceTotal,
+                                description: FREE via ${pkg.package_name} (Prepaid Credit)
+                            };
+                        } else {
+                            console.log(Partial prepaid coverage: ₹${session.balance_remaining} off ₹${serviceTotal});
+                            return {
+                                type: 'prepaid_partial',
+                                packageName: pkg.package_name,
+                                originalPrice: serviceTotal,
+                                finalPrice: serviceTotal - session.balance_remaining,
+                                discount: session.balance_remaining,
+                                description: ₹${session.balance_remaining} off via ${pkg.package_name}
+                            };
+                        }
+                    }
+                }
+            }
+        }
+
+        console.log(No package benefits found for service ${serviceId});
+        return null;
+    }
+
+    function updateServiceDisplayWithBenefit(row, benefit, index) {
+        let benefitDisplay = row.querySelector('.package-benefit-display');
+        if (!benefitDisplay) {
+            benefitDisplay = document.createElement('div');
+            benefitDisplay.className = 'package-benefit-display mt-1';
+            row.appendChild(benefitDisplay);
+        }
+
+        if (benefit.finalPrice === 0) {
+            benefitDisplay.innerHTML = `
+                <small class="text-success fw-bold">
+                    <i class="fas fa-gift me-1"></i>FREE - ${benefit.description}
+                    <br><strike class="text-muted">₹${benefit.originalPrice.toFixed(2)}</strike>
+                    <span class="badge bg-success ms-1">100% Covered</span>
+                </small>
+            `;
+            benefitDisplay.style.backgroundColor = '#d4edda';
+            benefitDisplay.style.border = '1px solid #28a745';
+            benefitDisplay.style.padding = '6px 10px';
+            benefitDisplay.style.borderRadius = '6px';
+        } else {
+            const isPartialCoverage = benefit.sessionsCovered && benefit.sessionsToPayFor;
+            const coveragePercent = Math.round((benefit.discount / benefit.originalPrice) * 100);
+
+            benefitDisplay.innerHTML = `
+                <small class="fw-bold">
+                    <i class="fas fa-percentage me-1 text-info"></i>${benefit.description}
+                    <br>
+                    ${isPartialCoverage ? 
+                        <span class="text-success">✓ Free: ${benefit.sessionsCovered} sessions</span> | <span class="text-warning">₹ Pay: ${benefit.sessionsToPayFor} sessions</span><br> : 
+                        ''
+                    }
+                    <span class="text-dark">Pay: ₹${benefit.finalPrice.toFixed(2)}</span> 
+                    <strike class="text-muted small">₹${benefit.originalPrice.toFixed(2)}</strike>
+                    <span class="badge bg-info ms-1">${coveragePercent}% Saved</span>
+                    <br><span class="text-success small">Package Discount: ₹${benefit.discount.toFixed(2)}</span>
+                </small>
+            `;
+            benefitDisplay.style.backgroundColor = '#e3f2fd';
+            benefitDisplay.style.border = '1px solid #2196f3';
+            benefitDisplay.style.padding = '6px 10px';
+            benefitDisplay.style.borderRadius = '6px';
+        }
+    }
+
+    function clearServiceBenefitDisplay(row, index) {
+        const benefitDisplay = row.querySelector('.package-benefit-display');
+        if (benefitDisplay) {
+            benefitDisplay.remove();
+        }
+    }
+
+    // =====================================================
+    // CALCULATION FUNCTIONS
+    // =====================================================
+
+    function calculateServicesSubtotalWithPackages() {
+        let total = 0;
+        let packageSavings = 0;
+
+        console.log('Calculating services with package benefits...');
+
+        document.querySelectorAll('.service-row').forEach((row, index) => {
+            const serviceSelect = row.querySelector('select[name="service_ids[]"]');
+            const quantityInput = row.querySelector('input[name="service_quantities[]"]');
+
+            if (serviceSelect && serviceSelect.value && quantityInput && quantityInput.value) {
+                const selectedOption = serviceSelect.options[serviceSelect.selectedIndex];
+                const serviceId = parseInt(serviceSelect.value);
+                const serviceName = selectedOption.text;
+                const quantity = parseFloat(quantityInput.value) || 1;
+
+                let originalPrice = parseFloat(selectedOption.dataset.price || selectedOption.getAttribute('data-price')) || 0;
+
+                if (originalPrice === 0) {
+                    const priceMatch = selectedOption.text.match(/₹([\d,]+\.?\d*)/);
+                    if (priceMatch) {
+                        originalPrice = parseFloat(priceMatch[1].replace(/,/g, ''));
+                        selectedOption.setAttribute('data-price', originalPrice.toString());
+                        selectedOption.dataset.price = originalPrice.toString();
+                    }
+                }
+
+                console.log(Service ${index + 1}: ${serviceName} - Original: ₹${originalPrice} × ${quantity});
+
+                if (originalPrice > 0) {
+                    const originalTotal = originalPrice * quantity;
+                    let finalPrice = originalTotal;
+
+                    if (customerPackageData && customerPackageData.packages) {
+                        const packageBenefit = checkServicePackageBenefit(serviceId, serviceName, originalPrice, quantity);
+
+                        if (packageBenefit) {
+                            finalPrice = packageBenefit.finalPrice;
+                            const savings = packageBenefit.discount;
+                            packageSavings += savings;
+
+                            console.log(Package benefit applied: ${packageBenefit.description});
+                            console.log(Savings: ₹${savings.toFixed(2)}, Final: ₹${finalPrice.toFixed(2)});
+
+                            updateServiceDisplayWithBenefit(row, packageBenefit, index);
+                        } else {
+                            clearServiceBenefitDisplay(row, index);
+                        }
+                    }
+
+                    total += finalPrice;
+                    console.log(Added to total: ₹${finalPrice.toFixed(2)});
+                } else {
+                    console.warn(Service ${index + 1}: No valid price found);
+                }
+            }
+        });
+
+        console.log(Total services: ₹${total.toFixed(2)}, Package savings: ₹${packageSavings.toFixed(2)});
+        return total;
+    }
+
+    function updateTaxCalculations() {
+        console.log('=== BILLING CALCULATION (FIXED) ===');
+
+        try {
+            let servicesSubtotal = 0;
+            let inventorySubtotal = 0;
+
+            // Enhanced service calculation with package benefits
+            servicesSubtotal = calculateServicesSubtotalWithPackages();
+
+            // Calculate inventory subtotal
+            const productRows = document.querySelectorAll('.product-row');
+            productRows.forEach((row, index) => {
+                const quantityInput = row.querySelector('input[name="product_quantities[]"]');
+                const priceInput = row.querySelector('input[name="product_prices[]"]');
+
+                if (quantityInput && priceInput && quantityInput.value && priceInput.value) {
+                    const quantity = parseFloat(quantityInput.value) || 0;
+                    const price = parseFloat(priceInput.value) || 0;
+                    const lineTotal = quantity * price;
+                    inventorySubtotal += lineTotal;
+                    console.log(Product ${index + 1}: ₹${price} × ${quantity} = ₹${lineTotal});
+                }
+            });
+
+            const grossSubtotal = servicesSubtotal + inventorySubtotal;
+            console.log(Services subtotal (with packages): ₹${servicesSubtotal.toFixed(2)});
+            console.log(Inventory subtotal: ₹${inventorySubtotal.toFixed(2)});
+            console.log(Gross subtotal: ₹${grossSubtotal.toFixed(2)});
+
+            // Calculate discount
+            const discountType = document.getElementById('discount_type').value;
+            const discountValue = parseFloat(document.getElementById('discount_value').value) || 0;
+            let discountAmount = 0;
+
+            if (discountType === 'percentage') {
+                discountAmount = (grossSubtotal * discountValue) / 100;
+            } else {
+                discountAmount = discountValue;
+            }
+            discountAmount = Math.min(discountAmount, grossSubtotal);
+
+            const taxableAmount = Math.max(0, grossSubtotal - discountAmount);
+
+            // Calculate taxes
+            const isInterstate = document.getElementById('is_interstate').checked;
+            let cgstAmount = 0, sgstAmount = 0, igstAmount = 0;
+
+            if (isInterstate) {
+                const igstRate = parseFloat(document.getElementById('igst_rate').value) || 0;
+                igstAmount = (taxableAmount * igstRate) / 100;
+            } else {
+                const cgstRate = parseFloat(document.getElementById('cgst_rate').value) || 0;
+                const sgstRate = parseFloat(document.getElementById('sgst_rate').value) || 0;
+                cgstAmount = (taxableAmount * cgstRate) / 100;
+                sgstAmount = (taxableAmount * sgstRate) / 100;
+            }
+
+            const additionalCharges = parseFloat(document.getElementById('additional_charges').value) || 0;
+            const tipsAmount = parseFloat(document.getElementById('tips_amount').value) || 0;
+
+            const totalTaxAmount = cgstAmount + sgstAmount + igstAmount;
+            const totalAmount = taxableAmount + totalTaxAmount + additionalCharges + tipsAmount;
+
+            // Update display
+            document.getElementById('display_subtotal').textContent = formatCurrency(grossSubtotal);
+            document.getElementById('display_discount').textContent = formatCurrency(discountAmount);
+            document.getElementById('display_cgst').textContent = formatCurrency(cgstAmount + igstAmount);
+            document.getElementById('display_sgst').textContent = formatCurrency(sgstAmount);
+            document.getElementById('display_additional').textContent = formatCurrency(additionalCharges + tipsAmount);
+            document.getElementById('display_total').textContent = formatCurrency(totalAmount);
+
+            updateTaxSummaryDisplay(isInterstate, totalTaxAmount, taxableAmount);
+
+            console.log(Final calculation: Subtotal: ₹${grossSubtotal.toFixed(2)}, Total: ₹${totalAmount.toFixed(2)});
+
+        } catch (error) {
+            console.error('Error in updateTaxCalculations:', error);
+            // Set safe defaults on error
+            ['display_subtotal', 'display_discount', 'display_cgst', 'display_sgst', 'display_additional', 'display_total'].forEach(id => {
+                const element = document.getElementById(id);
+                if (element) element.textContent = '₹0.00';
             });
         }
+    }
 
-        function populateEditServiceDropdown() {
-            const serviceSelect = document.getElementById('editServiceSelect');
-            if (serviceSelect && servicesData.length > 0) {
-                serviceSelect.innerHTML = '<option value="">Select Service</option>';
-                servicesData.forEach(service => {
-                    const option = document.createElement('option');
-                    option.value = service.id || service.name; // Use ID if available, otherwise name
-                    option.textContent = `${service.name} ($${service.price}) - ${service.duration}min`;
-                    option.dataset.price = service.price;
-                    option.dataset.duration = service.duration;
-                    serviceSelect.appendChild(option);
-                });
+    function updateTaxSummaryDisplay(isInterstate, totalTaxAmount, taxableAmount) {
+        try {
+            const taxTypeDisplay = document.getElementById('tax_type_display');
+            const totalTaxDisplay = document.getElementById('total_tax_display');
+            const taxPercentageDisplay = document.getElementById('tax_percentage_display');
 
-                // Add event listener for service selection changes
-                serviceSelect.addEventListener('change', function() {
-                    const selectedOption = this.options[this.selectedIndex];
-                    if (selectedOption && selectedOption.dataset.price) {
-                        document.getElementById('editServicePrice').value = selectedOption.dataset.price;
-                        updateEditEndTime();
-                    }
-                });
+            if (taxTypeDisplay) {
+                taxTypeDisplay.textContent = isInterstate ? 'Interstate (IGST)' : 'Intrastate (CGST + SGST)';
             }
+
+            if (totalTaxDisplay) {
+                totalTaxDisplay.textContent = formatCurrency(totalTaxAmount);
+            }
+
+            if (taxPercentageDisplay) {
+                const cgstRate = parseFloat(document.getElementById('cgst_rate').value) || 0;
+                const sgstRate = parseFloat(document.getElementById('sgst_rate').value) || 0;
+                const igstRate = parseFloat(document.getElementById('igst_rate').value) || 0;
+
+                const totalTaxRate = isInterstate ? igstRate : (cgstRate + sgstRate);
+                taxPercentageDisplay.textContent = ${totalTaxRate.toFixed(2)}%;
+            }
+        } catch (error) {
+            console.error('Error updating tax summary display:', error);
+        }
+    }
+
+    function toggleTaxType() {
+        try {
+            const isInterstate = document.getElementById('is_interstate').checked;
+            const cgstInput = document.getElementById('cgst_rate');
+            const sgstInput = document.getElementById('sgst_rate');
+            const igstInput = document.getElementById('igst_rate');
+
+            if (isInterstate) {
+                cgstInput.value = 0;
+                sgstInput.value = 0;
+                cgstInput.disabled = true;
+                sgstInput.disabled = true;
+                igstInput.disabled = false;
+                if (parseFloat(igstInput.value) === 0) igstInput.value = '18';
+
+                cgstInput.classList.add('text-muted');
+                sgstInput.classList.add('text-muted');
+                igstInput.classList.remove('text-muted');
+            } else {
+                igstInput.value = 0;
+                igstInput.disabled = true;
+                cgstInput.disabled = false;
+                sgstInput.disabled = false;
+                if (parseFloat(cgstInput.value) === 0) cgstInput.value = '9';
+                if (parseFloat(sgstInput.value) === 0) sgstInput.value = '9';
+
+                igstInput.classList.add('text-muted');
+                cgstInput.classList.remove('text-muted');
+                sgstInput.classList.remove('text-muted');
+            }
+
+            updateTaxCalculations();
+        } catch (error) {
+            console.error('Error in toggleTaxType:', error);
+        }
+    }
+
+    // =====================================================
+    // AUTO-FILL FUNCTIONS
+    // =====================================================
+
+    function autoFillCurrentServices() {
+        {% if selected_customer and customer_appointments %}
+        const servicesContainer = document.getElementById('servicesContainer');
+
+        // Clear existing service rows except the first one
+        const serviceRows = servicesContainer.querySelectorAll('.service-row');
+        for (let i = 1; i < serviceRows.length; i++) {
+            serviceRows[i].remove();
         }
 
-        function populateEditStaffDropdown() {
-            const staffSelect = document.getElementById('editStaffSelect');
-            if (staffSelect && staffData.length > 0) {
-                staffSelect.innerHTML = '<option value="">Select Staff</option>';
-                staffData.forEach(staff => {
-                    const option = document.createElement('option');
-                    option.value = staff.id;
-                    option.textContent = `${staff.name} (${staff.specialty || staff.role || 'Staff'})`;
-                    staffSelect.appendChild(option);
-                });
+        // Get customer's Unaki appointments
+        const customerAppointments = {{ customer_appointments | tojson }};
+        let servicesAdded = 0;
+
+        customerAppointments.forEach((appointment, index) => {
+            const serviceName = appointment.service_name || 'Unknown Service';
+            const servicePrice = parseFloat(appointment.service_price) || 0;
+            const appointmentId = appointment.id;
+            const serviceDuration = appointment.service_duration || 60;
+
+            const success = addUnakiAppointmentToBill(appointmentId, serviceName, servicePrice, serviceDuration);
+            if (success) {
+                servicesAdded++;
             }
-        }
+        });
 
-        function updateEditEndTime() {
-            const startTime = document.getElementById('editStartTime').value;
-            const serviceSelect = document.getElementById('editServiceSelect');
+        setTimeout(() => {
+            updateTaxCalculations();
+        }, 500);
 
-            if (startTime && serviceSelect.value) {
-                const selectedOption = serviceSelect.options[serviceSelect.selectedIndex];
-                const duration = parseInt(selectedOption.dataset.duration) || 60;
+        showNotification(Auto-filled ${servicesAdded} of ${customerAppointments.length} Unaki appointments!, servicesAdded > 0 ? 'success' : 'warning');
+        {% else %}
+        showNotification('No current Unaki appointments found to auto-fill', 'warning');
+        {% endif %}
+    }
 
-                const startDateTime = new Date(`2000-01-01T${startTime}:00`);
-                const endDateTime = new Date(startDateTime.getTime() + duration * 60000);
-                document.getElementById('editEndTime').value = endDateTime.toTimeString().slice(0, 5);
+    function viewFullCustomerHistory() {
+        {% if selected_customer %}
+        window.open('/clients/{{ selected_customer.id }}', '_blank');
+        {% endif %}
+    }
+
+    // =====================================================
+    // PRODUCT/INVENTORY FUNCTIONS
+    // =====================================================
+
+    function addProductRow() {
+        const container = document.getElementById('productsContainer');
+        const newRow = container.children[0].cloneNode(true);
+
+        newRow.querySelectorAll('select, input').forEach(input => {
+            if (input.type === 'number') {
+                input.value = input.name.includes('quantities') ? '1' : '';
+            } else {
+                input.value = '';
             }
-        }
+        });
 
-        // Update appointment function - handles saving changes from edit modal
-        function updateAppointment() {
-            const appointmentId = document.getElementById('editAppointmentId').value;
-            if (!appointmentId) {
-                showNotification('No appointment selected for update', 'error');
-                return;
-            }
+        const batchSelect = newRow.querySelector('.batch-select');
+        batchSelect.innerHTML = '<option value="">Select Product First</option>';
+        batchSelect.disabled = true;
 
-            // Collect form data
-            const formData = {
-                client_name: document.getElementById('editClientName').value,
-                client_phone: document.getElementById('editClientPhone').value,
-                service_name: document.getElementById('editServiceSelect').options[document.getElementById('editServiceSelect').selectedIndex].text,
-                staff_id: document.getElementById('editStaffSelect').value,
-                start_time: document.getElementById('editStartTime').value,
-                end_time: document.getElementById('editEndTime').value,
-                status: document.getElementById('editStatus').value,
-                notes: document.getElementById('editAppointmentNotes').value,
-                service_price: document.getElementById('editServicePrice').value
-            };
+        newRow.querySelector('.batch-info').innerHTML = '';
 
-            // Validate required fields
-            if (!formData.client_name || !formData.service_name || !formData.staff_id || !formData.start_time) {
-                showNotification('Please fill in all required fields', 'error');
-                return;
-            }
+        const button = newRow.querySelector('button');
+        button.className = 'btn btn-danger btn-sm w-100';
+        button.innerHTML = '<i class="fas fa-minus"></i>';
+        button.onclick = function() { this.closest('.product-row').remove(); };
 
-            // Show loading state
-            const updateBtn = document.querySelector('[onclick="updateAppointment()"]');
-            const originalText = updateBtn.innerHTML;
-            updateBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Updating...';
-            updateBtn.disabled = true;
+        container.appendChild(newRow);
+    }
 
-            // Send update request
-            fetch(`/api/unaki/appointments/${appointmentId}`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(formData)
+    function loadAvailableBatches() {
+        fetch('/api/inventory/batches/for-consumption')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.batches) {
+                    availableBatches = data.batches;
+                    console.log('Available batches loaded:', availableBatches.length);
+                }
             })
+            .catch(error => {
+                console.error('Error loading batches:', error);
+            });
+    }
+
+    function loadBatchesForProduct(productSelect) {
+        const row = productSelect.closest('.row');
+        const batchSelect = row.querySelector('.batch-select');
+        const batchInfo = row.querySelector('.batch-info');
+        const quantityInput = row.querySelector('input[name="product_quantities[]"]');
+        const priceInput = row.querySelector('input[name="product_prices[]"]');
+
+        const productId = parseInt(productSelect.value);
+
+        batchSelect.innerHTML = '<option value="">Loading batches...</option>';
+        batchSelect.disabled = true;
+        batchInfo.innerHTML = '';
+
+        if (!productId) {
+            batchSelect.innerHTML = '<option value="">Select Product First</option>';
+            return;
+        }
+
+        const productBatches = availableBatches.filter(batch => {
+            return batch.product_id === productId && batch.qty_available > 0;
+        });
+
+        console.log(Product ID ${productId} has ${productBatches.length} available batches);
+
+        if (productBatches.length === 0) {
+            batchSelect.innerHTML = '<option value="">No stock available</option>';
+            batchInfo.innerHTML = '<span class="text-danger">⚠ No stock available for this product</span>';
+            if (quantityInput) quantityInput.value = '0';
+            if (priceInput) priceInput.value = '';
+            return;
+        }
+
+        productBatches.sort((a, b) => {
+            if (!a.expiry_date && !b.expiry_date) return 0;
+            if (!a.expiry_date) return 1;
+            if (!b.expiry_date) return -1;
+            return new Date(a.expiry_date) - new Date(b.expiry_date);
+        });
+
+        const firstBatch = productBatches[0];
+        batchSelect.innerHTML = <option value="${firstBatch.id}" selected>${firstBatch.dropdown_display}</option>;
+
+        productBatches.slice(1).forEach(batch => {
+            const option = document.createElement('option');
+            option.value = batch.id;
+            option.textContent = batch.dropdown_display;
+            batchSelect.appendChild(option);
+        });
+
+        batchSelect.disabled = false;
+
+        const expiryText = firstBatch.expiry_date ? 
+            Expires: ${new Date(firstBatch.expiry_date).toLocaleDateString()} : 'No expiry date';
+        batchInfo.innerHTML = `
+            <strong>Auto-selected:</strong> ${firstBatch.batch_name}<br>
+            <strong>Available:</strong> ${firstBatch.qty_available} ${firstBatch.unit}<br>
+            <strong>${expiryText}</strong>
+        `;
+
+        if (quantityInput) {
+            quantityInput.max = firstBatch.qty_available;
+            quantityInput.placeholder = Max: ${firstBatch.qty_available};
+            quantityInput.value = '1';
+            validateInventoryQuantity(quantityInput);
+        }
+
+        if (priceInput) {
+            const sellingPrice = firstBatch.selling_price || firstBatch.unit_price || firstBatch.unit_cost || 0;
+            priceInput.value = parseFloat(sellingPrice).toFixed(2);
+            updateTaxCalculations();
+        }
+
+        batchSelect.addEventListener('change', function() {
+            const selectedBatch = productBatches.find(b => b.id == this.value);
+            if (selectedBatch) {
+                const expiryText = selectedBatch.expiry_date ? 
+                    Expires: ${new Date(selectedBatch.expiry_date).toLocaleDateString()} : 'No expiry date';
+                batchInfo.innerHTML = `
+                    <strong>Selected:</strong> ${selectedBatch.batch_name}<br>
+                    <strong>Available:</strong> ${selectedBatch.qty_available} ${selectedBatch.unit}<br>
+                    <strong>${expiryText}</strong>
+                `;
+                if (quantityInput) {
+                    quantityInput.max = selectedBatch.qty_available;
+                    quantityInput.placeholder = Max: ${selectedBatch.qty_available};
+                    quantityInput.value = '1';
+                    validateInventoryQuantity(quantityInput);
+                }
+                if (priceInput) {
+                    const sellingPrice = selectedBatch.selling_price || selectedBatch.unit_price || selectedBatch.unit_cost || 0;
+                    priceInput.value = parseFloat(sellingPrice).toFixed(2);
+                    updateTaxCalculations();
+                }
+            }
+        });
+    }
+
+    function validateInventoryQuantity(quantityInput) {
+        const row = quantityInput.closest('.row');
+        const batchSelect = row.querySelector('.batch-select');
+        const productSelect = row.querySelector('.product-select');
+
+        if (!batchSelect.value || !productSelect.value) {
+            quantityInput.classList.remove('is-invalid');
+            const errorMsg = row.querySelector('.quantity-error');
+            if (errorMsg) errorMsg.remove();
+            return;
+        }
+
+        const selectedBatch = availableBatches.find(b => b.id == batchSelect.value);
+        if (selectedBatch) {
+            const requestedQty = parseFloat(quantityInput.value);
+            const availableQty = parseFloat(selectedBatch.qty_available);
+
+            if (requestedQty > availableQty) {
+                quantityInput.classList.add('is-invalid');
+                let errorMsg = row.querySelector('.quantity-error');
+                if (!errorMsg) {
+                    errorMsg = document.createElement('div');
+                    errorMsg.className = 'quantity-error text-danger small mt-1';
+                    quantityInput.parentNode.appendChild(errorMsg);
+                }
+                errorMsg.textContent = Maximum available: ${availableQty} ${selectedBatch.unit};
+            } else {
+                quantityInput.classList.remove('is-invalid');
+                const errorMsg = row.querySelector('.quantity-error');
+                if (errorMsg) errorMsg.remove();
+            }
+        }
+    }
+
+    // =====================================================
+    // CUSTOMER PACKAGE LOADING
+    // =====================================================
+
+    function loadCustomerPackages(clientId) {
+        const packagesDiv = document.getElementById('customerPackages');
+
+        if (!clientId) {
+            packagesDiv.innerHTML = '<small>Select a customer to view their active packages</small>';
+            customerPackageData = null;
+            updateTaxCalculations();
+            return;
+        }
+
+        packagesDiv.innerHTML = '<small class="text-info"><i class="fas fa-spinner fa-spin"></i> Loading packages...</small>';
+
+        fetch(/integrated-billing/customer-packages/${clientId})
             .then(response => {
                 if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
+                    throw new Error(HTTP ${response.status}: ${response.statusText});
                 }
                 return response.json();
             })
             .then(data => {
-                if (data.success) {
-                    showNotification('Appointment updated successfully!', 'success');
+                console.log('Package data received:', data);
+                customerPackageData = data;
 
-                    // Close the modal
-                    const modal = bootstrap.Modal.getInstance(document.getElementById('editAppointmentModal'));
-                    modal.hide();
-
-                    // Refresh the schedule
-                    loadScheduleData();
-                } else {
-                    throw new Error(data.message || 'Failed to update appointment');
+                if (data.error) {
+                    packagesDiv.innerHTML = <small class="text-danger">Error: ${data.error}</small>;
+                    customerPackageData = null;
+                    return;
                 }
+
+                if (data.packages && data.packages.length > 0) {
+                    let html = '<div class="alert alert-success"><strong>Active Packages:</strong><br>';
+                    data.packages.forEach(pkg => {
+                        html += <div class="badge badge-success me-1 mb-1">${pkg.package_name}</div>;
+
+                        pkg.sessions.forEach(session => {
+                            if (session.benefit_type === 'unlimited') {
+                                html += <small class="d-block text-success">${session.service_name}: ${session.description}</small>;
+                            } else if (session.benefit_type === 'prepaid') {
+                                html += <small class="d-block text-info">${session.description}</small>;
+                            } else if (session.sessions_remaining > 0) {
+                                html += <small class="d-block">${session.service_name}: ${session.sessions_remaining} sessions left</small>;
+                            }
+                        });
+                    });
+
+                    if (data.summary) {
+                        html += <hr><small class="text-muted">Total Active: ${data.summary.total_active_packages} packages</small>;
+                    }
+                    html += '</div>';
+
+                    packagesDiv.innerHTML = html;
+                } else {
+                    packagesDiv.innerHTML = '<small class="text-muted">No active packages found</small>';
+                }
+
+                updateTaxCalculations();
             })
             .catch(error => {
-                console.error('Error updating appointment:', error);
-                showNotification('Failed to update appointment: ' + error.message, 'error');
-            })
-            .finally(() => {
-                // Restore button state
-                updateBtn.innerHTML = originalText;
-                updateBtn.disabled = false;
+                console.error('Error loading packages:', error);
+                packagesDiv.innerHTML = '<small class="text-danger">Error loading packages. Please try again.</small>';
+                customerPackageData = null;
+            });
+    }
+
+    // =====================================================
+    // MODAL AND FORM FUNCTIONS
+    // =====================================================
+
+    function previewInvoice() {
+        console.log('Generating invoice preview...');
+
+        const clientSelect = document.getElementById('client_id');
+        if (!clientSelect || !clientSelect.value) {
+            showNotification('Please select a customer first', 'warning');
+            return;
+        }
+
+        const serviceRows = document.querySelectorAll('.service-row');
+        const productRows = document.querySelectorAll('.product-row');
+
+        let hasServices = false;
+        let hasProducts = false;
+
+        serviceRows.forEach(row => {
+            const serviceSelect = row.querySelector('select[name="service_ids[]"]');
+            if (serviceSelect && serviceSelect.value) {
+                hasServices = true;
+            }
+        });
+
+        productRows.forEach(row => {
+            const productSelect = row.querySelector('select[name="product_ids[]"]');
+            if (productSelect && productSelect.value) {
+                hasProducts = true;
+            }
+        });
+
+        if (!hasServices && !hasProducts) {
+            showNotification('Please add at least one service or product to preview', 'warning');
+            return;
+        }
+
+        const customerName = clientSelect.options[clientSelect.selectedIndex].text;
+        const totalAmount = document.getElementById('display_total').textContent;
+
+        const previewModal = document.getElementById('invoicePreviewModal');
+        const previewBody = document.getElementById('invoicePreviewBody');
+
+        if (previewModal && previewBody) {
+            previewBody.innerHTML = `
+                <div class="invoice-preview">
+                    <div class="text-center mb-4">
+                        <h3>INVOICE PREVIEW</h3>
+                        <p class="text-muted">Spa Management System</p>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <strong>Customer:</strong> ${customerName}
+                        </div>
+                        <div class="col-md-6 text-end">
+                            <strong>Total Amount:</strong> ${totalAmount}
+                        </div>
+                    </div>
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        This is a preview. Click "Proceed with Invoice Creation" to generate the actual invoice.
+                    </div>
+                </div>
+            `;
+
+            const modal = new bootstrap.Modal(previewModal);
+            modal.show();
+        } else {
+            showNotification('Preview modal not found', 'error');
+        }
+    }
+
+    function proceedWithInvoiceCreation() {
+        console.log('Proceeding with invoice creation...');
+
+        const previewModal = bootstrap.Modal.getInstance(document.getElementById('invoicePreviewModal'));
+        if (previewModal) {
+            previewModal.hide();
+        }
+
+        const billingForm = document.getElementById('billingForm');
+        if (billingForm) {
+            billingForm.action = '/integrated-billing/create-professional';
+            billingForm.method = 'POST';
+            billingForm.submit();
+        }
+    }
+
+    function saveAsDraft() {
+        const saveButton = document.getElementById('saveDraftBtn');
+        const statusDiv = document.getElementById('draftSaveStatus');
+        const originalText = saveButton.innerHTML;
+
+        saveButton.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Saving...';
+        saveButton.disabled = true;
+        statusDiv.innerHTML = '';
+
+        const formData = new FormData(document.getElementById('billingForm'));
+        formData.append('save_as_draft', 'true');
+
+        fetch('/integrated-billing/save-draft', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(HTTP ${response.status}: ${response.statusText});
+            }
+            return response.json();
+        })
+        .then(data => {
+            saveButton.innerHTML = originalText;
+            saveButton.disabled = false;
+
+            if (data.success) {
+                statusDiv.innerHTML = `
+                    <div class="alert alert-success alert-dismissible fade show mt-2">
+                        <i class="fas fa-check-circle me-2"></i>Draft saved successfully! ${data.items_saved ? (${data.items_saved} items) : ''}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                `;
+
+                setTimeout(() => {
+                    const alert = statusDiv.querySelector('.alert');
+                    if (alert) {
+                        alert.remove();
+                    }
+                }, 4000);
+            } else {
+                statusDiv.innerHTML = `
+                    <div class="alert alert-danger alert-dismissible fade show mt-2">
+                        <i class="fas fa-exclamation-triangle me-2"></i>Error: ${data.message}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                `;
+            }
+        })
+        .catch(error => {
+            saveButton.innerHTML = originalText;
+            saveButton.disabled = false;
+
+            console.error('Draft save error:', error);
+
+            statusDiv.innerHTML = `
+                <div class="alert alert-danger alert-dismissible fade show mt-2">
+                    <i class="fas fa-exclamation-triangle me-2"></i>Network error while saving draft. Please check your connection.
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            `;
+        });
+    }
+
+    function sendQuotation() {
+        alert('Quotation feature coming soon!');
+    }
+
+    function clearForm() {
+        if (confirm('Are you sure you want to clear the entire form? All entered data will be lost.')) {
+            document.getElementById('billingForm').reset();
+            updateTaxCalculations();
+
+            const productRows = document.querySelectorAll('.product-row');
+            productRows.forEach((row, index) => {
+                if (index > 0) {
+                    row.remove();
+                }
+            });
+
+            document.getElementById('customerPackages').innerHTML = '<small>Select a customer to view their active packages</small>';
+        }
+    }
+
+    function addPaymentMethod() {
+        const container = document.getElementById('paymentMethodsContainer');
+        const methodRow = document.createElement('div');
+        methodRow.className = 'row mb-2 payment-method-row';
+        methodRow.innerHTML = `
+            <div class="col-md-4">
+                <select class="form-select" name="split_payment_methods[]" required>
+                    <option value="">Select Method</option>
+                    <option value="cash">Cash</option>
+                    <option value="card">Card</option>
+                    <option value="upi">UPI</option>
+                    <option value="bank_transfer">Bank Transfer</option>
+                    <option value="cheque">Cheque</option>
+                </select>
+            </div>
+            <div class="col-md-4">
+                <input type="number" class="form-control" name="split_payment_amounts[]" placeholder="Amount" step="0.01" min="0" required>
+            </div>
+            <div class="col-md-3">
+                <input type="text" class="form-control" name="split_payment_refs[]" placeholder="Reference/Transaction ID">
+            </div>
+            <div class="col-md-1">
+                <button type="button" class="btn btn-danger btn-sm" onclick="removePaymentMethod(this)">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
+        `;
+
+        container.appendChild(methodRow);
+    }
+
+    function removePaymentMethod(button) {
+        button.closest('.payment-method-row').remove();
+    }
+
+    function printInvoice() {
+        const invoiceId = document.getElementById('printInvoiceBtn').dataset.invoiceId;
+        if (invoiceId) {
+            window.open(/integrated-billing/print-invoice/${invoiceId}, '_blank');
+        } else {
+            alert('Invoice ID not found. Cannot print.');
+        }
+    }
+
+    function emailInvoice() {
+        const invoiceId = document.getElementById('emailInvoiceBtn').dataset.invoiceId;
+        if (invoiceId) {
+            alert(Email invoice functionality for Invoice ID: ${invoiceId} is being processed.);
+        } else {
+            alert('Invoice ID not found. Cannot email.');
+        }
+    }
+
+    function whatsappInvoice() {
+        const invoiceId = document.getElementById('whatsappInvoiceBtn').dataset.invoiceId;
+        if (invoiceId) {
+            alert(WhatsApp invoice functionality for Invoice ID: ${invoiceId} is being processed.);
+        } else {
+            alert('Invoice ID not found. Cannot send via WhatsApp.');
+        }
+    }
+
+    // =====================================================
+    // EVENT LISTENERS AND INITIALIZATION
+    // =====================================================
+
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('Initializing enhanced billing system...');
+
+        loadAvailableBatches();
+
+        // Customer selection change handler
+        const customerSelect = document.getElementById('client_id');
+        if (customerSelect) {
+            customerSelect.addEventListener('change', function() {
+                const selectedCustomerId = this.value;
+                const currentPath = window.location.pathname;
+                const currentCustomerId = currentPath.match(/\/integrated-billing\/(\d+)$/)?.[1];
+
+                if (selectedCustomerId) {
+                    loadCustomerPackages(selectedCustomerId);
+                    if (selectedCustomerId !== currentCustomerId) {
+                        window.location.href = /integrated-billing/${selectedCustomerId};
+                    }
+                } else {
+                    loadCustomerPackages(null);
+                    if (currentCustomerId) {
+                        window.location.href = '/integrated-billing';
+                    }
+                }
+            });
+
+            // Auto-load packages if customer is pre-selected
+            if (customerSelect.value) {
+                loadCustomerPackages(customerSelect.value);
+            }
+        }
+
+        // Payment method change handler
+        const paymentMethodSelect = document.getElementById('payment_method');
+        if (paymentMethodSelect) {
+            paymentMethodSelect.addEventListener('change', function() {
+                const multiPaymentSection = document.getElementById('multiPaymentSection');
+                if (this.value === 'mixed') {
+                    multiPaymentSection.style.display = 'block';
+                    addPaymentMethod();
+                } else {
+                    multiPaymentSection.style.display = 'none';
+                    document.getElementById('paymentMethodsContainer').innerHTML = '';
+                }
             });
         }
 
-        function deleteAppointment(appointmentId) {
-            if (confirm('Are you sure you want to delete this appointment?')) {
-                showNotification(`Deleting appointment ID: ${appointmentId}...`, 'info');
-                fetch(`/api/unaki/appointments/${appointmentId}`, {
-                    method: 'DELETE',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        reason: 'Deleted by user'
-                    })
+        // Interstate checkbox handler
+        const interstateCheckbox = document.getElementById('is_interstate');
+        if (interstateCheckbox) {
+            interstateCheckbox.addEventListener('change', function() {
+                toggleTaxType();
+            });
+        }
+
+        // Enhanced event listeners with debouncing
+        let calculationTimeout;
+
+        document.addEventListener('change', function(e) {
+            if (e.target.matches('select[name="service_ids[]"]')) {
+                handleServiceSelection(e.target);
+            }
+
+            if (e.target.matches('input[name="service_quantities[]"], .tax-input, .billing-input, #is_interstate')) {
+                clearTimeout(calculationTimeout);
+                calculationTimeout = setTimeout(updateTaxCalculations, 200);
+            }
+        });
+
+        document.addEventListener('input', function(e) {
+            if (e.target.matches('input[name="service_quantities[]"], input[name="product_quantities[]"], input[name="product_prices[]"], .tax-input, .billing-input')) {
+                clearTimeout(calculationTimeout);
+                calculationTimeout = setTimeout(updateTaxCalculations, 300);
+            }
+        });
+
+        // Form submission handler
+        const billingForm = document.getElementById('billingForm');
+        if (billingForm) {
+            billingForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+
+                const submitBtn = document.querySelector('button[type="submit"]');
+                const originalText = submitBtn.innerHTML;
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Creating Invoice...';
+                submitBtn.disabled = true;
+
+                if (!document.getElementById('client_id').value) {
+                    alert('Please select a customer.');
+                    submitBtn.innerHTML = originalText;
+                    submitBtn.disabled = false;
+                    return;
+                }
+
+                const serviceSelected = Array.from(document.querySelectorAll('select[name="service_ids[]"]')).some(select => select.value);
+                const productSelected = Array.from(document.querySelectorAll('select[name="product_ids[]"]')).some(select => select.value);
+
+                if (!serviceSelected && !productSelected) {
+                    alert('Please select at least one service or product to create an invoice.');
+                    submitBtn.innerHTML = originalText;
+                    submitBtn.disabled = false;
+                    return;
+                }
+
+                const quantityInputs = document.querySelectorAll('.quantity-input');
+                let hasStockErrors = false;
+
+                quantityInputs.forEach(input => {
+                    const productRow = input.closest('.product-row');
+                    const productSelect = productRow.querySelector('.product-select');
+
+                    if (productSelect && productSelect.value) {
+                        validateInventoryQuantity(input);
+                        if (!input.checkValidity()) {
+                            hasStockErrors = true;
+                        }
+                    }
+                });
+
+                if (hasStockErrors) {
+                    alert('Please check stock availability for all products before submitting.');
+                    submitBtn.innerHTML = originalText;
+                    submitBtn.disabled = false;
+                    return;
+                }
+
+                const formData = new FormData(this);
+
+                formData.append('cgst_amount', (parseFloat(document.getElementById('display_cgst').textContent.replace('₹', '').replace(/,/g, '')) || 0));
+                formData.append('sgst_amount', (parseFloat(document.getElementById('display_sgst').textContent.replace('₹', '').replace(/,/g, '')) || 0));
+                formData.append('igst_amount', (parseFloat(document.getElementById('display_cgst').textContent.replace('₹', '').replace(/,/g, '')) || 0));
+                formData.append('discount_amount', (parseFloat(document.getElementById('display_discount').textContent.replace('₹', '').replace(/,/g, '')) || 0));
+                formData.append('additional_charges_display', (parseFloat(document.getElementById('display_additional').textContent.replace('₹', '').replace(/,/g, '')) || 0));
+                formData.append('total_amount', (parseFloat(document.getElementById('display_total').textContent.replace('₹', '').replace(/,/g, '')) || 0));
+
+                fetch('/integrated-billing/create-professional', {
+                    method: 'POST',
+                    body: formData
                 })
                 .then(response => {
+                    submitBtn.innerHTML = originalText;
+                    submitBtn.disabled = false;
+
                     if (!response.ok) {
-                        throw new Error(`HTTP error! status: ${response.status}`);
+                        throw new Error(HTTP ${response.status}: ${response.statusText});
                     }
                     return response.json();
                 })
                 .then(data => {
+                    const modal = new bootstrap.Modal(document.getElementById('resultModal'));
+                    const title = document.getElementById('resultModalTitle');
+                    const body = document.getElementById('resultModalBody');
+                    const viewBtn = document.getElementById('viewInvoiceBtn');
+                    const printBtn = document.getElementById('printInvoiceBtn');
+                    const emailBtn = document.getElementById('emailInvoiceBtn');
+                    const whatsappBtn = document.getElementById('whatsappInvoiceBtn');
+
+                    viewBtn.style.display = 'none';
+                    printBtn.style.display = 'none';
+                    emailBtn.style.display = 'none';
+                    whatsappBtn.style.display = 'none';
+
                     if (data.success) {
-                        showNotification('Appointment deleted successfully!', 'success');
-                        refreshSchedule(); // Reload schedule to reflect deletion
+                        title.textContent = 'Professional Invoice Created Successfully!';
+                        title.className = 'text-success';
+
+                        let message = `<div class="text-success">
+                            <i class="fas fa-check-circle fa-3x mb-3"></i>
+                            <h4>${data.message}</h4>
+                            <div class="row mt-3">
+                                <div class="col-6"><strong>Invoice Number:</strong></div>
+                                <div class="col-6">${data.invoice_number}</div>
+                            </div>
+                            <div class="row">
+                                <div class="col-6"><strong>Total Amount:</strong></div>
+                                <div class="col-6">₹${data.total_amount.toLocaleString('en-IN')}</div>
+                            </div>
+                            <div class="row">
+                                <div class="col-6"><strong>CGST:</strong></div>
+                                <div class="col-6">₹${data.cgst_amount.toLocaleString('en-IN')}</div>
+                            </div>
+                            <div class="row">
+                                <div class="col-6"><strong>SGST:</strong></div>
+                                <div class="col-6">₹${data.sgst_amount.toLocaleString('en-IN')}</div>
+                            </div>
+                        `;
+
+                        if (data.deductions_applied > 0) {
+                            message += `<div class="row text-success">
+                                <div class="col-6"><strong>Package Deductions:</strong></div>
+                                <div class="col-6">₹${data.deductions_applied.toLocaleString('en-IN')}</div>
+                            </div>`;
+                        }
+
+                        if (data.stock_reduced && data.stock_reduced.length > 0) {
+                            message += `<div class="row text-info mt-2">
+                                <div class="col-12"><small><strong>Stock Reduced:</strong></small></div>
+                                <ul class="mb-0">`;
+                            data.stock_reduced.forEach(item => {
+                                message += <li><small>${item.product_name} - Batch ${item.batch_name}: ${item.quantity_reduced} ${item.unit}</small></li>;
+                            });
+                            message += </ul></div>;
+                        }
+
+                        message += '</div>';
+                        body.innerHTML = message;
+
+                        viewBtn.style.display = 'block';
+                        viewBtn.href = /integrated-billing/invoice/${data.invoice_id};
+                        printBtn.style.display = 'block';
+                        emailBtn.style.display = 'block';
+                        whatsappBtn.style.display = 'block';
+
+                        viewBtn.dataset.invoiceId = data.invoice_id;
+                        printBtn.dataset.invoiceId = data.invoice_id;
+                        emailBtn.dataset.invoiceId = data.invoice_id;
+                        whatsappBtn.dataset.invoiceId = data.invoice_id;
+
+                        clearForm();
                     } else {
-                        showNotification('Failed to delete appointment: ' + data.error, 'error');
+                        title.textContent = 'Error Creating Professional Invoice';
+                        title.className = 'text-danger';
+                        body.innerHTML = `<div class="text-danger">
+                            <i class="fas fa-exclamation-triangle fa-2x mb-3"></i>
+                            <h5>Invoice creation failed</h5>
+                            <p>${data.message}</p>
+                        </div>`;
                     }
+
+                    modal.show();
                 })
                 .catch(error => {
-                    console.error('Error deleting appointment:', error);
-                    showNotification('Error deleting appointment', 'error');
+                    console.error('Submission Error:', error);
+
+                    submitBtn.innerHTML = originalText;
+                    submitBtn.disabled = false;
+
+                    const modal = new bootstrap.Modal(document.getElementById('resultModal'));
+                    const title = document.getElementById('resultModalTitle');
+                    const body = document.getElementById('resultModalBody');
+
+                    title.textContent = 'Invoice Creation Failed';
+                    title.className = 'text-danger';
+                    body.innerHTML = `<div class="text-danger">
+                        <i class="fas fa-exclamation-triangle fa-2x mb-3"></i>
+                        <h5>Invoice creation failed</h5>
+                        <p>There was an error processing your invoice. Please try again.</p>
+                        <small class="text-muted">Error details: ${error.message}</small>
+                    </div>`;
+
+                    modal.show();
                 });
-            }
-        }
-
-        function updateStats() {
-            document.getElementById('totalAppointments').textContent = scheduleData.appointments.length;
-            document.getElementById('activeStaff').textContent = scheduleData.staff.length;
-
-            const totalSlots = scheduleData.staff.length * 144; // 144 slots per staff (12 hours * 12 slots per hour)
-            const occupiedSlots = scheduleData.appointments.reduce((total, apt) => {
-                const duration = getTimeDifferenceInMinutes(apt.startTime, apt.endTime);
-                return total + Math.ceil(duration / 5);
-            }, 0);
-
-            const availableSlots = totalSlots - occupiedSlots;
-            const utilization = totalSlots > 0 ? Math.round((occupiedSlots / totalSlots) * 100) : 0;
-
-            document.getElementById('availableSlots').textContent = availableSlots;
-            document.getElementById('utilizationRate').textContent = utilization + '%';
-
-            // Animate stats
-            document.querySelectorAll('.stat-item').forEach((item, index) => {
-                setTimeout(() => {
-                    item.classList.add('updated');
-                    setTimeout(() => item.classList.remove('updated'), 600);
-                }, index * 100);
             });
         }
 
-        function refreshSchedule() {
-            loadScheduleForDate();
-        }
+        // Auto-fill services if customer appointments exist
+        {% if customer_appointments and customer_appointments|length > 0 %}
+        setTimeout(() => {
+            console.log('Auto-filling {{ customer_appointments|length }} appointment services...');
+            autoFillCurrentServices();
+        }, 1000);
+        {% endif %}
+
+        // Initial calculations
+        setTimeout(() => {
+            updateTaxCalculations();
+            toggleTaxType();
+        }, 1500);
+
+        console.log('Enhanced billing system initialized successfully');
+    });
+
+    // Make functions globally available
+    window.addUnakiAppointmentToBill = addUnakiAppointmentToBill;
+    window.handleServiceSelection = handleServiceSelection;
+    window.updateTaxCalculations = updateTaxCalculations;
+    window.autoFillCurrentServices = autoFillCurrentServices;
+    window.viewFullCustomerHistory = viewFullCustomerHistory;
+    window.addServiceRow = addServiceRow;
+    window.addProductRow = addProductRow;
+    window.loadBatchesForProduct = loadBatchesForProduct;
+    window.validateInventoryQuantity = validateInventoryQuantity;
+    window.previewInvoice = previewInvoice;
+    window.proceedWithInvoiceCreation = proceedWithInvoiceCreation;
+    window.saveAsDraft = saveAsDraft;
+    window.sendQuotation = sendQuotation;
+    window.clearForm = clearForm;
+    window.addPaymentMethod = addPaymentMethod;
+    window.removePaymentMethod = removePaymentMethod;
+    window.printInvoice = printInvoice;
+    window.emailInvoice = emailInvoice;
+    window.whatsappInvoice = whatsappInvoice;
+    window.calculateServicesSubtotalWithPackages = calculateServicesSubtotalWithPackages;
+    window.checkServicePackageBenefit = checkServicePackageBenefit;
+    window.toggleTaxType = toggleTaxType;
 
-        function bookAppointment() {
-            // Enhanced booking function with validation and feedback
-            const form = document.getElementById('bookingForm');
-            const formData = new FormData(form);
-
-            // Validate required fields
-            const clientName = document.getElementById('clientName').value ||
-                             document.getElementById('clientSelect').options[document.getElementById('clientSelect').selectedIndex]?.text;
-            const serviceType = document.getElementById('serviceType').value;
-            const staffId = document.getElementById('staffSelect').value;
-            const startTime = document.getElementById('startTime').value;
-            const endTime = document.getElementById('endTime').value;
-
-            if (!clientName || !serviceType || !staffId || !startTime || !endTime) {
-                showNotification('Please fill in all required fields', 'error');
-                return;
-            }
-
-            showNotification('Booking appointment...', 'info');
-
-            // Simulate API call
-            setTimeout(() => {
-                showNotification('Appointment booked successfully!', 'success');
-
-                // Close modal
-                const modal = bootstrap.Modal.getInstance(document.getElementById('bookingModal'));
-                if (modal) modal.hide();
-
-                // Refresh schedule
-                setTimeout(() => {
-                    refreshSchedule();
-                }, 500);
-            }, 1500);
-        }
-
-        // Conflict Detection Functions
-        function checkRealTimeConflicts(selectedStaffId, selectedServiceId, startTime, endTime) {
-            const conflicts = [];
-            const selectedStartTime = timeToMinutes(startTime);
-            const selectedEndTime = timeToMinutes(endTime);
-
-            scheduleData.appointments.forEach(appointment => {
-                if (appointment.staffId === selectedStaffId) {
-                    const existingStartTime = timeToMinutes(appointment.startTime);
-                    const existingEndTime = timeToMinutes(appointment.endTime);
-
-                    if (selectedStartTime < existingEndTime && selectedEndTime > existingStartTime) {
-                        conflicts.push({
-                            appointment: appointment,
-                            message: `Conflict with ${appointment.clientName} (${appointment.startTime} - ${appointment.endTime})`
-                        });
-                    }
-                }
-            });
-
-            return conflicts;
-        }
-
-        function selectSuggestedTime(time) {
-            // This function would update the start time input in the modal and trigger re-checking
-            const startTimeInput = document.querySelector('.service-row.active .start-time'); // Assuming active row
-            if (startTimeInput) {
-                startTimeInput.value = time;
-                updateServiceEndTime(startTimeInput.dataset.row);
-                performConflictCheck(startTimeInput.dataset.row); // Re-check for the specific row
-            }
-        }
-
-        function performConflictCheck(rowId) {
-            const serviceSelect = document.querySelector(`[data-row="${rowId}"].service-select`);
-            const staffSelect = document.querySelector(`[data-row="${rowId}"].staff-select`);
-            const startTimeInput = document.querySelector(`[data-row="${rowId}"].start-time`);
-            const endTimeInput = document.querySelector(`[data-row="${rowId}"].end-time`);
-            const conflictWarningElement = document.querySelector(`[data-row="${rowId}"] .conflict-warning`);
-            const timeSlotElements = document.querySelectorAll(`[data-staff-id="${staffSelect.value}"]`); // Get all slots for the selected staff
-
-            // Clear previous warnings and highlighting
-            if (conflictWarningElement) conflictWarningElement.remove();
-            timeSlotElements.forEach(slot => slot.classList.remove('conflict-detected-slot'));
-
-            if (!serviceSelect.value || !staffSelect.value || !startTimeInput.value || !endTimeInput.value) {
-                return; // Not enough info to check
-            }
-
-            const serviceDuration = parseInt(serviceSelect.options[serviceSelect.selectedIndex].dataset.duration) || 60;
-            const conflicts = checkRealTimeConflicts(staffSelect.value, serviceSelect.value, startTimeInput.value, endTimeInput.value);
-
-            if (conflicts.length > 0) {
-                const warningMessage = `Conflict Detected! ${conflicts.map(c => c.message).join(', ')}`;
-                const warningDiv = document.createElement('div');
-                warningDiv.className = 'conflict-warning';
-                warningDiv.innerHTML = warningMessage;
-
-                // Add suggested times if needed
-                const suggestedTimes = generateSuggestedTimes(staffSelect.value, startTimeInput.value, serviceDuration);
-                if (suggestedTimes.length > 0) {
-                    const suggestionsHTML = suggestedTimes.map(time =>
-                        `<span class="suggested-time" onclick="selectSuggestedTime('${time}')">${time}</span>`
-                    ).join(' ');
-                    warningDiv.innerHTML += ` Suggest alternative: ${suggestionsHTML}`;
-                }
-
-                // Append warning below the start time input for the specific row
-                const parentDiv = startTimeInput.closest('.row');
-                if (parentDiv) {
-                    parentDiv.parentNode.insertBefore(warningDiv, parentDiv.nextSibling);
-                }
-
-                // Highlight conflicting slots in the schedule grid (simplified highlighting)
-                const conflictingSlots = getConflictingSlots(staffSelect.value, startTimeInput.value, endTimeInput.value);
-                conflictingSlots.forEach(slotIndex => {
-                    const slotElement = document.querySelector(`[data-staff-id="${staffSelect.value}"][data-slot-index="${slotIndex}"]`);
-                    if (slotElement) slotElement.classList.add('conflict-detected-slot');
-                });
-
-            }
-        }
-
-        function getConflictingSlots(staffId, startTime, endTime) {
-            const conflicting = [];
-            const selectedStart = timeToMinutes(startTime);
-            const selectedEnd = timeToMinutes(endTime);
-
-            scheduleData.appointments.forEach(apt => {
-                if (apt.staffId === staffId) {
-                    const aptStart = timeToMinutes(apt.startTime);
-                    const aptEnd = timeToMinutes(apt.endTime);
-
-                    if (selectedStart < aptEnd && selectedEnd > aptStart) {
-                        // Add all slots covered by the conflict
-                        for (let i = getSlotIndexFromTime(apt.startTime); i < getSlotIndexFromTime(apt.endTime); i++) {
-                            if (i >= 0) conflicting.push(i);
-                        }
-                        for (let i = getSlotIndexFromTime(startTime); i < getSlotIndexFromTime(endTime); i++) {
-                            if (i >= 0) conflicting.push(i);
-                        }
-                    }
-                }
-            });
-            return [...new Set(conflicting)]; // Unique slots
-        }
-
-        function generateSuggestedTimes(staffId, startTime, durationMinutes) {
-            const suggestions = [];
-            const currentSlotIndex = getSlotIndexFromTime(startTime);
-            const scheduleStartMinutes = SCHEDULE_CONFIG.startHour * 60;
-            const scheduleEndMinutes = SCHEDULE_CONFIG.endHour * 60;
-
-            // Check for next few available slots
-            for (let i = 1; i <= 5; i++) { // Suggest up to 5 alternatives
-                const nextSlotIndex = currentSlotIndex + i;
-                const nextSlotTimeMinutes = scheduleStartMinutes + (nextSlotIndex * SCHEDULE_CONFIG.slotMinutes);
-
-                if (nextSlotTimeMinutes >= scheduleEndMinutes) break; // Don't go beyond schedule end
-
-                const nextStartTimeStr = formatTimeFromMinutes(nextSlotTimeMinutes);
-                const nextEndTimeStr = formatTimeFromMinutes(nextSlotTimeMinutes + durationMinutes);
-
-                // Ensure the suggested slot is within the schedule hours
-                if (timeToMinutes(nextEndTimeStr) > scheduleEndMinutes) continue;
-
-                const conflicts = checkRealTimeConflicts(staffId, null, nextStartTimeStr, nextEndTimeStr);
-                if (conflicts.length === 0) {
-                    suggestions.push(nextStartTimeStr);
-                } else {
-                    // If the conflict is not with the *same* appointment, we can skip slots occupied by it
-                    // This logic needs to be more robust for complex scenarios
-                }
-            }
-            return suggestions;
-        }
-
-        function formatTimeFromMinutes(totalMinutes) {
-            const hours = Math.floor(totalMinutes / 60);
-            const minutes = totalMinutes % 60;
-            return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
-        }
-
-
-        function clearConflictWarning(rowId) {
-            const warningElement = document.querySelector(`[data-row="${rowId}"] .conflict-warning`);
-            if (warningElement) {
-                warningElement.remove();
-            }
-            // Also remove highlighting from slots
-            const staffId = document.querySelector(`[data-row="${rowId}"].staff-select`).value;
-            const timeSlotElements = document.querySelectorAll(`[data-staff-id="${staffId}"]`);
-            timeSlotElements.forEach(slot => slot.classList.remove('conflict-detected-slot'));
-        }
-
-        // Make functions globally available
-        window.showLoadingAndLoadSample = showLoadingAndLoadSample;
-        window.openQuickBookingModal = openQuickBookingModal;
-        window.clearAllData = clearAllData;
-        window.loadSampleData = loadSampleData;
-        window.bookAppointment = bookAppointment;
-        window.showLoadingAndLoad = showLoadingAndLoad;
-        window.showLoadingAndRefresh = showLoadingAndRefresh;
-        window.updateEndTime = updateEndTime;
-        window.updateTimeDisplay = updateTimeDisplay;
-        window.navigateDate = navigateDate;
-        window.goToToday = goToToday;
-        window.exportSchedule = exportSchedule;
-        window.printSchedule = printSchedule;
-        window.scrollToTop = scrollToTop;
-
-        // Conflict detection functions
-        window.checkRealTimeConflicts = checkRealTimeConflicts;
-        window.selectSuggestedTime = selectSuggestedTime;
-        window.performConflictCheck = performConflictCheck;
-        window.clearConflictWarning = clearConflictWarning;
-
-        // Edit appointment functionality
-        // (The editAppointment, populateEditServiceDropdown, populateEditStaffDropdown, and updateEditEndTime functions have been updated above)
-
-        // New functions for edit/delete
-        window.editAppointment = editAppointment;
-        window.deleteAppointment = deleteAppointment;
-        window.updateAppointment = updateAppointment;
-        window.viewAppointmentDetails = function(appointmentId) { /* Placeholder for viewing details */ };
-
-        function renderSchedule() {
-            try {
-                console.log('🔄 Starting schedule render...');
-                console.log('📊 Schedule data:', scheduleData);
-
-                if (!scheduleData || !scheduleData.staff || !scheduleData.appointments) {
-                    console.error('❌ Invalid schedule data:', scheduleData);
-                    document.getElementById('scheduleGrid').innerHTML = '<div class="text-center p-5 text-danger">No schedule data available</div>';
-                    hideLoading();
-                    return;
-                }
-
-                generateScheduleGrid();
-
-                // Reinitialize context menu for all appointment blocks
-                setTimeout(() => {
-                    if (typeof window.reinitializeContextMenu === 'function') {
-                        console.log('🔄 Reinitializing context menu after schedule render...');
-                        window.reinitializeContextMenu();
-                    } else if (window.appointmentContextMenu && typeof window.appointmentContextMenu.reinitializeForAppointments === 'function') {
-                        console.log('🔄 Using appointment context menu reinitialize...');
-                        window.appointmentContextMenu.reinitializeForAppointments();
-                    } else {
-                        console.log('⚠️ Context menu reinitialize function not available, adding fallback handlers');
-                        addFallbackContextMenuHandlers();
-                    }
-                }, 100);
-
-                // Show stats
-                updateStats();
-                hideLoading();
-                console.log(`📊 Schedule loaded: ${scheduleData.appointments.length} appointments, ${scheduleData.staff.length} staff members`);
-
-            } catch (error) {
-                console.error('❌ Error building schedule grid:', error);
-                console.error('Error details:', error.stack);
-                hideLoading();
-                showNotification('Error loading schedule. Please refresh and try again.', 'error');
-
-                // Show basic error message in grid
-                const grid = document.getElementById('scheduleGrid');
-                if (grid) {
-                    grid.innerHTML = `
-                        <div class="text-center p-5 text-danger">
-                            <h5>Error Loading Schedule</h5>
-                            <p>Please refresh the page and try again.</p>
-                            <button class="btn btn-primary" onclick="location.reload()">Refresh Page</button>
-                        </div>
-                    `;
-                }
-            }
-        }
-
-        // Helper function to get service color
-        function getServiceColor(serviceName) {
-            const colors = {
-                'facial': '#e3f2fd',
-                'massage': '#f3e5f5',
-                'manicure': '#e8f5e8',
-                'pedicure': '#fff3e0',
-                'hair': '#fce4ec',
-                'body': '#e0f2f1'
-            };
-
-            const key = serviceName ? serviceName.toLowerCase() : 'default';
-            for (const [service, color] of Object.entries(colors)) {
-                if (key.includes(service)) {
-                    return color;
-                }
-            }
-            return '#f5f5f5';
-        }
-
-        // Helper function for notifications
-        function showNotification(message, type = 'info') {
-            console.log(`📢 ${type.toUpperCase()}: ${message}`);
-            // You can implement a toast notification system here
-            alert(message);
-        }
-
-        // Helper function to refresh schedule
-        function refreshSchedule() {
-            console.log('🔄 Refreshing schedule');
-            loadScheduleForDate();
-        }
-
-        // Missing function implementations
-        function showFallbackContextMenu(event, appointmentId) {
-            console.log(`🎯 Fallback context menu for appointment ${appointmentId}`);
-
-            // Simple fallback - show browser context menu or alert
-            const actions = ['View', 'Edit', 'Delete', 'Go to Billing'];
-            const choice = prompt(`Appointment ${appointmentId} actions:\n1. View\n2. Edit\n3. Delete\n4. Go to Billing\n\nEnter number (1-4):`);
-
-            switch(choice) {
-                case '1':
-                    viewAppointmentDetails(appointmentId);
-                    break;
-                case '2':
-                    editAppointment(appointmentId);
-                    break;
-                case '3':
-                    if (confirm('Delete this appointment?')) {
-                        deleteAppointment(appointmentId);
-                    }
-                    break;
-                case '4':
-                    window.location.href = `/appointment/${appointmentId}/go-to-billing`;
-                    break;
-                default:
-                    break;
-            }
-        }
-
-        function addFallbackContextMenuHandlers() {
-            console.log('📋 Adding fallback context menu handlers');
-            const appointmentBlocks = document.querySelectorAll('.appointment-block');
-
-            appointmentBlocks.forEach((block, index) => {
-                const appointmentId = block.dataset.appointmentId || block.getAttribute('data-appointment-id');
-
-                if (!appointmentId) {
-                    console.error(`No appointment ID found for block ${index}`);
-                    return;
-                }
-
-                // Ensure context menu handler is properly attached
-                const existingHandler = block.oncontextmenu;
-                if (!existingHandler) {
-                    block.addEventListener('contextmenu', function(event) {
-                        event.preventDefault();
-                        event.stopPropagation();
-                        showFallbackContextMenu(event, appointmentId);
-                    });
-
-                    console.log(`✅ Fallback context menu attached to appointment ${appointmentId}`);
-                }
-            });
-        }
-
-        function viewAppointmentDetails(appointmentId) {
-            console.log(`👁️ Viewing appointment ${appointmentId}`);
-            alert(`View appointment ${appointmentId} details (implement detailed view modal)`);
-        }
-
-        function editAppointment(appointmentId) {
-            console.log(`✏️ Editing appointment ${appointmentId}`);
-
-            // Find appointment data
-            const appointmentBlock = document.querySelector(`[data-appointment-id="${appointmentId}"]`);
-            if (!appointmentBlock) {
-                alert('Appointment not found');
-                return;
-            }
-
-            // Extract appointment data for editing
-            const clientName = appointmentBlock.querySelector('.appointment-client')?.textContent || '';
-            const serviceName = appointmentBlock.querySelector('.appointment-service')?.textContent || '';
-
-            // Simple edit implementation
-            const newClientName = prompt('Edit client name:', clientName);
-            const newServiceName = prompt('Edit service name:', serviceName);
-
-            if (newClientName && newServiceName) {
-                updateAppointmentData(appointmentId, {
-                    clientName: newClientName,
-                    serviceName: newServiceName
-                });
-            }
-        }
-
-        function deleteAppointment(appointmentId) {
-            console.log(`🗑️ Deleting appointment ${appointmentId}`);
-
-            fetch(`/api/unaki/appointments/${appointmentId}`, {
-                method: 'DELETE',
-                headers: {
-                    'Content-Type': 'application/json',
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    showNotification('Appointment deleted successfully', 'success');
-                    refreshSchedule();
-                } else {
-                    showNotification('Failed to delete appointment: ' + data.error, 'error');
-                }
-            })
-            .catch(error => {
-                console.error('Error deleting appointment:', error);
-                showNotification('Error deleting appointment', 'error');
-            });
-        }
-
-        function updateAppointmentData(appointmentId, data) {
-            console.log(`💾 Updating appointment ${appointmentId}`, data);
-
-            fetch(`/api/unaki/bookings/${appointmentId}`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(data)
-            })
-            .then(response => response.json())
-            .then(result => {
-                if (result.success) {
-                    showNotification('Appointment updated successfully', 'success');
-                    refreshSchedule();
-                } else {
-                    showNotification('Failed to update appointment: ' + result.error, 'error');
-                }
-            })
-            .catch(error => {
-                console.error('Error updating appointment:', error);
-                showNotification('Error updating appointment', 'error');
-            });
-        }
-
-        // Initialize on page load
-        document.addEventListener('DOMContentLoaded', function() {
-            // Set today's date
-            const today = new Date().toISOString().split('T')[0];
-            document.getElementById('scheduleDate').value = today;
-            currentDate = today;
-
-            // Load initial schedule
-            showLoadingAndLoad();
-
-            // Start time updates
-            updateCurrentDateTime();
-            setInterval(updateCurrentDateTime, 1000);
-        });
     </script>
 </body>
 </html>
