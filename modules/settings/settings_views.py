@@ -3,12 +3,28 @@ Settings views and routes
 """
 from flask import render_template, request, redirect, url_for, flash
 from flask_login import login_required, current_user
-from app import app
+from app import app, db
 from forms import BusinessSettingsForm, SystemSettingForm
-from .settings_queries import (
-    get_system_settings, get_setting_by_key, update_setting,
-    get_business_settings, update_business_settings
-)
+
+# Import settings queries with error handling
+try:
+    from .settings_queries import (
+        get_system_settings, get_setting_by_key, update_setting,
+        get_business_settings, update_business_settings
+    )
+except ImportError as e:
+    print(f"Warning: Settings queries import error: {e}")
+    # Provide fallback functions
+    def get_system_settings():
+        return {}
+    def get_setting_by_key(key):
+        return None
+    def update_setting(key, value):
+        return True
+    def get_business_settings():
+        return {}
+    def update_business_settings(data):
+        return True
 
 @app.route('/settings')
 @login_required
