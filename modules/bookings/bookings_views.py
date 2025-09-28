@@ -13,7 +13,7 @@ from .bookings_queries import (
     get_appointment_stats, get_staff_schedule, get_appointments_by_date_range
 )
 # Import models
-from models import Appointment, Customer, Service, User, ShiftManagement, ShiftLogs
+from models import Appointment, Customer, Service, User, ShiftManagement, ShiftLogs, UnakiBooking
 # Late imports to avoid circular dependency
 from sqlalchemy import func
 import re # Import re for regular expressions
@@ -360,7 +360,7 @@ def calendar_booking():
         time_slots = []
         start_time = datetime.combine(selected_date, datetime.min.time().replace(hour=start_hour))
         end_time = datetime.combine(selected_date, datetime.min.time().replace(hour=end_hour))
-        
+
         current_time = start_time
         while current_time < end_time:
             time_slots.append({
@@ -369,15 +369,15 @@ def calendar_booking():
                 'duration': slot_duration
             })
             current_time += timedelta(minutes=slot_duration)
-        
+
         return time_slots
-    
+
     # Get slot duration from request parameter or default to 15 minutes
     slot_duration = int(request.args.get('slot_duration', 15))
     valid_durations = [5, 10, 15, 30, 45, 60]
     if slot_duration not in valid_durations:
         slot_duration = 15
-    
+
     time_slots = generate_flexible_time_slots(slot_duration=slot_duration)
 
     # Get existing appointments for the selected date
@@ -602,7 +602,7 @@ def book_appointment_api():
                 existing_start = apt.appointment_date
                 existing_service_duration = apt.service.duration if apt.service else 60
                 existing_end = existing_start + timedelta(minutes=existing_service_duration)
-                
+
                 # Check for any overlap between new appointment and existing appointment
                 if not (appointment_datetime >= existing_end or end_datetime <= existing_start):
                     return jsonify({'error': f'{staff.first_name} {staff.last_name} has a conflicting appointment from {existing_start.strftime("%I:%M %p")} to {existing_end.strftime("%I:%M %p")}'}), 400
@@ -739,7 +739,7 @@ def staff_availability():
     valid_durations = [5, 10, 15, 30, 45, 60]
     if slot_duration not in valid_durations:
         slot_duration = 15
-    
+
     time_slots = []
     start_time = datetime.combine(selected_date, time(8, 0))
     end_time = datetime.combine(selected_date, time(22, 0))
@@ -954,7 +954,7 @@ def api_unaki_book_appointment():
     try:
         data = request.get_json()
         print(f"📝 Booking request data: {data}")
-        
+
         # Validate required fields with flexible field names
         client_id = data.get('client_id') or data.get('clientId')
         staff_id = data.get('staff_id') or data.get('staffId')
@@ -962,7 +962,7 @@ def api_unaki_book_appointment():
         appointment_date_str = data.get('appointment_date') or data.get('date')
         start_time_str = data.get('start_time') or data.get('startTime')
         end_time_str = data.get('end_time') or data.get('endTime')
-        
+
         # Check for missing required fields - client_id is mandatory
         missing_fields = []
         if not client_id:
@@ -977,7 +977,7 @@ def api_unaki_book_appointment():
             missing_fields.append('start_time')
         if not end_time_str:
             missing_fields.append('end_time')
-            
+
         if missing_fields:
             return jsonify({
                 'error': f'Missing required fields: {", ".join(missing_fields)}',
@@ -996,7 +996,7 @@ def api_unaki_book_appointment():
                 'error': f'Invalid date/time format: {str(ve)}',
                 'success': False
             }), 400
-        
+
         # Create datetime objects for overlap checking
         start_datetime = datetime.combine(appointment_date, start_time)
         end_datetime = datetime.combine(appointment_date, end_time)
@@ -1013,25 +1013,28 @@ def api_unaki_book_appointment():
         # Check for overlapping appointments in UnakiBooking table
         from models import UnakiBooking
         from app import db
-        
+
         existing_bookings = UnakiBooking.query.filter_by(
             staff_id=staff_id,
             appointment_date=appointment_date
         ).filter(UnakiBooking.status.in_(['scheduled', 'confirmed'])).all()
-        
+
+        print(f"📝 Booking request data: {data}")
         print(f"🔍 Checking conflicts for staff {staff_id} on {appointment_date}")
         print(f"📅 New appointment: {start_time_str} - {end_time_str}")
         print(f"📋 Existing bookings: {len(existing_bookings)}")
-        
+
         for booking in existing_bookings:
             existing_start = datetime.combine(appointment_date, booking.start_time)
             existing_end = datetime.combine(appointment_date, booking.end_time)
-            
-            print(f"   Existing: {booking.start_time} - {booking.end_time} ({booking.client_name})")
-            
+
+            # Get client name safely
+            client_display_name = booking.client.full_name if booking.client else f'Client {booking.client_id}'
+            print(f"   Existing: {booking.start_time} - {booking.end_time} ({client_display_name})")
+
             # Check for overlap: appointments overlap if start < other_end AND end > other_start
             if start_datetime < existing_end and end_datetime > existing_start:
-                conflict_msg = f'Time conflict! {booking.client_name} already has an appointment from {booking.start_time.strftime("%I:%M %p")} to {booking.end_time.strftime("%I:%M %p")}'
+                conflict_msg = f'Time conflict! {client_display_name} already has an appointment from {booking.start_time.strftime("%I:%M %p")} to {booking.end_time.strftime("%I:%M %p")}'
                 print(f"❌ Conflict detected: {conflict_msg}")
                 return jsonify({
                     'error': conflict_msg,
@@ -1084,7 +1087,7 @@ def api_unaki_book_appointment():
         # Get client name from the relationship
         client = Customer.query.get(client_id)
         client_display_name = client.full_name if client else f'Client {client_id}'
-        
+
         return jsonify({
             'success': True,
             'message': f'Appointment booked successfully for {client_display_name}',
@@ -1287,7 +1290,7 @@ def api_unaki_check_conflicts():
 
     try:
         data = request.get_json()
-        
+
         # Validate required fields
         required_fields = ['staff_id', 'start_time', 'end_time', 'date']
         for field in required_fields:
@@ -1299,7 +1302,7 @@ def api_unaki_check_conflicts():
         end_time = data['end_time']
         check_date = datetime.strptime(data['date'], '%Y-%m-%d').date()
         exclude_id = data.get('exclude_id')  # For edit operations
-        
+
         # Get existing appointments for this staff on this date
         from models import UnakiBooking
         query = UnakiBooking.query.filter(
@@ -1307,29 +1310,29 @@ def api_unaki_check_conflicts():
             UnakiBooking.appointment_date == check_date,
             UnakiBooking.status.in_(['scheduled', 'confirmed'])
         )
-        
+
         # Exclude current appointment if editing
         if exclude_id:
             query = query.filter(UnakiBooking.id != exclude_id)
-            
+
         existing_bookings = query.all()
-        
+
         conflicts = []
         suggestions = []
-        
+
         # Convert times to minutes for easier comparison
         def time_to_minutes(time_str):
             hours, minutes = map(int, time_str.split(':'))
             return hours * 60 + minutes
-        
+
         start_minutes = time_to_minutes(start_time)
         end_minutes = time_to_minutes(end_time)
-        
+
         # Check for conflicts
         for booking in existing_bookings:
             booking_start = time_to_minutes(booking.start_time.strftime('%H:%M'))
             booking_end = time_to_minutes(booking.end_time.strftime('%H:%M'))
-            
+
             # Check overlap
             if start_minutes < booking_end and end_minutes > booking_start:
                 conflicts.append({
@@ -1340,47 +1343,47 @@ def api_unaki_check_conflicts():
                     'end_time': booking.end_time.strftime('%H:%M'),
                     'status': booking.status
                 })
-        
+
         # Generate suggestions if conflicts exist
         if conflicts:
             service_duration = end_minutes - start_minutes
-            
+
             # Find available slots
             for hour in range(9, 18):  # Business hours
                 for minute in [0, 15, 30, 45]:  # 15-minute intervals
                     slot_start_minutes = hour * 60 + minute
                     slot_end_minutes = slot_start_minutes + service_duration
-                    
+
                     if slot_end_minutes >= 18 * 60:  # Don't go past business hours
                         continue
-                    
+
                     # Check if this slot conflicts with any existing booking
                     slot_has_conflict = False
                     for booking in existing_bookings:
                         booking_start = time_to_minutes(booking.start_time.strftime('%H:%M'))
                         booking_end = time_to_minutes(booking.end_time.strftime('%H:%M'))
-                        
+
                         if slot_start_minutes < booking_end and slot_end_minutes > booking_start:
                             slot_has_conflict = True
                             break
-                    
+
                     if not slot_has_conflict:
                         start_time_str = f"{hour:02d}:{minute:02d}"
                         end_hour = slot_end_minutes // 60
                         end_minute = slot_end_minutes % 60
                         end_time_str = f"{end_hour:02d}:{end_minute:02d}"
-                        
+
                         suggestions.append({
                             'start_time': start_time_str,
                             'end_time': end_time_str,
                             'display': f"{start_time_str} - {end_time_str}"
                         })
-                        
+
                         if len(suggestions) >= 5:  # Limit to 5 suggestions
                             break
                 if len(suggestions) >= 5:
                     break
-        
+
         return jsonify({
             'has_conflicts': len(conflicts) > 0,
             'conflicts': conflicts,
@@ -1402,7 +1405,7 @@ def api_check_conflicts():
 
     try:
         data = request.get_json()
-        
+
         # Validate required fields
         required_fields = ['staff_id', 'start_time', 'end_time', 'date']
         for field in required_fields:
@@ -1413,7 +1416,7 @@ def api_check_conflicts():
         start_time = data['start_time']
         end_time = data['end_time']
         check_date = datetime.strptime(data['date'], '%Y-%m-%d').date()
-        
+
         # Get existing appointments for this staff on this date
         from models import UnakiBooking
         existing_bookings = UnakiBooking.query.filter(
@@ -1421,23 +1424,23 @@ def api_check_conflicts():
             UnakiBooking.appointment_date == check_date,
             UnakiBooking.status.in_(['scheduled', 'confirmed'])
         ).all()
-        
+
         conflicts = []
         suggestions = []
-        
+
         # Convert times to minutes for easier comparison
         def time_to_minutes(time_str):
             hours, minutes = map(int, time_str.split(':'))
             return hours * 60 + minutes
-        
+
         start_minutes = time_to_minutes(start_time)
         end_minutes = time_to_minutes(end_time)
-        
+
         # Check for conflicts
         for booking in existing_bookings:
             booking_start = time_to_minutes(booking.start_time.strftime('%H:%M'))
             booking_end = time_to_minutes(booking.end_time.strftime('%H:%M'))
-            
+
             # Check overlap
             if start_minutes < booking_end and end_minutes > booking_start:
                 conflicts.append({
@@ -1448,47 +1451,47 @@ def api_check_conflicts():
                     'end_time': booking.end_time.strftime('%H:%M'),
                     'status': booking.status
                 })
-        
+
         # Generate suggestions if conflicts exist
         if conflicts:
             service_duration = end_minutes - start_minutes
-            
+
             # Find available slots
             for hour in range(9, 18):  # Business hours
                 for minute in [0, 15, 30, 45]:  # 15-minute intervals
                     slot_start_minutes = hour * 60 + minute
                     slot_end_minutes = slot_start_minutes + service_duration
-                    
+
                     if slot_end_minutes >= 18 * 60:  # Don't go past business hours
                         continue
-                    
+
                     # Check if this slot conflicts with any existing booking
                     slot_has_conflict = False
                     for booking in existing_bookings:
                         booking_start = time_to_minutes(booking.start_time.strftime('%H:%M'))
                         booking_end = time_to_minutes(booking.end_time.strftime('%H:%M'))
-                        
+
                         if slot_start_minutes < booking_end and slot_end_minutes > booking_start:
                             slot_has_conflict = True
                             break
-                    
+
                     if not slot_has_conflict:
                         start_time_str = f"{hour:02d}:{minute:02d}"
                         end_hour = slot_end_minutes // 60
                         end_minute = slot_end_minutes % 60
                         end_time_str = f"{end_hour:02d}:{end_minute:02d}"
-                        
+
                         suggestions.append({
                             'start_time': start_time_str,
                             'end_time': end_time_str,
                             'display': f"{start_time_str} - {end_time_str}"
                         })
-                        
+
                         if len(suggestions) >= 5:  # Limit to 5 suggestions
                             break
                 if len(suggestions) >= 5:
                     break
-        
+
         return jsonify({
             'has_conflicts': len(conflicts) > 0,
             'conflicts': conflicts,
@@ -1550,7 +1553,7 @@ def appointments_schedule():
     valid_durations = [5, 10, 15, 30, 45, 60]
     if slot_duration not in valid_durations:
         slot_duration = 15
-    
+
     time_slots = []
     start_time = datetime.combine(selected_date, datetime.min.time().replace(hour=9))
     end_time = datetime.combine(selected_date, datetime.min.time().replace(hour=18))
@@ -1987,11 +1990,11 @@ def unaki_schedule_api(date_str):
     try:
         # Parse the date
         target_date = datetime.strptime(date_str, '%Y-%m-%d').date()
-        
+
         # Get staff members
         staff_members = get_staff_members()
         staff_data = []
-        
+
         for staff in staff_members:
             schedule = get_staff_schedule_for_date(staff.id, target_date)
             staff_info = {
@@ -2003,11 +2006,11 @@ def unaki_schedule_api(date_str):
                 'is_working': schedule['is_working_day'] if schedule else True
             }
             staff_data.append(staff_info)
-        
+
         # Get appointments for the date
         appointments_data = []
         appointments = get_appointments_by_date(target_date)
-        
+
         for appointment in appointments:
             appointment_info = {
                 'id': appointment.id,
@@ -2021,7 +2024,7 @@ def unaki_schedule_api(date_str):
                 'notes': appointment.notes or ''
             }
             appointments_data.append(appointment_info)
-        
+
         # Get breaks data (simplified for now)
         breaks_data = []
         for staff in staff_members:
@@ -2035,7 +2038,7 @@ def unaki_schedule_api(date_str):
                     'type': 'break'
                 }
                 breaks_data.append(break_info)
-        
+
         return jsonify({
             'success': True,
             'date': date_str,
@@ -2043,7 +2046,7 @@ def unaki_schedule_api(date_str):
             'appointments': appointments_data,
             'breaks': breaks_data
         })
-        
+
     except ValueError:
         return jsonify({'success': False, 'error': 'Invalid date format'}), 400
     except Exception as e:
@@ -2060,7 +2063,7 @@ def unaki_create_appointment_impl():
     try:
         from app import db
         data = request.get_json()
-        
+
         # Extract appointment data
         staff_id = data.get('staffId')
         client_name = data.get('clientName')
@@ -2070,19 +2073,19 @@ def unaki_create_appointment_impl():
         end_time = data.get('endTime')
         notes = data.get('notes', '')
         appointment_date_str = data.get('date', datetime.now().strftime('%Y-%m-%d'))
-        
+
         # Validate required fields
         if not all([staff_id, client_name, service_type, start_time, end_time]):
             return jsonify({
                 'success': False,
                 'error': 'Missing required fields: staff, client name, service, start time, and end time are required'
             }), 400
-        
+
         # Parse date and times
         appointment_date = datetime.strptime(appointment_date_str, '%Y-%m-%d').date()
         start_datetime = datetime.combine(appointment_date, datetime.strptime(start_time, '%H:%M').time())
         end_datetime = datetime.combine(appointment_date, datetime.strptime(end_time, '%H:%M').time())
-        
+
         # Find or create customer
         from models import Customer, Service, User, Appointment
         customer = Customer.query.filter_by(full_name=client_name).first()
@@ -2094,7 +2097,7 @@ def unaki_create_appointment_impl():
             )
             db.session.add(customer)
             db.session.flush()  # Get the ID
-        
+
         # Find service by name or create a generic one
         service = Service.query.filter_by(name=service_type).first()
         if not service:
@@ -2106,7 +2109,7 @@ def unaki_create_appointment_impl():
             )
             db.session.add(service)
             db.session.flush()
-        
+
         # Verify staff exists
         staff = User.query.get(staff_id)
         if not staff:
@@ -2114,7 +2117,7 @@ def unaki_create_appointment_impl():
                 'success': False,
                 'error': 'Staff member not found'
             }), 400
-        
+
         # Create the appointment
         appointment = Appointment(
             client_id=customer.id,
@@ -2126,10 +2129,10 @@ def unaki_create_appointment_impl():
             notes=notes,
             amount=service.price
         )
-        
+
         db.session.add(appointment)
         db.session.commit()
-        
+
         return jsonify({
             'success': True,
             'message': 'Appointment created successfully',
@@ -2147,7 +2150,7 @@ def unaki_create_appointment_impl():
                 'created_at': appointment.created_at.isoformat()
             }
         })
-        
+
     except Exception as e:
         db.session.rollback()
         print(f"Error in unaki_create_appointment: {e}")
@@ -2226,9 +2229,9 @@ def get_schedule():
                 }
             ]
         }
-        
+
         return jsonify(schedule_data)
-        
+
     except Exception as e:
         print(f"Error in get_schedule: {e}")
         return jsonify({'error': 'Server error'}), 500
@@ -2240,25 +2243,25 @@ def mark_appointment_paid(appointment_id):
     """Mark an appointment as paid"""
     if not current_user.can_access('billing'):
         return jsonify({'error': 'Access denied'}), 403
-    
+
     try:
         from app import db
         from models import UnakiBooking
-        
+
         # Find the appointment
         appointment = UnakiBooking.query.get(appointment_id)
         if not appointment:
             return jsonify({'error': 'Appointment not found'}), 404
-        
+
         # Update payment status
         appointment.payment_status = 'paid'
         db.session.commit()
-        
+
         return jsonify({
             'success': True,
             'message': f'Appointment for {appointment.client_name} marked as paid'
         })
-        
+
     except Exception as e:
         print(f"Error marking appointment as paid: {e}")
         return jsonify({'error': str(e)}), 500
@@ -2268,26 +2271,26 @@ def mark_appointment_paid(appointment_id):
 def appointment_go_to_billing(appointment_id):
     """Redirect from appointment context menu to integrated billing with client ID"""
     print(f"🔄 Processing billing redirect for appointment {appointment_id}")
-    
+
     if not current_user.can_access('billing'):
         print(f"❌ Access denied for billing for user {current_user.id}")
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
-    
+
     try:
         # Import db from app
         from app import db
         # First try to find in UnakiBooking table
         from models import UnakiBooking, Customer
-        
+
         print(f"🔍 Looking for UnakiBooking with ID {appointment_id}")
         unaki_booking = UnakiBooking.query.get(appointment_id)
-        
+
         if unaki_booking:
             print(f"✅ Found UnakiBooking: {unaki_booking.client_name} - {unaki_booking.service_name}")
             client_id = unaki_booking.client_id
             client_name = unaki_booking.client_name
-            
+
             # If no client_id, try to find customer by phone or name
             if not client_id:
                 print(f"🔍 No client_id found, attempting to match customer...")
@@ -2300,7 +2303,7 @@ def appointment_go_to_billing(appointment_id):
                         # Update the booking with the client_id for future use
                         unaki_booking.client_id = client_id
                         db.session.commit()
-                
+
                 # If still no match, try by name
                 if not client_id and unaki_booking.client_name:
                     name_parts = unaki_booking.client_name.strip().split(' ', 1)
@@ -2313,16 +2316,16 @@ def appointment_go_to_billing(appointment_id):
                             client_id = customer.id
                             unaki_booking.client_id = client_id
                             db.session.commit()
-            
+
             if client_id:
                 print(f"💳 Redirecting to billing for client_id: {client_id}")
                 flash(f'Loading billing for {client_name}', 'info')
                 return redirect(url_for('integrated_billing', customer_id=client_id))
-        
+
         # If not found in UnakiBooking, try regular Appointment table
         print(f"🔍 Looking for regular Appointment with ID {appointment_id}")
         appointment = Appointment.query.get(appointment_id)
-        
+
         if appointment and appointment.client_id:
             print(f"✅ Found regular Appointment with client_id: {appointment.client_id}")
             # Found in Appointment table, redirect to integrated billing
@@ -2331,12 +2334,12 @@ def appointment_go_to_billing(appointment_id):
                 print(f"💳 Redirecting to billing for: {client.full_name}")
                 flash(f'Loading billing for {client.first_name} {client.last_name}', 'info')
                 return redirect(url_for('integrated_billing', customer_id=appointment.client_id))
-        
+
         # If appointment not found or has no client
         print(f"❌ Appointment {appointment_id} not found or no client associated")
         flash('Appointment not found or no client associated. Please ensure the appointment has a valid customer record.', 'warning')
         return redirect(url_for('unaki_booking'))
-        
+
     except Exception as e:
         print(f"❌ Error in appointment_go_to_billing: {e}")
         import traceback
