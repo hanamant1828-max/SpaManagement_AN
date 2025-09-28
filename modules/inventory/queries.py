@@ -340,6 +340,8 @@ def get_consumption_records(limit=50):
 def create_consumption_record(batch_id, quantity, issued_to, reference=None, notes=None, user_id=None):
     """Create consumption record and update batch stock"""
     try:
+        from decimal import Decimal
+        
         batch = InventoryBatch.query.get(batch_id)
         if not batch:
             raise ValueError("Batch not found")
@@ -347,22 +349,24 @@ def create_consumption_record(batch_id, quantity, issued_to, reference=None, not
         if batch.is_expired:
             raise ValueError("Cannot consume from expired batch")
 
-        if float(quantity) > float(batch.qty_available):
-            raise ValueError(f"Insufficient stock. Available: {batch.qty_available}, Required: {quantity}")
+        # Convert to Decimal for proper arithmetic
+        quantity_decimal = Decimal(str(quantity))
+        if quantity_decimal > batch.qty_available:
+            raise ValueError(f"Insufficient stock. Available: {batch.qty_available}, Required: {quantity_decimal}")
 
         # Create consumption record
         consumption = InventoryConsumption(
             batch_id=batch_id,
-            quantity=quantity,
+            quantity=quantity_decimal,
             issued_to=issued_to,
             reference=reference,
             notes=notes,
             created_by=user_id
         )
 
-        # Update batch quantity
-        old_qty = float(batch.qty_available)
-        batch.qty_available -= float(quantity)
+        # Update batch quantity with Decimal arithmetic
+        old_qty = batch.qty_available
+        batch.qty_available = batch.qty_available - quantity_decimal
 
         # Create audit log only if user_id is provided
         if user_id:
@@ -371,8 +375,8 @@ def create_consumption_record(batch_id, quantity, issued_to, reference=None, not
                 product_id=batch.product_id,
                 user_id=user_id,
                 action_type='consumption',
-                quantity_delta=-float(quantity),
-                stock_before=old_qty,
+                quantity_delta=-float(quantity_decimal),
+                stock_before=float(old_qty),
                 stock_after=float(batch.qty_available),
                 reference_type='consumption',
                 reference_id=consumption.id,
@@ -391,6 +395,8 @@ def create_consumption_record(batch_id, quantity, issued_to, reference=None, not
 def create_adjustment_record(batch_id, adjustment_type, quantity, remarks, user_id=None, product_id=None, location_id=None):
     """Create adjustment record and update batch stock"""
     try:
+        from decimal import Decimal
+        
         batch = InventoryBatch.query.get(batch_id)
         if not batch:
             raise ValueError("Batch not found")
@@ -401,25 +407,28 @@ def create_adjustment_record(batch_id, adjustment_type, quantity, remarks, user_
         if location_id and not batch.location_id:
             batch.location_id = location_id
 
+        # Convert to Decimal for proper arithmetic
+        quantity_decimal = Decimal(str(quantity))
+
         # Create adjustment record
         adjustment = InventoryAdjustment(
             batch_id=batch_id,
             adjustment_type=adjustment_type,
-            quantity=quantity,
+            quantity=quantity_decimal,
             remarks=remarks,
             created_by=user_id
         )
 
-        # Update batch quantity
-        old_qty = float(batch.qty_available)
+        # Update batch quantity with Decimal arithmetic
+        old_qty = batch.qty_available
         if adjustment_type == 'add':
-            batch.qty_available += float(quantity)
-            quantity_delta = float(quantity)
+            batch.qty_available = batch.qty_available + quantity_decimal
+            quantity_delta = float(quantity_decimal)
         else:  # remove
-            if float(quantity) > old_qty:
-                raise ValueError(f"Cannot remove {quantity}. Only {old_qty} available.")
-            batch.qty_available -= float(quantity)
-            quantity_delta = -float(quantity)
+            if quantity_decimal > batch.qty_available:
+                raise ValueError(f"Cannot remove {quantity_decimal}. Only {batch.qty_available} available.")
+            batch.qty_available = batch.qty_available - quantity_decimal
+            quantity_delta = -float(quantity_decimal)
 
         # Create audit log only if user_id is provided
         if user_id:
@@ -429,7 +438,7 @@ def create_adjustment_record(batch_id, adjustment_type, quantity, remarks, user_
                 user_id=user_id,
                 action_type=f'adjustment_{adjustment_type}',
                 quantity_delta=quantity_delta,
-                stock_before=old_qty,
+                stock_before=float(old_qty),
                 stock_after=float(batch.qty_available),
                 reference_type='adjustment',
                 reference_id=adjustment.id,

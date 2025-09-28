@@ -371,6 +371,7 @@ def api_create_batch():
 def api_create_adjustment():
     """Create inventory adjustment and assign product/location to batch if needed"""
     try:
+        from decimal import Decimal
         data = request.get_json()
 
         # Handle both single item and items array structures
@@ -378,16 +379,16 @@ def api_create_adjustment():
             # New structure with items array
             item = data['items'][0]  # Get first item
             batch_id = item.get('batch_id')
-            quantity = float(item.get('quantity_in', 0))
-            unit_cost = float(item.get('unit_cost', 0))
+            quantity = Decimal(str(item.get('quantity_in', 0)))
+            unit_cost = Decimal(str(item.get('unit_cost', 0)))
             product_id = item.get('product_id')
             location_id = item.get('location_id')
             adjustment_type = item.get('adjustment_type', 'add')
         else:
             # Direct structure
             batch_id = data.get('batch_id')
-            quantity = float(data.get('quantity', 0))
-            unit_cost = float(data.get('unit_cost', 0))
+            quantity = Decimal(str(data.get('quantity', 0)))
+            unit_cost = Decimal(str(data.get('unit_cost', 0)))
             product_id = data.get('product_id')
             location_id = data.get('location_id')
             adjustment_type = data.get('adjustment_type', 'add')
@@ -406,9 +407,8 @@ def api_create_adjustment():
 
         # Additional validation for remove operations
         if adjustment_type == 'remove':
-            current_stock = float(batch.qty_available or 0)
-            if quantity > current_stock:
-                return jsonify({'error': f'Cannot remove {quantity}. Only {current_stock} available in stock.'}), 400
+            if quantity > batch.qty_available:
+                return jsonify({'error': f'Cannot remove {quantity}. Only {batch.qty_available} available in stock.'}), 400
 
         # Assign product and location to batch if provided and not already assigned
         if product_id and not batch.product_id:
@@ -422,19 +422,19 @@ def api_create_adjustment():
             adjustment_type=adjustment_type,
             quantity=quantity,
             remarks=data.get('notes', '') or f'Stock {adjustment_type} via inventory management',
-            created_by=None  # No user tracking for now
+            created_by=current_user.id
         )
 
-        # Update batch quantity based on adjustment type
+        # Update batch quantity based on adjustment type with Decimal arithmetic
         if adjustment_type == 'add':
-            batch.qty_available = float(batch.qty_available or 0) + quantity
+            batch.qty_available = batch.qty_available + quantity
             if unit_cost > 0:
                 batch.unit_cost = unit_cost
         else:  # remove
-            batch.qty_available = float(batch.qty_available or 0) - quantity
+            batch.qty_available = batch.qty_available - quantity
             # Ensure qty_available doesn't go negative
             if batch.qty_available < 0:
-                batch.qty_available = 0
+                batch.qty_available = Decimal('0')
 
         db.session.add(adjustment)
         db.session.commit()
@@ -625,6 +625,7 @@ def api_get_consumption_records():
 def api_create_consumption():
     """Create consumption record - BATCH-CENTRIC"""
     try:
+        from decimal import Decimal
         data = request.get_json()
         
         # Validate required fields
@@ -633,15 +634,38 @@ def api_create_consumption():
             if not data.get(field):
                 return jsonify({'error': f'{field} is required'}), 400
         
-        # Create consumption using batch-centric function
-        consumption = create_consumption_record(
-            batch_id=data['batch_id'],
-            quantity=float(data['quantity']),
-            issued_to=data['issued_to'],
-            reference=data.get('reference', ''),
-            notes=data.get('notes', ''),
-            user_id=current_user.id
+        batch_id = data['batch_id']
+        quantity = Decimal(str(data['quantity']))
+        issued_to = data['issued_to']
+        reference = data.get('reference', '')
+        notes = data.get('notes', '')
+        
+        # Get the batch and validate
+        batch = InventoryBatch.query.get(batch_id)
+        if not batch:
+            return jsonify({'error': 'Batch not found'}), 400
+            
+        if batch.is_expired:
+            return jsonify({'error': 'Cannot consume from expired batch'}), 400
+            
+        if quantity > batch.qty_available:
+            return jsonify({'error': f'Insufficient stock. Available: {batch.qty_available}, Required: {quantity}'}), 400
+        
+        # Create consumption record
+        consumption = InventoryConsumption(
+            batch_id=batch_id,
+            quantity=quantity,
+            issued_to=issued_to,
+            reference=reference,
+            notes=notes,
+            created_by=current_user.id
         )
+        
+        # Update batch quantity with Decimal arithmetic
+        batch.qty_available = batch.qty_available - quantity
+        
+        db.session.add(consumption)
+        db.session.commit()
         
         return jsonify({
             'success': True,
@@ -649,6 +673,7 @@ def api_create_consumption():
             'consumption_id': consumption.id
         })
     except Exception as e:
+        db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
 # ============ BATCH-CENTRIC ADJUSTMENT ENDPOINTS ============
