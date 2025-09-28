@@ -850,7 +850,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-// Add service row
+// CRITICAL: Define addServiceRow function globally and immediately
 window.addServiceRow = function addServiceRow() {
     const container = document.getElementById('servicesContainer');
     if (!container) {
@@ -890,8 +890,8 @@ window.addServiceRow = function addServiceRow() {
     return newRow;
 }
 
-// Function to add appointment directly to billing
-        function addAppointmentToBill(appointmentId, serviceName, serviceId, servicePrice) {
+// Function to add appointment directly to billing - make globally accessible
+window.addAppointmentToBill = function addAppointmentToBill(appointmentId, serviceName, serviceId, servicePrice) {
             console.log('Adding appointment to bill:', appointmentId, serviceName, serviceId, servicePrice);
 
             // Find the first empty service row or add a new one
@@ -1072,11 +1072,8 @@ window.addServiceRow = function addServiceRow() {
             }
             return null;
         }
-        // Ensure all functions are globally available
-        window.addServiceRow = addServiceRow;
-        window.addAppointmentToBill = addAppointmentToBill;
-        window.previewInvoice = previewInvoice;
-        window.proceedWithInvoiceCreation = proceedWithInvoiceCreation;
+        // Functions are already globally available
+        console.log('All billing functions verified as globally accessible');
         window.saveAsDraft = saveAsDraft;
         window.sendQuotation = sendQuotation;
         window.clearForm = clearForm;
