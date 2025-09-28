@@ -49,6 +49,15 @@ This is a comprehensive Flask-based spa management system that handles customer 
   - ✅ Billing system now properly calculates and displays totals when services are added
   - ✅ All billing calculation functions working correctly with enhanced debugging
 
+- 2025-09-28: **Successfully restored "Add to Bill" button functionality**
+  - ✅ Fixed SQLAlchemy ORDER BY error by replacing `full_name` property with actual database columns
+  - ✅ Changed `User.query.order_by(User.full_name)` → `User.query.order_by(User.first_name, User.last_name)`
+  - ✅ Changed `Customer.query.order_by(Customer.full_name)` → `Customer.query.order_by(Customer.first_name, Customer.last_name)`
+  - ✅ Restored individual "Add to Bill" buttons for each appointment in customer booking table
+  - ✅ Button now calls `addUnakiAppointmentToBill()` function with appointment details
+  - ✅ Users can add specific appointments to bills instead of only using bulk auto-fill
+  - ✅ All modules loading successfully with no ORDER BY errors
+
 ## Project Structure
 ```
 /

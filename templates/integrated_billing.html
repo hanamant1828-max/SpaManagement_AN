@@ -248,7 +248,11 @@
                                                             <strong class="text-success">₹{{ "{:,.2f}".format(appointment.service_price) if appointment.service_price else '0.00' }}</strong>
                                                         </td>
                                                         <td>
-                                                            <!-- Add to Bill button hidden -->
+                                                            <button type="button" 
+                                                                    class="btn btn-primary btn-sm" 
+                                                                    onclick="addUnakiAppointmentToBill({{ appointment.id }}, '{{ appointment.service_name }}', {{ appointment.service_price }}, '{{ appointment.staff_name }}')">
+                                                                <i class="fas fa-plus me-1"></i>Add to Bill
+                                                            </button>
                                                         </td>
                                                     </tr>
                                                     {% endfor %}
