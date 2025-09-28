@@ -602,23 +602,86 @@ def api_get_batches_for_adjustment():
 @app.route('/api/inventory/consumption', methods=['GET'])
 @login_required
 def api_get_consumption_records():
-    """Get consumption records"""
+    """Get consumption records with pagination support"""
     try:
-        consumption_records = get_consumption_records(limit=100)
-        return jsonify([{
-            'id': c.id,
-            'batch_id': c.batch_id,
-            'batch_name': c.batch.batch_name if c.batch else 'Unknown',
-            'product_name': c.batch.product.name if c.batch and c.batch.product else 'Unknown',
-            'quantity': float(c.quantity),
-            'issued_to': c.issued_to,
-            'reference': c.reference,
-            'notes': c.notes,
-            'created_at': c.created_at.isoformat() if c.created_at else None,
-            'created_by_name': c.user.full_name if c.user else 'Unknown'
-        } for c in consumption_records])
+        # Get pagination parameters
+        page = int(request.args.get('page', 1))
+        per_page = int(request.args.get('per_page', 25))
+        from_date = request.args.get('from_date', '')
+        to_date = request.args.get('to_date', '')
+        search = request.args.get('search', '')
+
+        # Build query
+        query = InventoryConsumption.query
+
+        # Apply date filters
+        if from_date:
+            from datetime import datetime
+            start_date = datetime.strptime(from_date, '%Y-%m-%d')
+            query = query.filter(InventoryConsumption.created_at >= start_date)
+
+        if to_date:
+            from datetime import datetime
+            end_date = datetime.strptime(to_date, '%Y-%m-%d').replace(hour=23, minute=59, second=59)
+            query = query.filter(InventoryConsumption.created_at <= end_date)
+
+        # Apply search filter
+        if search:
+            query = query.join(InventoryBatch).filter(
+                or_(
+                    InventoryBatch.batch_name.ilike(f'%{search}%'),
+                    InventoryConsumption.reference.ilike(f'%{search}%'),
+                    InventoryConsumption.notes.ilike(f'%{search}%'),
+                    InventoryConsumption.issued_to.ilike(f'%{search}%')
+                )
+            )
+
+        # Order by created_at desc
+        query = query.order_by(desc(InventoryConsumption.created_at))
+
+        # Get total count
+        total = query.count()
+        total_pages = (total + per_page - 1) // per_page
+
+        # Apply pagination
+        consumption_records = query.offset((page - 1) * per_page).limit(per_page).all()
+
+        # Format response data
+        consumption_data = []
+        for c in consumption_records:
+            unit_of_measure = c.batch.product.unit_of_measure if c.batch and c.batch.product else 'pcs'
+            consumption_data.append({
+                'id': c.id,
+                'batch_id': c.batch_id,
+                'batch_name': c.batch.batch_name if c.batch else 'Unknown',
+                'product_name': c.batch.product.name if c.batch and c.batch.product else 'Unknown',
+                'quantity': float(c.quantity),
+                'unit_of_measure': unit_of_measure,
+                'issued_to': c.issued_to,
+                'reference': c.reference or '',
+                'purpose': getattr(c, 'purpose', 'other'),
+                'notes': c.notes or '',
+                'created_at': c.created_at.isoformat() if c.created_at else None,
+                'created_by_name': c.user.full_name if c.user else 'Unknown'
+            })
+
+        return jsonify({
+            'success': True,
+            'data': consumption_data,
+            'total': total,
+            'total_pages': total_pages,
+            'current_page': page,
+            'per_page': per_page
+        })
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        print(f"Error in api_get_consumption_records: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'data': [],
+            'total': 0,
+            'total_pages': 1
+        }), 500
 
 @app.route('/api/inventory/consumption', methods=['POST'])
 @login_required
