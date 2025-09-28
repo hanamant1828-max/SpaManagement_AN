@@ -8,7 +8,10 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Keep DATABASE_URL for PostgreSQL in Replit environment
+# Remove PostgreSQL DATABASE_URL to use existing SQLite database
+if 'DATABASE_URL' in os.environ:
+    del os.environ['DATABASE_URL']
+    logger.info("Removed PostgreSQL DATABASE_URL to use existing SQLite database")
 
 # Set PORT from environment if available (for Replit deployment)
 port = int(os.environ.get("PORT", 5000))
