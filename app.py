@@ -12,20 +12,13 @@ from datetime import datetime, date, timedelta, time
 
 
 def compute_sqlite_uri():
-    """Compute SQLite database URI for the current instance"""
-    # Create base directory for databases
-    base_dir = os.path.join(os.getcwd(), 'hanamantdatabase')
-    os.makedirs(base_dir, exist_ok=True)
-
-    # Determine instance identifier
-    instance = os.environ.get('SPA_DB_INSTANCE') or os.environ.get('REPL_SLUG') or 'default'
-
-    # Sanitize instance name to prevent path traversal
-    instance = re.sub(r'[^A-Za-z0-9_-]', '_', instance)
-
-    # Create absolute path to database file
-    db_path = os.path.abspath(os.path.join(base_dir, f'{instance}.db'))
-
+    """Compute SQLite database URI for the workspace database"""
+    # Use the exact path specified by the user
+    db_path = '/home/runner/workspace/hanamantdatabase/workspace.db'
+    
+    # Create directory if it doesn't exist
+    os.makedirs(os.path.dirname(db_path), exist_ok=True)
+    
     # Return SQLite URI with absolute path
     return f'sqlite:///{db_path}'
 
@@ -61,12 +54,10 @@ app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1) # needed for url_for 
 # Handle trailing slash variations
 app.url_map.strict_slashes = False
 
-# Configure the database - use SQLite
+# Configure the database - use SQLite only
 app.config["SQLALCHEMY_DATABASE_URI"] = compute_sqlite_uri()
 app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
-    "connect_args": {
-        "check_same_thread": False  # Allow SQLite to be used across threads
-    }
+    "pool_pre_ping": True,
 }
 print(f"Using SQLite database: {app.config['SQLALCHEMY_DATABASE_URI']}")
 
@@ -144,7 +135,7 @@ def init_app():
     """Initialize the application with proper error handling"""
     with app.app_context():
         try:
-            # Configure SQLite pragmas for better performance
+            # Configure SQLite pragmas
             event.listen(db.engine, "connect", configure_sqlite_pragmas)
             print(f"SQLite database configured: {app.config['SQLALCHEMY_DATABASE_URI']}")
 
@@ -157,62 +148,11 @@ def init_app():
 
             # Try to create tables, but handle conflicts gracefully
             db.create_all()
-            print("SQLite database tables created successfully")
-            print(f"Database file location: {app.config['SQLALCHEMY_DATABASE_URI']}")
-            
-            # Create default permissions if they don't exist
-            try:
-                from models import Permission
-                default_permissions = [
-                    {'name': 'dashboard_view', 'display_name': 'View Dashboard', 'description': 'Access to main dashboard', 'module': 'dashboard'},
-                    {'name': 'staff_view', 'display_name': 'View Staff', 'description': 'View staff information', 'module': 'staff'},
-                    {'name': 'staff_create', 'display_name': 'Create Staff', 'description': 'Add new staff members', 'module': 'staff'},
-                    {'name': 'staff_edit', 'display_name': 'Edit Staff', 'description': 'Modify staff information', 'module': 'staff'},
-                    {'name': 'staff_delete', 'display_name': 'Delete Staff', 'description': 'Remove staff members', 'module': 'staff'},
-                    {'name': 'clients_view', 'display_name': 'View Clients', 'description': 'View client information', 'module': 'clients'},
-                    {'name': 'clients_create', 'display_name': 'Create Clients', 'description': 'Add new clients', 'module': 'clients'},
-                    {'name': 'clients_edit', 'display_name': 'Edit Clients', 'description': 'Modify client information', 'module': 'clients'},
-                    {'name': 'clients_delete', 'display_name': 'Delete Clients', 'description': 'Remove clients', 'module': 'clients'},
-                    {'name': 'services_view', 'display_name': 'View Services', 'description': 'View services and pricing', 'module': 'services'},
-                    {'name': 'services_create', 'display_name': 'Create Services', 'description': 'Add new services', 'module': 'services'},
-                    {'name': 'services_edit', 'display_name': 'Edit Services', 'description': 'Modify services and pricing', 'module': 'services'},
-                    {'name': 'services_delete', 'display_name': 'Delete Services', 'description': 'Remove services', 'module': 'services'},
-                    {'name': 'appointments_view', 'display_name': 'View Appointments', 'description': 'View appointment bookings', 'module': 'bookings'},
-                    {'name': 'appointments_create', 'display_name': 'Create Appointments', 'description': 'Book new appointments', 'module': 'bookings'},
-                    {'name': 'appointments_edit', 'display_name': 'Edit Appointments', 'description': 'Modify appointments', 'module': 'bookings'},
-                    {'name': 'appointments_delete', 'display_name': 'Delete Appointments', 'description': 'Cancel appointments', 'module': 'bookings'},
-                    {'name': 'billing_view', 'display_name': 'View Billing', 'description': 'Access billing information', 'module': 'billing'},
-                    {'name': 'billing_create', 'display_name': 'Create Bills', 'description': 'Generate invoices and bills', 'module': 'billing'},
-                    {'name': 'billing_edit', 'display_name': 'Edit Bills', 'description': 'Modify billing information', 'module': 'billing'},
-                    {'name': 'inventory_view', 'display_name': 'View Inventory', 'description': 'Access inventory information', 'module': 'inventory'},
-                    {'name': 'inventory_create', 'display_name': 'Create Inventory', 'description': 'Add inventory items', 'module': 'inventory'},
-                    {'name': 'inventory_edit', 'display_name': 'Edit Inventory', 'description': 'Modify inventory items', 'module': 'inventory'},
-                    {'name': 'packages_view', 'display_name': 'View Packages', 'description': 'View service packages', 'module': 'packages'},
-                    {'name': 'packages_create', 'display_name': 'Create Packages', 'description': 'Create service packages', 'module': 'packages'},
-                    {'name': 'packages_edit', 'display_name': 'Edit Packages', 'description': 'Modify service packages', 'module': 'packages'},
-                    {'name': 'reports_view', 'display_name': 'View Reports', 'description': 'Access business reports', 'module': 'reports'},
-                    {'name': 'expenses_view', 'display_name': 'View Expenses', 'description': 'View business expenses', 'module': 'expenses'},
-                    {'name': 'expenses_create', 'display_name': 'Create Expenses', 'description': 'Add new expenses', 'module': 'expenses'},
-                    {'name': 'expenses_edit', 'display_name': 'Edit Expenses', 'description': 'Modify expenses', 'module': 'expenses'},
-                    {'name': 'settings_view', 'display_name': 'View Settings', 'description': 'Access system settings', 'module': 'settings'},
-                    {'name': 'settings_edit', 'display_name': 'Edit Settings', 'description': 'Modify system settings', 'module': 'settings'},
-                ]
-                
-                for perm_data in default_permissions:
-                    existing_permission = Permission.query.filter_by(name=perm_data['name']).first()
-                    if not existing_permission:
-                        permission = Permission(**perm_data)
-                        db.session.add(permission)
-                
-                db.session.commit()
-                print("Default permissions created successfully")
-                
-            except Exception as e:
-                db.session.rollback()
-                print(f"Warning: Could not create default permissions: {e}")
+            print("Database tables created successfully")
+            print(f"Database connection: {app.config['SQLALCHEMY_DATABASE_URI']}")
         except Exception as e:
-            print(f"SQLite database initialization warning: {e}")
-            print("Continuing with existing SQLite database...")
+            print(f"Database initialization warning: {e}")
+            print("Continuing with existing database...")
 
         print("Basic routes imported successfully")
 
@@ -308,13 +248,8 @@ try:
 except Exception as e:
     print(f"⚠️ Integrated billing views import error: {e}")
 
-# Import user management views
-try:
-    from modules.user_management.user_views import *
-    print("User management routes registered successfully")
-except Exception as e:
-    print(f"Error importing user management routes: {e}")
-    print("User management will not be available")
+# Skip other problematic imports that cause route conflicts
+print("⚠️ Skipping other staff, notifications, and packages views to avoid conflicts")
 
 # Routes are imported via module views, avoiding import conflicts
 
@@ -540,10 +475,57 @@ def unaki_load_sample_data():
                 'notes': '5-minute quick service for Admin'
             },
             {
-                'client_name': 'David Brown', 
-                'client_phone': '+1-555-0102',
-                'service_name': 'Swedish Massage',
-                'start_time': '14:00',
+                'client_name': 'Scarlett Johansson',
+                'client_phone': '+1-555-1002',
+                'service_name': 'Express Consultation',
+                'duration': 10,
+                'price': 35.0,
+                'staff_id': 11,
+                'start_time': '08:10',
+                'end_time': '08:20',
+                'date': today_str,
+                'notes': '10-minute consultation with Admin'
+            },
+            {
+                'client_name': 'Jennifer Lawrence',
+                'client_phone': '+1-555-1003',
+                'service_name': 'Quick Eyebrow Trim',
+                'duration': 15,
+                'price': 45.0,
+                'staff_id': 11,
+                'start_time': '08:25',
+                'end_time': '08:40',
+                'date': today_str,
+                'notes': '15-minute eyebrow service'
+            },
+            {
+                'client_name': 'Anne Hathaway',
+                'client_phone': '+1-555-1004',
+                'service_name': 'Mini Facial Express',
+                'duration': 25,
+                'price': 65.0,
+                'staff_id': 11,
+                'start_time': '08:45',
+                'end_time': '09:10',
+                'date': today_str,
+                'notes': '25-minute express facial treatment'
+            },
+            {
+                'client_name': 'Natalie Portman',
+                'client_phone': '+1-555-1005',
+                'service_name': 'Premium Face Treatment',
+                'duration': 45,
+                'price': 95.0,
+                'staff_id': 11,
+                'start_time': '09:15',
+                'end_time': '10:00',
+                'date': today_str,
+                'notes': '45-minute premium facial service'
+            },
+            {
+                'client_name': 'Reese Witherspoon',
+                'client_phone': '+1-555-1006',
+                'service_name': 'Standard Massage',
                 'duration': 60,
                 'price': 120.0,
                 'staff_id': 11,
@@ -743,6 +725,249 @@ def unaki_load_sample_data():
         return jsonify({
             'success': False,
             'error': f'Failed to load sample data: {str(e)}'
+        }), 500
+
+@app.route('/api/unaki/book-appointment', methods=['POST'])
+def unaki_book_appointment():
+    """Book appointment API endpoint that matches frontend expectations"""
+    try:
+        data = request.get_json()
+        
+        # Validate required fields - only clientId is needed for client identification
+        required_fields = ['staffId', 'clientId', 'serviceType', 'startTime', 'endTime']
+        for field in required_fields:
+            if field not in data or not data[field]:
+                return jsonify({
+                    'success': False,
+                    'error': f'Missing required field: {field}'
+                }), 400
+
+        # Forward to the existing create appointment function
+        return unaki_create_appointment_impl(data)
+        
+    except Exception as e:
+        print(f"Error in unaki_book_appointment: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+def unaki_create_appointment_impl(data=None):
+    """Implementation function for creating appointments"""
+    if data is None:
+        data = request.get_json()
+        
+    try:
+        from datetime import datetime, timedelta, time
+        from models import UnakiBooking, User, Service, Customer
+
+        print(f"Received booking data: {data}")
+
+        # Validate required fields - prioritize clientId over clientName
+        required_fields = ['staffId', 'serviceType', 'startTime', 'endTime']
+        missing_fields = []
+
+        for field in required_fields:
+            if field not in data or not data[field] or str(data[field]).strip() == '':
+                missing_fields.append(field)
+
+        # Check for client identification - either clientId or clientName is required
+        client_id = data.get('clientId')
+        client_name = data.get('clientName', '').strip()
+        
+        if not client_id and not client_name:
+            missing_fields.append('clientId or clientName')
+
+        if missing_fields:
+            return jsonify({
+                'success': False,
+                'error': f'Missing required fields: {", ".join(missing_fields)}'
+            }), 400
+
+        # Parse date and times
+        appointment_date_str = data.get('date', datetime.now().strftime('%Y-%m-%d'))
+        try:
+            appointment_date = datetime.strptime(appointment_date_str, '%Y-%m-%d').date()
+            start_time_obj = datetime.strptime(data['startTime'], '%H:%M').time()
+            end_time_obj = datetime.strptime(data['endTime'], '%H:%M').time()
+        except ValueError as ve:
+            return jsonify({
+                'success': False,
+                'error': f'Invalid date/time format: {str(ve)}'
+            }), 400
+
+        # Calculate duration
+        start_datetime = datetime.combine(appointment_date, start_time_obj)
+        end_datetime = datetime.combine(appointment_date, end_time_obj)
+        duration = int((end_datetime - start_datetime).total_seconds() / 60)
+
+        if duration <= 0:
+            return jsonify({
+                'success': False,
+                'error': 'End time must be after start time'
+            }), 400
+
+        # Verify staff exists and is active
+        staff = User.query.filter_by(id=data['staffId'], is_active=True).first()
+        if not staff:
+            return jsonify({
+                'success': False,
+                'error': 'Staff member not found or inactive'
+            }), 400
+
+        # Look up service details for pricing
+        service = Service.query.filter_by(name=data['serviceType'], is_active=True).first()
+        service_price = float(data.get('servicePrice', service.price if service else 100.0))
+
+        # Check for time conflicts
+        conflicting_bookings = UnakiBooking.query.filter(
+            UnakiBooking.staff_id == data['staffId'],
+            UnakiBooking.appointment_date == appointment_date,
+            UnakiBooking.status.in_(['scheduled', 'confirmed', 'in_progress']),
+            UnakiBooking.end_time > start_time_obj,
+            UnakiBooking.start_time < end_time_obj
+        ).all()
+
+        if conflicting_bookings:
+            conflict_details = []
+            for booking in conflicting_bookings:
+                conflict_details.append(f"{booking.get_time_range_display()} - {booking.service_name}")
+
+            return jsonify({
+                'success': False,
+                'error': f'Time slot conflicts with existing booking(s) for {staff.full_name}: {", ".join(conflict_details)}'
+            }), 400
+
+        # Handle customer identification and creation
+        customer = None
+        final_client_id = None
+        final_client_name = None
+        client_phone = data.get('clientPhone', '').strip()
+        client_email = data.get('clientEmail', '').strip()
+
+        # Priority 1: Use existing client ID if provided
+        if client_id:
+            customer = Customer.query.get(client_id)
+            if customer:
+                final_client_id = customer.id
+                final_client_name = customer.full_name
+                # Use customer's existing contact info if not provided in form
+                if not client_phone:
+                    client_phone = customer.phone or ''
+                if not client_email:
+                    client_email = customer.email or ''
+                # Update phone and email from form if they're empty in customer record
+                if not customer.phone and client_phone:
+                    customer.phone = client_phone
+                if not customer.email and client_email:
+                    customer.email = client_email
+                db.session.commit()
+                print(f"Using existing customer ID {final_client_id}: {customer.full_name}")
+            else:
+                return jsonify({
+                    'success': False,
+                    'error': f'Client ID {client_id} not found'
+                }), 400
+        
+        # Priority 2: If no valid client_id, try to find by phone or email
+        if not final_client_id:
+            if client_phone:
+                customer = Customer.query.filter_by(phone=client_phone).first()
+            elif client_email:
+                customer = Customer.query.filter_by(email=client_email).first()
+            
+            if customer:
+                final_client_id = customer.id
+                final_client_name = customer.full_name
+                print(f"Found existing customer by contact info: {customer.full_name}")
+
+        # Priority 3: Create new customer if none found and we have a name
+        if not final_client_id and client_name:
+            try:
+                name_parts = client_name.split(' ', 1)
+                first_name = name_parts[0] if name_parts else 'Unknown'
+                last_name = name_parts[1] if len(name_parts) > 1 else ''
+
+                customer = Customer(
+                    first_name=first_name,
+                    last_name=last_name,
+                    phone=client_phone if client_phone else None,
+                    email=client_email if client_email else None,
+                    is_active=True
+                )
+                db.session.add(customer)
+                db.session.flush()  # Get the ID without committing
+                final_client_id = customer.id
+                final_client_name = customer.full_name
+                print(f"Created new customer ID {final_client_id}: {customer.full_name}")
+            except Exception as ce:
+                print(f"Warning: Could not create customer record: {ce}")
+
+        # Ensure we have a valid client_id and client_name
+        if not final_client_id:
+            return jsonify({
+                'success': False,
+                'error': 'Client ID is required. Please provide a valid client ID or client information to create a new customer.'
+            }), 400
+            
+        if not final_client_name:
+            return jsonify({
+                'success': False,
+                'error': 'Client name could not be determined. Please check customer data.'
+            }), 400
+                
+        print(f"Creating booking with client_id: {final_client_id}")
+            
+        # Create UnakiBooking entry with client_id and client_name
+        unaki_booking = UnakiBooking(
+            client_id=final_client_id,
+            client_name=final_client_name,  # Required field - cannot be NULL
+            client_phone=client_phone,
+            client_email=client_email,
+            staff_id=int(data['staffId']),
+            staff_name=staff.full_name,
+            service_id=service.id if service else None,
+            service_name=data['serviceType'].strip(),
+            service_duration=duration,
+            service_price=service_price,
+            appointment_date=appointment_date,
+            start_time=start_time_obj,
+            end_time=end_time_obj,
+            status='confirmed',
+            notes=data.get('notes', '').strip(),
+            booking_source='unaki_system',
+            booking_method='form_booking',
+            amount_charged=service_price,
+            payment_status='pending',
+            created_at=datetime.utcnow()
+        )
+
+        db.session.add(unaki_booking)
+        db.session.commit()
+
+        print(f"Successfully created booking ID: {unaki_booking.id}")
+
+        return jsonify({
+            'success': True,
+            'message': f'Appointment booked successfully for Client ID: {final_client_id}',
+            'appointmentId': unaki_booking.id,
+            'clientId': final_client_id,
+            'clientName': final_client_name,
+            'booking': unaki_booking.to_dict() if hasattr(unaki_booking, 'to_dict') else {
+                'id': unaki_booking.id,
+                'client_id': unaki_booking.client_id,
+                'client_name': customer.full_name if customer else f'Client {final_client_id}',
+                'service_name': unaki_booking.service_name,
+                'start_time': unaki_booking.start_time.strftime('%H:%M'),
+                'end_time': unaki_booking.end_time.strftime('%H:%M')
+            }
+        })
+
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error in unaki_create_appointment: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            'success': False,
+            'error': f'Failed to create booking: {str(e)}'
         }), 500
 
 @app.route('/api/unaki/create-appointment', methods=['POST'])
@@ -947,339 +1172,7 @@ def role_management():
     if not current_user.can_access('settings'):
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
-
-    from models import Role, Permission
-    from forms import RoleForm, PermissionForm, BusinessSettingsForm
-
-    # Get all roles and permissions
-    roles = Role.query.all()
-    permissions = Permission.query.all()
-
-    # Initialize forms
-    role_form = RoleForm()
-    permission_form = PermissionForm()
-    business_form = BusinessSettingsForm()  # Add this for template compatibility
-
-    return render_template('role_management.html',
-                         roles=roles,
-                         permissions=permissions,
-                         role_form=role_form,
-                         permission_form=permission_form,
-                         business_form=business_form)
-
-@app.route('/add_role', methods=['POST'])
-@login_required
-def add_role():
-    """Add new role"""
-    if not current_user.can_access('settings'):
-        flash('Access denied', 'danger')
-        return redirect(url_for('dashboard'))
-
-    from models import Role
-    from forms import RoleForm
-
-    form = RoleForm()
-    if form.validate_on_submit():
-        try:
-            role = Role(
-                name=form.name.data,
-                display_name=form.display_name.data,
-                description=form.description.data,
-                is_active=form.is_active.data
-            )
-            db.session.add(role)
-            db.session.commit()
-            flash('Role added successfully!', 'success')
-        except Exception as e:
-            db.session.rollback()
-            flash(f'Error adding role: {str(e)}', 'danger')
-    else:
-        for field, errors in form.errors.items():
-            for error in errors:
-                flash(f'{getattr(form, field).label.text}: {error}', 'danger')
-
-    return redirect(url_for('role_management'))
-
-@app.route('/add_permission', methods=['POST'])
-@login_required
-def add_permission():
-    """Add new permission"""
-    if not current_user.can_access('settings'):
-        flash('Access denied', 'danger')
-        return redirect(url_for('dashboard'))
-
-    from models import Permission
-    from forms import PermissionForm
-
-    form = PermissionForm()
-    if form.validate_on_submit():
-        try:
-            permission = Permission(
-                name=form.name.data,
-                display_name=form.name.data,
-                description=form.description.data,
-                module='general',
-                is_active=form.is_active.data
-            )
-            db.session.add(permission)
-            db.session.commit()
-            flash('Permission added successfully!', 'success')
-        except Exception as e:
-            db.session.rollback()
-            flash(f'Error adding permission: {str(e)}', 'danger')
-    else:
-        for field, errors in form.errors.items():
-            for error in errors:
-                flash(f'{getattr(form, field).label.text}: {error}', 'danger')
-
-    return redirect(url_for('role_management'))
-
-@app.route('/edit_role/<int:role_id>', methods=['POST'])
-@login_required
-def edit_role(role_id):
-    """Edit existing role"""
-    if not current_user.can_access('settings'):
-        flash('Access denied', 'danger')
-        return redirect(url_for('dashboard'))
-
-    from models import Role
-    from forms import RoleForm
-
-    role = Role.query.get_or_404(role_id)
-    form = RoleForm()
-
-    if form.validate_on_submit():
-        try:
-            # Prevent editing admin role name
-            if role.name == 'admin' and form.name.data != 'admin':
-                flash('Cannot change admin role name', 'danger')
-                return redirect(url_for('role_management'))
-
-            role.name = form.name.data
-            role.display_name = form.display_name.data
-            role.description = form.description.data
-            role.is_active = form.is_active.data
-            db.session.commit()
-            flash('Role updated successfully!', 'success')
-        except Exception as e:
-            db.session.rollback()
-            flash(f'Error updating role: {str(e)}', 'danger')
-    else:
-        for field, errors in form.errors.items():
-            for error in errors:
-                flash(f'{getattr(form, field).label.text}: {error}', 'danger')
-
-    return redirect(url_for('role_management'))
-
-@app.route('/delete_role/<int:role_id>', methods=['POST'])
-@login_required
-def delete_role(role_id):
-    """Delete role"""
-    if not current_user.can_access('settings'):
-        flash('Access denied', 'danger')
-        return redirect(url_for('dashboard'))
-
-    from models import Role
-
-    try:
-        role = Role.query.get_or_404(role_id)
-        
-        # Prevent deleting admin role
-        if role.name == 'admin':
-            flash('Cannot delete admin role', 'danger')
-            return redirect(url_for('role_management'))
-
-        # Check if role is being used by users
-        if role.users:
-            flash(f'Cannot delete role "{role.display_name}" as it is assigned to {len(role.users)} users', 'danger')
-            return redirect(url_for('role_management'))
-
-        db.session.delete(role)
-        db.session.commit()
-        flash('Role deleted successfully!', 'success')
-    except Exception as e:
-        db.session.rollback()
-        flash(f'Error deleting role: {str(e)}', 'danger')
-
-    return redirect(url_for('role_management'))
-
-@app.route('/api/roles/<int:role_id>', methods=['GET'])
-@login_required
-def api_get_role(role_id):
-    """API endpoint to get role details for editing"""
-    if not current_user.can_access('settings'):
-        return jsonify({'error': 'Access denied'}), 403
-
-    from models import Role
-
-    try:
-        role = Role.query.get_or_404(role_id)
-        return jsonify({
-            'success': True,
-            'role': {
-                'id': role.id,
-                'name': role.name,
-                'display_name': role.display_name,
-                'description': role.description or '',
-                'is_active': role.is_active
-            }
-        })
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-@app.route('/api/roles/<int:role_id>', methods=['DELETE'])
-@login_required
-def api_delete_role(role_id):
-    """API endpoint to delete role"""
-    if not current_user.can_access('settings'):
-        return jsonify({'error': 'Access denied'}), 403
-
-    from models import Role
-
-    try:
-        role = Role.query.get_or_404(role_id)
-        
-        # Prevent deleting admin role
-        if role.name == 'admin':
-            return jsonify({'error': 'Cannot delete admin role'}), 400
-
-        # Check if role is being used by users
-        if role.users:
-            return jsonify({'error': f'Cannot delete role as it is assigned to {len(role.users)} users'}), 400
-
-        db.session.delete(role)
-        db.session.commit()
-        
-        return jsonify({
-            'success': True,
-            'message': 'Role deleted successfully'
-        })
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({'error': str(e)}), 500
-
-@app.route('/api/roles', methods=['POST'])
-@login_required
-def api_create_role():
-    """API endpoint to create a new role"""
-    if not current_user.can_access('settings'):
-        return jsonify({'error': 'Access denied'}), 403
-
-    from models import Role
-
-    data = request.get_json()
-    if not data:
-        return jsonify({'error': 'No data provided'}), 400
-
-    try:
-        # Check if role name already exists
-        existing_role = Role.query.filter_by(name=data.get('name')).first()
-        if existing_role:
-            return jsonify({'error': 'Role name already exists'}), 400
-
-        role = Role(
-            name=data.get('name'),
-            display_name=data.get('display_name', data.get('name')),
-            description=data.get('description', ''),
-            is_active=True
-        )
-        db.session.add(role)
-        db.session.commit()
-        return jsonify({
-            'success': True,
-            'message': 'Role created successfully',
-            'role_id': role.id
-        }), 201
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({'error': str(e)}), 500
-
-@app.route('/api/roles/<int:role_id>/permissions', methods=['GET'])
-@login_required
-def api_get_role_permissions(role_id):
-    """API endpoint to get role permissions"""
-    if not current_user.can_access('settings'):
-        return jsonify({'error': 'Access denied'}), 403
-
-    from models import Role
-
-    try:
-        role = Role.query.get_or_404(role_id)
-        role_permissions = [rp.permission.name for rp in role.permissions]
-        return jsonify({
-            'success': True,
-            'role_name': role.display_name,
-            'permissions': role_permissions
-        }), 200
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-@app.route('/api/permissions', methods=['GET'])
-@login_required
-def api_get_all_permissions():
-    """API endpoint to get all permissions"""
-    if not current_user.can_access('settings'):
-        return jsonify({'error': 'Access denied'}), 403
-
-    from models import Permission
-
-    try:
-        permissions = Permission.query.filter_by(is_active=True).order_by(Permission.module, Permission.display_name).all()
-        permissions_data = []
-        for permission in permissions:
-            permissions_data.append({
-                'id': permission.id,
-                'name': permission.name,
-                'display_name': permission.display_name,
-                'description': permission.description,
-                'module': permission.module,
-                'is_active': permission.is_active
-            })
-        
-        return jsonify({
-            'success': True,
-            'permissions': permissions_data
-        })
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-@app.route('/api/roles/<int:role_id>/permissions', methods=['POST'])
-@login_required
-def api_update_role_permissions(role_id):
-    """API endpoint to update role permissions"""
-    if not current_user.can_access('settings'):
-        return jsonify({'error': 'Access denied'}), 403
-
-    from models import Role, Permission, RolePermission
-
-    data = request.get_json()
-    if not data:
-        return jsonify({'error': 'No data provided'}), 400
-
-    try:
-        role = Role.query.get_or_404(role_id)
-        if role.name == 'admin':
-            return jsonify({'error': 'Cannot modify admin role permissions'}), 400
-
-        # Clear existing permissions
-        RolePermission.query.filter_by(role_id=role_id).delete()
-
-        # Add new permissions
-        permission_names = data.get('permissions', [])
-        for perm_name in permission_names:
-            permission = Permission.query.filter_by(name=perm_name).first()
-            if permission:
-                role_perm = RolePermission(role_id=role_id, permission_id=permission.id)
-                db.session.add(role_perm)
-
-        db.session.commit()
-        return jsonify({
-            'success': True,
-            'message': 'Permissions updated successfully'
-        }), 200
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({'error': str(e)}), 500
+    return render_template('settings.html')
 
 # Department Management Routes moved to routes.py to avoid conflicts
 
@@ -1721,110 +1614,12 @@ def unaki_update_booking(booking_id):
             'error': str(e)
         }), 500
 
-# UNAKI BOOKING VIEW ROUTES
-@app.route('/unaki-booking')
-@login_required
-def unaki_bookings():
-    """Display the Unaki booking form with dropdowns populated from database"""
+@app.route('/api/unaki/appointments/<int:appointment_id>', methods=['DELETE'])
+def unaki_delete_appointment(appointment_id):
+    """Delete appointment in Unaki system"""
     try:
-        from modules.clients.clients_queries import get_all_customers
-        from modules.services.services_queries import get_all_services
-        from modules.staff.staff_queries import get_staff_members
         from models import UnakiBooking
-        from datetime import date
-
-        # Get all required data for dropdowns
-        clients = get_all_customers()
-        services = get_all_services()
-        staff_members = get_staff_members()
-
-        # Get recent bookings for display
-        existing_bookings = UnakiBooking.query.order_by(UnakiBooking.created_at.desc()).limit(10).all()
-
-        # Pass today's date
-        today = date.today().strftime('%Y-%m-%d')
-
-        return render_template('unaki_bookings.html', 
-                             clients=clients,
-                             services=services, 
-                             staff_members=staff_members,
-                             existing_bookings=existing_bookings,
-                             today=today)
-
-    except Exception as e:
-        print(f"Error in unaki_bookings: {e}")
-        flash('Error loading booking form. Please try again.', 'danger')
-        return redirect(url_for('dashboard'))
-
-@app.route('/book-appointment', methods=['POST'])
-@login_required
-def book_appointment():
-    """Handle Unaki booking form submission with strict time-overlap conflict checking"""
-    try:
-        from datetime import datetime, timedelta, time, date
-        from models import UnakiBooking, Service, Customer, User
-
-        # Extract form data
-        client_id = request.form.get('client_id', type=int)
-        staff_id = request.form.get('staff_id', type=int)
-        service_ids = request.form.get('service_ids', '')  # Comma-separated IDs
-        appointment_date_str = request.form.get('appointment_date')
-        start_time_str = request.form.get('start_time')
-        notes = request.form.get('notes', '')
-        total_duration = request.form.get('duration', type=int)
-
-        # Validate required fields
-        if not all([client_id, staff_id, service_ids, appointment_date_str, start_time_str]):
-            flash('Missing required booking information', 'danger')
-            return redirect(url_for('unaki_bookings'))
-
-        # Parse date and time
-        try:
-            appointment_date = datetime.strptime(appointment_date_str, '%Y-%m-%d').date()
-            start_time_obj = datetime.strptime(start_time_str, '%H:%M').time()
-        except ValueError:
-            flash('Invalid date or time format', 'danger')
-            return redirect(url_for('unaki_bookings'))
-
-        # Get service details and calculate total duration and price
-        selected_service_ids = [int(id.strip()) for id in service_ids.split(',') if id.strip()]
-        services = Service.query.filter(Service.id.in_(selected_service_ids)).all()
-
-        if not services:
-            flash('Selected services not found', 'danger')
-            return redirect(url_for('unaki_bookings'))
-
-        # Calculate totals
-        total_duration_calculated = sum(service.duration for service in services)
-        total_price = sum(float(service.price) for service in services)
-        service_names = ', '.join(service.name for service in services)
-
-        # Calculate end time
-        start_datetime = datetime.combine(appointment_date, start_time_obj)
-        end_datetime = start_datetime + timedelta(minutes=total_duration_calculated)
-        end_time_obj = end_datetime.time()
-
-        # Validate that appointment is not in the past
-        current_datetime = datetime.now()
-        if start_datetime < current_datetime:
-            flash('Cannot book appointments in the past', 'danger')
-            return redirect(url_for('unaki_bookings'))
-
-        # CRITICAL STRICT TIME-OVERLAP CONFLICT CHECK
-        # Check if new booking overlaps with any existing booking for the same staff member
-        # Overlap logic: Two time ranges overlap if:
-        # - New booking starts before existing booking ends AND
-        # - New booking ends after existing booking starts
-        conflicting_booking = UnakiBooking.query.filter(
-            UnakiBooking.staff_id == staff_id,
-            UnakiBooking.appointment_date == appointment_date,
-            UnakiBooking.status.in_(['scheduled', 'confirmed', 'in_progress']),
-            # Time overlap condition using SQLAlchemy and_ operator
-            db.and_(
-                start_time_obj < UnakiBooking.end_time,    # New start < Existing end
-                end_time_obj > UnakiBooking.start_time     # New end > Existing start
-            )
-        ).first()
+        from datetime import datetime
 
         # Handle both JSON and non-JSON requests
         data = {}

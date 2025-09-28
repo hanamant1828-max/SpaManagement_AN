@@ -422,26 +422,26 @@ function loadClients() {
         .then(clients => {
             console.log('Loaded clients:', clients.length);
 
+            // Get data for form
             const clientSelect = document.getElementById('clientSelect');
+
             if (clientSelect && Array.isArray(clients)) {
-                clientSelect.innerHTML = '<option value="">Select Client</option>';
+                clientSelect.innerHTML = '<option value="">Search by name or phone number...</option>';
 
                 clients.forEach(client => {
                     const option = document.createElement('option');
                     option.value = client.id;
-                    option.textContent = client.name;
+                    // Display format: "Name - Phone" for easy searching
+                    const displayText = `${client.name}${client.phone ? ' - ' + client.phone : ''}`;
+                    option.textContent = displayText;
                     option.dataset.phone = client.phone || '';
                     option.dataset.email = client.email || '';
+                    option.dataset.name = client.name;
                     clientSelect.appendChild(option);
                 });
 
-                clientSelect.addEventListener('change', function() {
-                    const selectedOption = this.options[this.selectedIndex];
-                    if (selectedOption && selectedOption.dataset.phone) {
-                        document.getElementById('clientPhone').value = selectedOption.dataset.phone;
-                        document.getElementById('clientEmail').value = selectedOption.dataset.email || '';
-                    }
-                });
+                // Add search functionality
+                makeSelectSearchable(clientSelect);
             }
             return clients;
         })
@@ -450,6 +450,71 @@ function loadClients() {
             showNotification('Failed to load clients', 'error');
             return [];
         });
+}
+
+// Helper function to make select searchable with better implementation
+function makeSelectSearchable(selectElement) {
+    // Store all original options
+    const allOptions = Array.from(selectElement.options).slice(1); // Skip first option
+    let isSearchMode = false;
+
+    // Handle keyup for search
+    selectElement.addEventListener('keyup', function(e) {
+        // Don't interfere with arrow keys and enter
+        if (['ArrowUp', 'ArrowDown', 'Enter', 'Tab'].includes(e.key)) {
+            return;
+        }
+
+        const searchTerm = this.value.toLowerCase();
+
+        // If there's no search term, show all options
+        if (!searchTerm || searchTerm === '') {
+            this.innerHTML = '<option value="">Search by name or phone number...</option>';
+            allOptions.forEach(option => {
+                this.appendChild(option.cloneNode(true));
+            });
+            isSearchMode = false;
+            return;
+        }
+
+        // Enter search mode
+        isSearchMode = true;
+
+        // Clear and rebuild with filtered options
+        this.innerHTML = '<option value="">Search by name or phone number...</option>';
+
+        // Filter options based on name or phone
+        const filteredOptions = allOptions.filter(option => {
+            const name = (option.dataset.name || '').toLowerCase();
+            const phone = (option.dataset.phone || '').toLowerCase();
+            const text = option.textContent.toLowerCase();
+            return name.includes(searchTerm) || phone.includes(searchTerm) || text.includes(searchTerm);
+        });
+
+        // Add filtered options
+        filteredOptions.forEach(option => {
+            this.appendChild(option.cloneNode(true));
+        });
+
+        // Show dropdown
+        this.size = Math.min(filteredOptions.length + 1, 8);
+    });
+
+    // Handle selection
+    selectElement.addEventListener('change', function() {
+        if (this.value && isSearchMode) {
+            isSearchMode = false;
+            this.size = 1; // Reset to normal dropdown
+        }
+    });
+
+    // Handle blur to reset size
+    selectElement.addEventListener('blur', function() {
+        setTimeout(() => {
+            this.size = 1;
+            isSearchMode = false;
+        }, 200);
+    });
 }
 
 function loadScheduleForDate() {
@@ -553,7 +618,7 @@ function renderScheduleGrid() {
 
 function getServiceCategory(serviceName) {
     if (!serviceName) return '';
-    
+
     const service = serviceName.toLowerCase();
     if (service.includes('massage')) return 'service-category-massage';
     if (service.includes('facial')) return 'service-category-facial';
@@ -565,14 +630,14 @@ function getServiceCategory(serviceName) {
 
 function openBookingModal(staffId, timeStr) {
     console.log(`📅 Opening booking modal for staff ${staffId} at ${timeStr}`);
-    
+
     // Set the modal form data
     const staffSelect = document.getElementById('appointmentStaff');
     if (staffSelect) staffSelect.value = staffId;
-    
+
     const timeInput = document.getElementById('appointmentTime');
     if (timeInput) timeInput.value = timeStr;
-    
+
     // Open the modal
     const modal = new bootstrap.Modal(document.getElementById('bookingModal'));
     modal.show();
@@ -595,7 +660,7 @@ function refreshSchedule() {
 
 function loadSampleData() {
     console.log('🔄 Loading sample data...');
-    
+
     scheduleData = {
         staff: [
             { id: 1, name: 'Sarah Johnson', specialty: 'Massage Therapist', role: 'Senior' },
@@ -636,55 +701,75 @@ function loadSampleData() {
 function bookMultiServiceAppointment() {
     console.log('📝 Booking multi-service appointment...');
 
-    const clientId = document.getElementById('clientSelect').value;
-    const appointmentDate = document.getElementById('scheduleDate').value;
-    const notes = document.getElementById('appointmentNotes').value;
+    const clientSelect = document.getElementById('clientSelect');
+    const selectedClientId = clientSelect.value;
 
-    if (!clientId) {
-        showNotification('Please select a client', 'error');
+    // Only proceed if a client is selected
+    if (!selectedClientId) {
+        showNotification('Please select an existing client from the dropdown.', 'error');
         return;
     }
 
-    const services = [];
-    document.querySelectorAll('.service-row').forEach(row => {
-        const serviceId = row.querySelector('.service-select').value;
-        const staffId = row.querySelector('.staff-select').value;
-        const startTime = row.querySelector('.start-time').value;
-        const endTime = row.querySelector('.end-time').value;
-        const price = row.querySelector('.service-price').value;
+    // Get client information from selected option
+    const selectedOption = clientSelect.options[clientSelect.selectedIndex];
+    const clientName = selectedOption.dataset.name || selectedOption.textContent.split(' - ')[0];
 
-        if (serviceId && staffId && startTime) {
-            services.push({
-                service_id: serviceId,
-                staff_id: staffId,
-                start_time: startTime,
-                end_time: endTime,
-                price: parseFloat(price) || 0
-            });
-        }
-    });
+    console.log(`Using existing client ID: ${selectedClientId}, Name: ${clientName}`);
 
-    if (services.length === 0) {
+    const appointmentDate = document.getElementById('scheduleDate').value;
+    const notes = document.getElementById('appointmentNotes').value;
+
+    // Get the first service for the booking (backend expects single service)
+    const firstServiceRow = document.querySelector('.service-row');
+    if (!firstServiceRow) {
         showNotification('Please add at least one service', 'error');
         return;
     }
 
+    const serviceSelect = firstServiceRow.querySelector('.service-select');
+    const staffSelect = firstServiceRow.querySelector('.staff-select');
+    const startTimeInput = firstServiceRow.querySelector('.start-time');
+    const endTimeInput = firstServiceRow.querySelector('.end-time');
+    const priceInput = firstServiceRow.querySelector('.service-price');
+
+    if (!serviceSelect.value || !staffSelect.value || !startTimeInput.value) {
+        showNotification('Please fill in all required fields for the service', 'error');
+        return;
+    }
+
+    // Get service name from the selected option
+    const serviceOption = serviceSelect.options[serviceSelect.selectedIndex];
+    const serviceName = serviceOption.textContent.split('(')[0].trim(); // Extract name before price
+
     const bookingData = {
-        client_id: clientId,
-        appointment_date: appointmentDate,
-        services: services,
+        clientId: parseInt(selectedClientId),
+        staffId: parseInt(staffSelect.value),
+        serviceType: serviceName,
+        servicePrice: parseFloat(priceInput.value) || 0,
+        startTime: startTimeInput.value,
+        endTime: endTimeInput.value,
+        date: appointmentDate,
         notes: notes
     };
 
-    fetch('/api/unaki/appointments/book', {
+    console.log('Booking data being sent:', bookingData);
+
+    fetch('/api/unaki/book-appointment', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(bookingData)
     })
-    .then(response => response.json())
+    .then(response => {
+        if (!response.ok) {
+            return response.json().then(err => {
+                throw new Error(err.error || `HTTP error! status: ${response.status}`);
+            });
+        }
+        return response.json();
+    })
     .then(data => {
         if (data.success) {
-            showNotification('Appointment booked successfully!', 'success');
+            showNotification('Appointment booked successfully for Client ID: ' + selectedClientId + '!', 'success');
             bootstrap.Modal.getInstance(document.getElementById('bookingModal')).hide();
             refreshSchedule();
         } else {
@@ -693,14 +778,14 @@ function bookMultiServiceAppointment() {
     })
     .catch(error => {
         console.error('Booking error:', error);
-        showNotification('Error booking appointment', 'error');
+        showNotification('Error booking appointment: ' + error.message, 'error');
     });
 }
 
 function checkAvailability() {
     console.log('🔍 Checking availability...');
     showNotification('Checking staff availability...', 'info');
-    
+
     // Simulate availability check
     setTimeout(() => {
         showNotification('All selected staff are available!', 'success');
@@ -710,20 +795,20 @@ function checkAvailability() {
 // Initialize the application
 document.addEventListener('DOMContentLoaded', function() {
     console.log('🚀 Initializing Unaki Booking System...');
-    
+
     // Initialize date
     document.getElementById('scheduleDate').value = new Date().toISOString().split('T')[0];
-    
+
     // Update time display
     updateCurrentDateTime();
     setInterval(updateCurrentDateTime, 1000);
-    
+
     // Load initial data
     Promise.all([loadServices(), loadStaff(), loadClients()])
         .then(() => {
             console.log('✅ All data loaded');
             loadScheduleForDate();
-            
+
             // Add first service row
             addServiceRow();
         })
@@ -733,10 +818,10 @@ document.addEventListener('DOMContentLoaded', function() {
             loadSampleData();
             addServiceRow();
         });
-    
+
     // Set up discount calculation
     document.getElementById('discountAmount').addEventListener('input', calculateTotals);
-    
+
     showNotification('Unaki Booking System loaded successfully!', 'success');
 });
 

@@ -8,15 +8,10 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Set required environment variables if not present
-if not os.environ.get("SESSION_SECRET"):
-    os.environ["SESSION_SECRET"] = "1578063aca108928c78100b516702a5765d2d05e85b4fb8bb29a75db0bfc34ca"
-    logger.info("✅ SESSION_SECRET set")
-
-# Remove PostgreSQL environment variables to ensure SQLite usage
+# Remove PostgreSQL DATABASE_URL to use existing SQLite database
 if 'DATABASE_URL' in os.environ:
     del os.environ['DATABASE_URL']
-    logger.info("Removed PostgreSQL DATABASE_URL to use SQLite")
+    logger.info("Removed PostgreSQL DATABASE_URL to use existing SQLite database")
 
 # Set PORT from environment if available (for Replit deployment)
 port = int(os.environ.get("PORT", 5000))
