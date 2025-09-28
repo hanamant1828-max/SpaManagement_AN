@@ -12,20 +12,13 @@ from datetime import datetime, date, timedelta, time
 
 
 def compute_sqlite_uri():
-    """Compute SQLite database URI for the current instance"""
-    # Create base directory for databases
-    base_dir = os.path.join(os.getcwd(), 'hanamantdatabase')
-    os.makedirs(base_dir, exist_ok=True)
-
-    # Determine instance identifier
-    instance = os.environ.get('SPA_DB_INSTANCE') or os.environ.get('REPL_SLUG') or 'default'
-
-    # Sanitize instance name to prevent path traversal
-    instance = re.sub(r'[^A-Za-z0-9_-]', '_', instance)
-
-    # Create absolute path to database file
-    db_path = os.path.abspath(os.path.join(base_dir, f'{instance}.db'))
-
+    """Compute SQLite database URI for the workspace database"""
+    # Use the exact path specified by the user
+    db_path = '/home/runner/workspace/hanamantdatabase/workspace.db'
+    
+    # Create directory if it doesn't exist
+    os.makedirs(os.path.dirname(db_path), exist_ok=True)
+    
     # Return SQLite URI with absolute path
     return f'sqlite:///{db_path}'
 
@@ -61,22 +54,12 @@ app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1) # needed for url_for 
 # Handle trailing slash variations
 app.url_map.strict_slashes = False
 
-# Configure the database - use PostgreSQL in Replit environment, SQLite otherwise
-if os.environ.get("DATABASE_URL"):
-    # Use PostgreSQL database in Replit environment
-    app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL")
-    app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
-        "pool_recycle": 300,
-        "pool_pre_ping": True,
-    }
-    print(f"Using PostgreSQL database: {app.config['SQLALCHEMY_DATABASE_URI']}")
-else:
-    # Fallback to SQLite for local development
-    app.config["SQLALCHEMY_DATABASE_URI"] = compute_sqlite_uri()
-    app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
-        "pool_pre_ping": True,
-    }
-    print(f"Using SQLite database: {app.config['SQLALCHEMY_DATABASE_URI']}")
+# Configure the database - use SQLite only
+app.config["SQLALCHEMY_DATABASE_URI"] = compute_sqlite_uri()
+app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
+    "pool_pre_ping": True,
+}
+print(f"Using SQLite database: {app.config['SQLALCHEMY_DATABASE_URI']}")
 
 # Configure cache control for Replit environment
 app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
@@ -152,12 +135,9 @@ def init_app():
     """Initialize the application with proper error handling"""
     with app.app_context():
         try:
-            # Configure SQLite pragmas only for SQLite connections
-            if not os.environ.get("DATABASE_URL"):
-                event.listen(db.engine, "connect", configure_sqlite_pragmas)
-                print(f"SQLite database configured: {app.config['SQLALCHEMY_DATABASE_URI']}")
-            else:
-                print(f"PostgreSQL database configured: {app.config['SQLALCHEMY_DATABASE_URI']}")
+            # Configure SQLite pragmas
+            event.listen(db.engine, "connect", configure_sqlite_pragmas)
+            print(f"SQLite database configured: {app.config['SQLALCHEMY_DATABASE_URI']}")
 
             # Make sure to import the models here or their tables won't be created
             import models  # noqa: F401
