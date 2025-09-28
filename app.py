@@ -868,6 +868,11 @@ def unaki_create_appointment_impl(data=None):
             if customer:
                 final_client_id = customer.id
                 final_client_name = customer.full_name
+                # Use customer's existing contact info if not provided in form
+                if not client_phone:
+                    client_phone = customer.phone or ''
+                if not client_email:
+                    client_email = customer.email or ''
                 # Update phone and email from form if they're empty in customer record
                 if not customer.phone and client_phone:
                     customer.phone = client_phone
@@ -910,6 +915,15 @@ def unaki_create_appointment_impl(data=None):
                 print(f"Created new customer ID {final_client_id}: {final_client_name}")
             except Exception as ce:
                 print(f"Warning: Could not create customer record: {ce}")
+
+        # Ensure we have a valid client name
+        if not final_client_name:
+            if customer:
+                final_client_name = customer.full_name
+            else:
+                final_client_name = "Unknown Client"
+                
+        print(f"Creating booking with client_name: '{final_client_name}', client_id: {final_client_id}")
 
         # Create UnakiBooking entry with proper client_id
         unaki_booking = UnakiBooking(
