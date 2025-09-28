@@ -458,7 +458,7 @@
                                                         </div>
                                                     </div>
                                                 </div>
-                                                
+
                                                 <!-- Tax Summary Row -->
                                                 <div class="row mt-3 pt-3 border-top">
                                                     <div class="col-md-4">
@@ -699,13 +699,13 @@ function addServiceRow() {
         console.error('Services container not found');
         return;
     }
-    
+
     const firstRow = container.children[0];
     if (!firstRow) {
         console.error('No service rows found to clone');
         return;
     }
-    
+
     const newRow = firstRow.cloneNode(true);
 
     // Clear values
@@ -801,9 +801,9 @@ function addServiceRow() {
         function findMatchingServiceId(serviceName) {
             const serviceSelects = document.querySelectorAll('select[name="service_ids[]"]');
             const firstSelect = serviceSelects[0];
-            
+
             if (!firstSelect) return null;
-            
+
             for (let option of firstSelect.options) {
                 if (option.value && option.text.toLowerCase().includes(serviceName.toLowerCase())) {
                     return option.value;
@@ -816,7 +816,7 @@ function addServiceRow() {
         function validateServiceRowPrices() {
             const serviceRows = document.querySelectorAll('.service-row');
             let hasErrors = false;
-            
+
             serviceRows.forEach((row, index) => {
                 const serviceSelect = row.querySelector('select[name="service_ids[]"]');
                 if (serviceSelect && serviceSelect.value) {
@@ -827,14 +827,14 @@ function addServiceRow() {
                     }
                 }
             });
-            
+
             return !hasErrors;
         }
 
         // Preview invoice function
         function previewInvoice() {
             console.log('Generating invoice preview...');
-            
+
             // Validate form first
             const clientSelect = document.getElementById('client_id');
             if (!clientSelect || !clientSelect.value) {
@@ -845,7 +845,7 @@ function addServiceRow() {
             // Check if there are any services or products
             const serviceRows = document.querySelectorAll('.service-row');
             const productRows = document.querySelectorAll('.product-row');
-            
+
             let hasServices = false;
             let hasProducts = false;
 
@@ -871,11 +871,11 @@ function addServiceRow() {
             // Generate preview data
             const customerName = clientSelect.options[clientSelect.selectedIndex].text;
             const totalAmount = document.getElementById('display_total').textContent;
-            
+
             // Create preview modal content
             const previewModal = document.getElementById('invoicePreviewModal');
             const previewBody = document.getElementById('invoicePreviewBody');
-            
+
             if (previewModal && previewBody) {
                 previewBody.innerHTML = `
                     <div class="invoice-preview">
@@ -897,7 +897,7 @@ function addServiceRow() {
                         </div>
                     </div>
                 `;
-                
+
                 // Show the modal
                 const modal = new bootstrap.Modal(previewModal);
                 modal.show();
@@ -909,13 +909,13 @@ function addServiceRow() {
         // Proceed with invoice creation
         function proceedWithInvoiceCreation() {
             console.log('Proceeding with invoice creation...');
-            
+
             // Close preview modal
             const previewModal = bootstrap.Modal.getInstance(document.getElementById('invoicePreviewModal'));
             if (previewModal) {
                 previewModal.hide();
             }
-            
+
             // Submit the billing form
             const billingForm = document.getElementById('billingForm');
             if (billingForm) {
@@ -979,7 +979,7 @@ function addServiceRow() {
                 for (let option of serviceSelect.options) {
                     if (option.value && option.text.toLowerCase().includes(serviceName.toLowerCase())) {
                         matchedServiceId = option.value;
-                        
+
                         // Get the actual price from the service option
                         const priceMatch = option.text.match(/₹([\d,]+\.?\d*)/);
                         if (priceMatch) {
@@ -1028,7 +1028,7 @@ function addServiceRow() {
                     showNotification(`Added Unaki booking: ${serviceName} (₹${finalServicePrice}) to bill successfully!`, 'success');
                 } else {
                     console.warn(`No matching service found for: ${serviceName}`);
-                    
+
                     // Fill quantity and appointment ID anyway
                     quantityInput.value = '1';
                     appointmentInput.value = `unaki_${appointmentId}`;
@@ -1064,7 +1064,7 @@ function addServiceRow() {
         window.autoFillCurrentServices = autoFillCurrentServices;
         window.viewFullCustomerHistory = viewFullCustomerHistory;
 
-        
+
 
 // Auto-fill customer's current Unaki appointments
         function autoFillCurrentServices() {
@@ -1616,7 +1616,7 @@ function updateTaxCalculations() {
         // Calculate services subtotal - include ALL service rows (manually added and auto-populated)
         const serviceRows = document.querySelectorAll('.service-row');
         console.log(`Found ${serviceRows.length} service rows to calculate`);
-        
+
         serviceRows.forEach((row, index) => {
             const serviceSelect = row.querySelector('select[name="service_ids[]"]');
             const quantityInput = row.querySelector('input[name="service_quantities[]"]');
@@ -1633,7 +1633,7 @@ function updateTaxCalculations() {
                 if (selectedOption) {
                     // Try to get price from data attribute first, then extract from text
                     let price = parseFloat(selectedOption.dataset.price) || 0;
-                    
+
                     if (price === 0) {
                         // Try to extract price from option text if data-price is missing
                         const priceMatch = selectedOption.text.match(/₹([\d,]+\.?\d*)/);
@@ -1643,7 +1643,7 @@ function updateTaxCalculations() {
                             selectedOption.dataset.price = price.toString();
                         }
                     }
-                    
+
                     const quantity = parseFloat(quantityInput.value) || 1;
                     const lineTotal = price * quantity;
                     servicesSubtotal += lineTotal;
@@ -1659,7 +1659,7 @@ function updateTaxCalculations() {
         // Calculate inventory subtotal
         const productRows = document.querySelectorAll('.product-row');
         console.log(`Found ${productRows.length} product rows to calculate`);
-        
+
         productRows.forEach((row, index) => {
             const quantityInput = row.querySelector('input[name="product_quantities[]"]');
             const priceInput = row.querySelector('input[name="product_prices[]"]');
@@ -1772,7 +1772,7 @@ function updateTaxSummaryDisplay(isInterstate, totalTaxAmount, taxableAmount) {
             const cgstRate = parseFloat(document.getElementById('cgst_rate').value) || 0;
             const sgstRate = parseFloat(document.getElementById('sgst_rate').value) || 0;
             const igstRate = parseFloat(document.getElementById('igst_rate').value) || 0;
-            
+
             const totalTaxRate = isInterstate ? igstRate : (cgstRate + sgstRate);
             taxPercentageDisplay.textContent = `${totalTaxRate.toFixed(2)}%`;
         }
@@ -2018,7 +2018,7 @@ function toggleTaxType() {
             sgstInput.disabled = true;
             igstInput.disabled = false;
             if (parseFloat(igstInput.value) === 0) igstInput.value = '18'; // Default IGST to 18%
-            
+
             // Visual feedback
             cgstInput.classList.add('text-muted');
             sgstInput.classList.add('text-muted');
@@ -2031,7 +2031,7 @@ function toggleTaxType() {
             sgstInput.disabled = false;
             if (parseFloat(cgstInput.value) === 0) cgstInput.value = '9'; // Default CGST to 9%
             if (parseFloat(sgstInput.value) === 0) sgstInput.value = '9'; // Default SGST to 9%
-            
+
             // Visual feedback
             igstInput.classList.add('text-muted');
             cgstInput.classList.remove('text-muted');
@@ -2598,7 +2598,7 @@ document.getElementById('billingForm').addEventListener('submit', function(e) {
             console.log('=== MANUAL DEBUG TRIGGERED ===');
             validateServiceRowPrices();
             updateTaxCalculations();
-            
+
             const finalTotal = document.getElementById('display_total').textContent;
             console.log('Final displayed total:', finalTotal);
         }
@@ -2607,7 +2607,7 @@ document.getElementById('billingForm').addEventListener('submit', function(e) {
         function validateServiceRowPrices() {
             const serviceRows = document.querySelectorAll('.service-row');
             let hasErrors = false;
-            
+
             serviceRows.forEach((row, index) => {
                 const serviceSelect = row.querySelector('select[name="service_ids[]"]');
                 if (serviceSelect && serviceSelect.value) {
@@ -2615,7 +2615,7 @@ document.getElementById('billingForm').addEventListener('submit', function(e) {
                     if (!selectedOption.dataset.price) {
                         console.error(`Row ${index + 1} missing price data for service:`, selectedOption.text);
                         hasErrors = true;
-                        
+
                         // Try to extract and set price from text
                         const priceMatch = selectedOption.text.match(/₹([\d,]+\.?\d*)/);
                         if (priceMatch) {
@@ -2627,7 +2627,7 @@ document.getElementById('billingForm').addEventListener('submit', function(e) {
                     }
                 }
             });
-            
+
             return !hasErrors;
         }
 
@@ -2651,7 +2651,7 @@ document.getElementById('billingForm').addEventListener('submit', function(e) {
             // Add event listeners for real-time package benefit calculation
             setupServiceChangeListeners();
             setupTaxCalculationListeners();
-            
+
             // Add enhanced change event listeners
             document.addEventListener('change', function(e) {
                 if (e.target.matches('select[name="service_ids[]"]') || 
@@ -2896,28 +2896,40 @@ document.getElementById('billingForm').addEventListener('submit', function(e) {
 
 function handleServiceSelection(selectElement) {
     const selectedOption = selectElement.options[selectElement.selectedIndex];
-    
-    if (selectedOption && selectElement.value) {
-        // Ensure price data is available
-        let price = parseFloat(selectedOption.dataset.price) || 0;
-        
-        if (price === 0) {
+
+    if (selectedOption && selectedOption.value) {
+        // Extract price from data attribute or option text
+        let price = selectedOption.dataset.price;
+
+        if (!price) {
             // Try to extract price from option text
-            const priceMatch = selectedOption.textContent.match(/₹([\d,]+\.?\d*)/);
+            const priceMatch = selectedOption.text.match(/₹([\d,]+\.?\d*)/);
             if (priceMatch) {
                 price = parseFloat(priceMatch[1].replace(/,/g, ''));
-                // Set the data-price attribute for future use
+                // Store it for future use
                 selectedOption.dataset.price = price.toString();
             }
         }
-        
-        console.log(`Service selected: ${selectedOption.text}, Price: ₹${price}`);
+
+        if (price) {
+            console.log(`Service selected: ${selectedOption.text}, Price: ₹${price}`);
+            updateServicePrice(selectElement.value, price);
+
+            // Trigger calculation update
+            setTimeout(() => {
+                updateTaxCalculations();
+            }, 50);
+        } else {
+            console.warn('No price found for selected service:', selectedOption.text);
+            updateServicePrice(selectElement.value, '0.00');
+        }
+    } else {
+        // Reset for empty selection
+        updateServicePrice(selectElement.value, '0.00');
+        setTimeout(() => {
+            updateTaxCalculations();
+        }, 50);
     }
-    
-    // Always trigger calculation update
-    setTimeout(() => {
-        updateTaxCalculations();
-    }, 50);
 }
 
 </script>
