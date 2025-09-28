@@ -957,17 +957,16 @@ def api_unaki_book_appointment():
         
         # Validate required fields with flexible field names
         client_id = data.get('client_id') or data.get('clientId')
-        client_name = data.get('client_name') or data.get('clientName')
         staff_id = data.get('staff_id') or data.get('staffId')
         service_name = data.get('service_name') or data.get('serviceName') or data.get('serviceType')
         appointment_date_str = data.get('appointment_date') or data.get('date')
         start_time_str = data.get('start_time') or data.get('startTime')
         end_time_str = data.get('end_time') or data.get('endTime')
         
-        # Check for missing required fields - prioritize client_id over client_name
+        # Check for missing required fields - client_id is mandatory
         missing_fields = []
-        if not client_id and not client_name:
-            missing_fields.append('client_id or client_name')
+        if not client_id:
+            missing_fields.append('client_id')
         if not staff_id:
             missing_fields.append('staff_id')
         if not service_name:
@@ -1050,9 +1049,15 @@ def api_unaki_book_appointment():
         else:
             service_duration = int(service_duration)
 
+        # Ensure we have a valid client_id - this is required
+        if not client_id:
+            return jsonify({
+                'error': 'Client ID is required for booking',
+                'success': False
+            }), 400
+
         appointment = UnakiBooking(
-            client_id=int(client_id) if client_id else None,
-            client_name=client_name,
+            client_id=int(client_id),
             client_phone=data.get('client_phone', '') or data.get('clientPhone', ''),
             client_email=data.get('client_email', '') or data.get('clientEmail', ''),
             staff_id=int(staff_id),
@@ -1076,9 +1081,13 @@ def api_unaki_book_appointment():
 
         print(f"✅ Appointment booked successfully: ID {appointment.id}")
 
+        # Get client name from the relationship
+        client = Customer.query.get(client_id)
+        client_display_name = client.full_name if client else f'Client {client_id}'
+        
         return jsonify({
             'success': True,
-            'message': f'Appointment booked successfully for {client_name}',
+            'message': f'Appointment booked successfully for {client_display_name}',
             'appointment_id': appointment.id,
             'service': service_name,
             'time': f"{start_time.strftime('%I:%M %p')} - {end_time.strftime('%I:%M %p')}"

@@ -457,16 +457,16 @@ function makeSelectSearchable(selectElement) {
     // Store all original options
     const allOptions = Array.from(selectElement.options).slice(1); // Skip first option
     let isSearchMode = false;
-    
+
     // Handle keyup for search
     selectElement.addEventListener('keyup', function(e) {
         // Don't interfere with arrow keys and enter
         if (['ArrowUp', 'ArrowDown', 'Enter', 'Tab'].includes(e.key)) {
             return;
         }
-        
+
         const searchTerm = this.value.toLowerCase();
-        
+
         // If there's no search term, show all options
         if (!searchTerm || searchTerm === '') {
             this.innerHTML = '<option value="">Search by name or phone number...</option>';
@@ -476,13 +476,13 @@ function makeSelectSearchable(selectElement) {
             isSearchMode = false;
             return;
         }
-        
+
         // Enter search mode
         isSearchMode = true;
-        
+
         // Clear and rebuild with filtered options
         this.innerHTML = '<option value="">Search by name or phone number...</option>';
-        
+
         // Filter options based on name or phone
         const filteredOptions = allOptions.filter(option => {
             const name = (option.dataset.name || '').toLowerCase();
@@ -490,16 +490,16 @@ function makeSelectSearchable(selectElement) {
             const text = option.textContent.toLowerCase();
             return name.includes(searchTerm) || phone.includes(searchTerm) || text.includes(searchTerm);
         });
-        
+
         // Add filtered options
         filteredOptions.forEach(option => {
             this.appendChild(option.cloneNode(true));
         });
-        
+
         // Show dropdown
         this.size = Math.min(filteredOptions.length + 1, 8);
     });
-    
+
     // Handle selection
     selectElement.addEventListener('change', function() {
         if (this.value && isSearchMode) {
@@ -507,7 +507,7 @@ function makeSelectSearchable(selectElement) {
             this.size = 1; // Reset to normal dropdown
         }
     });
-    
+
     // Handle blur to reset size
     selectElement.addEventListener('blur', function() {
         setTimeout(() => {
@@ -713,7 +713,7 @@ function bookMultiServiceAppointment() {
     // Get client information from selected option
     const selectedOption = clientSelect.options[clientSelect.selectedIndex];
     const clientName = selectedOption.dataset.name || selectedOption.textContent.split(' - ')[0];
-    
+
     console.log(`Using existing client ID: ${selectedClientId}, Name: ${clientName}`);
 
     const appointmentDate = document.getElementById('scheduleDate').value;
@@ -742,7 +742,7 @@ function bookMultiServiceAppointment() {
     const serviceName = serviceOption.textContent.split('(')[0].trim(); // Extract name before price
 
     const bookingData = {
-        clientId: parseInt(selectedClientId),  // Only client ID is needed
+        clientId: parseInt(selectedClientId),
         staffId: parseInt(staffSelect.value),
         serviceType: serviceName,
         servicePrice: parseFloat(priceInput.value) || 0,
