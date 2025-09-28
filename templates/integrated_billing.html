@@ -630,7 +630,7 @@
 var availableBatches = []; // Global array to hold all available batches
 
 // Define helper functions first
-function findEmptyServiceRow() {
+window.findEmptyServiceRow = function findEmptyServiceRow() {
     const serviceRows = document.querySelectorAll('.service-row');
     for (let row of serviceRows) {
         const serviceSelect = row.querySelector('select[name="service_ids[]"]');
@@ -668,8 +668,8 @@ function showNotification(message, type = 'info') {
     }, 5000);
 }
 
-// CRITICAL: Define addUnakiAppointmentToBill function with ALL dependencies
-function addUnakiAppointmentToBill(appointmentId, serviceName, servicePrice, serviceDuration) {
+// CRITICAL: Define addUnakiAppointmentToBill function with ALL dependencies  
+window.addUnakiAppointmentToBill = function addUnakiAppointmentToBill(appointmentId, serviceName, servicePrice, serviceDuration) {
     console.log('Adding Unaki appointment to bill:', appointmentId, serviceName, servicePrice, serviceDuration);
 
     try {
@@ -784,9 +784,8 @@ function addUnakiAppointmentToBill(appointmentId, serviceName, servicePrice, ser
     }
 }
 
-// Make functions globally available IMMEDIATELY at script load
-window.addUnakiAppointmentToBill = addUnakiAppointmentToBill;
-window.findEmptyServiceRow = findEmptyServiceRow;
+// Functions are already globally available via window assignment
+console.log('All required functions have been defined and made globally available');
 
 // Show notification function
 function showNotification(message, type = 'info') {
@@ -852,7 +851,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // Add service row
-function addServiceRow() {
+window.addServiceRow = function addServiceRow() {
     const container = document.getElementById('servicesContainer');
     if (!container) {
         console.error('Services container not found');
@@ -1632,10 +1631,11 @@ function addServiceRowWithData(serviceData) {
 function updateTaxCalculations() {
     console.log('=== BILLING CALCULATION DEBUG ===');
     try {
-        let servicesSubtotal = 0;
-        let inventorySubtotal = 0;
+        // CRITICAL FIX: Use calculateServicesSubtotal() which includes package logic
+        let servicesSubtotal = calculateServicesSubtotal();
+        let inventorySubtotal = calculateInventorySubtotal();
 
-        // Calculate services subtotal - include ALL service rows (manually added and auto-populated)
+        // Debug output to verify calculations
         const serviceRows = document.querySelectorAll('.service-row');
         console.log(`Found ${serviceRows.length} service rows to calculate`);
 
@@ -1653,7 +1653,7 @@ function updateTaxCalculations() {
             if (serviceSelect && serviceSelect.value && quantityInput && quantityInput.value) {
                 const selectedOption = serviceSelect.options[serviceSelect.selectedIndex];
                 if (selectedOption) {
-                    // Try to get price from data attribute first, then extract from text
+                    // Ensure data-price is set if missing
                     let price = parseFloat(selectedOption.dataset.price) || 0;
 
                     if (price === 0) {
@@ -1665,13 +1665,9 @@ function updateTaxCalculations() {
                             selectedOption.dataset.price = price.toString();
                         }
                     }
-
-                    const quantity = parseFloat(quantityInput.value) || 1;
-                    const lineTotal = price * quantity;
-                    servicesSubtotal += lineTotal;
-                    console.log(`Added: Service ${index + 1}: ₹${price} × ${quantity} = ₹${lineTotal}`);
+                    console.log(`Service ${index + 1}: ${selectedOption.text} - Price: ₹${price}`);
                 } else {
-                    console.log(`Service ${index + 1}: No selected option found`);
+                    console.log(`Service ${index + 1}: Missing service selection or quantity`);
                 }
             } else {
                 console.log(`Service ${index + 1}: Missing service selection or quantity`);
