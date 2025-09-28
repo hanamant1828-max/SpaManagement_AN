@@ -281,7 +281,7 @@
 
     function loadConsumptions() {
         const params = new URLSearchParams({
-            page: currentPage, // Use currentPage
+            page: currentPage,
             per_page: pageSize,
             from_date: document.getElementById('consumption-from-date').value || '',
             to_date: document.getElementById('consumption-to-date').value || '',
@@ -290,22 +290,35 @@
             sort_order: 'desc'
         });
 
+        console.log('🔄 Loading consumptions with params:', Object.fromEntries(params));
+
         fetch(`/api/inventory/consumption?${params}`)
-            .then(response => response.json())
+            .then(response => {
+                console.log('📥 Response status:', response.status);
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                return response.json();
+            })
             .then(data => {
+                console.log('📊 Consumption API response:', data);
+                
                 if (data.success) {
                     const consumptions = data.data || [];
                     const totalPages = data.total_pages || 1;
+                    console.log(`✅ Loaded ${consumptions.length} consumption records, ${totalPages} pages total`);
                     displayConsumptions(consumptions);
                     updatePagination(totalPages);
                 } else {
-                    console.error('Error loading consumptions:', data.error);
+                    console.error('❌ API returned error:', data.error);
+                    showAlert('Error loading consumption records: ' + (data.error || 'Unknown error'), 'danger');
                     displayConsumptions([]);
                     updatePagination(1);
                 }
             })
             .catch(error => {
-                console.error('Error loading consumptions:', error);
+                console.error('❌ Network error loading consumptions:', error);
+                showAlert('Error loading consumption records. Please try again.', 'danger');
                 displayConsumptions([]);
                 updatePagination(1);
             });
@@ -596,19 +609,18 @@
         })
         .then(data => {
             console.log('📥 Response data:', data);
-            if (data.success) {
-                const consumption = data.consumption;
+            if (data.success !== false) {
+                // API returns data directly, not wrapped in 'consumption' object
+                document.getElementById('editConsumptionId').value = consumptionId;
+                document.getElementById('editConsumptionDate').value = data.consumption_date || '';
+                document.getElementById('editConsumptionReference').value = data.reference_doc_no || '';
+                document.getElementById('editConsumptionQuantity').value = data.quantity_used || '';
+                document.getElementById('editConsumptionIssuedTo').value = data.issued_to || '';
+                document.getElementById('editConsumptionPurpose').value = data.purpose || 'other';
+                document.getElementById('editConsumptionNotes').value = data.notes || '';
 
-                document.getElementById('editConsumptionId').value = consumption.id;
-                document.getElementById('editConsumptionDate').value = consumption.date;
-                document.getElementById('editConsumptionReference').value = consumption.reference || '';
-                document.getElementById('editConsumptionQuantity').value = consumption.quantity;
-                document.getElementById('editConsumptionIssuedTo').value = consumption.issued_to;
-                document.getElementById('editConsumptionPurpose').value = consumption.purpose;
-                document.getElementById('editConsumptionNotes').value = consumption.notes || '';
-
-                // Load batches and set the selected batch
-                loadBatchesForConsumption('editConsumptionBatch', consumption.batch_id);
+                // Load batches first, then set selected batch
+                loadBatchesForConsumption('editConsumptionBatch', null);
 
                 const modal = new bootstrap.Modal(document.getElementById('editConsumptionModal'));
                 modal.show();
@@ -687,6 +699,35 @@
         alert('Excel export functionality will be implemented.');
     }
 
+    // Make functions available globally
+    window.editConsumption = editConsumption;
+    window.viewConsumption = function(consumptionId) {
+        fetch(`/api/inventory/consumption/${consumptionId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    alert('Error loading consumption details: ' + data.error);
+                    return;
+                }
+
+                document.getElementById('viewConsumptionDate').textContent = data.consumption_date || '-';
+                document.getElementById('viewConsumptionReference').textContent = data.reference_doc_no || 'No reference';
+                document.getElementById('viewConsumptionBatch').textContent = data.batch_name || 'Unknown Batch';
+                document.getElementById('viewConsumptionProduct').textContent = data.product_name || 'Unknown Product';
+                document.getElementById('viewConsumptionQuantity').textContent = (data.quantity_used || 0) + ' ' + (data.unit_of_measure || 'pcs');
+                document.getElementById('viewConsumptionIssuedTo').textContent = data.issued_to || 'Not specified';
+                document.getElementById('viewConsumptionPurpose').innerHTML = `<span class="badge bg-secondary">${data.purpose || 'Other'}</span>`;
+                document.getElementById('viewConsumptionNotes').textContent = data.notes || 'No notes';
+
+                const modal = new bootstrap.Modal(document.getElementById('viewConsumptionModal'));
+                modal.show();
+            })
+            .catch(error => {
+                console.error('Error loading consumption details:', error);
+                alert('Error loading consumption details. Please try again.');
+            });
+    };
+
     // Event listeners
     document.getElementById('btnAddConsumption').addEventListener('click', addConsumption);
     document.getElementById('resetConsumptionFilters').addEventListener('click', resetFilters);
@@ -696,6 +737,7 @@
     document.getElementById('consumption-search').addEventListener('input', loadConsumptions);
     document.getElementById('consumption-page-size').addEventListener('change', () => {
         currentPage = 1;
+        pageSize = parseInt(document.getElementById('consumption-page-size').value);
         loadConsumptions();
     });
     

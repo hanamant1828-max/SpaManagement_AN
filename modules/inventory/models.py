@@ -237,6 +237,7 @@ class InventoryConsumption(db.Model):
     quantity = db.Column(db.Numeric(10, 2), nullable=False)
     issued_to = db.Column(db.String(200), nullable=False)  # Who/what consumed the item
     reference = db.Column(db.String(100))  # Optional reference number/document
+    purpose = db.Column(db.String(50))  # service, sample, waste, maintenance, other
     notes = db.Column(db.Text)
 
     # Tracking
