@@ -518,7 +518,7 @@ function showNotification(message, type = 'info') {
 }
 
 // CRITICAL: Define addUnakiAppointmentToBill function with proper price handling
-function addUnakiAppointmentToBill(appointmentId, serviceName, servicePrice, serviceDuration) {
+window.addUnakiAppointmentToBill = function addUnakiAppointmentToBill(appointmentId, serviceName, servicePrice, serviceDuration) {
     console.log('=== Adding Unaki appointment to bill ===');
     console.log('Appointment ID:', appointmentId);
     console.log('Service Name:', serviceName);
@@ -660,17 +660,20 @@ function addUnakiAppointmentToBill(appointmentId, serviceName, servicePrice, ser
         showNotification(`❌ Error adding appointment to bill: ${error.message}`, 'danger');
         return false;
     }
-}
+};
 
-// Make it globally available immediately
-window.addUnakiAppointmentToBill = addUnakiAppointmentToBill;
-
-// Ensure all critical functions are globally available
+// Ensure all critical functions are globally available immediately
 window.findEmptyServiceRow = findEmptyServiceRow;
-window.addUnakiAppointmentToBill = addUnakiAppointmentToBill;
 window.autoFillCurrentServices = autoFillCurrentServices;
 window.handleServiceSelection = handleServiceSelection;
 window.updateTaxCalculations = updateTaxCalculations;
+
+// Double check that addUnakiAppointmentToBill is available
+if (typeof window.addUnakiAppointmentToBill !== 'function') {
+    console.error('CRITICAL ERROR: addUnakiAppointmentToBill not available globally!');
+} else {
+    console.log('✅ addUnakiAppointmentToBill is globally available');
+}
 
 console.log('All required functions have been defined and made globally available');
 
