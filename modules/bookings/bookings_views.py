@@ -158,7 +158,7 @@ def create_booking():
 
     if form.validate_on_submit():
         appointment_data = {
-            'client_id': form.client_id.data,
+            'client_id': form.customer_id.data,
             'service_id': form.service_id.data,
             'staff_id': form.staff_id.data,
             'appointment_date': form.appointment_date.data,
@@ -196,7 +196,7 @@ def update_booking(id):
 
     if form.validate_on_submit():
         appointment_data = {
-            'client_id': form.client_id.data,
+            'client_id': form.customer_id.data,
             'service_id': form.service_id.data,
             'staff_id': form.staff_id.data,
             'appointment_date': form.appointment_date.data,
@@ -243,7 +243,7 @@ def add_appointment():
 
     if form.validate_on_submit():
         appointment_data = {
-            'client_id': form.client_id.data,
+            'client_id': form.customer_id.data,
             'service_id': form.service_id.data,
             'staff_id': form.staff_id.data,
             'appointment_date': form.appointment_date.data,

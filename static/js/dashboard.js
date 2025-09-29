@@ -84,29 +84,40 @@ function setupDashboardButtonHandlers() {
 }
 
 function initializeDashboard() {
-    // Initialize charts and widgets
-    initializeCharts();
-    updateDateTime();
-    setupNotifications();
+    try {
+        // Initialize charts and widgets
+        initializeCharts();
+        updateDateTime();
+        setupNotifications();
 
-    // Update time every minute
-    setInterval(updateDateTime, 60000);
+        // Update time every minute
+        setInterval(updateDateTime, 60000);
+    } catch (error) {
+        console.error('Dashboard initialization error:', error);
+        // Continue gracefully without dashboard features
+    }
 }
 
 function initializeCharts() {
     console.log('Initializing dashboard charts...');
     
-    // Check if Chart.js is loaded
-    if (!window.Chart) {
-        console.error('Chart.js not loaded');
-        return;
+    try {
+        // Check if Chart.js is loaded
+        if (!window.Chart) {
+            console.warn('Chart.js not loaded, charts will be unavailable');
+            return;
+        }
+        
+        // Initialize all new charts with error handling - only if elements exist
+        try { createRevenueChart(); } catch (e) { console.warn('Revenue chart not available:', e); }
+        try { createServiceChart(); } catch (e) { console.warn('Service chart not available:', e); }
+        try { createBookingsChart(); } catch (e) { console.warn('Bookings chart not available:', e); }
+        try { createStaffChart(); } catch (e) { console.warn('Staff chart not available:', e); }
+        console.log('Dashboard charts initialized successfully');
+    } catch (error) {
+        console.error('Error initializing charts:', error);
+        // Continue without charts rather than failing
     }
-    
-    // Initialize all new charts
-    createRevenueChart();
-    createServiceChart();
-    createBookingsChart();
-    createStaffChart();
 }
 
 function createRevenueTrendChart(ctx) {
@@ -224,7 +235,10 @@ function createServicePopularityChart(ctx) {
 
 function createRevenueChart() {
     const ctx = document.getElementById('revenueChart');
-    if (!ctx) return;
+    if (!ctx) {
+        console.log('Revenue chart canvas not found - skipping');
+        return;
+    }
 
     // Hardcoded revenue data for the last 7 days
     const revenueData = [1200, 1800, 2100, 1950, 2300, 2800, 3200];
@@ -285,7 +299,10 @@ function createRevenueChart() {
 
 function createServiceChart() {
     const ctx = document.getElementById('serviceChart');
-    if (!ctx) return;
+    if (!ctx) {
+        console.log('Service chart canvas not found - skipping');
+        return;
+    }
 
     // Hardcoded service popularity data
     const services = ['Facial', 'Massage', 'Manicure', 'Hair Cut', 'Pedicure'];
@@ -323,7 +340,10 @@ function createServiceChart() {
 
 function createBookingsChart() {
     const ctx = document.getElementById('bookingsChart');
-    if (!ctx) return;
+    if (!ctx) {
+        console.log('Bookings chart canvas not found - skipping');
+        return;
+    }
 
     // Hardcoded monthly booking data
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
@@ -370,7 +390,10 @@ function createBookingsChart() {
 
 function createStaffChart() {
     const ctx = document.getElementById('staffChart');
-    if (!ctx) return;
+    if (!ctx) {
+        console.log('Staff chart canvas not found - skipping');
+        return;
+    }
 
     // Hardcoded staff performance data
     const staffNames = ['Sarah M.', 'Lisa K.', 'Maria R.', 'Anna B.', 'Jessica L.'];

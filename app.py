@@ -1536,6 +1536,7 @@ def unaki_get_staff_shift_logs(staff_id, date_str):
     """Get detailed shift logs for specific staff and date"""
     try:
         from datetime import datetime
+        from models import User, ShiftManagement, ShiftLogs
         
         # Parse date
         target_date = datetime.strptime(date_str, '%Y-%m-%d').date()

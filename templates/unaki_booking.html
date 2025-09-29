@@ -3408,11 +3408,38 @@ Shift Log: ${staff.has_shift_log ? 'Yes' : 'No'}
                 // Reinitialize context menu after render
                 setTimeout(() => {
                     console.log('🔄 Reinitializing context menu after schedule render...');
-                    if (typeof initializeContextMenu === 'function') {
-                        initializeContextMenu();
-                    } else {
-                        console.warn('⚠️ initializeContextMenu function not available, trying fallback...');
-                        fallbackInitializeContextMenu();
+                    try {
+                        // Try the new reinitialize function first
+                        if (typeof reinitializeContextMenu === 'function') {
+                            reinitializeContextMenu();
+                        } 
+                        // Try the original initialize function
+                        else if (typeof initializeContextMenu === 'function') {
+                            initializeContextMenu();
+                        }
+                        // Try the class-based approach
+                        else if (window.appointmentContextMenu && typeof window.appointmentContextMenu.reinitializeForAppointments === 'function') {
+                            window.appointmentContextMenu.reinitializeForAppointments();
+                        } 
+                        // Try the fallback function
+                        else if (typeof fallbackInitializeContextMenu === 'function') {
+                            fallbackInitializeContextMenu();
+                        } 
+                        else {
+                            // Final fallback: try to initialize context menu directly
+                            console.log('⚠️ Using final fallback context menu initialization');
+                            if (typeof AppointmentContextMenu !== 'undefined') {
+                                window.appointmentContextMenu = new AppointmentContextMenu();
+                                if (window.appointmentContextMenu.reinitializeForAppointments) {
+                                    window.appointmentContextMenu.reinitializeForAppointments();
+                                }
+                            } else {
+                                console.warn('⚠️ Context menu system not available');
+                            }
+                        }
+                    } catch (error) {
+                        console.error('Context menu initialization error:', error);
+                        // Continue without context menu rather than failing
                     }
                 }, 100);
 
