@@ -180,27 +180,6 @@
             font-size: 11px;
             font-weight: 800;
         }
-        
-        .time-header.hour-marker {
-            background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
-            font-size: 14px; /* Larger font size for hour markers */
-            font-weight: 900; /* Bolder text */
-            color: white; /* Ensure text is white */
-            border-bottom: 3px solid #2f2aa2; /* Stronger bottom border */
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            writing-mode: horizontal-tb; /* Horizontal text */
-            text-orientation: initial;
-            min-height: 80px; /* Keep height consistent */
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-right: 1px solid rgba(255,255,255,0.2);
-            padding: 10px 15px; /* Add some padding */
-            position: relative;
-            z-index: 5; /* Ensure it's above other elements if needed */
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1); /* Subtle shadow */
-        }
 
         .time-header.quarter-hour {
             background: linear-gradient(135deg, #8b5cf6 0%, #a855f7 100%);
@@ -2074,44 +2053,43 @@
         };
 
         function generateTimeSlots() {
-            const timeSlots = [];
-            const startHour = 8; // 8 AM
-            const endHour = 20; // 8 PM
-            const intervalMinutes = 15; // 15-minute intervals
+            const slots = [];
+            const totalSlots = (SCHEDULE_CONFIG.endHour - SCHEDULE_CONFIG.startHour) * (60 / SCHEDULE_CONFIG.slotMinutes);
 
-            for (let hour = startHour; hour < endHour; hour++) {
-                for (let minute = 0; minute < 60; minute += intervalMinutes) {
-                    const time = new Date();
-                    time.setHours(hour, minute, 0, 0);
+            for (let i = 0; i < totalSlots; i++) {
+                const totalMinutes = SCHEDULE_CONFIG.startHour * 60 + (i * SCHEDULE_CONFIG.slotMinutes);
+                const hour = Math.floor(totalMinutes / 60);
+                const minute = totalMinutes % 60;
 
-                    const timeString = time.toLocaleTimeString('en-US', {
-                        hour: '2-digit',
-                        minute: '2-digit',
-                        hour12: false
-                    });
+                const timeStr = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+                const displayTime = formatDisplayTime(hour, minute);
 
-                    // Check if this is an hour marker (minute = 0)
-                    const isHourMarker = minute === 0;
-
-                    timeSlots.push({
-                        time: timeString,
-                        hour: hour,
-                        minute: minute,
-                        isHourMarker: isHourMarker,
-                        display: time.toLocaleTimeString('en-US', {
-                            hour: 'numeric',
-                            minute: '2-digit',
-                            hour12: true
-                        }),
-                        hourDisplay: time.toLocaleTimeString('en-US', {
-                            hour: 'numeric',
-                            hour12: true
-                        })
-                    });
-                }
+                slots.push({
+                    time: timeStr,
+                    display: displayTime,
+                    index: i
+                });
             }
+            return slots;
+        }
 
-            return timeSlots;
+        function formatDisplayTime(hour, minute) {
+            const period = hour >= 12 ? 'PM' : 'AM';
+            const displayHour = hour > 12 ? hour - 12 : (hour === 0 ? 12 : hour);
+
+            // Show main hour labels
+            if (minute === 0) {
+                return `${displayHour} ${period}`;
+            }
+            // Show quarter-hour marks more prominently
+            else if (minute % 15 === 0) {
+                return `:${minute.toString().padStart(2, '0')}`;
+            }
+            // Show 5-minute tick marks as small indicators
+            else if (minute % 5 === 0) {
+                return '·';
+            }
+            return '';
         }
 
         // Process staff data with shift logs integration
@@ -2477,29 +2455,25 @@
             emptyCorner.innerHTML = '<strong style="writing-mode: horizontal-tb;">👥 Staff</strong>';
             grid.appendChild(emptyCorner);
 
-            // Generate time headers with prominent hour markers
-            timeSlots.forEach((slot, index) => {
-                const headerCell = document.createElement('div');
-
-                // Special styling for hour markers (every hour on the hour)
-                if (slot.isHourMarker) {
-                    headerCell.className = 'time-header hour-marker';
-                    headerCell.textContent = slot.hourDisplay;
-                    headerCell.title = `${slot.hourDisplay} - Major Time Marker`;
-                } else {
-                    headerCell.className = 'time-header';
-
-                    // Different styling for other intervals
-                    if (slot.minute === 15 || slot.minute === 45) {
-                        headerCell.classList.add('quarter-hour');
-                        headerCell.textContent = `:${slot.minute.toString().padStart(2, '0')}`;
-                    } else {
-                        headerCell.classList.add('minor-tick');
-                        headerCell.textContent = `:${slot.minute.toString().padStart(2, '0')}`;
-                    }
+            // Time headers with enhanced styling
+            timeSlots.forEach(slot => {
+                const timeHeader = document.createElement('div');
+                let headerClass = 'time-header';
+                
+                const [hour, minute] = slot.time.split(':').map(Number);
+                
+                // Add specific classes for different time intervals
+                if (minute === 0) {
+                    headerClass += ' major-hour';
+                } else if (minute % 15 === 0) {
+                    headerClass += ' quarter-hour';
+                } else if (minute % 5 === 0) {
+                    headerClass += ' minor-tick';
                 }
-
-                scheduleGrid.appendChild(headerCell);
+                
+                timeHeader.className = headerClass;
+                timeHeader.textContent = slot.display;
+                grid.appendChild(timeHeader);
             });
 
             // Create staff rows
@@ -2570,11 +2544,11 @@
                     <div class="staff-shift ${staff.is_working ? 'text-success' : 'text-muted'}">
                         ${staff.shift_display || 'Not Scheduled'}
                     </div>
-                    ${staff.break_display && staff.break_display !== 'No Break' ?
+                    ${staff.break_display && staff.break_display !== 'No Break' ? 
                         `<div class="staff-break">
                             <i class="fas fa-coffee me-1"></i>Break: ${staff.break_display}
                         </div>` : ''}
-                    ${!staff.has_shift_log ?
+                    ${!staff.has_shift_log ? 
                         `<div class="staff-warning">
                             <i class="fas fa-exclamation-circle text-warning me-1"></i>
                             <small>No shift log</small>
@@ -2707,7 +2681,7 @@ Shift Log: ${staff.has_shift_log ? 'Yes' : 'No'}
 
                         if (startSlot >= 0 && endSlot > startSlot) {
                             for (let slot = startSlot; slot < endSlot; slot++) {
-                                const timeSlot = document.querySelector(`[data-staff-id="${staff.id}"][data-slot-index="${slot}"]`);
+                                const timeSlot = document.querySelector(`[data-staff="${staff.id}"][data-slot="${slot}"]`);
                                 if (timeSlot) {
                                     const breakData = {
                                         start_time: staff.break_start,
@@ -2737,7 +2711,7 @@ Shift Log: ${staff.has_shift_log ? 'Yes' : 'No'}
 
                             if (startSlot >= 0 && endSlot > startSlot) {
                                 for (let slot = startSlot; slot < endSlot; slot++) {
-                                    const timeSlot = document.querySelector(`[data-staff-id="${breakItem.staff_id}"][data-slot-index="${slot}"]`);
+                                    const timeSlot = document.querySelector(`[data-staff="${breakItem.staff_id}"][data-slot="${slot}"]`);
                                     if (timeSlot) {
                                         timeSlot.innerHTML = createBreakBlock(breakItem);
                                         timeSlot.classList.add('break-slot');
@@ -3477,7 +3451,7 @@ Shift Log: ${staff.has_shift_log ? 'Yes' : 'No'}
                         // Try the new reinitialize function first
                         if (typeof reinitializeContextMenu === 'function') {
                             reinitializeContextMenu();
-                        }
+                        } 
                         // Try the original initialize function
                         else if (typeof initializeContextMenu === 'function') {
                             initializeContextMenu();
@@ -3485,11 +3459,11 @@ Shift Log: ${staff.has_shift_log ? 'Yes' : 'No'}
                         // Try the class-based approach
                         else if (window.appointmentContextMenu && typeof window.appointmentContextMenu.reinitializeForAppointments === 'function') {
                             window.appointmentContextMenu.reinitializeForAppointments();
-                        }
+                        } 
                         // Try the fallback function
                         else if (typeof fallbackInitializeContextMenu === 'function') {
                             fallbackInitializeContextMenu();
-                        }
+                        } 
                         else {
                             // Final fallback: try to initialize context menu directly
                             console.log('⚠️ Using final fallback context menu initialization');
@@ -3717,10 +3691,10 @@ Shift Log: ${staff.has_shift_log ? 'Yes' : 'No'}
             return staffData.map(staff => {
                 return {
                     ...staff,
-                    shift_display: staff.is_working
-                        ? `${formatTime(staff.shift_start)} - ${formatTime(staff.shift_end)}`
+                    shift_display: staff.is_working 
+                        ? `${formatTime(staff.shift_start)} - ${formatTime(staff.shift_end)}` 
                         : 'Not Scheduled',
-                    break_display: staff.break_start && staff.break_end
+                    break_display: staff.break_start && staff.break_end 
                         ? `${formatTime(staff.break_start)} - ${formatTime(staff.break_end)}`
                         : 'No Break',
                     availability_status: staff.is_working ? 'available' : 'not_scheduled'
