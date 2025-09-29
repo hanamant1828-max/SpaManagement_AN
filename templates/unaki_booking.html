@@ -791,6 +791,18 @@
             border: 2px solid #ef4444 !important;
             background-color: rgba(239, 68, 68, 0.1) !important;
         }
+
+        .break-slot {
+            background-color: #d3d3d3 !important; /* Grey color for breaks */
+            border: 2px dashed #a9a9a9 !important;
+            cursor: default !important;
+            z-index: 10 !important; /* Ensure breaks are visible */
+            opacity: 0.7 !important; /* Slightly transparent */
+        }
+        .break-slot:hover {
+            transform: none !important;
+            box-shadow: none !important;
+        }
     </style>
 </head>
 <body>
@@ -2275,7 +2287,7 @@
                             scheduleData = {
                                 staff: data.staff || [],
                                 appointments: data.appointments || [],
-                                breaks: data.breaks || []
+                                breaks: data.breaks || [] // Assign breaks data here
                             };
                             console.log('Schedule data loaded:', scheduleData);
 
@@ -2522,6 +2534,17 @@ Shift Log: ${staff.has_shift_log ? 'Yes' : 'No'}
                     timeSlot.dataset.time = slot.time;
                     timeSlot.dataset.slotIndex = slotIndex;
 
+                    // Check for breaks and add break class
+                    if (staff.break_start && staff.break_end) {
+                        const breakStartTimeMinutes = timeToMinutes(staff.break_start);
+                        const breakEndTimeMinutes = timeToMinutes(staff.break_end);
+                        const currentSlotMinutes = slotIndex * SCHEDULE_CONFIG.slotMinutes + SCHEDULE_CONFIG.startHour * 60;
+
+                        if (currentSlotMinutes >= breakStartTimeMinutes && currentSlotMinutes < breakEndTimeMinutes) {
+                            timeSlot.classList.add('break-slot');
+                        }
+                    }
+
                     timeSlot.addEventListener('click', (e) => {
                         if (!timeSlot.classList.contains('has-appointments')) {
                             handleSlotClick(staff.id, slot.time, e);
@@ -2533,6 +2556,7 @@ Shift Log: ${staff.has_shift_log ? 'Yes' : 'No'}
             });
 
             renderAppointments();
+            renderBreaks(); // Call renderBreaks to display break slots
         }
 
         function renderAppointments() {
@@ -2600,6 +2624,49 @@ Shift Log: ${staff.has_shift_log ? 'Yes' : 'No'}
                 });
             });
         }
+
+        // Render break blocks
+        function renderBreaks() {
+            const grid = document.getElementById('scheduleGrid');
+            const timeSlots = generateTimeSlots();
+
+            // Remove existing break blocks if any
+            grid.querySelectorAll('.break-block').forEach(block => block.remove());
+
+            const breaksByStaff = {};
+            scheduleData.breaks.forEach(breakInfo => {
+                if (!breaksByStaff[breakInfo.staffId]) {
+                    breaksByStaff[breakInfo.staffId] = [];
+                }
+                breaksByStaff[breakInfo.staffId].push(breakInfo);
+            });
+
+            Object.keys(breaksByStaff).forEach(staffId => {
+                breaksByStaff[staffId].forEach(breakInfo => {
+                    const startSlotIndex = getSlotIndexFromTime(breakInfo.startTime);
+                    if (startSlotIndex === -1) return;
+
+                    const breakBlock = createBreakBlock(breakInfo, startSlotIndex);
+                    const startTimeSlotCell = grid.querySelector(`[data-staff-id="${staffId}"][data-slot-index="${startSlotIndex}"]`);
+
+                    if (startTimeSlotCell) {
+                        startTimeSlotCell.style.position = 'relative';
+                        startTimeSlotCell.appendChild(breakBlock);
+
+                        // Mark the time slots covered by the break as having breaks
+                        const durationMinutes = breakInfo.duration || getTimeDifferenceInMinutes(breakInfo.startTime, breakInfo.endTime);
+                        const durationSlots = Math.ceil(durationMinutes / SCHEDULE_CONFIG.slotMinutes);
+                        for (let i = 0; i < durationSlots; i++) {
+                            const slotCell = grid.querySelector(`[data-staff-id="${staffId}"][data-slot-index="${startSlotIndex + i}"]`);
+                            if (slotCell) {
+                                slotCell.classList.add('break-slot');
+                            }
+                        }
+                    }
+                });
+            });
+        }
+
 
         function createAppointmentBlock(appointment, startSlotIndex, overlapIndex, totalOverlaps) {
             const appointmentBlock = document.createElement('div');
@@ -2709,6 +2776,48 @@ Shift Log: ${staff.has_shift_log ? 'Yes' : 'No'}
             return appointmentBlock;
         }
 
+        // Create break block element
+        function createBreakBlock(breakInfo, startSlotIndex) {
+            const breakBlock = document.createElement('div');
+            breakBlock.className = 'break-block';
+            breakBlock.id = breakInfo.id; // Assign ID for easier selection
+
+            const durationMinutes = breakInfo.duration || getTimeDifferenceInMinutes(breakInfo.startTime, breakInfo.endTime);
+            const durationSlots = Math.ceil(durationMinutes / SCHEDULE_CONFIG.slotMinutes);
+
+            breakBlock.style.cssText = `
+                background: linear-gradient(135deg, #f56565 0%, #e53e3e 100%);
+                color: white;
+                border-radius: 12px;
+                padding: 8px;
+                font-size: 11px;
+                text-align: center;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-weight: 700;
+                cursor: default;
+                min-height: 70px;
+                z-index: 15;
+                border: 2px solid #fc8181;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+                box-shadow: 0 4px 15px rgba(245, 101, 101, 0.3);
+                overflow: hidden;
+                position: absolute;
+                top: 2px;
+                left: 2px;
+                right: 2px;
+                width: ${(durationSlots * SCHEDULE_CONFIG.timeSlotWidth) - 4}px;
+            `;
+
+            breakBlock.innerHTML = `
+                <i class="fas fa-coffee me-2"></i>
+                <span>${breakInfo.title || 'Break Time'}</span>
+            `;
+
+            return breakBlock;
+        }
 
         // Helper functions
         function appointmentsOverlap(apt1, apt2) {
@@ -3080,7 +3189,6 @@ Shift Log: ${staff.has_shift_log ? 'Yes' : 'No'}
                     }
                 }
             });
-
             return conflicts;
         }
 
