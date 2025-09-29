@@ -161,17 +161,36 @@
         .time-header {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             font-weight: 700;
-            font-size: 10px;
+            font-size: 9px;
             color: white;
             border-bottom: 2px solid #4f46e5;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
+            letter-spacing: 0.3px;
             writing-mode: vertical-rl;
             text-orientation: mixed;
             min-height: 80px;
             display: flex;
             align-items: center;
             justify-content: center;
+            border-right: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .time-header.major-hour {
+            background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
+            font-size: 11px;
+            font-weight: 800;
+        }
+
+        .time-header.quarter-hour {
+            background: linear-gradient(135deg, #8b5cf6 0%, #a855f7 100%);
+            font-size: 8px;
+        }
+
+        .time-header.minor-tick {
+            background: linear-gradient(135deg, #d1d5db 0%, #e5e7eb 100%);
+            color: #6b7280;
+            font-size: 12px;
+            font-weight: 400;
         }
 
         .staff-cell {
@@ -2023,13 +2042,14 @@
         // Rest of the existing JavaScript functions with enhanced error handling and UX improvements
         // (keeping all the existing functionality but with better user feedback)
 
-        // Configuration
+        // Configuration - Enhanced for finer granularity
         const SCHEDULE_CONFIG = {
             startHour: 8,
             endHour: 20,
             slotMinutes: 5,
             staffColumnWidth: 240,
-            timeSlotWidth: 45
+            timeSlotWidth: 12, // Smaller slots for finer granularity
+            displayInterval: 15 // Show time labels every 15 minutes
         };
 
         function generateTimeSlots() {
@@ -2057,11 +2077,17 @@
             const period = hour >= 12 ? 'PM' : 'AM';
             const displayHour = hour > 12 ? hour - 12 : (hour === 0 ? 12 : hour);
 
-            if (minute % 15 === 0) {
-                const displayMinute = minute === 0 ? '' : `:${minute.toString().padStart(2, '0')}`;
-                return `${displayHour}${displayMinute}${period}`;
-            } else if (minute % 5 === 0) {
+            // Show main hour labels
+            if (minute === 0) {
+                return `${displayHour} ${period}`;
+            }
+            // Show quarter-hour marks more prominently
+            else if (minute % 15 === 0) {
                 return `:${minute.toString().padStart(2, '0')}`;
+            }
+            // Show 5-minute tick marks as small indicators
+            else if (minute % 5 === 0) {
+                return '·';
             }
             return '';
         }
@@ -2429,10 +2455,23 @@
             emptyCorner.innerHTML = '<strong style="writing-mode: horizontal-tb;">👥 Staff</strong>';
             grid.appendChild(emptyCorner);
 
-            // Time headers
+            // Time headers with enhanced styling
             timeSlots.forEach(slot => {
                 const timeHeader = document.createElement('div');
-                timeHeader.className = 'time-header';
+                let headerClass = 'time-header';
+                
+                const [hour, minute] = slot.time.split(':').map(Number);
+                
+                // Add specific classes for different time intervals
+                if (minute === 0) {
+                    headerClass += ' major-hour';
+                } else if (minute % 15 === 0) {
+                    headerClass += ' quarter-hour';
+                } else if (minute % 5 === 0) {
+                    headerClass += ' minor-tick';
+                }
+                
+                timeHeader.className = headerClass;
                 timeHeader.textContent = slot.display;
                 grid.appendChild(timeHeader);
             });
