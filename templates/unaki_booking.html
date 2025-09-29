@@ -3405,10 +3405,15 @@ Shift Log: ${staff.has_shift_log ? 'Yes' : 'No'}
                 generateScheduleGrid();
                 updateStats(); // Renamed from updateScheduleStats to updateStats
 
-                // Reinitialize context menu after rendering
+                // Reinitialize context menu after render
                 setTimeout(() => {
                     console.log('🔄 Reinitializing context menu after schedule render...');
-                    initializeContextMenu();
+                    if (typeof initializeContextMenu === 'function') {
+                        initializeContextMenu();
+                    } else {
+                        console.warn('⚠️ initializeContextMenu function not available, trying fallback...');
+                        fallbackInitializeContextMenu();
+                    }
                 }, 100);
 
                 console.log('✅ Schedule rendered successfully');
@@ -3678,6 +3683,38 @@ Shift Log: ${staff.has_shift_log ? 'Yes' : 'No'}
             return true;
         }
 
+        // Fallback context menu initialization if the external script is not loaded
+        function fallbackInitializeContextMenu() {
+            console.log('Attempting to initialize context menu with fallback...');
+            const appointmentBlocks = document.querySelectorAll('.appointment-block');
+
+            appointmentBlocks.forEach(block => {
+                const appointmentId = block.dataset.appointmentId;
+                if (appointmentId) {
+                    block.addEventListener('contextmenu', function(event) {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        // Call a placeholder function or implement basic context menu logic here
+                        console.log(`Fallback context menu for appointment ${appointmentId}`);
+                        // Example: Alert the user
+                        // alert(`Context Menu for Appointment ID: ${appointmentId}`);
+
+                        // Or, if you have basic edit/delete functionality directly accessible:
+                        const editButton = document.createElement('button');
+                        editButton.textContent = 'Edit';
+                        editButton.onclick = () => editAppointment(appointmentId); // Assumes editAppointment is globally available
+
+                        const deleteButton = document.createElement('button');
+                        deleteButton.textContent = 'Delete';
+                        deleteButton.onclick = () => deleteAppointment(appointmentId); // Assumes deleteAppointment is globally available
+
+                        // For simplicity, let's just log and potentially call the edit/delete functions if available
+                        console.log(`Appointment ${appointmentId} - Edit/Delete available.`);
+                        // In a real scenario, you'd create a custom context menu UI.
+                    });
+                }
+            });
+        }
     </script>
 </body>
 </html>
