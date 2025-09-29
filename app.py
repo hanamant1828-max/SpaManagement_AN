@@ -386,12 +386,23 @@ def unaki_schedule():
                         ShiftLogs.individual_date == target_date
                     ).first()
 
-                # Enhanced staff availability logic based on shift logs
+                # Enhanced staff availability logic based on shift logs with validation
                 if shift_log:
                     shift_start = shift_log.shift_start_time.strftime('%H:%M') if shift_log.shift_start_time else '09:00'
                     shift_end = shift_log.shift_end_time.strftime('%H:%M') if shift_log.shift_end_time else '17:00'
-                    break_start = shift_log.break_start_time.strftime('%H:%M') if shift_log.break_start_time else None
-                    break_end = shift_log.break_end_time.strftime('%H:%M') if shift_log.break_end_time else None
+                    
+                    # Safely format break times with proper validation
+                    break_start = None
+                    break_end = None
+                    try:
+                        if shift_log.break_start_time:
+                            break_start = shift_log.break_start_time.strftime('%H:%M')
+                        if shift_log.break_end_time:
+                            break_end = shift_log.break_end_time.strftime('%H:%M')
+                    except Exception as time_error:
+                        print(f"Error formatting break times for staff {staff.id}: {time_error}")
+                        break_start = None
+                        break_end = None
                     shift_status = shift_log.status
                     
                     # Determine working status based on shift log status
@@ -537,17 +548,24 @@ def unaki_schedule():
                     ShiftLogs.individual_date == target_date
                 ).first()
 
-                # Add break data if available
+                # Add break data if available with proper validation
                 if shift_log and shift_log.break_start_time and shift_log.break_end_time:
-                    break_info = {
-                        'id': f'break_{staff.id}_{target_date}',
-                        'staff_id': staff.id,
-                        'start_time': shift_log.break_start_time.strftime('%H:%M'),
-                        'end_time': shift_log.break_end_time.strftime('%H:%M'),
-                        'type': 'break',
-                        'title': 'Break Time'
-                    }
-                    breaks_data.append(break_info)
+                    try:
+                        break_start_str = shift_log.break_start_time.strftime('%H:%M') if shift_log.break_start_time else None
+                        break_end_str = shift_log.break_end_time.strftime('%H:%M') if shift_log.break_end_time else None
+                        
+                        if break_start_str and break_end_str:
+                            break_info = {
+                                'id': f'break_{staff.id}_{target_date}',
+                                'staff_id': staff.id,
+                                'start_time': break_start_str,
+                                'end_time': break_end_str,
+                                'type': 'break',
+                                'title': 'Break Time'
+                            }
+                            breaks_data.append(break_info)
+                    except Exception as break_error:
+                        print(f"Error formatting break time for staff {staff.id}: {break_error}")
 
         # Debug: Log appointments by staff ID
         staff_appointment_counts = {}

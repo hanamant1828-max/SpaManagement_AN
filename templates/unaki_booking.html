@@ -2830,21 +2830,23 @@ Shift Log: ${staff.has_shift_log ? 'Yes' : 'No'}
         }
 
         function timeToMinutes(timeStr) {
+            if (!timeStr || typeof timeStr !== 'string') {
+                console.warn('Invalid time string provided to timeToMinutes:', timeStr);
+                return 0;
+            }
             const [hours, minutes] = timeStr.split(':').map(Number);
             return hours * 60 + minutes;
         }
 
         function getSlotIndexFromTime(timeStr) {
-            const [hour, minute] = timeStr.split(':').map(Number);
-            const totalMinutes = hour * 60 + minute;
-            const startMinutes = SCHEDULE_CONFIG.startHour * 60;
-            const slotIndex = Math.floor((totalMinutes - startMinutes) / SCHEDULE_CONFIG.slotMinutes);
-
-            if (slotIndex < 0 || hour < SCHEDULE_CONFIG.startHour || hour >= SCHEDULE_CONFIG.endHour) {
-                return -1;
+            if (!timeStr || typeof timeStr !== 'string') {
+                console.warn('Invalid time string provided to getSlotIndexFromTime:', timeStr);
+                return 0;
             }
-
-            return slotIndex;
+            const [hours, minutes] = timeStr.split(':');
+            const totalMinutes = parseInt(hours) * 60 + parseInt(minutes);
+            const startMinutes = SCHEDULE_CONFIG.startHour * 60;
+            return Math.floor((totalMinutes - startMinutes) / SCHEDULE_CONFIG.slotMinutes);
         }
 
         function getTimeDifferenceInMinutes(startTime, endTime) {
@@ -3617,6 +3619,10 @@ Shift Log: ${staff.has_shift_log ? 'Yes' : 'No'}
 
         // Helper to convert time string to minutes
         function timeToMinutes(timeString) {
+            if (!timeString || typeof timeString !== 'string') {
+                console.warn('Invalid time string provided to timeToMinutes:', timeString);
+                return 0;
+            }
             const [hours, minutes] = timeString.split(':').map(Number);
             return hours * 60 + minutes;
         }
