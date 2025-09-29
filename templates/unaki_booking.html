@@ -441,6 +441,7 @@
             text-transform: uppercase;
             letter-spacing: 0.5px;
             box-shadow: 0 4px 15px rgba(245, 101, 101, 0.3);
+            overflow: hidden;
         }
 
         .header-controls {
@@ -2627,44 +2628,63 @@ Shift Log: ${staff.has_shift_log ? 'Yes' : 'No'}
 
         // Render break blocks
         function renderBreaks() {
-            const grid = document.getElementById('scheduleGrid');
-            const timeSlots = generateTimeSlots();
+            if (!scheduleData.staff || !Array.isArray(scheduleData.staff)) {
+                console.warn('No staff data available for break rendering');
+                return;
+            }
 
-            // Remove existing break blocks if any
-            grid.querySelectorAll('.break-block').forEach(block => block.remove());
+            scheduleData.staff.forEach(staff => {
+                // Check if staff has break times defined
+                if (staff.break_start && staff.break_end) {
+                    try {
+                        const startSlot = getSlotIndexFromTime(staff.break_start);
+                        const endSlot = getSlotIndexFromTime(staff.break_end);
 
-            const breaksByStaff = {};
-            scheduleData.breaks.forEach(breakInfo => {
-                if (!breaksByStaff[breakInfo.staffId]) {
-                    breaksByStaff[breakInfo.staffId] = [];
+                        if (startSlot >= 0 && endSlot > startSlot) {
+                            for (let slot = startSlot; slot < endSlot; slot++) {
+                                const timeSlot = document.querySelector(`[data-staff="${staff.id}"][data-slot="${slot}"]`);
+                                if (timeSlot) {
+                                    const breakData = {
+                                        start_time: staff.break_start,
+                                        end_time: staff.break_end,
+                                        staff_id: staff.id,
+                                        type: 'break',
+                                        title: 'Break Time'
+                                    };
+                                    timeSlot.innerHTML = createBreakBlock(breakData);
+                                    timeSlot.classList.add('break-slot');
+                                }
+                            }
+                        }
+                    } catch (error) {
+                        console.warn(`Error rendering break for staff ${staff.name}:`, error);
+                    }
                 }
-                breaksByStaff[breakInfo.staffId].push(breakInfo);
             });
 
-            Object.keys(breaksByStaff).forEach(staffId => {
-                breaksByStaff[staffId].forEach(breakInfo => {
-                    const startSlotIndex = getSlotIndexFromTime(breakInfo.startTime);
-                    if (startSlotIndex === -1) return;
+            // Also render breaks from the breaks array if it exists
+            if (scheduleData.breaks && Array.isArray(scheduleData.breaks)) {
+                scheduleData.breaks.forEach(breakItem => {
+                    if (breakItem.start_time && breakItem.end_time && breakItem.staff_id) {
+                        try {
+                            const startSlot = getSlotIndexFromTime(breakItem.start_time);
+                            const endSlot = getSlotIndexFromTime(breakItem.end_time);
 
-                    const breakBlock = createBreakBlock(breakInfo, startSlotIndex);
-                    const startTimeSlotCell = grid.querySelector(`[data-staff-id="${staffId}"][data-slot-index="${startSlotIndex}"]`);
-
-                    if (startTimeSlotCell) {
-                        startTimeSlotCell.style.position = 'relative';
-                        startTimeSlotCell.appendChild(breakBlock);
-
-                        // Mark the time slots covered by the break as having breaks
-                        const durationMinutes = breakInfo.duration || getTimeDifferenceInMinutes(breakInfo.startTime, breakInfo.endTime);
-                        const durationSlots = Math.ceil(durationMinutes / SCHEDULE_CONFIG.slotMinutes);
-                        for (let i = 0; i < durationSlots; i++) {
-                            const slotCell = grid.querySelector(`[data-staff-id="${staffId}"][data-slot-index="${startSlotIndex + i}"]`);
-                            if (slotCell) {
-                                slotCell.classList.add('break-slot');
+                            if (startSlot >= 0 && endSlot > startSlot) {
+                                for (let slot = startSlot; slot < endSlot; slot++) {
+                                    const timeSlot = document.querySelector(`[data-staff="${breakItem.staff_id}"][data-slot="${slot}"]`);
+                                    if (timeSlot) {
+                                        timeSlot.innerHTML = createBreakBlock(breakItem);
+                                        timeSlot.classList.add('break-slot');
+                                    }
+                                }
                             }
+                        } catch (error) {
+                            console.warn(`Error rendering break from breaks array:`, error);
                         }
                     }
                 });
-            });
+            }
         }
 
 
@@ -2777,46 +2797,27 @@ Shift Log: ${staff.has_shift_log ? 'Yes' : 'No'}
         }
 
         // Create break block element
-        function createBreakBlock(breakInfo, startSlotIndex) {
-            const breakBlock = document.createElement('div');
-            breakBlock.className = 'break-block';
-            breakBlock.id = breakInfo.id; // Assign ID for easier selection
+        function createBreakBlock(breakData) {
+            if (!breakData || !breakData.start_time || !breakData.end_time) {
+                console.warn('Invalid break data provided to createBreakBlock:', breakData);
+                return '<div class="break-block"><div class="break-title">🔸 BREAK</div></div>';
+            }
 
-            const durationMinutes = breakInfo.duration || getTimeDifferenceInMinutes(breakInfo.startTime, breakInfo.endTime);
-            const durationSlots = Math.ceil(durationMinutes / SCHEDULE_CONFIG.slotMinutes);
+            try {
+                const duration = getTimeDifferenceInMinutes(breakData.start_time, breakData.end_time);
+                const displayTime = `${breakData.start_time} - ${breakData.end_time}`;
 
-            breakBlock.style.cssText = `
-                background: linear-gradient(135deg, #f56565 0%, #e53e3e 100%);
-                color: white;
-                border-radius: 12px;
-                padding: 8px;
-                font-size: 11px;
-                text-align: center;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                font-weight: 700;
-                cursor: default;
-                min-height: 70px;
-                z-index: 15;
-                border: 2px solid #fc8181;
-                text-transform: uppercase;
-                letter-spacing: 0.5px;
-                box-shadow: 0 4px 15px rgba(245, 101, 101, 0.3);
-                overflow: hidden;
-                position: absolute;
-                top: 2px;
-                left: 2px;
-                right: 2px;
-                width: ${(durationSlots * SCHEDULE_CONFIG.timeSlotWidth) - 4}px;
-            `;
-
-            breakBlock.innerHTML = `
-                <i class="fas fa-coffee me-2"></i>
-                <span>${breakInfo.title || 'Break Time'}</span>
-            `;
-
-            return breakBlock;
+                return `
+                    <div class="break-block" data-break-id="${breakData.id || 'break-' + (breakData.staff_id || 'unknown')}">
+                        <div class="break-title">🔸 BREAK</div>
+                        <div class="break-time">${displayTime}</div>
+                        <div class="break-duration">${duration}min</div>
+                    </div>
+                `;
+            } catch (error) {
+                console.warn('Error creating break block:', error);
+                return '<div class="break-block"><div class="break-title">🔸 BREAK</div><div class="break-time">Error</div></div>';
+            }
         }
 
         // Helper functions
@@ -2838,25 +2839,51 @@ Shift Log: ${staff.has_shift_log ? 'Yes' : 'No'}
             return hours * 60 + minutes;
         }
 
-        function getSlotIndexFromTime(timeStr) {
-            if (!timeStr || typeof timeStr !== 'string') {
-                console.warn('Invalid time string provided to getSlotIndexFromTime:', timeStr);
+        function getSlotIndexFromTime(timeString) {
+            if (!timeString || typeof timeString !== 'string') {
+                console.warn('Invalid time string provided to getSlotIndexFromTime:', timeString);
                 return 0;
             }
-            const [hours, minutes] = timeStr.split(':');
-            const totalMinutes = parseInt(hours) * 60 + parseInt(minutes);
-            const startMinutes = SCHEDULE_CONFIG.startHour * 60;
-            return Math.floor((totalMinutes - startMinutes) / SCHEDULE_CONFIG.slotMinutes);
+
+            try {
+                const [hours, minutes] = timeString.split(':').map(Number);
+                if (isNaN(hours) || isNaN(minutes)) {
+                    console.warn('Invalid time format in getSlotIndexFromTime:', timeString);
+                    return 0;
+                }
+                const totalMinutes = hours * 60 + minutes;
+                const startMinutes = 6 * 60; // 6:00 AM
+                const slotMinutes = totalMinutes - startMinutes;
+                return Math.max(0, Math.floor(slotMinutes / 10)); // 10-minute slots
+            } catch (error) {
+                console.warn('Error parsing time in getSlotIndexFromTime:', timeString, error);
+                return 0;
+            }
         }
 
         function getTimeDifferenceInMinutes(startTime, endTime) {
-            const [startHour, startMinute] = startTime.split(':').map(Number);
-            const [endHour, endMinute] = endTime.split(':').map(Number);
+            if (!startTime || !endTime || typeof startTime !== 'string' || typeof endTime !== 'string') {
+                console.warn('Invalid time strings provided to getTimeDifferenceInMinutes:', startTime, endTime);
+                return 0;
+            }
 
-            const startTotalMinutes = startHour * 60 + startMinute;
-            const endTotalMinutes = endHour * 60 + endMinute;
+            try {
+                const [startHours, startMinutes] = startTime.split(':').map(Number);
+                const [endHours, endMinutes] = endTime.split(':').map(Number);
 
-            return endTotalMinutes - startTotalMinutes;
+                if (isNaN(startHours) || isNaN(startMinutes) || isNaN(endHours) || isNaN(endMinutes)) {
+                    console.warn('Invalid time format in getTimeDifferenceInMinutes:', startTime, endTime);
+                    return 0;
+                }
+
+                const startTotalMinutes = startHours * 60 + startMinutes;
+                const endTotalMinutes = endHours * 60 + endMinutes;
+
+                return endTotalMinutes - startTotalMinutes;
+            } catch (error) {
+                console.warn('Error calculating time difference:', startTime, endTime, error);
+                return 0;
+            }
         }
 
         function getServiceCategory(serviceType) {
@@ -3358,52 +3385,48 @@ Shift Log: ${staff.has_shift_log ? 'Yes' : 'No'}
         window.viewAppointmentDetails = function(appointmentId) { /* Placeholder for viewing details */ };
 
         function renderSchedule() {
+            console.log('🔄 Starting schedule render...');
+            console.log('📊 Schedule data:', scheduleData);
+
+            // Validate schedule data before rendering
+            if (!scheduleData || typeof scheduleData !== 'object') {
+                console.error('❌ Invalid schedule data:', scheduleData);
+                showNotification('Invalid schedule data. Please refresh and try again.', 'error');
+                return;
+            }
+
+            if (!scheduleData.staff || !Array.isArray(scheduleData.staff)) {
+                console.error('❌ Missing or invalid staff data:', scheduleData.staff);
+                showNotification('Missing staff data. Please refresh and try again.', 'error');
+                return;
+            }
+
             try {
-                console.log('🔄 Starting schedule render...');
-                console.log('📊 Schedule data:', scheduleData);
-
-                if (!scheduleData || !scheduleData.staff || !scheduleData.appointments) {
-                    console.error('❌ Invalid schedule data:', scheduleData);
-                    document.getElementById('scheduleGrid').innerHTML = '<div class="text-center p-5 text-danger">No schedule data available</div>';
-                    hideLoading();
-                    return;
-                }
-
                 generateScheduleGrid();
+                updateStats(); // Renamed from updateScheduleStats to updateStats
 
-                // Reinitialize context menu for all appointment blocks
+                // Reinitialize context menu after rendering
                 setTimeout(() => {
-                    if (typeof window.reinitializeContextMenu === 'function') {
-                        console.log('🔄 Reinitializing context menu after schedule render...');
-                        window.reinitializeContextMenu();
-                    } else if (window.appointmentContextMenu && typeof window.appointmentContextMenu.reinitializeForAppointments === 'function') {
-                        console.log('🔄 Using appointment context menu reinitialize...');
-                        window.appointmentContextMenu.reinitializeForAppointments();
-                    } else {
-                        console.log('⚠️ Context menu reinitialize function not available, adding fallback handlers');
-                        addFallbackContextMenuHandlers();
-                    }
+                    console.log('🔄 Reinitializing context menu after schedule render...');
+                    initializeContextMenu();
                 }, 100);
 
-                // Show stats
-                updateStats();
-                hideLoading();
-                console.log(`📊 Schedule loaded: ${scheduleData.appointments.length} appointments, ${window.staffData.length} staff members`);
+                console.log('✅ Schedule rendered successfully');
 
             } catch (error) {
                 console.error('❌ Error building schedule grid:', error);
-                console.error('Error details:', error.stack);
-                hideLoading();
+                console.error('Error details:', error);
+                console.error('Stack trace:', error.stack);
                 showNotification('Error loading schedule. Please refresh and try again.', 'error');
 
-                // Show basic error message in grid
-                const grid = document.getElementById('scheduleGrid');
-                if (grid) {
-                    grid.innerHTML = `
-                        <div class="text-center p-5 text-danger">
-                            <h5>Error Loading Schedule</h5>
-                            <p>Please refresh the page and try again.</p>
-                            <button class="btn btn-primary" onclick="location.reload()">Refresh Page</button>
+                // Try to show a basic error state
+                const scheduleGrid = document.getElementById('scheduleGrid');
+                if (scheduleGrid) {
+                    scheduleGrid.innerHTML = `
+                        <div style="padding: 2rem; text-align: center; color: #ef4444;">
+                            <h3>Schedule Loading Error</h3>
+                            <p>There was an error loading the schedule. Please refresh the page and try again.</p>
+                            <button onclick="location.reload()" class="btn btn-primary">Refresh Page</button>
                         </div>
                     `;
                 }
