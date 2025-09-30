@@ -1028,7 +1028,7 @@ class InvoiceItem(db.Model):
 # Unaki Booking System Models
 class UnakiBooking(db.Model):
     """Main Unaki booking table for appointment scheduling"""
-    __tablename__ = 'unaki_booking'
+    __tablename__ = 'unaki_bookings'
     __table_args__ = {'extend_existing': True}
 
     id = db.Column(db.Integer, primary_key=True)
