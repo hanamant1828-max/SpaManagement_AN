@@ -352,8 +352,8 @@ def unaki_schedule():
         from modules.staff.staff_queries import get_staff_members
         from models import UnakiBooking, ShiftManagement, ShiftLogs
 
-        # Get date parameter and clean it
-        date_str = request.args.get('date', date.today().strftime('%Y-%m-%d')).strip()
+        # Get date parameter
+        date_str = request.args.get('date', date.today().strftime('%Y-%m-%d'))
         target_date = datetime.strptime(date_str, '%Y-%m-%d').date()
 
         # Debug: Log the date we're querying for

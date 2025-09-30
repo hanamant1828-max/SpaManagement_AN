@@ -1724,130 +1724,12 @@
             let appointmentCounter = 1;
             let scheduleData = null;
 
-            // Get current date for display
-            function getCurrentDateForDisplay() {
-                const today = new Date();
-                const options = {
-                    weekday: 'long',
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric'
-                };
-                return today.toLocaleDateString('en-US', options);
-            }
-
-            // Get current date in YYYY-MM-DD format
-            function getCurrentDateString() {
-                const today = new Date();
-                return today.toISOString().split('T')[0];
-            }
-
-            // Navigate date function
-            function navigateDate(direction) {
-                console.log(`🗓️ Navigating date by ${direction} days`);
-
-                const currentDateStr = (window.currentSelectedDate || getCurrentDateString()).trim();
-                const currentDate = new Date(currentDateStr);
-                const newDate = new Date(currentDate);
-                newDate.setDate(currentDate.getDate() + direction);
-
-                const newDateStr = newDate.toISOString().split('T')[0];
-                window.currentSelectedDate = newDateStr;
-
-                // Update display
-                updateCurrentDateDisplay(newDate);
-
-                // Refresh schedule
-                refreshSchedule();
-            }
-
-            // Navigate to today
-            function navigateToToday() {
-                console.log('🏠 Navigating to today');
-                const today = getCurrentDateString();
-                window.currentSelectedDate = today;
-
-                // Update display
-                updateCurrentDateDisplay(new Date());
-
-                // Refresh schedule
-                refreshSchedule();
-            }
-
-            // Update date display
-            function updateCurrentDateDisplay(date) {
-                const displayElement = document.getElementById('currentDateDisplay');
-                if (displayElement) {
-                    const options = {
-                        weekday: 'long',
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric'
-                    };
-                    displayElement.textContent = date.toLocaleDateString('en-US', options);
-                }
-            }
-
-            // Load schedule data from API
-            async function loadScheduleData(date) {
-                console.log('🔄 Starting schedule render...');
-
-                try {
-                    showLoadingOverlay(true);
-
-                    // Use provided date or current selected date, ensure it's trimmed
-                    const targetDate = (date || window.currentSelectedDate || getCurrentDateString()).trim();
-
-                    // Fetch schedule data with properly encoded date
-                    const response = await fetch(`/api/unaki/schedule?date=${encodeURIComponent(targetDate)}`);
-                    const data = await response.json();
-
-                    console.log('📊 Schedule data:', data);
-
-                    if (data.success) {
-                        return data;
-                    } else {
-                        console.error('Failed to load schedule data:', data.error);
-                        showNotification('Failed to load schedule data: ' + (data.error || 'Unknown error'), 'error');
-                        return { staff: [], appointments: [], breaks: [] };
-                    }
-                } catch (error) {
-                    console.error('Error loading schedule data:', error);
-                    showNotification('Error loading schedule. Please refresh the page.', 'error');
-                    return { staff: [], appointments: [], breaks: [] };
-                } finally {
-                    showLoadingOverlay(false);
-                }
-            }
-
-            // Initialize the page
+            // Initialize the booking system
             document.addEventListener('DOMContentLoaded', function() {
-                console.log('🚀 Unaki Booking System initialized');
-
-                // Initialize current date
-                const today = getCurrentDateString();
-                window.currentSelectedDate = today;
-                updateCurrentDateDisplay(new Date());
-
-                console.log('📅 Initial date set to:', today);
-
-                // Load initial schedule
-                refreshSchedule();
-
-                // Setup current time indicator
-                setupCurrentTimeIndicator();
-
-                // Setup keyboard shortcuts
-                setupKeyboardShortcuts();
-
-                // Initialize context menu
-                setTimeout(() => {
-                    if (typeof reinitializeContextMenu === 'function') {
-                        reinitializeContextMenu();
-                    }
-                }, 1000);
+                loadScheduleData();
+                initializeEventListeners();
+                updateCurrentDate();
             });
-
 
             function openMultiBookModal() {
                 const modal = new bootstrap.Modal(document.getElementById('multiBookModal'));
@@ -2099,9 +1981,9 @@
                 appointments.forEach((apt, index) => {
                     const [hours, minutes] = apt.startTime.split(':').map(Number);
                     // Calculate minutes from 9 AM (which is 9 * 60 minutes from midnight)
-                    const startMinutesFrom9AM = (hours - 9) * 60 + minutes;
+                    const startMinutesFrom9AM = (hours - 9) * 60 + minutes; 
                     // Total duration of the visible timeline in minutes (9 AM to 6 PM = 9 hours = 540 minutes)
-                    const totalTimelineMinutes = 9 * 60;
+                    const totalTimelineMinutes = 9 * 60; 
 
                     const leftPercentage = (startMinutesFrom9AM / totalTimelineMinutes) * 100;
                     // Ensure width calculation considers the total timeline duration
@@ -2331,7 +2213,7 @@
                 updateTimelinePreview();
             }
 
-            // Initialize event listeners for dynamic content
+            // Initialize event listeners for dynamic elements
             function initializeEventListeners() {
                 // Add event listeners for dynamic content
                 document.addEventListener('change', function(e) {
@@ -2350,10 +2232,10 @@
             }
 
             // Load schedule data and existing functions
-            function loadScheduleData(date) { // Renamed from 'refreshSchedule' to avoid conflict
+            function loadScheduleData() {
                 const currentDate = document.getElementById('currentDateDisplay').textContent;
 
-                fetch(`/api/unaki/schedule?date=${encodeURIComponent(currentDate)}`)
+                fetch(`/api/unaki/schedule?date=${currentDate}`)
                     .then(response => response.json())
                     .then(data => {
                         scheduleData = data;
@@ -2410,18 +2292,18 @@
 
                 // Position calculation (140px per hour, starting from 9 AM)
                 // Offset from 9 AM in hours
-                const hourOffset = startHour - 9;
+                const hourOffset = startHour - 9; 
                 // Offset from the start of the hour in fractions of an hour
-                const minuteOffset = startMinute / 60;
+                const minuteOffset = startMinute / 60; 
                 // Total offset in hours from 9 AM
-                const totalHourOffset = hourOffset + minuteOffset;
+                const totalHourOffset = hourOffset + minuteOffset; 
                 // Position in pixels (140px per hour)
-                const leftPosition = totalHourOffset * 140;
+                const leftPosition = totalHourOffset * 140; 
 
                 // Width calculation based on duration
                 const durationHours = appointment.duration / 60;
                 // Width in pixels (140px per hour), subtract a small amount for spacing/margins if needed
-                const width = durationHours * 140 - 8;
+                const width = durationHours * 140 - 8; 
 
                 block.style.left = leftPosition + 'px';
                 block.style.width = Math.max(width, 80) + 'px'; // Ensure a minimum width
@@ -2496,20 +2378,17 @@
 
                 const newDateStr = currentDate.toISOString().split('T')[0];
                 currentDisplay.textContent = newDateStr;
-                window.currentSelectedDate = newDateStr; // Ensure window.currentSelectedDate is updated
 
-                loadScheduleData(); // Use loadScheduleData to fetch and render
+                loadScheduleData();
             }
-
 
             function navigateToToday() {
                 updateCurrentDate();
-                window.currentSelectedDate = getCurrentDateString(); // Ensure window.currentSelectedDate is updated
-                loadScheduleData(); // Use loadScheduleData to fetch and render
+                loadScheduleData();
             }
 
             function refreshSchedule() {
-                loadScheduleData(); // Use loadScheduleData to fetch and render
+                loadScheduleData();
             }
 
             function handleSlotClick(event, staffId, hour, minute) {
@@ -2574,38 +2453,6 @@
             function viewAppointment(appointmentId) {
                 console.log(`Viewing appointment: ${appointmentId}`);
                 // Implement actual viewing logic
-            }
-
-            // Dummy function for showing loading overlay
-            function showLoadingOverlay(show) {
-                const overlay = document.getElementById('loadingOverlay');
-                if (overlay) {
-                    overlay.classList.toggle('show', show);
-                }
-            }
-
-            // Dummy function for showing notifications
-            function showNotification(message, type) {
-                console.log(`Notification (${type}): ${message}`);
-                // In a real app, this would display a toast or alert
-            }
-
-            // Dummy function for setting up current time indicator
-            function setupCurrentTimeIndicator() {
-                console.log("Setting up current time indicator...");
-                // Placeholder for logic to update the current time line
-            }
-
-            // Dummy function for setting up keyboard shortcuts
-            function setupKeyboardShortcuts() {
-                console.log("Setting up keyboard shortcuts...");
-                // Placeholder for keyboard shortcut logic
-            }
-
-            // Dummy function for reinitializing context menu
-            function reinitializeContextMenu() {
-                console.log("Reinitializing context menu...");
-                // Placeholder for context menu reinitialization
             }
 
         </script>
