@@ -1,0 +1,57 @@
+I have an existing spa appointment booking system with HTML code. I need you to transform the schedule view to match a specific calendar timeline design.
+
+CURRENT CODE: [paste your HTML file content here]
+
+TRANSFORM IT TO THIS STYLE:
+
+MAIN CHANGES NEEDED:
+
+1. TOP NAVIGATION BAR:
+   - Fixed header with white background
+   - Left: Logo/app name
+   - Center: Date navigator with prev/next arrows and current date
+   - Right: "New Appointment" button, refresh icon, settings icon
+
+2. LAYOUT STRUCTURE:
+   - Remove the current grid system
+   - Create a two-panel layout:
+     * Left sidebar (200px fixed width): Staff list
+     * Right panel (flex): Timeline grid with horizontal scroll
+
+3. STAFF SIDEBAR:
+   - Show each staff member as a row (80px height)
+   - Display: circular avatar, name, role
+   - Align with corresponding grid rows
+
+4. TIMELINE GRID:
+   - Header row: Show hours 9 AM to 9 PM (each 80px wide)
+   - Grid body: One row per staff member
+   - Each hour divided into 12 sub-columns (5-minute intervals)
+   - Visual lines:
+     * Light gray (#f1f5f9) for 5-min marks
+     * Medium gray (#e2e8f0) for 15-min marks
+     * Thick gray (#cbd5e0) for 30-min mark
+     * Bold line (#e9ecef) for hour boundaries
+
+5. APPOINTMENT BLOCKS:
+   - Position absolutely based on start time
+   - Width calculated from duration (1 hour = 80px)
+   - Keep the color coding by service type
+   - Show client name, service, time
+   - Left border (4px) in service color
+   - Add box shadow and hover effects
+
+6. INTERACTIVE FEATURES:
+   - Click any 5-minute slot to open booking modal
+   - Right-click appointments for context menu
+   - Show current time as a red vertical line
+   - Enable horizontal and vertical scrolling
+
+7. STYLING:
+   - Clean, minimal design
+   - White/light gray color scheme
+   - Remove the purple gradient backgrounds
+   - Use subtle shadows instead of heavy gradients
+   - Modern sans-serif fonts
+
+Keep all the existing functionality (booking, editing, deleting appointments, API calls, etc.) but completely redesign the visual presentation to match this calendar timeline style.

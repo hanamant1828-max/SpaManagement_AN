@@ -1,136 +1,591 @@
-
 {% extends "base.html" %}
 
-{% block title %}Appointment Schedule - Timetable View{% endblock %}
+{% block title %}Appointment Schedule - Timeline View{% endblock %}
 
 {% block content %}
-<div class="container-fluid">
-    <!-- Header -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="d-flex justify-content-between align-items-center">
-                <h1 class="h3 mb-0">
-                    <i class="fas fa-calendar-alt me-2"></i>Appointment Schedule
-                </h1>
-                <div class="d-flex gap-2">
-                    <a href="{{ url_for('bookings') }}" class="btn btn-outline-primary">
-                        <i class="fas fa-arrow-left me-2"></i>Back to Bookings
-                    </a>
-                    <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#quickBookModal">
-                        <i class="fas fa-plus me-2"></i>Quick Book
-                    </button>
-                </div>
+<style>
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+/* Hide base template's container to allow full-width layout */
+.container-fluid {
+    padding: 0 !important;
+    margin: 0 !important;
+    max-width: 100% !important;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    background-color: #f8f9fa;
+}
+
+/* Fixed Top Navigation */
+.calendar-top-nav {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 64px;
+    background: white;
+    border-bottom: 1px solid #e9ecef;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 24px;
+    z-index: 100;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.calendar-logo {
+    font-size: 20px;
+    font-weight: 600;
+    color: #333;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.calendar-date-nav {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.date-nav-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 1px solid #dee2e6;
+    background: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.date-nav-btn:hover {
+    background: #f8f9fa;
+    border-color: #adb5bd;
+}
+
+.current-date-display {
+    font-size: 16px;
+    font-weight: 600;
+    color: #333;
+    min-width: 200px;
+    text-align: center;
+}
+
+.calendar-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.action-btn {
+    padding: 8px 16px;
+    border-radius: 6px;
+    border: none;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.action-btn-primary {
+    background: #007bff;
+    color: white;
+}
+
+.action-btn-primary:hover {
+    background: #0056b3;
+}
+
+.action-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: none;
+    background: #f8f9fa;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.action-icon:hover {
+    background: #e9ecef;
+}
+
+/* Main Layout */
+.calendar-main-layout {
+    margin-top: 64px;
+    height: calc(100vh - 64px);
+    display: flex;
+    background: white;
+}
+
+/* Staff Sidebar */
+.staff-sidebar {
+    width: 200px;
+    flex-shrink: 0;
+    background: white;
+    border-right: 1px solid #e9ecef;
+    overflow-y: auto;
+}
+
+.staff-sidebar-header {
+    height: 60px;
+    background: #f8f9fa;
+    border-bottom: 2px solid #cbd5e0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    color: #495057;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.staff-row {
+    height: 80px;
+    border-bottom: 1px solid #f1f5f9;
+    display: flex;
+    align-items: center;
+    padding: 12px 16px;
+    gap: 12px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.staff-row:hover {
+    background: #f8f9fa;
+}
+
+.staff-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: 600;
+    font-size: 16px;
+    flex-shrink: 0;
+}
+
+.staff-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.staff-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: #333;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.staff-role {
+    font-size: 12px;
+    color: #6c757d;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Timeline Panel */
+.timeline-panel {
+    flex: 1;
+    overflow: auto;
+    background: #fafbfc;
+}
+
+.timeline-header {
+    height: 60px;
+    background: #f8f9fa;
+    border-bottom: 2px solid #cbd5e0;
+    display: flex;
+    position: sticky;
+    top: 0;
+    z-index: 9;
+}
+
+.timeline-hour {
+    width: 80px;
+    flex-shrink: 0;
+    border-right: 1px solid #cbd5e0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 13px;
+    color: #495057;
+}
+
+/* Timeline Grid */
+.timeline-grid {
+    position: relative;
+}
+
+.timeline-row {
+    height: 80px;
+    border-bottom: 1px solid #f1f5f9;
+    display: flex;
+    position: relative;
+}
+
+.timeline-hour-slot {
+    width: 80px;
+    flex-shrink: 0;
+    position: relative;
+    background: white;
+}
+
+/* 5-minute interval lines */
+.timeline-hour-slot::before,
+.timeline-hour-slot::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    background: #f1f5f9;
+}
+
+/* 15-minute marks */
+.interval-15 {
+    background: repeating-linear-gradient(
+        to right,
+        white 0px,
+        white 19.9px,
+        #e2e8f0 19.9px,
+        #e2e8f0 20px
+    );
+}
+
+/* 30-minute mark */
+.timeline-hour-slot .mark-30 {
+    position: absolute;
+    left: 50%;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: #cbd5e0;
+}
+
+/* Hour boundary */
+.timeline-hour-slot {
+    border-right: 1px solid #cbd5e0;
+}
+
+/* Appointment Block */
+.appointment-block {
+    position: absolute;
+    top: 4px;
+    bottom: 4px;
+    border-radius: 4px;
+    border-left: 4px solid;
+    background: white;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.08);
+    padding: 6px 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    overflow: hidden;
+    z-index: 5;
+}
+
+.appointment-block:hover {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    transform: translateY(-1px);
+    z-index: 8;
+}
+
+.appointment-client {
+    font-size: 13px;
+    font-weight: 600;
+    color: #212529;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.appointment-service {
+    font-size: 11px;
+    color: #6c757d;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.appointment-time {
+    font-size: 10px;
+    color: #868e96;
+    margin-top: 2px;
+}
+
+/* Service type colors */
+.service-massage { border-left-color: #007bff; background: #e7f3ff; }
+.service-facial { border-left-color: #9c27b0; background: #f3e5f5; }
+.service-manicure { border-left-color: #ff5722; background: #ffebee; }
+.service-pedicure { border-left-color: #795548; background: #efebe9; }
+.service-haircut { border-left-color: #4caf50; background: #e8f5e9; }
+.service-waxing { border-left-color: #ff9800; background: #fff3e0; }
+.service-default { border-left-color: #6c757d; background: #f8f9fa; }
+
+/* Current Time Indicator */
+.current-time-line {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: #dc3545;
+    z-index: 20;
+    pointer-events: none;
+}
+
+.current-time-line::before {
+    content: '';
+    position: absolute;
+    top: -4px;
+    left: -4px;
+    width: 10px;
+    height: 10px;
+    background: #dc3545;
+    border-radius: 50%;
+}
+
+/* Available Slot Hover */
+.timeline-hour-slot:hover {
+    background: rgba(0, 123, 255, 0.03);
+}
+
+/* Context Menu */
+.context-menu {
+    position: fixed;
+    background: white;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    padding: 8px 0;
+    min-width: 180px;
+    z-index: 1000;
+    display: none;
+}
+
+.context-menu.show {
+    display: block;
+}
+
+.context-menu-item {
+    padding: 10px 16px;
+    cursor: pointer;
+    font-size: 14px;
+    color: #333;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    transition: background 0.2s;
+}
+
+.context-menu-item:hover {
+    background: #f8f9fa;
+}
+
+.context-menu-item i {
+    width: 16px;
+    text-align: center;
+}
+
+.context-menu-divider {
+    height: 1px;
+    background: #dee2e6;
+    margin: 4px 0;
+}
+
+/* Loading State */
+.loading-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255,255,255,0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 50;
+}
+
+.spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid #f3f4f6;
+    border-top-color: #007bff;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .staff-sidebar {
+        width: 150px;
+    }
+    
+    .timeline-hour {
+        width: 60px;
+    }
+    
+    .timeline-hour-slot {
+        width: 60px;
+    }
+    
+    .staff-avatar {
+        width: 36px;
+        height: 36px;
+        font-size: 14px;
+    }
+}
+</style>
+
+<div class="calendar-wrapper">
+    <!-- Fixed Top Navigation -->
+    <div class="calendar-top-nav">
+        <div class="calendar-logo">
+            <i class="fas fa-calendar-alt"></i>
+            <span>Spa Schedule</span>
+        </div>
+        
+        <div class="calendar-date-nav">
+            <button class="date-nav-btn" onclick="navigateDate(-1)">
+                <i class="fas fa-chevron-left"></i>
+            </button>
+            <div class="current-date-display" id="currentDateDisplay">
+                {{ selected_date.strftime('%A, %B %d, %Y') }}
             </div>
+            <button class="date-nav-btn" onclick="navigateDate(1)">
+                <i class="fas fa-chevron-right"></i>
+            </button>
+        </div>
+        
+        <div class="calendar-actions">
+            <button class="action-btn action-btn-primary" onclick="openQuickBookModal()">
+                <i class="fas fa-plus"></i>
+                New Appointment
+            </button>
+            <button class="action-icon" onclick="refreshSchedule()" title="Refresh">
+                <i class="fas fa-sync-alt"></i>
+            </button>
+            <button class="action-icon" onclick="openSettings()" title="Settings">
+                <i class="fas fa-cog"></i>
+            </button>
         </div>
     </div>
 
-    <!-- Date Navigation -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-body">
-                    <div class="row align-items-center">
-                        <div class="col-md-6">
-                            <div class="d-flex align-items-center gap-3">
-                                <a href="{{ url_for('appointments_schedule', date=(selected_date - timedelta(days=1)).strftime('%Y-%m-%d')) }}" 
-                                   class="btn btn-outline-secondary">
-                                    <i class="fas fa-chevron-left"></i>
-                                </a>
-                                <input type="date" class="form-control" style="width: auto;" 
-                                       value="{{ selected_date.strftime('%Y-%m-%d') }}" 
-                                       onchange="changeScheduleDate(this.value)">
-                                <a href="{{ url_for('appointments_schedule', date=(selected_date + timedelta(days=1)).strftime('%Y-%m-%d')) }}" 
-                                   class="btn btn-outline-secondary">
-                                    <i class="fas fa-chevron-right"></i>
-                                </a>
-                                <button class="btn btn-primary" onclick="goToTodaySchedule()">
-                                    <i class="fas fa-home me-1"></i>Today
-                                </button>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="text-end">
-                                <h4 class="mb-0 text-primary">{{ selected_date.strftime('%A, %B %d, %Y') }}</h4>
-                            </div>
-                        </div>
-                    </div>
+    <!-- Main Layout -->
+    <div class="calendar-main-layout">
+        <!-- Staff Sidebar -->
+        <div class="staff-sidebar">
+            <div class="staff-sidebar-header">
+                Staff Members
+            </div>
+            {% for staff in staff_members %}
+            <div class="staff-row" data-staff-id="{{ staff.id }}">
+                <div class="staff-avatar">
+                    {{ staff.full_name[:2].upper() }}
                 </div>
+                <div class="staff-info">
+                    <div class="staff-name">{{ staff.full_name }}</div>
+                    <div class="staff-role">{{ staff.role or 'Therapist' }}</div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Timeline Panel -->
+        <div class="timeline-panel">
+            <!-- Timeline Header -->
+            <div class="timeline-header">
+                {% for hour in range(9, 22) %}
+                <div class="timeline-hour">
+                    {{ '%d:00' % hour if hour < 12 else ('12:00' if hour == 12 else '%d:00' % (hour - 12)) }}
+                    {{ 'AM' if hour < 12 else 'PM' }}
+                </div>
+                {% endfor %}
+            </div>
+
+            <!-- Timeline Grid -->
+            <div class="timeline-grid" id="timelineGrid">
+                {% for staff in staff_members %}
+                <div class="timeline-row" data-staff-id="{{ staff.id }}">
+                    {% for hour in range(9, 22) %}
+                    <div class="timeline-hour-slot interval-15" 
+                         data-hour="{{ hour }}"
+                         data-staff-id="{{ staff.id }}"
+                         onclick="handleSlotClick(event, {{ staff.id }}, {{ hour }}, 0)">
+                        <div class="mark-30"></div>
+                    </div>
+                    {% endfor %}
+                    
+                    <!-- Appointments will be positioned absolutely here -->
+                    {% for apt in appointments %}
+                    {% if apt.staff_id == staff.id %}
+                    <div class="appointment-block service-{{ apt.service_type or 'default' }}"
+                         data-appointment-id="{{ apt.id }}"
+                         style="left: {{ apt.position_left }}px; width: {{ apt.width }}px;"
+                         onclick="viewAppointment({{ apt.id }})"
+                         oncontextmenu="showContextMenu(event, {{ apt.id }}); return false;">
+                        <div class="appointment-client">{{ apt.client_name }}</div>
+                        <div class="appointment-service">{{ apt.service_name }}</div>
+                        <div class="appointment-time">{{ apt.start_time.strftime('%I:%M %p') }}</div>
+                    </div>
+                    {% endif %}
+                    {% endfor %}
+                </div>
+                {% endfor %}
+                
+                <!-- Current Time Line -->
+                <div class="current-time-line" id="currentTimeLine" style="display: none;"></div>
             </div>
         </div>
     </div>
+</div>
 
-    <!-- Timetable Grid -->
-    <div class="row">
-        <div class="col-12">
-            <div class="card shadow">
-                <div class="card-body p-0">
-                    <div class="timetable-container">
-                        <table class="table table-bordered timetable-grid mb-0">
-                            <!-- Header Row with Staff Names -->
-                            <thead class="table-primary">
-                                <tr>
-                                    <th class="time-column">Time of day</th>
-                                    {% for staff in staff_members %}
-                                    <th class="staff-column text-center">
-                                        <div class="staff-header">
-                                            <strong>{{ staff.full_name }}</strong>
-                                            <br>
-                                            <small class="text-muted">(0.00%)</small>
-                                        </div>
-                                    </th>
-                                    {% endfor %}
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for time_slot in time_slots %}
-                                <tr class="time-row">
-                                    <td class="time-label">
-                                        <strong>{{ time_slot.start_time.strftime('%I:%M %p') }}</strong>
-                                    </td>
-                                    {% for staff in staff_members %}
-                                    <td class="slot-cell" 
-                                        data-staff-id="{{ staff.id }}" 
-                                        data-time="{{ time_slot.start_time.strftime('%H:%M') }}"
-                                        data-datetime="{{ time_slot.start_time.strftime('%Y-%m-%d %H:%M') }}">
-                                        {% set slot_key = (staff.id, time_slot.start_time) %}
-                                        {% if staff_availability.get(slot_key) %}
-                                            {% set availability = staff_availability[slot_key] %}
-                                            {% if availability.status == 'available' %}
-                                                <div class="available-slot" onclick="bookSlot({{ staff.id }}, '{{ time_slot.start_time.strftime('%H:%M') }}')">
-                                                    <div class="slot-content">
-                                                        <i class="fas fa-plus text-success"></i>
-                                                        <span class="d-none d-lg-inline ms-1">Available</span>
-                                                    </div>
-                                                </div>
-                                            {% else %}
-                                                <div class="booked-slot" onclick="viewAppointment({{ availability.appointment.id if availability.appointment else 0 }})">
-                                                    <div class="slot-content">
-                                                        <div class="appointment-info">
-                                                            <strong>{{ availability.client_name }}</strong>
-                                                            <br>
-                                                            <small>{{ availability.service_name }}</small>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            {% endif %}
-                                        {% else %}
-                                            <div class="available-slot" onclick="bookSlot({{ staff.id }}, '{{ time_slot.start_time.strftime('%H:%M') }}')">
-                                                <div class="slot-content">
-                                                    <i class="fas fa-plus text-success"></i>
-                                                    <span class="d-none d-lg-inline ms-1">Available</span>
-                                                </div>
-                                            </div>
-                                        {% endif %}
-                                    </td>
-                                    {% endfor %}
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
+<!-- Context Menu -->
+<div class="context-menu" id="contextMenu">
+    <div class="context-menu-item" onclick="viewAppointmentDetails()">
+        <i class="fas fa-eye"></i>
+        View Details
+    </div>
+    <div class="context-menu-item" onclick="editAppointment()">
+        <i class="fas fa-edit"></i>
+        Edit Appointment
+    </div>
+    <div class="context-menu-item" onclick="checkInAppointment()">
+        <i class="fas fa-check"></i>
+        Check In
+    </div>
+    <div class="context-menu-divider"></div>
+    <div class="context-menu-item" onclick="cancelAppointment()">
+        <i class="fas fa-times"></i>
+        Cancel
     </div>
 </div>
 
@@ -160,7 +615,9 @@
                         <select id="quickService" class="form-select" required>
                             <option value="">Select service...</option>
                             {% for service in services %}
-                                <option value="{{ service.id }}">{{ service.name }} - ${{ "%.2f"|format(service.price) }}</option>
+                                <option value="{{ service.id }}" data-duration="{{ service.duration or 60 }}">
+                                    {{ service.name }} - ${{ "%.2f"|format(service.price) }}
+                                </option>
                             {% endfor %}
                         </select>
                     </div>
@@ -181,13 +638,8 @@
                                        value="{{ selected_date.strftime('%Y-%m-%d') }}">
                             </div>
                             <div class="col-5">
-                                <select id="quickTime" class="form-select">
-                                    {% for time_slot in time_slots %}
-                                        <option value="{{ time_slot.start_time.strftime('%H:%M') }}">
-                                            {{ time_slot.start_time.strftime('%I:%M %p') }}
-                                        </option>
-                                    {% endfor %}
-                                </select>
+                                <input type="time" id="quickTime" class="form-control" 
+                                       value="09:00">
                             </div>
                         </div>
                     </div>
@@ -203,170 +655,75 @@
     </div>
 </div>
 
-<style>
-.timetable-container {
-    overflow-x: auto;
-    max-height: 80vh;
-    position: relative;
-}
-
-.timetable-grid {
-    min-width: 800px;
-    font-size: 0.875rem;
-}
-
-.time-column {
-    width: 120px;
-    background-color: #f8f9fa;
-    position: sticky;
-    left: 0;
-    z-index: 10;
-    border-right: 2px solid #dee2e6;
-}
-
-.staff-column {
-    width: 150px;
-    min-width: 150px;
-    background-color: #e3f2fd;
-}
-
-.staff-header {
-    padding: 0.5rem;
-}
-
-.time-label {
-    background-color: #f8f9fa;
-    position: sticky;
-    left: 0;
-    z-index: 10;
-    border-right: 2px solid #dee2e6;
-    vertical-align: middle;
-    padding: 0.75rem;
-    font-weight: 600;
-    color: #495057;
-}
-
-.slot-cell {
-    height: 60px;
-    padding: 2px;
-    vertical-align: top;
-    cursor: pointer;
-    position: relative;
-}
-
-.available-slot {
-    height: 100%;
-    border: 2px dashed #28a745;
-    border-radius: 4px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background-color: #f8fff8;
-    transition: all 0.3s ease;
-}
-
-.available-slot:hover {
-    background-color: #28a745;
-    color: white;
-    transform: scale(1.02);
-}
-
-.booked-slot {
-    height: 100%;
-    border: 1px solid #007bff;
-    border-radius: 4px;
-    background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
-    color: white;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 4px;
-    transition: all 0.3s ease;
-}
-
-.booked-slot:hover {
-    transform: scale(1.02);
-    box-shadow: 0 4px 8px rgba(0,123,255,0.3);
-}
-
-.slot-content {
-    text-align: center;
-    width: 100%;
-}
-
-.appointment-info {
-    font-size: 0.75rem;
-    line-height: 1.2;
-}
-
-.time-row:nth-child(even) {
-    background-color: #fafafa;
-}
-
-.time-row:hover {
-    background-color: #f0f8ff;
-}
-
-/* Responsive adjustments */
-@media (max-width: 768px) {
-    .staff-column {
-        width: 120px;
-        min-width: 120px;
-    }
-    
-    .time-column {
-        width: 100px;
-    }
-    
-    .appointment-info {
-        font-size: 0.6rem;
-    }
-}
-
-/* Color coding for different appointment types */
-.booked-slot.confirmed {
-    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
-}
-
-.booked-slot.pending {
-    background: linear-gradient(135deg, #ffc107 0%, #fd7e14 100%);
-    color: #212529;
-}
-
-.booked-slot.completed {
-    background: linear-gradient(135deg, #6f42c1 0%, #6610f2 100%);
-}
-
-.booked-slot.cancelled {
-    background: linear-gradient(135deg, #dc3545 0%, #bd2130 100%);
-    opacity: 0.7;
-}
-</style>
-
 <script>
-function changeScheduleDate(newDate) {
+// Global variables
+let selectedAppointmentId = null;
+const currentDate = '{{ selected_date.strftime('%Y-%m-%d') }}';
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', function() {
+    updateCurrentTimeLine();
+    setInterval(updateCurrentTimeLine, 60000); // Update every minute
+    
+    // Close context menu on outside click
+    document.addEventListener('click', function() {
+        hideContextMenu();
+    });
+});
+
+// Navigate to different date
+function navigateDate(days) {
+    const date = new Date(currentDate);
+    date.setDate(date.getDate() + days);
+    const newDate = date.toISOString().split('T')[0];
     window.location.href = `{{ url_for('appointments_schedule') }}?date=${newDate}`;
 }
 
-function goToTodaySchedule() {
-    const today = new Date().toISOString().split('T')[0];
-    changeScheduleDate(today);
+// Refresh schedule
+function refreshSchedule() {
+    window.location.reload();
 }
 
-function bookSlot(staffId, time) {
-    const date = '{{ selected_date.strftime('%Y-%m-%d') }}';
-    const url = `{{ url_for('appointments_book') }}?staff_id=${staffId}&date=${date}&time=${time}`;
-    window.location.href = url;
+// Open settings
+function openSettings() {
+    window.location.href = '{{ url_for('settings') }}';
 }
 
-function viewAppointment(appointmentId) {
-    if (appointmentId && appointmentId > 0) {
-        // Show appointment details or edit form
-        console.log('View appointment:', appointmentId);
-        // You can add modal or redirect to edit page here
-    }
+// Handle slot click (5-minute intervals)
+function handleSlotClick(event, staffId, hour, minute) {
+    // Prevent triggering parent clicks
+    event.stopPropagation();
+    
+    // Calculate exact minute based on click position within the slot
+    const slot = event.currentTarget;
+    const rect = slot.getBoundingClientRect();
+    const clickX = event.clientX - rect.left;
+    const slotWidth = rect.width;
+    
+    // Each slot is 60 minutes (1 hour), divided into 12 intervals (5 minutes each)
+    const minuteOffset = Math.floor((clickX / slotWidth) * 60 / 5) * 5;
+    
+    const time = `${String(hour).padStart(2, '0')}:${String(minuteOffset).padStart(2, '0')}`;
+    
+    // Open booking modal with pre-filled data
+    openQuickBookModalWithData(staffId, currentDate, time);
 }
 
+// Open quick book modal
+function openQuickBookModal() {
+    const modal = new bootstrap.Modal(document.getElementById('quickBookModal'));
+    modal.show();
+}
+
+// Open quick book modal with pre-filled data
+function openQuickBookModalWithData(staffId, date, time) {
+    document.getElementById('quickStaff').value = staffId;
+    document.getElementById('quickDate').value = date;
+    document.getElementById('quickTime').value = time;
+    openQuickBookModal();
+}
+
+// Process quick book
 function processQuickBook() {
     const clientId = document.getElementById('quickClient').value;
     const serviceId = document.getElementById('quickService').value;
@@ -384,8 +741,6 @@ function processQuickBook() {
     form.method = 'POST';
     form.action = '{{ url_for('appointments_book') }}';
     
-    // Get CSRF token
-    
     form.innerHTML = `
         <input type="hidden" name="client_id" value="${clientId}">
         <input type="hidden" name="service_id" value="${serviceId}">
@@ -399,17 +754,99 @@ function processQuickBook() {
     form.submit();
 }
 
-// Initialize tooltips for better UX
-document.addEventListener('DOMContentLoaded', function() {
-    // Add tooltips to available slots
-    document.querySelectorAll('.available-slot').forEach(slot => {
-        slot.title = 'Click to book appointment';
-    });
+// View appointment
+function viewAppointment(appointmentId) {
+    selectedAppointmentId = appointmentId;
+    // Redirect to view/edit page
+    window.location.href = `{{ url_for('appointments_edit') }}?id=${appointmentId}`;
+}
+
+// Show context menu
+function showContextMenu(event, appointmentId) {
+    event.preventDefault();
+    selectedAppointmentId = appointmentId;
     
-    // Add tooltips to booked slots  
-    document.querySelectorAll('.booked-slot').forEach(slot => {
-        slot.title = 'Click to view appointment details';
-    });
-});
+    const contextMenu = document.getElementById('contextMenu');
+    contextMenu.style.left = event.pageX + 'px';
+    contextMenu.style.top = event.pageY + 'px';
+    contextMenu.classList.add('show');
+}
+
+// Hide context menu
+function hideContextMenu() {
+    const contextMenu = document.getElementById('contextMenu');
+    contextMenu.classList.remove('show');
+}
+
+// Context menu actions
+function viewAppointmentDetails() {
+    if (selectedAppointmentId) {
+        viewAppointment(selectedAppointmentId);
+    }
+    hideContextMenu();
+}
+
+function editAppointment() {
+    if (selectedAppointmentId) {
+        window.location.href = `{{ url_for('appointments_edit') }}?id=${selectedAppointmentId}`;
+    }
+    hideContextMenu();
+}
+
+function checkInAppointment() {
+    if (selectedAppointmentId) {
+        // Implement check-in logic
+        console.log('Check in appointment:', selectedAppointmentId);
+        alert('Check-in functionality coming soon!');
+    }
+    hideContextMenu();
+}
+
+function cancelAppointment() {
+    if (selectedAppointmentId && confirm('Are you sure you want to cancel this appointment?')) {
+        // Implement cancel logic
+        fetch(`/api/appointments/${selectedAppointmentId}/cancel`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Appointment cancelled successfully');
+                window.location.reload();
+            } else {
+                alert('Failed to cancel appointment: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while cancelling the appointment');
+        });
+    }
+    hideContextMenu();
+}
+
+// Update current time line
+function updateCurrentTimeLine() {
+    const now = new Date();
+    const currentHour = now.getHours();
+    const currentMinute = now.getMinutes();
+    
+    // Only show if within business hours (9 AM - 10 PM)
+    if (currentHour >= 9 && currentHour < 22) {
+        const timeLine = document.getElementById('currentTimeLine');
+        
+        // Calculate position (80px per hour, starting from 9 AM)
+        const hoursSince9AM = currentHour - 9;
+        const minuteOffset = currentMinute / 60;
+        const leftPosition = (hoursSince9AM + minuteOffset) * 80;
+        
+        timeLine.style.left = leftPosition + 'px';
+        timeLine.style.display = 'block';
+    }
+}
 </script>
+
 {% endblock %}

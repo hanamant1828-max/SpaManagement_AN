@@ -1560,7 +1560,7 @@ def update_appointment_status(appointment_id):
 @app.route('/appointments/schedule')
 @login_required 
 def appointments_schedule():
-    """Timetable view for appointment scheduling - exactly as requested"""
+    """Timeline view for appointment scheduling with horizontal calendar layout"""
     if not current_user.can_access('bookings'):
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
@@ -1578,7 +1578,7 @@ def appointments_schedule():
     # Get staff members
     staff_members = get_staff_members()
 
-    # Generate flexible time slots for the day (9 AM to 6 PM with configurable intervals)
+    # Generate flexible time slots for the day (9 AM to 10 PM for timeline view)
     slot_duration = int(request.args.get('slot_duration', 15))
     valid_durations = [5, 10, 15, 30, 45, 60]
     if slot_duration not in valid_durations:
@@ -1586,7 +1586,7 @@ def appointments_schedule():
     
     time_slots = []
     start_time = datetime.combine(selected_date, datetime.min.time().replace(hour=9))
-    end_time = datetime.combine(selected_date, datetime.min.time().replace(hour=18))
+    end_time = datetime.combine(selected_date, datetime.min.time().replace(hour=22))
 
     current_time = start_time
     while current_time < end_time:
@@ -1600,7 +1600,56 @@ def appointments_schedule():
     # Get existing appointments for the selected date
     existing_appointments = get_appointments_by_date(selected_date)
 
-    # Create staff availability grid
+    # Calculate appointment positioning for timeline view
+    # Timeline starts at 9 AM, each hour is 80px wide
+    timeline_start_hour = 9
+    px_per_hour = 80
+    
+    appointments_with_position = []
+    for appointment in existing_appointments:
+        if appointment.status == 'cancelled':
+            continue
+            
+        # Calculate position from left (based on time from 9 AM)
+        apt_time = appointment.appointment_date
+        hour_decimal = apt_time.hour + apt_time.minute / 60.0
+        hours_from_start = hour_decimal - timeline_start_hour
+        position_left = hours_from_start * px_per_hour
+        
+        # Calculate width based on service duration
+        service_duration = appointment.service.duration if appointment.service else 60
+        width = (service_duration / 60.0) * px_per_hour
+        
+        # Determine service type for color coding
+        service_type = 'default'
+        if appointment.service:
+            service_name_lower = appointment.service.name.lower()
+            if 'massage' in service_name_lower:
+                service_type = 'massage'
+            elif 'facial' in service_name_lower:
+                service_type = 'facial'
+            elif 'manicure' in service_name_lower:
+                service_type = 'manicure'
+            elif 'pedicure' in service_name_lower:
+                service_type = 'pedicure'
+            elif 'hair' in service_name_lower or 'cut' in service_name_lower:
+                service_type = 'haircut'
+            elif 'wax' in service_name_lower:
+                service_type = 'waxing'
+        
+        appointments_with_position.append({
+            'id': appointment.id,
+            'staff_id': appointment.staff_id,
+            'client_name': appointment.client.full_name if appointment.client else 'Unknown',
+            'service_name': appointment.service.name if appointment.service else 'Service',
+            'service_type': service_type,
+            'start_time': appointment.appointment_date,
+            'duration': service_duration,
+            'position_left': position_left,
+            'width': max(width, 40)  # Minimum width of 40px for visibility
+        })
+
+    # Create staff availability grid for the old format (kept for compatibility)
     staff_availability = {}
     for staff in staff_members:
         for time_slot in time_slots:
@@ -1637,6 +1686,7 @@ def appointments_schedule():
                          staff_members=staff_members,
                          time_slots=time_slots,
                          staff_availability=staff_availability,
+                         appointments=appointments_with_position,
                          clients=clients,
                          services=services,
                          timedelta=timedelta)
