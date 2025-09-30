@@ -674,7 +674,7 @@
             }
             .service-waxing {
                 border-left-color: #f97316;
-                background: linear-gradient(135deg, #ffeedd5 0%, #fed7aa 100%);
+                background: linear-gradient(135deg, #ffedd5 0%, #fed7aa 100%);
             }
             .service-default {
                 border-left-color: #6b7280;
@@ -1698,8 +1698,7 @@
                         <button
                             type="button"
                             class="btn btn-primary"
-                            id="bookAllAppointments"
-                            onclick="bookAppointments()"
+                            onclick="submitMultipleAppointments()"
                             style="
                                 padding: 10px 20px;
                                 border-radius: 8px;
@@ -1783,7 +1782,7 @@
             function createAppointmentRow(index) {
                 // Get today's date in YYYY-MM-DD format
                 const today = new Date().toISOString().split('T')[0];
-
+                
                 return `
                     <div class="appointment-row" data-appointment-index="${index}">
                         <div class="appointment-row-header">
@@ -2004,10 +2003,36 @@
                 });
             }
 
-            // Function to collect appointment data from the form
-            function collectAppointmentData() {
+            function submitMultipleAppointments() {
+                const clientSelect = document.getElementById('multiClientSelect');
+                const newClientNameInput = document.getElementById('newClientNameMulti');
+                const generalNotes = document.getElementById('generalNotes');
+
+                // Validate client selection
+                if (!clientSelect.value) {
+                    alert('Please select a client');
+                    clientSelect.focus();
+                    return;
+                }
+
+                let clientNameValue = '';
+                if (clientSelect.value === 'new') {
+                    if (!newClientNameInput.value.trim()) {
+                        alert('Please enter the new client name');
+                        newClientNameInput.focus();
+                        return;
+                    }
+                    clientNameValue = newClientNameInput.value.trim();
+                } else {
+                    clientNameValue = clientSelect.options[clientSelect.selectedIndex].textContent;
+                }
+
+                // Collect all appointments data
+                const appointmentRows = document.querySelectorAll('.appointment-row');
                 const appointments = [];
-                document.querySelectorAll('.appointment-row').forEach((row, index) => {
+                let hasErrors = false;
+
+                appointmentRows.forEach((row, index) => {
                     const serviceSelect = row.querySelector('.service-select');
                     const staffSelect = row.querySelector('.staff-select');
                     const dateInput = row.querySelector('.date-input');
@@ -2015,202 +2040,107 @@
                     const endTimeInput = row.querySelector('.end-time-input');
                     const serviceOption = serviceSelect.options[serviceSelect.selectedIndex];
 
-                    const selectedClientId = document.getElementById('multiClientSelect').value;
-                    const clientNameInput = document.getElementById('newClientNameMulti');
-                    const generalNotesInput = document.getElementById('generalNotes');
+                    if (!serviceSelect.value || !staffSelect.value || !dateInput.value || !timeInput.value || !endTimeInput.value) {
+                        alert(`Please fill all required fields for Appointment #${index + 1}`);
+                        hasErrors = true;
+                        return;
+                    }
+                    
+                    // Ensure service is selected
+                    if (!serviceOption || !serviceOption.value) {
+                        alert(`Please select a service for Appointment #${index + 1}`);
+                        hasErrors = true;
+                        return;
+                    }
 
-                    const appointmentData = {
-                        appointmentIndex: index + 1, // For display/debugging
+                    appointments.push({
                         serviceId: serviceSelect.value,
-                        service: serviceOption.textContent.split(' - ')[0], // Extract service name
-                        duration: serviceOption.dataset.duration,
-                        price: serviceOption.dataset.price,
+                        serviceName: serviceOption.textContent.split(' - ')[0], // Extract service name
                         staffId: staffSelect.value,
-                        date: dateInput.value,
+                        appointmentDate: dateInput.value,
                         startTime: timeInput.value,
-                        endTime: endTimeInput.value,
-                        clientId: selectedClientId === 'new' ? null : (selectedClientId || null),
-                        clientName: selectedClientId === 'new' ? clientNameInput.value.trim() : (selectedClientId ? document.querySelector(`#multiClientSelect option[value="${selectedClientId}"]`).textContent.trim() : ''),
-                        clientPhone: selectedClientId === 'new' ? '' : (selectedClientId ? document.querySelector(`#multiClientSelect option[value="${selectedClientId}"]`).dataset.phone : ''),
-                        clientEmail: selectedClientId === 'new' ? '' : (selectedClientId ? document.querySelector(`#multiClientSelect option[value="${selectedClientId}"]`).dataset.email : ''),
-                        notes: generalNotesInput.value.trim()
-                    };
-                    appointments.push(appointmentData);
+                        duration: parseInt(serviceOption.dataset.duration),
+                        price: parseFloat(serviceOption.dataset.price)
+                    });
                 });
-                return appointments;
-            }
 
-            // Function to validate a single appointment
-            function validateAppointment(appointment, index) {
-                if (!appointment.serviceId) {
-                    return { isValid: false, error: `Appointment #${index}: Please select a service.` };
-                }
-                if (!appointment.staffId) {
-                    return { isValid: false, error: `Appointment #${index}: Please select an assigned staff.` };
-                }
-                if (!appointment.date) {
-                    return { isValid: false, error: `Appointment #${index}: Please select a date.` };
-                }
-                if (!appointment.startTime) {
-                    return { isValid: false, error: `Appointment #${index}: Please select a start time.` };
-                }
-                if (!appointment.endTime) {
-                    return { isValid: false, error: `Appointment #${index}: End time is missing. Ensure duration is correctly set.` };
-                }
-                // Add more validations as needed (e.g., checking for conflicts if possible client-side)
-                return { isValid: true, error: null };
-            }
-
-            // Helper function to show alerts
-            function showAlert(message, type = 'info') {
-                // Use Bootstrap's toast or a custom alert system if available
-                // For simplicity, using alert() for now
-                alert(message);
-                console.log(`Alert (${type.toUpperCase()}): ${message}`);
-            }
-
-
-            // Book appointments function with improved error handling
-            async function bookAppointments() {
-                console.log('📝 Starting appointment booking process...');
-
-                const appointments = collectAppointmentData();
-                if (appointments.length === 0) {
-                    showAlert('Please add at least one appointment before booking.', 'warning');
+                if (hasErrors) {
                     return;
                 }
 
-                console.log('📋 Collected appointments:', appointments);
+                // Prepare submission data
+                const submissionData = {
+                    clientId: clientSelect.value === 'new' ? null : clientSelect.value,
+                    clientName: clientNameValue,
+                    appointments: appointments,
+                    notes: generalNotes.value.trim()
+                };
 
-                // Validate all appointments
-                for (let i = 0; i < appointments.length; i++) {
-                    const apt = appointments[i];
-                    const validation = validateAppointment(apt, i + 1);
-                    if (!validation.isValid) {
-                        showAlert(validation.error, 'danger');
-                        return;
-                    }
-                }
+                // Submit via API
+                submitMultipleAppointmentsAPI(submissionData);
+            }
 
-                // Show loading state
-                const bookBtn = document.getElementById('bookAllAppointments');
-                const originalText = bookBtn.innerHTML;
-                bookBtn.disabled = true;
-                bookBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Booking...';
+            function submitMultipleAppointmentsAPI(data) {
+                const submitButton = document.querySelector('#multiBookModal .btn-primary');
+                const originalText = submitButton.innerHTML;
 
-                try {
-                    // Book each appointment with improved error handling
-                    const results = [];
-                    for (let i = 0; i < appointments.length; i++) {
-                        const apt = appointments[i];
-                        console.log(`🔄 Booking appointment ${i + 1}:`, apt);
+                submitButton.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Booking...';
+                submitButton.disabled = true;
 
-                        // Ensure all required fields are present and properly formatted
-                        const bookingData = {
-                            staffId: parseInt(apt.staffId),
-                            clientName: apt.clientName.trim(),
-                            serviceType: apt.service.trim(),
-                            startTime: apt.startTime,
-                            endTime: apt.endTime,
-                            date: apt.date || getCurrentDate(),
-                            clientPhone: apt.clientPhone || '',
-                            clientEmail: apt.clientEmail || '',
-                            notes: apt.notes || '',
-                            clientId: apt.clientId ? parseInt(apt.clientId) : null
-                        };
+                // Submit each appointment
+                const promises = data.appointments.map(appointment => {
+                    const appointmentData = {
+                        clientId: data.clientId,
+                        clientName: data.clientName,
+                        serviceType: appointment.serviceName,
+                        staffId: appointment.staffId,
+                        date: appointment.appointmentDate,
+                        startTime: appointment.startTime,
+                        endTime: calculateEndTime(appointment.startTime, appointment.duration),
+                        notes: data.notes
+                    };
 
-                        console.log(`📤 Sending booking data:`, bookingData);
+                    return fetch('/api/unaki/create-appointment', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(appointmentData)
+                    });
+                });
 
-                        const response = await fetch('/api/unaki/appointments', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                            },
-                            body: JSON.stringify(bookingData)
-                        });
+                Promise.all(promises)
+                    .then(responses => Promise.all(responses.map(r => r.json())))
+                    .then(results => {
+                        const successCount = results.filter(r => r.success).length;
+                        const failCount = results.length - successCount;
 
-                        // Check if response is OK
-                        if (!response.ok) {
-                            const errorText = await response.text();
-                            console.error(`HTTP Error ${response.status}:`, errorText);
-                            throw new Error(`Server error (${response.status}): ${errorText}`);
-                        }
-
-                        let result;
-                        try {
-                            result = await response.json();
-                        } catch (parseError) {
-                            console.error('JSON parse error:', parseError);
-                            throw new Error('Invalid response from server. Please try again.');
-                        }
-
-                        console.log(`📊 Booking result ${i + 1}:`, result);
-
-                        if (result.success) {
-                            results.push({
-                                success: true,
-                                appointment: apt,
-                                id: result.appointmentId,
-                                message: result.message
-                            });
+                        if (failCount === 0) {
+                            alert(`✅ Successfully booked ${successCount} appointments!`);
+                            document.getElementById('multiBookModal').querySelector('.btn-close').click();
+                            refreshSchedule();
                         } else {
-                            throw new Error(result.error || `Booking failed for appointment ${i + 1}`);
+                            // More specific error handling might be needed here based on API responses
+                            alert(`⚠️ Booked ${successCount} appointments, ${failCount} failed. Please check for conflicts or try again.`);
                         }
-                    }
-
-                    // All bookings successful
-                    console.log('🎉 All appointments booked successfully:', results);
-                    showAlert(`Successfully booked ${results.length} appointment(s)!`, 'success');
-
-                    // Reset form and reload schedule
-                    resetBookingForm();
-                    await loadScheduleData();
-
-                    // Close modal
-                    const modal = bootstrap.Modal.getInstance(document.getElementById('multiBookModal'));
-                    if (modal) {
-                        modal.hide();
-                    }
-
-                } catch (error) {
-                    console.error('❌ Booking error:', error);
-                    let errorMessage = 'Error booking appointments. ';
-
-                    if (error.message.includes('fetch')) {
-                        errorMessage += 'Network error. Please check your connection and try again.';
-                    } else if (error.message.includes('Server error')) {
-                        errorMessage += 'Server error. Please try again in a moment.';
-                    } else {
-                        errorMessage += error.message || 'Please check all fields and try again.';
-                    }
-
-                    showAlert(errorMessage, 'danger');
-                } finally {
-                    // Reset button state
-                    bookBtn.disabled = false;
-                    bookBtn.innerHTML = originalText;
-                }
+                    })
+                    .catch(error => {
+                        console.error('Error booking appointments:', error);
+                        alert('❌ Error booking appointments. Please try again.');
+                    })
+                    .finally(() => {
+                        submitButton.innerHTML = originalText;
+                        submitButton.disabled = false;
+                    });
             }
 
-            // Helper function to get current date
-            function getCurrentDate() {
-                const today = new Date();
-                return today.toISOString().split('T')[0];
-            }
+            function calculateEndTime(startTime, duration) {
+                const [hours, minutes] = startTime.split(':').map(Number);
+                const startDate = new Date();
+                startDate.setHours(hours, minutes, 0, 0);
 
-            // Function to reset the multi-book form
-            function resetBookingForm() {
-                document.getElementById('multiClientSelect').value = '';
-                document.getElementById('clientProfilePreview').classList.remove('show');
-                document.getElementById('newClientFieldsMulti').style.display = 'none';
-                document.getElementById('newClientNameMulti').value = '';
-
-                const appointmentsList = document.getElementById('appointmentsList');
-                appointmentsList.innerHTML = createAppointmentRow(1); // Reset to one appointment
-
-                document.getElementById('generalNotes').value = '';
-                updateBookingSummary();
-                updateTimelinePreview();
+                const endDate = new Date(startDate.getTime() + duration * 60000);
+                return endDate.toTimeString().slice(0, 5);
             }
 
             // Initialize event listeners for dynamic elements
@@ -2430,7 +2360,7 @@
                 // For now, it's a placeholder.
                 console.log("ContextMenu initialization placeholder.");
             }
-
+            
             // Dummy function for context menu to avoid errors if not defined elsewhere
             function showContextMenu(event, appointmentId) {
                 console.log(`Context menu requested for appointment ${appointmentId}`);
