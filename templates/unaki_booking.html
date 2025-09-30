@@ -1351,46 +1351,139 @@
                                         Client Information
                                     </h6>
                                 </div>
+                                <!-- Client Selection Dropdown -->
                                 <div class="col-md-6 mb-3">
                                     <label class="form-label fw-semibold">
                                         <i
-                                            class="fas fa-user me-2"
+                                            class="fas fa-users me-2"
                                             style="color: var(--primary-color)"
                                         ></i>
-                                        Client Name *
+                                        Select Client *
                                     </label>
-                                    <input
-                                        type="text"
-                                        id="clientName"
-                                        name="client_name"
-                                        class="form-control"
+                                    <select
+                                        id="clientSelect"
+                                        name="client_id"
+                                        class="form-select"
                                         required
-                                        placeholder="Enter client name"
+                                        onchange="populateClientInfo(this.value)"
                                         style="
                                             border-radius: 10px;
                                             padding: 12px;
                                         "
-                                    />
+                                    >
+                                        <option value="">Select a client...</option>
+                                        <option value="new">
+                                            + Add New Client
+                                        </option>
+                                        {% if clients %} {% for client in clients
+                                        %}
+                                        <option
+                                            value="{{ client.id }}"
+                                            data-phone="{{ client.phone }}"
+                                        >
+                                            {{ client.name }}
+                                        </option>
+                                        {% endfor %} {% endif %}
+                                    </select>
                                 </div>
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label fw-semibold">
-                                        <i
-                                            class="fas fa-phone me-2"
-                                            style="color: var(--primary-color)"
-                                        ></i>
-                                        Client Phone
-                                    </label>
-                                    <input
-                                        type="tel"
-                                        id="clientPhone"
-                                        name="client_phone"
-                                        class="form-control"
-                                        placeholder="Enter phone number"
-                                        style="
-                                            border-radius: 10px;
-                                            padding: 12px;
-                                        "
-                                    />
+
+                                <!-- New Client Fields -->
+                                <div
+                                    id="newClientFields"
+                                    style="display: none"
+                                    class="row w-100 m-0"
+                                >
+                                    <div class="col-md-6 mb-3 ps-0">
+                                        <label class="form-label fw-semibold">
+                                            <i
+                                                class="fas fa-user me-2"
+                                                style="color: var(--primary-color)"
+                                            ></i>
+                                            New Client Name *
+                                        </label>
+                                        <input
+                                            type="text"
+                                            id="newClientName"
+                                            name="new_client_name"
+                                            class="form-control"
+                                            placeholder="Enter new client name"
+                                            style="
+                                                border-radius: 10px;
+                                                padding: 12px;
+                                            "
+                                        />
+                                        <input
+                                            type="hidden"
+                                            id="clientName"
+                                            name="client_name"
+                                        />
+                                    </div>
+                                    <div class="col-md-6 mb-3 pe-0">
+                                        <label class="form-label fw-semibold">
+                                            <i
+                                                class="fas fa-phone me-2"
+                                                style="color: var(--primary-color)"
+                                            ></i>
+                                            Client Phone
+                                        </label>
+                                        <input
+                                            type="tel"
+                                            id="clientPhone"
+                                            name="client_phone"
+                                            class="form-control"
+                                            placeholder="Enter phone number"
+                                            style="
+                                                border-radius: 10px;
+                                                padding: 12px;
+                                            "
+                                        />
+                                    </div>
+                                </div>
+
+                                <!-- Existing Client Fields (will be populated by JS) -->
+                                <div id="existingClientFields">
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label fw-semibold">
+                                            <i
+                                                class="fas fa-user me-2"
+                                                style="color: var(--primary-color)"
+                                            ></i>
+                                            Client Name
+                                        </label>
+                                        <input
+                                            type="text"
+                                            id="clientName"
+                                            name="client_name"
+                                            class="form-control"
+                                            readonly
+                                            style="
+                                                border-radius: 10px;
+                                                padding: 12px;
+                                                background-color: #e9ecef;
+                                            "
+                                        />
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label fw-semibold">
+                                            <i
+                                                class="fas fa-phone me-2"
+                                                style="color: var(--primary-color)"
+                                            ></i>
+                                            Client Phone
+                                        </label>
+                                        <input
+                                            type="tel"
+                                            id="clientPhone"
+                                            name="client_phone"
+                                            class="form-control"
+                                            readonly
+                                            style="
+                                                border-radius: 10px;
+                                                padding: 12px;
+                                                background-color: #e9ecef;
+                                            "
+                                        />
+                                    </div>
                                 </div>
                             </div>
 
@@ -1419,6 +1512,7 @@
                                     {% if services %} {% for service in services
                                     %}
                                     <div
+                                        id="serviceItem{{ service.id }}"
                                         class="form-check service-checkbox-item"
                                         style="
                                             padding: 14px;
@@ -1523,6 +1617,62 @@
                                     {% endif %}
                                 </div>
 
+                                <!-- Staff Selection for each service -->
+                                <div
+                                    id="serviceStaffSelections"
+                                    style="margin-top: 16px; display: none"
+                                >
+                                    {% if services %} {% for service in services
+                                    %}
+                                    <div
+                                        id="staffSelection{{ service.id }}"
+                                        style="
+                                            display: none;
+                                            margin-bottom: 12px;
+                                            padding: 12px;
+                                            background: #f9fafb;
+                                            border-radius: 10px;
+                                            border: 1px solid var(--border-color);
+                                        "
+                                    >
+                                        <label
+                                            class="form-label fw-semibold me-2"
+                                            style="color: #1f2937"
+                                        >
+                                            <i
+                                                class="fas fa-user-md me-2"
+                                                style="
+                                                    color: var(--primary-color);
+                                                "
+                                            ></i>
+                                            Assign Staff for {{ service.name }}:
+                                        </label>
+                                        <select
+                                            id="staffSelect{{ service.id }}"
+                                            name="staff_id_service_{{ service.id }}"
+                                            class="form-select service-staff-select"
+                                            style="
+                                                flex-grow: 1;
+                                                border-radius: 8px;
+                                                padding: 8px;
+                                            "
+                                        >
+                                            <option value="">
+                                                Select Staff
+                                            </option>
+                                            {% if staff_members %} {% for staff
+                                            in staff_members %}
+                                            <option value="{{ staff.id }}">
+                                                {{ staff.first_name }} {{
+                                                staff.last_name if
+                                                staff.last_name else '' }}
+                                            </option>
+                                            {% endfor %} {% endif %}
+                                        </select>
+                                    </div>
+                                    {% endfor %} {% endif %}
+                                </div>
+
                                 <!-- Selected Services Summary -->
                                 <div
                                     id="selectedServicesSummary"
@@ -1581,7 +1731,7 @@
                                                     color: var(--primary-color);
                                                 "
                                             ></i>
-                                            Staff Member *
+                                            Assigned Staff *
                                         </label>
                                         <select
                                             id="quickStaff"
@@ -2341,6 +2491,282 @@
                     timeLine.style.display = "block";
                 }
             }
+
+            // Client selection functionality
+            function populateClientInfo(clientId) {
+                const clientSelect = document.getElementById('clientSelect');
+                const clientPhone = document.getElementById('clientPhone');
+                const clientNameHidden = document.getElementById('clientName');
+                const newClientFields = document.getElementById('newClientFields');
+                const existingClientFields = document.getElementById('existingClientFields');
+
+                // Hide all client fields initially
+                newClientFields.style.display = 'none';
+                existingClientFields.style.display = 'none';
+                clientPhone.removeAttribute('readonly');
+                clientNameHidden.removeAttribute('readonly');
+                clientPhone.style.backgroundColor = '';
+                clientNameHidden.style.backgroundColor = '';
+
+
+                if (clientId === 'new') {
+                    // Show new client fields
+                    newClientFields.style.display = 'flex'; // Use flex to align columns properly
+                    newClientFields.classList.add('row', 'w-100', 'm-0'); // Add Bootstrap row classes
+                    clientPhone.value = '';
+                    clientNameHidden.value = ''; // Clear the hidden field for new client
+                    document.getElementById('newClientName').value = ''; // Clear the visible new client name field
+                    document.getElementById('newClientName').required = true;
+                } else if (clientId) {
+                    // Populate existing client info
+                    existingClientFields.style.display = 'flex'; // Use flex to align columns properly
+                    existingClientFields.classList.add('row', 'w-100', 'm-0'); // Add Bootstrap row classes
+                    const selectedOption = clientSelect.options[clientSelect.selectedIndex];
+                    const phone = selectedOption.getAttribute('data-phone') || '';
+                    clientPhone.value = phone;
+                    clientNameHidden.value = selectedOption.textContent.trim(); // Set hidden field
+                    document.getElementById('newClientName').value = ''; // Clear new client name field
+                    document.getElementById('newClientName').required = false;
+
+                    // Make fields readonly for existing clients
+                    clientPhone.readOnly = true;
+                    clientNameHidden.readOnly = true;
+                    clientPhone.style.backgroundColor = '#e9ecef';
+                    clientNameHidden.style.backgroundColor = '#e9ecef';
+                } else {
+                    // Clear all fields if no client is selected
+                    clientPhone.value = '';
+                    clientNameHidden.value = '';
+                    document.getElementById('newClientName').value = '';
+                }
+            }
+
+            // Service staff selection toggle
+            function toggleServiceStaffSelection(serviceId, isChecked) {
+                const staffSelectionDiv = document.getElementById('staffSelection' + serviceId);
+                const serviceItem = document.getElementById('serviceItem' + serviceId);
+                const staffSelect = document.getElementById('staffSelect' + serviceId);
+
+                if (isChecked) {
+                    staffSelectionDiv.style.display = 'flex'; // Use flex to align items
+                    serviceItem.style.borderColor = 'var(--primary-color)';
+                    serviceItem.style.background = 'linear-gradient(135deg, #e0e7ff 0%, #f3e8ff 100%)';
+                    staffSelect.required = true;
+                } else {
+                    staffSelectionDiv.style.display = 'none';
+                    serviceItem.style.borderColor = '#e5e7eb';
+                    serviceItem.style.background = 'white';
+                    staffSelect.required = false;
+                    staffSelect.value = ''; // Reset staff selection
+                }
+                updateSelectedServicesSummary();
+            }
+
+            // Update selected services summary
+            function updateSelectedServicesSummary() {
+                const selectedServices = [];
+                let totalDuration = 0;
+                let totalPrice = 0;
+
+                document.querySelectorAll('.service-checkbox:checked').forEach(checkbox => {
+                    const serviceId = checkbox.value;
+                    const serviceName = checkbox.getAttribute('data-name');
+                    const duration = parseInt(checkbox.getAttribute('data-duration'));
+                    const price = parseFloat(checkbox.getAttribute('data-price'));
+
+                    const staffSelect = document.getElementById('staffSelect' + serviceId);
+                    const staffName = staffSelect.options[staffSelect.selectedIndex]?.text || 'Not Selected';
+
+                    selectedServices.push({
+                        name: serviceName,
+                        duration: duration,
+                        price: price,
+                        staff: staffName
+                    });
+
+                    totalDuration += duration;
+                    totalPrice += price;
+                });
+
+                // Update summary display
+                const summary = document.getElementById('selectedServicesSummary');
+                const summaryList = document.getElementById('selectedServicesList');
+
+                if (selectedServices.length > 0) {
+                    summary.style.display = 'block';
+                    summaryList.innerHTML = selectedServices.map(service => 
+                        `<div style="margin-bottom: 8px; padding: 8px; background: white; border-radius: 6px; border-left: 3px solid var(--primary-color);">
+                            <strong>${service.name}</strong> - $${service.price.toFixed(2)} (${service.duration} min)<br>
+                            <small style="color: #6b7280;"><i class="fas fa-user-md"></i> Staff: ${service.staff}</small>
+                        </div>`
+                    ).join('');
+                } else {
+                    summary.style.display = 'none';
+                }
+
+                // Update totals
+                document.getElementById('totalDurationDisplay').textContent = totalDuration + ' min';
+                document.getElementById('totalPriceDisplay').textContent = '$' + totalPrice.toFixed(2);
+
+                // Calculate end time
+                const startTime = document.getElementById('quickTime').value;
+                if (startTime && totalDuration > 0) {
+                    const [hours, minutes] = startTime.split(':').map(Number);
+                    const startDate = new Date();
+                    startDate.setHours(hours, minutes, 0, 0);
+                    const endDate = new Date(startDate.getTime() + totalDuration * 60000);
+                    const endTime = endDate.toTimeString().slice(0, 5);
+                    document.getElementById('endTimeDisplay').textContent = endTime;
+                    document.getElementById('endTime').value = endTime;
+                } else {
+                    document.getElementById('endTimeDisplay').textContent = '--:--';
+                    document.getElementById('endTime').value = '';
+                }
+            }
+
+            // Add event listeners for staff selections
+            document.addEventListener('change', function(e) {
+                if (e.target.classList.contains('service-staff-select')) {
+                    updateSelectedServicesSummary();
+                }
+            });
+
+            // Add event listener for new client name input to update hidden field
+            document.getElementById('newClientName').addEventListener('input', function() {
+                document.getElementById('clientName').value = this.value;
+            });
+
+            // Update form submission to handle new client creation and service staff assignment
+            document.getElementById('quickBookForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+
+                const clientSelect = document.getElementById('clientSelect');
+                const newClientNameInput = document.getElementById('newClientName');
+                const clientNameHidden = document.getElementById('clientName');
+                const clientPhone = document.getElementById('clientPhone');
+
+                // Ensure client name and phone are set correctly before submission
+                if (clientSelect.value === 'new') {
+                    if (!newClientNameInput.value.trim()) {
+                        alert('Please enter the client name for the new client.');
+                        newClientNameInput.focus();
+                        return;
+                    }
+                    clientNameHidden.value = newClientNameInput.value.trim();
+                    // Phone number is optional for new clients, so no extra check needed here unless required by backend
+                } else if (!clientSelect.value) {
+                     alert('Please select a client or add a new one.');
+                     clientSelect.focus();
+                     return;
+                } else {
+                    // For existing clients, the hidden clientName and phone fields are already populated by populateClientInfo
+                    // No need to change clientNameHidden.value here
+                }
+
+
+                // Validate that all selected services have staff assigned
+                const selectedServicesCheckboxes = document.querySelectorAll('.service-checkbox:checked');
+                for (let i = 0; i < selectedServicesCheckboxes.length; i++) {
+                    const serviceId = selectedServicesCheckboxes[i].value;
+                    const staffSelect = document.getElementById('staffSelect' + serviceId);
+                    if (!staffSelect || !staffSelect.value) {
+                        const serviceName = selectedServicesCheckboxes[i].getAttribute('data-name');
+                        alert(`Please select a staff member for ${serviceName}`);
+                        staffSelect.focus();
+                        return;
+                    }
+                }
+
+                if (selectedServicesCheckboxes.length === 0) {
+                    alert('Please select at least one service.');
+                    return;
+                }
+
+                // Prepare data for submission
+                const formData = new FormData(form);
+                const appointmentData = {
+                    client_id: clientSelect.value === 'new' ? null : clientSelect.value,
+                    client_name: clientNameHidden.value,
+                    client_phone: clientPhone.value,
+                    staff_id: parseInt(document.getElementById('quickStaff').value), // Main staff for the appointment slot
+                    booking_date: formData.get('booking_date'),
+                    start_time: formData.get('start_time'),
+                    end_time: document.getElementById('endTime').value,
+                    notes: formData.get('notes') || '',
+                    services: []
+                };
+
+                selectedServicesCheckboxes.forEach(checkbox => {
+                    const serviceId = checkbox.value;
+                    appointmentData.services.push({
+                        service_id: parseInt(serviceId),
+                        staff_id: parseInt(document.getElementById('staffSelect' + serviceId).value)
+                    });
+                });
+
+                // Submit data via AJAX
+                const overlay = document.getElementById('loadingOverlay');
+                overlay.classList.add('show');
+
+                fetch("/api/unaki/create-appointment", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify(appointmentData),
+                })
+                .then(response => response.json())
+                .then(result => {
+                    overlay.classList.remove('show');
+                    if (result.success) {
+                        bootstrap.Modal.getInstance(document.getElementById('quickBookModal')).hide();
+                        showNotification("Appointment(s) booked successfully!", "success");
+                        loadBookings(); // Reload bookings to show the new appointment
+                        form.reset(); // Reset form fields
+                        // Clear all checkboxes and summary
+                        document.querySelectorAll('.service-checkbox').forEach(cb => cb.checked = false);
+                        document.getElementById('selectedServicesSummary').style.display = 'none';
+                        document.getElementById('selectedServicesList').innerHTML = '';
+                        document.getElementById('totalDurationDisplay').textContent = '0 min';
+                        document.getElementById('totalPriceDisplay').textContent = '$0.00';
+                        document.getElementById('endTimeDisplay').textContent = '--:--';
+                        document.getElementById('quickStaff').value = ''; // Reset main staff
+                        document.getElementById('quickTime').value = '09:00'; // Reset time
+                        // Reset client selection
+                        const clientSelectElement = document.getElementById('clientSelect');
+                        clientSelectElement.value = '';
+                        populateClientInfo(''); // Clear client fields
+
+                    } else {
+                        showNotification("Error: " + (result.error || "Failed to book appointment"), "error");
+                    }
+                })
+                .catch(error => {
+                    overlay.classList.remove('show');
+                    console.error("Error:", error);
+                    showNotification("An error occurred while booking", "error");
+                });
+            });
+
+            // Initialize service selection listeners
+            document.querySelectorAll('.service-checkbox').forEach(checkbox => {
+                checkbox.addEventListener('change', function() {
+                    toggleServiceStaffSelection(this.value, this.checked);
+                });
+            });
+
+            // Initial call to set up client fields based on default selection (if any)
+            document.addEventListener('DOMContentLoaded', function() {
+                populateClientInfo(document.getElementById('clientSelect').value);
+                const serviceCheckboxes = document.querySelectorAll('.service-checkbox');
+                serviceCheckboxes.forEach(checkbox => {
+                    if (checkbox.checked) {
+                        toggleServiceStaffSelection(checkbox.value, true);
+                    }
+                });
+                updateSelectedServicesSummary(); // Update summary on load if services are pre-checked
+            });
+
         </script>
     </body>
 </html>

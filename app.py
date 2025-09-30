@@ -149,8 +149,6 @@ def after_request(response):
 
     return response
 
-# Basic routes removed to avoid conflicts with main application routes
-
 # Initialize database and routes within app context
 def init_app():
     """Initialize the application with proper error handling"""
@@ -239,7 +237,7 @@ except Exception as e:
         if not current_user.can_access('settings'):
             flash('Access denied', 'danger')
             return redirect(url_for('dashboard'))
-        
+
         return render_template('settings.html',
                              system_settings={},
                              business_settings={},
@@ -390,7 +388,7 @@ def unaki_schedule():
                 if shift_log:
                     shift_start = shift_log.shift_start_time.strftime('%H:%M') if shift_log.shift_start_time else '09:00'
                     shift_end = shift_log.shift_end_time.strftime('%H:%M') if shift_log.shift_end_time else '17:00'
-                    
+
                     # Safely format break times with proper validation
                     break_start = None
                     break_end = None
@@ -404,7 +402,7 @@ def unaki_schedule():
                         break_start = None
                         break_end = None
                     shift_status = shift_log.status
-                    
+
                     # Determine working status based on shift log status
                     is_working = shift_status in ['scheduled', 'completed']
                     availability_status = {
@@ -413,7 +411,7 @@ def unaki_schedule():
                         'absent': 'Absent',
                         'holiday': 'Holiday'
                     }.get(shift_status, 'Unknown')
-                    
+
                     # Calculate break duration if break times exist
                     break_duration = None
                     break_display = 'No Break'
@@ -427,7 +425,7 @@ def unaki_schedule():
                         except Exception as break_error:
                             print(f"Break calculation error for staff {staff.id}: {break_error}")
                             break_display = 'Break Error'
-                    
+
                     # Shift display with duration
                     try:
                         shift_start_mins = int(shift_start.split(':')[0]) * 60 + int(shift_start.split(':')[1])
@@ -439,7 +437,7 @@ def unaki_schedule():
                     except Exception as shift_error:
                         print(f"Shift calculation error for staff {staff.id}: {shift_error}")
                         shift_display = f"{shift_start} - {shift_end}"
-                    
+
                 else:
                     # No shift log found - use defaults or shift management
                     if shift_management:
@@ -456,7 +454,7 @@ def unaki_schedule():
                         is_working = False
                         availability_status = 'Not Scheduled'
                         shift_status = 'not_scheduled'
-                    
+
                     break_start = None
                     break_end = None
                     break_duration = None
@@ -485,7 +483,7 @@ def unaki_schedule():
                     'is_active': staff.is_active
                 }
                 staff_data.append(staff_info)
-                
+
             except Exception as staff_error:
                 print(f"Error processing staff {staff.id}: {staff_error}")
                 # Add basic staff info even if shift processing fails
@@ -553,7 +551,7 @@ def unaki_schedule():
                     try:
                         break_start_str = shift_log.break_start_time.strftime('%H:%M') if shift_log.break_start_time else None
                         break_end_str = shift_log.break_end_time.strftime('%H:%M') if shift_log.break_end_time else None
-                        
+
                         if break_start_str and break_end_str:
                             break_info = {
                                 'id': f'break_{staff.id}_{target_date}',
@@ -1085,41 +1083,39 @@ def unaki_create_appointment():
 @app.route('/unaki_booking')
 @login_required
 def unaki_booking():
-    """Unaki Appointment Booking page - Timeline view"""
-    if not current_user.can_access('bookings'):
-        flash('Access denied', 'danger')
-        return redirect(url_for('dashboard'))
-
+    """Enhanced Unaki Appointment Booking System - Professional spa booking interface"""
     try:
-        from modules.services.services_queries import get_active_services
         from modules.staff.staff_queries import get_staff_members
-        from datetime import date, datetime
+        from modules.services.services_queries import get_active_services
+        from modules.clients.clients_queries import get_all_customers
+        from datetime import date
 
-        # Get date from query parameter or use today
-        date_str = request.args.get('date')
-        if date_str:
-            try:
-                selected_date = datetime.strptime(date_str, '%Y-%m-%d').date()
-            except ValueError:
-                selected_date = date.today()
-        else:
-            selected_date = date.today()
+        # Get current date parameter
+        selected_date = request.args.get('date', date.today().strftime('%Y-%m-%d'))
 
-        # Get services and staff for initial page load
-        services = get_active_services()
+        # Get data for the booking form
         staff_members = get_staff_members()
-        today = selected_date.strftime('%Y-%m-%d')
-        today_date = selected_date.strftime('%A, %B %d, %Y')
+        services = get_active_services()
+        clients = get_all_customers()
+        today = date.today().strftime('%Y-%m-%d')
+
+        print(f"🗓️  Querying Unaki bookings for date: {selected_date} (from parameter: {request.args.get('date', 'not provided')})")
+        print(f"📊 Loaded {len(staff_members)} staff, {len(services)} services, {len(clients)} clients")
 
         return render_template('unaki_booking.html',
-                             services=services,
                              staff_members=staff_members,
+                             services=services,
+                             clients=clients,
                              today=today,
-                             today_date=today_date)
+                             today_date=selected_date)
     except Exception as e:
-        print(f"Error loading Unaki booking page: {e}")
-        flash('Error loading booking form. Please try again.', 'danger')
-        return redirect(url_for('dashboard'))
+        print(f"Error in unaki_booking route: {e}")
+        return render_template('unaki_booking.html',
+                             staff_members=[],
+                             services=[],
+                             clients=[],
+                             today=date.today().strftime('%Y-%m-%d'),
+                             today_date=selected_date)
 
 @app.route('/api/unaki/get-bookings')
 @login_required
@@ -1128,25 +1124,25 @@ def api_unaki_get_bookings():
     try:
         from models import UnakiBooking, User
         from datetime import datetime
-        
+
         date_str = request.args.get('date')
         if not date_str:
             return jsonify({'success': False, 'error': 'Date parameter required'}), 400
-        
+
         try:
             booking_date = datetime.strptime(date_str, '%Y-%m-%d').date()
         except ValueError:
             return jsonify({'success': False, 'error': 'Invalid date format'}), 400
-        
+
         # Get all bookings for the date
         bookings = UnakiBooking.query.filter_by(appointment_date=booking_date).all()
-        
+
         bookings_data = []
         for booking in bookings:
             # Calculate position data
             start_hour = booking.start_time.hour
             start_minute = booking.start_time.minute
-            
+
             # Determine service type for coloring
             service_type = 'default'
             if booking.service_name:
@@ -1163,7 +1159,7 @@ def api_unaki_get_bookings():
                     service_type = 'haircut'
                 elif 'wax' in service_lower:
                     service_type = 'waxing'
-            
+
             bookings_data.append({
                 'id': booking.id,
                 'staff_id': booking.staff_id,
@@ -1176,9 +1172,9 @@ def api_unaki_get_bookings():
                 'duration': booking.service_duration,
                 'status': booking.status
             })
-        
+
         return jsonify({'success': True, 'bookings': bookings_data})
-        
+
     except Exception as e:
         print(f"Error getting Unaki bookings: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
@@ -1611,10 +1607,10 @@ def unaki_get_staff_shift_logs(staff_id, date_str):
     try:
         from datetime import datetime
         from models import User, ShiftManagement, ShiftLogs
-        
+
         # Parse date
         target_date = datetime.strptime(date_str, '%Y-%m-%d').date()
-        
+
         # Get staff member
         staff = User.query.get(staff_id)
         if not staff:
@@ -1622,14 +1618,14 @@ def unaki_get_staff_shift_logs(staff_id, date_str):
                 'success': False,
                 'error': 'Staff member not found'
             }), 404
-        
+
         # Get shift management
         shift_management = ShiftManagement.query.filter(
             ShiftManagement.staff_id == staff_id,
             ShiftManagement.from_date <= target_date,
             ShiftManagement.to_date >= target_date
         ).first()
-        
+
         # Get shift log
         shift_log = None
         if shift_management:
@@ -1637,7 +1633,7 @@ def unaki_get_staff_shift_logs(staff_id, date_str):
                 ShiftLogs.shift_management_id == shift_management.id,
                 ShiftLogs.individual_date == target_date
             ).first()
-        
+
         # Prepare response
         response_data = {
             'success': True,
@@ -1647,7 +1643,7 @@ def unaki_get_staff_shift_logs(staff_id, date_str):
             'has_shift_management': shift_management is not None,
             'has_shift_log': shift_log is not None
         }
-        
+
         if shift_management:
             response_data['shift_management'] = {
                 'id': shift_management.id,
@@ -1656,7 +1652,7 @@ def unaki_get_staff_shift_logs(staff_id, date_str):
                 'created_at': shift_management.created_at.isoformat(),
                 'updated_at': shift_management.updated_at.isoformat()
             }
-        
+
         if shift_log:
             response_data['shift_log'] = {
                 'id': shift_log.id,
@@ -1669,9 +1665,9 @@ def unaki_get_staff_shift_logs(staff_id, date_str):
                 'status': shift_log.status,
                 'created_at': shift_log.created_at.isoformat()
             }
-        
+
         return jsonify(response_data)
-        
+
     except Exception as e:
         print(f"Error getting staff shift logs: {e}")
         return jsonify({
