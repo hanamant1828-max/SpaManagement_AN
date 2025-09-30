@@ -1085,7 +1085,7 @@ def unaki_create_appointment():
 @app.route('/unaki_booking')
 @login_required
 def unaki_booking():
-    """Unaki Appointment Booking page"""
+    """Unaki Appointment Booking page - Timeline view"""
     if not current_user.can_access('bookings'):
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
@@ -1093,21 +1093,188 @@ def unaki_booking():
     try:
         from modules.services.services_queries import get_active_services
         from modules.staff.staff_queries import get_staff_members
-        from datetime import date
+        from datetime import date, datetime
+
+        # Get date from query parameter or use today
+        date_str = request.args.get('date')
+        if date_str:
+            try:
+                selected_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+            except ValueError:
+                selected_date = date.today()
+        else:
+            selected_date = date.today()
 
         # Get services and staff for initial page load
         services = get_active_services()
         staff_members = get_staff_members()
-        today = date.today().strftime('%Y-%m-%d')
+        today = selected_date.strftime('%Y-%m-%d')
+        today_date = selected_date.strftime('%A, %B %d, %Y')
 
         return render_template('unaki_booking.html',
                              services=services,
                              staff_members=staff_members,
-                             today=today)
+                             today=today,
+                             today_date=today_date)
     except Exception as e:
         print(f"Error loading Unaki booking page: {e}")
         flash('Error loading booking form. Please try again.', 'danger')
         return redirect(url_for('dashboard'))
+
+@app.route('/api/unaki/get-bookings')
+@login_required
+def api_unaki_get_bookings():
+    """API endpoint to get Unaki bookings for a specific date"""
+    try:
+        from models import UnakiBooking, User
+        from datetime import datetime
+        
+        date_str = request.args.get('date')
+        if not date_str:
+            return jsonify({'success': False, 'error': 'Date parameter required'}), 400
+        
+        try:
+            booking_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+        except ValueError:
+            return jsonify({'success': False, 'error': 'Invalid date format'}), 400
+        
+        # Get all bookings for the date
+        bookings = UnakiBooking.query.filter_by(appointment_date=booking_date).all()
+        
+        bookings_data = []
+        for booking in bookings:
+            # Calculate position data
+            start_hour = booking.start_time.hour
+            start_minute = booking.start_time.minute
+            
+            # Determine service type for coloring
+            service_type = 'default'
+            if booking.service_name:
+                service_lower = booking.service_name.lower()
+                if 'massage' in service_lower:
+                    service_type = 'massage'
+                elif 'facial' in service_lower:
+                    service_type = 'facial'
+                elif 'manicure' in service_lower:
+                    service_type = 'manicure'
+                elif 'pedicure' in service_lower:
+                    service_type = 'pedicure'
+                elif 'hair' in service_lower or 'cut' in service_lower:
+                    service_type = 'haircut'
+                elif 'wax' in service_lower:
+                    service_type = 'waxing'
+            
+            bookings_data.append({
+                'id': booking.id,
+                'staff_id': booking.staff_id,
+                'client_name': booking.client_name,
+                'service_names': booking.service_name,
+                'service_type': service_type,
+                'start_time': booking.start_time.strftime('%I:%M %p'),
+                'start_hour': start_hour,
+                'start_minute': start_minute,
+                'duration': booking.service_duration,
+                'status': booking.status
+            })
+        
+        return jsonify({'success': True, 'bookings': bookings_data})
+        
+    except Exception as e:
+        print(f"Error getting Unaki bookings: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/unaki/book-appointment', methods=['POST'])
+@login_required
+def api_unaki_book_appointment():
+    """API endpoint to create new Unaki booking"""
+    try:
+        from models import UnakiBooking, User, Service
+        from datetime import datetime, timedelta
+        
+        data = request.get_json()
+        
+        # Validate required fields
+        if not data.get('client_name'):
+            return jsonify({'success': False, 'error': 'Client name is required'}), 400
+        if not data.get('staff_id'):
+            return jsonify({'success': False, 'error': 'Staff selection is required'}), 400
+        if not data.get('service_ids') or len(data['service_ids']) == 0:
+            return jsonify({'success': False, 'error': 'At least one service must be selected'}), 400
+        if not data.get('booking_date') or not data.get('start_time'):
+            return jsonify({'success': False, 'error': 'Date and time are required'}), 400
+        
+        # Parse date and time
+        try:
+            booking_date = datetime.strptime(data['booking_date'], '%Y-%m-%d').date()
+            start_time_obj = datetime.strptime(data['start_time'], '%H:%M').time()
+            start_datetime = datetime.combine(booking_date, start_time_obj)
+        except ValueError as e:
+            return jsonify({'success': False, 'error': f'Invalid date/time format: {str(e)}'}), 400
+        
+        # Get staff info
+        staff = User.query.get(data['staff_id'])
+        if not staff:
+            return jsonify({'success': False, 'error': 'Invalid staff selection'}), 400
+        
+        # Get services and calculate total duration
+        service_ids = data['service_ids']
+        services = Service.query.filter(Service.id.in_(service_ids)).all()
+        
+        if not services:
+            return jsonify({'success': False, 'error': 'No valid services found'}), 400
+        
+        total_duration = sum(s.duration or 60 for s in services)
+        service_names = ', '.join(s.name for s in services)
+        total_price = sum(s.price or 0 for s in services)
+        
+        # Calculate end time
+        end_datetime = start_datetime + timedelta(minutes=total_duration)
+        
+        # Check for conflicts
+        overlapping_bookings = UnakiBooking.query.filter(
+            UnakiBooking.staff_id == data['staff_id'],
+            UnakiBooking.appointment_date == booking_date,
+            UnakiBooking.status != 'cancelled',
+            UnakiBooking.start_time < end_datetime.time(),
+            UnakiBooking.end_time > start_time_obj
+        ).first()
+        
+        if overlapping_bookings:
+            return jsonify({
+                'success': False,
+                'error': 'This time slot conflicts with an existing booking for this staff member'
+            }), 400
+        
+        # Create the booking
+        booking = UnakiBooking(
+            client_name=data['client_name'],
+            client_phone=data.get('client_phone', ''),
+            client_email=data.get('client_email', ''),
+            staff_id=data['staff_id'],
+            staff_name=f"{staff.first_name} {staff.last_name}" if staff.first_name else staff.username,
+            service_name=service_names,
+            service_duration=total_duration,
+            service_price=total_price,
+            appointment_date=booking_date,
+            start_time=start_time_obj,
+            end_time=end_datetime.time(),
+            status='scheduled',
+            notes=data.get('notes', '')
+        )
+        
+        db.session.add(booking)
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Appointment booked successfully',
+            'booking_id': booking.id
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error creating Unaki booking: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/system_management')
 @login_required
