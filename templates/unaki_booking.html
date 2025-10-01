@@ -797,139 +797,61 @@
                 color: var(--danger-color);
             }
 
-            /* Multiple Appointments Styles */
-            .appointment-row {
-                border: 2px solid #e5e7eb;
-                border-radius: 12px;
-                padding: 20px;
-                margin-bottom: 16px;
-                background: white;
-                transition: all 0.2s;
-                position: relative;
-            }
-
-            .appointment-row:hover {
-                border-color: var(--primary-color);
-                box-shadow: 0 4px 12px rgba(79, 70, 229, 0.1);
-            }
-
-            .appointment-row.selected {
-                border-color: var(--primary-color);
-                background: linear-gradient(135deg, #f8faff 0%, #f3f4f6 100%);
-            }
-
-            .appointment-row-header {
-                display: flex;
-                justify-content: between;
-                align-items: center;
-                margin-bottom: 16px;
-            }
-
-            .appointment-number {
-                background: var(--primary-color);
-                color: white;
-                width: 32px;
-                height: 32px;
-                border-radius: 50%;
+            /* Service Selection Checkboxes */
+            .service-checkbox-item {
                 display: flex;
                 align-items: center;
-                justify-content: center;
-                font-weight: 700;
-                font-size: 14px;
-            }
-
-            .remove-appointment-btn {
-                background: var(--danger-color);
-                color: white;
-                border: none;
-                width: 32px;
-                height: 32px;
-                border-radius: 50%;
                 cursor: pointer;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                transition: all 0.2s;
             }
 
-            .remove-appointment-btn:hover {
-                background: #dc2626;
-                transform: scale(1.1);
+            .service-checkbox-item:hover {
+                border-color: var(--primary-color) !important;
+                background: #f8f9ff !important;
+                transform: translateX(4px);
             }
 
-            .add-appointment-btn {
-                background: var(--success-color);
+            .service-checkbox-item:has(.form-check-input:checked) {
+                border-color: var(--primary-color) !important;
+                background: linear-gradient(
+                    135deg,
+                    #e0e7ff 0%,
+                    #f3e8ff 100%
+                ) !important;
+            }
+
+            .service-checkbox:checked {
+                background-color: var(--primary-color);
+                border-color: var(--primary-color);
+            }
+
+            /* Tooltip */
+            .tooltip-custom {
+                position: fixed;
+                background: rgba(0, 0, 0, 0.9);
                 color: white;
-                border: none;
-                padding: 12px 24px;
-                border-radius: 10px;
-                font-weight: 600;
-                cursor: pointer;
-                display: flex;
-                align-items: center;
-                gap: 8px;
-                transition: all 0.2s;
-                margin: 20px 0;
-            }
-
-            .add-appointment-btn:hover {
-                background: #059669;
-                transform: translateY(-2px);
-                box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
-            }
-
-            .booking-summary {
-                background: linear-gradient(135deg, #f8faff 0%, #f3f4f6 100%);
-                border: 2px solid var(--primary-color);
-                border-radius: 12px;
-                padding: 20px;
-                margin: 20px 0;
-            }
-
-            .summary-row {
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                margin-bottom: 8px;
-            }
-
-            .summary-row:last-child {
-                margin-bottom: 0;
-                font-weight: 700;
-                font-size: 18px;
-                border-top: 1px solid var(--border-color);
-                padding-top: 12px;
-                margin-top: 12px;
-            }
-
-            .timeline-preview {
-                background: white;
+                padding: 8px 12px;
                 border-radius: 8px;
-                padding: 12px;
-                margin-top: 12px;
-                border: 1px solid var(--border-color);
+                font-size: 12px;
+                font-weight: 500;
+                z-index: 10000;
+                pointer-events: none;
+                display: none;
+                white-space: nowrap;
+                box-shadow: var(--shadow-lg);
             }
 
-            .timeline-bar {
-                height: 40px;
-                background: #f3f4f6;
-                border-radius: 6px;
-                position: relative;
-                overflow: hidden;
+            .tooltip-custom.show {
+                display: block;
+                animation: tooltipFadeIn 0.2s ease;
             }
 
-            .timeline-appointment {
-                position: absolute;
-                top: 4px;
-                bottom: 4px;
-                border-radius: 4px;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                font-size: 10px;
-                font-weight: 600;
-                color: white;
-                text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+            @keyframes tooltipFadeIn {
+                from {
+                    opacity: 0;
+                }
+                to {
+                    opacity: 1;
+                }
             }
 
             /* Loading State */
@@ -1021,45 +943,6 @@
                 font-size: 14px;
                 color: #9ca3af;
                 margin: 0;
-            }
-
-            /* Client Profile Preview */
-            .client-profile-preview {
-                background: linear-gradient(135deg, #f8faff 0%, #f3f4f6 100%);
-                border: 1px solid var(--border-color);
-                border-radius: 12px;
-                padding: 16px;
-                margin-top: 12px;
-                display: none;
-            }
-
-            .client-profile-preview.show {
-                display: block;
-                animation: fadeIn 0.3s ease;
-            }
-
-            @keyframes fadeIn {
-                from { opacity: 0; transform: translateY(-10px); }
-                to { opacity: 1; transform: translateY(0); }
-            }
-
-            .client-info-row {
-                display: flex;
-                justify-content: space-between;
-                margin-bottom: 8px;
-            }
-
-            .client-info-row:last-child {
-                margin-bottom: 0;
-            }
-
-            .client-info-label {
-                font-weight: 600;
-                color: #6b7280;
-            }
-
-            .client-info-value {
-                color: #1f2937;
             }
 
             /* Responsive */
@@ -1231,10 +1114,10 @@
                     <div class="calendar-actions">
                         <button
                             class="action-btn action-btn-primary"
-                            onclick="openMultiBookModal()"
+                            onclick="openQuickBookModal()"
                         >
                             <i class="fas fa-plus-circle"></i>
-                            New Multi-Appointment
+                            New Appointment
                         </button>
                         <button
                             class="action-icon"
@@ -1408,16 +1291,15 @@
             </div>
         </div>
 
-        <!-- Multiple Appointments Booking Modal -->
-        <div class="modal fade" id="multiBookModal" tabindex="-1">
-            <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <!-- Quick Book Modal - Multi-Service -->
+        <div class="modal fade" id="quickBookModal" tabindex="-1">
+            <div class="modal-dialog modal-xl modal-dialog-centered">
                 <div
                     class="modal-content"
                     style="
                         border-radius: 16px;
                         border: none;
                         box-shadow: var(--shadow-xl);
-                        max-height: 90vh;
                     "
                 >
                     <div
@@ -1441,7 +1323,7 @@
                             "
                         >
                             <i class="fas fa-calendar-plus me-2"></i>
-                            Book Multiple Appointments - Single Client
+                            Book Multiple Services - Quick & Easy
                         </h5>
                         <button
                             type="button"
@@ -1450,72 +1332,320 @@
                         ></button>
                     </div>
                     <div class="modal-body" style="padding: 24px">
-                        <!-- Client Information Section -->
-                        <div class="mb-4">
-                            <h6
-                                style="
-                                    color: var(--primary-color);
-                                    font-weight: 700;
-                                    margin-bottom: 16px;
-                                "
-                            >
-                                <i class="fas fa-user-circle"></i>
-                                Client Information
-                            </h6>
-
-                            <!-- Client Selection -->
-                            <div class="row">
+                        <form
+                            id="quickBookForm"
+                            action="/api/unaki/create-appointment"
+                            method="POST"
+                        >
+                            <!-- Client Information -->
+                            <div class="row mb-4">
+                                <div class="col-12 mb-3">
+                                    <h6
+                                        style="
+                                            color: var(--primary-color);
+                                            font-weight: 700;
+                                            margin-bottom: 16px;
+                                        "
+                                    >
+                                        <i class="fas fa-user-circle"></i>
+                                        Client Information
+                                    </h6>
+                                </div>
                                 <div class="col-md-6 mb-3">
                                     <label class="form-label fw-semibold">
                                         <i
-                                            class="fas fa-users me-2"
+                                            class="fas fa-user me-2"
                                             style="color: var(--primary-color)"
                                         ></i>
-                                        Select Client *
+                                        Client Name *
                                     </label>
-                                    <select
-                                        id="multiClientSelect"
-                                        class="form-select"
+                                    <input
+                                        type="text"
+                                        id="clientName"
+                                        name="client_name"
+                                        class="form-control"
                                         required
-                                        onchange="showClientPreview(this.value)"
+                                        placeholder="Enter client name"
                                         style="
                                             border-radius: 10px;
                                             padding: 12px;
                                         "
-                                    >
-                                        <option value="">Select a client...</option>
-                                        <option value="new">
-                                            + Add New Client
-                                        </option>
-                                        {% if clients %} {% for client in clients
-                                        %}
-                                        <option
-                                            value="{{ client.id }}"
-                                            data-phone="{{ client.phone }}"
-                                            data-email="{{ client.email }}"
-                                            data-visits="{{ client.total_visits or 0 }}"
-                                            data-last-visit="{{ client.last_visit.strftime('%Y-%m-%d') if client.last_visit else 'Never' }}"
-                                        >
-                                            {{ client.full_name }}
-                                        </option>
-                                        {% endfor %} {% endif %}
-                                    </select>
+                                    />
                                 </div>
                                 <div class="col-md-6 mb-3">
-                                    <!-- New Client Fields -->
-                                    <div id="newClientFieldsMulti" style="display: none">
+                                    <label class="form-label fw-semibold">
+                                        <i
+                                            class="fas fa-phone me-2"
+                                            style="color: var(--primary-color)"
+                                        ></i>
+                                        Client Phone
+                                    </label>
+                                    <input
+                                        type="tel"
+                                        id="clientPhone"
+                                        name="client_phone"
+                                        class="form-control"
+                                        placeholder="Enter phone number"
+                                        style="
+                                            border-radius: 10px;
+                                            padding: 12px;
+                                        "
+                                    />
+                                </div>
+                            </div>
+
+                            <!-- Service Selection -->
+                            <div class="mb-4">
+                                <h6
+                                    style="
+                                        color: var(--primary-color);
+                                        font-weight: 700;
+                                        margin-bottom: 16px;
+                                    "
+                                >
+                                    <i class="fas fa-spa"></i> Select Services
+                                    (Check all that apply)
+                                </h6>
+                                <div
+                                    style="
+                                        max-height: 350px;
+                                        overflow-y: auto;
+                                        border: 2px solid #e5e7eb;
+                                        border-radius: 12px;
+                                        padding: 16px;
+                                        background: #fafbfc;
+                                    "
+                                >
+                                    {% if services %} {% for service in services
+                                    %}
+                                    <div
+                                        class="form-check service-checkbox-item"
+                                        style="
+                                            padding: 14px;
+                                            margin-bottom: 10px;
+                                            background: white;
+                                            border-radius: 10px;
+                                            border: 2px solid #e5e7eb;
+                                            transition: all 0.2s;
+                                        "
+                                    >
+                                        <input
+                                            class="form-check-input service-checkbox"
+                                            type="checkbox"
+                                            value="{{ service.id }}"
+                                            id="service{{ service.id }}"
+                                            data-duration="{{ service.duration or 60 }}"
+                                            data-price="{{ service.price }}"
+                                            data-name="{{ service.name }}"
+                                            style="
+                                                width: 22px;
+                                                height: 22px;
+                                                margin-top: 0;
+                                            "
+                                        />
+                                        <label
+                                            class="form-check-label"
+                                            for="service{{ service.id }}"
+                                            style="
+                                                cursor: pointer;
+                                                margin-left: 14px;
+                                                flex: 1;
+                                            "
+                                        >
+                                            <div
+                                                style="
+                                                    display: flex;
+                                                    justify-content: space-between;
+                                                    align-items: center;
+                                                "
+                                            >
+                                                <div>
+                                                    <strong
+                                                        style="
+                                                            font-size: 15px;
+                                                            color: #1f2937;
+                                                        "
+                                                        >{{ service.name
+                                                        }}</strong
+                                                    >
+                                                    <div
+                                                        style="
+                                                            font-size: 13px;
+                                                            color: #6b7280;
+                                                            margin-top: 4px;
+                                                        "
+                                                    >
+                                                        <i
+                                                            class="fas fa-clock"
+                                                            style="
+                                                                font-size: 11px;
+                                                            "
+                                                        ></i>
+                                                        {{ service.duration or
+                                                        60 }} minutes {% if
+                                                        service.category %} •
+                                                        <span
+                                                            style="
+                                                                background: #e5e7eb;
+                                                                padding: 2px 8px;
+                                                                border-radius: 4px;
+                                                                font-size: 11px;
+                                                            "
+                                                            >{{ service.category
+                                                            }}</span
+                                                        >
+                                                        {% endif %}
+                                                    </div>
+                                                </div>
+                                                <span
+                                                    style="
+                                                        font-weight: 700;
+                                                        color: var(
+                                                            --primary-color
+                                                        );
+                                                        font-size: 18px;
+                                                    "
+                                                >
+                                                    ${{
+                                                    "%.2f"|format(service.price)
+                                                    }}
+                                                </span>
+                                            </div>
+                                        </label>
+                                    </div>
+                                    {% endfor %} {% else %}
+                                    <div class="text-center text-muted py-4">
+                                        <i
+                                            class="fas fa-exclamation-circle fa-2x mb-3"
+                                        ></i>
+                                        <p>No services available</p>
+                                    </div>
+                                    {% endif %}
+                                </div>
+
+                                <!-- Selected Services Summary -->
+                                <div
+                                    id="selectedServicesSummary"
+                                    style="
+                                        margin-top: 16px;
+                                        padding: 16px;
+                                        background: linear-gradient(
+                                            135deg,
+                                            #e0e7ff 0%,
+                                            #f3e8ff 100%
+                                        );
+                                        border-radius: 12px;
+                                        display: none;
+                                    "
+                                >
+                                    <div
+                                        style="
+                                            font-weight: 700;
+                                            color: #4338ca;
+                                            margin-bottom: 12px;
+                                            font-size: 15px;
+                                        "
+                                    >
+                                        <i class="fas fa-check-double"></i>
+                                        Selected Services:
+                                    </div>
+                                    <div
+                                        id="selectedServicesList"
+                                        style="
+                                            font-size: 13px;
+                                            color: #1f2937;
+                                            line-height: 1.8;
+                                        "
+                                    ></div>
+                                </div>
+                            </div>
+
+                            <!-- Appointment Details -->
+                            <div class="mb-4">
+                                <h6
+                                    style="
+                                        color: var(--primary-color);
+                                        font-weight: 700;
+                                        margin-bottom: 16px;
+                                    "
+                                >
+                                    <i class="fas fa-calendar-day"></i>
+                                    Appointment Details
+                                </h6>
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
                                         <label class="form-label fw-semibold">
                                             <i
-                                                class="fas fa-user-plus me-2"
-                                                style="color: var(--primary-color)"
+                                                class="fas fa-user-md me-2"
+                                                style="
+                                                    color: var(--primary-color);
+                                                "
                                             ></i>
-                                            New Client Name *
+                                            Staff Member *
+                                        </label>
+                                        <select
+                                            id="quickStaff"
+                                            name="staff_id"
+                                            class="form-select"
+                                            required
+                                            style="
+                                                border-radius: 10px;
+                                                padding: 12px;
+                                            "
+                                        >
+                                            <option value="">
+                                                Select staff member...
+                                            </option>
+                                            {% if staff_members %} {% for staff
+                                            in staff_members %}
+                                            <option value="{{ staff.id }}">
+                                                {{ staff.first_name }} {{
+                                                staff.last_name if
+                                                staff.last_name else '' }}
+                                            </option>
+                                            {% endfor %} {% endif %}
+                                        </select>
+                                    </div>
+                                    <div class="col-md-3 mb-3">
+                                        <label class="form-label fw-semibold">
+                                            <i
+                                                class="fas fa-calendar me-2"
+                                                style="
+                                                    color: var(--primary-color);
+                                                "
+                                            ></i>
+                                            Date *
                                         </label>
                                         <input
-                                            type="text"
-                                            id="newClientNameMulti"
+                                            type="date"
+                                            id="quickDate"
+                                            name="booking_date"
                                             class="form-control"
-                                            placeholder="Enter new client name"
+                                            value="{{ today }}"
+                                            required
+                                            style="
+                                                border-radius: 10px;
+                                                padding: 12px;
+                                            "
+                                        />
+                                    </div>
+                                    <div class="col-md-3 mb-3">
+                                        <label class="form-label fw-semibold">
+                                            <i
+                                                class="fas fa-clock me-2"
+                                                style="
+                                                    color: var(--primary-color);
+                                                "
+                                            ></i>
+                                            Start Time *
+                                        </label>
+                                        <input
+                                            type="time"
+                                            id="quickTime"
+                                            name="start_time"
+                                            class="form-control"
+                                            value="09:00"
+                                            required
                                             style="
                                                 border-radius: 10px;
                                                 padding: 12px;
@@ -1525,866 +1655,692 @@
                                 </div>
                             </div>
 
-                            <!-- Client Profile Preview -->
-                            <div class="client-profile-preview" id="clientProfilePreview">
-                                <div class="client-info-row">
-                                    <span class="client-info-label">Phone:</span>
-                                    <span class="client-info-value" id="previewPhone">-</span>
-                                </div>
-                                <div class="client-info-row">
-                                    <span class="client-info-label">Email:</span>
-                                    <span class="client-info-value" id="previewEmail">-</span>
-                                </div>
-                                <div class="client-info-row">
-                                    <span class="client-info-label">Total Visits:</span>
-                                    <span class="client-info-value" id="previewVisits">0</span>
-                                </div>
-                                <div class="client-info-row">
-                                    <span class="client-info-label">Last Visit:</span>
-                                    <span class="client-info-value" id="previewLastVisit">Never</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Appointments List Section -->
-                        <div class="mb-4">
-                            <h6
-                                style="
-                                    color: var(--primary-color);
-                                    font-weight: 700;
-                                    margin-bottom: 16px;
-                                "
-                            >
-                                <i class="fas fa-list"></i>
-                                Appointment(s)
-                            </h6>
-
-                            <div id="appointmentsList">
-                                <!-- First appointment row (always present) -->
-                                <div class="appointment-row" data-appointment-index="1">
-                                    <div class="appointment-row-header">
-                                        <div class="appointment-number">1</div>
-                                        <h6 style="margin: 0; flex: 1; padding-left: 12px">Appointment #1</h6>
-                                    </div>
-
-                                    <div class="row">
-                                        <div class="col-md-6 mb-3">
-                                            <label class="form-label">Service *</label>
-                                            <select class="form-select service-select" required onchange="updateAppointmentDetails(1)">
-                                                <option value="">Select service...</option>
-                                                {% if services %} {% for service in services %}
-                                                <option
-                                                    value="{{ service.id }}"
-                                                    data-duration="{{ service.duration }}"
-                                                    data-price="{{ service.price }}"
-                                                >
-                                                    {{ service.name }} - ${{ service.price }} ({{ service.duration }} min)
-                                                </option>
-                                                {% endfor %} {% endif %}
-                                            </select>
+                            <!-- Summary Cards -->
+                            <div class="row mb-3">
+                                <div class="col-md-4 mb-3">
+                                    <div
+                                        style="
+                                            background: linear-gradient(
+                                                135deg,
+                                                #dbeafe 0%,
+                                                #bfdbfe 100%
+                                            );
+                                            padding: 20px;
+                                            border-radius: 12px;
+                                            text-align: center;
+                                        "
+                                    >
+                                        <label
+                                            class="form-label fw-semibold"
+                                            style="
+                                                color: #1e40af;
+                                                margin-bottom: 10px;
+                                                font-size: 13px;
+                                            "
+                                        >
+                                            <i
+                                                class="fas fa-hourglass-half"
+                                            ></i>
+                                            TOTAL DURATION
+                                        </label>
+                                        <div
+                                            style="
+                                                font-size: 32px;
+                                                font-weight: 800;
+                                                color: #1e40af;
+                                            "
+                                            id="totalDurationDisplay"
+                                        >
+                                            0 min
                                         </div>
-                                        <div class="col-md-6 mb-3">
-                                            <label class="form-label">Assigned Staff *</label>
-                                            <select class="form-select staff-select" required>
-                                                <option value="">Select staff...</option>
-                                                {% if staff_members %} {% for staff in staff_members %}
-                                                <option value="{{ staff.id }}">
-                                                    {{ staff.first_name }} {{ staff.last_name }}
-                                                </option>
-                                                {% endfor %} {% endif %}
-                                            </select>
-                                        </div>
-                                        <div class="col-md-4 mb-3">
-                                            <label class="form-label">Date *</label>
-                                            <input type="date" class="form-control date-input" required value="{{ today }}">
-                                        </div>
-                                        <div class="col-md-4 mb-3">
-                                            <label class="form-label">Start Time *</label>
-                                            <input type="time" class="form-control time-input" required onchange="updateEndTime(1)">
-                                        </div>
-                                        <div class="col-md-4 mb-3">
-                                            <label class="form-label">End Time</label>
-                                            <input type="time" class="form-control end-time-input" readonly
-                                                   style="background-color: #f8f9fa;">
-                                        </div>
-                                        <div class="col-12 mb-3">
-                                            <div class="row">
-                                                <div class="col-md-6">
-                                                    <small class="text-muted">
-                                                        <i class="fas fa-clock me-1"></i>
-                                                        Duration: <span class="duration-display">- minutes</span>
-                                                    </small>
-                                                </div>
-                                                <div class="col-md-6 text-end">
-                                                    <small class="text-muted">
-                                                        <i class="fas fa-dollar-sign me-1"></i>
-                                                        Price: $<span class="price-display">0.00</span>
-                                                    </small>
-                                                </div>
-                                            </div>
-                                        </div>
+                                        <input
+                                            type="hidden"
+                                            id="totalDuration"
+                                            name="total_duration"
+                                            value="0"
+                                        />
                                     </div>
                                 </div>
-                            </div>
-
-                            <!-- Add Another Appointment Button -->
-                            <button
-                                type="button"
-                                class="add-appointment-btn"
-                                onclick="addAnotherAppointment()"
-                            >
-                                <i class="fas fa-plus"></i>
-                                Add Another Appointment
-                            </button>
-                        </div>
-
-                        <!-- Booking Summary Section -->
-                        <div class="booking-summary">
-                            <h6 style="color: var(--primary-color); font-weight: 700; margin-bottom: 16px;">
-                                <i class="fas fa-calculator"></i>
-                                Booking Summary
-                            </h6>
-
-                            <div class="summary-row">
-                                <span>Total Appointments:</span>
-                                <strong id="totalAppointments">1</strong>
-                            </div>
-                            <div class="summary-row">
-                                <span>Total Duration:</span>
-                                <strong id="totalDuration">0 minutes</strong>
-                            </div>
-                            <div class="summary-row">
-                                <span>Total Price:</span>
-                                <strong id="totalPrice">$0.00</strong>
-                            </div>
-
-                            <!-- Timeline Preview -->
-                            <div class="timeline-preview">
-                                <label style="font-weight: 600; margin-bottom: 8px;">Timeline Preview:</label>
-                                <div class="timeline-bar" id="timelineBarPreview">
-                                    <small style="position: absolute; top: -20px; left: 0; font-size: 10px; color: #6b7280;">9 AM</small>
-                                    <small style="position: absolute; top: -20px; right: 0; font-size: 10px; color: #6b7280;">6 PM</small>
+                                <div class="col-md-4 mb-3">
+                                    <div
+                                        style="
+                                            background: linear-gradient(
+                                                135deg,
+                                                #d1fae5 0%,
+                                                #a7f3d0 100%
+                                            );
+                                            padding: 20px;
+                                            border-radius: 12px;
+                                            text-align: center;
+                                        "
+                                    >
+                                        <label
+                                            class="form-label fw-semibold"
+                                            style="
+                                                color: #065f46;
+                                                margin-bottom: 10px;
+                                                font-size: 13px;
+                                            "
+                                        >
+                                            <i class="fas fa-dollar-sign"></i>
+                                            TOTAL PRICE
+                                        </label>
+                                        <div
+                                            style="
+                                                font-size: 32px;
+                                                font-weight: 800;
+                                                color: #065f46;
+                                            "
+                                            id="totalPriceDisplay"
+                                        >
+                                            $0.00
+                                        </div>
+                                        <input
+                                            type="hidden"
+                                            id="totalPrice"
+                                            name="total_price"
+                                            value="0"
+                                        />
+                                    </div>
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <div
+                                        style="
+                                            background: linear-gradient(
+                                                135deg,
+                                                #fef3c7 0%,
+                                                #fde68a 100%
+                                            );
+                                            padding: 20px;
+                                            border-radius: 12px;
+                                            text-align: center;
+                                        "
+                                    >
+                                        <label
+                                            class="form-label fw-semibold"
+                                            style="
+                                                color: #92400e;
+                                                margin-bottom: 10px;
+                                                font-size: 13px;
+                                            "
+                                        >
+                                            <i class="fas fa-clock"></i> END
+                                            TIME
+                                        </label>
+                                        <div
+                                            style="
+                                                font-size: 32px;
+                                                font-weight: 800;
+                                                color: #92400e;
+                                            "
+                                            id="endTimeDisplay"
+                                        >
+                                            --:--
+                                        </div>
+                                        <input
+                                            type="hidden"
+                                            id="endTime"
+                                            name="end_time"
+                                        />
+                                    </div>
                                 </div>
                             </div>
-                        </div>
 
-                        <!-- Notes Section -->
-                        <div class="mb-4">
-                            <label class="form-label fw-semibold">
-                                <i class="fas fa-sticky-note me-2" style="color: var(--primary-color)"></i>
-                                General Notes
-                            </label>
-                            <textarea
-                                id="generalNotes"
-                                class="form-control"
-                                rows="3"
-                                placeholder="Any special instructions or notes for all appointments..."
-                                style="border-radius: 10px;"
-                            ></textarea>
-                        </div>
+                            <!-- Notes -->
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold">
+                                    <i
+                                        class="fas fa-sticky-note me-2"
+                                        style="color: var(--primary-color)"
+                                    ></i>
+                                    Notes
+                                </label>
+                                <textarea
+                                    id="quickNotes"
+                                    name="notes"
+                                    class="form-control"
+                                    rows="3"
+                                    placeholder="Add any special instructions or notes..."
+                                    style="border-radius: 10px; padding: 12px"
+                                ></textarea>
+                            </div>
+                        </form>
                     </div>
-
-                    <!-- Modal Footer -->
-                    <div class="modal-footer" style="padding: 20px 24px; border-top: 2px solid var(--border-color);">
+                    <div
+                        class="modal-footer"
+                        style="
+                            border-top: 2px solid var(--border-color);
+                            padding: 16px 24px;
+                            background: #f9fafb;
+                        "
+                    >
                         <button
                             type="button"
                             class="btn btn-secondary"
                             data-bs-dismiss="modal"
-                            style="padding: 10px 20px; border-radius: 8px;"
+                            style="
+                                border-radius: 10px;
+                                padding: 12px 24px;
+                                font-weight: 600;
+                            "
                         >
-                            <i class="fas fa-times me-2"></i>
-                            Cancel
+                            <i class="fas fa-times me-2"></i>Cancel
                         </button>
                         <button
                             type="button"
                             class="btn btn-primary"
-                            onclick="submitMultipleAppointments()"
+                            onclick="processQuickBook()"
                             style="
-                                padding: 10px 20px;
-                                border-radius: 8px;
+                                border-radius: 10px;
+                                padding: 12px 24px;
                                 background: var(--primary-color);
-                                border-color: var(--primary-color);
+                                border: none;
+                                font-weight: 600;
+                                font-size: 15px;
                             "
                         >
-                            <i class="fas fa-calendar-check me-2"></i>
-                            Book All Appointments
+                            <i class="fas fa-check-circle me-2"></i>Book All
+                            Services
                         </button>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Include existing JavaScript -->
-        <script src="{{ url_for('static', filename='js/main.js') }}"></script>
-        <script src="{{ url_for('static', filename='js/appointment_context_menu.js') }}"></script>
-
-        <!-- Enhanced Multiple Appointments JavaScript -->
         <script>
-            let appointmentCounter = 1;
-            let scheduleData = null;
+            // Global variables
+            let selectedAppointmentId = null;
+            const currentDate = "{{ today }}";
+            let bookingsData = [];
 
-            // Initialize the booking system
-            document.addEventListener('DOMContentLoaded', function() {
-                loadScheduleData();
-                initializeEventListeners();
-                updateCurrentDate();
+            // Initialize on page load
+            document.addEventListener("DOMContentLoaded", function () {
+                loadBookings();
+                updateCurrentTimeLine();
+                setInterval(updateCurrentTimeLine, 60000);
+
+                setupTooltips();
+
+                document.addEventListener("click", function () {
+                    hideContextMenu();
+                });
+
+                // Setup service checkbox listeners
+                const serviceCheckboxes =
+                    document.querySelectorAll(".service-checkbox");
+                if (serviceCheckboxes.length > 0) {
+                    serviceCheckboxes.forEach((checkbox) => {
+                        checkbox.addEventListener(
+                            "change",
+                            calculateDurationAndPrice,
+                        );
+                    });
+                }
+
+                const startTimeInput = document.getElementById("quickTime");
+                if (startTimeInput) {
+                    startTimeInput.addEventListener("change", calculateEndTime);
+                }
+
+                // Keyboard shortcuts
+                document.addEventListener("keydown", function (e) {
+                    if (e.key === "n" && (e.ctrlKey || e.metaKey)) {
+                        e.preventDefault();
+                        openQuickBookModal();
+                    }
+                    if (e.key === "r" && (e.ctrlKey || e.metaKey)) {
+                        e.preventDefault();
+                        refreshSchedule();
+                    }
+                });
             });
 
-            function openMultiBookModal() {
-                const modal = new bootstrap.Modal(document.getElementById('multiBookModal'));
-                resetMultiBookForm();
+            // Setup tooltips
+            function setupTooltips() {
+                const tooltip = document.getElementById("tooltip");
+                const elementsWithTooltip =
+                    document.querySelectorAll("[data-tooltip]");
+
+                elementsWithTooltip.forEach((element) => {
+                    element.addEventListener("mouseenter", function (e) {
+                        const text = this.getAttribute("data-tooltip");
+                        tooltip.textContent = text;
+                        tooltip.classList.add("show");
+
+                        const rect = this.getBoundingClientRect();
+                        tooltip.style.left =
+                            rect.left +
+                            rect.width / 2 -
+                            tooltip.offsetWidth / 2 +
+                            "px";
+                        tooltip.style.top = rect.bottom + 8 + "px";
+                    });
+
+                    element.addEventListener("mouseleave", function () {
+                        tooltip.classList.remove("show");
+                    });
+                });
+            }
+
+            // Load bookings
+            function loadBookings() {
+                const overlay = document.getElementById("loadingOverlay");
+                overlay.classList.add("show");
+
+                fetch("/api/unaki/schedule?date=" + currentDate)
+                    .then((response) => response.json())
+                    .then((data) => {
+                        if (data.success) {
+                            bookingsData = data.appointments || [];
+                            renderBookings();
+                            updateStats();
+                        }
+                    })
+                    .catch((error) => {
+                        console.error("Error loading bookings:", error);
+                    })
+                    .finally(() => {
+                        overlay.classList.remove("show");
+                    });
+            }
+
+            // Update stats
+            function updateStats() {
+                const total = bookingsData.length;
+                const completed = bookingsData.filter(
+                    (b) => b.status === "completed",
+                ).length;
+
+                document.getElementById("totalBookings").textContent = total;
+                document.getElementById("completedBookings").textContent =
+                    completed;
+            }
+
+            // Render bookings
+            function renderBookings() {
+                document
+                    .querySelectorAll(".appointment-block")
+                    .forEach((el) => el.remove());
+
+                bookingsData.forEach((booking) => {
+                    const row = document.querySelector(
+                        `.timeline-row[data-staff-id="${booking.staffId}"]`,
+                    );
+                    if (!row) return;
+
+                    const [startHour, startMinute] = booking.startTime
+                        .split(":")
+                        .map(Number);
+                    const hoursSince9AM = startHour - 9 + startMinute / 60;
+                    const leftPosition = hoursSince9AM * 140;
+
+                    const durationHours = booking.duration / 60;
+                    const width = Math.max(durationHours * 140, 80);
+
+                    const serviceType = (booking.service || "")
+                        .toLowerCase()
+                        .replace(/\s+/g, "-");
+
+                    const block = document.createElement("div");
+                    block.className = `appointment-block service-${serviceType}`;
+                    block.style.left = `${leftPosition}px`;
+                    block.style.width = `${width}px`;
+                    block.dataset.appointmentId = booking.id;
+                    block.draggable = true;
+
+                    block.onclick = () => viewAppointment(booking.id);
+                    block.oncontextmenu = (e) => {
+                        showContextMenu(e, booking.id);
+                        return false;
+                    };
+
+                    block.ondragstart = (e) => {
+                        block.classList.add("dragging");
+                        e.dataTransfer.effectAllowed = "move";
+                        e.dataTransfer.setData("appointmentId", booking.id);
+                    };
+
+                    block.ondragend = () => {
+                        block.classList.remove("dragging");
+                    };
+
+                    block.innerHTML = `
+            <div class="appointment-header">
+                <div class="appointment-client">${booking.clientName}</div>
+                <div class="appointment-status"></div>
+            </div>
+            <div class="appointment-service">${booking.service}</div>
+            <div class="appointment-footer">
+                <div class="appointment-time">
+                    <i class="fas fa-clock"></i>
+                    ${booking.startTime}
+                </div>
+                <div class="appointment-duration">${booking.duration}m</div>
+            </div>
+        `;
+
+                    row.appendChild(block);
+                });
+            }
+
+            // Calculate total duration and price from selected services
+            function calculateDurationAndPrice() {
+                const checkboxes = document.querySelectorAll(
+                    ".service-checkbox:checked",
+                );
+
+                let totalDuration = 0;
+                let totalPrice = 0;
+                let selectedServices = [];
+
+                checkboxes.forEach((checkbox) => {
+                    const duration = parseInt(checkbox.dataset.duration) || 60;
+                    const price = parseFloat(checkbox.dataset.price) || 0;
+                    const name = checkbox.dataset.name;
+
+                    totalDuration += duration;
+                    totalPrice += price;
+                    selectedServices.push({ name, duration, price });
+                });
+
+                // Update duration and price displays
+                document.getElementById("totalDuration").value = totalDuration;
+                document.getElementById("totalDurationDisplay").textContent =
+                    totalDuration + " min";
+                document.getElementById("totalPrice").value =
+                    totalPrice.toFixed(2);
+                document.getElementById("totalPriceDisplay").textContent =
+                    "$" + totalPrice.toFixed(2);
+
+                // Update selected services summary
+                const summary = document.getElementById(
+                    "selectedServicesSummary",
+                );
+                const list = document.getElementById("selectedServicesList");
+
+                if (selectedServices.length > 0) {
+                    summary.style.display = "block";
+                    list.innerHTML = selectedServices
+                        .map(
+                            (s, i) =>
+                                `<div style="padding: 6px 0; display: flex; justify-content: space-between; ${i > 0 ? "border-top: 1px solid rgba(67, 56, 202, 0.2); padding-top: 8px; margin-top: 6px;" : ""}">
+                <span><strong>${s.name}</strong> <span style="color: #6b7280;">(${s.duration} min)</span></span>
+                <span style="color: #4338ca; font-weight: 700;">$${s.price.toFixed(2)}</span>
+            </div>`,
+                        )
+                        .join("");
+                } else {
+                    summary.style.display = "none";
+                }
+
+                calculateEndTime();
+            }
+
+            // Calculate end time
+            function calculateEndTime() {
+                const startTime = document.getElementById("quickTime").value;
+                const duration =
+                    parseInt(document.getElementById("totalDuration").value) ||
+                    0;
+
+                if (!startTime || duration === 0) {
+                    document.getElementById("endTime").value = "";
+                    document.getElementById("endTimeDisplay").textContent =
+                        "--:--";
+                    return;
+                }
+
+                const [hours, minutes] = startTime.split(":").map(Number);
+                const startDate = new Date();
+                startDate.setHours(hours, minutes, 0);
+
+                const endDate = new Date(
+                    startDate.getTime() + duration * 60000,
+                );
+                const endTimeStr = endDate.toTimeString().substr(0, 5);
+
+                document.getElementById("endTime").value = endTimeStr;
+                document.getElementById("endTimeDisplay").textContent =
+                    endTimeStr;
+            }
+
+            // Navigate date
+            function navigateDate(days) {
+                const date = new Date(currentDate);
+                date.setDate(date.getDate() + days);
+                const newDate = date.toISOString().split("T")[0];
+                window.location.href = `{{ url_for('unaki_booking') }}?date=${newDate}`;
+            }
+
+            // Navigate to today
+            function navigateToToday() {
+                const today = new Date().toISOString().split("T")[0];
+                window.location.href = `{{ url_for('unaki_booking') }}?date=${today}`;
+            }
+
+            // Refresh schedule
+            function refreshSchedule() {
+                loadBookings();
+
+                const btn = event.target.closest(".action-icon");
+                btn.style.transform = "rotate(360deg)";
+                setTimeout(() => {
+                    btn.style.transform = "rotate(0deg)";
+                }, 600);
+            }
+
+            // Handle slot click
+            function handleSlotClick(event, staffId, hour, minute) {
+                event.stopPropagation();
+
+                const slot = event.currentTarget;
+                const rect = slot.getBoundingClientRect();
+                const clickX = event.clientX - rect.left;
+                const slotWidth = rect.width;
+
+                const minuteOffset =
+                    Math.floor(((clickX / slotWidth) * 60) / 15) * 15;
+                const time = `${String(hour).padStart(2, "0")}:${String(minuteOffset).padStart(2, "0")}`;
+
+                openQuickBookModalWithData(staffId, currentDate, time);
+            }
+
+            // Open modal
+            function openQuickBookModal() {
+                const modal = new bootstrap.Modal(
+                    document.getElementById("quickBookModal"),
+                );
                 modal.show();
             }
 
-            function resetMultiBookForm() {
-                appointmentCounter = 1;
-                document.getElementById('multiClientSelect').value = '';
-                document.getElementById('clientProfilePreview').classList.remove('show');
-                document.getElementById('newClientFieldsMulti').style.display = 'none';
-
-                // Reset appointments list to just one appointment
-                const appointmentsList = document.getElementById('appointmentsList');
-                appointmentsList.innerHTML = createAppointmentRow(1);
-
-                updateBookingSummary();
-                updateTimelinePreview();
+            // Open modal with data
+            function openQuickBookModalWithData(staffId, date, time) {
+                document.getElementById("quickStaff").value = staffId;
+                document.getElementById("quickDate").value = date;
+                document.getElementById("quickTime").value = time;
+                calculateEndTime();
+                openQuickBookModal();
             }
 
-            function showClientPreview(clientId) {
-                const preview = document.getElementById('clientProfilePreview');
-                const newClientFields = document.getElementById('newClientFieldsMulti');
+            // Process booking
+            function processQuickBook() {
+                const form = document.getElementById("quickBookForm");
 
-                if (clientId === 'new') {
-                    preview.classList.remove('show');
-                    newClientFields.style.display = 'block';
-                    // Clear new client name if it was previously filled
-                    document.getElementById('newClientNameMulti').value = '';
-                    return;
-                } else {
-                    newClientFields.style.display = 'none';
-                }
-
-                if (!clientId) {
-                    preview.classList.remove('show');
+                // Validate form
+                if (!form.checkValidity()) {
+                    form.reportValidity();
                     return;
                 }
 
-                const option = document.querySelector(`#multiClientSelect option[value="${clientId}"]`);
-                if (option) {
-                    document.getElementById('previewPhone').textContent = option.dataset.phone || '-';
-                    document.getElementById('previewEmail').textContent = option.dataset.email || '-';
-                    document.getElementById('previewVisits').textContent = option.dataset.visits || '0';
-                    document.getElementById('previewLastVisit').textContent = option.dataset.lastVisit || 'Never';
-                    preview.classList.add('show');
-                }
-            }
-
-            function createAppointmentRow(index) {
-                // Get today's date in YYYY-MM-DD format
-                const today = new Date().toISOString().split('T')[0];
-                
-                return `
-                    <div class="appointment-row" data-appointment-index="${index}">
-                        <div class="appointment-row-header">
-                            <div class="appointment-number">${index}</div>
-                            <h6 style="margin: 0; flex: 1; padding-left: 12px">Appointment #${index}</h6>
-                            ${index > 1 ? `
-                                <button type="button" class="remove-appointment-btn" onclick="removeAppointment(${index})">
-                                    <i class="fas fa-times"></i>
-                                </button>
-                            ` : ''}
-                        </div>
-
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Service *</label>
-                                <select class="form-select service-select" required onchange="updateAppointmentDetails(${index})">
-                                    <option value="">Select service...</option>
-                                    {% if services %} {% for service in services %}
-                                    <option
-                                        value="{{ service.id }}"
-                                        data-duration="{{ service.duration }}"
-                                        data-price="{{ service.price }}"
-                                    >
-                                        {{ service.name }} - ${{ service.price }} ({{ service.duration }} min)
-                                    </option>
-                                    {% endfor %} {% endif %}
-                                </select>
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Assigned Staff *</label>
-                                <select class="form-select staff-select" required>
-                                    <option value="">Select staff...</option>
-                                    {% if staff_members %} {% for staff in staff_members %}
-                                    <option value="{{ staff.id }}">
-                                        {{ staff.first_name }} {{ staff.last_name }}
-                                    </option>
-                                    {% endfor %} {% endif %}
-                                </select>
-                            </div>
-                            <div class="col-md-4 mb-3">
-                                <label class="form-label">Date *</label>
-                                <input type="date" class="form-control date-input" required value="${today}">
-                            </div>
-                            <div class="col-md-4 mb-3">
-                                <label class="form-label">Start Time *</label>
-                                <input type="time" class="form-control time-input" required onchange="updateEndTime(${index})">
-                            </div>
-                            <div class="col-md-4 mb-3">
-                                <label class="form-label">End Time</label>
-                                <input type="time" class="form-control end-time-input" readonly
-                                       style="background-color: #f8f9fa;">
-                            </div>
-                            <div class="col-12 mb-3">
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        <small class="text-muted">
-                                            <i class="fas fa-clock me-1"></i>
-                                            Duration: <span class="duration-display">- minutes</span>
-                                        </small>
-                                    </div>
-                                    <div class="col-md-6 text-end">
-                                        <small class="text-muted">
-                                            <i class="fas fa-dollar-sign me-1"></i>
-                                            Price: $<span class="price-display">0.00</span>
-                                        </small>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                `;
-            }
-
-            function addAnotherAppointment() {
-                appointmentCounter++;
-                const appointmentsList = document.getElementById('appointmentsList');
-                appointmentsList.insertAdjacentHTML('beforeend', createAppointmentRow(appointmentCounter));
-                updateBookingSummary();
-                updateTimelinePreview();
-            }
-
-            function removeAppointment(index) {
-                const appointmentRow = document.querySelector(`[data-appointment-index="${index}"]`);
-                if (appointmentRow) {
-                    appointmentRow.remove();
-                    updateBookingSummary();
-                    // Update appointment numbers if needed, but for now, just re-render summary and preview
-                    updateTimelinePreview();
-                }
-            }
-
-            function updateAppointmentDetails(index) {
-                const appointmentRow = document.querySelector(`[data-appointment-index="${index}"]`);
-                const serviceSelect = appointmentRow.querySelector('.service-select');
-                const selectedOption = serviceSelect.options[serviceSelect.selectedIndex];
-
-                if (selectedOption.value) {
-                    const duration = selectedOption.dataset.duration;
-                    const price = selectedOption.dataset.price;
-
-                    appointmentRow.querySelector('.duration-display').textContent = duration + ' minutes';
-                    appointmentRow.querySelector('.price-display').textContent = parseFloat(price).toFixed(2);
-
-                    updateEndTime(index);
-                    updateBookingSummary();
-                    updateTimelinePreview();
-                } else {
-                    // Reset if no service is selected
-                    appointmentRow.querySelector('.duration-display').textContent = '- minutes';
-                    appointmentRow.querySelector('.price-display').textContent = '0.00';
-                    appointmentRow.querySelector('.end-time-input').value = '';
-                    updateBookingSummary();
-                    updateTimelinePreview();
-                }
-            }
-
-            function updateEndTime(index) {
-                const appointmentRow = document.querySelector(`[data-appointment-index="${index}"]`);
-                const timeInput = appointmentRow.querySelector('.time-input');
-                const endTimeInput = appointmentRow.querySelector('.end-time-input');
-                const serviceSelect = appointmentRow.querySelector('.service-select');
-                const selectedOption = serviceSelect.options[serviceSelect.selectedIndex];
-
-                if (timeInput.value && selectedOption.value) {
-                    const startTime = timeInput.value;
-                    const duration = parseInt(selectedOption.dataset.duration);
-
-                    const [hours, minutes] = startTime.split(':').map(Number);
-                    const startDate = new Date();
-                    startDate.setHours(hours, minutes, 0, 0);
-
-                    const endDate = new Date(startDate.getTime() + duration * 60000);
-                    const endTime = endDate.toTimeString().slice(0, 5);
-
-                    endTimeInput.value = endTime;
-                    updateTimelinePreview();
-                } else {
-                    endTimeInput.value = ''; // Clear end time if start time or service is missing
-                }
-            }
-
-            function updateBookingSummary() {
-                const appointmentRows = document.querySelectorAll('.appointment-row');
-                let totalCount = appointmentRows.length;
-                let totalDuration = 0;
-                let totalPrice = 0;
-
-                appointmentRows.forEach(row => {
-                    const serviceSelect = row.querySelector('.service-select');
-                    const selectedOption = serviceSelect.options[serviceSelect.selectedIndex];
-
-                    if (selectedOption && selectedOption.value) {
-                        totalDuration += parseInt(selectedOption.dataset.duration);
-                        totalPrice += parseFloat(selectedOption.dataset.price);
-                    }
-                });
-
-                document.getElementById('totalAppointments').textContent = totalCount;
-                document.getElementById('totalDuration').textContent = totalDuration + ' minutes';
-                document.getElementById('totalPrice').textContent = '$' + totalPrice.toFixed(2);
-            }
-
-            function updateTimelinePreview() {
-                const timelineBar = document.getElementById('timelineBarPreview');
-                timelineBar.innerHTML = `
-                    <small style="position: absolute; top: -20px; left: 0; font-size: 10px; color: #6b7280;">9 AM</small>
-                    <small style="position: absolute; top: -20px; right: 0; font-size: 10px; color: #6b7280;">6 PM</small>
-                `; // Reset and add labels
-
-                const appointmentRows = document.querySelectorAll('.appointment-row');
-                const appointments = [];
-
-                appointmentRows.forEach(row => {
-                    const timeInput = row.querySelector('.time-input');
-                    const serviceSelect = row.querySelector('.service-select');
-                    const selectedOption = serviceSelect.options[serviceSelect.selectedIndex];
-
-                    if (timeInput.value && selectedOption && selectedOption.value) {
-                        const startTime = timeInput.value;
-                        const duration = parseInt(selectedOption.dataset.duration);
-                        const serviceName = selectedOption.textContent.split(' - ')[0];
-
-                        appointments.push({
-                            startTime,
-                            duration,
-                            serviceName
-                        });
-                    }
-                });
-
-                // Sort appointments by start time
-                appointments.sort((a, b) => a.startTime.localeCompare(b.startTime));
-
-                // Add appointments to timeline (simplified visualization)
-                appointments.forEach((apt, index) => {
-                    const [hours, minutes] = apt.startTime.split(':').map(Number);
-                    // Calculate minutes from 9 AM (which is 9 * 60 minutes from midnight)
-                    const startMinutesFrom9AM = (hours - 9) * 60 + minutes; 
-                    // Total duration of the visible timeline in minutes (9 AM to 6 PM = 9 hours = 540 minutes)
-                    const totalTimelineMinutes = 9 * 60; 
-
-                    const leftPercentage = (startMinutesFrom9AM / totalTimelineMinutes) * 100;
-                    // Ensure width calculation considers the total timeline duration
-                    const widthPercentage = (apt.duration / totalTimelineMinutes) * 100;
-
-                    const colors = ['#3b82f6', '#a855f7', '#f43f5e', '#22c55e', '#f97316'];
-                    const color = colors[index % colors.length];
-
-                    const appointmentElement = document.createElement('div');
-                    appointmentElement.className = 'timeline-appointment';
-                    appointmentElement.style.left = leftPercentage + '%';
-                    appointmentElement.style.width = Math.max(widthPercentage, 2) + '%'; // Minimum width to be visible
-                    appointmentElement.style.backgroundColor = color;
-                    appointmentElement.textContent = apt.serviceName.substring(0, 10) + (apt.serviceName.length > 10 ? '...' : '');
-                    appointmentElement.title = `${apt.serviceName} (${apt.startTime} - ${apt.duration} min)`;
-
-                    timelineBar.appendChild(appointmentElement);
-                });
-            }
-
-            function submitMultipleAppointments() {
-                const clientSelect = document.getElementById('multiClientSelect');
-                const newClientNameInput = document.getElementById('newClientNameMulti');
-                const generalNotes = document.getElementById('generalNotes');
-
-                // Validate client selection
-                if (!clientSelect.value) {
-                    alert('Please select a client');
-                    clientSelect.focus();
+                // Check if at least one service is selected
+                const selectedServices = document.querySelectorAll(
+                    ".service-checkbox:checked",
+                );
+                if (selectedServices.length === 0) {
+                    alert("Please select at least one service");
                     return;
                 }
 
-                let clientNameValue = '';
-                if (clientSelect.value === 'new') {
-                    if (!newClientNameInput.value.trim()) {
-                        alert('Please enter the new client name');
-                        newClientNameInput.focus();
-                        return;
-                    }
-                    clientNameValue = newClientNameInput.value.trim();
-                } else {
-                    clientNameValue = clientSelect.options[clientSelect.selectedIndex].textContent;
-                }
+                const overlay = document.getElementById("loadingOverlay");
+                overlay.classList.add("show");
 
-                // Collect all appointments data
-                const appointmentRows = document.querySelectorAll('.appointment-row');
-                const appointments = [];
-                let hasErrors = false;
+                // Get form data
+                const formData = new FormData(form);
+                const serviceIds = Array.from(selectedServices).map(
+                    (s) => s.value,
+                );
 
-                appointmentRows.forEach((row, index) => {
-                    const serviceSelect = row.querySelector('.service-select');
-                    const staffSelect = row.querySelector('.staff-select');
-                    const dateInput = row.querySelector('.date-input');
-                    const timeInput = row.querySelector('.time-input');
-                    const endTimeInput = row.querySelector('.end-time-input');
-                    const serviceOption = serviceSelect.options[serviceSelect.selectedIndex];
-
-                    if (!serviceSelect.value || !staffSelect.value || !dateInput.value || !timeInput.value || !endTimeInput.value) {
-                        alert(`Please fill all required fields for Appointment #${index + 1}`);
-                        hasErrors = true;
-                        return;
-                    }
-                    
-                    // Ensure service is selected
-                    if (!serviceOption || !serviceOption.value) {
-                        alert(`Please select a service for Appointment #${index + 1}`);
-                        hasErrors = true;
-                        return;
-                    }
-
-                    appointments.push({
-                        serviceId: serviceSelect.value,
-                        serviceName: serviceOption.textContent.split(' - ')[0], // Extract service name
-                        staffId: staffSelect.value,
-                        appointmentDate: dateInput.value,
-                        startTime: timeInput.value,
-                        duration: parseInt(serviceOption.dataset.duration),
-                        price: parseFloat(serviceOption.dataset.price)
-                    });
-                });
-
-                if (hasErrors) {
-                    return;
-                }
-
-                // Prepare submission data
-                const submissionData = {
-                    clientId: clientSelect.value === 'new' ? null : clientSelect.value,
-                    clientName: clientNameValue,
-                    appointments: appointments,
-                    notes: generalNotes.value.trim()
+                const data = {
+                    clientName: formData.get("client_name"),
+                    clientPhone: formData.get("client_phone"),
+                    staffId: parseInt(formData.get("staff_id")),
+                    serviceType: Array.from(selectedServices)
+                        .map((s) => s.dataset.name)
+                        .join(", "),
+                    startTime: formData.get("start_time"),
+                    endTime: document.getElementById("endTime").value,
+                    date: formData.get("booking_date"),
+                    notes: formData.get("notes") || "",
                 };
 
-                // Submit via API
-                submitMultipleAppointmentsAPI(submissionData);
-            }
-
-            function submitMultipleAppointmentsAPI(data) {
-                const submitButton = document.querySelector('#multiBookModal .btn-primary');
-                const originalText = submitButton.innerHTML;
-
-                submitButton.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Booking...';
-                submitButton.disabled = true;
-
-                // Submit each appointment
-                const promises = data.appointments.map(appointment => {
-                    const appointmentData = {
-                        clientId: data.clientId,
-                        clientName: data.clientName,
-                        serviceType: appointment.serviceName,
-                        staffId: appointment.staffId,
-                        date: appointment.appointmentDate,
-                        startTime: appointment.startTime,
-                        endTime: calculateEndTime(appointment.startTime, appointment.duration),
-                        notes: data.notes
-                    };
-
-                    return fetch('/api/unaki/create-appointment', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify(appointmentData)
-                    });
-                });
-
-                Promise.all(promises)
-                    .then(responses => Promise.all(responses.map(r => r.json())))
-                    .then(results => {
-                        const successCount = results.filter(r => r.success).length;
-                        const failCount = results.length - successCount;
-
-                        if (failCount === 0) {
-                            alert(`✅ Successfully booked ${successCount} appointments!`);
-                            document.getElementById('multiBookModal').querySelector('.btn-close').click();
-                            refreshSchedule();
+                // Submit via AJAX
+                fetch("/api/unaki/create-appointment", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify(data),
+                })
+                    .then((response) => response.json())
+                    .then((result) => {
+                        overlay.classList.remove("show");
+                        if (result.success) {
+                            bootstrap.Modal.getInstance(
+                                document.getElementById("quickBookModal"),
+                            ).hide();
+                            showNotification(
+                                "Appointment(s) booked successfully!",
+                                "success",
+                            );
+                            loadBookings();
+                            form.reset();
+                            // Clear all checkboxes
+                            document
+                                .querySelectorAll(".service-checkbox")
+                                .forEach((cb) => (cb.checked = false));
+                            calculateDurationAndPrice();
                         } else {
-                            // More specific error handling might be needed here based on API responses
-                            alert(`⚠️ Booked ${successCount} appointments, ${failCount} failed. Please check for conflicts or try again.`);
+                            showNotification(
+                                "Error: " +
+                                    (result.error ||
+                                        "Failed to book appointment"),
+                                "error",
+                            );
                         }
                     })
-                    .catch(error => {
-                        console.error('Error booking appointments:', error);
-                        alert('❌ Error booking appointments. Please try again.');
-                    })
-                    .finally(() => {
-                        submitButton.innerHTML = originalText;
-                        submitButton.disabled = false;
+                    .catch((error) => {
+                        overlay.classList.remove("show");
+                        console.error("Error:", error);
+                        showNotification(
+                            "An error occurred while booking",
+                            "error",
+                        );
                     });
             }
 
-            function calculateEndTime(startTime, duration) {
-                const [hours, minutes] = startTime.split(':').map(Number);
-                const startDate = new Date();
-                startDate.setHours(hours, minutes, 0, 0);
-
-                const endDate = new Date(startDate.getTime() + duration * 60000);
-                return endDate.toTimeString().slice(0, 5);
+            // Show notification
+            function showNotification(message, type) {
+                alert(message);
             }
 
-            // Initialize event listeners for dynamic elements
-            function initializeEventListeners() {
-                // Add event listeners for dynamic content
-                document.addEventListener('change', function(e) {
-                    if (e.target.classList.contains('service-select')) {
-                        const appointmentRow = e.target.closest('.appointment-row');
-                        const index = appointmentRow.dataset.appointmentIndex;
-                        updateAppointmentDetails(index);
-                    }
-
-                    if (e.target.classList.contains('time-input')) {
-                        const appointmentRow = e.target.closest('.appointment-row');
-                        const index = appointmentRow.dataset.appointmentIndex;
-                        updateEndTime(index);
-                    }
-                });
+            // View appointment
+            function viewAppointment(appointmentId) {
+                selectedAppointmentId = appointmentId;
+                alert("View appointment " + appointmentId);
             }
 
-            // Load schedule data and existing functions
-            function loadScheduleData() {
-                const currentDate = document.getElementById('currentDateDisplay').textContent;
+            // Context menu
+            function showContextMenu(event, appointmentId) {
+                event.preventDefault();
+                selectedAppointmentId = appointmentId;
 
-                fetch(`/api/unaki/schedule?date=${currentDate}`)
-                    .then(response => response.json())
-                    .then(data => {
-                        scheduleData = data;
-                        renderSchedule(data);
-                        updateStats(data);
-                    })
-                    .catch(error => {
-                        console.error('Error loading schedule:', error);
-                    });
+                const contextMenu = document.getElementById("contextMenu");
+                contextMenu.style.left = event.pageX + "px";
+                contextMenu.style.top = event.pageY + "px";
+                contextMenu.classList.add("show");
             }
 
-            function renderSchedule(data) {
-                if (!data.success) {
-                    console.error('Schedule data load failed:', data.error);
-                    return;
-                }
-
-                console.log('🔄 Starting schedule render...');
-                console.log('📊 Schedule data:', data);
-
-                const timelineGrid = document.getElementById('timelineGrid');
-
-                // Clear existing appointments
-                document.querySelectorAll('.appointment-block').forEach(block => block.remove());
-
-                // Render appointments
-                if (data.appointments) {
-                    data.appointments.forEach(appointment => {
-                        const staffRow = timelineGrid.querySelector(`[data-staff-id="${appointment.staffId}"]`);
-                        if (staffRow) {
-                            const appointmentBlock = createAppointmentBlock(appointment);
-                            staffRow.appendChild(appointmentBlock);
-                        }
-                    });
-                }
-
-                console.log('✅ Schedule rendered successfully');
-
-                // Reinitialize context menu
-                console.log('🔄 Reinitializing context menu after schedule render...');
-                initializeContextMenu(); // Assuming this function exists and is needed
+            function hideContextMenu() {
+                const contextMenu = document.getElementById("contextMenu");
+                contextMenu.classList.remove("show");
             }
 
-            function createAppointmentBlock(appointment) {
-                const block = document.createElement('div');
-                block.className = 'appointment-block service-default'; // Default class
-                block.dataset.appointmentId = appointment.id;
-
-                // Calculate position
-                const startTime = appointment.startTime;
-                const [hours, minutes] = startTime.split(':').map(Number);
-                const startHour = hours;
-                const startMinute = minutes;
-
-                // Position calculation (140px per hour, starting from 9 AM)
-                // Offset from 9 AM in hours
-                const hourOffset = startHour - 9; 
-                // Offset from the start of the hour in fractions of an hour
-                const minuteOffset = startMinute / 60; 
-                // Total offset in hours from 9 AM
-                const totalHourOffset = hourOffset + minuteOffset; 
-                // Position in pixels (140px per hour)
-                const leftPosition = totalHourOffset * 140; 
-
-                // Width calculation based on duration
-                const durationHours = appointment.duration / 60;
-                // Width in pixels (140px per hour), subtract a small amount for spacing/margins if needed
-                const width = durationHours * 140 - 8; 
-
-                block.style.left = leftPosition + 'px';
-                block.style.width = Math.max(width, 80) + 'px'; // Ensure a minimum width
-
-                // Determine service type for styling
-                let serviceType = 'default';
-                if (appointment.service) {
-                    const serviceLower = appointment.service.toLowerCase();
-                    if (serviceLower.includes('massage')) serviceType = 'massage';
-                    else if (serviceLower.includes('facial')) serviceType = 'facial';
-                    else if (serviceLower.includes('manicure')) serviceType = 'manicure';
-                    else if (serviceLower.includes('pedicure')) serviceType = 'pedicure';
-                    else if (serviceLower.includes('haircut')) serviceType = 'haircut';
-                    else if (serviceLower.includes('waxing')) serviceType = 'waxing';
-                    // Add more service type mappings as needed
-                }
-
-                block.className = `appointment-block service-${serviceType}`;
-
-                block.innerHTML = `
-                    <div class="appointment-header">
-                        <div class="appointment-client">${appointment.clientName}</div>
-                        <div class="appointment-status"></div>
-                    </div>
-                    <div class="appointment-service">${appointment.service}</div>
-                    <div class="appointment-footer">
-                        <div class="appointment-time">
-                            <i class="fas fa-clock"></i>
-                            ${startTime}
-                        </div>
-                        <div class="appointment-duration">${appointment.duration}m</div>
-                    </div>
-                `;
-
-                console.log(`🔍 Setting appointment block ID: ${appointment.id} for ${appointment.clientName}`);
-
-                // Add event listeners for drag and context menu
-                block.draggable = true;
-                block.ondragstart = (e) => {
-                    block.classList.add("dragging");
-                    e.dataTransfer.effectAllowed = "move";
-                    e.dataTransfer.setData("appointmentId", appointment.id);
-                };
-                block.ondragend = () => {
-                    block.classList.remove("dragging");
-                };
-                block.onclick = () => viewAppointment(appointment.id); // Assuming viewAppointment exists
-                block.oncontextmenu = (e) => {
-                    showContextMenu(e, appointment.id); // Assuming showContextMenu exists
-                    return false;
-                };
-
-                return block;
-            }
-
-            function updateStats(data) {
-                document.getElementById('totalBookings').textContent = data.appointments ? data.appointments.length : 0;
-                const completed = data.appointments ? data.appointments.filter(apt => apt.status === 'completed').length : 0;
-                document.getElementById('completedBookings').textContent = completed;
-            }
-
-            function updateCurrentDate() {
-                const today = new Date();
-                const dateStr = today.toISOString().split('T')[0];
-                document.getElementById('currentDateDisplay').textContent = dateStr;
-            }
-
-            function navigateDate(direction) {
-                const currentDisplay = document.getElementById('currentDateDisplay');
-                const currentDate = new Date(currentDisplay.textContent);
-                currentDate.setDate(currentDate.getDate() + direction);
-
-                const newDateStr = currentDate.toISOString().split('T')[0];
-                currentDisplay.textContent = newDateStr;
-
-                loadScheduleData();
-            }
-
-            function navigateToToday() {
-                updateCurrentDate();
-                loadScheduleData();
-            }
-
-            function refreshSchedule() {
-                loadScheduleData();
-            }
-
-            function handleSlotClick(event, staffId, hour, minute) {
-                console.log(`Slot clicked: Staff ${staffId}, ${hour}:${minute.toString().padStart(2, '0')}`);
-                // For now, open the multi-book modal
-                openMultiBookModal();
-            }
-
-            // Context menu functions (stubs) - These should ideally link to actual logic
             function viewAppointmentDetails() {
-                console.log('View appointment details');
-                // Implement actual view details logic, possibly using selectedAppointmentId
+                if (selectedAppointmentId) {
+                    alert(
+                        "View details for appointment " + selectedAppointmentId,
+                    );
+                }
+                hideContextMenu();
             }
 
             function editAppointment() {
-                console.log('Edit appointment');
-                // Implement actual edit logic
+                if (selectedAppointmentId) {
+                    alert("Edit appointment " + selectedAppointmentId);
+                }
+                hideContextMenu();
             }
 
             function checkInAppointment() {
-                console.log('Check in appointment');
-                // Implement actual check-in logic
+                if (selectedAppointmentId) {
+                    alert("Check in appointment " + selectedAppointmentId);
+                }
+                hideContextMenu();
             }
 
             function duplicateAppointment() {
-                console.log('Duplicate appointment');
-                // Implement actual duplicate logic
+                if (selectedAppointmentId) {
+                    alert("Duplicate appointment " + selectedAppointmentId);
+                }
+                hideContextMenu();
             }
 
             function cancelAppointment() {
-                console.log('Cancel appointment');
-                // Implement actual cancel logic
+                if (
+                    selectedAppointmentId &&
+                    confirm("Are you sure you want to cancel this appointment?")
+                ) {
+                    alert("Cancel appointment " + selectedAppointmentId);
+                }
+                hideContextMenu();
             }
 
-            // Assume initializeContextMenu is defined elsewhere or integrate its logic here
-            function initializeContextMenu() {
-                // This function would typically set up event listeners for showing/hiding the context menu
-                // and updating the selectedAppointmentId based on the right-clicked element.
-                // For now, it's a placeholder.
-                console.log("ContextMenu initialization placeholder.");
-            }
-            
-            // Dummy function for context menu to avoid errors if not defined elsewhere
-            function showContextMenu(event, appointmentId) {
-                console.log(`Context menu requested for appointment ${appointmentId}`);
-                // In a real scenario, you'd show the context menu here
-                // For now, just prevent default and log.
-                event.preventDefault();
-                // Example: Add 'show' class to context menu element and position it
-                // document.getElementById('contextMenu').classList.add('show');
-                // document.getElementById('contextMenu').style.left = event.pageX + 'px';
-                // document.getElementById('contextMenu').style.top = event.pageY + 'px';
-            }
+            // Update current time line
+            function updateCurrentTimeLine() {
+                const now = new Date();
+                const currentHour = now.getHours();
+                const currentMinute = now.getMinutes();
 
-            // Dummy function to avoid errors
-            function hideContextMenu() {
-                console.log("Context menu hide requested.");
-                // Example: document.getElementById('contextMenu').classList.remove('show');
-            }
+                if (currentHour >= 9 && currentHour < 22) {
+                    const timeLine = document.getElementById("currentTimeLine");
+                    const timeLabel =
+                        document.getElementById("currentTimeLabel");
 
-            // Dummy function for viewing appointment
-            function viewAppointment(appointmentId) {
-                console.log(`Viewing appointment: ${appointmentId}`);
-                // Implement actual viewing logic
-            }
+                    const hoursSince9AM = currentHour - 9;
+                    const minuteOffset = currentMinute / 60;
+                    const leftPosition = (hoursSince9AM + minuteOffset) * 140;
 
+                    const timeStr = now.toLocaleTimeString("en-US", {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                        hour12: true,
+                    });
+
+                    timeLabel.textContent = timeStr;
+                    timeLine.style.left = leftPosition + "px";
+                    timeLine.style.display = "block";
+                }
+            }
         </script>
     </body>
 </html>
