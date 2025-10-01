@@ -3,7 +3,7 @@
     <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>Unaki Appointment Booking - Multi-Service</title>
+        <title>Unaki Appointment Booking</title>
         <!-- Bootstrap CSS -->
         <link
             href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
@@ -21,8 +21,6 @@
             href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
             rel="stylesheet"
         />
-        <!-- Bootstrap JavaScript Bundle -->
-        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
         <style>
             * {
                 margin: 0;
@@ -36,13 +34,11 @@
                 --success-color: #10b981;
                 --danger-color: #ef4444;
                 --warning-color: #f59e0b;
-                --info-color: #06b6d4;
                 --border-color: #e5e7eb;
                 --hover-bg: #f9fafb;
                 --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
                 --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
                 --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-                --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
             }
 
             body {
@@ -55,11 +51,11 @@
             }
 
             .booking-container {
-                max-width: 900px;
+                max-width: 800px;
                 margin: 0 auto;
                 background: white;
                 border-radius: 16px;
-                box-shadow: var(--shadow-xl);
+                box-shadow: var(--shadow-lg);
                 overflow: hidden;
             }
 
@@ -84,11 +80,11 @@
                 padding: 32px;
             }
 
-            .section-border {
+            .section-box {
                 border: 2px solid var(--border-color);
                 border-radius: 12px;
-                padding: 24px;
-                margin-bottom: 24px;
+                padding: 20px;
+                margin-bottom: 20px;
                 background: #f8f9fa;
             }
 
@@ -119,74 +115,16 @@
                 display: block;
             }
 
+            .appointment-section {
+                background: #fff;
+                border-color: #dee2e6;
+            }
+
             .appointment-row {
-                background: white;
-                border: 1px solid var(--border-color);
-                border-radius: 8px;
-                padding: 20px;
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 16px;
                 margin-bottom: 16px;
-                position: relative;
-                transition: all 0.3s ease;
-            }
-
-            .appointment-row:hover {
-                box-shadow: var(--shadow-md);
-                border-color: var(--primary-color);
-            }
-
-            .appointment-row-header {
-                display: flex;
-                justify-content: between;
-                align-items: center;
-                margin-bottom: 16px;
-            }
-
-            .appointment-number {
-                background: var(--primary-color);
-                color: white;
-                width: 28px;
-                height: 28px;
-                border-radius: 50%;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                font-weight: 700;
-                font-size: 14px;
-            }
-
-            .remove-appointment {
-                background: var(--danger-color);
-                color: white;
-                border: none;
-                width: 28px;
-                height: 28px;
-                border-radius: 50%;
-                cursor: pointer;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                font-size: 12px;
-            }
-
-            .add-appointment-btn {
-                background: var(--success-color);
-                color: white;
-                border: none;
-                padding: 12px 24px;
-                border-radius: 8px;
-                font-weight: 600;
-                cursor: pointer;
-                display: flex;
-                align-items: center;
-                gap: 8px;
-                margin: 16px auto;
-                transition: all 0.3s ease;
-            }
-
-            .add-appointment-btn:hover {
-                background: #059669;
-                transform: translateY(-2px);
-                box-shadow: var(--shadow-md);
             }
 
             .summary-section {
@@ -225,7 +163,6 @@
                 background: white;
                 border-radius: 8px;
                 padding: 16px;
-                margin-top: 16px;
                 min-height: 60px;
                 border: 2px dashed var(--border-color);
                 display: flex;
@@ -265,6 +202,27 @@
                 background: #f9fafb;
                 color: #6b7280;
                 cursor: not-allowed;
+            }
+
+            .add-appointment-btn {
+                background: var(--success-color);
+                color: white;
+                border: none;
+                padding: 12px 24px;
+                border-radius: 8px;
+                font-weight: 600;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                margin: 16px auto;
+                transition: all 0.3s ease;
+            }
+
+            .add-appointment-btn:hover {
+                background: #059669;
+                transform: translateY(-2px);
+                box-shadow: var(--shadow-md);
             }
 
             .action-buttons {
@@ -308,33 +266,14 @@
                 box-shadow: var(--shadow-lg);
             }
 
-            .row {
-                display: flex;
-                gap: 16px;
-                margin-bottom: 16px;
-            }
-
-            .col {
-                flex: 1;
-            }
-
-            .col-6 {
-                flex: 0 0 50%;
-            }
-
-            .notes-section textarea {
-                min-height: 80px;
-                resize: vertical;
-            }
-
             @media (max-width: 768px) {
                 .booking-body {
                     padding: 20px;
                 }
 
-                .row {
-                    flex-direction: column;
-                    gap: 0;
+                .appointment-row {
+                    grid-template-columns: 1fr;
+                    gap: 12px;
                 }
 
                 .summary-grid {
@@ -354,32 +293,30 @@
             <div class="booking-header">
                 <h1>
                     <i class="fas fa-calendar-plus"></i>
-                    Multi-Appointment Booking
+                    Unaki Appointment Booking
                 </h1>
             </div>
 
             <!-- Main Form -->
             <div class="booking-body">
-                <form id="multiAppointmentForm">
+                <form id="bookingForm">
                     <!-- Client Selection Section -->
-                    <div class="section-border client-section">
+                    <div class="section-box client-section">
                         <div class="section-title">Select Client</div>
-                        <div class="row">
-                            <div class="col">
-                                <select id="clientSelect" class="form-select" required>
-                                    <option value="">Choose a client...</option>
-                                </select>
-                            </div>
+                        <div class="form-group">
+                            <select id="clientSelect" class="form-select" required>
+                                <option value="">Choose a client...</option>
+                            </select>
                         </div>
 
                         <!-- Client Preview -->
                         <div id="clientPreview" class="client-preview">
-                            <div class="row">
-                                <div class="col-6">
+                            <div style="display: flex; justify-content: space-between;">
+                                <div>
                                     <strong id="clientName">Client Name</strong><br>
                                     <span id="clientPhone" class="text-muted">Phone</span>
                                 </div>
-                                <div class="col-6 text-end">
+                                <div style="text-align: right;">
                                     <small class="text-muted">Last Visit: <span id="clientLastVisit">Never</span></small><br>
                                     <small class="text-muted">Total Visits: <span id="clientTotalVisits">0</span></small>
                                 </div>
@@ -388,71 +325,51 @@
                     </div>
 
                     <!-- Appointments Section -->
-                    <div class="section-border">
+                    <div class="section-box appointment-section">
                         <div class="section-title">Appointment(s)</div>
+
                         <div id="appointmentsContainer">
-                            <!-- First appointment row -->
-                            <div class="appointment-row" data-appointment="1">
-                                <div class="appointment-row-header">
-                                    <div class="appointment-number">1</div>
-                                    <button type="button" class="remove-appointment" onclick="removeAppointment(1)" style="display: none;">
-                                        <i class="fas fa-times"></i>
-                                    </button>
-                                </div>
-
-                                <div class="row">
-                                    <div class="col-6">
-                                        <div class="form-group">
-                                            <label class="form-label">Service</label>
-                                            <select class="form-select service-select" name="service_1" required>
-                                                <option value="">Select Service</option>
-                                            </select>
-                                        </div>
-                                    </div>
-                                    <div class="col-6">
-                                        <div class="form-group">
-                                            <label class="form-label">Staff</label>
-                                            <select class="form-select staff-select" name="staff_1" required>
-                                                <option value="">Select Staff</option>
-                                            </select>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div class="row">
-                                    <div class="col-6">
-                                        <div class="form-group">
-                                            <label class="form-label">Date</label>
-                                            <input type="date" class="form-control date-picker" name="date_1" required>
-                                        </div>
-                                    </div>
-                                    <div class="col-6">
-                                        <div class="form-group">
-                                            <label class="form-label">Start Time</label>
-                                            <input type="time" class="form-control time-picker" name="start_time_1" required>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div class="row">
-                                    <div class="col-6">
-                                        <div class="form-group">
-                                            <label class="form-label">Duration</label>
-                                            <input type="text" class="form-control auto-field duration-field" name="duration_1" readonly placeholder="Auto">
-                                        </div>
-                                    </div>
-                                    <div class="col-6">
-                                        <div class="form-group">
-                                            <label class="form-label">Price</label>
-                                            <input type="text" class="form-control auto-field price-field" name="price_1" readonly placeholder="Auto">
-                                        </div>
-                                    </div>
-                                </div>
-
+                            <!-- Appointment Row -->
+                            <div class="appointment-row">
                                 <div class="form-group">
-                                    <label class="form-label">End Time</label>
-                                    <input type="text" class="form-control auto-field end-time-field" name="end_time_1" readonly placeholder="Auto">
+                                    <label class="form-label">Service</label>
+                                    <select class="form-select service-select" required>
+                                        <option value="">Select Service</option>
+                                    </select>
                                 </div>
+                                <div class="form-group">
+                                    <label class="form-label">Staff</label>
+                                    <select class="form-select staff-select" required>
+                                        <option value="">Select Staff</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="appointment-row">
+                                <div class="form-group">
+                                    <label class="form-label">Date</label>
+                                    <input type="date" class="form-control date-picker" required>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Start Time</label>
+                                    <input type="time" class="form-control time-picker" required>
+                                </div>
+                            </div>
+
+                            <div class="appointment-row">
+                                <div class="form-group">
+                                    <label class="form-label">Duration</label>
+                                    <input type="text" class="form-control auto-field duration-field" readonly placeholder="Auto">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Price</label>
+                                    <input type="text" class="form-control auto-field price-field" readonly placeholder="Auto">
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">End Time</label>
+                                <input type="text" class="form-control auto-field end-time-field" readonly placeholder="Auto">
                             </div>
                         </div>
 
@@ -463,7 +380,7 @@
                     </div>
 
                     <!-- Summary Section -->
-                    <div class="section-border summary-section">
+                    <div class="section-box summary-section">
                         <div class="section-title">Summary</div>
                         <div class="summary-grid">
                             <div class="summary-item">
@@ -482,32 +399,21 @@
                     </div>
 
                     <!-- Notes Section -->
-                    <div class="section-border notes-section">
+                    <div class="section-box">
                         <div class="section-title">Notes</div>
-                        <textarea class="form-control" name="notes" placeholder="Add any special notes or requests for this booking..."></textarea>
+                        <textarea class="form-control" name="notes" rows="3" placeholder="Add any special notes or requests for this booking..."></textarea>
                     </div>
 
                     <!-- Action Buttons -->
                     <div class="action-buttons">
                         <button type="button" class="btn-cancel" onclick="cancelBooking()">Cancel</button>
-                        <button type="submit" class="btn-book">Book All Appointments</button>
+                        <button type="submit" class="btn-book">Book</button>
                     </div>
                 </form>
             </div>
         </div>
 
-        <!-- Loading Overlay -->
-        <div id="loadingOverlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9999; display: flex; align-items: center; justify-content: center;">
-            <div style="background: white; padding: 30px; border-radius: 12px; text-align: center;">
-                <div class="spinner-border text-primary" role="status">
-                    <span class="visually-hidden">Loading...</span>
-                </div>
-                <div style="margin-top: 15px; font-weight: 600;">Processing appointments...</div>
-            </div>
-        </div>
-
         <script>
-            let appointmentCounter = 1;
             let servicesData = [];
             let staffData = [];
             let clientsData = [];
@@ -550,7 +456,7 @@
                     clientSelect.appendChild(option);
                 });
 
-                // Populate service and staff dropdowns for existing appointment rows
+                // Populate service and staff dropdowns
                 populateServiceAndStaffDropdowns();
             }
 
@@ -591,7 +497,7 @@
                     }
                 });
 
-                // Service selection change (event delegation)
+                // Service selection change
                 document.addEventListener('change', function(e) {
                     if (e.target.classList.contains('service-select')) {
                         updateServiceDetails(e.target);
@@ -599,7 +505,7 @@
                     }
                 });
 
-                // Time change (event delegation)
+                // Time change
                 document.addEventListener('change', function(e) {
                     if (e.target.classList.contains('time-picker')) {
                         updateEndTime(e.target);
@@ -608,7 +514,7 @@
                 });
 
                 // Form submission
-                document.getElementById('multiAppointmentForm').addEventListener('submit', function(e) {
+                document.getElementById('bookingForm').addEventListener('submit', function(e) {
                     e.preventDefault();
                     submitBooking();
                 });
@@ -636,140 +542,32 @@
                 document.getElementById('clientPreview').classList.remove('show');
             }
 
-            function addAppointment() {
-                appointmentCounter++;
-                const container = document.getElementById('appointmentsContainer');
-
-                const appointmentRow = document.createElement('div');
-                appointmentRow.className = 'appointment-row';
-                appointmentRow.dataset.appointment = appointmentCounter;
-
-                appointmentRow.innerHTML = `
-                    <div class="appointment-row-header">
-                        <div class="appointment-number">${appointmentCounter}</div>
-                        <button type="button" class="remove-appointment" onclick="removeAppointment(${appointmentCounter})">
-                            <i class="fas fa-times"></i>
-                        </button>
-                    </div>
-
-                    <div class="row">
-                        <div class="col-6">
-                            <div class="form-group">
-                                <label class="form-label">Service</label>
-                                <select class="form-select service-select" name="service_${appointmentCounter}" required>
-                                    <option value="">Select Service</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="col-6">
-                            <div class="form-group">
-                                <label class="form-label">Staff</label>
-                                <select class="form-select staff-select" name="staff_${appointmentCounter}" required>
-                                    <option value="">Select Staff</option>
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="row">
-                        <div class="col-6">
-                            <div class="form-group">
-                                <label class="form-label">Date</label>
-                                <input type="date" class="form-control date-picker" name="date_${appointmentCounter}" required>
-                            </div>
-                        </div>
-                        <div class="col-6">
-                            <div class="form-group">
-                                <label class="form-label">Start Time</label>
-                                <input type="time" class="form-control time-picker" name="start_time_${appointmentCounter}" required>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="row">
-                        <div class="col-6">
-                            <div class="form-group">
-                                <label class="form-label">Duration</label>
-                                <input type="text" class="form-control auto-field duration-field" name="duration_${appointmentCounter}" readonly placeholder="Auto">
-                            </div>
-                        </div>
-                        <div class="col-6">
-                            <div class="form-group">
-                                <label class="form-label">Price</label>
-                                <input type="text" class="form-control auto-field price-field" name="price_${appointmentCounter}" readonly placeholder="Auto">
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="form-group">
-                        <label class="form-label">End Time</label>
-                        <input type="text" class="form-control auto-field end-time-field" name="end_time_${appointmentCounter}" readonly placeholder="Auto">
-                    </div>
-                `;
-
-                container.appendChild(appointmentRow);
-                populateServiceAndStaffDropdowns();
-                setDefaultDate();
-                updateRemoveButtons();
-            }
-
-            function removeAppointment(appointmentId) {
-                const appointmentRow = document.querySelector(`[data-appointment="${appointmentId}"]`);
-                if (appointmentRow) {
-                    appointmentRow.remove();
-                    updateSummary();
-                    updateRemoveButtons();
-                    renumberAppointments();
-                }
-            }
-
-            function updateRemoveButtons() {
-                const appointments = document.querySelectorAll('.appointment-row');
-                appointments.forEach((row, index) => {
-                    const removeBtn = row.querySelector('.remove-appointment');
-                    if (appointments.length > 1) {
-                        removeBtn.style.display = 'flex';
-                    } else {
-                        removeBtn.style.display = 'none';
-                    }
-                });
-            }
-
-            function renumberAppointments() {
-                const appointments = document.querySelectorAll('.appointment-row');
-                appointments.forEach((row, index) => {
-                    const number = index + 1;
-                    row.dataset.appointment = number;
-                    row.querySelector('.appointment-number').textContent = number;
-                });
-            }
-
             function updateServiceDetails(serviceSelect) {
-                const appointmentRow = serviceSelect.closest('.appointment-row');
+                const appointmentContainer = serviceSelect.closest('#appointmentsContainer');
                 const selectedOption = serviceSelect.selectedOptions[0];
 
                 if (selectedOption && selectedOption.dataset.duration) {
                     const duration = selectedOption.dataset.duration;
                     const price = selectedOption.dataset.price;
 
-                    appointmentRow.querySelector('.duration-field').value = `${duration} minutes`;
-                    appointmentRow.querySelector('.price-field').value = `$${price}`;
+                    appointmentContainer.querySelector('.duration-field').value = `${duration} minutes`;
+                    appointmentContainer.querySelector('.price-field').value = `$${price}`;
 
                     // Update end time if start time is selected
-                    const timeInput = appointmentRow.querySelector('.time-picker');
+                    const timeInput = appointmentContainer.querySelector('.time-picker');
                     if (timeInput.value) {
                         updateEndTime(timeInput);
                     }
                 } else {
-                    appointmentRow.querySelector('.duration-field').value = '';
-                    appointmentRow.querySelector('.price-field').value = '';
-                    appointmentRow.querySelector('.end-time-field').value = '';
+                    appointmentContainer.querySelector('.duration-field').value = '';
+                    appointmentContainer.querySelector('.price-field').value = '';
+                    appointmentContainer.querySelector('.end-time-field').value = '';
                 }
             }
 
             function updateEndTime(timeInput) {
-                const appointmentRow = timeInput.closest('.appointment-row');
-                const serviceSelect = appointmentRow.querySelector('.service-select');
+                const appointmentContainer = timeInput.closest('#appointmentsContainer');
+                const serviceSelect = appointmentContainer.querySelector('.service-select');
                 const selectedOption = serviceSelect.selectedOptions[0];
 
                 if (timeInput.value && selectedOption && selectedOption.dataset.duration) {
@@ -783,7 +581,7 @@
                     const endDate = new Date(startDate.getTime() + duration * 60000);
                     const endTime = endDate.toTimeString().slice(0, 5);
 
-                    appointmentRow.querySelector('.end-time-field').value = endTime;
+                    appointmentContainer.querySelector('.end-time-field').value = endTime;
                 }
             }
 
@@ -791,10 +589,8 @@
                 let totalDuration = 0;
                 let totalPrice = 0;
 
-                document.querySelectorAll('.appointment-row').forEach(row => {
-                    const serviceSelect = row.querySelector('.service-select');
-                    const selectedOption = serviceSelect.selectedOptions[0];
-
+                document.querySelectorAll('.service-select').forEach(select => {
+                    const selectedOption = select.selectedOptions[0];
                     if (selectedOption && selectedOption.dataset.duration) {
                         totalDuration += parseInt(selectedOption.dataset.duration);
                         totalPrice += parseFloat(selectedOption.dataset.price);
@@ -809,17 +605,16 @@
 
             function updateTimelinePreview() {
                 const appointments = [];
-                document.querySelectorAll('.appointment-row').forEach(row => {
-                    const serviceSelect = row.querySelector('.service-select');
-                    const timeInput = row.querySelector('.time-picker');
-                    const dateInput = row.querySelector('.date-picker');
+                const serviceSelects = document.querySelectorAll('.service-select');
+                const timeInputs = document.querySelectorAll('.time-picker');
 
-                    if (serviceSelect.value && timeInput.value && dateInput.value) {
-                        const serviceName = serviceSelect.selectedOptions[0].textContent.split(' (')[0];
+                serviceSelects.forEach((select, index) => {
+                    const timeInput = timeInputs[index];
+                    if (select.value && timeInput && timeInput.value) {
+                        const serviceName = select.selectedOptions[0].textContent.split(' (')[0];
                         appointments.push({
                             service: serviceName,
-                            time: timeInput.value,
-                            date: dateInput.value
+                            time: timeInput.value
                         });
                     }
                 });
@@ -836,69 +631,20 @@
                 }
             }
 
-            async function submitBooking() {
+            function addAppointment() {
+                // Add new appointment functionality would go here
+                alert('Add appointment functionality to be implemented');
+            }
+
+            function submitBooking() {
                 const clientId = document.getElementById('clientSelect').value;
                 if (!clientId) {
                     alert('Please select a client');
                     return;
                 }
 
-                const appointments = [];
-                const appointmentRows = document.querySelectorAll('.appointment-row');
-
-                for (let row of appointmentRows) {
-                    const serviceId = row.querySelector('.service-select').value;
-                    const staffId = row.querySelector('.staff-select').value;
-                    const date = row.querySelector('.date-picker').value;
-                    const startTime = row.querySelector('.time-picker').value;
-
-                    if (!serviceId || !staffId || !date || !startTime) {
-                        alert('Please fill in all fields for all appointments');
-                        return;
-                    }
-
-                    const service = servicesData.find(s => s.id == serviceId);
-                    appointments.push({
-                        clientId: parseInt(clientId),
-                        serviceId: parseInt(serviceId),
-                        staffId: parseInt(staffId),
-                        appointmentDate: date,
-                        startTime: startTime,
-                        serviceName: service.name,
-                        serviceDuration: service.duration,
-                        servicePrice: service.price
-                    });
-                }
-
-                // Show loading
-                document.getElementById('loadingOverlay').style.display = 'flex';
-
-                try {
-                    const response = await fetch('/api/unaki/appointments/bulk', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({
-                            appointments: appointments,
-                            notes: document.querySelector('[name="notes"]').value
-                        })
-                    });
-
-                    const result = await response.json();
-
-                    if (result.success) {
-                        alert('All appointments booked successfully!');
-                        window.location.href = '/unaki-booking';
-                    } else {
-                        alert('Error booking appointments: ' + result.error);
-                    }
-                } catch (error) {
-                    console.error('Error:', error);
-                    alert('Error booking appointments. Please try again.');
-                } finally {
-                    document.getElementById('loadingOverlay').style.display = 'none';
-                }
+                // Add booking submission logic here
+                alert('Booking submission to be implemented');
             }
 
             function cancelBooking() {
