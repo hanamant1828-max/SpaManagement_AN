@@ -56,7 +56,6 @@ db.sqlite3
 db.sqlite3-journal
 
 # Flask stuff:
-# instance/ - Allow database for demo purposes
 .webassets-cache
 
 # Scrapy stuff:
@@ -100,6 +99,8 @@ celerybeat.pid
 
 # Environments
 .env
+.env.local
+.env.production
 .venv
 env/
 venv/
@@ -132,22 +133,15 @@ dmypy.json
 cython_debug/
 
 # Replit specific
-.replit
 .upm/
 .cache/
 .local/
 .pythonlibs/
-uv.lock
-
-# Allow SQLite databases to be pushed to GitHub for data sharing
-# Uncomment the lines below if you want to keep databases local:
-# *.db
-# *.sqlite
-# *.sqlite3
 
 # Logs
 *.log
 logs/
+/tmp/
 
 # IDE
 .vscode/
@@ -166,8 +160,6 @@ ehthumbs.db
 Thumbs.db
 
 # Secret files
-.env.local
-.env.production
 secrets.txt
 
 # Temporary files
@@ -201,60 +193,13 @@ pids
 *.pid
 *.seed
 *.pid.lock
-# Python
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
-.Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
-
-# Virtual environments
-venv/
-env/
-ENV/
-
-# IDE
-.vscode/
-*.swp
-*.swo
-*~
-
-# OS
-.DS_Store
-Thumbs.db
-
-# Logs
-*.log
-
-# Temporary files
-tmp/
-temp/
-
-# Secrets (but not the database!)
-.env
-secrets.txt
 
 # Security - Session cookies and temporary auth files
 cookies.txt
 *.cookies
 session_cookies.txt
 
-# SQLite temporary files
+# SQLite temporary files (WAL mode)
 *.db-wal
 *.db-shm
 *.sqlite-wal
@@ -262,25 +207,11 @@ session_cookies.txt
 *.sqlite3-wal
 *.sqlite3-shm
 
-# Keep the database file - this is our demo data!
-# DO NOT ignore instance/spa_management.db - we want this in version control
+# Local database directories for this project
+hanamantdatabase/
 
 # Vercel
 .vercel
 
-# Local database directories (for Vercel deployment)
-hanamantdatabase/
-/.vs/SpaManagement_AN/FileContentIndex/31d352a9-176c-4b08-814a-dbc737361b4b.vsidx
-/.vs/SpaManagement_AN/FileContentIndex/6d24f8b5-1148-4593-a3eb-5a4272e98485.vsidx
-/.vs/SpaManagement_AN/FileContentIndex/b3da1170-0744-42d2-b904-b1ea387f4573.vsidx
-/.vs/SpaManagement_AN/FileContentIndex/c985d55a-efb8-4bbb-b250-18d185e0d005.vsidx
-/.vs/SpaManagement_AN/FileContentIndex/25e2a8aa-0bb0-4d3b-9fe1-0c1310b6d7ff.vsidx
-/.vs/SpaManagement_AN/FileContentIndex/24fe6906-f534-43f6-ace2-18fd4e5d4e27.vsidx
-/.vs/SpaManagement_AN/FileContentIndex/32bb3531-66fd-428e-8c15-fe30a1147d75.vsidx
-/.vs/SpaManagement_AN/v17/DocumentLayout.json
-/.vs/SpaManagement_AN/FileContentIndex/d9a846cb-3e96-4c9d-a113-eea9fa4ebcc5.vsidx
-/.vs/SpaManagement_AN/FileContentIndex/0cf06a41-b913-4641-a0c0-1922aad90b94.vsidx
-/.vs/SpaManagement_AN/FileContentIndex/184b9fb0-2e1f-46d2-b1c5-1e7bdf9307a0.vsidx
-/.vs/SpaManagement_AN/FileContentIndex/9be52a73-6a27-4bc4-87a3-0061518ca16a.vsidx
-/.vs/SpaManagement_AN/FileContentIndex/9c4ba7a6-3a39-46a9-8f9d-8f26c6f38152.vsidx
-/.vs/SpaManagement_AN/FileContentIndex/d29cc2e0-88bd-4ec1-bdb4-9ce900a2ee13.vsidx
+# Visual Studio (from GitHub import)
+.vs/
