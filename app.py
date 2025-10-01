@@ -601,6 +601,91 @@ def unaki_schedule():
             'breaks': []
         })
 
+@app.route('/api/unaki/appointments/bulk', methods=['POST'])
+def unaki_bulk_appointments():
+    """Create multiple appointments for a single client"""
+    try:
+        from datetime import datetime, time
+        from models import UnakiBooking, Customer, Service, User
+
+        data = request.get_json()
+        appointments = data.get('appointments', [])
+        notes = data.get('notes', '')
+
+        if not appointments:
+            return jsonify({'success': False, 'error': 'No appointments provided'}), 400
+
+        created_appointments = []
+        
+        # Validate and create each appointment
+        for i, apt_data in enumerate(appointments):
+            try:
+                # Parse datetime
+                appointment_date = datetime.strptime(apt_data['appointmentDate'], '%Y-%m-%d').date()
+                start_time = datetime.strptime(apt_data['startTime'], '%H:%M').time()
+                
+                # Calculate end time
+                duration = int(apt_data['serviceDuration'])
+                start_datetime = datetime.combine(appointment_date, start_time)
+                end_datetime = start_datetime + timedelta(minutes=duration)
+                end_time = end_datetime.time()
+
+                # Get client name from customer table
+                customer = Customer.query.get(apt_data['clientId'])
+                if not customer:
+                    return jsonify({'success': False, 'error': f'Customer not found for appointment {i+1}'}), 404
+
+                # Create UnakiBooking record
+                unaki_booking = UnakiBooking(
+                    client_id=apt_data['clientId'],
+                    client_name=customer.full_name,
+                    client_phone=customer.phone,
+                    service_id=apt_data['serviceId'],
+                    service_name=apt_data['serviceName'],
+                    service_duration=duration,
+                    service_price=float(apt_data['servicePrice']),
+                    staff_id=apt_data['staffId'],
+                    appointment_date=appointment_date,
+                    start_time=start_time,
+                    end_time=end_time,
+                    status='scheduled',
+                    payment_status='pending',
+                    booking_source='multi_booking',
+                    notes=notes
+                )
+
+                db.session.add(unaki_booking)
+                created_appointments.append({
+                    'client_name': customer.full_name,
+                    'service_name': apt_data['serviceName'],
+                    'date': appointment_date.strftime('%Y-%m-%d'),
+                    'time': start_time.strftime('%H:%M')
+                })
+
+            except Exception as e:
+                db.session.rollback()
+                return jsonify({
+                    'success': False, 
+                    'error': f'Error creating appointment {i+1}: {str(e)}'
+                }), 400
+
+        # Commit all appointments
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'message': f'Successfully created {len(created_appointments)} appointments',
+            'appointments': created_appointments
+        })
+
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error in bulk appointment creation: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
 @app.route('/api/unaki/load-sample-data', methods=['POST'])
 def unaki_load_sample_data():
     """Load sample data for Unaki booking system - clears existing data first"""
