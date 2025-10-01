@@ -67,7 +67,9 @@
                 background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
                 color: white;
                 padding: 24px;
-                text-align: center;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
             }
 
             .booking-header h1 {
@@ -76,8 +78,24 @@
                 margin: 0;
                 display: flex;
                 align-items: center;
-                justify-content: center;
                 gap: 12px;
+            }
+
+            .header-actions .btn {
+                background: rgba(255, 255, 255, 0.2);
+                border: 2px solid rgba(255, 255, 255, 0.3);
+                color: white;
+                font-weight: 600;
+                padding: 12px 24px;
+                border-radius: 8px;
+                transition: all 0.3s ease;
+            }
+
+            .header-actions .btn:hover {
+                background: rgba(255, 255, 255, 0.3);
+                border-color: rgba(255, 255, 255, 0.5);
+                transform: translateY(-2px);
+                box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
             }
 
             .booking-body {
@@ -327,23 +345,96 @@
                 resize: vertical;
             }
 
+            .appointments-container {
+                min-height: 400px;
+            }
+
+            .appointment-card {
+                background: white;
+                border: 1px solid var(--border-color);
+                border-radius: 12px;
+                padding: 20px;
+                transition: all 0.3s ease;
+                height: 100%;
+            }
+
+            .appointment-card:hover {
+                box-shadow: var(--shadow-md);
+                border-color: var(--primary-color);
+                transform: translateY(-2px);
+            }
+
+            .appointment-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 12px;
+                padding-bottom: 12px;
+                border-bottom: 1px solid var(--border-color);
+            }
+
+            .appointment-header h6 {
+                color: var(--primary-color);
+                font-weight: 700;
+                margin: 0;
+            }
+
+            .appointment-body p {
+                font-size: 14px;
+                color: #6b7280;
+            }
+
+            .date-navigation {
+                background: rgba(79, 70, 229, 0.1);
+                border-radius: 12px;
+                padding: 20px;
+                margin-bottom: 20px;
+            }
+
+            .date-controls button {
+                border: none;
+                background: var(--primary-color);
+                color: white;
+                width: 40px;
+                height: 40px;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                transition: all 0.3s ease;
+            }
+
+            .date-controls button:hover {
+                background: var(--primary-hover);
+                transform: scale(1.1);
+            }
+
             @media (max-width: 768px) {
                 .booking-body {
                     padding: 20px;
                 }
 
-                .row {
+                .booking-header {
                     flex-direction: column;
-                    gap: 0;
+                    gap: 16px;
+                    text-align: center;
                 }
 
-                .summary-grid {
-                    grid-template-columns: 1fr;
-                    gap: 12px;
+                .booking-header h1 {
+                    justify-content: center;
                 }
 
-                .action-buttons {
+                .date-navigation .d-flex {
                     flex-direction: column;
+                    gap: 16px;
+                    text-align: center;
+                }
+
+                .date-controls {
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    gap: 20px;
                 }
             }
         </style>
@@ -354,145 +445,113 @@
             <div class="booking-header">
                 <h1>
                     <i class="fas fa-calendar-plus"></i>
-                    Multi-Appointment Booking
+                    Appointment Booking System
                 </h1>
-            </div>
+                <div class="header-actions">
+                    <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#newAppointmentModal">
+                        <i class="fas fa-plus me-2"></i>New Appointment
+                    </button>
+                </div>
+            </div></div>
 
-            <!-- Main Form -->
+            <!-- Appointments View -->
             <div class="booking-body">
-                <form id="multiAppointmentForm">
-                    <!-- Client Selection Section -->
-                    <div class="section-border client-section">
-                        <div class="section-title">Select Client</div>
-                        <div class="row">
-                            <div class="col">
-                                <select id="clientSelect" class="form-select" required>
-                                    <option value="">Choose a client...</option>
-                                </select>
-                            </div>
+                <!-- Date Navigation -->
+                <div class="date-navigation mb-4">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h4 class="mb-0">Today's Appointments</h4>
+                        <div class="date-controls">
+                            <button class="btn btn-outline-primary" onclick="previousDay()">
+                                <i class="fas fa-chevron-left"></i>
+                            </button>
+                            <span id="currentDate" class="mx-3 fw-bold">{{ today }}</span>
+                            <button class="btn btn-outline-primary" onclick="nextDay()">
+                                <i class="fas fa-chevron-right"></i>
+                            </button>
                         </div>
+                    </div>
+                </div>
 
-                        <!-- Client Preview -->
-                        <div id="clientPreview" class="client-preview">
+                <!-- Appointments List -->
+                <div id="appointmentsList" class="appointments-container">
+                    <!-- Appointments will be loaded here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- New Appointment Modal -->
+        <div class="modal fade" id="newAppointmentModal" tabindex="-1" aria-labelledby="newAppointmentModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header bg-primary text-white">
+                        <h5 class="modal-title" id="newAppointmentModalLabel">
+                            <i class="fas fa-plus me-2"></i>New Appointment
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <form id="newAppointmentForm">
+                        <div class="modal-body">
                             <div class="row">
-                                <div class="col-6">
-                                    <strong id="clientName">Client Name</strong><br>
-                                    <span id="clientPhone" class="text-muted">Phone</span>
+                                <div class="col-md-6">
+                                    <div class="form-group mb-3">
+                                        <label for="modalClientSelect" class="form-label">Client *</label>
+                                        <select id="modalClientSelect" class="form-select" required>
+                                            <option value="">Choose a client...</option>
+                                        </select>
+                                    </div>
                                 </div>
-                                <div class="col-6 text-end">
-                                    <small class="text-muted">Last Visit: <span id="clientLastVisit">Never</span></small><br>
-                                    <small class="text-muted">Total Visits: <span id="clientTotalVisits">0</span></small>
+                                <div class="col-md-6">
+                                    <div class="form-group mb-3">
+                                        <label for="modalServiceSelect" class="form-label">Service *</label>
+                                        <select id="modalServiceSelect" class="form-select" required>
+                                            <option value="">Select Service</option>
+                                        </select>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    </div>
-
-                    <!-- Appointments Section -->
-                    <div class="section-border">
-                        <div class="section-title">Appointment(s)</div>
-                        <div id="appointmentsContainer">
-                            <!-- First appointment row -->
-                            <div class="appointment-row" data-appointment="1">
-                                <div class="appointment-row-header">
-                                    <div class="appointment-number">1</div>
-                                    <button type="button" class="remove-appointment" onclick="removeAppointment(1)" style="display: none;">
-                                        <i class="fas fa-times"></i>
-                                    </button>
-                                </div>
-
-                                <div class="row">
-                                    <div class="col-6">
-                                        <div class="form-group">
-                                            <label class="form-label">Service</label>
-                                            <select class="form-select service-select" name="service_1" required>
-                                                <option value="">Select Service</option>
-                                            </select>
-                                        </div>
-                                    </div>
-                                    <div class="col-6">
-                                        <div class="form-group">
-                                            <label class="form-label">Staff</label>
-                                            <select class="form-select staff-select" name="staff_1" required>
-                                                <option value="">Select Staff</option>
-                                            </select>
-                                        </div>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-group mb-3">
+                                        <label for="modalStaffSelect" class="form-label">Staff *</label>
+                                        <select id="modalStaffSelect" class="form-select" required>
+                                            <option value="">Select Staff</option>
+                                        </select>
                                     </div>
                                 </div>
-
-                                <div class="row">
-                                    <div class="col-6">
-                                        <div class="form-group">
-                                            <label class="form-label">Date</label>
-                                            <input type="date" class="form-control date-picker" name="date_1" required>
-                                        </div>
+                                <div class="col-md-6">
+                                    <div class="form-group mb-3">
+                                        <label for="modalAppointmentDate" class="form-label">Date *</label>
+                                        <input type="date" id="modalAppointmentDate" class="form-control" required>
                                     </div>
-                                    <div class="col-6">
-                                        <div class="form-group">
-                                            <label class="form-label">Start Time</label>
-                                            <input type="time" class="form-control time-picker" name="start_time_1" required>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div class="row">
-                                    <div class="col-6">
-                                        <div class="form-group">
-                                            <label class="form-label">Duration</label>
-                                            <input type="text" class="form-control auto-field duration-field" name="duration_1" readonly placeholder="Auto">
-                                        </div>
-                                    </div>
-                                    <div class="col-6">
-                                        <div class="form-group">
-                                            <label class="form-label">Price</label>
-                                            <input type="text" class="form-control auto-field price-field" name="price_1" readonly placeholder="Auto">
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div class="form-group">
-                                    <label class="form-label">End Time</label>
-                                    <input type="text" class="form-control auto-field end-time-field" name="end_time_1" readonly placeholder="Auto">
                                 </div>
                             </div>
-                        </div>
-
-                        <button type="button" class="add-appointment-btn" onclick="addAppointment()">
-                            <i class="fas fa-plus"></i>
-                            Add Another Appointment
-                        </button>
-                    </div>
-
-                    <!-- Summary Section -->
-                    <div class="section-border summary-section">
-                        <div class="section-title">Summary</div>
-                        <div class="summary-grid">
-                            <div class="summary-item">
-                                <div class="summary-label">Total Duration</div>
-                                <div class="summary-value" id="totalDuration">0 mins</div>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-group mb-3">
+                                        <label for="modalStartTime" class="form-label">Start Time *</label>
+                                        <input type="time" id="modalStartTime" class="form-control" required>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group mb-3">
+                                        <label for="modalEndTime" class="form-label">End Time *</label>
+                                        <input type="time" id="modalEndTime" class="form-control" required>
+                                    </div>
+                                </div>
                             </div>
-                            <div class="summary-item">
-                                <div class="summary-label">Total Price</div>
-                                <div class="summary-value" id="totalPrice">$0.00</div>
+                            <div class="form-group mb-3">
+                                <label for="modalNotes" class="form-label">Notes</label>
+                                <textarea id="modalNotes" class="form-control" rows="3" placeholder="Add any special notes or requests..."></textarea>
                             </div>
                         </div>
-
-                        <div class="timeline-preview" id="timelinePreview">
-                            Timeline preview will appear here
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-2"></i>Book Appointment
+                            </button>
                         </div>
-                    </div>
-
-                    <!-- Notes Section -->
-                    <div class="section-border notes-section">
-                        <div class="section-title">Notes</div>
-                        <textarea class="form-control" name="notes" placeholder="Add any special notes or requests for this booking..."></textarea>
-                    </div>
-
-                    <!-- Action Buttons -->
-                    <div class="action-buttons">
-                        <button type="button" class="btn-cancel" onclick="cancelBooking()">Cancel</button>
-                        <button type="submit" class="btn-book">Book All Appointments</button>
-                    </div>
-                </form>
+                    </form>
+                </div>
             </div>
         </div>
 
@@ -502,21 +561,21 @@
                 <div class="spinner-border text-primary" role="status">
                     <span class="visually-hidden">Loading...</span>
                 </div>
-                <div style="margin-top: 15px; font-weight: 600;">Processing appointments...</div>
+                <div style="margin-top: 15px; font-weight: 600;">Processing appointment...</div>
             </div>
         </div>
 
         <script>
-            let appointmentCounter = 1;
             let servicesData = [];
             let staffData = [];
             let clientsData = [];
+            let currentDate = new Date().toISOString().split('T')[0];
 
             // Initialize the booking system
             document.addEventListener('DOMContentLoaded', function() {
                 loadInitialData();
                 setupEventListeners();
-                setDefaultDate();
+                loadAppointments();
             });
 
             async function loadInitialData() {
@@ -533,15 +592,15 @@
                     const clientsResponse = await fetch('/api/unaki/clients');
                     clientsData = await clientsResponse.json();
 
-                    populateDropdowns();
+                    populateModalDropdowns();
                 } catch (error) {
                     console.error('Error loading initial data:', error);
                 }
             }
 
-            function populateDropdowns() {
-                // Populate client dropdown
-                const clientSelect = document.getElementById('clientSelect');
+            function populateModalDropdowns() {
+                // Populate modal client dropdown
+                const clientSelect = document.getElementById('modalClientSelect');
                 clientSelect.innerHTML = '<option value="">Choose a client...</option>';
                 clientsData.forEach(client => {
                     const option = document.createElement('option');
@@ -550,230 +609,60 @@
                     clientSelect.appendChild(option);
                 });
 
-                // Populate service and staff dropdowns for existing appointment rows
-                populateServiceAndStaffDropdowns();
-            }
-
-            function populateServiceAndStaffDropdowns() {
-                // Populate all service dropdowns
-                document.querySelectorAll('.service-select').forEach(select => {
-                    select.innerHTML = '<option value="">Select Service</option>';
-                    servicesData.forEach(service => {
-                        const option = document.createElement('option');
-                        option.value = service.id;
-                        option.textContent = `${service.name} (${service.duration}min - $${service.price})`;
-                        option.dataset.duration = service.duration;
-                        option.dataset.price = service.price;
-                        select.appendChild(option);
-                    });
+                // Populate modal service dropdown
+                const serviceSelect = document.getElementById('modalServiceSelect');
+                serviceSelect.innerHTML = '<option value="">Select Service</option>';
+                servicesData.forEach(service => {
+                    const option = document.createElement('option');
+                    option.value = service.id;
+                    option.textContent = `${service.name} (${service.duration}min - $${service.price})`;
+                    option.dataset.duration = service.duration;
+                    option.dataset.price = service.price;
+                    serviceSelect.appendChild(option);
                 });
 
-                // Populate all staff dropdowns
-                document.querySelectorAll('.staff-select').forEach(select => {
-                    select.innerHTML = '<option value="">Select Staff</option>';
-                    staffData.forEach(staff => {
-                        const option = document.createElement('option');
-                        option.value = staff.id;
-                        option.textContent = `${staff.name} - ${staff.specialty}`;
-                        select.appendChild(option);
-                    });
+                // Populate modal staff dropdown
+                const staffSelect = document.getElementById('modalStaffSelect');
+                staffSelect.innerHTML = '<option value="">Select Staff</option>';
+                staffData.forEach(staff => {
+                    const option = document.createElement('option');
+                    option.value = staff.id;
+                    option.textContent = `${staff.name} - ${staff.specialty}`;
+                    staffSelect.appendChild(option);
                 });
             }
 
             function setupEventListeners() {
-                // Client selection change
-                document.getElementById('clientSelect').addEventListener('change', function() {
-                    const clientId = this.value;
-                    if (clientId) {
-                        showClientPreview(clientId);
-                    } else {
-                        hideClientPreview();
-                    }
-                });
-
-                // Service selection change (event delegation)
-                document.addEventListener('change', function(e) {
-                    if (e.target.classList.contains('service-select')) {
-                        updateServiceDetails(e.target);
-                        updateSummary();
-                    }
-                });
-
-                // Time change (event delegation)
-                document.addEventListener('change', function(e) {
-                    if (e.target.classList.contains('time-picker')) {
-                        updateEndTime(e.target);
-                        updateSummary();
-                    }
-                });
-
-                // Form submission
-                document.getElementById('multiAppointmentForm').addEventListener('submit', function(e) {
+                // Modal form submission
+                document.getElementById('newAppointmentForm').addEventListener('submit', function(e) {
                     e.preventDefault();
-                    submitBooking();
+                    submitSingleAppointment();
+                });
+
+                // Service selection change to auto-calculate end time
+                document.getElementById('modalServiceSelect').addEventListener('change', function() {
+                    calculateEndTime();
+                });
+
+                document.getElementById('modalStartTime').addEventListener('change', function() {
+                    calculateEndTime();
+                });
+
+                // Set default date when modal opens
+                document.getElementById('newAppointmentModal').addEventListener('show.bs.modal', function() {
+                    document.getElementById('modalAppointmentDate').value = currentDate;
                 });
             }
 
-            function setDefaultDate() {
-                const today = new Date().toISOString().split('T')[0];
-                document.querySelectorAll('.date-picker').forEach(input => {
-                    input.value = today;
-                });
-            }
+            function calculateEndTime() {
+                const serviceSelect = document.getElementById('modalServiceSelect');
+                const startTimeInput = document.getElementById('modalStartTime');
+                const endTimeInput = document.getElementById('modalEndTime');
 
-            function showClientPreview(clientId) {
-                const client = clientsData.find(c => c.id == clientId);
-                if (client) {
-                    document.getElementById('clientName').textContent = client.name;
-                    document.getElementById('clientPhone').textContent = client.phone;
-                    document.getElementById('clientLastVisit').textContent = client.last_visit || 'Never';
-                    document.getElementById('clientTotalVisits').textContent = client.total_visits || '0';
-                    document.getElementById('clientPreview').classList.add('show');
-                }
-            }
-
-            function hideClientPreview() {
-                document.getElementById('clientPreview').classList.remove('show');
-            }
-
-            function addAppointment() {
-                appointmentCounter++;
-                const container = document.getElementById('appointmentsContainer');
-
-                const appointmentRow = document.createElement('div');
-                appointmentRow.className = 'appointment-row';
-                appointmentRow.dataset.appointment = appointmentCounter;
-
-                appointmentRow.innerHTML = `
-                    <div class="appointment-row-header">
-                        <div class="appointment-number">${appointmentCounter}</div>
-                        <button type="button" class="remove-appointment" onclick="removeAppointment(${appointmentCounter})">
-                            <i class="fas fa-times"></i>
-                        </button>
-                    </div>
-
-                    <div class="row">
-                        <div class="col-6">
-                            <div class="form-group">
-                                <label class="form-label">Service</label>
-                                <select class="form-select service-select" name="service_${appointmentCounter}" required>
-                                    <option value="">Select Service</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="col-6">
-                            <div class="form-group">
-                                <label class="form-label">Staff</label>
-                                <select class="form-select staff-select" name="staff_${appointmentCounter}" required>
-                                    <option value="">Select Staff</option>
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="row">
-                        <div class="col-6">
-                            <div class="form-group">
-                                <label class="form-label">Date</label>
-                                <input type="date" class="form-control date-picker" name="date_${appointmentCounter}" required>
-                            </div>
-                        </div>
-                        <div class="col-6">
-                            <div class="form-group">
-                                <label class="form-label">Start Time</label>
-                                <input type="time" class="form-control time-picker" name="start_time_${appointmentCounter}" required>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="row">
-                        <div class="col-6">
-                            <div class="form-group">
-                                <label class="form-label">Duration</label>
-                                <input type="text" class="form-control auto-field duration-field" name="duration_${appointmentCounter}" readonly placeholder="Auto">
-                            </div>
-                        </div>
-                        <div class="col-6">
-                            <div class="form-group">
-                                <label class="form-label">Price</label>
-                                <input type="text" class="form-control auto-field price-field" name="price_${appointmentCounter}" readonly placeholder="Auto">
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="form-group">
-                        <label class="form-label">End Time</label>
-                        <input type="text" class="form-control auto-field end-time-field" name="end_time_${appointmentCounter}" readonly placeholder="Auto">
-                    </div>
-                `;
-
-                container.appendChild(appointmentRow);
-                populateServiceAndStaffDropdowns();
-                setDefaultDate();
-                updateRemoveButtons();
-            }
-
-            function removeAppointment(appointmentId) {
-                const appointmentRow = document.querySelector(`[data-appointment="${appointmentId}"]`);
-                if (appointmentRow) {
-                    appointmentRow.remove();
-                    updateSummary();
-                    updateRemoveButtons();
-                    renumberAppointments();
-                }
-            }
-
-            function updateRemoveButtons() {
-                const appointments = document.querySelectorAll('.appointment-row');
-                appointments.forEach((row, index) => {
-                    const removeBtn = row.querySelector('.remove-appointment');
-                    if (appointments.length > 1) {
-                        removeBtn.style.display = 'flex';
-                    } else {
-                        removeBtn.style.display = 'none';
-                    }
-                });
-            }
-
-            function renumberAppointments() {
-                const appointments = document.querySelectorAll('.appointment-row');
-                appointments.forEach((row, index) => {
-                    const number = index + 1;
-                    row.dataset.appointment = number;
-                    row.querySelector('.appointment-number').textContent = number;
-                });
-            }
-
-            function updateServiceDetails(serviceSelect) {
-                const appointmentRow = serviceSelect.closest('.appointment-row');
                 const selectedOption = serviceSelect.selectedOptions[0];
-
-                if (selectedOption && selectedOption.dataset.duration) {
-                    const duration = selectedOption.dataset.duration;
-                    const price = selectedOption.dataset.price;
-
-                    appointmentRow.querySelector('.duration-field').value = `${duration} minutes`;
-                    appointmentRow.querySelector('.price-field').value = `$${price}`;
-
-                    // Update end time if start time is selected
-                    const timeInput = appointmentRow.querySelector('.time-picker');
-                    if (timeInput.value) {
-                        updateEndTime(timeInput);
-                    }
-                } else {
-                    appointmentRow.querySelector('.duration-field').value = '';
-                    appointmentRow.querySelector('.price-field').value = '';
-                    appointmentRow.querySelector('.end-time-field').value = '';
-                }
-            }
-
-            function updateEndTime(timeInput) {
-                const appointmentRow = timeInput.closest('.appointment-row');
-                const serviceSelect = appointmentRow.querySelector('.service-select');
-                const selectedOption = serviceSelect.selectedOptions[0];
-
-                if (timeInput.value && selectedOption && selectedOption.dataset.duration) {
-                    const startTime = timeInput.value;
+                
+                if (selectedOption && selectedOption.dataset.duration && startTimeInput.value) {
+                    const startTime = startTimeInput.value;
                     const duration = parseInt(selectedOption.dataset.duration);
 
                     const [hours, minutes] = startTime.split(':').map(Number);
@@ -783,127 +672,169 @@
                     const endDate = new Date(startDate.getTime() + duration * 60000);
                     const endTime = endDate.toTimeString().slice(0, 5);
 
-                    appointmentRow.querySelector('.end-time-field').value = endTime;
+                    endTimeInput.value = endTime;
                 }
             }
 
-            function updateSummary() {
-                let totalDuration = 0;
-                let totalPrice = 0;
+            async function loadAppointments() {
+                try {
+                    document.getElementById('currentDate').textContent = formatDate(currentDate);
+                    
+                    const response = await fetch(`/api/unaki/get-bookings?date=${currentDate}`);
+                    const data = await response.json();
 
-                document.querySelectorAll('.appointment-row').forEach(row => {
-                    const serviceSelect = row.querySelector('.service-select');
-                    const selectedOption = serviceSelect.selectedOptions[0];
-
-                    if (selectedOption && selectedOption.dataset.duration) {
-                        totalDuration += parseInt(selectedOption.dataset.duration);
-                        totalPrice += parseFloat(selectedOption.dataset.price);
+                    if (data.success) {
+                        displayAppointments(data.bookings);
+                    } else {
+                        console.error('Error loading appointments:', data.error);
+                        displayNoAppointments();
                     }
-                });
-
-                document.getElementById('totalDuration').textContent = `${totalDuration} mins`;
-                document.getElementById('totalPrice').textContent = `$${totalPrice.toFixed(2)}`;
-
-                updateTimelinePreview();
-            }
-
-            function updateTimelinePreview() {
-                const appointments = [];
-                document.querySelectorAll('.appointment-row').forEach(row => {
-                    const serviceSelect = row.querySelector('.service-select');
-                    const timeInput = row.querySelector('.time-picker');
-                    const dateInput = row.querySelector('.date-picker');
-
-                    if (serviceSelect.value && timeInput.value && dateInput.value) {
-                        const serviceName = serviceSelect.selectedOptions[0].textContent.split(' (')[0];
-                        appointments.push({
-                            service: serviceName,
-                            time: timeInput.value,
-                            date: dateInput.value
-                        });
-                    }
-                });
-
-                const timelinePreview = document.getElementById('timelinePreview');
-                if (appointments.length > 0) {
-                    timelinePreview.innerHTML = appointments.map(apt => 
-                        `<span style="margin-right: 15px; padding: 4px 8px; background: #e0e7ff; border-radius: 4px; font-size: 12px;">
-                            ${apt.service} at ${apt.time}
-                        </span>`
-                    ).join('');
-                } else {
-                    timelinePreview.textContent = 'Timeline preview will appear here';
+                } catch (error) {
+                    console.error('Error loading appointments:', error);
+                    displayNoAppointments();
                 }
             }
 
-            async function submitBooking() {
-                const clientId = document.getElementById('clientSelect').value;
-                if (!clientId) {
-                    alert('Please select a client');
+            function displayAppointments(appointments) {
+                const container = document.getElementById('appointmentsList');
+                
+                if (appointments.length === 0) {
+                    displayNoAppointments();
                     return;
                 }
 
-                const appointments = [];
-                const appointmentRows = document.querySelectorAll('.appointment-row');
+                let html = '<div class="row">';
+                appointments.forEach(appointment => {
+                    html += `
+                        <div class="col-md-6 mb-3">
+                            <div class="appointment-card">
+                                <div class="appointment-header">
+                                    <h6 class="mb-1">${appointment.client_name}</h6>
+                                    <span class="badge bg-primary">${appointment.start_time}</span>
+                                </div>
+                                <div class="appointment-body">
+                                    <p class="mb-1"><strong>Service:</strong> ${appointment.service_names}</p>
+                                    <p class="mb-1"><strong>Duration:</strong> ${appointment.duration} minutes</p>
+                                    <p class="mb-0"><strong>Status:</strong> 
+                                        <span class="badge bg-${getStatusBadgeClass(appointment.status)}">${appointment.status}</span>
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+                html += '</div>';
+                container.innerHTML = html;
+            }
 
-                for (let row of appointmentRows) {
-                    const serviceId = row.querySelector('.service-select').value;
-                    const staffId = row.querySelector('.staff-select').value;
-                    const date = row.querySelector('.date-picker').value;
-                    const startTime = row.querySelector('.time-picker').value;
+            function displayNoAppointments() {
+                const container = document.getElementById('appointmentsList');
+                container.innerHTML = `
+                    <div class="text-center py-5">
+                        <i class="fas fa-calendar-times fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted">No appointments scheduled for this date</h5>
+                        <p class="text-muted">Click "New Appointment" to schedule one</p>
+                    </div>
+                `;
+            }
 
-                    if (!serviceId || !staffId || !date || !startTime) {
-                        alert('Please fill in all fields for all appointments');
-                        return;
-                    }
+            function getStatusBadgeClass(status) {
+                const classes = {
+                    'scheduled': 'primary',
+                    'confirmed': 'info',
+                    'completed': 'success',
+                    'cancelled': 'danger'
+                };
+                return classes[status] || 'secondary';
+            }
 
-                    const service = servicesData.find(s => s.id == serviceId);
-                    appointments.push({
-                        clientId: parseInt(clientId),
-                        serviceId: parseInt(serviceId),
-                        staffId: parseInt(staffId),
-                        appointmentDate: date,
-                        startTime: startTime,
-                        serviceName: service.name,
-                        serviceDuration: service.duration,
-                        servicePrice: service.price
-                    });
+            function formatDate(dateString) {
+                const date = new Date(dateString);
+                return date.toLocaleDateString('en-US', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                });
+            }
+
+            function previousDay() {
+                const date = new Date(currentDate);
+                date.setDate(date.getDate() - 1);
+                currentDate = date.toISOString().split('T')[0];
+                loadAppointments();
+            }
+
+            function nextDay() {
+                const date = new Date(currentDate);
+                date.setDate(date.getDate() + 1);
+                currentDate = date.toISOString().split('T')[0];
+                loadAppointments();
+            }
+
+            async function submitSingleAppointment() {
+                const clientId = document.getElementById('modalClientSelect').value;
+                const serviceId = document.getElementById('modalServiceSelect').value;
+                const staffId = document.getElementById('modalStaffSelect').value;
+                const appointmentDate = document.getElementById('modalAppointmentDate').value;
+                const startTime = document.getElementById('modalStartTime').value;
+                const endTime = document.getElementById('modalEndTime').value;
+                const notes = document.getElementById('modalNotes').value;
+
+                if (!clientId || !serviceId || !staffId || !appointmentDate || !startTime || !endTime) {
+                    alert('Please fill in all required fields');
+                    return;
                 }
 
                 // Show loading
                 document.getElementById('loadingOverlay').style.display = 'flex';
 
                 try {
-                    const response = await fetch('/api/unaki/appointments/bulk', {
+                    const client = clientsData.find(c => c.id == clientId);
+                    const service = servicesData.find(s => s.id == serviceId);
+
+                    const appointmentData = {
+                        clientId: parseInt(clientId),
+                        clientName: client.name,
+                        clientPhone: client.phone,
+                        staffId: parseInt(staffId),
+                        serviceId: parseInt(serviceId),
+                        serviceName: service.name,
+                        serviceDuration: service.duration,
+                        servicePrice: service.price,
+                        appointmentDate: appointmentDate,
+                        startTime: startTime,
+                        endTime: endTime,
+                        notes: notes
+                    };
+
+                    const response = await fetch('/api/unaki/book-appointment', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
                         },
-                        body: JSON.stringify({
-                            appointments: appointments,
-                            notes: document.querySelector('[name="notes"]').value
-                        })
+                        body: JSON.stringify(appointmentData)
                     });
 
                     const result = await response.json();
 
                     if (result.success) {
-                        alert('All appointments booked successfully!');
-                        window.location.href = '/unaki-booking';
+                        alert('Appointment booked successfully!');
+                        // Close modal
+                        const modal = bootstrap.Modal.getInstance(document.getElementById('newAppointmentModal'));
+                        modal.hide();
+                        // Reset form
+                        document.getElementById('newAppointmentForm').reset();
+                        // Reload appointments
+                        loadAppointments();
                     } else {
-                        alert('Error booking appointments: ' + result.error);
+                        alert('Error booking appointment: ' + result.error);
                     }
                 } catch (error) {
                     console.error('Error:', error);
-                    alert('Error booking appointments. Please try again.');
+                    alert('Error booking appointment. Please try again.');
                 } finally {
                     document.getElementById('loadingOverlay').style.display = 'none';
-                }
-            }
-
-            function cancelBooking() {
-                if (confirm('Are you sure you want to cancel? All entered data will be lost.')) {
-                    window.location.href = '/unaki-booking';
                 }
             }
         </script>
