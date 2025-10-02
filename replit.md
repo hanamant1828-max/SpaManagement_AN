@@ -4,6 +4,7 @@
 A comprehensive Flask-based spa management system featuring appointment booking, client management, billing, inventory tracking, staff scheduling, and reporting. This is an imported GitHub project now configured to run in the Replit environment.
 
 ## Recent Changes
+- **2025-10-02**: Added edit functionality for booked appointments in Unaki booking view
 - **2025-10-01**: Successfully configured GitHub import to run in Replit environment
 - **2025-10-01**: Set up Flask Server workflow on port 5000 with webview output
 - **2025-10-01**: Configured deployment settings using Gunicorn for production

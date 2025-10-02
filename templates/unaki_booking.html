@@ -2044,9 +2044,22 @@ function viewAppointmentDetails() {
 
 function editAppointment() {
     if (selectedAppointmentId) {
-        alert('Edit appointment ' + selectedAppointmentId);
+        // Convert selectedAppointmentId to number for comparison
+        const id = parseInt(selectedAppointmentId, 10);
+        // Find the booking data
+        const booking = bookingsData.find(b => b.id === id);
+        if (booking) {
+            openEditModal(booking);
+        } else {
+            console.error(`Booking with ID ${id} not found in bookingsData`);
+        }
     }
     hideContextMenu();
+}
+
+function openEditModal(booking) {
+    // This will be replaced with proper modal opening after we add the edit modal
+    alert(`Edit functionality for appointment ${booking.id} - ${booking.client_name} is being implemented. Booking ID: ${booking.id}`);
 }
 
 function checkInAppointment() {
