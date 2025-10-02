@@ -1167,7 +1167,7 @@ function loadCustomerAppointments(clientId) {
         return;
     }
     
-    fetch(`/integrated-billing/customer-appointments/${clientId}`)
+    fetch(`/api/customer/${clientId}/appointments`)
         .then(response => response.json())
         .then(data => {
             if (data.success && data.appointments) {
