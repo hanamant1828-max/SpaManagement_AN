@@ -2062,43 +2062,7 @@ def edit_appointment(appointment_id):
                          staff_members=staff_members)
 
 
-@app.route('/unaki-booking')
-@login_required
-def unaki_booking():
-    """Render the Unaki-style appointment booking interface"""
-    if not current_user.can_access('bookings'):
-        flash('Access denied', 'danger')
-        return redirect(url_for('dashboard'))
-
-    # Get date parameter or use today
-    selected_date_str = request.args.get('date')
-    if selected_date_str:
-        try:
-            selected_date = datetime.strptime(selected_date_str, '%Y-%m-%d').date()
-        except ValueError:
-            selected_date = datetime.now().date()
-    else:
-        selected_date = datetime.now().date()
-
-    # Get all active staff members
-    staff_members = User.query.filter_by(is_active=True).all()
-
-    # Get all active services
-    services = Service.query.filter_by(is_active=True).order_by(Service.name).all()
-
-    # Get all active clients for dropdown
-    clients = Customer.query.filter_by(is_active=True).order_by(Customer.first_name, Customer.last_name).all()
-
-    # Format date for display
-    today_date = selected_date.strftime('%A, %B %d, %Y')
-    today = selected_date.strftime('%Y-%m-%d')
-
-    return render_template('unaki_booking.html',
-                         staff_members=staff_members,
-                         services=services,
-                         clients=clients,
-                         today_date=today_date,
-                         today=today)
+# unaki_booking route is defined in app.py to avoid conflicts
 
 @app.route('/api/unaki/schedule/<date_str>')
 @login_required
