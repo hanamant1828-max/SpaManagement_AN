@@ -1339,6 +1339,13 @@ def api_unaki_update_booking(booking_id):
         end_time_str = data.get('end_time')
         notes = data.get('notes', '')
 
+        # Validate required fields
+        if not staff_id:
+            return jsonify({
+                'error': 'Staff ID is required',
+                'success': False
+            }), 400
+
         # Parse date and times
         from datetime import datetime, time
         try:
@@ -1348,6 +1355,15 @@ def api_unaki_update_booking(booking_id):
         except ValueError as ve:
             return jsonify({
                 'error': f'Invalid date/time format: {str(ve)}',
+                'success': False
+            }), 400
+
+        # Convert staff_id to integer
+        try:
+            staff_id = int(staff_id)
+        except (ValueError, TypeError):
+            return jsonify({
+                'error': 'Invalid staff ID format',
                 'success': False
             }), 400
 
@@ -1380,10 +1396,13 @@ def api_unaki_update_booking(booking_id):
 
         # Update booking fields
         if service_id:
-            booking.service_id = int(service_id)
+            try:
+                booking.service_id = int(service_id)
+            except (ValueError, TypeError):
+                pass
         if service_name:
             booking.service_name = service_name
-        booking.staff_id = int(staff_id)
+        booking.staff_id = staff_id
         booking.appointment_date = appointment_date
         booking.start_time = start_time
         booking.end_time = end_time

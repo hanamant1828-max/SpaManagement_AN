@@ -580,6 +580,12 @@ class AppointmentContextMenu {
                                             <label for="editServicePrice" class="form-label">Price (₹)</label>
                                             <input type="number" class="form-control" id="editServicePrice" value="${appointment.service_price || 0}" min="0" step="0.01">
                                         </div>
+                                        <div class="mb-3">
+                                            <label for="editStaffId" class="form-label">Assigned Staff *</label>
+                                            <input type="number" class="form-control" id="editStaffId" value="${appointment.staff_id || ''}" required readonly style="display: none;">
+                                            <input type="text" class="form-control" value="${appointment.staff_name || 'Staff Member'}" readonly>
+                                            <small class="text-muted">Staff ID: ${appointment.staff_id || 'N/A'}</small>
+                                        </div>
                                     </div>
                                 </div>
                                 <div class="row">
@@ -670,6 +676,7 @@ class AppointmentContextMenu {
             service_name: document.getElementById('editServiceName').value,
             service_duration: parseInt(document.getElementById('editServiceDuration').value),
             service_price: parseFloat(document.getElementById('editServicePrice').value),
+            staff_id: parseInt(document.getElementById('editStaffId').value),
             appointment_date: document.getElementById('editAppointmentDate').value,
             start_time: document.getElementById('editStartTime').value,
             end_time: document.getElementById('editEndTime').value,
