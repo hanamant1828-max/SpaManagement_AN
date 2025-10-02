@@ -1,15 +1,16 @@
 {% extends "base.html" %}
 
-{% block title %}Integrated Billing & Service Management{% endblock %}
+{% block title %}Professional Billing & Invoice Management{% endblock %}
 
 {% block extra_head %}
 <style>
 .billing-card {
     transition: all 0.3s ease;
+    border-radius: 12px;
 }
 .billing-card:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.12);
 }
 .package-deduction {
     color: #28a745;
@@ -21,21 +22,27 @@
 }
 .item-row {
     border-left: 3px solid transparent;
-    padding-left: 10px;
-    margin-bottom: 5px;
+    padding: 12px;
+    margin-bottom: 8px;
+    border-radius: 6px;
+    background: #fff;
+    transition: all 0.2s ease;
+}
+.item-row:hover {
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
 }
 .item-row.package-item {
     border-left-color: #28a745;
-    background-color: rgba(40, 167, 69, 0.1);
+    background-color: rgba(40, 167, 69, 0.05);
 }
 .item-row.extra-item {
     border-left-color: #dc3545;
-    background-color: rgba(220, 53, 69, 0.1);
+    background-color: rgba(220, 53, 69, 0.05);
 }
 .batch-info {
     font-size: 0.8rem;
     color: #6c757d;
-    margin-top: 2px;
+    margin-top: 4px;
 }
 .batch-warning {
     color: #dc3545;
@@ -47,10 +54,48 @@
 }
 .product-row {
     background: #f8f9fa;
-    border: 1px solid #dee2e6;
-    border-radius: 5px;
-    padding: 10px;
-    margin-bottom: 10px;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 12px;
+    transition: all 0.2s ease;
+}
+.product-row:hover {
+    border-color: #667eea;
+    background: #fff;
+}
+.section-header {
+    border-bottom: 3px solid #667eea;
+    padding-bottom: 8px;
+    margin-bottom: 20px;
+}
+.stats-card {
+    border-radius: 12px;
+    border: none;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+.calculation-preview {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 12px;
+    padding: 20px;
+}
+.calculation-preview .amount {
+    font-size: 2rem;
+    font-weight: 700;
+}
+.form-section {
+    background: white;
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+.customer-info-card {
+    background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+    color: white;
+    border-radius: 12px;
+    padding: 20px;
 }
 </style>
 {% endblock %}
@@ -66,58 +111,40 @@
         </div>
     </div>
 
-    <!-- Dashboard Stats -->
+    <!-- Enhanced Dashboard Stats -->
     <div class="row mb-4">
-        <div class="col-md-4">
-            <div class="card billing-card border-left-success shadow h-100 py-2">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
-                                Today's Revenue
-                            </div>
-                            <div class="h5 mb-0 font-weight-bold">₹{{ "{:,.2f}".format(today_revenue) }}</div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-calendar-day fa-2x text-success"></i>
-                        </div>
+        <div class="col-md-4 mb-3">
+            <div class="card stats-card gradient-card-success h-100">
+                <div class="card-body text-center">
+                    <div class="icon-wrapper mx-auto mb-3" style="width: 60px; height: 60px; background: rgba(255,255,255,0.2); border-radius: 50%;">
+                        <i class="fas fa-calendar-day fa-2x" style="line-height: 60px;"></i>
                     </div>
+                    <h6 class="text-uppercase mb-2" style="font-size: 0.75rem; letter-spacing: 1px; opacity: 0.9;">Today's Revenue</h6>
+                    <h3 class="mb-0 font-weight-bold">₹{{ "{:,.2f}".format(today_revenue) }}</h3>
                 </div>
             </div>
         </div>
 
-        <div class="col-md-4">
-            <div class="card billing-card border-left-info shadow h-100 py-2">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
-                                Total Revenue
-                            </div>
-                            <div class="h5 mb-0 font-weight-bold">₹{{ "{:,.2f}".format(total_revenue) }}</div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-chart-line fa-2x text-info"></i>
-                        </div>
+        <div class="col-md-4 mb-3">
+            <div class="card stats-card gradient-card-info h-100">
+                <div class="card-body text-center">
+                    <div class="icon-wrapper mx-auto mb-3" style="width: 60px; height: 60px; background: rgba(255,255,255,0.2); border-radius: 50%;">
+                        <i class="fas fa-chart-line fa-2x" style="line-height: 60px;"></i>
                     </div>
+                    <h6 class="text-uppercase mb-2" style="font-size: 0.75rem; letter-spacing: 1px; opacity: 0.9;">Total Revenue</h6>
+                    <h3 class="mb-0 font-weight-bold">₹{{ "{:,.2f}".format(total_revenue) }}</h3>
                 </div>
             </div>
         </div>
 
-        <div class="col-md-4">
-            <div class="card billing-card border-left-warning shadow h-100 py-2">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
-                                Pending Amount
-                            </div>
-                            <div class="h5 mb-0 font-weight-bold">₹{{ "{:,.2f}".format(pending_amount) }}</div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-clock fa-2x text-warning"></i>
-                        </div>
+        <div class="col-md-4 mb-3">
+            <div class="card stats-card gradient-card-warning h-100">
+                <div class="card-body text-center">
+                    <div class="icon-wrapper mx-auto mb-3" style="width: 60px; height: 60px; background: rgba(255,255,255,0.2); border-radius: 50%;">
+                        <i class="fas fa-clock fa-2x" style="line-height: 60px;"></i>
                     </div>
+                    <h6 class="text-uppercase mb-2" style="font-size: 0.75rem; letter-spacing: 1px; opacity: 0.9;">Pending Amount</h6>
+                    <h3 class="mb-0 font-weight-bold">₹{{ "{:,.2f}".format(pending_amount) }}</h3>
                 </div>
             </div>
         </div>
@@ -126,30 +153,47 @@
     <div class="row">
         <!-- New Invoice Creation -->
         <div class="col-lg-8 mb-4">
-            <div class="card shadow">
-                <div class="card-header py-3 d-flex justify-content-between align-items-center">
-                    <h6 class="m-0 font-weight-bold text-primary">
-                        <i class="fas fa-plus-circle me-2"></i>Create New Invoice
-                    </h6>
-                    <span class="badge badge-info">Services • Packages • Batch-wise Inventory</span>
+            <div class="card shadow" style="border-radius: 12px; border: none;">
+                <div class="card-header py-3" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 12px 12px 0 0;">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="m-0 font-weight-bold">
+                            <i class="fas fa-file-invoice-dollar me-2"></i>Create Professional Invoice
+                        </h5>
+                        <div class="d-flex gap-2">
+                            <span class="badge bg-light text-dark">Services</span>
+                            <span class="badge bg-light text-dark">Packages</span>
+                            <span class="badge bg-light text-dark">Inventory</span>
+                        </div>
+                    </div>
                 </div>
-                <div class="card-body">
+                <div class="card-body p-4">
                     <form id="billingForm">
-                        <!-- Customer Selection -->
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <label for="client_id" class="form-label">Customer</label>
-                                <select class="form-select" id="client_id" name="client_id" required>
-                                    <option value="">Select Customer</option>
-                                    {% for customer in customers %}
-                                    <option value="{{ customer.id }}" {{ 'selected' if selected_customer and customer.id == selected_customer.id else '' }}>{{ customer.full_name }} - {{ customer.phone }}</option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">Customer Packages</label>
-                                <div id="customerPackages" class="alert alert-info">
-                                    <small>Select a customer to view their active packages</small>
+                        <!-- Customer Selection Section -->
+                        <div class="form-section">
+                            <h6 class="section-header">
+                                <i class="fas fa-user-circle me-2 text-primary"></i>Customer Information
+                            </h6>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <label for="client_id" class="form-label fw-bold">
+                                        <i class="fas fa-user me-1"></i>Select Customer <span class="text-danger">*</span>
+                                    </label>
+                                    <select class="form-select form-select-lg" id="client_id" name="client_id" required style="border-radius: 8px;">
+                                        <option value="">Choose a customer...</option>
+                                        {% for customer in customers %}
+                                        <option value="{{ customer.id }}" {{ 'selected' if selected_customer and customer.id == selected_customer.id else '' }}>
+                                            {{ customer.full_name }} - {{ customer.phone }}
+                                        </option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label fw-bold">
+                                        <i class="fas fa-gift me-1"></i>Active Packages
+                                    </label>
+                                    <div id="customerPackages" class="alert alert-info mb-0" style="border-radius: 8px;">
+                                        <small><i class="fas fa-info-circle me-1"></i>Select a customer to view their active packages</small>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -285,11 +329,15 @@
                         {% endif %}
 
                         <!-- Services Section -->
-                        <div class="mb-4">
-                            <h6 class="text-primary mb-3">
-                                <i class="fas fa-spa me-2"></i>Services
-                                <small class="text-muted">(Package deductions will be applied automatically)</small>
-                            </h6>
+                        <div class="form-section">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h6 class="section-header mb-0">
+                                    <i class="fas fa-spa me-2 text-primary"></i>Services
+                                </h6>
+                                <small class="text-muted">
+                                    <i class="fas fa-magic me-1"></i>Package benefits auto-applied
+                                </small>
+                            </div>
                             <div id="servicesContainer">
                                 <div class="service-row row mb-2">
                                     <div class="col-md-4">
@@ -333,11 +381,15 @@
                         </div>
 
                         <!-- Products & Inventory Section (Batch-wise) -->
-                        <div class="mb-4">
-                            <h6 class="text-primary mb-3">
-                                <i class="fas fa-shopping-bag me-2"></i>Products & Inventory 
-                                <small class="text-muted">(Stock will be automatically reduced from batches - FIFO by expiry)</small>
-                            </h6>
+                        <div class="form-section">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h6 class="section-header mb-0">
+                                    <i class="fas fa-box-open me-2 text-primary"></i>Products & Inventory
+                                </h6>
+                                <small class="text-muted">
+                                    <i class="fas fa-sync-alt me-1"></i>FIFO auto-deduction from batches
+                                </small>
+                            </div>
                             <div id="productsContainer">
                                 <div class="product-row">
                                     <div class="row mb-2">
@@ -432,9 +484,11 @@
                                 <!-- Live Tax Calculation Display -->
                                 <div class="row">
                                     <div class="col-12">
-                                        <div class="card bg-light border-2 border-primary">
-                                            <div class="card-header bg-primary text-white text-center">
-                                                <h6 class="mb-0"><i class="fas fa-rupee-sign me-2"></i>Live Billing Calculation</h6>
+                                        <div class="calculation-preview">
+                                            <div class="text-center mb-3">
+                                                <h6 class="mb-0 fw-bold">
+                                                    <i class="fas fa-calculator me-2"></i>Live Billing Calculation
+                                                </h6>
                                             </div>
                                             <div class="card-body">
                                                 <div class="row text-center">
@@ -550,24 +604,28 @@
                         </div>
 
                         <!-- Professional Action Buttons -->
-                        <div class="row">
-                            <div class="col-md-6">
-                                <button type="button" class="btn btn-outline-primary btn-lg w-100 mb-2" onclick="previewInvoice()">
-                                    <i class="fas fa-eye me-2"></i>Preview Invoice
-                                </button>
+                        <div class="form-section" style="background: #f8f9fa;">
+                            <div class="row g-3">
+                                <div class="col-md-4">
+                                    <button type="button" class="btn btn-outline-primary btn-lg w-100" onclick="previewInvoice()" style="border-radius: 8px;">
+                                        <i class="fas fa-eye me-2"></i>Preview
+                                    </button>
+                                </div>
+                                <div class="col-md-4">
+                                    <button type="submit" class="btn btn-success btn-lg w-100" style="border-radius: 8px;">
+                                        <i class="fas fa-check-circle me-2"></i>Generate Invoice
+                                    </button>
+                                </div>
+                                <div class="col-md-4">
+                                    <button type="button" class="btn btn-outline-secondary btn-lg w-100" onclick="clearForm()" style="border-radius: 8px;">
+                                        <i class="fas fa-redo me-2"></i>Clear Form
+                                    </button>
+                                </div>
                             </div>
-                            <div class="col-md-6">
-                                <button type="submit" class="btn btn-success btn-lg w-100 mb-2">
-                                    <i class="fas fa-file-invoice-dollar me-2"></i>Generate Professional Invoice
-                                </button>
-                            </div>
-                        </div>
-
-                        <div class="row">
-                            <div class="col-md-12">
-                                <button type="button" class="btn btn-secondary w-100" onclick="clearForm()">
-                                    <i class="fas fa-undo me-2"></i>Clear Form
-                                </button>
+                            <div class="text-center mt-3">
+                                <small class="text-muted">
+                                    <i class="fas fa-shield-alt me-1"></i>All transactions are secure and recorded
+                                </small>
                             </div>
                         </div>
                     </form>
