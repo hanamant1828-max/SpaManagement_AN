@@ -462,9 +462,6 @@ class AppointmentContextMenu {
                                     <div class="mb-2">
                                         <strong>Duration:</strong> ${appointment.service_duration || 'N/A'} minutes
                                     </div>
-                                    <div class="mb-2">
-                                        <strong>Price:</strong> ₹${appointment.service_price || '0'}
-                                    </div>
                                 </div>
                             </div>
                             <hr>
@@ -490,9 +487,6 @@ class AppointmentContextMenu {
                                     <div class="mb-2">
                                         <strong>Payment:</strong> 
                                         <span class="badge bg-${this.getPaymentBadgeClass(appointment.payment_status)}">${appointment.payment_status || 'pending'}</span>
-                                    </div>
-                                    <div class="mb-2">
-                                        <strong>Amount:</strong> ₹${appointment.amount_charged || appointment.service_price || '0'}
                                     </div>
                                 </div>
                             </div>
