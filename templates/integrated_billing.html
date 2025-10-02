@@ -990,7 +990,7 @@ let customerPackageData = null;
 let lastLoadedCustomerId = null;
 let availableBatches = [];
 let globalStaffMembers = [];
-let window.customerAppointments = {{ customer_appointments|tojson if customer_appointments else '[]' }};
+window.customerAppointments = {{ customer_appointments|tojson if customer_appointments else '[]' }};
 
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Integrated Billing page loaded');
