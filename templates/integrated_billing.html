@@ -523,56 +523,22 @@
 
 {% block content %}
 <div class="container-fluid">
-    <!-- Enhanced Page Header -->
-    <div class="page-header">
-        <h1>
-            <i class="fas fa-cash-register me-2"></i>Integrated Billing & Service Management
-        </h1>
-        <p>Complete billing solution with package deductions, subscription management, and batch-wise inventory sales</p>
-    </div>
-
-    <!-- Enhanced Dashboard Stats -->
-    <div class="row mb-4">
-        <div class="col-md-4 mb-3">
-            <div class="card stats-card gradient-card-success h-100">
-                <div class="card-body text-center">
-                    <div class="icon-wrapper mx-auto mb-3" style="width: 70px; height: 70px; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
-                        <i class="fas fa-calendar-day fa-2x"></i>
-                    </div>
-                    <h6 class="mb-2">Today's Revenue</h6>
-                    <h3 class="mb-0">₹{{ "{:,.2f}".format(today_revenue) }}</h3>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-md-4 mb-3">
-            <div class="card stats-card gradient-card-info h-100">
-                <div class="card-body text-center">
-                    <div class="icon-wrapper mx-auto mb-3" style="width: 70px; height: 70px; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
-                        <i class="fas fa-chart-line fa-2x"></i>
-                    </div>
-                    <h6 class="mb-2">Total Revenue</h6>
-                    <h3 class="mb-0">₹{{ "{:,.2f}".format(total_revenue) }}</h3>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-md-4 mb-3">
-            <div class="card stats-card gradient-card-warning h-100">
-                <div class="card-body text-center">
-                    <div class="icon-wrapper mx-auto mb-3" style="width: 70px; height: 70px; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
-                        <i class="fas fa-clock fa-2x"></i>
-                    </div>
-                    <h6 class="mb-2">Pending Amount</h6>
-                    <h3 class="mb-0">₹{{ "{:,.2f}".format(pending_amount) }}</h3>
-                </div>
-            </div>
+    <!-- Compact Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h3 class="mb-0">
+            <i class="fas fa-cash-register me-2 text-primary"></i>Create Invoice
+        </h3>
+        <div class="d-flex gap-2 align-items-center">
+            <small class="text-muted">Quick Billing</small>
+            <button type="button" class="btn btn-sm btn-outline-primary" onclick="toggleBillSummary()">
+                <i class="fas fa-calculator me-1"></i>Bill Summary
+            </button>
         </div>
     </div>
 
     <div class="row">
-        <!-- New Invoice Creation -->
-        <div class="col-lg-8 mb-4">
+        <!-- New Invoice Creation - Full Width -->
+        <div class="col-12 mb-4" id="billingFormContainer">
             <div class="card main-billing-card">
                 <div class="card-header">
                     <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
@@ -898,98 +864,125 @@
                             </div>
                         </div>
 
-                        <!-- Submit Button -->
-                        <div class="text-end">
+                        <!-- Submit Button with Total Display -->
+                        <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+                            <div>
+                                <h4 class="mb-0">
+                                    <span class="text-muted">Total Amount:</span>
+                                    <span class="text-primary fw-bold">₹<span id="grandTotal">0.00</span></span>
+                                </h4>
+                                <small class="text-muted">
+                                    <span id="serviceCount">0</span> Services, 
+                                    <span id="productCount">0</span> Products
+                                </small>
+                            </div>
                             <button type="submit" class="btn btn-primary btn-lg px-5">
-                                <i class="fas fa-check-circle me-2"></i>Generate Invoice
+                                <i class="fas fa-check-circle me-2"></i>Generate Invoice (₹<span id="grandTotalBtn">0.00</span>)
                             </button>
                         </div>
                     </form>
                 </div>
             </div>
         </div>
+    </div>
+</div>
 
-        <!-- Calculation Preview -->
-        <div class="col-lg-4 mb-4">
-            <div class="calculation-preview">
-                <h5 class="mb-4 fw-bold">
-                    <i class="fas fa-receipt me-2"></i>Bill Summary
-                </h5>
-                
-                <div class="mb-3 pb-3 border-bottom border-white border-opacity-25">
-                    <div class="d-flex justify-content-between mb-2">
-                        <span>Services Subtotal:</span>
-                        <span class="fw-bold">₹<span id="servicesSubtotal">0.00</span></span>
-                    </div>
-                    <div class="d-flex justify-content-between mb-2">
-                        <span>Products Subtotal:</span>
-                        <span class="fw-bold">₹<span id="productsSubtotal">0.00</span></span>
-                    </div>
-                    <div class="d-flex justify-content-between mb-2">
-                        <span>Package Deductions:</span>
-                        <span class="fw-bold text-success">-₹<span id="packageDeductions">0.00</span></span>
-                    </div>
-                    <div class="d-flex justify-content-between">
-                        <span>Discount:</span>
-                        <span class="fw-bold text-warning">-₹<span id="discountAmount">0.00</span></span>
-                    </div>
-                </div>
-
-                <div class="mb-3 pb-3 border-bottom border-white border-opacity-25">
-                    <div class="d-flex justify-content-between mb-2">
-                        <span>Subtotal After Deductions:</span>
-                        <span class="fw-bold">₹<span id="subtotalAfterDeductions">0.00</span></span>
-                    </div>
-                    <div class="d-flex justify-content-between">
-                        <span>GST (<span id="gstRateDisplay">0</span>%):</span>
-                        <span class="fw-bold">₹<span id="gstAmount">0.00</span></span>
-                    </div>
-                </div>
-
-                <div class="text-center py-3">
-                    <h6 class="text-uppercase mb-2" style="opacity: 0.9; letter-spacing: 2px;">Total Amount</h6>
-                    <div class="amount">₹<span id="grandTotal">0.00</span></div>
-                </div>
-
-                <div class="alert alert-light mt-3">
-                    <small class="d-block mb-1"><i class="fas fa-info-circle me-1"></i><strong>Items Added:</strong></small>
-                    <small class="d-block">Services: <span id="serviceCount" class="fw-bold">0</span></small>
-                    <small class="d-block">Products: <span id="productCount" class="fw-bold">0</span></small>
-                </div>
+<!-- Floating Bill Summary Panel -->
+<div id="billSummaryPanel" class="bill-summary-panel" style="display: none;">
+    <div class="calculation-preview" style="height: auto; max-height: 90vh; overflow-y: auto;">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="mb-0 fw-bold">
+                <i class="fas fa-receipt me-2"></i>Bill Summary
+            </h5>
+            <button type="button" class="btn btn-sm btn-light" onclick="toggleBillSummary()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        
+        <div class="mb-3 pb-3 border-bottom border-white border-opacity-25">
+            <div class="d-flex justify-content-between mb-2">
+                <span>Services Subtotal:</span>
+                <span class="fw-bold">₹<span id="servicesSubtotalPanel">0.00</span></span>
             </div>
-
-            <!-- Recent Invoices -->
-            <div class="card mt-4" style="border-radius: var(--border-radius); box-shadow: var(--shadow-md); border: none;">
-                <div class="card-header" style="background: var(--gradient-primary); color: white; border-radius: var(--border-radius) var(--border-radius) 0 0; padding: 16px 20px;">
-                    <h6 class="mb-0 fw-bold">
-                        <i class="fas fa-history me-2"></i>Recent Invoices
-                    </h6>
-                </div>
-                <div class="card-body" style="max-height: 400px; overflow-y: auto;">
-                    {% if recent_invoices and recent_invoices|length > 0 %}
-                        {% for invoice in recent_invoices[:5] %}
-                        <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
-                            <div>
-                                <small class="d-block fw-bold">#{{ invoice.invoice_number }}</small>
-                                <small class="text-muted">{{ invoice.customer_name }}</small>
-                            </div>
-                            <div class="text-end">
-                                <small class="d-block fw-bold text-success">₹{{ "{:,.2f}".format(invoice.total_amount) }}</small>
-                                <small class="text-muted">{{ invoice.created_at.strftime('%d %b') if invoice.created_at.strftime is defined else invoice.created_at }}</small>
-                            </div>
-                        </div>
-                        {% endfor %}
-                    {% else %}
-                        <p class="text-muted text-center my-3"><small>No recent invoices</small></p>
-                    {% endif %}
-                </div>
+            <div class="d-flex justify-content-between mb-2">
+                <span>Products Subtotal:</span>
+                <span class="fw-bold">₹<span id="productsSubtotalPanel">0.00</span></span>
             </div>
+            <div class="d-flex justify-content-between mb-2">
+                <span>Package Deductions:</span>
+                <span class="fw-bold text-success">-₹<span id="packageDeductionsPanel">0.00</span></span>
+            </div>
+            <div class="d-flex justify-content-between">
+                <span>Discount:</span>
+                <span class="fw-bold text-warning">-₹<span id="discountAmountPanel">0.00</span></span>
+            </div>
+        </div>
+
+        <div class="mb-3 pb-3 border-bottom border-white border-opacity-25">
+            <div class="d-flex justify-content-between mb-2">
+                <span>Subtotal After Deductions:</span>
+                <span class="fw-bold">₹<span id="subtotalAfterDeductionsPanel">0.00</span></span>
+            </div>
+            <div class="d-flex justify-content-between">
+                <span>GST (<span id="gstRateDisplayPanel">0</span>%):</span>
+                <span class="fw-bold">₹<span id="gstAmountPanel">0.00</span></span>
+            </div>
+        </div>
+
+        <div class="text-center py-3">
+            <h6 class="text-uppercase mb-2" style="opacity: 0.9; letter-spacing: 2px;">Total Amount</h6>
+            <div class="amount">₹<span id="grandTotalPanel">0.00</span></div>
+        </div>
+
+        <div class="alert alert-light">
+            <small class="d-block mb-1"><i class="fas fa-info-circle me-1"></i><strong>Items Added:</strong></small>
+            <small class="d-block">Services: <span id="serviceCountPanel" class="fw-bold">0</span></small>
+            <small class="d-block">Products: <span id="productCountPanel" class="fw-bold">0</span></small>
         </div>
     </div>
 </div>
 
+<style>
+.bill-summary-panel {
+    position: fixed;
+    top: 70px;
+    right: 20px;
+    width: 350px;
+    z-index: 1050;
+    animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@media (max-width: 768px) {
+    .bill-summary-panel {
+        width: calc(100% - 40px);
+        right: 20px;
+        left: 20px;
+    }
+}
+</style>
+
 <!-- Keep all the existing JavaScript from the original template -->
 <script>
+function toggleBillSummary() {
+    const panel = document.getElementById('billSummaryPanel');
+    if (panel.style.display === 'none') {
+        panel.style.display = 'block';
+    } else {
+        panel.style.display = 'none';
+    }
+}
+
 // All the existing JavaScript code remains exactly the same
 // (Copying the complete JavaScript section from the original file)
 
@@ -1792,16 +1785,25 @@ function updateTaxCalculations() {
     const serviceCount = document.querySelectorAll('.service-row select[name="service_ids[]"]').length;
     const productCount = document.querySelectorAll('.product-row select[name="product_ids[]"]').length;
     
-    document.getElementById('servicesSubtotal').textContent = servicesSubtotal.toFixed(2);
-    document.getElementById('productsSubtotal').textContent = productsSubtotal.toFixed(2);
-    document.getElementById('packageDeductions').textContent = packageDeductions.toFixed(2);
-    document.getElementById('discountAmount').textContent = discountAmount.toFixed(2);
-    document.getElementById('subtotalAfterDeductions').textContent = subtotalAfterDeductions.toFixed(2);
-    document.getElementById('gstAmount').textContent = gstAmount.toFixed(2);
-    document.getElementById('gstRateDisplay').textContent = gstPercentage.toFixed(0);
+    // Update main display
     document.getElementById('grandTotal').textContent = grandTotal.toFixed(2);
+    document.getElementById('grandTotalBtn').textContent = grandTotal.toFixed(2);
     document.getElementById('serviceCount').textContent = serviceCount;
     document.getElementById('productCount').textContent = productCount;
+    
+    // Update floating panel (if exists)
+    if (document.getElementById('servicesSubtotalPanel')) {
+        document.getElementById('servicesSubtotalPanel').textContent = servicesSubtotal.toFixed(2);
+        document.getElementById('productsSubtotalPanel').textContent = productsSubtotal.toFixed(2);
+        document.getElementById('packageDeductionsPanel').textContent = packageDeductions.toFixed(2);
+        document.getElementById('discountAmountPanel').textContent = discountAmount.toFixed(2);
+        document.getElementById('subtotalAfterDeductionsPanel').textContent = subtotalAfterDeductions.toFixed(2);
+        document.getElementById('gstAmountPanel').textContent = gstAmount.toFixed(2);
+        document.getElementById('gstRateDisplayPanel').textContent = gstPercentage.toFixed(0);
+        document.getElementById('grandTotalPanel').textContent = grandTotal.toFixed(2);
+        document.getElementById('serviceCountPanel').textContent = serviceCount;
+        document.getElementById('productCountPanel').textContent = productCount;
+    }
 }
 
 function handleBillingFormSubmit(event) {
