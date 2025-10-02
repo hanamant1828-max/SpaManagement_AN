@@ -1102,11 +1102,9 @@ function handleServiceSelection(selectElement) {
         const serviceName = selectedOption.text;
         const servicePrice = parseFloat(selectedOption.dataset.price) || 0;
         console.log(`Service ${serviceId} selected with price: ${servicePrice}`);
-    }
-    // Small delay to ensure DOM is updated
-    setTimeout(() => {
+        console.log('Calling updateTaxCalculations from handleServiceSelection');
         updateTaxCalculations();
-    }, 10);
+    }
 }
 
 function addUnakiAppointmentToBill(appointmentId, serviceName, servicePrice, staffName) {
