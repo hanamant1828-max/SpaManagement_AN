@@ -1199,10 +1199,11 @@ def unaki_booking():
 @app.route('/api/unaki/get-bookings')
 @login_required
 def api_unaki_get_bookings():
-    """API endpoint to get Unaki bookings for a specific date"""
+    """API endpoint to get Unaki bookings for a specific date with proper price handling"""
     try:
-        from models import UnakiBooking, User
+        from models import UnakiBooking, User, Service
         from datetime import datetime
+        import sqlite3
 
         date_str = request.args.get('date')
         if not date_str:
@@ -1213,19 +1214,54 @@ def api_unaki_get_bookings():
         except ValueError:
             return jsonify({'success': False, 'error': 'Invalid date format'}), 400
 
-        # Get all bookings for the date
-        bookings = UnakiBooking.query.filter_by(appointment_date=booking_date).all()
+        # Use raw SQL to get proper price coalescing
+        con = db.engine.raw_connection()
+        con.row_factory = sqlite3.Row
+        cursor = con.cursor()
+        
+        cursor.execute("""
+            SELECT 
+                ub.id, ub.staff_id, ub.client_name, ub.service_name, ub.service_duration,
+                ub.start_time, ub.status,
+                COALESCE(
+                    ub.service_price,
+                    ub.amount_charged,
+                    s.price,
+                    0
+                ) as price,
+                CAST(ROUND(COALESCE(
+                    ub.service_price,
+                    ub.amount_charged,
+                    s.price,
+                    0
+                ) * 100) AS INTEGER) AS price_paise
+            FROM unaki_bookings ub
+            LEFT JOIN service s ON s.id = ub.service_id
+            WHERE ub.appointment_date = ?
+            ORDER BY ub.staff_id, ub.start_time
+        """, (booking_date,))
+        
+        rows = cursor.fetchall()
+        cursor.close()
+        con.close()
 
         bookings_data = []
-        for booking in bookings:
+        for row in rows:
+            booking_dict = dict(row)
+            
             # Calculate position data
-            start_hour = booking.start_time.hour
-            start_minute = booking.start_time.minute
+            start_time_obj = booking_dict['start_time']
+            if isinstance(start_time_obj, str):
+                from datetime import time as time_class
+                start_time_obj = datetime.strptime(start_time_obj, '%H:%M:%S').time()
+            
+            start_hour = start_time_obj.hour
+            start_minute = start_time_obj.minute
 
             # Determine service type for coloring
             service_type = 'default'
-            if booking.service_name:
-                service_lower = booking.service_name.lower()
+            if booking_dict['service_name']:
+                service_lower = booking_dict['service_name'].lower()
                 if 'massage' in service_lower:
                     service_type = 'massage'
                 elif 'facial' in service_lower:
@@ -1240,22 +1276,26 @@ def api_unaki_get_bookings():
                     service_type = 'waxing'
 
             bookings_data.append({
-                'id': booking.id,
-                'staff_id': booking.staff_id,
-                'client_name': booking.client_name,
-                'service_names': booking.service_name,
+                'id': booking_dict['id'],
+                'staff_id': booking_dict['staff_id'],
+                'client_name': booking_dict['client_name'],
+                'service_names': booking_dict['service_name'],
                 'service_type': service_type,
-                'start_time': booking.start_time.strftime('%I:%M %p'),
+                'start_time': start_time_obj.strftime('%I:%M %p'),
                 'start_hour': start_hour,
                 'start_minute': start_minute,
-                'duration': booking.service_duration,
-                'status': booking.status
+                'duration': booking_dict['service_duration'],
+                'status': booking_dict['status'],
+                'price': float(booking_dict['price']) if booking_dict['price'] else None,
+                'price_paise': booking_dict['price_paise']
             })
 
         return jsonify({'success': True, 'bookings': bookings_data})
 
     except Exception as e:
         print(f"Error getting Unaki bookings: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/system_management')
@@ -1467,24 +1507,74 @@ def unaki_get_bookings():
 
 @app.route('/api/unaki/bookings/<int:booking_id>')
 def unaki_get_booking(booking_id):
-    """Get specific Unaki booking by ID"""
+    """Get specific Unaki booking by ID with proper price handling"""
     try:
-        from models import UnakiBooking
+        from models import UnakiBooking, Service
+        import sqlite3
 
-        booking = UnakiBooking.query.get(booking_id)
-        if not booking:
+        # Use raw SQL to get proper price coalescing
+        con = db.engine.raw_connection()
+        con.row_factory = sqlite3.Row
+        cursor = con.cursor()
+        
+        cursor.execute("""
+            SELECT 
+                ub.id, ub.client_id, ub.client_name, ub.client_phone, ub.client_email,
+                ub.staff_id, ub.staff_name,
+                ub.service_id, ub.service_name, ub.service_duration,
+                ub.appointment_date, ub.start_time, ub.end_time,
+                ub.status, ub.notes, ub.booking_source,
+                ub.amount_charged, ub.payment_status,
+                ub.created_at, ub.updated_at,
+                COALESCE(
+                    ub.service_price,
+                    ub.amount_charged,
+                    s.price,
+                    0
+                ) as price,
+                CAST(ROUND(COALESCE(
+                    ub.service_price,
+                    ub.amount_charged,
+                    s.price,
+                    0
+                ) * 100) AS INTEGER) AS price_paise
+            FROM unaki_bookings ub
+            LEFT JOIN service s ON s.id = ub.service_id
+            WHERE ub.id = ?
+        """, (booking_id,))
+        
+        row = cursor.fetchone()
+        cursor.close()
+        con.close()
+        
+        if not row:
             return jsonify({
                 'success': False,
                 'error': 'Booking not found'
             }), 404
 
+        booking_dict = dict(row)
+        # Convert date/time objects to strings
+        if booking_dict.get('appointment_date'):
+            booking_dict['appointment_date'] = booking_dict['appointment_date'].strftime('%Y-%m-%d') if hasattr(booking_dict['appointment_date'], 'strftime') else str(booking_dict['appointment_date'])
+        if booking_dict.get('start_time'):
+            booking_dict['start_time'] = booking_dict['start_time'].strftime('%H:%M') if hasattr(booking_dict['start_time'], 'strftime') else str(booking_dict['start_time'])
+        if booking_dict.get('end_time'):
+            booking_dict['end_time'] = booking_dict['end_time'].strftime('%H:%M') if hasattr(booking_dict['end_time'], 'strftime') else str(booking_dict['end_time'])
+        if booking_dict.get('created_at'):
+            booking_dict['created_at'] = booking_dict['created_at'].isoformat() if hasattr(booking_dict['created_at'], 'isoformat') else str(booking_dict['created_at'])
+        if booking_dict.get('updated_at'):
+            booking_dict['updated_at'] = booking_dict['updated_at'].isoformat() if hasattr(booking_dict['updated_at'], 'isoformat') else str(booking_dict['updated_at'])
+
         return jsonify({
             'success': True,
-            'booking': booking.to_dict()
+            'booking': booking_dict
         })
 
     except Exception as e:
         print(f"Error in unaki_get_booking: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({
             'success': False,
             'error': str(e)
