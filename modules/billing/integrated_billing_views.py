@@ -518,21 +518,20 @@ def create_professional_invoice():
         total_gst_rate = igst_rate if is_interstate else (cgst_rate + sgst_rate)
         
         # Extract GST from service prices (inclusive calculation)
-        # Formula: GST Amount = (Price × GST Rate) / (100 + GST Rate)
-        service_gst_amount = (services_subtotal * total_gst_rate * 100) / (100 + total_gst_rate * 100)
-        
-        # Service base amount (excluding GST)
-        service_base_amount = services_subtotal - service_gst_amount
+        # Formula: Base Amount = Price / (1 + GST Rate)
+        # Formula: GST Amount = Price - Base Amount
+        service_base_amount = services_subtotal / (1 + total_gst_rate)
+        service_gst_amount = services_subtotal - service_base_amount
         
         # For inventory, GST is calculated normally (exclusive)
         inventory_gst_amount = inventory_subtotal * total_gst_rate
         
-        # Total amounts
+        # Total amounts before discount
         total_base_amount = service_base_amount + inventory_subtotal
         total_gst_before_discount = service_gst_amount + inventory_gst_amount
         
         # Apply discount to base amount only
-        net_base_amount = total_base_amount - discount_amount
+        net_base_amount = max(0, total_base_amount - discount_amount)
         
         # Recalculate GST proportionally after discount
         if total_base_amount > 0:

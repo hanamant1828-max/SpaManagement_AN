@@ -837,46 +837,6 @@ function showNotification(message, type = 'info') {
     }, 5000);
 }
 
-// Define helper functions first
-function findEmptyServiceRow() {
-    const serviceRows = document.querySelectorAll('.service-row');
-    for (let row of serviceRows) {
-        const serviceSelect = row.querySelector('select[name="service_ids[]"]');
-        if (!serviceSelect.value) {
-            return row;
-        }
-    }
-    return null;
-}
-
-// Show notification function
-function showNotification(message, type = 'info') {
-    // Create notification element
-    const notification = document.createElement('div');
-    notification.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
-    notification.style.cssText = `
-        top: 20px;
-        right: 20px;
-        z-index: 9999;
-        min-width: 300px;
-        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-    `;
-    notification.innerHTML = `
-        ${message}
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    `;
-
-    // Add to page
-    document.body.appendChild(notification);
-
-    // Auto-remove after 5 seconds
-    setTimeout(() => {
-        if (notification.parentNode) {
-            notification.parentNode.removeChild(notification);
-        }
-    }, 5000);
-}
-
 // CRITICAL: Define addUnakiAppointmentToBill function with ALL dependencies
 function addUnakiAppointmentToBill(appointmentId, serviceName, servicePrice, serviceDuration) {
     console.log('Adding Unaki appointment to bill:', appointmentId, serviceName, servicePrice, serviceDuration);
@@ -1900,21 +1860,53 @@ function updateTaxCalculations() {
         const isInterstate = document.getElementById('is_interstate').checked;
         let cgstAmount = 0, sgstAmount = 0, igstAmount = 0;
 
-        if (isInterstate) {
-            const igstRate = parseFloat(document.getElementById('igst_rate').value) || 0;
-            igstAmount = (taxableAmount * igstRate) / 100;
-        } else {
-            const cgstRate = parseFloat(document.getElementById('cgst_rate').value) || 0;
-            const sgstRate = parseFloat(document.getElementById('sgst_rate').value) || 0;
-            cgstAmount = (taxableAmount * cgstRate) / 100;
-            sgstAmount = (taxableAmount * sgstRate) / 100;
+        // Service prices are GST INCLUSIVE - extract GST from the price
+        const total_gst_rate = is_interstate ? igst_rate : (cgst_rate + sgst_rate);
+
+        // Extract GST from service prices (inclusive calculation)
+        // Formula: Base Amount = Price / (1 + GST Rate)
+        // Formula: GST Amount = Price - Base Amount
+        const service_base_amount = services_subtotal / (1 + total_gst_rate);
+        const service_gst_amount = services_subtotal - service_base_amount;
+
+        // For inventory, GST is calculated normally (exclusive)
+        const inventory_gst_amount = inventory_subtotal * total_gst_rate;
+
+        // Total amounts before discount
+        const total_base_amount = service_base_amount + inventory_subtotal;
+        const total_gst_before_discount = service_gst_amount + inventory_gst_amount;
+
+        // Apply discount to base amount only
+        const net_base_amount = Math.max(0, total_base_amount - discount_amount);
+
+        // Recalculate GST proportionally after discount
+        let final_service_gst = 0;
+        let final_inventory_gst = 0;
+
+        if (total_base_amount > 0) {
+            const discount_factor = net_base_amount / total_base_amount;
+            final_service_gst = service_gst_amount * discount_factor;
+            final_inventory_gst = inventory_gst_amount * discount_factor;
         }
 
-        const additionalCharges = parseFloat(document.getElementById('additional_charges').value) || 0;
-        const tipsAmount = parseFloat(document.getElementById('tips_amount').value) || 0;
+        const total_tax = final_service_gst + final_inventory_gst;
 
-        const totalTaxAmount = cgstAmount + sgstAmount + igstAmount;
-        const totalAmount = taxableAmount + totalTaxAmount + additionalCharges + tipsAmount;
+        // Split into CGST/SGST or IGST
+        let cgst_amount = 0;
+        let sgst_amount = 0;
+        let igst_amount = 0;
+
+        if (is_interstate) {
+            igst_amount = total_tax;
+        } else {
+            if (total_gst_rate > 0) {
+                cgst_amount = total_tax * (cgst_rate / total_gst_rate);
+                sgst_amount = total_tax * (sgst_rate / total_gst_rate);
+            }
+        }
+
+        const net_subtotal = net_base_amount;
+        const total_amount = net_base_amount + total_tax + additional_charges + tips_amount;
 
         // Update display with proper formatting
         document.getElementById('display_subtotal').textContent = formatCurrency(grossSubtotal);
@@ -1922,12 +1914,12 @@ function updateTaxCalculations() {
         document.getElementById('display_cgst').textContent = formatCurrency(cgstAmount + igstAmount);
         document.getElementById('display_sgst').textContent = formatCurrency(sgstAmount);
         document.getElementById('display_additional').textContent = formatCurrency(additionalCharges + tipsAmount);
-        document.getElementById('display_total').textContent = formatCurrency(totalAmount);
+        document.getElementById('display_total').textContent = formatCurrency(total_amount);
 
         // Update tax summary information
-        updateTaxSummaryDisplay(isInterstate, totalTaxAmount, taxableAmount);
+        updateTaxSummaryDisplay(isInterstate, total_tax, taxableAmount);
 
-        console.log(`Final calculation: Subtotal: ₹${grossSubtotal.toFixed(2)}, Tax: ₹${totalTaxAmount.toFixed(2)}, Total: ₹${totalAmount.toFixed(2)}`);
+        console.log(`Final calculation: Subtotal: ₹${grossSubtotal.toFixed(2)}, Tax: ₹${total_tax.toFixed(2)}, Total: ₹${total_amount.toFixed(2)}`);
 
     } catch (error) {
         console.error('Error in updateTaxCalculations:', error);
@@ -2521,7 +2513,6 @@ document.getElementById('payment_method').addEventListener('change', function() 
 document.addEventListener('input', function(e) {
     if (e.target.matches('input[name="service_quantities[]"], .quantity-input, .unit-price, .tax-input, .billing-input')) {
         // Debounce rapid input changes
-        clearTimeout(window.taxCalculationTimeout);
         window.taxCalculationTimeout = setTimeout(updateTaxCalculations, 200);
     }
 });
