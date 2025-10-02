@@ -693,6 +693,18 @@
 <script>
 var availableBatches = []; // Global array to hold all available batches
 
+// Helper function to find an empty service row
+function findEmptyServiceRow() {
+    const serviceRows = document.querySelectorAll('.service-row');
+    for (let row of serviceRows) {
+        const serviceSelect = row.querySelector('select[name="service_ids[]"]');
+        if (serviceSelect && !serviceSelect.value) {
+            return row;
+        }
+    }
+    return null;
+}
+
 // CRITICAL: Define addUnakiAppointmentToBill function FIRST for immediate availability
 function addUnakiAppointmentToBill(appointmentId, serviceName, servicePrice, serviceDuration) {
     console.log('Adding Unaki appointment to bill:', appointmentId, serviceName, servicePrice, serviceDuration);
@@ -1379,6 +1391,11 @@ function viewFullCustomerHistory() {
 // Add product row
 function addProductRow() {
     const container = document.getElementById('productsContainer');
+    if (!container || container.children.length === 0) {
+        console.error('Products container not found or empty');
+        return;
+    }
+    
     const newRow = container.children[0].cloneNode(true);
 
     // Clear values and reset state
@@ -1392,18 +1409,27 @@ function addProductRow() {
 
     // Reset batch dropdown
     const batchSelect = newRow.querySelector('.batch-select');
-    batchSelect.innerHTML = '<option value="">Select Product First</option>';
-    batchSelect.disabled = true;
+    if (batchSelect) {
+        batchSelect.innerHTML = '<option value="">Select Product First</option>';
+        batchSelect.disabled = true;
+    }
 
     // Reset info divs
-    newRow.querySelector('.batch-info').innerHTML = '';
-    newRow.querySelector('.available-stock').innerHTML = '';
+    const batchInfo = newRow.querySelector('.batch-info');
+    if (batchInfo) {
+        batchInfo.innerHTML = '';
+    }
 
     // Change button to remove
     const button = newRow.querySelector('button');
-    button.className = 'btn btn-danger btn-sm w-100';
-    button.innerHTML = '<i class="fas fa-minus"></i>';
-    button.onclick = function() { this.closest('.product-row').remove(); };
+    if (button) {
+        button.className = 'btn btn-danger btn-sm w-100';
+        button.innerHTML = '<i class="fas fa-minus"></i>';
+        button.onclick = function() { 
+            this.closest('.product-row').remove(); 
+            updateTaxCalculations();
+        };
+    }
 
     container.appendChild(newRow);
 }
@@ -1856,12 +1882,16 @@ function updateTaxCalculations() {
 
         const taxableAmount = Math.max(0, grossSubtotal - discountAmount);
 
-        // Calculate taxes
+        // Get tax rates from form inputs
         const isInterstate = document.getElementById('is_interstate').checked;
+        const cgst_rate = parseFloat(document.getElementById('cgst_rate').value) || 0;
+        const sgst_rate = parseFloat(document.getElementById('sgst_rate').value) || 0;
+        const igst_rate = parseFloat(document.getElementById('igst_rate').value) || 0;
+        
         let cgstAmount = 0, sgstAmount = 0, igstAmount = 0;
 
         // Service prices are GST INCLUSIVE - extract GST from the price
-        const total_gst_rate = isInterstate ? igst_rate : (cgst_rate + sgst_rate);
+        const total_gst_rate = (isInterstate ? igst_rate : (cgst_rate + sgst_rate)) / 100;
 
         // Extract GST from service prices (inclusive calculation)
         // Formula: Base Amount = Price / (1 + GST Rate)
