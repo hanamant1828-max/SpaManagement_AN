@@ -1125,7 +1125,7 @@ body {
                         <div style="font-size: 10px; color: #6b7280;">Done</div>
                     </div>
                 </div>
-
+                
                 <div class="calendar-actions">
                     <button class="action-btn action-btn-primary" onclick="openMultiBookModal()">
                         <i class="fas fa-plus-circle"></i>
@@ -1302,9 +1302,8 @@ body {
                                 {% for service in services %}
                                     <option value="{{ service.id }}" 
                                             data-duration="{{ service.duration or 60 }}"
-                                            data-price="{{ service.price }}"
-                                            data-price-paise="{{ service.price_paise }}">
-                                        {{ service.name }} ({{ service.duration or 60 }} min - {{ service.price_paise | default(service.price * 100) | int / 100 | format_currency('INR') }})
+                                            data-price="{{ service.price }}">
+                                        {{ service.name }} ({{ service.duration or 60 }} min - ${{ "%.2f"|format(service.price) }})
                                     </option>
                                 {% endfor %}
                                 {% endif %}
@@ -1457,9 +1456,8 @@ body {
                                             {% for service in services %}
                                                 <option value="{{ service.id }}" 
                                                         data-duration="{{ service.duration or 60 }}"
-                                                        data-price="{{ service.price }}"
-                                                        data-price-paise="{{ service.price_paise }}">
-                                                    {{ service.name }} ({{ service.duration or 60 }} min - {{ service.price_paise | default(service.price * 100) | int / 100 | format_currency('INR') }})
+                                                        data-price="{{ service.price }}">
+                                                    {{ service.name }} ({{ service.duration or 60 }} min - ${{ "%.2f"|format(service.price) }})
                                                 </option>
                                             {% endfor %}
                                             {% endif %}
@@ -1548,7 +1546,7 @@ body {
                                     Total Price
                                 </label>
                                 <div style="font-size: 28px; font-weight: 700; color: #065f46;" id="multiTotalPrice">
-                                    —
+                                    $0.00
                                 </div>
                             </div>
                         </div>
@@ -1596,14 +1594,6 @@ let selectedAppointmentId = null;
 const currentDate = '{{ today }}';
 let bookingsData = [];
 let appointmentCounter = 1;
-
-// INR Formatter
-const INR = new Intl.NumberFormat('en-IN', {
-    style: 'currency',
-    currency: 'INR',
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-});
 
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', function() {
@@ -1818,9 +1808,8 @@ function addAppointment() {
                     {% for service in services %}
                         <option value="{{ service.id }}" 
                                 data-duration="{{ service.duration or 60 }}"
-                                data-price="{{ service.price }}"
-                                data-price-paise="{{ service.price_paise }}">
-                            {{ service.name }} ({{ service.duration or 60 }} min - {{ service.price_paise | default(service.price * 100) | int / 100 | format_currency('INR') }})
+                                data-price="{{ service.price }}">
+                            {{ service.name }} ({{ service.duration or 60 }} min - ${{ "%.2f"|format(service.price) }})
                         </option>
                     {% endfor %}
                     {% endif %}
@@ -1884,7 +1873,6 @@ function addAppointment() {
     container.appendChild(appointmentCard);
     updateAppointmentCount();
     updateRemoveButtonsVisibility();
-    updateSummary();
 }
 
 // Remove appointment
@@ -2011,7 +1999,7 @@ function checkConflicts(index) {
     }
 }
 
-// Update summary with INR formatting
+// Update summary
 function updateSummary() {
     let totalDuration = 0;
     let totalPrice = 0;
@@ -2024,23 +2012,10 @@ function updateSummary() {
         if (serviceSelect.value) {
             const selectedOption = serviceSelect.selectedOptions[0];
             const duration = parseInt(selectedOption.dataset.duration) || 60;
-
-            // Prefer price_paise, fallback to price
-            const pricePaiseAttr = selectedOption.dataset.pricePaise;
-            const pricePaiseNum = pricePaiseAttr !== undefined ? Number(pricePaiseAttr) : NaN;
-            let priceRupees;
-
-            if (Number.isFinite(pricePaiseNum) && pricePaiseNum > 0) {
-                priceRupees = pricePaiseNum / 100;
-            } else {
-                const p = parseFloat(selectedOption.dataset.price);
-                priceRupees = Number.isFinite(p) && p > 0 ? p : null;
-            }
+            const price = parseFloat(selectedOption.dataset.price) || 0;
 
             totalDuration += duration;
-            if (priceRupees !== null) {
-                totalPrice += priceRupees;
-            }
+            totalPrice += price;
         }
 
         if (staffSelect.value) {
@@ -2048,9 +2023,8 @@ function updateSummary() {
         }
     });
 
-    document.getElementById('multiTotalDuration').textContent = totalDuration + ' min';
-    document.getElementById('multiTotalPrice').textContent = 
-        totalPrice > 0 ? INR.format(totalPrice) : '—';
+    document.getElementById('multiTotalDuration').textContent = `${totalDuration} min`;
+    document.getElementById('multiTotalPrice').textContent = `$${totalPrice.toFixed(2)}`;
     document.getElementById('multiStaffCount').textContent = staffSet.size;
 }
 

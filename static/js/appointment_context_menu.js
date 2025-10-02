@@ -429,32 +429,6 @@ class AppointmentContextMenu {
     showAppointmentDetailsModal(appointment) {
         console.log('📋 Showing appointment details modal:', appointment);
         
-        // Calculate price from paise or fallback to price field
-        let priceDisplay = '—';
-        if (Number.isFinite(appointment.price_paise) && appointment.price_paise > 0) {
-            const rupees = appointment.price_paise / 100;
-            priceDisplay = new Intl.NumberFormat('en-IN', { 
-                style: 'currency', 
-                currency: 'INR',
-                minimumFractionDigits: 0,
-                maximumFractionDigits: 2
-            }).format(rupees);
-        } else if (appointment.service_price && parseFloat(appointment.service_price) > 0) {
-            priceDisplay = new Intl.NumberFormat('en-IN', { 
-                style: 'currency', 
-                currency: 'INR',
-                minimumFractionDigits: 0,
-                maximumFractionDigits: 2
-            }).format(parseFloat(appointment.service_price));
-        } else if (appointment.price && parseFloat(appointment.price) > 0) {
-            priceDisplay = new Intl.NumberFormat('en-IN', { 
-                style: 'currency', 
-                currency: 'INR',
-                minimumFractionDigits: 0,
-                maximumFractionDigits: 2
-            }).format(parseFloat(appointment.price));
-        }
-        
         // Create modal HTML
         const modalHTML = `
             <div class="modal fade" id="appointmentDetailsModal" tabindex="-1">
@@ -471,25 +445,25 @@ class AppointmentContextMenu {
                                 <div class="col-md-6">
                                     <h6 class="fw-bold text-primary mb-3">Client Information</h6>
                                     <div class="mb-2">
-                                        <strong>Name:</strong> ${this.escapeHtml(appointment.client_name || 'N/A')}
+                                        <strong>Name:</strong> ${appointment.client_name || 'N/A'}
                                     </div>
                                     <div class="mb-2">
-                                        <strong>Phone:</strong> ${this.escapeHtml(appointment.client_phone || 'N/A')}
+                                        <strong>Phone:</strong> ${appointment.client_phone || 'N/A'}
                                     </div>
                                     <div class="mb-2">
-                                        <strong>Email:</strong> ${this.escapeHtml(appointment.client_email || 'N/A')}
+                                        <strong>Email:</strong> ${appointment.client_email || 'N/A'}
                                     </div>
                                 </div>
                                 <div class="col-md-6">
                                     <h6 class="fw-bold text-success mb-3">Service Information</h6>
                                     <div class="mb-2">
-                                        <strong>Service:</strong> ${this.escapeHtml(appointment.service_name || 'N/A')}
+                                        <strong>Service:</strong> ${appointment.service_name || 'N/A'}
                                     </div>
                                     <div class="mb-2">
                                         <strong>Duration:</strong> ${appointment.service_duration || 'N/A'} minutes
                                     </div>
-                                    <div class="mb-2" data-testid="appointment-price">
-                                        <strong>Price:</strong> ${priceDisplay}
+                                    <div class="mb-2">
+                                        <strong>Price:</strong> ₹${appointment.service_price || '0'}
                                     </div>
                                 </div>
                             </div>
