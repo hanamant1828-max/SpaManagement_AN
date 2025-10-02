@@ -1,0 +1,90 @@
+Integrated Billing page loaded
+Bootstrap loaded successfully
+Initializing dashboard charts...
+Revenue chart canvas not found - skipping
+Service chart canvas not found - skipping
+Bookings chart canvas not found - skipping
+Staff chart canvas not found - skipping
+Dashboard charts initialized successfully
+Bootstrap components initialized successfully
+Initializing dashboard charts...
+Revenue chart canvas not found - skipping
+Service chart canvas not found - skipping
+Bookings chart canvas not found - skipping
+Staff chart canvas not found - skipping
+Dashboard charts initialized successfully
+Initializing dashboard charts...
+Revenue chart canvas not found - skipping
+Service chart canvas not found - skipping
+Bookings chart canvas not found - skipping
+Staff chart canvas not found - skipping
+Dashboard charts initialized successfully
+🎛️ Context menu system initialized
+Available batches loaded: 13
+Loading client data for ID: 28
+Error loading appointments: 
+SyntaxError {message: "Failed to execute 'json' on 'Response': Unexpected token '<', "<!doctype "... is not valid JSON"}
+
+Package data received: 
+Object {packages: Array(0), success: true, total: 0}
+Loading client data for ID: 12
+Error loading appointments: 
+SyntaxError {message: "Failed to execute 'json' on 'Response': Unexpected token '<', "<!doctype "... is not valid JSON"}
+
+Package data received: 
+Object {packages: Array(2), success: true, total: 2}
+Spa & Salon Suite
+Test User 
+Integrated Billing
+Customer Packages
+Create Invoice
+Quick Billing
+Create Professional Invoice
+Services
+Packages
+Inventory
+Customer Information
+Select Customer *
+Hanuman11111111111111111111111111111111111 Pattar - 09945302251
+Active Packages
+Active Packages:
+only2
+Unlimited Access
+3+1
+Deep Hair Treatment: 4 sessions remaining
+Total Active: 2 package(s)
+Services
+Package benefits auto-applied
+Service
+Select Service
+Staff Member *
+Select Staff
+Quantity
+1
+Appointment ID
+Optional
+  
+Products & Inventory
+FIFO auto-deduction from batches
+Product
+Select Product
+Batch (Auto-selected FIFO)
+Select Product First
+Quantity
+1
+Unit Price
+₹0.00
+  
+Payment & Tax Details
+Payment Method *
+Select Payment Method
+Payment Status *
+Paid
+Discount (%)
+0
+ Enable GST
+GST %
+Notes (Optional)
+Add any notes here...
+Total Amount: ₹0.00
+1 Services, 1 Products
