@@ -873,29 +873,8 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Add customer selection change handler
-    const customerSelect = document.getElementById('client_id');
-    if (customerSelect) {
-        customerSelect.addEventListener('change', function() {
-            const selectedCustomerId = this.value;
-
-            // Get current customer ID from URL to prevent unnecessary redirects
-            const currentPath = window.location.pathname;
-            const currentCustomerId = currentPath.match(/\/integrated-billing\/(\d+)$/)?.[1];
-
-            if (selectedCustomerId) {
-                // Only redirect if the selected customer is different from current
-                if (selectedCustomerId !== currentCustomerId) {
-                    window.location.href = `/integrated-billing/${selectedCustomerId}`;
-                }
-            } else {
-                // Only redirect if we're currently viewing a specific customer
-                if (currentCustomerId) {
-                    window.location.href = '/integrated-billing';
-                }
-            }
-        });
-    }
+    // Customer selection is now handled by the main change handler above
+    // This section has been removed to prevent duplicate event listeners
 });
 
 // Add service row
@@ -1474,6 +1453,8 @@ function validateStock(quantityInput) {
 let customerPackageData = null;
 
 // Load customer packages and auto-populate services
+let lastLoadedCustomerId = null; // Track last loaded customer to prevent duplicates
+
 document.getElementById('client_id').addEventListener('change', function() {
     const clientId = this.value;
     const packagesDiv = document.getElementById('customerPackages');
@@ -1481,9 +1462,18 @@ document.getElementById('client_id').addEventListener('change', function() {
     if (!clientId) {
         packagesDiv.innerHTML = '<small>Select a customer to view their active packages</small>';
         customerPackageData = null;
+        lastLoadedCustomerId = null;
         updateTaxCalculations(); // Update totals when customer is deselected
         return;
     }
+
+    // Prevent duplicate loads for the same customer
+    if (lastLoadedCustomerId === clientId) {
+        console.log('Customer packages already loaded for:', clientId);
+        return;
+    }
+
+    lastLoadedCustomerId = clientId;
 
     // Show loading state
     packagesDiv.innerHTML = '<small class="text-info"><i class="fas fa-spinner fa-spin"></i> Loading packages...</small>';
