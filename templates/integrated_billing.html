@@ -1922,11 +1922,28 @@ function updateTaxCalculations() {
     const serviceCount = document.querySelectorAll('.service-row select[name="service_ids[]"]').length;
     const productCount = document.querySelectorAll('.product-row select[name="product_ids[]"]').length;
     
-    // Update main display
-    document.getElementById('grandTotal').textContent = grandTotal.toFixed(2);
-    document.getElementById('grandTotalBtn').textContent = grandTotal.toFixed(2);
-    document.getElementById('serviceCount').textContent = serviceCount;
-    document.getElementById('productCount').textContent = productCount;
+    // Update main display (with null checks)
+    const grandTotalEl = document.getElementById('grandTotal');
+    if (grandTotalEl) grandTotalEl.textContent = grandTotal.toFixed(2);
+    
+    const grandTotalBtnEl = document.getElementById('grandTotalBtn');
+    if (grandTotalBtnEl) grandTotalBtnEl.textContent = grandTotal.toFixed(2);
+    
+    const serviceCountEl = document.getElementById('serviceCount');
+    if (serviceCountEl) serviceCountEl.textContent = serviceCount;
+    
+    const productCountEl = document.getElementById('productCount');
+    if (productCountEl) productCountEl.textContent = productCount;
+    
+    // Debug log
+    console.log('💰 Tax Calculations Updated:', {
+        servicesSubtotal: servicesSubtotal.toFixed(2),
+        productsSubtotal: productsSubtotal.toFixed(2),
+        packageDeductions: packageDeductions.toFixed(2),
+        discountAmount: discountAmount.toFixed(2),
+        gstAmount: gstAmount.toFixed(2),
+        grandTotal: grandTotal.toFixed(2)
+    });
     
     // Update floating panel (if exists)
     if (document.getElementById('servicesSubtotalPanel')) {
