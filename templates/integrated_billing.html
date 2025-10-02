@@ -970,107 +970,98 @@ function addUnakiAppointmentToBill(appointmentId, serviceName, servicePrice, sta
     }
 }
 
-function autoFillCurrentServices() {
-    {% if selected_customer and customer_appointments %}
-    const servicesContainer = document.getElementById('servicesContainer');
-
-    const serviceRows = servicesContainer.querySelectorAll('.service-row');
-    for (let i = 1; i < serviceRows.length; i++) {
-        serviceRows[i].remove();
+function autoPopulateBillingFromAppointments(appointments) {
+    if (!appointments || appointments.length === 0) {
+        console.log('No appointments to populate');
+        return;
     }
 
-    const customerAppointments = {{ customer_appointments | tojson | safe }};
-    let servicesAdded = 0;
+    // Filter for confirmed/scheduled unpaid appointments
+    const unpaidAppointments = appointments.filter(apt => 
+        (apt.status === 'confirmed' || apt.status === 'scheduled') && 
+        apt.payment_status === 'pending'
+    );
 
-    customerAppointments.forEach((appointment, index) => {
-        let targetRow = null;
+    if (unpaidAppointments.length === 0) {
+        console.log('No unpaid confirmed/scheduled appointments found');
+        return;
+    }
 
-        if (index === 0) {
-            targetRow = servicesContainer.querySelector('.service-row');
+    console.log(`Auto-populating ${unpaidAppointments.length} unpaid appointments into billing form`);
+
+    // Clear existing service rows except the first one
+    const container = document.getElementById('servicesContainer');
+    const firstRow = container.children[0];
+    container.innerHTML = '';
+    container.appendChild(firstRow);
+
+    // Reset first row
+    firstRow.querySelectorAll('select, input').forEach(input => {
+        if (input.type === 'number') {
+            input.value = input.name.includes('quantities') ? '1' : '';
         } else {
-            addServiceRow();
-            const allRows = servicesContainer.querySelectorAll('.service-row');
-            targetRow = allRows[allRows.length - 1];
-        }
-
-        if (targetRow) {
-            const serviceSelect = targetRow.querySelector('select[name="service_ids[]"]');
-            const staffSelect = targetRow.querySelector('select[name="staff_ids[]"]');
-            const quantityInput = targetRow.querySelector('input[name="service_quantities[]"]');
-            const appointmentInput = targetRow.querySelector('input[name="appointment_ids[]"]');
-
-            let matchedServiceId = null;
-            let servicePrice = parseFloat(appointment.service_price) || 0;
-
-            for (let option of serviceSelect.options) {
-                if (option.value && option.text.toLowerCase().includes(appointment.service_name.toLowerCase())) {
-                    matchedServiceId = option.value;
-                    const priceMatch = option.text.match(/₹([\d,]+\.?\d*)/);
-                    if (priceMatch) {
-                        const systemPrice = parseFloat(priceMatch[1].replace(/,/g, ''));
-                        servicePrice = systemPrice > 0 ? systemPrice : servicePrice;
-                    }
-                    break;
-                }
-            }
-
-            if (matchedServiceId) {
-                serviceSelect.value = matchedServiceId;
-                quantityInput.value = '1';
-                appointmentInput.value = `unaki_${appointment.id}`;
-
-                // CRITICAL: Always set the price data attribute
-                const selectedOption = serviceSelect.options[serviceSelect.selectedIndex];
-                if (selectedOption) {
-                    selectedOption.dataset.price = servicePrice.toString();
-                    console.log(`Auto-fill set price for ${appointment.service_name}: ₹${servicePrice}`);
-                }
-
-                if (appointment.staff_id && staffSelect) {
-                    staffSelect.value = appointment.staff_id;
-                }
-
-                targetRow.style.borderLeft = '4px solid #007bff';
-                targetRow.style.backgroundColor = 'rgba(0, 123, 255, 0.1)';
-
-                let indicator = targetRow.querySelector('.unaki-indicator');
-                if (!indicator) {
-                    indicator = document.createElement('small');
-                    indicator.className = 'unaki-indicator text-info fw-bold d-block';
-                    indicator.innerHTML = `<i class="fas fa-calendar-check me-1"></i>Unaki Booking - ₹${servicePrice}`;
-                    targetRow.appendChild(indicator);
-                }
-
-                servicesAdded++;
-            } else {
-                console.warn(`No matching service found for: ${appointment.service_name}`);
-                quantityInput.value = '1';
-                appointmentInput.value = `unaki_${appointment.id}`;
-
-                if (appointment.staff_id && staffSelect) {
-                    staffSelect.value = appointment.staff_id;
-                }
-
-                let indicator = targetRow.querySelector('.unaki-indicator');
-                if (!indicator) {
-                    indicator = document.createElement('small');
-                    indicator.className = 'unaki-indicator text-warning fw-bold d-block';
-                    indicator.innerHTML = `<i class="fas fa-exclamation-triangle me-1"></i>Service not found: ${appointment.service_name}`;
-                    targetRow.appendChild(indicator);
-                }
-            }
+            input.value = '';
         }
     });
 
-    setTimeout(() => {
-        updateTaxCalculations();
-    }, 150);
+    // Populate billing form with unpaid appointments
+    unpaidAppointments.forEach((apt, index) => {
+        if (index === 0) {
+            // Fill first row
+            const serviceSelect = firstRow.querySelector('select[name="service_ids[]"]');
+            const staffSelect = firstRow.querySelector('select[name="staff_ids[]"]');
+            const qtyInput = firstRow.querySelector('input[name="service_quantities[]"]');
+            const appointmentInput = firstRow.querySelector('input[name="appointment_ids[]"]');
 
-    showNotification(`Auto-filled ${servicesAdded} of ${customerAppointments.length} Unaki appointments with staff assignments!`, servicesAdded > 0 ? 'success' : 'warning');
-    {% else %}
-    showNotification('No current Unaki appointments found to auto-fill', 'warning');
-    {% endif %}
+            if (serviceSelect && apt.service_id) {
+                serviceSelect.value = apt.service_id;
+                handleServiceSelection(serviceSelect);
+            }
+            if (staffSelect && apt.staff_id) {
+                staffSelect.value = apt.staff_id;
+            }
+            if (qtyInput) qtyInput.value = 1;
+            if (appointmentInput) appointmentInput.value = apt.id;
+        } else {
+            // Add new rows for remaining appointments
+            addServiceRow();
+            const rows = container.querySelectorAll('.service-row');
+            const newRow = rows[rows.length - 1];
+
+            const serviceSelect = newRow.querySelector('select[name="service_ids[]"]');
+            const staffSelect = newRow.querySelector('select[name="staff_ids[]"]');
+            const qtyInput = newRow.querySelector('input[name="service_quantities[]"]');
+            const appointmentInput = newRow.querySelector('input[name="appointment_ids[]"]');
+
+            if (serviceSelect && apt.service_id) {
+                serviceSelect.value = apt.service_id;
+                handleServiceSelection(serviceSelect);
+            }
+            if (staffSelect && apt.staff_id) {
+                staffSelect.value = apt.staff_id;
+            }
+            if (qtyInput) qtyInput.value = 1;
+            if (appointmentInput) appointmentInput.value = apt.id;
+        }
+    });
+
+    // Recalculate totals
+    updateTaxCalculations();
+
+    showNotification(`Auto-added ${unpaidAppointments.length} unpaid services to billing`, 'success');
 }
+
+
+function autoFillCurrentServices() {
+    if (!window.customerAppointments || window.customerAppointments.length === 0) {
+        showNotification('No appointments found for this customer', 'warning');
+        return;
+    }
+
+    // Use the new auto-populate function
+    autoPopulateBillingFromAppointments(window.customerAppointments);
+}
+
 
 function viewFullCustomerHistory() {
     {% if selected_customer %}
@@ -1832,19 +1823,36 @@ document.addEventListener('DOMContentLoaded', function() {
                         row.querySelector('select[name="staff_ids[]"]').value = '';
                         row.querySelector('input[name="service_quantities[]"]').value = '1';
                         row.querySelector('input[name="appointment_ids[]"]').value = '';
+                        // Clear any package benefit indicators
+                        clearServiceBenefitDisplay(row);
                     }
                 });
 
                 // Load customer package data
                 loadCustomerPackages(clientId); // Assuming loadClientData is a typo and loadCustomerPackages is intended
 
-                // Load customer appointments and wait for completion
-                const appointmentData = await loadCustomerAppointments(clientId);
+                // Fetch and auto-populate appointments
+                try {
+                    const response = await fetch(`/api/customer/${clientId}/appointments`);
+                    const data = await response.json();
+                    if (data.success) {
+                        window.customerAppointments = data.appointments || [];
+                        window.customerServices = data.services || [];
+                        autoPopulateBillingFromAppointments(data.appointments);
+                        console.log(`Customer ${clientId} selected - appointments loaded and auto-populated`);
+                    } else {
+                        console.error('Failed to load appointments for auto-population:', data.error);
+                        showNotification('Failed to load appointments for auto-population', 'error');
+                    }
+                } catch (error) {
+                    console.error('Error fetching appointments for auto-population:', error);
+                    showNotification('Error fetching appointments', 'error');
+                }
+
 
                 // Reset calculations
                 updateTaxCalculations();
 
-                console.log(`Customer ${clientId} selected - appointments loaded and ready for billing`);
             } else {
                 // Clear package display
                 const packagesDiv = document.getElementById('customerPackages');
@@ -1855,6 +1863,21 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Clear appointments
                 window.currentCustomerAppointments = [];
                 window.currentCustomerServices = [];
+
+                // Clear service rows
+                 const servicesContainer = document.getElementById('servicesContainer');
+                const serviceRows = servicesContainer.querySelectorAll('.service-row');
+                serviceRows.forEach((row, index) => {
+                    if (index > 0) {
+                        row.remove();
+                    } else {
+                        row.querySelector('select[name="service_ids[]"]').value = '';
+                        row.querySelector('select[name="staff_ids[]"]').value = '';
+                        row.querySelector('input[name="service_quantities[]"]').value = '1';
+                        row.querySelector('input[name="appointment_ids[]"]').value = '';
+                        clearServiceBenefitDisplay(row);
+                    }
+                });
 
                 // Reset calculations
                 updateTaxCalculations();
@@ -1926,6 +1949,7 @@ window.addPaymentMethod = addPaymentMethod;
 window.removePaymentMethod = removePaymentMethod;
 window.loadCustomerAppointments = loadCustomerAppointments;
 window.loadCustomerPackages = loadCustomerPackages; // Assuming loadClientData was a typo
+window.autoPopulateBillingFromAppointments = autoPopulateBillingFromAppointments; // Expose the new function
 
 </script>
 {% endblock %}
