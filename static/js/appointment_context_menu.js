@@ -44,9 +44,6 @@ class AppointmentContextMenu {
                     <li class="context-menu-item" data-action="cancel">
                         <i class="fas fa-times-circle"></i> Cancel Appointment
                     </li>
-                    <li class="context-menu-item danger" data-action="delete">
-                        <i class="fas fa-trash"></i> Delete Appointment
-                    </li>
                 </ul>
             </div>
         `;
