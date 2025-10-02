@@ -292,8 +292,8 @@
                                                             <strong class="text-success">₹{{ "{:,.2f}".format(appointment.service_price) if appointment.service_price else '0.00' }}</strong>
                                                         </td>
                                                         <td>
-                                                            <button type="button" 
-                                                                    class="btn btn-primary btn-sm" 
+                                                            <button type="button"
+                                                                    class="btn btn-primary btn-sm"
                                                                     onclick="addUnakiAppointmentToBill({{ appointment.id }}, '{{ appointment.service_name }}', {{ appointment.service_price }}, '{{ appointment.staff_name }}')">
                                                                 <i class="fas fa-plus me-1"></i>Add to Bill
                                                             </button>
@@ -746,11 +746,37 @@ function addUnakiAppointmentToBill(appointmentId, serviceName, servicePrice, ser
                 quantityInput.value = '1';
                 appointmentInput.value = `unaki_${appointmentId}`;
 
-                // Trigger change event to update calculations
+                // CRITICAL: Ensure the selected option has the price data
+                const selectedOption = serviceSelect.options[serviceSelect.selectedIndex];
+                if (selectedOption) {
+                    selectedOption.dataset.price = finalServicePrice.toString();
+                    console.log(`Set service price data: ${serviceName} = ₹${finalServicePrice}`);
+                }
+
+                // Highlight the row
+                targetRow.style.borderLeft = '4px solid #007bff';
+                targetRow.style.backgroundColor = 'rgba(0, 123, 255, 0.1)';
+
+                // Add visual indicator
+                let indicator = targetRow.querySelector('.unaki-indicator');
+                if (!indicator) {
+                    indicator = document.createElement('small');
+                    indicator.className = 'unaki-indicator text-info fw-bold d-block';
+                    indicator.innerHTML = '<i class="fas fa-calendar-check me-1"></i>Unaki Booking';
+                    targetRow.appendChild(indicator);
+                }
+
+                // Trigger service selection change event
+                if (typeof handleServiceSelection === 'function') {
+                    handleServiceSelection(serviceSelect);
+                }
+
+                // Force recalculation after a small delay to ensure DOM updates
                 setTimeout(() => {
-                    serviceSelect.dispatchEvent(new Event('change', { bubbles: true }));
-                    quantityInput.dispatchEvent(new Event('input', { bubbles: true }));
-                    calculateTotals();
+                    console.log(`Triggering calculation update for ${serviceName} at ₹${finalServicePrice}`);
+                    if (typeof updateTaxCalculations === 'function') {
+                        updateTaxCalculations();
+                    }
                 }, 200);
 
                 // Show success message
@@ -823,6 +849,7 @@ function findEmptyServiceRow() {
     return null;
 }
 
+// Show notification function
 function showNotification(message, type = 'info') {
     // Create notification element
     const notification = document.createElement('div');
@@ -966,10 +993,6 @@ function addUnakiAppointmentToBill(appointmentId, serviceName, servicePrice, ser
     }
 }
 
-// Make functions globally available IMMEDIATELY at script load
-window.addUnakiAppointmentToBill = addUnakiAppointmentToBill;
-window.findEmptyServiceRow = findEmptyServiceRow;
-
 // Additional safety: Ensure functions are available on DOMContentLoaded
 document.addEventListener('DOMContentLoaded', function() {
     // Double-check and re-assign functions to ensure they're available
@@ -1077,9 +1100,9 @@ function addServiceRow() {
     if (button) {
         button.className = 'btn btn-danger btn-sm w-100';
         button.innerHTML = '<i class="fas fa-minus"></i>';
-        button.onclick = function() { 
-            this.closest('.service-row').remove(); 
-            updateTaxCalculations(); 
+        button.onclick = function() {
+            this.closest('.service-row').remove();
+            updateTaxCalculations();
         };
     }
 
@@ -1501,7 +1524,7 @@ function addProductRow() {
             batchSelect.disabled = false;
 
             // Show batch info
-            const expiryText = firstBatch.expiry_date ? 
+            const expiryText = firstBatch.expiry_date ?
                 `Expires: ${new Date(firstBatch.expiry_date).toLocaleDateString()}` : 'No expiry date';
             batchInfo.innerHTML = `
                 <strong>Auto-selected:</strong> ${firstBatch.batch_name}<br>
@@ -1528,7 +1551,7 @@ function addProductRow() {
             batchSelect.addEventListener('change', function() {
                 const selectedBatch = productBatches.find(b => b.id == this.value);
                 if (selectedBatch) {
-                    const expiryText = selectedBatch.expiry_date ? 
+                    const expiryText = selectedBatch.expiry_date ?
                         `Expires: ${new Date(selectedBatch.expiry_date).toLocaleDateString()}` : 'No expiry date';
                     batchInfo.innerHTML = `
                         <strong>Selected:</strong> ${selectedBatch.batch_name}<br>
@@ -1585,7 +1608,7 @@ function validateStock(quantityInput) {
         } else {
             quantityInput.style.borderColor = '#28a745'; // Green border for valid input
              if (availableStockDiv) {
-                const expiryText = selectedBatch.expiry_date ? 
+                const expiryText = selectedBatch.expiry_date ?
                     `Expires: ${new Date(selectedBatch.expiry_date).toLocaleDateString()}` : 'No expiry date';
                 availableStockDiv.innerHTML = `
                     <strong>Selected:</strong> ${selectedBatch.batch_name}<br>
@@ -1792,7 +1815,7 @@ function updateTaxCalculations() {
         let servicesSubtotal = 0;
         let inventorySubtotal = 0;
 
-        // Calculate services subtotal - include ALL service rows (manually added and auto-populated)
+        // Calculate services subtotal (prices are GST inclusive)
         const serviceRows = document.querySelectorAll('.service-row');
         console.log(`Found ${serviceRows.length} service rows to calculate`);
 
@@ -2133,11 +2156,11 @@ function updateServiceDisplayWithBenefit(row, benefit, index) {
             <small class="fw-bold">
                 <i class="fas fa-percentage me-1 text-info"></i>${benefit.description}
                 <br>
-                ${isPartialCoverage ? 
-                    `<span class="text-success">✓ Free: ${benefit.sessionsCovered} sessions</span> | <span class="text-warning">₹ Pay: ${benefit.sessionsToPayFor} sessions</span><br>` : 
+                ${isPartialCoverage ?
+                    `<span class="text-success">✓ Free: ${benefit.sessionsCovered} sessions</span> | <span class="text-warning">₹ Pay: ${benefit.sessionsToPayFor} sessions</span><br>` :
                     ''
                 }
-                <span class="text-dark">Pay: ₹${benefit.finalPrice.toFixed(2)}</span> 
+                <span class="text-dark">Pay: ₹${benefit.finalPrice.toFixed(2)}</span>
                 <strike class="text-muted small">₹${benefit.originalPrice.toFixed(2)}</strike>
                 <span class="badge bg-info ms-1">${coveragePercent}% Saved</span>
                 <br><span class="text-success small">Package Discount: ₹${benefit.discount.toFixed(2)}</span>
@@ -2824,7 +2847,7 @@ document.getElementById('billingForm').addEventListener('submit', function(e) {
 
             // Add enhanced change event listeners
             document.addEventListener('change', function(e) {
-                if (e.target.matches('select[name="service_ids[]"]') || 
+                if (e.target.matches('select[name="service_ids[]"]') ||
                     e.target.matches('input[name="service_quantities[]"]')) {
                     console.log('Service selection or quantity changed, updating calculations...');
                     setTimeout(() => {
@@ -2848,7 +2871,7 @@ document.getElementById('billingForm').addEventListener('submit', function(e) {
 
             // Service selection listeners
             document.addEventListener('change', function(e) {
-                if (e.target.matches('select[name="service_ids[]"]') || 
+                if (e.target.matches('select[name="service_ids[]"]') ||
                     e.target.matches('input[name="service_quantities[]"]') ||
                     e.target.matches('input[name="product_quantities[]"]') ||
                     e.target.matches('input[name="product_prices[]"]')) {
@@ -2866,7 +2889,7 @@ document.getElementById('billingForm').addEventListener('submit', function(e) {
         function setupServiceChangeListeners() {
             // Monitor service dropdown changes
             document.addEventListener('change', function(event) {
-                if (event.target.matches('select[name="service_ids[]"]') || 
+                if (event.target.matches('select[name="service_ids[]"]') ||
                     event.target.matches('input[name="service_quantities[]"]')) {
                     // Service or quantity changed, update calculations
                     handleServiceSelection(event.target);
@@ -3001,7 +3024,7 @@ document.getElementById('billingForm').addEventListener('submit', function(e) {
                     <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                 `;
 
-                const container = document.querySelector('.container-fluid'); 
+                const container = document.querySelector('.container-fluid');
                 const billingCard = container.querySelector('.card');
                 billingCard.parentNode.insertBefore(successAlert, billingCard);
 
@@ -3111,7 +3134,7 @@ function handleServiceSelection(selectElement) {
 
             // Service selection listeners
             document.addEventListener('change', function(e) {
-                if (e.target.matches('select[name="service_ids[]"]') || 
+                if (e.target.matches('select[name="service_ids[]"]') ||
                     e.target.matches('input[name="service_quantities[]"]') ||
                     e.target.matches('input[name="product_quantities[]"]') ||
                     e.target.matches('input[name="product_prices[]"]')) {

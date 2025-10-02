@@ -494,11 +494,12 @@ def create_professional_invoice():
                     'message': f'Insufficient stock in batch {batch.batch_name}. Available: {batch.qty_available}, Required: {item["quantity"]}'
                 })
 
-        # Calculate amounts
+        # Calculate amounts - Service prices are GST INCLUSIVE
         services_subtotal = 0
         for service_data in services_data:
             service = Service.query.get(service_data['service_id'])
             if service:
+                # Service price includes GST
                 services_subtotal += service.price * service_data['quantity']
 
         inventory_subtotal = 0
@@ -513,21 +514,53 @@ def create_professional_invoice():
         else:
             discount_amount = discount_value
 
-        net_subtotal = gross_subtotal - discount_amount
-
-        # Calculate taxes
-        cgst_amount = 0
-        sgst_amount = 0
-        igst_amount = 0
-
-        if is_interstate:
-            igst_amount = net_subtotal * igst_rate
+        # Service prices are GST INCLUSIVE - extract GST from the price
+        total_gst_rate = igst_rate if is_interstate else (cgst_rate + sgst_rate)
+        
+        # Extract GST from service prices (inclusive calculation)
+        # Formula: GST Amount = (Price × GST Rate) / (100 + GST Rate)
+        service_gst_amount = (services_subtotal * total_gst_rate * 100) / (100 + total_gst_rate * 100)
+        
+        # Service base amount (excluding GST)
+        service_base_amount = services_subtotal - service_gst_amount
+        
+        # For inventory, GST is calculated normally (exclusive)
+        inventory_gst_amount = inventory_subtotal * total_gst_rate
+        
+        # Total amounts
+        total_base_amount = service_base_amount + inventory_subtotal
+        total_gst_before_discount = service_gst_amount + inventory_gst_amount
+        
+        # Apply discount to base amount only
+        net_base_amount = total_base_amount - discount_amount
+        
+        # Recalculate GST proportionally after discount
+        if total_base_amount > 0:
+            discount_factor = net_base_amount / total_base_amount
+            final_service_gst = service_gst_amount * discount_factor
+            final_inventory_gst = inventory_gst_amount * discount_factor
         else:
-            cgst_amount = net_subtotal * cgst_rate
-            sgst_amount = net_subtotal * sgst_rate
-
-        total_tax = cgst_amount + sgst_amount + igst_amount
-        total_amount = net_subtotal + total_tax + additional_charges + tips_amount
+            final_service_gst = 0
+            final_inventory_gst = 0
+        
+        total_tax = final_service_gst + final_inventory_gst
+        
+        # Split into CGST/SGST or IGST
+        if is_interstate:
+            igst_amount = total_tax
+            cgst_amount = 0
+            sgst_amount = 0
+        else:
+            if total_gst_rate > 0:
+                cgst_amount = total_tax * (cgst_rate / total_gst_rate)
+                sgst_amount = total_tax * (sgst_rate / total_gst_rate)
+            else:
+                cgst_amount = 0
+                sgst_amount = 0
+            igst_amount = 0
+        
+        net_subtotal = net_base_amount
+        total_amount = net_base_amount + total_tax + additional_charges + tips_amount
 
         # Create professional invoice with proper transaction handling
         try:
