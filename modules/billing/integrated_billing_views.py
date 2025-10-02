@@ -797,6 +797,56 @@ def create_professional_invoice():
                     item.item_id = product.id
                     item.product_id = product.id
                     item.batch_id = batch.id
+                    item.item_name = product.name
+                    item.batch_name = batch.batch_name
+                    item.quantity = item_data['quantity']
+                    item.unit_price = item_data['unit_price']
+                    item.original_amount = item_data['unit_price'] * item_data['quantity']
+                    item.final_amount = item_data['unit_price'] * item_data['quantity']
+                    db.session.add(item)
+                    inventory_items_created += 1
+
+                    # Reduce stock
+                    create_consumption_record(
+                        batch_id=batch.id,
+                        quantity=item_data['quantity'],
+                        issued_to=f"Invoice {invoice_number} - {customer.full_name}",
+                        reference=invoice_number,
+                        notes=f"Professional invoice sale - {invoice_number}",
+                        user_id=current_user.id
+                    )
+                    stock_reduced_count += 1
+
+            # Commit all changes
+            db.session.commit()
+
+            return jsonify({
+                'success': True,
+                'message': f'Professional Invoice {invoice_number} created successfully',
+                'invoice_id': invoice.id,
+                'invoice_number': invoice_number,
+                'total_amount': float(total_amount),
+                'cgst_amount': float(cgst_amount),
+                'sgst_amount': float(sgst_amount),
+                'igst_amount': float(igst_amount),
+                'tax_amount': float(total_tax),
+                'service_items_created': service_items_created,
+                'inventory_items_created': inventory_items_created,
+                'stock_reduced': stock_reduced_count,
+                'deductions_applied': 0
+            })
+
+        except Exception as e:
+            db.session.rollback()
+            app.logger.error(f"Professional invoice creation failed for user {current_user.id}: {str(e)}")
+            return jsonify({
+                'success': False,
+                'message': f'Transaction failed: {str(e)}. All changes have been rolled back.'
+            })
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': f'Error creating professional invoice: {str(e)}'})
 
 
 @app.route('/integrated-billing/preview', methods=['POST'])
@@ -970,55 +1020,6 @@ def preview_invoice():
     except Exception as e:
         return jsonify({'success': False, 'message': f'Error generating preview: {str(e)}'})
 
-                    item.batch_name = batch.batch_name
-                    item.quantity = item_data['quantity']
-                    item.unit_price = item_data['unit_price']
-                    item.original_amount = item_data['unit_price'] * item_data['quantity']
-                    item.final_amount = item_data['unit_price'] * item_data['quantity']
-                    db.session.add(item)
-                    inventory_items_created += 1
-
-                    # Reduce stock
-                    create_consumption_record(
-                        batch_id=batch.id,
-                        quantity=item_data['quantity'],
-                        issued_to=f"Invoice {invoice_number} - {customer.full_name}",
-                        reference=invoice_number,
-                        notes=f"Professional invoice sale - {invoice_number}",
-                        user_id=current_user.id
-                    )
-                    stock_reduced_count += 1
-
-            # Commit all changes
-            db.session.commit()
-
-            return jsonify({
-                'success': True,
-                'message': f'Professional Invoice {invoice_number} created successfully',
-                'invoice_id': invoice.id,
-                'invoice_number': invoice_number,
-                'total_amount': float(total_amount),
-                'cgst_amount': float(cgst_amount),
-                'sgst_amount': float(sgst_amount),
-                'igst_amount': float(igst_amount),
-                'tax_amount': float(total_tax),
-                'service_items_created': service_items_created,
-                'inventory_items_created': inventory_items_created,
-                'stock_reduced': stock_reduced_count,
-                'deductions_applied': 0
-            })
-
-        except Exception as e:
-            db.session.rollback()
-            app.logger.error(f"Professional invoice creation failed for user {current_user.id}: {str(e)}")
-            return jsonify({
-                'success': False,
-                'message': f'Transaction failed: {str(e)}. All changes have been rolled back.'
-            })
-
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({'success': False, 'message': f'Error creating professional invoice: {str(e)}'})
 
 @app.route('/integrated-billing/create', methods=['POST'])
 @login_required
