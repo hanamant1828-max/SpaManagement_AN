@@ -1080,6 +1080,22 @@ body {
         border-radius: 0 !important;
     }
 }
+
+/* --- Scrollbars + containers --- */
+.timeline-panel {
+  /* allow both axes to scroll inside the panel */
+  overflow: auto;
+  /* nicer touch scrolling on mobile */
+  -webkit-overflow-scrolling: touch;
+  /* keep space for the scrollbar to avoid layout shift */
+  scrollbar-gutter: stable both-edges;
+  /* prevent the page from overscrolling when reaching edges */
+  overscroll-behavior: contain;
+}
+/* keep the staff list's own vertical scrollbar stable */
+.staff-sidebar {
+  scrollbar-gutter: stable both-edges;
+}
     </style>
 </head>
 <body>
@@ -1602,6 +1618,7 @@ document.addEventListener('DOMContentLoaded', function() {
     setInterval(updateCurrentTimeLine, 60000);
     setupTooltips();
     setupEventListeners();
+    setupScrollSync(); // Setup scroll synchronization
     reinitializeContextMenu(); // Initialize context menu
 
     document.addEventListener('click', function() {
@@ -1660,6 +1677,41 @@ function setupTooltips() {
             tooltip.classList.remove('show');
         });
     });
+}
+
+// Setup scroll synchronization
+function setupScrollSync() {
+    const panel = document.querySelector('.timeline-panel');
+    const staff = document.querySelector('.staff-sidebar');
+    const header = document.querySelector('.timeline-header');
+
+    if (!panel || !staff || !header) return;
+
+    // flags to avoid feedback loop
+    let syncingFromPanel = false;
+    let syncingFromStaff = false;
+
+    // When timeline scrolls: sync vertical to staff, and keep header aligned horizontally
+    panel.addEventListener('scroll', () => {
+        // vertical sync to staff sidebar
+        if (!syncingFromStaff) {
+            syncingFromPanel = true;
+            staff.scrollTop = panel.scrollTop;
+        }
+        syncingFromStaff = false;
+
+        // Keep sticky header aligned with horizontal scroll
+        header.style.marginLeft = (-panel.scrollLeft) + 'px';
+    }, { passive: true });
+
+    // When staff list scrolls: sync vertical back to timeline
+    staff.addEventListener('scroll', () => {
+        if (!syncingFromPanel) {
+            syncingFromStaff = true;
+            panel.scrollTop = staff.scrollTop;
+        }
+        syncingFromPanel = false;
+    }, { passive: true });
 }
 
 // Load bookings
