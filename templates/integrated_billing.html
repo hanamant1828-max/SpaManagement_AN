@@ -1164,6 +1164,11 @@ function addUnakiAppointmentToBill(appointmentId, serviceName, servicePrice, sta
 function loadCustomerAppointments(clientId) {
     if (!clientId) {
         window.customerAppointments = [];
+        // Hide the bookings card if no customer selected
+        const bookingsCard = document.getElementById('customerBookingsCard');
+        if (bookingsCard) {
+            bookingsCard.style.display = 'none';
+        }
         return;
     }
     
@@ -1173,15 +1178,136 @@ function loadCustomerAppointments(clientId) {
             if (data.success && data.appointments) {
                 window.customerAppointments = data.appointments;
                 console.log(`Loaded ${data.appointments.length} appointments for customer ${clientId}`);
+                
+                // Render the appointments in the UI
+                renderCustomerAppointments(data.appointments, data.customer);
             } else {
                 window.customerAppointments = [];
                 console.log('No appointments found or error loading appointments');
+                renderCustomerAppointments([], null);
             }
         })
         .catch(error => {
             console.error('Error loading appointments:', error);
             window.customerAppointments = [];
+            renderCustomerAppointments([], null);
         });
+}
+
+function renderCustomerAppointments(appointments, customer) {
+    // Check if bookings card container exists, if not create it
+    let bookingsCardContainer = document.getElementById('customerBookingsCardContainer');
+    
+    if (!bookingsCardContainer) {
+        // Create the container after the customer selection section
+        const customerSection = document.querySelector('.form-section');
+        if (customerSection) {
+            bookingsCardContainer = document.createElement('div');
+            bookingsCardContainer.id = 'customerBookingsCardContainer';
+            bookingsCardContainer.className = 'row mb-4';
+            customerSection.after(bookingsCardContainer);
+        } else {
+            return; // Can't render without a place to put it
+        }
+    }
+    
+    if (!appointments || appointments.length === 0) {
+        bookingsCardContainer.innerHTML = '';
+        return;
+    }
+    
+    const customerName = customer ? customer.name : 'Customer';
+    
+    // Build the appointments table HTML
+    let appointmentsHTML = appointments.map(apt => {
+        const appointmentDate = apt.appointment_date || 'N/A';
+        const startTime = apt.start_time || 'N/A';
+        const endTime = apt.end_time || 'N/A';
+        const serviceName = apt.service_name || 'N/A';
+        const serviceDuration = apt.service_duration || 0;
+        const staffName = apt.staff_name || 'N/A';
+        const status = apt.status || 'scheduled';
+        const servicePrice = apt.service_price || 0;
+        
+        return `
+            <tr>
+                <td>
+                    <strong>${appointmentDate}</strong><br>
+                    <small class="text-muted">${startTime} - ${endTime}</small>
+                </td>
+                <td>
+                    <strong>${serviceName}</strong><br>
+                    <small class="text-muted">${serviceDuration} mins</small>
+                </td>
+                <td>${staffName}</td>
+                <td>
+                    <span class="badge badge-warning">
+                        ${status.charAt(0).toUpperCase() + status.slice(1)}
+                    </span>
+                </td>
+                <td>
+                    <strong class="text-success">₹${parseFloat(servicePrice).toFixed(2)}</strong>
+                </td>
+                <td>
+                    <button type="button"
+                            class="btn btn-primary btn-sm"
+                            onclick="addUnakiAppointmentToBill(${apt.id}, '${serviceName}', ${servicePrice}, '${staffName}')">
+                        <i class="fas fa-plus me-1"></i>Add to Bill
+                    </button>
+                </td>
+            </tr>
+        `;
+    }).join('');
+    
+    // Render the complete card
+    bookingsCardContainer.innerHTML = `
+        <div class="col-12">
+            <div class="card customer-bookings-card">
+                <div class="card-header">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                        <h6 class="mb-0">
+                            <i class="fas fa-user me-2"></i>${customerName}'s Current Bookings
+                        </h6>
+                        <span class="badge bg-light">${appointments.length} Ready to Bill</span>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-success">
+                        <i class="fas fa-check-circle me-2"></i>
+                        <strong>${appointments.length} Confirmed Bookings Found</strong> - Ready to add to bill
+                    </div>
+                    
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead class="table-success">
+                                <tr>
+                                    <th>Date & Time</th>
+                                    <th>Service</th>
+                                    <th>Staff</th>
+                                    <th>Status</th>
+                                    <th>Amount</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${appointmentsHTML}
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <div class="mt-3 d-flex gap-2 flex-wrap">
+                        <button type="button" class="btn btn-outline-primary btn-sm" onclick="autoFillCurrentServices()">
+                            <i class="fas fa-bolt me-1"></i>Auto-Fill ALL Bookings to Bill
+                        </button>
+                    </div>
+                    <small class="text-muted d-block mt-2">
+                        <i class="fas fa-lightbulb me-1"></i>
+                        Auto-Fill will add all ${appointments.length} confirmed bookings to your billing form instantly
+                    </small>
+                </div>
+            </div>
+        </div>
+    `;
 }
 
 function autoPopulateBillingFromAppointments(appointments) {
