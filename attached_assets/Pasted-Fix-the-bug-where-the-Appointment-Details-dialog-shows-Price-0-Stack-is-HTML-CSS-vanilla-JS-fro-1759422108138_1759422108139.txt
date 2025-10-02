@@ -1,0 +1,71 @@
+Fix the bug where the Appointment Details dialog shows “Price: ₹0”. Stack is HTML/CSS/vanilla JS frontend, Python backend (Flask or FastAPI), SQLite DB.
+
+GOAL
+- Display the actual service/appointment price (formatted in INR) instead of ₹0.
+
+ACCEPTED DATA SHAPES
+- DB tables: appointments(id, service_id, ... [may include price or price_paise override]),
+             services(id, name, duration, price or price_paise).
+- Prefer integer paise; floats (rupees) are acceptable input but must be converted.
+
+WHAT TO CHANGE
+
+BACKEND (Flask OR FastAPI)
+1) Find the endpoint returning a single appointment (GET `/api/appointments/<id>` or similar).
+2) Join services and coalesce price into a single integer field `price_paise`:
+   - `COALESCE(appointments.price_paise,
+               CAST(ROUND(appointments.price * 100) AS INTEGER),
+               services.price_paise,
+               CAST(ROUND(services.price * 100) AS INTEGER)) AS price_paise`
+3) Return `price_paise` in the JSON. Do NOT default to 0 if missing; return `null`.
+
+Flask patch pattern (adapt names):
+- Ensure `con.row_factory = sqlite3.Row`
+- SQL:
+  SELECT a.id, a.client_name, a.phone, a.email, a.date, a.start_time, a.end_time, a.status,
+         s.name AS service_name, s.duration,
+         COALESCE(a.price_paise,
+                  CAST(ROUND(a.price*100) AS INTEGER),
+                  s.price_paise,
+                  CAST(ROUND(s.price*100) AS INTEGER)) AS price_paise
+  FROM appointments a
+  JOIN services s ON s.id = a.service_id
+  WHERE a.id = ?;
+
+FastAPI: same SQL; return `dict(row)`.
+
+FRONTEND (vanilla JS)
+1) Locate the JS that fills the Appointment Details modal (search for the text “Price:”).
+2) Replace any `price || 0` or `Number(price) || 0` fallback.
+3) Derive rupees from `price_paise` if provided; else from `price` (rupees) on appointment or its service.
+4) Format with `Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' })`.
+5) If price is unknown, display an em dash (—), not 0.
+6) Add `data-testid="appointment-price"` to the element.
+
+JS patch pattern:
+- const nfInr = new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' });
+- function resolvePriceRupees(appt) {
+    if (Number.isFinite(appt?.price_paise)) return appt.price_paise / 100;
+    const p = appt?.price ?? appt?.service?.price;
+    const n = typeof p === 'string' ? parseFloat(p) : (Number.isFinite(p) ? p : NaN);
+    return Number.isFinite(n) ? n : null;
+  }
+- const rupees = resolvePriceRupees(appointment);
+- const displayPrice = (rupees === null) ? '—' : nfInr.format(rupees);
+- priceEl.setAttribute('data-testid','appointment-price');
+- priceEl.textContent = `Price: ${displayPrice}`;
+
+SQL QUICK CHECKS (optional, to verify data)
+- SELECT id, name, price, price_paise FROM services LIMIT 10;
+- Ensure non-null price fields exist for the service shown in the modal.
+
+VALIDATION
+- Open an appointment whose service has a price; the modal must show a non-zero INR value.
+- If the price truly doesn’t exist, show “—”.
+- Reload the page and re-open the same appointment to confirm persistence.
+
+OUTPUT FORMAT
+- First: root cause summary (e.g., UI was defaulting to 0; API omitted price).
+- Then: unified diff patches for each changed file.
+- Then: any commands run (none expected).
+- Then: final manual test steps.
