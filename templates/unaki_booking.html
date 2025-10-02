@@ -1125,7 +1125,7 @@ body {
                         <div style="font-size: 10px; color: #6b7280;">Done</div>
                     </div>
                 </div>
-                
+
                 <div class="calendar-actions">
                     <button class="action-btn action-btn-primary" onclick="openMultiBookModal()">
                         <i class="fas fa-plus-circle"></i>
@@ -1303,7 +1303,7 @@ body {
                                     <option value="{{ service.id }}" 
                                             data-duration="{{ service.duration or 60 }}"
                                             data-price="{{ service.price }}">
-                                        {{ service.name }} ({{ service.duration or 60 }} min - ${{ "%.2f"|format(service.price) }})
+                                        {{ service.name }} ({{ service.duration or 60 }} min - ₹{{ "%.2f"|format(service.price) }})
                                     </option>
                                 {% endfor %}
                                 {% endif %}
@@ -1457,7 +1457,7 @@ body {
                                                 <option value="{{ service.id }}" 
                                                         data-duration="{{ service.duration or 60 }}"
                                                         data-price="{{ service.price }}">
-                                                    {{ service.name }} ({{ service.duration or 60 }} min - ${{ "%.2f"|format(service.price) }})
+                                                    {{ service.name }} ({{ service.duration or 60 }} min - ₹{{ "%.2f"|format(service.price) }})
                                                 </option>
                                             {% endfor %}
                                             {% endif %}
@@ -1809,7 +1809,7 @@ function addAppointment() {
                         <option value="{{ service.id }}" 
                                 data-duration="{{ service.duration or 60 }}"
                                 data-price="{{ service.price }}">
-                            {{ service.name }} ({{ service.duration or 60 }} min - ${{ "%.2f"|format(service.price) }})
+                            {{ service.name }} ({{ service.duration or 60 }} min - ₹{{ "%.2f"|format(service.price) }})
                         </option>
                     {% endfor %}
                     {% endif %}
