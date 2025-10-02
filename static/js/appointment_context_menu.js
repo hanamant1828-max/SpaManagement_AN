@@ -41,6 +41,9 @@ class AppointmentContextMenu {
                         <i class="fas fa-dollar-sign"></i> Go to Billing
                     </li>
                     <li class="context-menu-divider"></li>
+                    <li class="context-menu-item" data-action="cancel">
+                        <i class="fas fa-times-circle"></i> Cancel Appointment
+                    </li>
                     <li class="context-menu-item danger" data-action="delete">
                         <i class="fas fa-trash"></i> Delete Appointment
                     </li>
@@ -236,12 +239,6 @@ class AppointmentContextMenu {
             case 'edit':
                 this.editAppointment(this.currentAppointmentId);
                 break;
-            case 'reschedule':
-                this.rescheduleAppointment(this.currentAppointmentId);
-                break;
-            case 'complete':
-                this.completeAppointment(this.currentAppointmentId);
-                break;
             case 'cancel':
                 this.cancelAppointment(this.currentAppointmentId);
                 break;
@@ -297,6 +294,15 @@ class AppointmentContextMenu {
     }
 
     
+
+    cancelAppointment(appointmentId) {
+        if (confirm('Are you sure you want to cancel this appointment?')) {
+            console.log(`Cancelling appointment ${appointmentId}`);
+            
+            // Update status to cancelled
+            this.updateAppointmentStatus(appointmentId, 'cancelled');
+        }
+    }
 
     goToBilling(appointmentId) {
         console.log(`Redirecting to integrated billing for appointment ${appointmentId}`);
