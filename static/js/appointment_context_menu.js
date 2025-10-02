@@ -865,7 +865,7 @@ class AppointmentContextMenu {
             const clone = block.cloneNode(true);
             block.parentNode.replaceChild(clone, block);
             
-            // Add right-click event listener
+            // Add right-click event listener for desktop
             clone.addEventListener('contextmenu', (event) => {
                 event.preventDefault();
                 event.stopPropagation();
@@ -876,6 +876,57 @@ class AppointmentContextMenu {
                     this.showContextMenu(event.pageX, event.pageY, appointmentId);
                 } else {
                     console.error('No appointment ID found for right-clicked element');
+                }
+            });
+
+            // Add mobile touch support
+            let touchTimer = null;
+            let touchStartX = 0;
+            let touchStartY = 0;
+            
+            clone.addEventListener('touchstart', (event) => {
+                touchStartX = event.touches[0].clientX;
+                touchStartY = event.touches[0].clientY;
+                
+                // Long press detection
+                touchTimer = setTimeout(() => {
+                    const appointmentId = this.getAppointmentId(clone);
+                    if (appointmentId) {
+                        console.log(`📱 Long press detected on appointment ${appointmentId}`);
+                        // Add vibration feedback if available
+                        if (navigator.vibrate) {
+                            navigator.vibrate(50);
+                        }
+                        this.showContextMenu(touchStartX, touchStartY, appointmentId);
+                    }
+                }, 500); // 500ms long press
+            });
+            
+            clone.addEventListener('touchmove', (event) => {
+                // Cancel long press if finger moves too much
+                const moveX = Math.abs(event.touches[0].clientX - touchStartX);
+                const moveY = Math.abs(event.touches[0].clientY - touchStartY);
+                if (moveX > 10 || moveY > 10) {
+                    clearTimeout(touchTimer);
+                }
+            });
+            
+            clone.addEventListener('touchend', (event) => {
+                clearTimeout(touchTimer);
+            });
+            
+            // Add quick tap to edit directly (mobile-friendly)
+            clone.addEventListener('click', (event) => {
+                // Only on mobile devices
+                if (window.innerWidth <= 768) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    
+                    const appointmentId = this.getAppointmentId(clone);
+                    if (appointmentId) {
+                        console.log(`📱 Mobile tap to edit appointment ${appointmentId}`);
+                        this.editAppointment(appointmentId);
+                    }
                 }
             });
 
