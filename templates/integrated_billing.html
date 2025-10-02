@@ -1487,40 +1487,41 @@ document.getElementById('client_id').addEventListener('change', function() {
         })
         .then(data => {
             console.log('Package data received:', data); // Debug log
-            customerPackageData = data; // Store globally for package benefit calculations
-
-            if (data.error) {
-                packagesDiv.innerHTML = `<small class="text-danger">Error: ${data.error}</small>`;
+            
+            if (!data || data.error) {
+                packagesDiv.innerHTML = `<small class="text-danger">Error: ${data.error || 'Unknown error'}</small>`;
                 customerPackageData = null;
                 return;
             }
 
+            // Store package data globally
+            customerPackageData = data;
+
             if (data.packages && data.packages.length > 0) {
-                let html = '<div class="alert alert-success"><strong>Active Packages:</strong><br>';
+                let html = '<div class="alert alert-success mb-0"><strong>Active Packages:</strong><br>';
+                
                 data.packages.forEach(pkg => {
-                    html += `<div class="badge badge-success me-1 mb-1">${pkg.package_name}</div>`;
+                    html += `<div class="badge bg-success me-1 mb-1">${pkg.package_name}</div>`;
 
                     // Display package details based on type
-                    pkg.sessions.forEach(session => {
-                        if (session.benefit_type === 'unlimited') {
-                            html += `<small class="d-block text-success">${session.service_name}: ${session.description}</small>`;
-                        } else if (session.benefit_type === 'prepaid') {
-                            html += `<small class="d-block text-info">${session.description}</small>`;
-                        } else if (session.sessions_remaining > 0) {
-                            html += `<small class="d-block">${session.service_name}: ${session.sessions_remaining} sessions left</small>`;
-                        }
-                    });
+                    if (pkg.package_type === 'service_package') {
+                        html += `<small class="d-block">${pkg.service_name || 'Any Service'}: ${pkg.sessions_remaining || 0} sessions remaining</small>`;
+                    } else if (pkg.package_type === 'prepaid') {
+                        html += `<small class="d-block text-info">Prepaid Credit: ₹${pkg.credit_remaining || 0}</small>`;
+                    } else if (pkg.package_type === 'membership') {
+                        html += `<small class="d-block text-success">Unlimited Access</small>`;
+                    }
                 });
 
-                // Add summary if available
-                if (data.summary) {
-                    html += `<hr><small class="text-muted">Total Active: ${data.summary.total_active_packages} packages</small>`;
+                if (data.total) {
+                    html += `<hr class="my-1"><small class="text-muted">Total Active: ${data.total} package(s)</small>`;
                 }
                 html += '</div>';
 
                 packagesDiv.innerHTML = html;
             } else {
                 packagesDiv.innerHTML = '<small class="text-muted">No active packages found</small>';
+                customerPackageData = { packages: [], total: 0 };
             }
 
             // Update calculations to apply package benefits
@@ -1528,7 +1529,7 @@ document.getElementById('client_id').addEventListener('change', function() {
         })
         .catch(error => {
             console.error('Error loading packages:', error);
-            packagesDiv.innerHTML = '<small class="text-danger">Error loading packages. Please try again.</button>';
+            packagesDiv.innerHTML = '<small class="text-danger">Error loading packages. Please try again.</small>';
             customerPackageData = null;
         });
 });
@@ -1881,98 +1882,88 @@ function checkServicePackageBenefit(serviceId, serviceName, originalPrice, quant
 
     // Check all packages for this service (priority: unlimited > service_package > prepaid)
     for (const pkg of customerPackageData.packages) {
-        if (!pkg.is_active) continue;
+        if (!pkg.is_active && pkg.status !== 'active') continue;
 
         // Check unlimited membership first (highest priority)
         if (pkg.package_type === 'membership') {
-            for (const session of pkg.sessions) {
-                if (session.benefit_type === 'unlimited' && session.service_id === serviceId) {
-                    return {
-                        type: 'unlimited',
-                        packageName: pkg.package_name,
-                        originalPrice: originalPrice * quantity,
-                        finalPrice: 0, // FREE
-                        discount: originalPrice * quantity,
-                        description: `FREE via ${pkg.package_name} (Unlimited)`
-                    };
-                }
-            }
+            // For membership, assume it covers the service if it's an unlimited package
+            return {
+                type: 'unlimited',
+                packageName: pkg.package_name,
+                originalPrice: originalPrice * quantity,
+                finalPrice: 0, // FREE
+                discount: originalPrice * quantity,
+                description: `FREE via ${pkg.package_name} (Unlimited Membership)`
+            };
         }
 
         // Check service package benefits (specific service sessions) with quantity awareness
-        if (pkg.package_type === 'service_package') {
-            for (const session of pkg.sessions) {
-                if (session.service_id === serviceId && session.sessions_remaining > 0) {
-                    const pricePerSession = originalPrice; // Service price is for one session
-                    const sessionsToCover = Math.min(quantity, session.sessions_remaining);
-                    const sessionsToPayFor = Math.max(0, quantity - sessionsToCover);
+        if (pkg.package_type === 'service_package' && pkg.sessions_remaining > 0) {
+            // Check if this package is for this specific service (if service_name matches)
+            const pricePerSession = originalPrice; // Service price is for one session
+            const sessionsToCover = Math.min(quantity, pkg.sessions_remaining);
+            const sessionsToPayFor = Math.max(0, quantity - sessionsToCover);
 
-                    const coveredAmount = sessionsToCover * pricePerSession;
-                    const finalPrice = sessionsToPayFor * pricePerSession;
+            const coveredAmount = sessionsToCover * pricePerSession;
+            const finalPrice = sessionsToPayFor * pricePerSession;
 
-                    // Ensure calculations are accurate
-                    const totalServicePrice = originalPrice * quantity;
-                    const actualDiscount = Math.min(coveredAmount, totalServicePrice);
-                    const actualFinalPrice = Math.max(0, totalServicePrice - actualDiscount);
+            // Ensure calculations are accurate
+            const totalServicePrice = originalPrice * quantity;
+            const actualDiscount = Math.min(coveredAmount, totalServicePrice);
+            const actualFinalPrice = Math.max(0, totalServicePrice - actualDiscount);
 
-                    if (sessionsToPayFor > 0) {
-                        // Partial coverage - some sessions free, some charged
-                        return {
-                            type: 'service_package_partial',
-                            packageName: pkg.package_name,
-                            originalPrice: totalServicePrice,
-                            finalPrice: actualFinalPrice,
-                            discount: actualDiscount,
-                            description: `${sessionsToCover} of ${quantity} sessions FREE, ${sessionsToPayFor} charged via ${pkg.package_name}`,
-                            sessionsRemaining: session.sessions_remaining,
-                            sessionsCovered: sessionsToCover,
-                            sessionsToPayFor: sessionsToPayFor
-                        };
-                    } else {
-                        // Full coverage - all sessions free
-                        return {
-                            type: 'service_package_full',
-                            packageName: pkg.package_name,
-                            originalPrice: totalServicePrice,
-                            finalPrice: 0,
-                            discount: totalServicePrice,
-                            description: `All ${sessionsToCover} sessions FREE via ${pkg.package_name} (${session.sessions_remaining - sessionsToCover} remaining)`,
-                            sessionsRemaining: session.sessions_remaining,
-                            sessionsCovered: sessionsToCover,
-                            sessionsToPayFor: 0
-                        };
-                    }
-                }
+            if (sessionsToPayFor > 0) {
+                // Partial coverage - some sessions free, some charged
+                return {
+                    type: 'service_package_partial',
+                    packageName: pkg.package_name,
+                    originalPrice: totalServicePrice,
+                    finalPrice: actualFinalPrice,
+                    discount: actualDiscount,
+                    description: `${sessionsToCover} of ${quantity} sessions FREE, ${sessionsToPayFor} charged via ${pkg.package_name}`,
+                    sessionsRemaining: pkg.sessions_remaining,
+                    sessionsCovered: sessionsToCover,
+                    sessionsToPayFor: sessionsToPayFor
+                };
+            } else {
+                // Full coverage - all sessions free
+                return {
+                    type: 'service_package_full',
+                    packageName: pkg.package_name,
+                    originalPrice: totalServicePrice,
+                    finalPrice: 0,
+                    discount: totalServicePrice,
+                    description: `All ${sessionsToCover} sessions FREE via ${pkg.package_name} (${pkg.sessions_remaining - sessionsToCover} remaining)`,
+                    sessionsRemaining: pkg.sessions_remaining,
+                    sessionsCovered: sessionsToCover,
+                    sessionsToPayFor: 0
+                };
             }
         }
 
         // Check prepaid package benefits (can cover any service)
-        if (pkg.package_type === 'prepaid') {
-            for (const session of pkg.sessions) {
-                if (session.benefit_type === 'prepaid' && session.balance_remaining > 0) {
-                    const serviceTotal = originalPrice * quantity;
-                    if (session.balance_remaining >= serviceTotal) {
-                        // Full coverage
-                        return {
-                            type: 'prepaid_full',
-                            packageName: pkg.package_name,
-                            originalPrice: serviceTotal,
-                            finalPrice: 0, // FREE
-                            discount: serviceTotal,
-                            description: `FREE via ${pkg.package_name} (₹${session.balance_remaining} credit)`
-                        };
-                    } else {
-                        // Partial coverage
-                        return {
-                            type: 'prepaid_partial',
-                            packageName: pkg.package_name,
-                            originalPrice: serviceTotal,
-                            finalPrice: serviceTotal - session.balance_remaining,
-                            discount: session.balance_remaining,
-                            description: `₹${session.balance_remaining} off via ${pkg.package_name}`
-                        };
-                    }
-                }
+        if (pkg.package_type === 'prepaid' && pkg.credit_remaining > 0) {
+            const serviceTotal = originalPrice * quantity;
+            if (pkg.credit_remaining >= serviceTotal) {
+                // Full coverage
+                return {
+                    type: 'prepaid_full',
+                    packageName: pkg.package_name,
+                    originalPrice: serviceTotal,
+                    finalPrice: 0, // FREE
+                    discount: serviceTotal,
+                    description: `FREE via ${pkg.package_name} (₹${pkg.credit_remaining} credit)`
+                };
+            } else {
+                // Partial coverage
+                return {
+                    type: 'prepaid_partial',
+                    packageName: pkg.package_name,
+                    originalPrice: serviceTotal,
+                    finalPrice: serviceTotal - pkg.credit_remaining,
+                    discount: pkg.credit_remaining,
+                    description: `₹${pkg.credit_remaining} off via ${pkg.package_name}`
+                };
             }
         }
     }

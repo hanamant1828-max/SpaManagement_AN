@@ -991,7 +991,7 @@ def get_customer_packages(client_id):
 
     try:
         # Import ServicePackageAssignment model for new package system
-        from models import ServicePackageAssignment
+        from models import ServicePackageAssignment, Service
         
         # Get active package assignments
         assignments = ServicePackageAssignment.query.filter_by(
@@ -1002,32 +1002,68 @@ def get_customer_packages(client_id):
         package_data = []
         for assignment in assignments:
             try:
-                # Get package template details
-                package_template = assignment.get_package_template()
+                # Get package template details safely
+                package_template = None
+                package_name = 'Unknown Package'
                 
-                if package_template:
-                    package_info = {
-                        'id': assignment.id,
-                        'package_type': assignment.package_type,
-                        'package_name': package_template.name if hasattr(package_template, 'name') else 'Unknown Package',
-                        'expiry_date': assignment.expires_on.strftime('%Y-%m-%d') if assignment.expires_on else None,
-                        'status': assignment.status
-                    }
+                try:
+                    package_template = assignment.get_package_template()
+                    if package_template and hasattr(package_template, 'name'):
+                        package_name = package_template.name
+                except:
+                    # If get_package_template fails, try to get name from package relationship
+                    if hasattr(assignment, 'package') and assignment.package:
+                        package_name = assignment.package.name
+                
+                package_info = {
+                    'id': assignment.id,
+                    'package_type': assignment.package_type,
+                    'package_name': package_name,
+                    'expiry_date': assignment.expires_on.strftime('%Y-%m-%d') if assignment.expires_on else None,
+                    'status': assignment.status,
+                    'is_active': assignment.status == 'active'
+                }
+                
+                # Add type-specific details based on package type
+                if assignment.package_type == 'service_package':
+                    package_info['sessions_total'] = assignment.total_sessions or 0
+                    package_info['sessions_used'] = assignment.used_sessions or 0
+                    package_info['sessions_remaining'] = assignment.remaining_sessions or 0
                     
-                    # Add type-specific details
-                    if assignment.package_type == 'service_package':
-                        package_info['sessions_total'] = assignment.total_sessions
-                        package_info['sessions_used'] = assignment.used_sessions
-                        package_info['sessions_remaining'] = assignment.remaining_sessions
-                        package_info['service_name'] = assignment.service.name if assignment.service else 'Any Service'
-                    elif assignment.package_type == 'prepaid':
-                        package_info['credit_total'] = assignment.credit_amount
-                        package_info['credit_used'] = assignment.used_credit
-                        package_info['credit_remaining'] = assignment.remaining_credit
+                    # Get service name safely
+                    service_name = 'Any Service'
+                    if assignment.service_id:
+                        try:
+                            service = Service.query.get(assignment.service_id)
+                            if service:
+                                service_name = service.name
+                        except:
+                            pass
+                    package_info['service_name'] = service_name
                     
-                    package_data.append(package_info)
+                elif assignment.package_type == 'prepaid':
+                    package_info['credit_total'] = float(assignment.credit_amount or 0)
+                    package_info['credit_used'] = float(assignment.used_credit or 0)
+                    package_info['credit_remaining'] = float(assignment.remaining_credit or 0)
+                    
+                elif assignment.package_type == 'membership':
+                    # Membership packages - add relevant fields
+                    package_info['membership_type'] = 'unlimited'
+                    if hasattr(assignment, 'benefits_json'):
+                        package_info['benefits'] = assignment.benefits_json
+                
+                package_data.append(package_info)
+                
             except Exception as pkg_error:
                 app.logger.error(f"Error processing package assignment {assignment.id}: {str(pkg_error)}")
+                # Add basic info even if there's an error
+                package_data.append({
+                    'id': assignment.id,
+                    'package_type': assignment.package_type,
+                    'package_name': 'Error loading package details',
+                    'status': assignment.status,
+                    'error': str(pkg_error)
+                })
                 continue
 
         return jsonify({
@@ -1038,6 +1074,8 @@ def get_customer_packages(client_id):
 
     except Exception as e:
         app.logger.error(f"Error fetching customer packages for client {client_id}: {str(e)}")
+        import traceback
+        app.logger.error(traceback.format_exc())
         return jsonify({
             'success': False,
             'error': f'Error fetching packages: {str(e)}',
