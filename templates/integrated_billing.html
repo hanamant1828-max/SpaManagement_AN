@@ -1096,7 +1096,17 @@ function addServiceRow() {
 }
 
 function handleServiceSelection(selectElement) {
-    updateTaxCalculations();
+    const selectedOption = selectElement.options[selectElement.selectedIndex];
+    if (selectedOption && selectedOption.value) {
+        const serviceId = selectedOption.value;
+        const serviceName = selectedOption.text;
+        const servicePrice = parseFloat(selectedOption.dataset.price) || 0;
+        console.log(`Service ${serviceId} selected with price: ${servicePrice}`);
+    }
+    // Small delay to ensure DOM is updated
+    setTimeout(() => {
+        updateTaxCalculations();
+    }, 10);
 }
 
 function addUnakiAppointmentToBill(appointmentId, serviceName, servicePrice, staffName) {
