@@ -36,20 +36,11 @@ class AppointmentContextMenu {
                     <li class="context-menu-item" data-action="edit">
                         <i class="fas fa-edit"></i> Edit Appointment
                     </li>
-                    <li class="context-menu-item" data-action="reschedule">
-                        <i class="fas fa-calendar-alt"></i> Reschedule
-                    </li>
-                    <li class="context-menu-divider"></li>
-                    <li class="context-menu-item" data-action="complete">
-                        <i class="fas fa-check-circle"></i> Mark Completed
-                    </li>
-                    <li class="context-menu-item" data-action="cancel">
-                        <i class="fas fa-times-circle"></i> Cancel Appointment
-                    </li>
                     <li class="context-menu-divider"></li>
                     <li class="context-menu-item" data-action="billing">
                         <i class="fas fa-dollar-sign"></i> Go to Billing
                     </li>
+                    <li class="context-menu-divider"></li>
                     <li class="context-menu-item danger" data-action="delete">
                         <i class="fas fa-trash"></i> Delete Appointment
                     </li>
@@ -305,22 +296,7 @@ class AppointmentContextMenu {
             });
     }
 
-    rescheduleAppointment(appointmentId) {
-        console.log(`Rescheduling appointment ${appointmentId}`);
-        this.showToast('Reschedule functionality will be available in the next update', 'info');
-    }
-
-    completeAppointment(appointmentId) {
-        if (confirm('Mark this appointment as completed?')) {
-            this.updateAppointmentStatus(appointmentId, 'completed');
-        }
-    }
-
-    cancelAppointment(appointmentId) {
-        if (confirm('Cancel this appointment?')) {
-            this.updateAppointmentStatus(appointmentId, 'cancelled');
-        }
-    }
+    
 
     goToBilling(appointmentId) {
         console.log(`Redirecting to integrated billing for appointment ${appointmentId}`);
