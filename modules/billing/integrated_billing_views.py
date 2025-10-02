@@ -950,26 +950,28 @@ def preview_invoice():
         """
 
         # Add service items
-        for item in service_items:
-            preview_html += f"""
+        if service_items:
+            for item in service_items:
+                preview_html += f"""
                     <tr>
                         <td>{item['name']} <small class="text-muted">(Service)</small></td>
                         <td class="text-center">{item['quantity']}</td>
                         <td class="text-end">₹{item['price']:.2f}</td>
                         <td class="text-end">₹{item['amount']:.2f}</td>
                     </tr>
-            """
+                """
 
         # Add inventory items
-        for item in inventory_items:
-            preview_html += f"""
+        if inventory_items:
+            for item in inventory_items:
+                preview_html += f"""
                     <tr>
                         <td>{item['name']} <small class="text-muted">(Product)</small></td>
                         <td class="text-center">{item['quantity']}</td>
                         <td class="text-end">₹{item['price']:.2f}</td>
                         <td class="text-end">₹{item['amount']:.2f}</td>
                     </tr>
-            """
+                """
 
         # Add totals
         preview_html += f"""

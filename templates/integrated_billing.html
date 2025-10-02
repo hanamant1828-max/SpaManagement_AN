@@ -2206,10 +2206,12 @@ function collectInvoiceData() {
 
     // Collect services
     document.querySelectorAll('.service-row').forEach((row, index) => {
-        const serviceId = row.querySelector('select[name="service_ids[]"]')?.value;
+        const serviceSelect = row.querySelector('select[name="service_ids[]"]');
         const staffId = row.querySelector('select[name="staff_ids[]"]')?.value;
         const quantity = row.querySelector('input[name="service_quantities[]"]')?.value;
         const appointmentId = row.querySelector('input[name="appointment_ids[]"]')?.value;
+        
+        const serviceId = serviceSelect?.value;
 
         if (serviceId && staffId) {
             data.services.push({
@@ -2238,6 +2240,7 @@ function collectInvoiceData() {
         }
     });
 
+    console.log('Collected invoice data:', data); // Debug log
     return data;
 }
 
