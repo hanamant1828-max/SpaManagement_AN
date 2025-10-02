@@ -1671,7 +1671,8 @@ function loadBookings() {
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                bookingsData = data.bookings || [];
+                // Filter out cancelled appointments from view
+                bookingsData = (data.bookings || []).filter(b => b.status !== 'cancelled');
                 renderBookings();
                 updateStats();
             }
@@ -1686,7 +1687,8 @@ function loadBookings() {
 
 // Update stats
 function updateStats() {
-    const total = bookingsData.length;
+    // Only count non-cancelled appointments
+    const total = bookingsData.filter(b => b.status !== 'cancelled').length;
     const completed = bookingsData.filter(b => b.status === 'completed').length;
 
     document.getElementById('totalBookings').textContent = total;
