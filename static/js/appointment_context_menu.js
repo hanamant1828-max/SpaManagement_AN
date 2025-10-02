@@ -380,26 +380,42 @@ class AppointmentContextMenu {
             },
             body: JSON.stringify({ status: status })
         })
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
         .then(data => {
             if (data.success) {
                 console.log(`✅ Appointment ${appointmentId} status updated to ${status}`);
+                
                 // Update visual indication
                 const appointmentElement = document.querySelector(`[data-appointment-id="${appointmentId}"]`);
                 if (appointmentElement) {
                     appointmentElement.classList.add(`status-${status}`);
+                    
+                    // If cancelled, add visual styling
+                    if (status === 'cancelled') {
+                        appointmentElement.style.opacity = '0.6';
+                        appointmentElement.style.textDecoration = 'line-through';
+                    }
                 }
+                
                 // Show success message
-                if (typeof showNotification === 'function') {
-                    showNotification(`Appointment marked as ${status}`, 'success');
-                }
-                // Refresh schedule
-                if (typeof refreshSchedule === 'function') {
-                    refreshSchedule();
-                }
+                this.showToast(`Appointment marked as ${status}`, 'success');
+                
+                // Refresh schedule after short delay
+                setTimeout(() => {
+                    if (typeof refreshSchedule === 'function') {
+                        refreshSchedule();
+                    } else {
+                        location.reload();
+                    }
+                }, 1000);
             } else {
                 console.error(`Failed to update appointment status:`, data.error);
-                this.showToast(`Failed to update appointment status: ${data.error}`, 'error');
+                this.showToast(`Failed to update appointment status: ${data.error || 'Unknown error'}`, 'error');
             }
         })
         .catch(error => {

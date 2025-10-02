@@ -1498,6 +1498,13 @@ def unaki_update_booking_status(booking_id):
         from datetime import datetime
 
         data = request.get_json()
+        
+        if not data:
+            return jsonify({
+                'success': False,
+                'error': 'No data provided'
+            }), 400
+
         new_status = data.get('status')
 
         if not new_status:
@@ -1521,6 +1528,7 @@ def unaki_update_booking_status(booking_id):
             }), 404
 
         # Update status and relevant timestamps
+        old_status = booking.status
         booking.status = new_status
         booking.updated_at = datetime.utcnow()
 
@@ -1531,22 +1539,26 @@ def unaki_update_booking_status(booking_id):
 
         # Update notes if provided
         if data.get('notes'):
-            booking.internal_notes = (booking.internal_notes or '') + f"\n[{datetime.now().strftime('%Y-%m-%d %H:%M')}] Status changed to {new_status}: {data['notes']}"
+            booking.internal_notes = (booking.internal_notes or '') + f"\n[{datetime.now().strftime('%Y-%m-%d %H:%M')}] Status changed from {old_status} to {new_status}: {data['notes']}"
 
         db.session.commit()
+
+        print(f"✅ Booking {booking_id} status updated from {old_status} to {new_status}")
 
         return jsonify({
             'success': True,
             'message': f'Booking status updated to {new_status}',
             'booking': booking.to_dict()
-        })
+        }), 200
 
     except Exception as e:
         db.session.rollback()
-        print(f"Error in unaki_update_booking_status: {e}")
+        print(f"❌ Error in unaki_update_booking_status: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({
             'success': False,
-            'error': str(e)
+            'error': f'Server error: {str(e)}'
         }), 500
 
 @app.route('/api/unaki/clear-all-data', methods=['POST'])
