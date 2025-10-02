@@ -1480,14 +1480,19 @@ function validateStock(quantityInput) {
     }
 }
 
+// Validate inventory quantity (wrapper for validateStock)
+function validateInventoryQuantity(quantityInput) {
+    return validateStock(quantityInput);
+}
+
 // Global variable to store customer package data for benefit calculations
 let customerPackageData = null;
 
 // Load customer packages and auto-populate services
 let lastLoadedCustomerId = null; // Track last loaded customer to prevent duplicates
 
-document.getElementById('client_id').addEventListener('change', function() {
-    const clientId = this.value;
+// Function to load customer packages
+function loadCustomerPackages(clientId) {
     const packagesDiv = document.getElementById('customerPackages');
 
     if (!clientId) {
@@ -1563,6 +1568,21 @@ document.getElementById('client_id').addEventListener('change', function() {
             packagesDiv.innerHTML = '<small class="text-danger">Error loading packages. Please try again.</small>';
             customerPackageData = null;
         });
+}
+
+// Set up event listener for customer selection
+document.addEventListener('DOMContentLoaded', function() {
+    const clientSelect = document.getElementById('client_id');
+    if (clientSelect) {
+        clientSelect.addEventListener('change', function() {
+            const clientId = this.value;
+            if (clientId) {
+                loadCustomerPackages(clientId);
+            } else {
+                loadCustomerPackages(null);
+            }
+        });
+    }
 });
 
 // Function to auto-populate customer's historical services

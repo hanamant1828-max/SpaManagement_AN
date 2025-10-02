@@ -1197,7 +1197,7 @@ class UnakiBreak(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     # Relationship to User table
-    staff_member = db.relationship('User', backref='unaki_breaks')
+    staff_member = db.relationship('User', backref='unaki_breaks', overlaps="invoice_service_items")
 
     def to_dict(self):
         return {
@@ -1244,7 +1244,7 @@ class UnakiBreak(db.Model):
 
     # Relationships
     appointment = db.relationship('Appointment', backref='invoice_items')
-    assigned_staff = db.relationship('User', backref='invoice_service_items', foreign_keys=[staff_id])
+    assigned_staff = db.relationship('User', backref='invoice_service_items', foreign_keys=[staff_id], overlaps="unaki_breaks")
     # Note: Package relationships handled separately with new package system
     # Note: Inventory relationships are handled in the inventory module to avoid circular imports
 
