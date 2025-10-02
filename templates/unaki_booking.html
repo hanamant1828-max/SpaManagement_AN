@@ -1713,20 +1713,6 @@ function renderBookings() {
         block.dataset.appointmentId = booking.id;
         block.draggable = true;
 
-        block.onclick = () => viewAppointment(booking.id);
-        block.oncontextmenu = (e) => { showContextMenu(e, booking.id); return false; };
-
-        // Drag events
-        block.ondragstart = (e) => {
-            block.classList.add('dragging');
-            e.dataTransfer.effectAllowed = 'move';
-            e.dataTransfer.setData('appointmentId', booking.id);
-        };
-
-        block.ondragend = () => {
-            block.classList.remove('dragging');
-        };
-
         block.innerHTML = `
             <div class="appointment-header">
                 <div class="appointment-client">${booking.client_name}</div>
@@ -1744,6 +1730,13 @@ function renderBookings() {
 
         row.appendChild(block);
     });
+    
+    // Reinitialize context menu for all appointment blocks
+    if (typeof reinitializeContextMenu === 'function') {
+        reinitializeContextMenu();
+    } else if (window.appointmentContextMenu) {
+        window.appointmentContextMenu.reinitializeForAppointments();
+    }
 }
 
 // Open multi-booking modal
