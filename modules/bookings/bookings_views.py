@@ -1311,6 +1311,110 @@ def api_all_appointments():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/unaki/bookings/<int:booking_id>', methods=['PUT'])
+@login_required
+def api_unaki_update_booking(booking_id):
+    """API endpoint to update an existing Unaki booking"""
+    if not current_user.can_access('bookings'):
+        return jsonify({'error': 'Access denied', 'success': False}), 403
+
+    try:
+        from models import UnakiBooking
+        from app import db
+
+        # Get the booking
+        booking = UnakiBooking.query.get(booking_id)
+        if not booking:
+            return jsonify({'error': 'Booking not found', 'success': False}), 404
+
+        data = request.get_json()
+        print(f"📝 Updating booking {booking_id} with data: {data}")
+
+        # Extract update fields
+        service_id = data.get('service_id')
+        service_name = data.get('service_name')
+        staff_id = data.get('staff_id')
+        appointment_date_str = data.get('appointment_date')
+        start_time_str = data.get('start_time')
+        end_time_str = data.get('end_time')
+        notes = data.get('notes', '')
+
+        # Parse date and times
+        from datetime import datetime, time
+        try:
+            appointment_date = datetime.strptime(appointment_date_str, '%Y-%m-%d').date()
+            start_time = datetime.strptime(start_time_str, '%H:%M').time()
+            end_time = datetime.strptime(end_time_str, '%H:%M').time()
+        except ValueError as ve:
+            return jsonify({
+                'error': f'Invalid date/time format: {str(ve)}',
+                'success': False
+            }), 400
+
+        # Create datetime objects for conflict checking
+        start_datetime = datetime.combine(appointment_date, start_time)
+        end_datetime = datetime.combine(appointment_date, end_time)
+
+        # Check for conflicts (excluding current booking)
+        existing_bookings = UnakiBooking.query.filter(
+            UnakiBooking.id != booking_id,
+            UnakiBooking.staff_id == staff_id,
+            UnakiBooking.appointment_date == appointment_date
+        ).filter(UnakiBooking.status.in_(['scheduled', 'confirmed'])).all()
+
+        print(f"🔍 Checking conflicts for updated booking (excluding {booking_id})")
+        for existing in existing_bookings:
+            existing_start = datetime.combine(appointment_date, existing.start_time)
+            existing_end = datetime.combine(appointment_date, existing.end_time)
+
+            if start_datetime < existing_end and end_datetime > existing_start:
+                conflict_msg = f'Time conflict with {existing.client_name}: {existing.start_time.strftime("%I:%M %p")} - {existing.end_time.strftime("%I:%M %p")}'
+                print(f"❌ Conflict detected: {conflict_msg}")
+                return jsonify({
+                    'error': conflict_msg,
+                    'success': False
+                }), 400
+
+        # Calculate service duration
+        duration_minutes = int((end_datetime - start_datetime).total_seconds() / 60)
+
+        # Update booking fields
+        if service_id:
+            booking.service_id = int(service_id)
+        if service_name:
+            booking.service_name = service_name
+        booking.staff_id = int(staff_id)
+        booking.appointment_date = appointment_date
+        booking.start_time = start_time
+        booking.end_time = end_time
+        booking.service_duration = duration_minutes
+        booking.notes = notes
+
+        db.session.commit()
+
+        print(f"✅ Booking {booking_id} updated successfully")
+
+        return jsonify({
+            'success': True,
+            'message': f'Appointment updated successfully',
+            'booking': {
+                'id': booking.id,
+                'client_name': booking.client_name,
+                'service_name': booking.service_name,
+                'start_time': booking.start_time.strftime('%H:%M'),
+                'end_time': booking.end_time.strftime('%H:%M')
+            }
+        })
+
+    except Exception as e:
+        print(f"❌ Error updating Unaki booking: {e}")
+        import traceback
+        traceback.print_exc()
+        if 'db' in locals():
+            db.session.rollback()
+        return jsonify({'error': str(e), 'success': False}), 500
+
+
 @app.route('/api/unaki/check-conflicts', methods=['POST'])
 @login_required
 def api_unaki_check_conflicts():
