@@ -299,8 +299,42 @@ class AppointmentContextMenu {
         if (confirm('Are you sure you want to cancel this appointment?')) {
             console.log(`Cancelling appointment ${appointmentId}`);
             
-            // Update status to cancelled
-            this.updateAppointmentStatus(appointmentId, 'cancelled');
+            // Update status to cancelled using the Unaki API endpoint
+            fetch(`/api/unaki/bookings/${appointmentId}/update-status`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ status: 'cancelled' })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    console.log(`✅ Appointment ${appointmentId} cancelled successfully`);
+                    this.showToast('Appointment cancelled successfully', 'success');
+                    
+                    // Refresh the schedule
+                    setTimeout(() => {
+                        if (typeof refreshSchedule === 'function') {
+                            refreshSchedule();
+                        } else {
+                            location.reload();
+                        }
+                    }, 1000);
+                } else {
+                    console.error('Failed to cancel appointment:', data.error);
+                    this.showToast('Failed to cancel appointment: ' + (data.error || 'Unknown error'), 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error cancelling appointment:', error);
+                this.showToast('Error cancelling appointment. Please try again.', 'error');
+            });
         }
     }
 
