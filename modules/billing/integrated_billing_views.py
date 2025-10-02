@@ -987,44 +987,62 @@ def get_customer_packages(client_id):
     """Get customer's active packages and available sessions"""
     # Allow all authenticated users to view customer packages
     if not current_user.is_active:
-        return jsonify({'error': 'Access denied'}), 403
+        return jsonify({'success': False, 'error': 'Access denied', 'packages': []}), 403
 
     try:
-        # Import CustomerPackage model - CustomerPackageSession will be added later
-        from models import CustomerPackage
-        # Get active packages
-        packages = CustomerPackage.query.filter_by(
+        # Import ServicePackageAssignment model for new package system
+        from models import ServicePackageAssignment
+        
+        # Get active package assignments
+        assignments = ServicePackageAssignment.query.filter_by(
             customer_id=client_id,
             status='active'
         ).all()
 
         package_data = []
-        for pkg in packages:
-            # Session functionality will be implemented when CustomerPackageSession model is added
-            # For now, show basic package information
-            # Placeholder for session details - will be implemented when CustomerPackageSession model is added
-            session_details = [
-                {
-                    'service_id': None,
-                    'service_name': 'Package sessions feature coming soon',
-                    'sessions_total': 0,
-                    'sessions_used': 0,
-                    'sessions_remaining': 0,
-                    'is_unlimited': False
-                }
-            ]
+        for assignment in assignments:
+            try:
+                # Get package template details
+                package_template = assignment.get_package_template()
+                
+                if package_template:
+                    package_info = {
+                        'id': assignment.id,
+                        'package_type': assignment.package_type,
+                        'package_name': package_template.name if hasattr(package_template, 'name') else 'Unknown Package',
+                        'expiry_date': assignment.expires_on.strftime('%Y-%m-%d') if assignment.expires_on else None,
+                        'status': assignment.status
+                    }
+                    
+                    # Add type-specific details
+                    if assignment.package_type == 'service_package':
+                        package_info['sessions_total'] = assignment.total_sessions
+                        package_info['sessions_used'] = assignment.used_sessions
+                        package_info['sessions_remaining'] = assignment.remaining_sessions
+                        package_info['service_name'] = assignment.service.name if assignment.service else 'Any Service'
+                    elif assignment.package_type == 'prepaid':
+                        package_info['credit_total'] = assignment.credit_amount
+                        package_info['credit_used'] = assignment.used_credit
+                        package_info['credit_remaining'] = assignment.remaining_credit
+                    
+                    package_data.append(package_info)
+            except Exception as pkg_error:
+                app.logger.error(f"Error processing package assignment {assignment.id}: {str(pkg_error)}")
+                continue
 
-            package_data.append({
-                'id': pkg.id,
-                'package_name': pkg.package.name,
-                'expiry_date': pkg.expiry_date.strftime('%Y-%m-%d'),
-                'sessions': session_details
-            })
-
-        return jsonify({'packages': package_data})
+        return jsonify({
+            'success': True,
+            'packages': package_data,
+            'total': len(package_data)
+        })
 
     except Exception as e:
-        return jsonify({'error': f'Error fetching packages: {str(e)}'})
+        app.logger.error(f"Error fetching customer packages for client {client_id}: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': f'Error fetching packages: {str(e)}',
+            'packages': []
+        })
 
 @app.route('/api/inventory/batches/for-product/<int:product_id>')
 @login_required

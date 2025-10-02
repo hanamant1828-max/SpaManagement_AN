@@ -821,150 +821,6 @@ function addUnakiAppointmentToBill(appointmentId, serviceName, servicePrice, ser
     }
 }
 
-// Show notification function
-function showNotification(message, type = 'info') {
-    // Create notification element
-    const notification = document.createElement('div');
-    notification.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
-    notification.style.cssText = `
-        top: 20px;
-        right: 20px;
-        z-index: 9999;
-        min-width: 300px;
-        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-    `;
-    notification.innerHTML = `
-        ${message}
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    `;
-
-    // Add to page
-    document.body.appendChild(notification);
-
-    // Auto-remove after 5 seconds
-    setTimeout(() => {
-        if (notification.parentNode) {
-            notification.parentNode.removeChild(notification);
-        }
-    }, 5000);
-}
-
-// CRITICAL: Define addUnakiAppointmentToBill function with ALL dependencies
-function addUnakiAppointmentToBill(appointmentId, serviceName, servicePrice, serviceDuration) {
-    console.log('Adding Unaki appointment to bill:', appointmentId, serviceName, servicePrice, serviceDuration);
-
-    try {
-        // Ensure servicePrice is a number
-        servicePrice = parseFloat(servicePrice) || 0;
-
-        // Find the first empty service row or add a new one
-        let targetRow = findEmptyServiceRow();
-        if (!targetRow) {
-            if (typeof addServiceRow === 'function') {
-                addServiceRow();
-                targetRow = findEmptyServiceRow();
-            } else {
-                throw new Error('Cannot add new service row - addServiceRow function not available');
-            }
-        }
-
-        // Fill the row with Unaki appointment data
-        if (targetRow) {
-            const serviceSelect = targetRow.querySelector('select[name="service_ids[]"]');
-            const quantityInput = targetRow.querySelector('input[name="service_quantities[]"]');
-            const appointmentInput = targetRow.querySelector('input[name="appointment_ids[]"]');
-
-            if (!serviceSelect || !quantityInput || !appointmentInput) {
-                throw new Error('Required form elements not found in service row');
-            }
-
-            // Try to find matching service by name
-            let matchedServiceId = null;
-            let finalServicePrice = servicePrice;
-
-            // Look through all service options to find a match
-            for (let option of serviceSelect.options) {
-                if (option.value && option.text.toLowerCase().includes(serviceName.toLowerCase())) {
-                    matchedServiceId = option.value;
-
-                    // Get the actual price from the service option
-                    const priceMatch = option.text.match(/₹([\d,]+\.?\d*)/);
-                    if (priceMatch) {
-                        const systemPrice = parseFloat(priceMatch[1].replace(/,/g, ''));
-                        finalServicePrice = systemPrice > 0 ? systemPrice : servicePrice;
-                    }
-                    break;
-                }
-            }
-
-            if (matchedServiceId) {
-                serviceSelect.value = matchedServiceId;
-                quantityInput.value = '1';
-                appointmentInput.value = `unaki_${appointmentId}`;
-
-                // CRITICAL: Ensure the selected option has the price data
-                const selectedOption = serviceSelect.options[serviceSelect.selectedIndex];
-                if (selectedOption) {
-                    selectedOption.dataset.price = finalServicePrice.toString();
-                    console.log(`Set service price data: ${serviceName} = ₹${finalServicePrice}`);
-                }
-
-                // Highlight the row
-                targetRow.style.borderLeft = '4px solid #007bff';
-                targetRow.style.backgroundColor = 'rgba(0, 123, 255, 0.1)';
-
-                // Add visual indicator
-                let indicator = targetRow.querySelector('.unaki-indicator');
-                if (!indicator) {
-                    indicator = document.createElement('small');
-                    indicator.className = 'unaki-indicator text-info fw-bold d-block';
-                    indicator.innerHTML = '<i class="fas fa-calendar-check me-1"></i>Unaki Booking';
-                    targetRow.appendChild(indicator);
-                }
-
-                // Trigger service selection change event
-                if (typeof handleServiceSelection === 'function') {
-                    handleServiceSelection(serviceSelect);
-                }
-
-                // Force recalculation after a small delay to ensure DOM updates
-                setTimeout(() => {
-                    console.log(`Triggering calculation update for ${serviceName} at ₹${finalServicePrice}`);
-                    if (typeof updateTaxCalculations === 'function') {
-                        updateTaxCalculations();
-                    }
-                }, 200);
-
-                // Show success message
-                showNotification(`Added Unaki booking: ${serviceName} (₹${finalServicePrice}) to bill successfully!`, 'success');
-            } else {
-                console.warn(`No matching service found for: ${serviceName}`);
-
-                // Fill quantity and appointment ID anyway
-                quantityInput.value = '1';
-                appointmentInput.value = `unaki_${appointmentId}`;
-
-                // Add warning indicator
-                let indicator = targetRow.querySelector('.unaki-indicator');
-                if (!indicator) {
-                    indicator = document.createElement('small');
-                    indicator.className = 'unaki-indicator text-warning fw-bold d-block';
-                    indicator.innerHTML = `<i class="fas fa-exclamation-triangle me-1"></i>Service not found: ${serviceName}`;
-                    targetRow.appendChild(indicator);
-                }
-
-                // Show a notification for the user
-                showNotification(`Could not find a matching service for "${serviceName}". Please select manually.`, 'warning');
-            }
-        } else {
-            throw new Error('No service row available for adding appointment');
-        }
-    } catch (error) {
-        console.error('Error adding Unaki appointment to bill:', error);
-        showNotification(`Error adding appointment to bill: ${error.message}`, 'error');
-    }
-}
-
 // Additional safety: Ensure functions are available on DOMContentLoaded
 document.addEventListener('DOMContentLoaded', function() {
     // Double-check and re-assign functions to ensure they're available
@@ -1395,7 +1251,7 @@ function addProductRow() {
         console.error('Products container not found or empty');
         return;
     }
-    
+
     const newRow = container.children[0].cloneNode(true);
 
     // Clear values and reset state
@@ -1795,13 +1651,30 @@ function addServiceRowWithData(serviceData) {
 }
 
 // Professional Tax Calculation Functions
+// Update tax calculations - comprehensive version with error handling
 function updateTaxCalculations() {
-    console.log('=== BILLING CALCULATION DEBUG ===');
     try {
-        let servicesSubtotal = 0;
-        let inventorySubtotal = 0;
+        console.log('=== BILLING CALCULATION DEBUG ===');
 
-        // Calculate services subtotal (prices are GST inclusive)
+        // Get all display elements
+        const displaySubtotal = document.getElementById('display_subtotal');
+        const displayDiscount = document.getElementById('display_discount');
+        const displayCGST = document.getElementById('display_cgst');
+        const displaySGST = document.getElementById('display_sgst');
+        const displayAdditional = document.getElementById('display_additional');
+        const displayTotal = document.getElementById('display_total');
+        const taxTypeDisplay = document.getElementById('tax_type_display');
+        const totalTaxDisplay = document.getElementById('total_tax_display');
+        const taxPercentageDisplay = document.getElementById('tax_percentage_display');
+
+        // Verify all elements exist
+        if (!displaySubtotal || !displayTotal) {
+            console.warn('Required display elements not found');
+            return;
+        }
+
+        // Calculate services subtotal
+        let servicesSubtotal = 0;
         const serviceRows = document.querySelectorAll('.service-row');
         console.log(`Found ${serviceRows.length} service rows to calculate`);
 
@@ -1809,55 +1682,45 @@ function updateTaxCalculations() {
             const serviceSelect = row.querySelector('select[name="service_ids[]"]');
             const quantityInput = row.querySelector('input[name="service_quantities[]"]');
 
-            console.log(`Row ${index + 1}:`, {
-                hasService: !!serviceSelect?.value,
-                serviceName: serviceSelect?.options[serviceSelect?.selectedIndex]?.text,
-                price: serviceSelect?.options[serviceSelect?.selectedIndex]?.dataset?.price,
-                quantity: quantityInput?.value
-            });
-
-            if (serviceSelect && serviceSelect.value && quantityInput && quantityInput.value) {
+            if (serviceSelect && quantityInput && serviceSelect.value) {
                 const selectedOption = serviceSelect.options[serviceSelect.selectedIndex];
-                if (selectedOption) {
-                    // Try to get price from data attribute first, then extract from text
-                    let price = parseFloat(selectedOption.dataset.price) || 0;
+                const price = parseFloat(selectedOption.dataset.price || 0);
+                const quantity = parseFloat(quantityInput.value || 0);
+                const lineTotal = price * quantity;
 
-                    if (price === 0) {
-                        // Try to extract price from option text if data-price is missing
-                        const priceMatch = selectedOption.text.match(/₹([\d,]+\.?\d*)/);
-                        if (priceMatch) {
-                            price = parseFloat(priceMatch[1].replace(/,/g, ''));
-                            // Set the data-price for future calculations
-                            selectedOption.dataset.price = price.toString();
-                        }
-                    }
+                console.log(`Row ${index + 1}:`, {
+                    hasService: !!serviceSelect.value,
+                    serviceName: selectedOption.text,
+                    price: selectedOption.dataset.price,
+                    quantity: quantityInput.value
+                });
 
-                    const quantity = parseFloat(quantityInput.value) || 1;
-                    const lineTotal = price * quantity;
+                if (!isNaN(lineTotal) && lineTotal > 0) {
                     servicesSubtotal += lineTotal;
                     console.log(`Added: Service ${index + 1}: ₹${price} × ${quantity} = ₹${lineTotal}`);
-                } else {
-                    console.log(`Service ${index + 1}: No selected option found`);
                 }
-            } else {
-                console.log(`Service ${index + 1}: Missing service selection or quantity`);
             }
         });
 
         // Calculate inventory subtotal
+        let inventorySubtotal = 0;
         const productRows = document.querySelectorAll('.product-row');
         console.log(`Found ${productRows.length} product rows to calculate`);
 
         productRows.forEach((row, index) => {
+            const productSelect = row.querySelector('select[name="product_ids[]"]');
             const quantityInput = row.querySelector('input[name="product_quantities[]"]');
             const priceInput = row.querySelector('input[name="product_prices[]"]');
 
-            if (quantityInput && priceInput && quantityInput.value && priceInput.value) {
-                const quantity = parseFloat(quantityInput.value) || 0;
-                const price = parseFloat(priceInput.value) || 0;
-                const lineTotal = quantity * price;
-                inventorySubtotal += lineTotal;
-                console.log(`Product ${index + 1}: Qty: ${quantity}, Price: ₹${price}, Line Total: ₹${lineTotal}`);
+            if (productSelect && productSelect.value && quantityInput && priceInput) {
+                const price = parseFloat(priceInput.value || 0);
+                const quantity = parseFloat(quantityInput.value || 0);
+                const lineTotal = price * quantity;
+
+                if (!isNaN(lineTotal) && lineTotal > 0) {
+                    inventorySubtotal += lineTotal;
+                    console.log(`Added: Product ${index + 1}: ₹${price} × ${quantity} = ₹${lineTotal}`);
+                }
             }
         });
 
@@ -1867,103 +1730,82 @@ function updateTaxCalculations() {
         console.log(`Gross subtotal: ₹${grossSubtotal.toFixed(2)}`);
 
         // Get discount
-        const discountType = document.getElementById('discount_type').value;
-        const discountValue = parseFloat(document.getElementById('discount_value').value) || 0;
+        const discountType = document.getElementById('discount_type')?.value || 'amount';
+        const discountValue = parseFloat(document.getElementById('discount_value')?.value || 0);
         let discountAmount = 0;
 
         if (discountType === 'percentage') {
             discountAmount = (grossSubtotal * discountValue) / 100;
         } else {
-            // Amount discount
             discountAmount = discountValue;
         }
-        // Ensure discount amount doesn't exceed gross subtotal
-        discountAmount = Math.min(discountAmount, grossSubtotal);
 
-        const taxableAmount = Math.max(0, grossSubtotal - discountAmount);
+        // Get tax rates
+        const cgstRate = parseFloat(document.getElementById('cgst_rate')?.value || 0) / 100;
+        const sgstRate = parseFloat(document.getElementById('sgst_rate')?.value || 0) / 100;
+        const igstRate = parseFloat(document.getElementById('igst_rate')?.value || 0) / 100;
+        const isInterstate = document.getElementById('is_interstate')?.checked || false;
 
-        // Get tax rates from form inputs
-        const isInterstate = document.getElementById('is_interstate').checked;
-        const cgst_rate = parseFloat(document.getElementById('cgst_rate').value) || 0;
-        const sgst_rate = parseFloat(document.getElementById('sgst_rate').value) || 0;
-        const igst_rate = parseFloat(document.getElementById('igst_rate').value) || 0;
-        
-        let cgstAmount = 0, sgstAmount = 0, igstAmount = 0;
+        // Calculate net subtotal after discount
+        const netSubtotal = Math.max(0, grossSubtotal - discountAmount);
 
-        // Service prices are GST INCLUSIVE - extract GST from the price
-        const total_gst_rate = (isInterstate ? igst_rate : (cgst_rate + sgst_rate)) / 100;
+        // Calculate tax
+        const totalGstRate = isInterstate ? igstRate : (cgstRate + sgstRate);
+        const taxAmount = netSubtotal * totalGstRate;
+        const cgstAmount = isInterstate ? 0 : netSubtotal * cgstRate;
+        const sgstAmount = isInterstate ? 0 : netSubtotal * sgstRate;
 
-        // Extract GST from service prices (inclusive calculation)
-        // Formula: Base Amount = Price / (1 + GST Rate)
-        // Formula: GST Amount = Price - Base Amount
-        const service_base_amount = services_subtotal / (1 + total_gst_rate);
-        const service_gst_amount = services_subtotal - service_base_amount;
+        // Get additional charges
+        const additionalCharges = parseFloat(document.getElementById('additional_charges')?.value || 0);
+        const tipsAmount = parseFloat(document.getElementById('tips_amount')?.value || 0);
 
-        // For inventory, GST is calculated normally (exclusive)
-        const inventory_gst_amount = inventory_subtotal * total_gst_rate;
+        // Calculate final total
+        const finalTotal = netSubtotal + taxAmount + additionalCharges + tipsAmount;
 
-        // Total amounts before discount
-        const total_base_amount = service_base_amount + inventory_subtotal;
-        const total_gst_before_discount = service_gst_amount + inventory_gst_amount;
+        // Update display
+        displaySubtotal.textContent = `₹${grossSubtotal.toFixed(2)}`;
+        displayDiscount.textContent = `₹${discountAmount.toFixed(2)}`;
+        displayCGST.textContent = `₹${cgstAmount.toFixed(2)}`;
+        displaySGST.textContent = `₹${sgstAmount.toFixed(2)}`;
+        displayAdditional.textContent = `₹${additionalCharges.toFixed(2)}`;
+        displayTotal.textContent = `₹${finalTotal.toFixed(2)}`;
 
-        // Apply discount to base amount only
-        const net_base_amount = Math.max(0, total_base_amount - discount_amount);
-
-        // Recalculate GST proportionally after discount
-        let final_service_gst = 0;
-        let final_inventory_gst = 0;
-
-        if (total_base_amount > 0) {
-            const discount_factor = net_base_amount / total_base_amount;
-            final_service_gst = service_gst_amount * discount_factor;
-            final_inventory_gst = inventory_gst_amount * discount_factor;
+        if (taxTypeDisplay) {
+            taxTypeDisplay.textContent = isInterstate ? 'Interstate (IGST)' : 'Intrastate (CGST + SGST)';
+        }
+        if (totalTaxDisplay) {
+            totalTaxDisplay.textContent = `₹${taxAmount.toFixed(2)}`;
+        }
+        if (taxPercentageDisplay) {
+            taxPercentageDisplay.textContent = `${(totalGstRate * 100).toFixed(2)}%`;
         }
 
-        const total_tax = final_service_gst + final_inventory_gst;
-
-        // Split into CGST/SGST or IGST
-        let cgst_amount = 0;
-        let sgst_amount = 0;
-        let igst_amount = 0;
-
-        if (isInterstate) {
-            igst_amount = total_tax;
-        } else {
-            if (total_gst_rate > 0) {
-                cgst_amount = total_tax * (cgst_rate / total_gst_rate);
-                sgst_amount = total_tax * (sgst_rate / total_gst_rate);
-            }
-        }
-
-        const additionalCharges = parseFloat(document.getElementById('additional_charges').value) || 0;
-        const tipsAmount = parseFloat(document.getElementById('tips_amount').value) || 0;
-
-        const total_amount = net_base_amount + total_tax + additionalCharges + tipsAmount;
-
-        // Update display with proper formatting
-        document.getElementById('display_subtotal').textContent = formatCurrency(grossSubtotal);
-        document.getElementById('display_discount').textContent = formatCurrency(discountAmount);
-        document.getElementById('display_cgst').textContent = formatCurrency(cgstAmount + igstAmount);
-        document.getElementById('display_sgst').textContent = formatCurrency(sgstAmount);
-        document.getElementById('display_additional').textContent = formatCurrency(additionalCharges + tipsAmount);
-        document.getElementById('display_total').textContent = formatCurrency(total_amount);
-
-        // Update tax summary information
-        updateTaxSummaryDisplay(isInterstate, total_tax, taxableAmount);
-
-        console.log(`Final calculation: Subtotal: ₹${grossSubtotal.toFixed(2)}, Tax: ₹${total_tax.toFixed(2)}, Total: ₹${total_amount.toFixed(2)}`);
+        console.log(`Final total: ₹${finalTotal.toFixed(2)}`);
 
     } catch (error) {
         console.error('Error in updateTaxCalculations:', error);
-        // Set default values on error
-        document.getElementById('display_subtotal').textContent = '₹0.00';
-        document.getElementById('display_discount').textContent = '₹0.00';
-        document.getElementById('display_cgst').textContent = '₹0.00';
-        document.getElementById('display_sgst').textContent = '₹0.00';
-        document.getElementById('display_additional').textContent = '₹0.00';
-        document.getElementById('display_total').textContent = '₹0.00';
     }
 }
+
+// Attach tax calculation to form inputs
+document.addEventListener('DOMContentLoaded', function() {
+    // Attach to all billing inputs
+    const billingInputs = document.querySelectorAll('.tax-input, .billing-input, input[name="service_quantities[]"], input[name="product_quantities[]"], input[name="product_prices[]"]');
+
+    billingInputs.forEach(input => {
+        input.addEventListener('input', updateTaxCalculations);
+        input.addEventListener('change', updateTaxCalculations);
+    });
+
+    // Attach to interstate checkbox
+    const interstateCheckbox = document.getElementById('is_interstate');
+    if (interstateCheckbox) {
+        interstateCheckbox.addEventListener('change', updateTaxCalculations);
+    }
+
+    // Initial calculation
+    setTimeout(updateTaxCalculations, 300);
+});
 
 // Helper function to format currency
 function formatCurrency(amount) {
@@ -2907,1321 +2749,6 @@ document.getElementById('billingForm').addEventListener('submit', function(e) {
 
             console.log('Tax calculation listeners set up successfully');
         }
-
-        // Setup event listeners for service selection changes
-        function setupServiceChangeListeners() {
-            // Monitor service dropdown changes
-            document.addEventListener('change', function(event) {
-                if (event.target.matches('select[name="service_ids[]"]') ||
-                    event.target.matches('input[name="service_quantities[]"]')) {
-                    // Service or quantity changed, update calculations
-                    handleServiceSelection(event.target);
-                    setTimeout(updateTaxCalculations, 100); // Small delay to ensure DOM is updated
-                }
-            });
-
-            // Monitor input changes for quantities
-            document.addEventListener('input', function(event) {
-                if (event.target.matches('input[name="service_quantities[]"]') ||
-                    event.target.matches('input[name="product_quantities[]"]') ||
-                    event.target.matches('input[name="product_prices[]"]')) {
-                    setTimeout(updateTaxCalculations, 100);
-                }
-            });
-
-            // Monitor when new service rows are added
-            const observer = new MutationObserver(function(mutations) {
-                mutations.forEach(function(mutation) {
-                    mutation.addedNodes.forEach(function(node) {
-                        if (node.nodeType === 1 && node.classList.contains('service-row')) {
-                            // New service row added, attach listeners
-                            const serviceSelect = node.querySelector('select[name="service_ids[]"]');
-                            const quantityInput = node.querySelector('input[name="service_quantities[]"]');
-
-                            if (serviceSelect) {
-                                serviceSelect.addEventListener('change', (e) => {
-                                    handleServiceSelection(e.target);
-                                    setTimeout(updateTaxCalculations, 100);
-                                });
-                            }
-
-                            if (quantityInput) {
-                                quantityInput.addEventListener('input', () => {
-                                    setTimeout(updateTaxCalculations, 100);
-                                });
-                            }
-                        }
-                    });
-                });
-            });
-
-            observer.observe(document.getElementById('servicesContainer'), {
-                childList: true,
-                subtree: true
-            });
-        }
-
-        // --- Action button handlers ---
-        function proceedWithInvoiceCreation() {
-            document.getElementById('billingForm').submit();
-        }
-
-        function printInvoice() {
-            const invoiceId = document.getElementById('printInvoiceBtn').dataset.invoiceId;
-            if (invoiceId) {
-                window.open(`/integrated-billing/print-invoice/${invoiceId}`, '_blank');
-            } else {
-                alert('Invoice ID not found. Cannot print.');
-            }
-        }
-
-        function emailInvoice() {
-            const invoiceId = document.getElementById('emailInvoiceBtn').dataset.invoiceId;
-            if (invoiceId) {
-                // In a real application, this would trigger an email sending process
-                alert(`Email invoice functionality for Invoice ID: ${invoiceId} is being processed.`);
-                // Example: fetch(`/integrated-billing/email-invoice/${invoiceId}`) ...
-            } else {
-                alert('Invoice ID not found. Cannot email.');
-            }
-        }
-
-        function whatsappInvoice() {
-            const invoiceId = document.getElementById('whatsappInvoiceBtn').dataset.invoiceId;
-            if (invoiceId) {
-                // In a real application, this would trigger a WhatsApp sharing process
-                alert(`WhatsApp invoice functionality for Invoice ID: ${invoiceId} is being processed.`);
-                // Example: fetch(`/integrated-billing/whatsapp-invoice/${invoiceId}`) ...
-            } else {
-                alert('Invoice ID not found. Cannot send via WhatsApp.');
-            }
-        }
-
-        // Auto-select customer and load appointments if coming from appointment context menu
-        document.addEventListener('DOMContentLoaded', function() {
-            // Auto-select customer if provided from appointment context menu
-            {% if selected_customer %}
-            const customerSelect = document.getElementById('client_id');
-            if (customerSelect) {
-                customerSelect.value = '{{ selected_customer.id }}';
-                // Trigger change event to load customer packages and appointments
-                customerSelect.dispatchEvent(new Event('change'));
-
-                // Show notification about auto-selection
-                const notification = document.createElement('div');
-                notification.className = 'alert alert-info alert-dismissible fade show mt-3';
-                notification.innerHTML = `
-                    <i class="fas fa-info-circle me-2"></i>
-                    <strong>Customer Auto-Selected:</strong> {{ selected_customer.full_name }}
-                    {% if customer_appointments|length > 0 %}
-                    <br><small>{{ customer_appointments|length }} pending appointment{{ 's' if customer_appointments|length != 1 else '' }} ready for billing</small>
-                    {% endif %}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                `;
-
-                // Insert notification after the header
-                const container = document.querySelector('.container-fluid');
-                const firstRow = container.querySelector('.row');
-                if (firstRow && firstRow.parentNode) {
-                    firstRow.parentNode.insertBefore(notification, firstRow.nextSibling);
-                } else {
-                    // Fallback: insert at the top of the container
-                    container.insertBefore(notification, container.firstChild);
-                }
-            }
-            {% endif %}
-        });
-
-        // Function to populate services from customer appointments
-        {% if customer_appointments %}
-        function populateCustomerAppointments() {
-            const appointments = {{ customer_appointments | tojson }};
-
-            if (appointments && appointments.length > 0) {
-                // Add success message
-                const successAlert = document.createElement('div');
-                successAlert.className = 'alert alert-success alert-dismissible fade show mt-3';
-                successAlert.innerHTML = `
-                    <i class="fas fa-check-circle me-2"></i>
-                    <strong>Services Ready for Billing:</strong> ${appointments.length} service${appointments.length !== 1 ? 's' : ''} from pending appointments
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                `;
-
-                const container = document.querySelector('.container-fluid');
-                const billingCard = container.querySelector('.card');
-                billingCard.parentNode.insertBefore(successAlert, billingCard);
-
-                // Auto-dismiss after 8 seconds
-                setTimeout(() => {
-                    if (successAlert.parentNode) {
-                        successAlert.remove();
-                    }
-                }, 8000);
-            }
-        }
-        {% endif %}
-
-        // Helper function to update service price in the UI
-        function updateServicePrice(serviceId, price) {
-            const serviceRows = document.querySelectorAll('.service-row');
-            let targetRow = null;
-
-            // Find the row associated with the selected service ID
-            serviceRows.forEach(row => {
-                const selectElement = row.querySelector('select[name="service_ids[]"]');
-                if (selectElement && selectElement.value === serviceId) {
-                    targetRow = row;
-                }
-            });
-
-            if (targetRow) {
-                const priceInput = targetRow.querySelector('input[name="service_prices[]"]'); // Assuming such input exists or needs to be added
-                if (priceInput) {
-                    priceInput.value = parseFloat(price).toFixed(2);
-                }
-            } else if (serviceId === '') { // Handle deselection or "Select Service"
-                // If no service is selected, we don't need to update a price input
-            } else {
-                // If the service is not found in existing rows, it might be a new one
-                // Or an auto-populated one. We need to ensure the price is set correctly.
-                // For auto-populated, the price should be handled by handleServiceSelection itself.
-                console.log(`Could not find row for service ID: ${serviceId} to update price directly.`);
-            }
-        }
-
-
-function handleServiceSelection(selectElement) {
-    const selectedOption = selectElement.options[selectElement.selectedIndex];
-
-    if (selectedOption && selectedOption.value) {
-        // Extract price from data attribute or option text
-        let price = selectedOption.dataset.price;
-
-        if (!price) {
-            // Try to extract price from option text
-            const priceMatch = selectedOption.text.match(/₹([\d,]+\.?\d*)/);
-            if (priceMatch) {
-                price = parseFloat(priceMatch[1].replace(/,/g, ''));
-                // Store it for future use
-                selectedOption.dataset.price = price.toString();
-            }
-        }
-
-        if (price) {
-            console.log(`Service selected: ${selectedOption.text}, Price: ₹${price}`);
-            updateServicePrice(selectElement.value, price);
-
-            // Trigger calculation update
-            setTimeout(() => {
-                updateTaxCalculations();
-            }, 50);
-        } else {
-            console.warn('No price found for selected service:', selectedOption.text);
-            updateServicePrice(selectElement.value, '0.00');
-        }
-    } else {
-        // Reset for empty selection
-        updateServicePrice(selectElement.value, '0.00');
-        setTimeout(() => {
-            updateTaxCalculations();
-        }, 50);
-    }
-}
-
-// Initialize components and event listeners
-        window.addServiceRow = addServiceRow;
-        window.addAppointmentToBill = addAppointmentToBill;
-        window.previewInvoice = previewInvoice;
-        window.proceedWithInvoiceCreation = proceedWithInvoiceCreation;
-        window.saveAsDraft = saveAsDraft;
-        window.sendQuotation = sendQuotation;
-        window.clearForm = clearForm;
-        window.findEmptyServiceRow = findEmptyServiceRow;
-        window.autoFillCurrentServices = autoFillCurrentServices;
-        window.viewFullCustomerHistory = viewFullCustomerHistory;
-        window.handleServiceSelection = handleServiceSelection;
-        window.updateTaxCalculations = updateTaxCalculations;
-        window.loadBatchesForProduct = loadBatchesForProduct;
-        window.validateInventoryQuantity = validateInventoryQuantity;
-
-        // Set up tax calculation listeners
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('Setting up tax calculation listeners...');
-
-            // Tax input listeners
-            const taxInputs = document.querySelectorAll('.tax-input, .billing-input');
-            taxInputs.forEach(input => {
-                input.addEventListener('input', updateTaxCalculations);
-                input.addEventListener('change', updateTaxCalculations);
-            });
-
-            // Service selection listeners
-            document.addEventListener('change', function(e) {
-                if (e.target.matches('select[name="service_ids[]"]') ||
-                    e.target.matches('input[name="service_quantities[]"]') ||
-                    e.target.matches('input[name="product_quantities[]"]') ||
-                    e.target.matches('input[name="product_prices[]"]')) {
-                    updateTaxCalculations();
-                }
-            });
-
-            // Initial calculation
-            updateTaxCalculations();
-
-            console.log('Tax calculation listeners set up successfully');
-        });
-
-        // Setup event listeners for service selection changes
-        function setupServiceChangeListeners() {
-            // Monitor service dropdown changes
-            document.addEventListener('change', function(event) {
-                if (event.target.matches('select[name="service_ids[]"]') ||
-                    event.target.matches('input[name="service_quantities[]"]')) {
-                    // Service or quantity changed, update calculations
-                    handleServiceSelection(event.target);
-                    setTimeout(updateTaxCalculations, 100); // Small delay to ensure DOM is updated
-                }
-            });
-
-            // Monitor input changes for quantities
-            document.addEventListener('input', function(event) {
-                if (event.target.matches('input[name="service_quantities[]"]') ||
-                    event.target.matches('input[name="product_quantities[]"]') ||
-                    event.target.matches('input[name="product_prices[]"]')) {
-                    setTimeout(updateTaxCalculations, 100);
-                }
-            });
-
-            // Monitor when new service rows are added
-            const observer = new MutationObserver(function(mutations) {
-                mutations.forEach(function(mutation) {
-                    mutation.addedNodes.forEach(function(node) {
-                        if (node.nodeType === 1 && node.classList.contains('service-row')) {
-                            // New service row added, attach listeners
-                            const serviceSelect = node.querySelector('select[name="service_ids[]"]');
-                            const quantityInput = node.querySelector('input[name="service_quantities[]"]');
-
-                            if (serviceSelect) {
-                                serviceSelect.addEventListener('change', (e) => {
-                                    handleServiceSelection(e.target);
-                                    setTimeout(updateTaxCalculations, 100);
-                                });
-                            }
-
-                            if (quantityInput) {
-                                quantityInput.addEventListener('input', () => {
-                                    setTimeout(updateTaxCalculations, 100);
-                                });
-                            }
-                        }
-                    });
-                });
-            });
-
-            observer.observe(document.getElementById('servicesContainer'), {
-                childList: true,
-                subtree: true
-            });
-        }
-
-        // --- Action button handlers ---
-        function proceedWithInvoiceCreation() {
-            document.getElementById('billingForm').submit();
-        }
-
-        function printInvoice() {
-            const invoiceId = document.getElementById('printInvoiceBtn').dataset.invoiceId;
-            if (invoiceId) {
-                window.open(`/integrated-billing/print-invoice/${invoiceId}`, '_blank');
-            } else {
-                alert('Invoice ID not found. Cannot print.');
-            }
-        }
-
-        function emailInvoice() {
-            const invoiceId = document.getElementById('emailInvoiceBtn').dataset.invoiceId;
-            if (invoiceId) {
-                // In a real application, this would trigger an email sending process
-                alert(`Email invoice functionality for Invoice ID: ${invoiceId} is being processed.`);
-                // Example: fetch(`/integrated-billing/email-invoice/${invoiceId}`) ...
-            } else {
-                alert('Invoice ID not found. Cannot email.');
-            }
-        }
-
-        function whatsappInvoice() {
-            const invoiceId = document.getElementById('whatsappInvoiceBtn').dataset.invoiceId;
-            if (invoiceId) {
-                // In a real application, this would trigger a WhatsApp sharing process
-                alert(`WhatsApp invoice functionality for Invoice ID: ${invoiceId} is being processed.`);
-                // Example: fetch(`/integrated-billing/whatsapp-invoice/${invoiceId}`) ...
-            } else {
-                alert('Invoice ID not found. Cannot send via WhatsApp.');
-            }
-        }
-
-        // Auto-select customer and load appointments if coming from appointment context menu
-        document.addEventListener('DOMContentLoaded', function() {
-            // Auto-select customer if provided from appointment context menu
-            {% if selected_customer %}
-            const customerSelect = document.getElementById('client_id');
-            if (customerSelect) {
-                customerSelect.value = '{{ selected_customer.id }}';
-                // Trigger change event to load customer packages and appointments
-                customerSelect.dispatchEvent(new Event('change'));
-
-                // Show notification about auto-selection
-                const notification = document.createElement('div');
-                notification.className = 'alert alert-info alert-dismissible fade show mt-3';
-                notification.innerHTML = `
-                    <i class="fas fa-info-circle me-2"></i>
-                    <strong>Customer Auto-Selected:</strong> {{ selected_customer.full_name }}
-                    {% if customer_appointments|length > 0 %}
-                    <br><small>{{ customer_appointments|length }} pending appointment{{ 's' if customer_appointments|length != 1 else '' }} ready for billing</small>
-                    {% endif %}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                `;
-
-                // Insert notification after the header
-                const container = document.querySelector('.container-fluid');
-                const firstRow = container.querySelector('.row');
-                if (firstRow && firstRow.parentNode) {
-                    firstRow.parentNode.insertBefore(notification, firstRow.nextSibling);
-                } else {
-                    // Fallback: insert at the top of the container
-                    container.insertBefore(notification, container.firstChild);
-                }
-            }
-            {% endif %}
-        });
-
-        // Function to populate services from customer appointments
-        {% if customer_appointments %}
-        function populateCustomerAppointments() {
-            const appointments = {{ customer_appointments | tojson }};
-
-            if (appointments && appointments.length > 0) {
-                // Add success message
-                const successAlert = document.createElement('div');
-                successAlert.className = 'alert alert-success alert-dismissible fade show mt-3';
-                successAlert.innerHTML = `
-                    <i class="fas fa-check-circle me-2"></i>
-                    <strong>Services Ready for Billing:</strong> ${appointments.length} service${appointments.length !== 1 ? 's' : ''} from pending appointments
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                `;
-
-                const container = document.querySelector('.container-fluid');
-                const billingCard = container.querySelector('.card');
-                billingCard.parentNode.insertBefore(successAlert, billingCard);
-
-                // Auto-dismiss after 8 seconds
-                setTimeout(() => {
-                    if (successAlert.parentNode) {
-                        successAlert.remove();
-                    }
-                }, 8000);
-            }
-        }
-        {% endif %}
-
-        // Helper function to update service price in the UI
-        function updateServicePrice(serviceId, price) {
-            const serviceRows = document.querySelectorAll('.service-row');
-            let targetRow = null;
-
-            // Find the row associated with the selected service ID
-            serviceRows.forEach(row => {
-                const selectElement = row.querySelector('select[name="service_ids[]"]');
-                if (selectElement && selectElement.value === serviceId) {
-                    targetRow = row;
-                }
-            });
-
-            if (targetRow) {
-                const priceInput = targetRow.querySelector('input[name="service_prices[]"]'); // Assuming such input exists or needs to be added
-                if (priceInput) {
-                    priceInput.value = parseFloat(price).toFixed(2);
-                }
-            } else if (serviceId === '') { // Handle deselection or "Select Service"
-                // If no service is selected, we don't need to update a price input
-            } else {
-                // If the service is not found in existing rows, it might be a new one
-                // Or an auto-populated one. We need to ensure the price is set correctly.
-                // For auto-populated, the price should be handled by handleServiceSelection itself.
-                console.log(`Could not find row for service ID: ${serviceId} to update price directly.`);
-            }
-        }
-
-
-function handleServiceSelection(selectElement) {
-    const selectedOption = selectElement.options[selectElement.selectedIndex];
-
-    if (selectedOption && selectedOption.value) {
-        // Extract price from data attribute or option text
-        let price = selectedOption.dataset.price;
-
-        if (!price) {
-            // Try to extract price from option text
-            const priceMatch = selectedOption.text.match(/₹([\d,]+\.?\d*)/);
-            if (priceMatch) {
-                price = parseFloat(priceMatch[1].replace(/,/g, ''));
-                // Store it for future use
-                selectedOption.dataset.price = price.toString();
-            }
-        }
-
-        if (price) {
-            console.log(`Service selected: ${selectedOption.text}, Price: ₹${price}`);
-            updateServicePrice(selectElement.value, price);
-
-            // Trigger calculation update
-            setTimeout(() => {
-                updateTaxCalculations();
-            }, 50);
-        } else {
-            console.warn('No price found for selected service:', selectedOption.text);
-            updateServicePrice(selectElement.value, '0.00');
-        }
-    } else {
-        // Reset for empty selection
-        updateServicePrice(selectElement.value, '0.00');
-        setTimeout(() => {
-            updateTaxCalculations();
-        }, 50);
-    }
-}
-
-// Initialize components and event listeners
-        window.addServiceRow = addServiceRow;
-        window.addAppointmentToBill = addAppointmentToBill;
-        window.previewInvoice = previewInvoice;
-        window.proceedWithInvoiceCreation = proceedWithInvoiceCreation;
-        window.saveAsDraft = saveAsDraft;
-        window.sendQuotation = sendQuotation;
-        window.clearForm = clearForm;
-        window.findEmptyServiceRow = findEmptyServiceRow;
-        window.autoFillCurrentServices = autoFillCurrentServices;
-        window.viewFullCustomerHistory = viewFullCustomerHistory;
-        window.handleServiceSelection = handleServiceSelection;
-        window.updateTaxCalculations = updateTaxCalculations;
-        window.loadBatchesForProduct = loadBatchesForProduct;
-        window.validateInventoryQuantity = validateInventoryQuantity;
-
-        // Set up tax calculation listeners
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('Setting up tax calculation listeners...');
-
-            // Tax input listeners
-            const taxInputs = document.querySelectorAll('.tax-input, .billing-input');
-            taxInputs.forEach(input => {
-                input.addEventListener('input', updateTaxCalculations);
-                input.addEventListener('change', updateTaxCalculations);
-            });
-
-            // Service selection listeners
-            document.addEventListener('change', function(e) {
-                if (e.target.matches('select[name="service_ids[]"]') ||
-                    e.target.matches('input[name="service_quantities[]"]') ||
-                    e.target.matches('input[name="product_quantities[]"]') ||
-                    e.target.matches('input[name="product_prices[]"]')) {
-                    updateTaxCalculations();
-                }
-            });
-
-            // Initial calculation
-            updateTaxCalculations();
-
-            console.log('Tax calculation listeners set up successfully');
-        });
-
-        // Setup event listeners for service selection changes
-        function setupServiceChangeListeners() {
-            // Monitor service dropdown changes
-            document.addEventListener('change', function(event) {
-                if (event.target.matches('select[name="service_ids[]"]') ||
-                    event.target.matches('input[name="service_quantities[]"]')) {
-                    // Service or quantity changed, update calculations
-                    handleServiceSelection(event.target);
-                    setTimeout(updateTaxCalculations, 100); // Small delay to ensure DOM is updated
-                }
-            });
-
-            // Monitor input changes for quantities
-            document.addEventListener('input', function(event) {
-                if (event.target.matches('input[name="service_quantities[]"]') ||
-                    event.target.matches('input[name="product_quantities[]"]') ||
-                    event.target.matches('input[name="product_prices[]"]')) {
-                    setTimeout(updateTaxCalculations, 100);
-                }
-            });
-
-            // Monitor when new service rows are added
-            const observer = new MutationObserver(function(mutations) {
-                mutations.forEach(function(mutation) {
-                    mutation.addedNodes.forEach(function(node) {
-                        if (node.nodeType === 1 && node.classList.contains('service-row')) {
-                            // New service row added, attach listeners
-                            const serviceSelect = node.querySelector('select[name="service_ids[]"]');
-                            const quantityInput = node.querySelector('input[name="service_quantities[]"]');
-
-                            if (serviceSelect) {
-                                serviceSelect.addEventListener('change', (e) => {
-                                    handleServiceSelection(e.target);
-                                    setTimeout(updateTaxCalculations, 100);
-                                });
-                            }
-
-                            if (quantityInput) {
-                                quantityInput.addEventListener('input', () => {
-                                    setTimeout(updateTaxCalculations, 100);
-                                });
-                            }
-                        }
-                    });
-                });
-            });
-
-            observer.observe(document.getElementById('servicesContainer'), {
-                childList: true,
-                subtree: true
-            });
-        }
-
-        // --- Action button handlers ---
-        function proceedWithInvoiceCreation() {
-            document.getElementById('billingForm').submit();
-        }
-
-        function printInvoice() {
-            const invoiceId = document.getElementById('printInvoiceBtn').dataset.invoiceId;
-            if (invoiceId) {
-                window.open(`/integrated-billing/print-invoice/${invoiceId}`, '_blank');
-            } else {
-                alert('Invoice ID not found. Cannot print.');
-            }
-        }
-
-        function emailInvoice() {
-            const invoiceId = document.getElementById('emailInvoiceBtn').dataset.invoiceId;
-            if (invoiceId) {
-                // In a real application, this would trigger an email sending process
-                alert(`Email invoice functionality for Invoice ID: ${invoiceId} is being processed.`);
-                // Example: fetch(`/integrated-billing/email-invoice/${invoiceId}`) ...
-            } else {
-                alert('Invoice ID not found. Cannot email.');
-            }
-        }
-
-        function whatsappInvoice() {
-            const invoiceId = document.getElementById('whatsappInvoiceBtn').dataset.invoiceId;
-            if (invoiceId) {
-                // In a real application, this would trigger a WhatsApp sharing process
-                alert(`WhatsApp invoice functionality for Invoice ID: ${invoiceId} is being processed.`);
-                // Example: fetch(`/integrated-billing/whatsapp-invoice/${invoiceId}`) ...
-            } else {
-                alert('Invoice ID not found. Cannot send via WhatsApp.');
-            }
-        }
-
-        // Auto-select customer and load appointments if coming from appointment context menu
-        document.addEventListener('DOMContentLoaded', function() {
-            // Auto-select customer if provided from appointment context menu
-            {% if selected_customer %}
-            const customerSelect = document.getElementById('client_id');
-            if (customerSelect) {
-                customerSelect.value = '{{ selected_customer.id }}';
-                // Trigger change event to load customer packages and appointments
-                customerSelect.dispatchEvent(new Event('change'));
-
-                // Show notification about auto-selection
-                const notification = document.createElement('div');
-                notification.className = 'alert alert-info alert-dismissible fade show mt-3';
-                notification.innerHTML = `
-                    <i class="fas fa-info-circle me-2"></i>
-                    <strong>Customer Auto-Selected:</strong> {{ selected_customer.full_name }}
-                    {% if customer_appointments|length > 0 %}
-                    <br><small>{{ customer_appointments|length }} pending appointment{{ 's' if customer_appointments|length != 1 else '' }} ready for billing</small>
-                    {% endif %}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                `;
-
-                // Insert notification after the header
-                const container = document.querySelector('.container-fluid');
-                const firstRow = container.querySelector('.row');
-                if (firstRow && firstRow.parentNode) {
-                    firstRow.parentNode.insertBefore(notification, firstRow.nextSibling);
-                } else {
-                    // Fallback: insert at the top of the container
-                    container.insertBefore(notification, container.firstChild);
-                }
-            }
-            {% endif %}
-        });
-
-        // Function to populate services from customer appointments
-        {% if customer_appointments %}
-        function populateCustomerAppointments() {
-            const appointments = {{ customer_appointments | tojson }};
-
-            if (appointments && appointments.length > 0) {
-                // Add success message
-                const successAlert = document.createElement('div');
-                successAlert.className = 'alert alert-success alert-dismissible fade show mt-3';
-                successAlert.innerHTML = `
-                    <i class="fas fa-check-circle me-2"></i>
-                    <strong>Services Ready for Billing:</strong> ${appointments.length} service${appointments.length !== 1 ? 's' : ''} from pending appointments
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                `;
-
-                const container = document.querySelector('.container-fluid');
-                const billingCard = container.querySelector('.card');
-                billingCard.parentNode.insertBefore(successAlert, billingCard);
-
-                // Auto-dismiss after 8 seconds
-                setTimeout(() => {
-                    if (successAlert.parentNode) {
-                        successAlert.remove();
-                    }
-                }, 8000);
-            }
-        }
-        {% endif %}
-
-        // Helper function to update service price in the UI
-        function updateServicePrice(serviceId, price) {
-            const serviceRows = document.querySelectorAll('.service-row');
-            let targetRow = null;
-
-            // Find the row associated with the selected service ID
-            serviceRows.forEach(row => {
-                const selectElement = row.querySelector('select[name="service_ids[]"]');
-                if (selectElement && selectElement.value === serviceId) {
-                    targetRow = row;
-                }
-            });
-
-            if (targetRow) {
-                const priceInput = targetRow.querySelector('input[name="service_prices[]"]'); // Assuming such input exists or needs to be added
-                if (priceInput) {
-                    priceInput.value = parseFloat(price).toFixed(2);
-                }
-            } else if (serviceId === '') { // Handle deselection or "Select Service"
-                // If no service is selected, we don't need to update a price input
-            } else {
-                // If the service is not found in existing rows, it might be a new one
-                // Or an auto-populated one. We need to ensure the price is set correctly.
-                // For auto-populated, the price should be handled by handleServiceSelection itself.
-                console.log(`Could not find row for service ID: ${serviceId} to update price directly.`);
-            }
-        }
-
-
-function handleServiceSelection(selectElement) {
-    const selectedOption = selectElement.options[selectElement.selectedIndex];
-
-    if (selectedOption && selectedOption.value) {
-        // Extract price from data attribute or option text
-        let price = selectedOption.dataset.price;
-
-        if (!price) {
-            // Try to extract price from option text
-            const priceMatch = selectedOption.text.match(/₹([\d,]+\.?\d*)/);
-            if (priceMatch) {
-                price = parseFloat(priceMatch[1].replace(/,/g, ''));
-                // Store it for future use
-                selectedOption.dataset.price = price.toString();
-            }
-        }
-
-        if (price) {
-            console.log(`Service selected: ${selectedOption.text}, Price: ₹${price}`);
-            updateServicePrice(selectElement.value, price);
-
-            // Trigger calculation update
-            setTimeout(() => {
-                updateTaxCalculations();
-            }, 50);
-        } else {
-            console.warn('No price found for selected service:', selectedOption.text);
-            updateServicePrice(selectElement.value, '0.00');
-        }
-    } else {
-        // Reset for empty selection
-        updateServicePrice(selectElement.value, '0.00');
-        setTimeout(() => {
-            updateTaxCalculations();
-        }, 50);
-    }
-}
-
-// Initialize components and event listeners
-        window.addServiceRow = addServiceRow;
-        window.addAppointmentToBill = addAppointmentToBill;
-        window.previewInvoice = previewInvoice;
-        window.proceedWithInvoiceCreation = proceedWithInvoiceCreation;
-        window.saveAsDraft = saveAsDraft;
-        window.sendQuotation = sendQuotation;
-        window.clearForm = clearForm;
-        window.findEmptyServiceRow = findEmptyServiceRow;
-        window.autoFillCurrentServices = autoFillCurrentServices;
-        window.viewFullCustomerHistory = viewFullCustomerHistory;
-        window.handleServiceSelection = handleServiceSelection;
-        window.updateTaxCalculations = updateTaxCalculations;
-        window.loadBatchesForProduct = loadBatchesForProduct;
-        window.validateInventoryQuantity = validateInventoryQuantity;
-
-        // Set up tax calculation listeners
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('Setting up tax calculation listeners...');
-
-            // Tax input listeners
-            const taxInputs = document.querySelectorAll('.tax-input, .billing-input');
-            taxInputs.forEach(input => {
-                input.addEventListener('input', updateTaxCalculations);
-                input.addEventListener('change', updateTaxCalculations);
-            });
-
-            // Service selection listeners
-            document.addEventListener('change', function(e) {
-                if (e.target.matches('select[name="service_ids[]"]') ||
-                    e.target.matches('input[name="service_quantities[]"]') ||
-                    e.target.matches('input[name="product_quantities[]"]') ||
-                    e.target.matches('input[name="product_prices[]"]')) {
-                    updateTaxCalculations();
-                }
-            });
-
-            // Initial calculation
-            updateTaxCalculations();
-
-            console.log('Tax calculation listeners set up successfully');
-        });
-
-        // Setup event listeners for service selection changes
-        function setupServiceChangeListeners() {
-            // Monitor service dropdown changes
-            document.addEventListener('change', function(event) {
-                if (event.target.matches('select[name="service_ids[]"]') ||
-                    event.target.matches('input[name="service_quantities[]"]')) {
-                    // Service or quantity changed, update calculations
-                    handleServiceSelection(event.target);
-                    setTimeout(updateTaxCalculations, 100); // Small delay to ensure DOM is updated
-                }
-            });
-
-            // Monitor input changes for quantities
-            document.addEventListener('input', function(event) {
-                if (event.target.matches('input[name="service_quantities[]"]') ||
-                    event.target.matches('input[name="product_quantities[]"]') ||
-                    event.target.matches('input[name="product_prices[]"]')) {
-                    setTimeout(updateTaxCalculations, 100);
-                }
-            });
-
-            // Monitor when new service rows are added
-            const observer = new MutationObserver(function(mutations) {
-                mutations.forEach(function(mutation) {
-                    mutation.addedNodes.forEach(function(node) {
-                        if (node.nodeType === 1 && node.classList.contains('service-row')) {
-                            // New service row added, attach listeners
-                            const serviceSelect = node.querySelector('select[name="service_ids[]"]');
-                            const quantityInput = node.querySelector('input[name="service_quantities[]"]');
-
-                            if (serviceSelect) {
-                                serviceSelect.addEventListener('change', (e) => {
-                                    handleServiceSelection(e.target);
-                                    setTimeout(updateTaxCalculations, 100);
-                                });
-                            }
-
-                            if (quantityInput) {
-                                quantityInput.addEventListener('input', () => {
-                                    setTimeout(updateTaxCalculations, 100);
-                                });
-                            }
-                        }
-                    });
-                });
-            });
-
-            observer.observe(document.getElementById('servicesContainer'), {
-                childList: true,
-                subtree: true
-            });
-        }
-
-        // --- Action button handlers ---
-        function proceedWithInvoiceCreation() {
-            document.getElementById('billingForm').submit();
-        }
-
-        function printInvoice() {
-            const invoiceId = document.getElementById('printInvoiceBtn').dataset.invoiceId;
-            if (invoiceId) {
-                window.open(`/integrated-billing/print-invoice/${invoiceId}`, '_blank');
-            } else {
-                alert('Invoice ID not found. Cannot print.');
-            }
-        }
-
-        function emailInvoice() {
-            const invoiceId = document.getElementById('emailInvoiceBtn').dataset.invoiceId;
-            if (invoiceId) {
-                // In a real application, this would trigger an email sending process
-                alert(`Email invoice functionality for Invoice ID: ${invoiceId} is being processed.`);
-                // Example: fetch(`/integrated-billing/email-invoice/${invoiceId}`) ...
-            } else {
-                alert('Invoice ID not found. Cannot email.');
-            }
-        }
-
-        function whatsappInvoice() {
-            const invoiceId = document.getElementById('whatsappInvoiceBtn').dataset.invoiceId;
-            if (invoiceId) {
-                // In a real application, this would trigger a WhatsApp sharing process
-                alert(`WhatsApp invoice functionality for Invoice ID: ${invoiceId} is being processed.`);
-                // Example: fetch(`/integrated-billing/whatsapp-invoice/${invoiceId}`) ...
-            } else {
-                alert('Invoice ID not found. Cannot send via WhatsApp.');
-            }
-        }
-
-        // Auto-select customer and load appointments if coming from appointment context menu
-        document.addEventListener('DOMContentLoaded', function() {
-            // Auto-select customer if provided from appointment context menu
-            {% if selected_customer %}
-            const customerSelect = document.getElementById('client_id');
-            if (customerSelect) {
-                customerSelect.value = '{{ selected_customer.id }}';
-                // Trigger change event to load customer packages and appointments
-                customerSelect.dispatchEvent(new Event('change'));
-
-                // Show notification about auto-selection
-                const notification = document.createElement('div');
-                notification.className = 'alert alert-info alert-dismissible fade show mt-3';
-                notification.innerHTML = `
-                    <i class="fas fa-info-circle me-2"></i>
-                    <strong>Customer Auto-Selected:</strong> {{ selected_customer.full_name }}
-                    {% if customer_appointments|length > 0 %}
-                    <br><small>{{ customer_appointments|length }} pending appointment{{ 's' if customer_appointments|length != 1 else '' }} ready for billing</small>
-                    {% endif %}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                `;
-
-                // Insert notification after the header
-                const container = document.querySelector('.container-fluid');
-                const firstRow = container.querySelector('.row');
-                if (firstRow && firstRow.parentNode) {
-                    firstRow.parentNode.insertBefore(notification, firstRow.nextSibling);
-                } else {
-                    // Fallback: insert at the top of the container
-                    container.insertBefore(notification, container.firstChild);
-                }
-            }
-            {% endif %}
-        });
-
-        // Function to populate services from customer appointments
-        {% if customer_appointments %}
-        function populateCustomerAppointments() {
-            const appointments = {{ customer_appointments | tojson }};
-
-            if (appointments && appointments.length > 0) {
-                // Add success message
-                const successAlert = document.createElement('div');
-                successAlert.className = 'alert alert-success alert-dismissible fade show mt-3';
-                successAlert.innerHTML = `
-                    <i class="fas fa-check-circle me-2"></i>
-                    <strong>Services Ready for Billing:</strong> ${appointments.length} service${appointments.length !== 1 ? 's' : ''} from pending appointments
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                `;
-
-                const container = document.querySelector('.container-fluid');
-                const billingCard = container.querySelector('.card');
-                billingCard.parentNode.insertBefore(successAlert, billingCard);
-
-                // Auto-dismiss after 8 seconds
-                setTimeout(() => {
-                    if (successAlert.parentNode) {
-                        successAlert.remove();
-                    }
-                }, 8000);
-            }
-        }
-        {% endif %}
-
-        // Helper function to update service price in the UI
-        function updateServicePrice(serviceId, price) {
-            const serviceRows = document.querySelectorAll('.service-row');
-            let targetRow = null;
-
-            // Find the row associated with the selected service ID
-            serviceRows.forEach(row => {
-                const selectElement = row.querySelector('select[name="service_ids[]"]');
-                if (selectElement && selectElement.value === serviceId) {
-                    targetRow = row;
-                }
-            });
-
-            if (targetRow) {
-                const priceInput = targetRow.querySelector('input[name="service_prices[]"]'); // Assuming such input exists or needs to be added
-                if (priceInput) {
-                    priceInput.value = parseFloat(price).toFixed(2);
-                }
-            } else if (serviceId === '') { // Handle deselection or "Select Service"
-                // If no service is selected, we don't need to update a price input
-            } else {
-                // If the service is not found in existing rows, it might be a new one
-                // Or an auto-populated one. We need to ensure the price is set correctly.
-                // For auto-populated, the price should be handled by handleServiceSelection itself.
-                console.log(`Could not find row for service ID: ${serviceId} to update price directly.`);
-            }
-        }
-
-
-function handleServiceSelection(selectElement) {
-    const selectedOption = selectElement.options[selectElement.selectedIndex];
-
-    if (selectedOption && selectedOption.value) {
-        // Extract price from data attribute or option text
-        let price = selectedOption.dataset.price;
-
-        if (!price) {
-            // Try to extract price from option text
-            const priceMatch = selectedOption.text.match(/₹([\d,]+\.?\d*)/);
-            if (priceMatch) {
-                price = parseFloat(priceMatch[1].replace(/,/g, ''));
-                // Store it for future use
-                selectedOption.dataset.price = price.toString();
-            }
-        }
-
-        if (price) {
-            console.log(`Service selected: ${selectedOption.text}, Price: ₹${price}`);
-            updateServicePrice(selectElement.value, price);
-
-            // Trigger calculation update
-            setTimeout(() => {
-                updateTaxCalculations();
-            }, 50);
-        } else {
-            console.warn('No price found for selected service:', selectedOption.text);
-            updateServicePrice(selectElement.value, '0.00');
-        }
-    } else {
-        // Reset for empty selection
-        updateServicePrice(selectElement.value, '0.00');
-        setTimeout(() => {
-            updateTaxCalculations();
-        }, 50);
-    }
-}
-
-// Initialize components and event listeners
-        window.addServiceRow = addServiceRow;
-        window.addAppointmentToBill = addAppointmentToBill;
-        window.previewInvoice = previewInvoice;
-        window.proceedWithInvoiceCreation = proceedWithInvoiceCreation;
-        window.saveAsDraft = saveAsDraft;
-        window.sendQuotation = sendQuotation;
-        window.clearForm = clearForm;
-        window.findEmptyServiceRow = findEmptyServiceRow;
-        window.autoFillCurrentServices = autoFillCurrentServices;
-        window.viewFullCustomerHistory = viewFullCustomerHistory;
-        window.handleServiceSelection = handleServiceSelection;
-        window.updateTaxCalculations = updateTaxCalculations;
-        window.loadBatchesForProduct = loadBatchesForProduct;
-        window.validateInventoryQuantity = validateInventoryQuantity;
-
-        // Set up tax calculation listeners
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('Setting up tax calculation listeners...');
-
-            // Tax input listeners
-            const taxInputs = document.querySelectorAll('.tax-input, .billing-input');
-            taxInputs.forEach(input => {
-                input.addEventListener('input', updateTaxCalculations);
-                input.addEventListener('change', updateTaxCalculations);
-            });
-
-            // Service selection listeners
-            document.addEventListener('change', function(e) {
-                if (e.target.matches('select[name="service_ids[]"]') ||
-                    e.target.matches('input[name="service_quantities[]"]') ||
-                    e.target.matches('input[name="product_quantities[]"]') ||
-                    e.target.matches('input[name="product_prices[]"]')) {
-                    updateTaxCalculations();
-                }
-            });
-
-            // Initial calculation
-            updateTaxCalculations();
-
-            console.log('Tax calculation listeners set up successfully');
-        });
-
-        // Setup event listeners for service selection changes
-        function setupServiceChangeListeners() {
-            // Monitor service dropdown changes
-            document.addEventListener('change', function(event) {
-                if (event.target.matches('select[name="service_ids[]"]') ||
-                    event.target.matches('input[name="service_quantities[]"]')) {
-                    // Service or quantity changed, update calculations
-                    handleServiceSelection(event.target);
-                    setTimeout(updateTaxCalculations, 100); // Small delay to ensure DOM is updated
-                }
-            });
-
-            // Monitor input changes for quantities
-            document.addEventListener('input', function(event) {
-                if (event.target.matches('input[name="service_quantities[]"]') ||
-                    event.target.matches('input[name="product_quantities[]"]') ||
-                    event.target.matches('input[name="product_prices[]"]')) {
-                    setTimeout(updateTaxCalculations, 100);
-                }
-            });
-
-            // Monitor when new service rows are added
-            const observer = new MutationObserver(function(mutations) {
-                mutations.forEach(function(mutation) {
-                    mutation.addedNodes.forEach(function(node) {
-                        if (node.nodeType === 1 && node.classList.contains('service-row')) {
-                            // New service row added, attach listeners
-                            const serviceSelect = node.querySelector('select[name="service_ids[]"]');
-                            const quantityInput = node.querySelector('input[name="service_quantities[]"]');
-
-                            if (serviceSelect) {
-                                serviceSelect.addEventListener('change', (e) => {
-                                    handleServiceSelection(e.target);
-                                    setTimeout(updateTaxCalculations, 100);
-                                });
-                            }
-
-                            if (quantityInput) {
-                                quantityInput.addEventListener('input', () => {
-                                    setTimeout(updateTaxCalculations, 100);
-                                });
-                            }
-                        }
-                    });
-                });
-            });
-
-            observer.observe(document.getElementById('servicesContainer'), {
-                childList: true,
-                subtree: true
-            });
-        }
-
-        // --- Action button handlers ---
-        function proceedWithInvoiceCreation() {
-            document.getElementById('billingForm').submit();
-        }
-
-        function printInvoice() {
-            const invoiceId = document.getElementById('printInvoiceBtn').dataset.invoiceId;
-            if (invoiceId) {
-                window.open(`/integrated-billing/print-invoice/${invoiceId}`, '_blank');
-            } else {
-                alert('Invoice ID not found. Cannot print.');
-            }
-        }
-
-        function emailInvoice() {
-            const invoiceId = document.getElementById('emailInvoiceBtn').dataset.invoiceId;
-            if (invoiceId) {
-                // In a real application, this would trigger an email sending process
-                alert(`Email invoice functionality for Invoice ID: ${invoiceId} is being processed.`);
-                // Example: fetch(`/integrated-billing/email-invoice/${invoiceId}`) ...
-            } else {
-                alert('Invoice ID not found. Cannot email.');
-            }
-        }
-
-        function whatsappInvoice() {
-            const invoiceId = document.getElementById('whatsappInvoiceBtn').dataset.invoiceId;
-            if (invoiceId) {
-                // In a real application, this would trigger a WhatsApp sharing process
-                alert(`WhatsApp invoice functionality for Invoice ID: ${invoiceId} is being processed.`);
-                // Example: fetch(`/integrated-billing/whatsapp-invoice/${invoiceId}`) ...
-            } else {
-                alert('Invoice ID not found. Cannot send via WhatsApp.');
-            }
-        }
-
-        // Auto-select customer and load appointments if coming from appointment context menu
-        document.addEventListener('DOMContentLoaded', function() {
-            // Auto-select customer if provided from appointment context menu
-            {% if selected_customer %}
-            const customerSelect = document.getElementById('client_id');
-            if (customerSelect) {
-                customerSelect.value = '{{ selected_customer.id }}';
-                // Trigger change event to load customer packages and appointments
-                customerSelect.dispatchEvent(new Event('change'));
-
-                // Show notification about auto-selection
-                const notification = document.createElement('div');
-                notification.className = 'alert alert-info alert-dismissible fade show mt-3';
-                notification.innerHTML = `
-                    <i class="fas fa-info-circle me-2"></i>
-                    <strong>Customer Auto-Selected:</strong> {{ selected_customer.full_name }}
-                    {% if customer_appointments|length > 0 %}
-                    <br><small>{{ customer_appointments|length }} pending appointment{{ 's' if customer_appointments|length != 1 else '' }} ready for billing</small>
-                    {% endif %}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                `;
-
-                // Insert notification after the header
-                const container = document.querySelector('.container-fluid');
-                const firstRow = container.querySelector('.row');
-                if (firstRow && firstRow.parentNode) {
-                    firstRow.parentNode.insertBefore(notification, firstRow.nextSibling);
-                } else {
-                    // Fallback: insert at the top of the container
-                    container.insertBefore(notification, container.firstChild);
-                }
-            }
-            {% endif %}
-        });
-
-        // Function to populate services from customer appointments
-        {% if customer_appointments %}
-        function populateCustomerAppointments() {
-            const appointments = {{ customer_appointments | tojson }};
-
-            if (appointments && appointments.length > 0) {
-                // Add success message
-                const successAlert = document.createElement('div');
-                successAlert.className = 'alert alert-success alert-dismissible fade show mt-3';
-                successAlert.innerHTML = `
-                    <i class="fas fa-check-circle me-2"></i>
-                    <strong>Services Ready for Billing:</strong> ${appointments.length} service${appointments.length !== 1 ? 's' : ''} from pending appointments
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                `;
-
-                const container = document.querySelector('.container-fluid');
-                const billingCard = container.querySelector('.card');
-                billingCard.parentNode.insertBefore(successAlert, billingCard);
-
-                // Auto-dismiss after 8 seconds
-                setTimeout(() => {
-                    if (successAlert.parentNode) {
-                        successAlert.remove();
-                    }
-                }, 8000);
-            }
-        }
-        {% endif %}
-
-        // Helper function to update service price in the UI
-        function updateServicePrice(serviceId, price) {
-            const serviceRows = document.querySelectorAll('.service-row');
-            let targetRow = null;
-
-            // Find the row associated with the selected service ID
-            serviceRows.forEach(row => {
-                const selectElement = row.querySelector('select[name="service_ids[]"]');
-                if (selectElement && selectElement.value === serviceId) {
-                    targetRow = row;
-                }
-            });
-
-            if (targetRow) {
-                const priceInput = targetRow.querySelector('input[name="service_prices[]"]'); // Assuming such input exists or needs to be added
-                if (priceInput) {
-                    priceInput.value = parseFloat(price).toFixed(2);
-                }
-            } else if (serviceId === '') { // Handle deselection or "Select Service"
-                // If no service is selected, we don't need to update a price input
-            } else {
-                // If the service is not found in existing rows, it might be a new one
-                // Or an auto-populated one. We need to ensure the price is set correctly.
-                // For auto-populated, the price should be handled by handleServiceSelection itself.
-                console.log(`Could not find row for service ID: ${serviceId} to update price directly.`);
-            }
-        }
-
-
-function handleServiceSelection(selectElement) {
-    const selectedOption = selectElement.options[selectElement.selectedIndex];
-
-    if (selectedOption && selectedOption.value) {
-        // Extract price from data attribute or option text
-        let price = selectedOption.dataset.price;
-
-        if (!price) {
-            // Try to extract price from option text
-            const priceMatch = selectedOption.text.match(/₹([\d,]+\.?\d*)/);
-            if (priceMatch) {
-                price = parseFloat(priceMatch[1].replace(/,/g, ''));
-                // Store it for future use
-                selectedOption.dataset.price = price.toString();
-            }
-        }
-
-        if (price) {
-            console.log(`Service selected: ${selectedOption.text}, Price: ₹${price}`);
-            updateServicePrice(selectElement.value, price);
-
-            // Trigger calculation update
-            setTimeout(() => {
-                updateTaxCalculations();
-            }, 50);
-        } else {
-            console.warn('No price found for selected service:', selectedOption.text);
-            updateServicePrice(selectElement.value, '0.00');
-        }
-    } else {
-        // Reset for empty selection
-        updateServicePrice(selectElement.value, '0.00');
-        setTimeout(() => {
-            updateTaxCalculations();
-        }, 50);
-    }
-}
-
-// Initialize components and event listeners
-        window.addServiceRow = addServiceRow;
-        window.addAppointmentToBill = addAppointmentToBill;
-        window.previewInvoice = previewInvoice;
-        window.proceedWithInvoiceCreation = proceedWithInvoiceCreation;
-        window.saveAsDraft = saveAsDraft;
-        window.sendQuotation = sendQuotation;
-        window.clearForm = clearForm;
-        window.findEmptyServiceRow = findEmptyServiceRow;
-        window.autoFillCurrentServices = autoFillCurrentServices;
-        window.viewFullCustomerHistory = viewFullCustomerHistory;
-        window.handleServiceSelection = handleServiceSelection;
-        window.updateTaxCalculations = updateTaxCalculations;
-        window.loadBatchesForProduct = loadBatchesForProduct;
-        window.validateInventoryQuantity = validateInventoryQuantity;
-
-        // Set up tax calculation listeners
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('Setting up tax calculation listeners...');
-
-            // Tax input listeners
-            const taxInputs = document.querySelectorAll('.tax-input, .billing-input');
-            taxInputs.forEach(input => {
-                input.addEventListener('input', updateTaxCalculations);
-                input.addEventListener('change', updateTaxCalculations);
-            });
-
-            // Service selection listeners
-            document.addEventListener('change', function(e) {
-                if (e.target.matches('select[name="service_ids[]"]') ||
-                    e.target.matches('input[name="service_quantities[]"]') ||
-                    e.target.matches('input[name="product_quantities[]"]') ||
-                    e.target.matches('input[name="product_prices[]"]')) {
-                    updateTaxCalculations();
-                }
-            });
-
-            // Initial calculation
-            updateTaxCalculations();
-
-            console.log('Tax calculation listeners set up successfully');
-        });
 
         // Setup event listeners for service selection changes
         function setupServiceChangeListeners() {
