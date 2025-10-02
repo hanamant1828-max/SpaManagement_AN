@@ -227,10 +227,23 @@ def integrated_billing(customer_id=None):
 
             # Method 2: If no results, try matching by phone (exact match)
             if not customer_appointments_query and selected_customer.phone:
+                # Try exact match
                 customer_appointments_query = UnakiBooking.query.filter(
                     UnakiBooking.client_phone == selected_customer.phone,
                     UnakiBooking.status.in_(['scheduled', 'confirmed'])
                 ).order_by(UnakiBooking.appointment_date.desc()).all()
+                
+                # If still no results, try partial match (phone might have different formats)
+                if not customer_appointments_query:
+                    # Extract digits only for comparison
+                    phone_digits = ''.join(filter(str.isdigit, selected_customer.phone))
+                    if len(phone_digits) >= 10:
+                        # Use last 10 digits for matching
+                        last_10_digits = phone_digits[-10:]
+                        customer_appointments_query = UnakiBooking.query.filter(
+                            UnakiBooking.client_phone.like(f'%{last_10_digits}%'),
+                            UnakiBooking.status.in_(['scheduled', 'confirmed'])
+                        ).order_by(UnakiBooking.appointment_date.desc()).all()
 
             # Method 3: If still no results, try matching by name (partial match)
             if not customer_appointments_query:
@@ -252,10 +265,15 @@ def integrated_billing(customer_id=None):
             print(f"DEBUG: Found {len(customer_appointments_query)} Unaki appointments for billing")
 
             # Convert UnakiBooking objects to dictionaries for JSON serialization
-            customer_appointments = [appointment.to_dict() for appointment in customer_appointments_query]
+            for appointment in customer_appointments_query:
+                apt_dict = appointment.to_dict()
+                # Ensure all required fields are present
+                if not apt_dict.get('service_price'):
+                    apt_dict['service_price'] = 0.0
+                customer_appointments.append(apt_dict)
 
-            # Get services from Unaki appointments by matching service names
-            unaki_service_names = [apt.get('service_name') for apt in customer_appointments if apt.get('service_name')]
+            # Get unique services from Unaki appointments
+            unaki_service_names = list(set([apt.get('service_name') for apt in customer_appointments if apt.get('service_name')]))
             if unaki_service_names:
                 customer_services_objects = Service.query.filter(Service.name.in_(unaki_service_names)).all()
                 # Convert Service objects to dictionaries for JSON serialization
