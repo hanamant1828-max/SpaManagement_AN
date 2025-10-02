@@ -1467,9 +1467,9 @@ def unaki_get_bookings():
 
 @app.route('/api/unaki/bookings/<int:booking_id>')
 def unaki_get_booking(booking_id):
-    """Get specific Unaki booking by ID"""
+    """Get specific Unaki booking by ID with proper price resolution"""
     try:
-        from models import UnakiBooking
+        from models import UnakiBooking, Service
 
         booking = UnakiBooking.query.get(booking_id)
         if not booking:
@@ -1478,9 +1478,22 @@ def unaki_get_booking(booking_id):
                 'error': 'Booking not found'
             }), 404
 
+        # Get booking data
+        booking_data = booking.to_dict()
+        
+        # Resolve price: use appointment price if set, otherwise fetch from service
+        if booking_data.get('service_price', 0) <= 0 and booking.service_id:
+            service = Service.query.get(booking.service_id)
+            if service and service.price:
+                booking_data['service_price'] = float(service.price)
+                booking_data['price_paise'] = int(service.price * 100)
+        else:
+            # Convert existing price to paise
+            booking_data['price_paise'] = int(booking_data.get('service_price', 0) * 100)
+
         return jsonify({
             'success': True,
-            'booking': booking.to_dict()
+            'booking': booking_data
         })
 
     except Exception as e:
