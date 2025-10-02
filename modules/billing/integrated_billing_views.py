@@ -368,6 +368,107 @@ def appointment_to_billing(appointment_id):
 
                     if not customer:
                         # Try first name only match
+
+
+@app.route('/api/customer/<int:customer_id>/appointments')
+@login_required
+def get_customer_appointments(customer_id):
+    """API endpoint to fetch all confirmed/scheduled appointments for a customer"""
+    try:
+        from models import UnakiBooking, Customer
+        
+        customer = Customer.query.get(customer_id)
+        if not customer:
+            return jsonify({'success': False, 'error': 'Customer not found'}), 404
+        
+        # Get ALL scheduled and confirmed Unaki bookings for this customer
+        customer_appointments_query = []
+        
+        # Method 1: Try to match by client_id first (most reliable)
+        if customer.id:
+            customer_appointments_query = UnakiBooking.query.filter(
+                UnakiBooking.client_id == customer.id,
+                UnakiBooking.status.in_(['scheduled', 'confirmed'])
+            ).order_by(UnakiBooking.appointment_date.desc()).all()
+        
+        # Method 2: If no results, try matching by phone (exact match)
+        if not customer_appointments_query and customer.phone:
+            customer_appointments_query = UnakiBooking.query.filter(
+                UnakiBooking.client_phone == customer.phone,
+                UnakiBooking.status.in_(['scheduled', 'confirmed'])
+            ).order_by(UnakiBooking.appointment_date.desc()).all()
+            
+            # Try partial match if exact match fails
+            if not customer_appointments_query:
+                phone_digits = ''.join(filter(str.isdigit, customer.phone))
+                if len(phone_digits) >= 10:
+                    last_10_digits = phone_digits[-10:]
+                    customer_appointments_query = UnakiBooking.query.filter(
+                        UnakiBooking.client_phone.like(f'%{last_10_digits}%'),
+                        UnakiBooking.status.in_(['scheduled', 'confirmed'])
+                    ).order_by(UnakiBooking.appointment_date.desc()).all()
+        
+        # Method 3: If still no results, try matching by name
+        if not customer_appointments_query:
+            full_name = f"{customer.first_name} {customer.last_name}".strip()
+            customer_appointments_query = UnakiBooking.query.filter(
+                UnakiBooking.client_name.ilike(f'%{full_name}%'),
+                UnakiBooking.status.in_(['scheduled', 'confirmed'])
+            ).order_by(UnakiBooking.appointment_date.desc()).all()
+            
+            # Try first name only if full name fails
+            if not customer_appointments_query:
+                customer_appointments_query = UnakiBooking.query.filter(
+                    UnakiBooking.client_name.ilike(f'%{customer.first_name}%'),
+                    UnakiBooking.status.in_(['scheduled', 'confirmed'])
+                ).order_by(UnakiBooking.appointment_date.desc()).all()
+        
+        app.logger.info(f"Found {len(customer_appointments_query)} appointments for customer {customer_id}")
+        
+        # Convert to dictionaries
+        appointments_data = []
+        for appointment in customer_appointments_query:
+            apt_dict = appointment.to_dict()
+            if not apt_dict.get('service_price'):
+                apt_dict['service_price'] = 0.0
+            appointments_data.append(apt_dict)
+        
+        # Get unique services
+        service_names = list(set([apt.get('service_name') for apt in appointments_data if apt.get('service_name')]))
+        services_data = []
+        if service_names:
+            from models import Service
+            services = Service.query.filter(Service.name.in_(service_names)).all()
+            services_data = [
+                {
+                    'id': service.id,
+                    'name': service.name,
+                    'description': service.description,
+                    'price': float(service.price),
+                    'duration': service.duration,
+                    'category': service.category,
+                    'is_active': service.is_active
+                }
+                for service in services
+            ]
+        
+        return jsonify({
+            'success': True,
+            'appointments': appointments_data,
+            'services': services_data,
+            'customer': {
+                'id': customer.id,
+                'name': customer.full_name,
+                'phone': customer.phone,
+                'email': customer.email
+            }
+        })
+        
+    except Exception as e:
+        app.logger.error(f"Error fetching customer appointments: {str(e)}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
                         customer = Customer.query.filter(
                             Customer.first_name.ilike(f'%{first_name}%')
                         ).first()

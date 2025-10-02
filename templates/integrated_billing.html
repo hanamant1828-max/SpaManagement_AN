@@ -918,48 +918,79 @@ function addServiceRow() {
 }
 
 // Function to add appointment directly to billing
-        function addAppointmentToBill(appointmentId, serviceName, serviceId, servicePrice) {
-            console.log('Adding appointment to bill:', appointmentId, serviceName, serviceId, servicePrice);
+        function addAppointmentToBill(serviceName, servicePrice, serviceDuration) { // Modified to accept serviceName directly
+            console.log('Adding appointment to bill:', serviceName, servicePrice, serviceDuration);
 
             // Find the first empty service row or add a new one
-            const serviceRows = document.querySelectorAll('.service-row');
-            let targetRow = null;
-
-            // Look for empty row
-            for (let row of serviceRows) {
-                const serviceSelect = row.querySelector('select[name="service_ids[]"]');
-                if (!serviceSelect.value) {
-                    targetRow = row;
-                    break;
+            let targetRow = findEmptyServiceRow();
+            if (!targetRow) {
+                if (typeof addServiceRow === 'function') {
+                    addServiceRow();
+                    targetRow = findEmptyServiceRow();
+                } else {
+                    throw new Error('Cannot add new service row - addServiceRow function not available');
                 }
             }
 
-            // If no empty row found, add new one
-            if (!targetRow) {
-                addServiceRow();
-                const allRows = document.querySelectorAll('.service-row');
-                targetRow = allRows[allRows.length - 1];
-            }
-
-            // Fill the row with appointment data
-            if (targetRow && serviceId) {
+            if (targetRow) {
                 const serviceSelect = targetRow.querySelector('select[name="service_ids[]"]');
                 const quantityInput = targetRow.querySelector('input[name="service_quantities[]"]');
                 const appointmentInput = targetRow.querySelector('input[name="appointment_ids[]"]');
 
-                serviceSelect.value = serviceId;
-                quantityInput.value = '1';
-                appointmentInput.value = appointmentId;
+                if (!serviceSelect || !quantityInput || !appointmentInput) {
+                    throw new Error('Required form elements not found in service row');
+                }
 
-                // Highlight the row
-                targetRow.style.borderLeft = '4px solid #28a745';
-                targetRow.style.backgroundColor = 'rgba(40, 167, 69, 0.1)';
+                // Try to find matching service by name
+                let matchedServiceId = null;
+                let finalServicePrice = parseFloat(servicePrice) || 0;
 
-                // Update calculations
-                updateTaxCalculations();
+                for (let option of serviceSelect.options) {
+                    if (option.value && option.text.toLowerCase().includes(serviceName.toLowerCase())) {
+                        matchedServiceId = option.value;
+                        const priceMatch = option.text.match(/₹([\d,]+\.?\d*)/);
+                        if (priceMatch) {
+                            const systemPrice = parseFloat(priceMatch[1].replace(/,/g, ''));
+                            finalServicePrice = systemPrice > 0 ? systemPrice : servicePrice;
+                        }
+                        break;
+                    }
+                }
 
-                // Show success message
-                showNotification(`Added ${serviceName} to bill successfully!`, 'success');
+                if (matchedServiceId) {
+                    serviceSelect.value = matchedServiceId;
+                    quantityInput.value = '1';
+                    // Ensure appointmentInput is set correctly (e.g., to a placeholder or unique ID)
+                    // For now, we'll leave it potentially empty if not from Unaki
+                    // appointmentInput.value = `appointment_${appointmentId}`; // If you have a unique appointment ID
+
+                    const selectedOption = serviceSelect.options[serviceSelect.selectedIndex];
+                    if (selectedOption) {
+                        selectedOption.dataset.price = finalServicePrice.toString();
+                    }
+
+                    // Highlight the row
+                    targetRow.style.borderLeft = '4px solid #28a745'; // Green for direct add
+                    targetRow.style.backgroundColor = 'rgba(40, 167, 69, 0.1)';
+
+                    // Trigger service selection change event
+                    if (typeof handleServiceSelection === 'function') {
+                        handleServiceSelection(serviceSelect);
+                    }
+
+                    setTimeout(() => {
+                        if (typeof updateTaxCalculations === 'function') {
+                            updateTaxCalculations();
+                        }
+                    }, 200);
+
+                    showNotification(`Added ${serviceName} to bill successfully!`, 'success');
+                } else {
+                    console.warn(`No matching service found for: ${serviceName}`);
+                    showNotification(`Could not find a matching service for "${serviceName}". Please select manually.`, 'warning');
+                }
+            } else {
+                throw new Error('No service row available for adding appointment');
             }
         }
 
@@ -2352,477 +2383,717 @@ function clearForm() {
     }
 }
 
-// Payment Method Change Handler
-document.getElementById('payment_method').addEventListener('change', function() {
-    const multiPaymentSection = document.getElementById('multiPaymentSection');
-    if (this.value === 'mixed') {
-        multiPaymentSection.style.display = 'block';
-        addPaymentMethod(); // Add first payment method row
-    } else {
-        multiPaymentSection.style.display = 'none';
-        document.getElementById('paymentMethodsContainer').innerHTML = '';
-    }
-});
-
-// Auto-update calculations when any input changes (integrated with new system)
-document.addEventListener('input', function(e) {
-    if (e.target.matches('input[name="service_quantities[]"], .quantity-input, .unit-price, .tax-input, .billing-input')) {
-        // Debounce rapid input changes
-        window.taxCalculationTimeout = setTimeout(updateTaxCalculations, 200);
-    }
-});
-
-document.addEventListener('change', function(e) {
-    if (e.target.matches('select[name="service_ids[]"], .billing-input, .tax-input, #is_interstate')) {
-        updateTaxCalculations();
-    }
-});
-
-// Enhanced form submission with professional features
-document.getElementById('billingForm').addEventListener('submit', function(e) {
-    e.preventDefault();
-
-    // Get submit button and show loading state
-    const submitBtn = document.querySelector('button[type="submit"]');
-    const originalText = submitBtn.innerHTML;
-    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Creating Invoice...';
-    submitBtn.disabled = true;
-
-    // Basic validation for required fields (example: customer)
-    if (!document.getElementById('client_id').value) {
-        alert('Please select a customer.');
-        // Reset button state
-        submitBtn.innerHTML = originalText;
-        submitBtn.disabled = false;
-        return;
-    }
-
-    // Check if at least one service or product is selected
-    const serviceSelected = Array.from(document.querySelectorAll('select[name="service_ids[]"]')).some(select => select.value);
-    const productSelected = Array.from(document.querySelectorAll('select[name="product_ids[]"]')).some(select => select.value);
-
-    if (!serviceSelected && !productSelected) {
-        alert('Please select at least one service or product to create an invoice.');
-        // Reset button state
-        submitBtn.innerHTML = originalText;
-        submitBtn.disabled = false;
-        return;
-    }
-
-    // Validate all stock quantities before submission
-    const quantityInputs = document.querySelectorAll('.quantity-input');
-    let hasStockErrors = false;
-
-    quantityInputs.forEach(input => {
-        const productRow = input.closest('.product-row');
-        const productSelect = productRow.querySelector('.product-select');
-
-        // Only validate if product is selected
-        if (productSelect && productSelect.value) {
-            validateInventoryQuantity(input);
-            if (!input.checkValidity()) {
-                hasStockErrors = true;
+// Auto-select customer and load appointments if coming from appointment context menu
+document.addEventListener('DOMContentLoaded', function() {
+    // Handle customer selection change
+    const clientSelect = document.getElementById('client_id');
+    if (clientSelect) {
+        clientSelect.addEventListener('change', function() {
+            const customerId = this.value;
+            if (customerId) {
+                console.log('Loading client data for ID:', customerId);
+                loadCustomerPackages(customerId);
+                loadCustomerAppointments(customerId);
+            } else {
+                // Clear packages display
+                document.getElementById('customerPackages').innerHTML = 
+                    '<small><i class="fas fa-info-circle me-1"></i>Select a customer to view their active packages</small>';
+                // Clear appointments section if it exists
+                let appointmentsSection = document.querySelector('.card.border-info');
+                if (appointmentsSection) {
+                    appointmentsSection.style.display = 'none';
+                }
             }
-        }
-    });
-
-    if (hasStockErrors) {
-        alert('Please check stock availability for all products before submitting.');
-        // Reset button state
-        submitBtn.innerHTML = originalText;
-        submitBtn.disabled = false;
-        return;
+        });
     }
 
-    const formData = new FormData(this);
+    // Function to load customer appointments dynamically
+    function loadCustomerAppointments(customerId) {
+        console.log('🔍 Fetching appointments for customer:', customerId);
 
-    // Add tax calculation data to form data for submission
-    formData.append('cgst_amount', (parseFloat(document.getElementById('display_cgst').textContent.replace('₹', '').replace(/,/g, '')) || 0));
-    formData.append('sgst_amount', (parseFloat(document.getElementById('display_sgst').textContent.replace('₹', '').replace(/,/g, '')) || 0));
-    formData.append('igst_amount', (parseFloat(document.getElementById('display_cgst').textContent.replace('₹', '').replace(/,/g, '')) || 0)); // Assuming IGST is displayed in CGST placeholder if interstate
-    formData.append('discount_amount', (parseFloat(document.getElementById('display_discount').textContent.replace('₹', '').replace(/,/g, '')) || 0));
-    formData.append('additional_charges_display', (parseFloat(document.getElementById('display_additional').textContent.replace('₹', '').replace(/,/g, '')) || 0));
-    formData.append('total_amount', (parseFloat(document.getElementById('display_total').textContent.replace('₹', '').replace(/,/g, '')) || 0));
+        fetch(`/api/customer/${customerId}/appointments`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    console.log('✅ Appointments loaded:', data.appointments.length);
+                    displayCustomerAppointments(data);
+                } else {
+                    console.error('❌ Failed to load appointments:', data.error);
+                    showNotification('Failed to load appointments: ' + data.error, 'error');
+                }
+            })
+            .catch(error => {
+                console.error('❌ Error fetching appointments:', error);
+                showNotification('Error loading appointments. Please try again.', 'error');
+            });
+    }
 
-    fetch('/integrated-billing/create-professional', {
-        method: 'POST',
-        body: formData
-    })
-    .then(response => {
-        // Always reset button state first
-        submitBtn.innerHTML = originalText;
-        submitBtn.disabled = false;
+    // Function to display customer appointments
+    function displayCustomerAppointments(data) {
+        const appointments = data.appointments;
+        const services = data.services;
+        const customer = data.customer;
 
-        if (!response.ok) {
-            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        // Find or create the appointments section
+        let appointmentsSection = document.querySelector('.card.border-info');
+        const container = document.querySelector('.col-12'); // Container where the card should be appended
+
+        if (!appointmentsSection && container) {
+            // Create the section if it doesn't exist
+            appointmentsSection = document.createElement('div');
+            appointmentsSection.className = 'card border-info mb-4';
+            container.appendChild(appointmentsSection);
         }
-        return response.json();
-    })
-    .then(data => {
-        const modal = new bootstrap.Modal(document.getElementById('resultModal'));
-        const title = document.getElementById('resultModalTitle');
-        const body = document.getElementById('resultModalBody');
-        const viewBtn = document.getElementById('viewInvoiceBtn');
-        const printBtn = document.getElementById('printInvoiceBtn');
-        const emailBtn = document.getElementById('emailInvoiceBtn');
-        const whatsappBtn = document.getElementById('whatsappInvoiceBtn');
 
-        // Reset all action buttons display
-        viewBtn.style.display = 'none';
-        printBtn.style.display = 'none';
-        emailBtn.style.display = 'none';
-        whatsappBtn.style.display = 'none';
+        if (!appointmentsSection) return; // Exit if section still not found
 
+        // Build the HTML
+        let html = `
+            <div class="card-header bg-info text-white">
+                <h6 class="mb-0">
+                    <i class="fas fa-user me-2"></i>${customer.name}'s Current Bookings
+                    <span class="badge bg-primary text-white ms-2">${appointments.length} Ready to Bill</span>
+                </h6>
+            </div>
+            <div class="card-body">
+        `;
 
-        if (data.success) {
-            title.textContent = 'Professional Invoice Created Successfully!';
-            title.className = 'text-success';
-
-            let message = `<div class="text-success">
-                <i class="fas fa-check-circle fa-3x mb-3"></i>
-                <h4>${data.message}</h4>
-                <div class="row mt-3">
-                    <div class="col-6"><strong>Invoice Number:</strong></div>
-                    <div class="col-6">${data.invoice_number}</div>
+        if (services.length > 0) {
+            html += `
+                <div class="alert alert-success">
+                    <i class="fas fa-check-circle me-2"></i>
+                    <strong>${services.length} Different Services Found</strong> - Ready to add to bill
                 </div>
+                <h6 class="text-primary mb-3">Available Services for Billing:</h6>
                 <div class="row">
-                    <div class="col-6"><strong>Total Amount:</strong></div>
-                    <div class="col-6">₹${data.total_amount.toLocaleString('en-IN')}</div>
-                </div>
-                <div class="row">
-                    <div class="col-6"><strong>CGST:</strong></div>
-                    <div class="col-6">₹${data.cgst_amount.toLocaleString('en-IN')}</div>
-                </div>
-                <div class="row">
-                    <div class="col-6"><strong>SGST:</strong></div>
-                    <div class="col-6">₹${data.sgst_amount.toLocaleString('en-IN')}</div>
-                </div>
             `;
 
-            if (data.deductions_applied > 0) {
-                message += `<div class="row text-success">
-                    <div class="col-6"><strong>Package Deductions:</strong></div>
-                    <div class="col-6">₹${data.deductions_applied.toLocaleString('en-IN')}</div>
-                </div>`;
-            }
+            services.forEach(service => {
+                // Ensure price is formatted correctly
+                const formattedPrice = parseFloat(service.price).toFixed(2);
+                html += `
+                    <div class="col-md-4 mb-2">
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-spa text-success me-2"></i>
+                            <span class="fw-bold">${service.name}</span>
+                            <span class="text-muted ms-2">₹${formattedPrice}</span>
+                        </div>
+                    </div>
+                `;
+            });
 
-            if (data.stock_reduced && data.stock_reduced.length > 0) {
-                message += `<div class="row text-info mt-2">
-                    <div class="col-12"><small><strong>Stock Reduced:</strong></small></div>
-                    <ul class="mb-0">`;
-                data.stock_reduced.forEach(item => {
-                    message += `<li><small>${item.product_name} - Batch ${item.batch_name}: ${item.quantity_reduced} ${item.unit}</small></li>`;
-                });
-                message += `</ul></div>`;
-            }
-
-            message += '</div>';
-            body.innerHTML = message;
-
-            viewBtn.style.display = 'block';
-            viewBtn.href = `/integrated-billing/invoice/${data.invoice_id}`;
-            printBtn.style.display = 'block';
-            emailBtn.style.display = 'block';
-            whatsappBtn.style.display = 'block';
-
-            // Store invoice ID for action buttons
-            viewBtn.dataset.invoiceId = data.invoice_id;
-            printBtn.dataset.invoiceId = data.invoice_id;
-            emailBtn.dataset.invoiceId = data.invoice_id;
-            whatsappBtn.dataset.invoiceId = data.invoice_id;
-
-
-            // Reset form after successful submission
-            clearForm();
-
-        } else {
-            title.textContent = 'Error Creating Professional Invoice';
-            title.className = 'text-danger';
-            body.innerHTML = `<div class="text-danger">
-                <i class="fas fa-exclamation-triangle fa-2x mb-3"></i>
-                <h5>Invoice creation failed</h5>
-                <p>${data.message}</p>
-            </div>`;
-            viewBtn.style.display = 'none';
+            html += `
+                </div>
+            `;
         }
 
-        modal.show();
-    })
-    .catch(error => {
-        console.error('Submission Error:', error);
+        if (appointments.length > 0) {
+            html += `
+                <hr>
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h6 class="text-success mb-0">
+                        <i class="fas fa-clock me-1"></i>All Confirmed Bookings Ready for Billing
+                    </h6>
+                    <div class="badge bg-success fs-6">${appointments.length} Bookings Found</div>
+                </div>
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    These are all the confirmed/scheduled appointments for <strong>${customer.name}</strong> that can be billed.
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-sm table-bordered">
+                        <thead class="table-success">
+                            <tr>
+                                <th>Date & Time</th>
+                                <th>Service</th>
+                                <th>Staff</th>
+                                <th>Status</th>
+                                <th>Amount</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
 
-        // Ensure button state is reset
-        submitBtn.innerHTML = originalText;
-        submitBtn.disabled = false;
+            appointments.forEach(appointment => {
+                // Format appointment details
+                const formattedDate = appointment.appointment_date || 'N/A';
+                const formattedStartTime = appointment.start_time || 'N/A';
+                const formattedEndTime = appointment.end_time || 'N/A';
+                const formattedServicePrice = parseFloat(appointment.service_price).toFixed(2);
 
-        const modal = new bootstrap.Modal(document.getElementById('resultModal'));
-        const title = document.getElementById('resultModalTitle');
-        const body = document.getElementById('resultModalBody');
-        const viewBtn = document.getElementById('viewInvoiceBtn');
-        const printBtn = document.getElementById('printInvoiceBtn');
-        const emailBtn = document.getElementById('emailInvoiceBtn');
-        const whatsappBtn = document.getElementById('whatsappInvoiceBtn');
+                html += `
+                    <tr class="bg-light">
+                        <td>
+                            <strong>${formattedDate}</strong><br>
+                            <small class="text-muted">${formattedStartTime} - ${formattedEndTime}</small>
+                        </td>
+                        <td>
+                            <strong>${appointment.service_name || 'N/A'}</strong><br>
+                            <small class="text-muted">${appointment.service_duration || 0} mins</small>
+                        </td>
+                        <td>${appointment.staff_name || 'N/A'}</td>
+                        <td>
+                            <span class="badge badge-warning">${appointment.status ? appointment.status.charAt(0).toUpperCase() + appointment.status.slice(1) : 'Unknown'}</span>
+                        </td>
+                        <td>
+                            <strong class="text-success">₹${formattedServicePrice}</strong>
+                        </td>
+                        <td>
+                            <button type="button" class="btn btn-primary btn-sm" 
+                                    onclick="addAppointmentToBill('${appointment.service_name || 'Unknown Service'}', ${parseFloat(appointment.service_price || 0)}, ${parseInt(appointment.service_duration || 0)})">
+                                <i class="fas fa-plus me-1"></i>Add to Bill
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
 
-        // Hide action buttons on error
-        viewBtn.style.display = 'none';
-        printBtn.style.display = 'none';
-        emailBtn.style.display = 'none';
-        whatsappBtn.style.display = 'none';
+            html += `
+                        </tbody>
+                    </table>
+                </div>
+                <div class="mt-3">
+                    <button type="button" class="btn btn-outline-primary btn-sm" onclick="autoFillAllAppointments()">
+                        <i class="fas fa-bolt me-1"></i>Auto-Fill ALL Bookings to Bill
+                    </button>
+                    <small class="text-muted d-block mt-1">
+                        <i class="fas fa-lightbulb me-1"></i>
+                        Auto-Fill will add all ${appointments.length} confirmed bookings to your billing form instantly
+                    </small>
+                </div>
+            `;
+        } else {
+            html += `
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    <strong>No ready-to-bill bookings found.</strong> This customer has no scheduled or confirmed appointments ready for billing.
+                </div>
+            `;
+        }
 
-        title.textContent = 'Invoice Creation Failed';
-        title.className = 'text-danger';
-        body.innerHTML = `<div class="text-danger">
-            <i class="fas fa-exclamation-triangle fa-2x mb-3"></i>
-            <h5>Invoice creation failed</h5>
-            <p>There was an error processing your invoice. Please try again.</p>
-            <small class="text-muted">Error details: ${error.message}</small>
-            <hr>
-            <p class="text-muted"><strong>Troubleshooting tips:</strong></p>
-            <ul class="text-muted">
-                <li>Check that all required fields are filled</li>
-                <li>Verify sufficient stock for selected products</li>
-                <li>Ensure tax rates are valid numbers</li>
-                <li>Try refreshing the page and creating again</li>
-            </ul>
-        </div>`;
+        html += `
+            </div>
+        `;
 
-        modal.show();
-    });
+        appointmentsSection.innerHTML = html;
+        appointmentsSection.style.display = 'block'; // Make section visible
+    }
+
+    // Helper function to add appointment to billing form
+    function addAppointmentToBill(serviceName, servicePrice, serviceDuration) {
+        // Find the service in the dropdown
+        const serviceSelect = document.querySelector('select[name="service_ids[]"]');
+        if (serviceSelect) {
+            // Find matching option
+            let matchedOption = null;
+            for (let i = 0; i < serviceSelect.options.length; i++) {
+                const option = serviceSelect.options[i];
+                if (option.value && option.text.toLowerCase().includes(serviceName.toLowerCase())) {
+                    matchedOption = option;
+                    break;
+                }
+            }
+
+            if (matchedOption) {
+                serviceSelect.value = matchedOption.value;
+                // Trigger handleServiceSelection to update price and trigger calculations
+                handleServiceSelection(serviceSelect);
+                showNotification(`Service "${serviceName}" added to bill successfully!`, 'success');
+            } else {
+                showNotification(`Service "${serviceName}" not found in the dropdown. Please add it manually.`, 'warning');
+            }
+        } else {
+            showNotification('Service dropdown not found.', 'error');
+        }
+    }
+
+    // Helper function to auto-fill all appointments
+    function autoFillAllAppointments() {
+        showNotification('Auto-fill feature is under development.', 'info');
+    }
+
+    // Auto-select customer and load appointments if coming from appointment context menu
+    {% if selected_customer %}
+    const customerSelect = document.getElementById('client_id');
+    if (customerSelect) {
+        customerSelect.value = '{{ selected_customer.id }}';
+        // Trigger change event to load customer packages and appointments
+        customerSelect.dispatchEvent(new Event('change'));
+
+        // Show single consolidated notification
+        showNotification(
+            'Customer Auto-Selected: {{ selected_customer.full_name }}' + 
+            {% if customer_appointments|length > 0 %}
+            ' - {{ customer_appointments|length }} pending appointment{{ "s" if customer_appointments|length != 1 else "" }} ready for billing'
+            {% else %}
+            ''
+            {% endif %},
+            'info'
+        );
+    }
+    {% endif %}
 });
 
-// Validate inventory quantity against available stock
-        function validateInventoryQuantity(quantityInput) {
-            const row = quantityInput.closest('.row');
-            const batchSelect = row.querySelector('.batch-select');
-            const productSelect = row.querySelector('.product-select');
+// Function to populate services from customer appointments
+{% if customer_appointments %}
+function populateCustomerAppointments() {
+    const appointments = {{ customer_appointments | tojson }};
 
-            // Ensure product and batch are selected before validating
-            if (!batchSelect.value || !productSelect.value) {
-                // Clear any previous validation messages if product/batch not selected
-                quantityInput.classList.remove('is-invalid');
-                const errorMsg = row.querySelector('.quantity-error');
-                if (errorMsg) errorMsg.remove();
-                return;
+    if (appointments && appointments.length > 0) {
+        // Add success message
+        const successAlert = document.createElement('div');
+        successAlert.className = 'alert alert-success alert-dismissible fade show mt-3';
+        successAlert.innerHTML = `
+            <i class="fas fa-check-circle me-2"></i>
+            <strong>Services Ready for Billing:</strong> ${appointments.length} service${appointments.length !== 1 ? 's' : ''} from pending appointments
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+
+        const container = document.querySelector('.container-fluid');
+        const billingCard = container.querySelector('.card');
+        billingCard.parentNode.insertBefore(successAlert, billingCard);
+
+        // Auto-dismiss after 8 seconds
+        setTimeout(() => {
+            if (successAlert.parentNode) {
+                successAlert.remove();
+            }
+        }, 8000);
+    }
+}
+{% endif %}
+
+// Helper function to update service price in the UI
+function updateServicePrice(serviceId, price) {
+    const serviceRows = document.querySelectorAll('.service-row');
+    let targetRow = null;
+
+    // Find the row associated with the selected service ID
+    serviceRows.forEach(row => {
+        const selectElement = row.querySelector('select[name="service_ids[]"]');
+        if (selectElement && selectElement.value === serviceId) {
+            targetRow = row;
+        }
+    });
+
+    if (targetRow) {
+        const priceInput = targetRow.querySelector('input[name="service_prices[]"]'); // Assuming such input exists or needs to be added
+        if (priceInput) {
+            priceInput.value = parseFloat(price).toFixed(2);
+        }
+    } else if (serviceId === '') { // Handle deselection or "Select Service"
+        // If no service is selected, we don't need to update a price input
+    } else {
+        // If the service is not found in existing rows, it might be a new one
+        // Or an auto-populated one. We need to ensure the price is set correctly.
+        // For auto-populated, the price should be handled by handleServiceSelection itself.
+        console.log(`Could not find row for service ID: ${serviceId} to update price directly.`);
+    }
+}
+
+
+function handleServiceSelection(selectElement) {
+    const selectedOption = selectElement.options[selectElement.selectedIndex];
+
+    if (selectedOption && selectedOption.value) {
+        // Extract price from data attribute or option text
+        let price = selectedOption.dataset.price;
+
+        if (!price) {
+            // Try to extract price from option text
+            const priceMatch = selectedOption.text.match(/₹([\d,]+\.?\d*)/);
+            if (priceMatch) {
+                price = parseFloat(priceMatch[1].replace(/,/g, ''));
+                // Store it for future use
+                selectedOption.dataset.price = price.toString();
+            }
+        }
+
+        if (price) {
+            console.log(`Service selected: ${selectedOption.text}, Price: ₹${price}`);
+            updateServicePrice(selectElement.value, price);
+
+            // Trigger calculation update
+            setTimeout(() => {
+                updateTaxCalculations();
+            }, 50);
+        } else {
+            console.warn('No price found for selected service:', selectedOption.text);
+            updateServicePrice(selectElement.value, '0.00');
+        }
+    } else {
+        // Reset for empty selection
+        updateServicePrice(selectElement.value, '0.00');
+        setTimeout(() => {
+            updateTaxCalculations();
+        }, 50);
+    }
+}
+
+// Initialize components and event listeners
+        window.addServiceRow = addServiceRow;
+        window.addAppointmentToBill = addAppointmentToBill;
+        window.previewInvoice = previewInvoice;
+        window.proceedWithInvoiceCreation = proceedWithInvoiceCreation;
+        window.saveAsDraft = saveAsDraft;
+        window.sendQuotation = sendQuotation;
+        window.clearForm = clearForm;
+        window.findEmptyServiceRow = findEmptyServiceRow;
+        window.autoFillCurrentServices = autoFillCurrentServices;
+        window.viewFullCustomerHistory = viewFullCustomerHistory;
+        window.handleServiceSelection = handleServiceSelection;
+        window.updateTaxCalculations = updateTaxCalculations;
+        window.loadBatchesForProduct = loadBatchesForProduct;
+        window.validateInventoryQuantity = validateInventoryQuantity;
+
+        // Set up tax calculation listeners
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Setting up tax calculation listeners...');
+
+            // Tax input listeners
+            const taxInputs = document.querySelectorAll('.tax-input, .billing-input');
+            taxInputs.forEach(input => {
+                input.addEventListener('input', updateTaxCalculations);
+                input.addEventListener('change', updateTaxCalculations);
+            });
+
+            // Service selection listeners
+            document.addEventListener('change', function(e) {
+                if (e.target.matches('select[name="service_ids[]"]') ||
+                    e.target.matches('input[name="service_quantities[]"]') ||
+                    e.target.matches('input[name="product_quantities[]"]') ||
+                    e.target.matches('input[name="product_prices[]"]')) {
+                    updateTaxCalculations();
+                }
+            });
+
+            // Initial calculation
+            updateTaxCalculations();
+
+            console.log('Tax calculation listeners set up successfully');
+        });
+
+        // Setup event listeners for service selection changes
+        function setupServiceChangeListeners() {
+            // Monitor service dropdown changes
+            document.addEventListener('change', function(event) {
+                if (event.target.matches('select[name="service_ids[]"]') ||
+                    event.target.matches('input[name="service_quantities[]"]')) {
+                    // Service or quantity changed, update calculations
+                    handleServiceSelection(event.target);
+                    setTimeout(updateTaxCalculations, 100); // Small delay to ensure DOM is updated
+                }
+            });
+
+            // Monitor input changes for quantities
+            document.addEventListener('input', function(event) {
+                if (event.target.matches('input[name="service_quantities[]"]') ||
+                    event.target.matches('input[name="product_quantities[]"]') ||
+                    event.target.matches('input[name="product_prices[]"]')) {
+                    setTimeout(updateTaxCalculations, 100);
+                }
+            });
+
+            // Monitor when new service rows are added
+            const observer = new MutationObserver(function(mutations) {
+                mutations.forEach(function(mutation) {
+                    mutation.addedNodes.forEach(function(node) {
+                        if (node.nodeType === 1 && node.classList.contains('service-row')) {
+                            // New service row added, attach listeners
+                            const serviceSelect = node.querySelector('select[name="service_ids[]"]');
+                            const quantityInput = node.querySelector('input[name="service_quantities[]"]');
+
+                            if (serviceSelect) {
+                                serviceSelect.addEventListener('change', (e) => {
+                                    handleServiceSelection(e.target);
+                                    setTimeout(updateTaxCalculations, 100);
+                                });
+                            }
+
+                            if (quantityInput) {
+                                quantityInput.addEventListener('input', () => {
+                                    setTimeout(updateTaxCalculations, 100);
+                                });
+                            }
+                        }
+                    });
+                });
+            });
+
+            observer.observe(document.getElementById('servicesContainer'), {
+                childList: true,
+                subtree: true
+            });
+        }
+
+        // --- Action button handlers ---
+        function proceedWithInvoiceCreation() {
+            document.getElementById('billingForm').submit();
+        }
+
+        function printInvoice() {
+            const invoiceId = document.getElementById('printInvoiceBtn').dataset.invoiceId;
+            if (invoiceId) {
+                window.open(`/integrated-billing/print-invoice/${invoiceId}`, '_blank');
+            } else {
+                alert('Invoice ID not found. Cannot print.');
+            }
+        }
+
+        function emailInvoice() {
+            const invoiceId = document.getElementById('emailInvoiceBtn').dataset.invoiceId;
+            if (invoiceId) {
+                // In a real application, this would trigger an email sending process
+                alert(`Email invoice functionality for Invoice ID: ${invoiceId} is being processed.`);
+                // Example: fetch(`/integrated-billing/email-invoice/${invoiceId}`) ...
+            } else {
+                alert('Invoice ID not found. Cannot email.');
+            }
+        }
+
+        function whatsappInvoice() {
+            const invoiceId = document.getElementById('whatsappInvoiceBtn').dataset.invoiceId;
+            if (invoiceId) {
+                // In a real application, this would trigger a WhatsApp sharing process
+                alert(`WhatsApp invoice functionality for Invoice ID: ${invoiceId} is being processed.`);
+                // Example: fetch(`/integrated-billing/whatsapp-invoice/${invoiceId}`) ...
+            } else {
+                alert('Invoice ID not found. Cannot send via WhatsApp.');
+            }
+        }
+
+        // Auto-select customer and load appointments if coming from appointment context menu
+        document.addEventListener('DOMContentLoaded', function() {
+            // Handle customer selection change
+            const clientSelect = document.getElementById('client_id');
+            if (clientSelect) {
+                clientSelect.addEventListener('change', function() {
+                    const customerId = this.value;
+                    if (customerId) {
+                        console.log('Loading client data for ID:', customerId);
+                        loadCustomerPackages(customerId);
+                        loadCustomerAppointments(customerId);
+                    } else {
+                        // Clear packages display
+                        document.getElementById('customerPackages').innerHTML = 
+                            '<small><i class="fas fa-info-circle me-1"></i>Select a customer to view their active packages</small>';
+                        // Clear appointments section if it exists
+                        let appointmentsSection = document.querySelector('.card.border-info');
+                        if (appointmentsSection) {
+                            appointmentsSection.style.display = 'none';
+                        }
+                    }
+                });
             }
 
-            const selectedBatch = availableBatches.find(b => b.id == batchSelect.value);
-            if (selectedBatch) {
-                const requestedQty = parseFloat(quantityInput.value);
-                const availableQty = parseFloat(selectedBatch.qty_available);
+            // Function to load customer appointments dynamically
+            function loadCustomerAppointments(customerId) {
+                console.log('🔍 Fetching appointments for customer:', customerId);
 
-                if (requestedQty > availableQty) {
-                    quantityInput.classList.add('is-invalid');
-                    // Show error message
-                    let errorMsg = row.querySelector('.quantity-error');
-                    if (!errorMsg) {
-                        errorMsg = document.createElement('div');
-                        errorMsg.className = 'quantity-error text-danger small mt-1';
-                        quantityInput.parentNode.appendChild(errorMsg);
-                    }
-                    errorMsg.textContent = `Maximum available: ${availableQty} ${selectedBatch.unit}`;
-                    // Optionally auto-correct or just show error
-                    // quantityInput.value = availableQty; // Auto-correct to max available
-                    // quantityInput.classList.remove('is-invalid'); // Remove invalid class if auto-corrected
-                    // errorMsg.remove(); // Remove error message if auto-corrected
+                fetch(`/api/customer/${customerId}/appointments`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            console.log('✅ Appointments loaded:', data.appointments.length);
+                            displayCustomerAppointments(data);
+                        } else {
+                            console.error('❌ Failed to load appointments:', data.error);
+                            showNotification('Failed to load appointments: ' + data.error, 'error');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('❌ Error fetching appointments:', error);
+                        showNotification('Error loading appointments. Please try again.', 'error');
+                    });
+            }
+
+            // Function to display customer appointments
+            function displayCustomerAppointments(data) {
+                const appointments = data.appointments;
+                const services = data.services;
+                const customer = data.customer;
+
+                // Find or create the appointments section
+                let appointmentsSection = document.querySelector('.card.border-info');
+                const container = document.querySelector('.col-12'); // Container where the card should be appended
+
+                if (!appointmentsSection && container) {
+                    // Create the section if it doesn't exist
+                    appointmentsSection = document.createElement('div');
+                    appointmentsSection.className = 'card border-info mb-4';
+                    container.appendChild(appointmentsSection);
+                }
+
+                if (!appointmentsSection) return; // Exit if section still not found
+
+                // Build the HTML
+                let html = `
+                    <div class="card-header bg-info text-white">
+                        <h6 class="mb-0">
+                            <i class="fas fa-user me-2"></i>${customer.name}'s Current Bookings
+                            <span class="badge bg-primary text-white ms-2">${appointments.length} Ready to Bill</span>
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                `;
+
+                if (services.length > 0) {
+                    html += `
+                        <div class="alert alert-success">
+                            <i class="fas fa-check-circle me-2"></i>
+                            <strong>${services.length} Different Services Found</strong> - Ready to add to bill
+                        </div>
+                        <h6 class="text-primary mb-3">Available Services for Billing:</h6>
+                        <div class="row">
+                    `;
+
+                    services.forEach(service => {
+                        // Ensure price is formatted correctly
+                        const formattedPrice = parseFloat(service.price).toFixed(2);
+                        html += `
+                            <div class="col-md-4 mb-2">
+                                <div class="d-flex align-items-center">
+                                    <i class="fas fa-spa text-success me-2"></i>
+                                    <span class="fw-bold">${service.name}</span>
+                                    <span class="text-muted ms-2">₹${formattedPrice}</span>
+                                </div>
+                            </div>
+                        `;
+                    });
+
+                    html += `
+                        </div>
+                    `;
+                }
+
+                if (appointments.length > 0) {
+                    html += `
+                        <hr>
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h6 class="text-success mb-0">
+                                <i class="fas fa-clock me-1"></i>All Confirmed Bookings Ready for Billing
+                            </h6>
+                            <div class="badge bg-success fs-6">${appointments.length} Bookings Found</div>
+                        </div>
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            These are all the confirmed/scheduled appointments for <strong>${customer.name}</strong> that can be billed.
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-sm table-bordered">
+                                <thead class="table-success">
+                                    <tr>
+                                        <th>Date & Time</th>
+                                        <th>Service</th>
+                                        <th>Staff</th>
+                                        <th>Status</th>
+                                        <th>Amount</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                    `;
+
+                    appointments.forEach(appointment => {
+                        // Format appointment details
+                        const formattedDate = appointment.appointment_date || 'N/A';
+                        const formattedStartTime = appointment.start_time || 'N/A';
+                        const formattedEndTime = appointment.end_time || 'N/A';
+                        const formattedServicePrice = parseFloat(appointment.service_price).toFixed(2);
+
+                        html += `
+                            <tr class="bg-light">
+                                <td>
+                                    <strong>${formattedDate}</strong><br>
+                                    <small class="text-muted">${formattedStartTime} - ${formattedEndTime}</small>
+                                </td>
+                                <td>
+                                    <strong>${appointment.service_name || 'N/A'}</strong><br>
+                                    <small class="text-muted">${appointment.service_duration || 0} mins</small>
+                                </td>
+                                <td>${appointment.staff_name || 'N/A'}</td>
+                                <td>
+                                    <span class="badge badge-warning">${appointment.status ? appointment.status.charAt(0).toUpperCase() + appointment.status.slice(1) : 'Unknown'}</span>
+                                </td>
+                                <td>
+                                    <strong class="text-success">₹${formattedServicePrice}</strong>
+                                </td>
+                                <td>
+                                    <button type="button" class="btn btn-primary btn-sm" 
+                                            onclick="addAppointmentToBill('${appointment.service_name || 'Unknown Service'}', ${parseFloat(appointment.service_price || 0)}, ${parseInt(appointment.service_duration || 0)})">
+                                        <i class="fas fa-plus me-1"></i>Add to Bill
+                                    </button>
+                                </td>
+                            </tr>
+                        `;
+                    });
+
+                    html += `
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="mt-3">
+                            <button type="button" class="btn btn-outline-primary btn-sm" onclick="autoFillAllAppointments()">
+                                <i class="fas fa-bolt me-1"></i>Auto-Fill ALL Bookings to Bill
+                            </button>
+                            <small class="text-muted d-block mt-1">
+                                <i class="fas fa-lightbulb me-1"></i>
+                                Auto-Fill will add all ${appointments.length} confirmed bookings to your billing form instantly
+                            </small>
+                        </div>
+                    `;
                 } else {
-                    quantityInput.classList.remove('is-invalid');
-                    const errorMsg = row.querySelector('.quantity-error');
-                    if (errorMsg) errorMsg.remove();
+                    html += `
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <strong>No ready-to-bill bookings found.</strong> This customer has no scheduled or confirmed appointments ready for billing.
+                        </div>
+                    `;
                 }
+
+                html += `
+                    </div>
+                `;
+
+                appointmentsSection.innerHTML = html;
+                appointmentsSection.style.display = 'block'; // Make section visible
             }
-        }
 
-        // Add debug function for manual testing
-        function debugBillingCalculation() {
-            console.log('=== MANUAL DEBUG TRIGGERED ===');
-            validateServiceRowPrices();
-            updateTaxCalculations();
-
-            const finalTotal = document.getElementById('display_total').textContent;
-            console.log('Final displayed total:', finalTotal);
-        }
-
-        // Validate that all service rows have proper price data
-        function validateServiceRowPrices() {
-            const serviceRows = document.querySelectorAll('.service-row');
-            let hasErrors = false;
-
-            serviceRows.forEach((row, index) => {
-                const serviceSelect = row.querySelector('select[name="service_ids[]"]');
-                if (serviceSelect && serviceSelect.value) {
-                    const selectedOption = serviceSelect.options[serviceSelect.selectedIndex];
-                    if (!selectedOption.dataset.price) {
-                        console.error(`Row ${index + 1} missing price data for service:`, selectedOption.text);
-                        hasErrors = true;
-
-                        // Try to extract and set price from text
-                        const priceMatch = selectedOption.text.match(/₹([\d,]+\.?\d*)/);
-                        if (priceMatch) {
-                            const price = parseFloat(priceMatch[1].replace(/,/g, ''));
-                            selectedOption.dataset.price = price.toString();
-                            console.log(`Fixed price data for ${selectedOption.text}: ₹${price}`);
-                            hasErrors = false;
+            // Helper function to add appointment to billing form
+            function addAppointmentToBill(serviceName, servicePrice, serviceDuration) {
+                // Find the service in the dropdown
+                const serviceSelect = document.querySelector('select[name="service_ids[]"]');
+                if (serviceSelect) {
+                    // Find matching option
+                    let matchedOption = null;
+                    for (let i = 0; i < serviceSelect.options.length; i++) {
+                        const option = serviceSelect.options[i];
+                        if (option.value && option.text.toLowerCase().includes(serviceName.toLowerCase())) {
+                            matchedOption = option;
+                            break;
                         }
                     }
+
+                    if (matchedOption) {
+                        serviceSelect.value = matchedOption.value;
+                        // Trigger handleServiceSelection to update price and trigger calculations
+                        handleServiceSelection(serviceSelect);
+                        showNotification(`Service "${serviceName}" added to bill successfully!`, 'success');
+                    } else {
+                        showNotification(`Service "${serviceName}" not found in the dropdown. Please add it manually.`, 'warning');
+                    }
+                } else {
+                    showNotification('Service dropdown not found.', 'error');
                 }
-            });
-
-            return !hasErrors;
-        }
-
-        // Initialize on page load
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('Integrated billing page loaded, initializing...');
-            loadAvailableBatches();
-
-            // Auto-fill appointment services when customer is pre-selected
-            {% if customer_appointments and customer_appointments|length > 0 %}
-            console.log('Auto-filling {{ customer_appointments|length }} appointment services...');
-            autoFillCurrentServices();
-            {% endif %}
-
-            // Initialize tax calculations
-            setTimeout(() => {
-                updateTaxCalculations(); // Initial calculation update based on default values
-                toggleTaxType(); // Apply initial tax type settings
-            }, 500);
-
-            // Add event listeners for real-time package benefit calculation
-            setupServiceChangeListeners();
-            setupTaxCalculationListeners();
-
-            // Add enhanced change event listeners
-            document.addEventListener('change', function(e) {
-                if (e.target.matches('select[name="service_ids[]"]') ||
-                    e.target.matches('input[name="service_quantities[]"]')) {
-                    console.log('Service selection or quantity changed, updating calculations...');
-                    setTimeout(() => {
-                        validateServiceRowPrices();
-                        updateTaxCalculations();
-                    }, 100);
-                }
-            });
-        });
-
-        // Setup comprehensive event listeners for tax calculations
-        function setupTaxCalculationListeners() {
-            console.log('Setting up tax calculation listeners...');
-
-            // Tax input listeners
-            const taxInputs = document.querySelectorAll('.tax-input, .billing-input');
-            taxInputs.forEach(input => {
-                input.addEventListener('input', updateTaxCalculations);
-                input.addEventListener('change', updateTaxCalculations);
-            });
-
-            // Service selection listeners
-            document.addEventListener('change', function(e) {
-                if (e.target.matches('select[name="service_ids[]"]') ||
-                    e.target.matches('input[name="service_quantities[]"]') ||
-                    e.target.matches('input[name="product_quantities[]"]') ||
-                    e.target.matches('input[name="product_prices[]"]')) {
-                    updateTaxCalculations();
-                }
-            });
-
-            // Initial calculation
-            updateTaxCalculations();
-
-            console.log('Tax calculation listeners set up successfully');
-        }
-
-        // Setup event listeners for service selection changes
-        function setupServiceChangeListeners() {
-            // Monitor service dropdown changes
-            document.addEventListener('change', function(event) {
-                if (event.target.matches('select[name="service_ids[]"]') ||
-                    event.target.matches('input[name="service_quantities[]"]')) {
-                    // Service or quantity changed, update calculations
-                    handleServiceSelection(event.target);
-                    setTimeout(updateTaxCalculations, 100); // Small delay to ensure DOM is updated
-                }
-            });
-
-            // Monitor input changes for quantities
-            document.addEventListener('input', function(event) {
-                if (event.target.matches('input[name="service_quantities[]"]') ||
-                    event.target.matches('input[name="product_quantities[]"]') ||
-                    event.target.matches('input[name="product_prices[]"]')) {
-                    setTimeout(updateTaxCalculations, 100);
-                }
-            });
-
-            // Monitor when new service rows are added
-            const observer = new MutationObserver(function(mutations) {
-                mutations.forEach(function(mutation) {
-                    mutation.addedNodes.forEach(function(node) {
-                        if (node.nodeType === 1 && node.classList.contains('service-row')) {
-                            // New service row added, attach listeners
-                            const serviceSelect = node.querySelector('select[name="service_ids[]"]');
-                            const quantityInput = node.querySelector('input[name="service_quantities[]"]');
-
-                            if (serviceSelect) {
-                                serviceSelect.addEventListener('change', (e) => {
-                                    handleServiceSelection(e.target);
-                                    setTimeout(updateTaxCalculations, 100);
-                                });
-                            }
-
-                            if (quantityInput) {
-                                quantityInput.addEventListener('input', () => {
-                                    setTimeout(updateTaxCalculations, 100);
-                                });
-                            }
-                        }
-                    });
-                });
-            });
-
-            observer.observe(document.getElementById('servicesContainer'), {
-                childList: true,
-                subtree: true
-            });
-        }
-
-        // --- Action button handlers ---
-        function proceedWithInvoiceCreation() {
-            document.getElementById('billingForm').submit();
-        }
-
-        function printInvoice() {
-            const invoiceId = document.getElementById('printInvoiceBtn').dataset.invoiceId;
-            if (invoiceId) {
-                window.open(`/integrated-billing/print-invoice/${invoiceId}`, '_blank');
-            } else {
-                alert('Invoice ID not found. Cannot print.');
             }
-        }
 
-        function emailInvoice() {
-            const invoiceId = document.getElementById('emailInvoiceBtn').dataset.invoiceId;
-            if (invoiceId) {
-                // In a real application, this would trigger an email sending process
-                alert(`Email invoice functionality for Invoice ID: ${invoiceId} is being processed.`);
-                // Example: fetch(`/integrated-billing/email-invoice/${invoiceId}`) ...
-            } else {
-                alert('Invoice ID not found. Cannot email.');
+            // Helper function to auto-fill all appointments
+            function autoFillAllAppointments() {
+                showNotification('Auto-fill feature is under development.', 'info');
             }
-        }
 
-        function whatsappInvoice() {
-            const invoiceId = document.getElementById('whatsappInvoiceBtn').dataset.invoiceId;
-            if (invoiceId) {
-                // In a real application, this would trigger a WhatsApp sharing process
-                alert(`WhatsApp invoice functionality for Invoice ID: ${invoiceId} is being processed.`);
-                // Example: fetch(`/integrated-billing/whatsapp-invoice/${invoiceId}`) ...
-            } else {
-                alert('Invoice ID not found. Cannot send via WhatsApp.');
-            }
-        }
-
-        // Auto-select customer and load appointments if coming from appointment context menu
-        document.addEventListener('DOMContentLoaded', function() {
-            // Auto-select customer if provided from appointment context menu
+            // Auto-select customer and load appointments if coming from appointment context menu
             {% if selected_customer %}
             const customerSelect = document.getElementById('client_id');
             if (customerSelect) {
@@ -3074,7 +3345,235 @@ function handleServiceSelection(selectElement) {
 
         // Auto-select customer and load appointments if coming from appointment context menu
         document.addEventListener('DOMContentLoaded', function() {
-            // Auto-select customer if provided from appointment context menu
+            // Handle customer selection change
+            const clientSelect = document.getElementById('client_id');
+            if (clientSelect) {
+                clientSelect.addEventListener('change', function() {
+                    const customerId = this.value;
+                    if (customerId) {
+                        console.log('Loading client data for ID:', customerId);
+                        loadCustomerPackages(customerId);
+                        loadCustomerAppointments(customerId);
+                    } else {
+                        // Clear packages display
+                        document.getElementById('customerPackages').innerHTML = 
+                            '<small><i class="fas fa-info-circle me-1"></i>Select a customer to view their active packages</small>';
+                        // Clear appointments section if it exists
+                        let appointmentsSection = document.querySelector('.card.border-info');
+                        if (appointmentsSection) {
+                            appointmentsSection.style.display = 'none';
+                        }
+                    }
+                });
+            }
+
+            // Function to load customer appointments dynamically
+            function loadCustomerAppointments(customerId) {
+                console.log('🔍 Fetching appointments for customer:', customerId);
+
+                fetch(`/api/customer/${customerId}/appointments`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            console.log('✅ Appointments loaded:', data.appointments.length);
+                            displayCustomerAppointments(data);
+                        } else {
+                            console.error('❌ Failed to load appointments:', data.error);
+                            showNotification('Failed to load appointments: ' + data.error, 'error');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('❌ Error fetching appointments:', error);
+                        showNotification('Error loading appointments. Please try again.', 'error');
+                    });
+            }
+
+            // Function to display customer appointments
+            function displayCustomerAppointments(data) {
+                const appointments = data.appointments;
+                const services = data.services;
+                const customer = data.customer;
+
+                // Find or create the appointments section
+                let appointmentsSection = document.querySelector('.card.border-info');
+                const container = document.querySelector('.col-12'); // Container where the card should be appended
+
+                if (!appointmentsSection && container) {
+                    // Create the section if it doesn't exist
+                    appointmentsSection = document.createElement('div');
+                    appointmentsSection.className = 'card border-info mb-4';
+                    container.appendChild(appointmentsSection);
+                }
+
+                if (!appointmentsSection) return; // Exit if section still not found
+
+                // Build the HTML
+                let html = `
+                    <div class="card-header bg-info text-white">
+                        <h6 class="mb-0">
+                            <i class="fas fa-user me-2"></i>${customer.name}'s Current Bookings
+                            <span class="badge bg-primary text-white ms-2">${appointments.length} Ready to Bill</span>
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                `;
+
+                if (services.length > 0) {
+                    html += `
+                        <div class="alert alert-success">
+                            <i class="fas fa-check-circle me-2"></i>
+                            <strong>${services.length} Different Services Found</strong> - Ready to add to bill
+                        </div>
+                        <h6 class="text-primary mb-3">Available Services for Billing:</h6>
+                        <div class="row">
+                    `;
+
+                    services.forEach(service => {
+                        // Ensure price is formatted correctly
+                        const formattedPrice = parseFloat(service.price).toFixed(2);
+                        html += `
+                            <div class="col-md-4 mb-2">
+                                <div class="d-flex align-items-center">
+                                    <i class="fas fa-spa text-success me-2"></i>
+                                    <span class="fw-bold">${service.name}</span>
+                                    <span class="text-muted ms-2">₹${formattedPrice}</span>
+                                </div>
+                            </div>
+                        `;
+                    });
+
+                    html += `
+                        </div>
+                    `;
+                }
+
+                if (appointments.length > 0) {
+                    html += `
+                        <hr>
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h6 class="text-success mb-0">
+                                <i class="fas fa-clock me-1"></i>All Confirmed Bookings Ready for Billing
+                            </h6>
+                            <div class="badge bg-success fs-6">${appointments.length} Bookings Found</div>
+                        </div>
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            These are all the confirmed/scheduled appointments for <strong>${customer.name}</strong> that can be billed.
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-sm table-bordered">
+                                <thead class="table-success">
+                                    <tr>
+                                        <th>Date & Time</th>
+                                        <th>Service</th>
+                                        <th>Staff</th>
+                                        <th>Status</th>
+                                        <th>Amount</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                    `;
+
+                    appointments.forEach(appointment => {
+                        // Format appointment details
+                        const formattedDate = appointment.appointment_date || 'N/A';
+                        const formattedStartTime = appointment.start_time || 'N/A';
+                        const formattedEndTime = appointment.end_time || 'N/A';
+                        const formattedServicePrice = parseFloat(appointment.service_price).toFixed(2);
+
+                        html += `
+                            <tr class="bg-light">
+                                <td>
+                                    <strong>${formattedDate}</strong><br>
+                                    <small class="text-muted">${formattedStartTime} - ${formattedEndTime}</small>
+                                </td>
+                                <td>
+                                    <strong>${appointment.service_name || 'N/A'}</strong><br>
+                                    <small class="text-muted">${appointment.service_duration || 0} mins</small>
+                                </td>
+                                <td>${appointment.staff_name || 'N/A'}</td>
+                                <td>
+                                    <span class="badge badge-warning">${appointment.status ? appointment.status.charAt(0).toUpperCase() + appointment.status.slice(1) : 'Unknown'}</span>
+                                </td>
+                                <td>
+                                    <strong class="text-success">₹${formattedServicePrice}</strong>
+                                </td>
+                                <td>
+                                    <button type="button" class="btn btn-primary btn-sm" 
+                                            onclick="addAppointmentToBill('${appointment.service_name || 'Unknown Service'}', ${parseFloat(appointment.service_price || 0)}, ${parseInt(appointment.service_duration || 0)})">
+                                        <i class="fas fa-plus me-1"></i>Add to Bill
+                                    </button>
+                                </td>
+                            </tr>
+                        `;
+                    });
+
+                    html += `
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="mt-3">
+                            <button type="button" class="btn btn-outline-primary btn-sm" onclick="autoFillAllAppointments()">
+                                <i class="fas fa-bolt me-1"></i>Auto-Fill ALL Bookings to Bill
+                            </button>
+                            <small class="text-muted d-block mt-1">
+                                <i class="fas fa-lightbulb me-1"></i>
+                                Auto-Fill will add all ${appointments.length} confirmed bookings to your billing form instantly
+                            </small>
+                        </div>
+                    `;
+                } else {
+                    html += `
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <strong>No ready-to-bill bookings found.</strong> This customer has no scheduled or confirmed appointments ready for billing.
+                        </div>
+                    `;
+                }
+
+                html += `
+                    </div>
+                `;
+
+                appointmentsSection.innerHTML = html;
+                appointmentsSection.style.display = 'block'; // Make section visible
+            }
+
+            // Helper function to add appointment to billing form
+            function addAppointmentToBill(serviceName, servicePrice, serviceDuration) {
+                // Find the service in the dropdown
+                const serviceSelect = document.querySelector('select[name="service_ids[]"]');
+                if (serviceSelect) {
+                    // Find matching option
+                    let matchedOption = null;
+                    for (let i = 0; i < serviceSelect.options.length; i++) {
+                        const option = serviceSelect.options[i];
+                        if (option.value && option.text.toLowerCase().includes(serviceName.toLowerCase())) {
+                            matchedOption = option;
+                            break;
+                        }
+                    }
+
+                    if (matchedOption) {
+                        serviceSelect.value = matchedOption.value;
+                        // Trigger handleServiceSelection to update price and trigger calculations
+                        handleServiceSelection(serviceSelect);
+                        showNotification(`Service "${serviceName}" added to bill successfully!`, 'success');
+                    } else {
+                        showNotification(`Service "${serviceName}" not found in the dropdown. Please add it manually.`, 'warning');
+                    }
+                } else {
+                    showNotification('Service dropdown not found.', 'error');
+                }
+            }
+
+            // Helper function to auto-fill all appointments
+            function autoFillAllAppointments() {
+                showNotification('Auto-fill feature is under development.', 'info');
+            }
+
+            // Auto-select customer and load appointments if coming from appointment context menu
             {% if selected_customer %}
             const customerSelect = document.getElementById('client_id');
             if (customerSelect) {
@@ -3326,7 +3825,235 @@ function handleServiceSelection(selectElement) {
 
         // Auto-select customer and load appointments if coming from appointment context menu
         document.addEventListener('DOMContentLoaded', function() {
-            // Auto-select customer if provided from appointment context menu
+            // Handle customer selection change
+            const clientSelect = document.getElementById('client_id');
+            if (clientSelect) {
+                clientSelect.addEventListener('change', function() {
+                    const customerId = this.value;
+                    if (customerId) {
+                        console.log('Loading client data for ID:', customerId);
+                        loadCustomerPackages(customerId);
+                        loadCustomerAppointments(customerId);
+                    } else {
+                        // Clear packages display
+                        document.getElementById('customerPackages').innerHTML = 
+                            '<small><i class="fas fa-info-circle me-1"></i>Select a customer to view their active packages</small>';
+                        // Clear appointments section if it exists
+                        let appointmentsSection = document.querySelector('.card.border-info');
+                        if (appointmentsSection) {
+                            appointmentsSection.style.display = 'none';
+                        }
+                    }
+                });
+            }
+
+            // Function to load customer appointments dynamically
+            function loadCustomerAppointments(customerId) {
+                console.log('🔍 Fetching appointments for customer:', customerId);
+
+                fetch(`/api/customer/${customerId}/appointments`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            console.log('✅ Appointments loaded:', data.appointments.length);
+                            displayCustomerAppointments(data);
+                        } else {
+                            console.error('❌ Failed to load appointments:', data.error);
+                            showNotification('Failed to load appointments: ' + data.error, 'error');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('❌ Error fetching appointments:', error);
+                        showNotification('Error loading appointments. Please try again.', 'error');
+                    });
+            }
+
+            // Function to display customer appointments
+            function displayCustomerAppointments(data) {
+                const appointments = data.appointments;
+                const services = data.services;
+                const customer = data.customer;
+
+                // Find or create the appointments section
+                let appointmentsSection = document.querySelector('.card.border-info');
+                const container = document.querySelector('.col-12'); // Container where the card should be appended
+
+                if (!appointmentsSection && container) {
+                    // Create the section if it doesn't exist
+                    appointmentsSection = document.createElement('div');
+                    appointmentsSection.className = 'card border-info mb-4';
+                    container.appendChild(appointmentsSection);
+                }
+
+                if (!appointmentsSection) return; // Exit if section still not found
+
+                // Build the HTML
+                let html = `
+                    <div class="card-header bg-info text-white">
+                        <h6 class="mb-0">
+                            <i class="fas fa-user me-2"></i>${customer.name}'s Current Bookings
+                            <span class="badge bg-primary text-white ms-2">${appointments.length} Ready to Bill</span>
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                `;
+
+                if (services.length > 0) {
+                    html += `
+                        <div class="alert alert-success">
+                            <i class="fas fa-check-circle me-2"></i>
+                            <strong>${services.length} Different Services Found</strong> - Ready to add to bill
+                        </div>
+                        <h6 class="text-primary mb-3">Available Services for Billing:</h6>
+                        <div class="row">
+                    `;
+
+                    services.forEach(service => {
+                        // Ensure price is formatted correctly
+                        const formattedPrice = parseFloat(service.price).toFixed(2);
+                        html += `
+                            <div class="col-md-4 mb-2">
+                                <div class="d-flex align-items-center">
+                                    <i class="fas fa-spa text-success me-2"></i>
+                                    <span class="fw-bold">${service.name}</span>
+                                    <span class="text-muted ms-2">₹${formattedPrice}</span>
+                                </div>
+                            </div>
+                        `;
+                    });
+
+                    html += `
+                        </div>
+                    `;
+                }
+
+                if (appointments.length > 0) {
+                    html += `
+                        <hr>
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h6 class="text-success mb-0">
+                                <i class="fas fa-clock me-1"></i>All Confirmed Bookings Ready for Billing
+                            </h6>
+                            <div class="badge bg-success fs-6">${appointments.length} Bookings Found</div>
+                        </div>
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            These are all the confirmed/scheduled appointments for <strong>${customer.name}</strong> that can be billed.
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-sm table-bordered">
+                                <thead class="table-success">
+                                    <tr>
+                                        <th>Date & Time</th>
+                                        <th>Service</th>
+                                        <th>Staff</th>
+                                        <th>Status</th>
+                                        <th>Amount</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                    `;
+
+                    appointments.forEach(appointment => {
+                        // Format appointment details
+                        const formattedDate = appointment.appointment_date || 'N/A';
+                        const formattedStartTime = appointment.start_time || 'N/A';
+                        const formattedEndTime = appointment.end_time || 'N/A';
+                        const formattedServicePrice = parseFloat(appointment.service_price).toFixed(2);
+
+                        html += `
+                            <tr class="bg-light">
+                                <td>
+                                    <strong>${formattedDate}</strong><br>
+                                    <small class="text-muted">${formattedStartTime} - ${formattedEndTime}</small>
+                                </td>
+                                <td>
+                                    <strong>${appointment.service_name || 'N/A'}</strong><br>
+                                    <small class="text-muted">${appointment.service_duration || 0} mins</small>
+                                </td>
+                                <td>${appointment.staff_name || 'N/A'}</td>
+                                <td>
+                                    <span class="badge badge-warning">${appointment.status ? appointment.status.charAt(0).toUpperCase() + appointment.status.slice(1) : 'Unknown'}</span>
+                                </td>
+                                <td>
+                                    <strong class="text-success">₹${formattedServicePrice}</strong>
+                                </td>
+                                <td>
+                                    <button type="button" class="btn btn-primary btn-sm" 
+                                            onclick="addAppointmentToBill('${appointment.service_name || 'Unknown Service'}', ${parseFloat(appointment.service_price || 0)}, ${parseInt(appointment.service_duration || 0)})">
+                                        <i class="fas fa-plus me-1"></i>Add to Bill
+                                    </button>
+                                </td>
+                            </tr>
+                        `;
+                    });
+
+                    html += `
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="mt-3">
+                            <button type="button" class="btn btn-outline-primary btn-sm" onclick="autoFillAllAppointments()">
+                                <i class="fas fa-bolt me-1"></i>Auto-Fill ALL Bookings to Bill
+                            </button>
+                            <small class="text-muted d-block mt-1">
+                                <i class="fas fa-lightbulb me-1"></i>
+                                Auto-Fill will add all ${appointments.length} confirmed bookings to your billing form instantly
+                            </small>
+                        </div>
+                    `;
+                } else {
+                    html += `
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <strong>No ready-to-bill bookings found.</strong> This customer has no scheduled or confirmed appointments ready for billing.
+                        </div>
+                    `;
+                }
+
+                html += `
+                    </div>
+                `;
+
+                appointmentsSection.innerHTML = html;
+                appointmentsSection.style.display = 'block'; // Make section visible
+            }
+
+            // Helper function to add appointment to billing form
+            function addAppointmentToBill(serviceName, servicePrice, serviceDuration) {
+                // Find the service in the dropdown
+                const serviceSelect = document.querySelector('select[name="service_ids[]"]');
+                if (serviceSelect) {
+                    // Find matching option
+                    let matchedOption = null;
+                    for (let i = 0; i < serviceSelect.options.length; i++) {
+                        const option = serviceSelect.options[i];
+                        if (option.value && option.text.toLowerCase().includes(serviceName.toLowerCase())) {
+                            matchedOption = option;
+                            break;
+                        }
+                    }
+
+                    if (matchedOption) {
+                        serviceSelect.value = matchedOption.value;
+                        // Trigger handleServiceSelection to update price and trigger calculations
+                        handleServiceSelection(serviceSelect);
+                        showNotification(`Service "${serviceName}" added to bill successfully!`, 'success');
+                    } else {
+                        showNotification(`Service "${serviceName}" not found in the dropdown. Please add it manually.`, 'warning');
+                    }
+                } else {
+                    showNotification('Service dropdown not found.', 'error');
+                }
+            }
+
+            // Helper function to auto-fill all appointments
+            function autoFillAllAppointments() {
+                showNotification('Auto-fill feature is under development.', 'info');
+            }
+
+            // Auto-select customer and load appointments if coming from appointment context menu
             {% if selected_customer %}
             const customerSelect = document.getElementById('client_id');
             if (customerSelect) {
@@ -3402,6 +4129,1617 @@ function handleServiceSelection(selectElement) {
                 // Or an auto-populated one. We need to ensure the price is set correctly.
                 // For auto-populated, the price should be handled by handleServiceSelection itself.
                 console.log(`Could not find row for service ID: ${serviceId} to update price directly.`);
+            }
+        }
+
+
+function handleServiceSelection(selectElement) {
+    const selectedOption = selectElement.options[selectElement.selectedIndex];
+
+    if (selectedOption && selectedOption.value) {
+        // Extract price from data attribute or option text
+        let price = selectedOption.dataset.price;
+
+        if (!price) {
+            // Try to extract price from option text
+            const priceMatch = selectedOption.text.match(/₹([\d,]+\.?\d*)/);
+            if (priceMatch) {
+                price = parseFloat(priceMatch[1].replace(/,/g, ''));
+                // Store it for future use
+                selectedOption.dataset.price = price.toString();
+            }
+        }
+
+        if (price) {
+            console.log(`Service selected: ${selectedOption.text}, Price: ₹${price}`);
+            updateServicePrice(selectElement.value, price);
+
+            // Trigger calculation update
+            setTimeout(() => {
+                updateTaxCalculations();
+            }, 50);
+        } else {
+            console.warn('No price found for selected service:', selectedOption.text);
+            updateServicePrice(selectElement.value, '0.00');
+        }
+    } else {
+        // Reset for empty selection
+        updateServicePrice(selectElement.value, '0.00');
+        setTimeout(() => {
+            updateTaxCalculations();
+        }, 50);
+    }
+}
+
+// Initialize components and event listeners
+        window.addServiceRow = addServiceRow;
+        window.addAppointmentToBill = addAppointmentToBill;
+        window.previewInvoice = previewInvoice;
+        window.proceedWithInvoiceCreation = proceedWithInvoiceCreation;
+        window.saveAsDraft = saveAsDraft;
+        window.sendQuotation = sendQuotation;
+        window.clearForm = clearForm;
+        window.findEmptyServiceRow = findEmptyServiceRow;
+        window.autoFillCurrentServices = autoFillCurrentServices;
+        window.viewFullCustomerHistory = viewFullCustomerHistory;
+        window.handleServiceSelection = handleServiceSelection;
+        window.updateTaxCalculations = updateTaxCalculations;
+        window.loadBatchesForProduct = loadBatchesForProduct;
+        window.validateInventoryQuantity = validateInventoryQuantity;
+
+        // Set up tax calculation listeners
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Setting up tax calculation listeners...');
+
+            // Tax input listeners
+            const taxInputs = document.querySelectorAll('.tax-input, .billing-input');
+            taxInputs.forEach(input => {
+                input.addEventListener('input', updateTaxCalculations);
+                input.addEventListener('change', updateTaxCalculations);
+            });
+
+            // Service selection listeners
+            document.addEventListener('change', function(e) {
+                if (e.target.matches('select[name="service_ids[]"]') ||
+                    e.target.matches('input[name="service_quantities[]"]') ||
+                    e.target.matches('input[name="product_quantities[]"]') ||
+                    e.target.matches('input[name="product_prices[]"]')) {
+                    updateTaxCalculations();
+                }
+            });
+
+            // Initial calculation
+            updateTaxCalculations();
+
+            console.log('Tax calculation listeners set up successfully');
+        });
+
+        // Setup event listeners for service selection changes
+        function setupServiceChangeListeners() {
+            // Monitor service dropdown changes
+            document.addEventListener('change', function(event) {
+                if (event.target.matches('select[name="service_ids[]"]') ||
+                    event.target.matches('input[name="service_quantities[]"]')) {
+                    // Service or quantity changed, update calculations
+                    handleServiceSelection(event.target);
+                    setTimeout(updateTaxCalculations, 100); // Small delay to ensure DOM is updated
+                }
+            });
+
+            // Monitor input changes for quantities
+            document.addEventListener('input', function(event) {
+                if (event.target.matches('input[name="service_quantities[]"]') ||
+                    event.target.matches('input[name="product_quantities[]"]') ||
+                    event.target.matches('input[name="product_prices[]"]')) {
+                    setTimeout(updateTaxCalculations, 100);
+                }
+            });
+
+            // Monitor when new service rows are added
+            const observer = new MutationObserver(function(mutations) {
+                mutations.forEach(function(mutation) {
+                    mutation.addedNodes.forEach(function(node) {
+                        if (node.nodeType === 1 && node.classList.contains('service-row')) {
+                            // New service row added, attach listeners
+                            const serviceSelect = node.querySelector('select[name="service_ids[]"]');
+                            const quantityInput = node.querySelector('input[name="service_quantities[]"]');
+
+                            if (serviceSelect) {
+                                serviceSelect.addEventListener('change', (e) => {
+                                    handleServiceSelection(e.target);
+                                    setTimeout(updateTaxCalculations, 100);
+                                });
+                            }
+
+                            if (quantityInput) {
+                                quantityInput.addEventListener('input', () => {
+                                    setTimeout(updateTaxCalculations, 100);
+                                });
+                            }
+                        }
+                    });
+                });
+            });
+
+            observer.observe(document.getElementById('servicesContainer'), {
+                childList: true,
+                subtree: true
+            });
+        }
+
+        // --- Action button handlers ---
+        function proceedWithInvoiceCreation() {
+            document.getElementById('billingForm').submit();
+        }
+
+        function printInvoice() {
+            const invoiceId = document.getElementById('printInvoiceBtn').dataset.invoiceId;
+            if (invoiceId) {
+                window.open(`/integrated-billing/print-invoice/${invoiceId}`, '_blank');
+            } else {
+                alert('Invoice ID not found. Cannot print.');
+            }
+        }
+
+        function emailInvoice() {
+            const invoiceId = document.getElementById('emailInvoiceBtn').dataset.invoiceId;
+            if (invoiceId) {
+                // In a real application, this would trigger an email sending process
+                alert(`Email invoice functionality for Invoice ID: ${invoiceId} is being processed.`);
+                // Example: fetch(`/integrated-billing/email-invoice/${invoiceId}`) ...
+            } else {
+                alert('Invoice ID not found. Cannot email.');
+            }
+        }
+
+        function whatsappInvoice() {
+            const invoiceId = document.getElementById('whatsappInvoiceBtn').dataset.invoiceId;
+            if (invoiceId) {
+                // In a real application, this would trigger a WhatsApp sharing process
+                alert(`WhatsApp invoice functionality for Invoice ID: ${invoiceId} is being processed.`);
+                // Example: fetch(`/integrated-billing/whatsapp-invoice/${invoiceId}`) ...
+            } else {
+                alert('Invoice ID not found. Cannot send via WhatsApp.');
+            }
+        }
+
+        // Auto-select customer and load appointments if coming from appointment context menu
+        document.addEventListener('DOMContentLoaded', function() {
+            // Handle customer selection change
+            const clientSelect = document.getElementById('client_id');
+            if (clientSelect) {
+                clientSelect.addEventListener('change', function() {
+                    const customerId = this.value;
+                    if (customerId) {
+                        console.log('Loading client data for ID:', customerId);
+                        loadCustomerPackages(customerId);
+                        loadCustomerAppointments(customerId);
+                    } else {
+                        // Clear packages display
+                        document.getElementById('customerPackages').innerHTML = 
+                            '<small><i class="fas fa-info-circle me-1"></i>Select a customer to view their active packages</small>';
+                        // Clear appointments section if it exists
+                        let appointmentsSection = document.querySelector('.card.border-info');
+                        if (appointmentsSection) {
+                            appointmentsSection.style.display = 'none';
+                        }
+                    }
+                });
+            }
+
+            // Function to load customer appointments dynamically
+            function loadCustomerAppointments(customerId) {
+                console.log('🔍 Fetching appointments for customer:', customerId);
+
+                fetch(`/api/customer/${customerId}/appointments`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            console.log('✅ Appointments loaded:', data.appointments.length);
+                            displayCustomerAppointments(data);
+                        } else {
+                            console.error('❌ Failed to load appointments:', data.error);
+                            showNotification('Failed to load appointments: ' + data.error, 'error');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('❌ Error fetching appointments:', error);
+                        showNotification('Error loading appointments. Please try again.', 'error');
+                    });
+            }
+
+            // Function to display customer appointments
+            function displayCustomerAppointments(data) {
+                const appointments = data.appointments;
+                const services = data.services;
+                const customer = data.customer;
+
+                // Find or create the appointments section
+                let appointmentsSection = document.querySelector('.card.border-info');
+                const container = document.querySelector('.col-12'); // Container where the card should be appended
+
+                if (!appointmentsSection && container) {
+                    // Create the section if it doesn't exist
+                    appointmentsSection = document.createElement('div');
+                    appointmentsSection.className = 'card border-info mb-4';
+                    container.appendChild(appointmentsSection);
+                }
+
+                if (!appointmentsSection) return; // Exit if section still not found
+
+                // Build the HTML
+                let html = `
+                    <div class="card-header bg-info text-white">
+                        <h6 class="mb-0">
+                            <i class="fas fa-user me-2"></i>${customer.name}'s Current Bookings
+                            <span class="badge bg-primary text-white ms-2">${appointments.length} Ready to Bill</span>
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                `;
+
+                if (services.length > 0) {
+                    html += `
+                        <div class="alert alert-success">
+                            <i class="fas fa-check-circle me-2"></i>
+                            <strong>${services.length} Different Services Found</strong> - Ready to add to bill
+                        </div>
+                        <h6 class="text-primary mb-3">Available Services for Billing:</h6>
+                        <div class="row">
+                    `;
+
+                    services.forEach(service => {
+                        // Ensure price is formatted correctly
+                        const formattedPrice = parseFloat(service.price).toFixed(2);
+                        html += `
+                            <div class="col-md-4 mb-2">
+                                <div class="d-flex align-items-center">
+                                    <i class="fas fa-spa text-success me-2"></i>
+                                    <span class="fw-bold">${service.name}</span>
+                                    <span class="text-muted ms-2">₹${formattedPrice}</span>
+                                </div>
+                            </div>
+                        `;
+                    });
+
+                    html += `
+                        </div>
+                    `;
+                }
+
+                if (appointments.length > 0) {
+                    html += `
+                        <hr>
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h6 class="text-success mb-0">
+                                <i class="fas fa-clock me-1"></i>All Confirmed Bookings Ready for Billing
+                            </h6>
+                            <div class="badge bg-success fs-6">${appointments.length} Bookings Found</div>
+                        </div>
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            These are all the confirmed/scheduled appointments for <strong>${customer.name}</strong> that can be billed.
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-sm table-bordered">
+                                <thead class="table-success">
+                                    <tr>
+                                        <th>Date & Time</th>
+                                        <th>Service</th>
+                                        <th>Staff</th>
+                                        <th>Status</th>
+                                        <th>Amount</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                    `;
+
+                    appointments.forEach(appointment => {
+                        // Format appointment details
+                        const formattedDate = appointment.appointment_date || 'N/A';
+                        const formattedStartTime = appointment.start_time || 'N/A';
+                        const formattedEndTime = appointment.end_time || 'N/A';
+                        const formattedServicePrice = parseFloat(appointment.service_price).toFixed(2);
+
+                        html += `
+                            <tr class="bg-light">
+                                <td>
+                                    <strong>${formattedDate}</strong><br>
+                                    <small class="text-muted">${formattedStartTime} - ${formattedEndTime}</small>
+                                </td>
+                                <td>
+                                    <strong>${appointment.service_name || 'N/A'}</strong><br>
+                                    <small class="text-muted">${appointment.service_duration || 0} mins</small>
+                                </td>
+                                <td>${appointment.staff_name || 'N/A'}</td>
+                                <td>
+                                    <span class="badge badge-warning">${appointment.status ? appointment.status.charAt(0).toUpperCase() + appointment.status.slice(1) : 'Unknown'}</span>
+                                </td>
+                                <td>
+                                    <strong class="text-success">₹${formattedServicePrice}</strong>
+                                </td>
+                                <td>
+                                    <button type="button" class="btn btn-primary btn-sm" 
+                                            onclick="addAppointmentToBill('${appointment.service_name || 'Unknown Service'}', ${parseFloat(appointment.service_price || 0)}, ${parseInt(appointment.service_duration || 0)})">
+                                        <i class="fas fa-plus me-1"></i>Add to Bill
+                                    </button>
+                                </td>
+                            </tr>
+                        `;
+                    });
+
+                    html += `
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="mt-3">
+                            <button type="button" class="btn btn-outline-primary btn-sm" onclick="autoFillAllAppointments()">
+                                <i class="fas fa-bolt me-1"></i>Auto-Fill ALL Bookings to Bill
+                            </button>
+                            <small class="text-muted d-block mt-1">
+                                <i class="fas fa-lightbulb me-1"></i>
+                                Auto-Fill will add all ${appointments.length} confirmed bookings to your billing form instantly
+                            </small>
+                        </div>
+                    `;
+                } else {
+                    html += `
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <strong>No ready-to-bill bookings found.</strong> This customer has no scheduled or confirmed appointments ready for billing.
+                        </div>
+                    `;
+                }
+
+                html += `
+                    </div>
+                `;
+
+                appointmentsSection.innerHTML = html;
+                appointmentsSection.style.display = 'block'; // Make section visible
+            }
+
+            // Helper function to add appointment to billing form
+            function addAppointmentToBill(serviceName, servicePrice, serviceDuration) {
+                // Find the service in the dropdown
+                const serviceSelect = document.querySelector('select[name="service_ids[]"]');
+                if (serviceSelect) {
+                    // Find matching option
+                    let matchedOption = null;
+                    for (let i = 0; i < serviceSelect.options.length; i++) {
+                        const option = serviceSelect.options[i];
+                        if (option.value && option.text.toLowerCase().includes(serviceName.toLowerCase())) {
+                            matchedOption = option;
+                            break;
+                        }
+                    }
+
+                    if (matchedOption) {
+                        serviceSelect.value = matchedOption.value;
+                        // Trigger handleServiceSelection to update price and trigger calculations
+                        handleServiceSelection(serviceSelect);
+                        showNotification(`Service "${serviceName}" added to bill successfully!`, 'success');
+                    } else {
+                        showNotification(`Service "${serviceName}" not found in the dropdown. Please add it manually.`, 'warning');
+                    }
+                } else {
+                    showNotification('Service dropdown not found.', 'error');
+                }
+            }
+
+            // Helper function to auto-fill all appointments
+            function autoFillAllAppointments() {
+                showNotification('Auto-fill feature is under development.', 'info');
+            }
+
+            // Auto-select customer and load appointments if coming from appointment context menu
+            {% if selected_customer %}
+            const customerSelect = document.getElementById('client_id');
+            if (customerSelect) {
+                customerSelect.value = '{{ selected_customer.id }}';
+                // Trigger change event to load customer packages and appointments
+                customerSelect.dispatchEvent(new Event('change'));
+
+                // Show single consolidated notification
+                showNotification(
+                    'Customer Auto-Selected: {{ selected_customer.full_name }}' + 
+                    {% if customer_appointments|length > 0 %}
+                    ' - {{ customer_appointments|length }} pending appointment{{ "s" if customer_appointments|length != 1 else "" }} ready for billing'
+                    {% else %}
+                    ''
+                    {% endif %},
+                    'info'
+                );
+            }
+            {% endif %}
+        });
+
+        // Function to populate services from customer appointments
+        {% if customer_appointments %}
+        function populateCustomerAppointments() {
+            const appointments = {{ customer_appointments | tojson }};
+
+            if (appointments && appointments.length > 0) {
+                // Add success message
+                const successAlert = document.createElement('div');
+                successAlert.className = 'alert alert-success alert-dismissible fade show mt-3';
+                successAlert.innerHTML = `
+                    <i class="fas fa-check-circle me-2"></i>
+                    <strong>Services Ready for Billing:</strong> ${appointments.length} service${appointments.length !== 1 ? 's' : ''} from pending appointments
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                `;
+
+                const container = document.querySelector('.container-fluid');
+                const billingCard = container.querySelector('.card');
+                billingCard.parentNode.insertBefore(successAlert, billingCard);
+
+                // Auto-dismiss after 8 seconds
+                setTimeout(() => {
+                    if (successAlert.parentNode) {
+                        successAlert.remove();
+                    }
+                }, 8000);
+            }
+        }
+        {% endif %}
+
+        // Helper function to update service price in the UI
+        function updateServicePrice(serviceId, price) {
+            const serviceRows = document.querySelectorAll('.service-row');
+            let targetRow = null;
+
+            // Find the row associated with the selected service ID
+            serviceRows.forEach(row => {
+                const selectElement = row.querySelector('select[name="service_ids[]"]');
+                if (selectElement && selectElement.value === serviceId) {
+                    targetRow = row;
+                }
+            });
+
+            if (targetRow) {
+                const priceInput = targetRow.querySelector('input[name="service_prices[]"]'); // Assuming such input exists or needs to be added
+                if (priceInput) {
+                    priceInput.value = parseFloat(price).toFixed(2);
+                }
+            } else if (serviceId === '') { // Handle deselection or "Select Service"
+                // If no service is selected, we don't need to update a price input
+            } else {
+                // If the service is not found in existing rows, it might be a new one
+                // Or an auto-populated one. We need to ensure the price is set correctly.
+                // For auto-populated, the price should be handled by handleServiceSelection itself.
+                console.log(`Could not find row for service ID: ${serviceId} to update price directly.`);
+            }
+        }
+
+
+function handleServiceSelection(selectElement) {
+    const selectedOption = selectElement.options[selectElement.selectedIndex];
+
+    if (selectedOption && selectedOption.value) {
+        // Extract price from data attribute or option text
+        let price = selectedOption.dataset.price;
+
+        if (!price) {
+            // Try to extract price from option text
+            const priceMatch = selectedOption.text.match(/₹([\d,]+\.?\d*)/);
+            if (priceMatch) {
+                price = parseFloat(priceMatch[1].replace(/,/g, ''));
+                // Store it for future use
+                selectedOption.dataset.price = price.toString();
+            }
+        }
+
+        if (price) {
+            console.log(`Service selected: ${selectedOption.text}, Price: ₹${price}`);
+            updateServicePrice(selectElement.value, price);
+
+            // Trigger calculation update
+            setTimeout(() => {
+                updateTaxCalculations();
+            }, 50);
+        } else {
+            console.warn('No price found for selected service:', selectedOption.text);
+            updateServicePrice(selectElement.value, '0.00');
+        }
+    } else {
+        // Reset for empty selection
+        updateServicePrice(selectElement.value, '0.00');
+        setTimeout(() => {
+            updateTaxCalculations();
+        }, 50);
+    }
+}
+
+// Initialize components and event listeners
+        window.addServiceRow = addServiceRow;
+        window.addAppointmentToBill = addAppointmentToBill;
+        window.previewInvoice = previewInvoice;
+        window.proceedWithInvoiceCreation = proceedWithInvoiceCreation;
+        window.saveAsDraft = saveAsDraft;
+        window.sendQuotation = sendQuotation;
+        window.clearForm = clearForm;
+        window.findEmptyServiceRow = findEmptyServiceRow;
+        window.autoFillCurrentServices = autoFillCurrentServices;
+        window.viewFullCustomerHistory = viewFullCustomerHistory;
+        window.handleServiceSelection = handleServiceSelection;
+        window.updateTaxCalculations = updateTaxCalculations;
+        window.loadBatchesForProduct = loadBatchesForProduct;
+        window.validateInventoryQuantity = validateInventoryQuantity;
+
+        // Set up tax calculation listeners
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Setting up tax calculation listeners...');
+
+            // Tax input listeners
+            const taxInputs = document.querySelectorAll('.tax-input, .billing-input');
+            taxInputs.forEach(input => {
+                input.addEventListener('input', updateTaxCalculations);
+                input.addEventListener('change', updateTaxCalculations);
+            });
+
+            // Service selection listeners
+            document.addEventListener('change', function(e) {
+                if (e.target.matches('select[name="service_ids[]"]') ||
+                    e.target.matches('input[name="service_quantities[]"]') ||
+                    e.target.matches('input[name="product_quantities[]"]') ||
+                    e.target.matches('input[name="product_prices[]"]')) {
+                    updateTaxCalculations();
+                }
+            });
+
+            // Initial calculation
+            updateTaxCalculations();
+
+            console.log('Tax calculation listeners set up successfully');
+        });
+
+        // Setup event listeners for service selection changes
+        function setupServiceChangeListeners() {
+            // Monitor service dropdown changes
+            document.addEventListener('change', function(event) {
+                if (event.target.matches('select[name="service_ids[]"]') ||
+                    event.target.matches('input[name="service_quantities[]"]')) {
+                    // Service or quantity changed, update calculations
+                    handleServiceSelection(event.target);
+                    setTimeout(updateTaxCalculations, 100); // Small delay to ensure DOM is updated
+                }
+            });
+
+            // Monitor input changes for quantities
+            document.addEventListener('input', function(event) {
+                if (event.target.matches('input[name="service_quantities[]"]') ||
+                    event.target.matches('input[name="product_quantities[]"]') ||
+                    event.target.matches('input[name="product_prices[]"]')) {
+                    setTimeout(updateTaxCalculations, 100);
+                }
+            });
+
+            // Monitor when new service rows are added
+            const observer = new MutationObserver(function(mutations) {
+                mutations.forEach(function(mutation) {
+                    mutation.addedNodes.forEach(function(node) {
+                        if (node.nodeType === 1 && node.classList.contains('service-row')) {
+                            // New service row added, attach listeners
+                            const serviceSelect = node.querySelector('select[name="service_ids[]"]');
+                            const quantityInput = node.querySelector('input[name="service_quantities[]"]');
+
+                            if (serviceSelect) {
+                                serviceSelect.addEventListener('change', (e) => {
+                                    handleServiceSelection(e.target);
+                                    setTimeout(updateTaxCalculations, 100);
+                                });
+                            }
+
+                            if (quantityInput) {
+                                quantityInput.addEventListener('input', () => {
+                                    setTimeout(updateTaxCalculations, 100);
+                                });
+                            }
+                        }
+                    });
+                });
+            });
+
+            observer.observe(document.getElementById('servicesContainer'), {
+                childList: true,
+                subtree: true
+            });
+        }
+
+        // --- Action button handlers ---
+        function proceedWithInvoiceCreation() {
+            document.getElementById('billingForm').submit();
+        }
+
+        function printInvoice() {
+            const invoiceId = document.getElementById('printInvoiceBtn').dataset.invoiceId;
+            if (invoiceId) {
+                window.open(`/integrated-billing/print-invoice/${invoiceId}`, '_blank');
+            } else {
+                alert('Invoice ID not found. Cannot print.');
+            }
+        }
+
+        function emailInvoice() {
+            const invoiceId = document.getElementById('emailInvoiceBtn').dataset.invoiceId;
+            if (invoiceId) {
+                // In a real application, this would trigger an email sending process
+                alert(`Email invoice functionality for Invoice ID: ${invoiceId} is being processed.`);
+                // Example: fetch(`/integrated-billing/email-invoice/${invoiceId}`) ...
+            } else {
+                alert('Invoice ID not found. Cannot email.');
+            }
+        }
+
+        function whatsappInvoice() {
+            const invoiceId = document.getElementById('whatsappInvoiceBtn').dataset.invoiceId;
+            if (invoiceId) {
+                // In a real application, this would trigger a WhatsApp sharing process
+                alert(`WhatsApp invoice functionality for Invoice ID: ${invoiceId} is being processed.`);
+                // Example: fetch(`/integrated-billing/whatsapp-invoice/${invoiceId}`) ...
+            } else {
+                alert('Invoice ID not found. Cannot send via WhatsApp.');
+            }
+        }
+
+        // Auto-select customer and load appointments if coming from appointment context menu
+        document.addEventListener('DOMContentLoaded', function() {
+            // Handle customer selection change
+            const clientSelect = document.getElementById('client_id');
+            if (clientSelect) {
+                clientSelect.addEventListener('change', function() {
+                    const customerId = this.value;
+                    if (customerId) {
+                        console.log('Loading client data for ID:', customerId);
+                        loadCustomerPackages(customerId);
+                        loadCustomerAppointments(customerId);
+                    } else {
+                        // Clear packages display
+                        document.getElementById('customerPackages').innerHTML = 
+                            '<small><i class="fas fa-info-circle me-1"></i>Select a customer to view their active packages</small>';
+                        // Clear appointments section if it exists
+                        let appointmentsSection = document.querySelector('.card.border-info');
+                        if (appointmentsSection) {
+                            appointmentsSection.style.display = 'none';
+                        }
+                    }
+                });
+            }
+
+            // Function to load customer appointments dynamically
+            function loadCustomerAppointments(customerId) {
+                console.log('🔍 Fetching appointments for customer:', customerId);
+
+                fetch(`/api/customer/${customerId}/appointments`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            console.log('✅ Appointments loaded:', data.appointments.length);
+                            displayCustomerAppointments(data);
+                        } else {
+                            console.error('❌ Failed to load appointments:', data.error);
+                            showNotification('Failed to load appointments: ' + data.error, 'error');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('❌ Error fetching appointments:', error);
+                        showNotification('Error loading appointments. Please try again.', 'error');
+                    });
+            }
+
+            // Function to display customer appointments
+            function displayCustomerAppointments(data) {
+                const appointments = data.appointments;
+                const services = data.services;
+                const customer = data.customer;
+
+                // Find or create the appointments section
+                let appointmentsSection = document.querySelector('.card.border-info');
+                const container = document.querySelector('.col-12'); // Container where the card should be appended
+
+                if (!appointmentsSection && container) {
+                    // Create the section if it doesn't exist
+                    appointmentsSection = document.createElement('div');
+                    appointmentsSection.className = 'card border-info mb-4';
+                    container.appendChild(appointmentsSection);
+                }
+
+                if (!appointmentsSection) return; // Exit if section still not found
+
+                // Build the HTML
+                let html = `
+                    <div class="card-header bg-info text-white">
+                        <h6 class="mb-0">
+                            <i class="fas fa-user me-2"></i>${customer.name}'s Current Bookings
+                            <span class="badge bg-primary text-white ms-2">${appointments.length} Ready to Bill</span>
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                `;
+
+                if (services.length > 0) {
+                    html += `
+                        <div class="alert alert-success">
+                            <i class="fas fa-check-circle me-2"></i>
+                            <strong>${services.length} Different Services Found</strong> - Ready to add to bill
+                        </div>
+                        <h6 class="text-primary mb-3">Available Services for Billing:</h6>
+                        <div class="row">
+                    `;
+
+                    services.forEach(service => {
+                        // Ensure price is formatted correctly
+                        const formattedPrice = parseFloat(service.price).toFixed(2);
+                        html += `
+                            <div class="col-md-4 mb-2">
+                                <div class="d-flex align-items-center">
+                                    <i class="fas fa-spa text-success me-2"></i>
+                                    <span class="fw-bold">${service.name}</span>
+                                    <span class="text-muted ms-2">₹${formattedPrice}</span>
+                                </div>
+                            </div>
+                        `;
+                    });
+
+                    html += `
+                        </div>
+                    `;
+                }
+
+                if (appointments.length > 0) {
+                    html += `
+                        <hr>
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h6 class="text-success mb-0">
+                                <i class="fas fa-clock me-1"></i>All Confirmed Bookings Ready for Billing
+                            </h6>
+                            <div class="badge bg-success fs-6">${appointments.length} Bookings Found</div>
+                        </div>
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            These are all the confirmed/scheduled appointments for <strong>${customer.name}</strong> that can be billed.
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-sm table-bordered">
+                                <thead class="table-success">
+                                    <tr>
+                                        <th>Date & Time</th>
+                                        <th>Service</th>
+                                        <th>Staff</th>
+                                        <th>Status</th>
+                                        <th>Amount</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                    `;
+
+                    appointments.forEach(appointment => {
+                        // Format appointment details
+                        const formattedDate = appointment.appointment_date || 'N/A';
+                        const formattedStartTime = appointment.start_time || 'N/A';
+                        const formattedEndTime = appointment.end_time || 'N/A';
+                        const formattedServicePrice = parseFloat(appointment.service_price).toFixed(2);
+
+                        html += `
+                            <tr class="bg-light">
+                                <td>
+                                    <strong>${formattedDate}</strong><br>
+                                    <small class="text-muted">${formattedStartTime} - ${formattedEndTime}</small>
+                                </td>
+                                <td>
+                                    <strong>${appointment.service_name || 'N/A'}</strong><br>
+                                    <small class="text-muted">${appointment.service_duration || 0} mins</small>
+                                </td>
+                                <td>${appointment.staff_name || 'N/A'}</td>
+                                <td>
+                                    <span class="badge badge-warning">${appointment.status ? appointment.status.charAt(0).toUpperCase() + appointment.status.slice(1) : 'Unknown'}</span>
+                                </td>
+                                <td>
+                                    <strong class="text-success">₹${formattedServicePrice}</strong>
+                                </td>
+                                <td>
+                                    <button type="button" class="btn btn-primary btn-sm" 
+                                            onclick="addAppointmentToBill('${appointment.service_name || 'Unknown Service'}', ${parseFloat(appointment.service_price || 0)}, ${parseInt(appointment.service_duration || 0)})">
+                                        <i class="fas fa-plus me-1"></i>Add to Bill
+                                    </button>
+                                </td>
+                            </tr>
+                        `;
+                    });
+
+                    html += `
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="mt-3">
+                            <button type="button" class="btn btn-outline-primary btn-sm" onclick="autoFillAllAppointments()">
+                                <i class="fas fa-bolt me-1"></i>Auto-Fill ALL Bookings to Bill
+                            </button>
+                            <small class="text-muted d-block mt-1">
+                                <i class="fas fa-lightbulb me-1"></i>
+                                Auto-Fill will add all ${appointments.length} confirmed bookings to your billing form instantly
+                            </small>
+                        </div>
+                    `;
+                } else {
+                    html += `
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <strong>No ready-to-bill bookings found.</strong> This customer has no scheduled or confirmed appointments ready for billing.
+                        </div>
+                    `;
+                }
+
+                html += `
+                    </div>
+                `;
+
+                appointmentsSection.innerHTML = html;
+                appointmentsSection.style.display = 'block'; // Make section visible
+            }
+
+            // Helper function to add appointment to billing form
+            function addAppointmentToBill(serviceName, servicePrice, serviceDuration) {
+                // Find the service in the dropdown
+                const serviceSelect = document.querySelector('select[name="service_ids[]"]');
+                if (serviceSelect) {
+                    // Find matching option
+                    let matchedOption = null;
+                    for (let i = 0; i < serviceSelect.options.length; i++) {
+                        const option = serviceSelect.options[i];
+                        if (option.value && option.text.toLowerCase().includes(serviceName.toLowerCase())) {
+                            matchedOption = option;
+                            break;
+                        }
+                    }
+
+                    if (matchedOption) {
+                        serviceSelect.value = matchedOption.value;
+                        // Trigger handleServiceSelection to update price and trigger calculations
+                        handleServiceSelection(serviceSelect);
+                        showNotification(`Service "${serviceName}" added to bill successfully!`, 'success');
+                    } else {
+                        showNotification(`Service "${serviceName}" not found in the dropdown. Please add it manually.`, 'warning');
+                    }
+                } else {
+                    showNotification('Service dropdown not found.', 'error');
+                }
+            }
+
+            // Helper function to auto-fill all appointments
+            function autoFillAllAppointments() {
+                showNotification('Auto-fill feature is under development.', 'info');
+            }
+
+            // Auto-select customer and load appointments if coming from appointment context menu
+            {% if selected_customer %}
+            const customerSelect = document.getElementById('client_id');
+            if (customerSelect) {
+                customerSelect.value = '{{ selected_customer.id }}';
+                // Trigger change event to load customer packages and appointments
+                customerSelect.dispatchEvent(new Event('change'));
+
+                // Show single consolidated notification
+                showNotification(
+                    'Customer Auto-Selected: {{ selected_customer.full_name }}' + 
+                    {% if customer_appointments|length > 0 %}
+                    ' - {{ customer_appointments|length }} pending appointment{{ "s" if customer_appointments|length != 1 else "" }} ready for billing'
+                    {% else %}
+                    ''
+                    {% endif %},
+                    'info'
+                );
+            }
+            {% endif %}
+        });
+
+        // Function to populate services from customer appointments
+        {% if customer_appointments %}
+        function populateCustomerAppointments() {
+            const appointments = {{ customer_appointments | tojson }};
+
+            if (appointments && appointments.length > 0) {
+                // Add success message
+                const successAlert = document.createElement('div');
+                successAlert.className = 'alert alert-success alert-dismissible fade show mt-3';
+                successAlert.innerHTML = `
+                    <i class="fas fa-check-circle me-2"></i>
+                    <strong>Services Ready for Billing:</strong> ${appointments.length} service${appointments.length !== 1 ? 's' : ''} from pending appointments
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                `;
+
+                const container = document.querySelector('.container-fluid');
+                const billingCard = container.querySelector('.card');
+                billingCard.parentNode.insertBefore(successAlert, billingCard);
+
+                // Auto-dismiss after 8 seconds
+                setTimeout(() => {
+                    if (successAlert.parentNode) {
+                        successAlert.remove();
+                    }
+                }, 8000);
+            }
+        }
+        {% endif %}
+
+        // Helper function to update service price in the UI
+        function updateServicePrice(serviceId, price) {
+            const serviceRows = document.querySelectorAll('.service-row');
+            let targetRow = null;
+
+            // Find the row associated with the selected service ID
+            serviceRows.forEach(row => {
+                const selectElement = row.querySelector('select[name="service_ids[]"]');
+                if (selectElement && selectElement.value === serviceId) {
+                    targetRow = row;
+                }
+            });
+
+            if (targetRow) {
+                const priceInput = targetRow.querySelector('input[name="service_prices[]"]'); // Assuming such input exists or needs to be added
+                if (priceInput) {
+                    priceInput.value = parseFloat(price).toFixed(2);
+                }
+            } else if (serviceId === '') { // Handle deselection or "Select Service"
+                // If no service is selected, we don't need to update a price input
+            } else {
+                // If the service is not found in existing rows, it might be a new one
+                // Or an auto-populated one. We need to ensure the price is set correctly.
+                // For auto-populated, the price should be handled by handleServiceSelection itself.
+                console.log(`Could not find row for service ID: ${serviceId} to update price directly.`);
+            }
+        }
+
+
+function handleServiceSelection(selectElement) {
+    const selectedOption = selectElement.options[selectElement.selectedIndex];
+
+    if (selectedOption && selectedOption.value) {
+        // Extract price from data attribute or option text
+        let price = selectedOption.dataset.price;
+
+        if (!price) {
+            // Try to extract price from option text
+            const priceMatch = selectedOption.text.match(/₹([\d,]+\.?\d*)/);
+            if (priceMatch) {
+                price = parseFloat(priceMatch[1].replace(/,/g, ''));
+                // Store it for future use
+                selectedOption.dataset.price = price.toString();
+            }
+        }
+
+        if (price) {
+            console.log(`Service selected: ${selectedOption.text}, Price: ₹${price}`);
+            updateServicePrice(selectElement.value, price);
+
+            // Trigger calculation update
+            setTimeout(() => {
+                updateTaxCalculations();
+            }, 50);
+        } else {
+            console.warn('No price found for selected service:', selectedOption.text);
+            updateServicePrice(selectElement.value, '0.00');
+        }
+    } else {
+        // Reset for empty selection
+        updateServicePrice(selectElement.value, '0.00');
+        setTimeout(() => {
+            updateTaxCalculations();
+        }, 50);
+    }
+}
+
+// Initialize components and event listeners
+        window.addServiceRow = addServiceRow;
+        window.addAppointmentToBill = addAppointmentToBill;
+        window.previewInvoice = previewInvoice;
+        window.proceedWithInvoiceCreation = proceedWithInvoiceCreation;
+        window.saveAsDraft = saveAsDraft;
+        window.sendQuotation = sendQuotation;
+        window.clearForm = clearForm;
+        window.findEmptyServiceRow = findEmptyServiceRow;
+        window.autoFillCurrentServices = autoFillCurrentServices;
+        window.viewFullCustomerHistory = viewFullCustomerHistory;
+        window.handleServiceSelection = handleServiceSelection;
+        window.updateTaxCalculations = updateTaxCalculations;
+        window.loadBatchesForProduct = loadBatchesForProduct;
+        window.validateInventoryQuantity = validateInventoryQuantity;
+
+        // Set up tax calculation listeners
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Setting up tax calculation listeners...');
+
+            // Tax input listeners
+            const taxInputs = document.querySelectorAll('.tax-input, .billing-input');
+            taxInputs.forEach(input => {
+                input.addEventListener('input', updateTaxCalculations);
+                input.addEventListener('change', updateTaxCalculations);
+            });
+
+            // Service selection listeners
+            document.addEventListener('change', function(e) {
+                if (e.target.matches('select[name="service_ids[]"]') ||
+                    e.target.matches('input[name="service_quantities[]"]') ||
+                    e.target.matches('input[name="product_quantities[]"]') ||
+                    e.target.matches('input[name="product_prices[]"]')) {
+                    updateTaxCalculations();
+                }
+            });
+
+            // Initial calculation
+            updateTaxCalculations();
+
+            console.log('Tax calculation listeners set up successfully');
+        });
+
+        // Setup event listeners for service selection changes
+        function setupServiceChangeListeners() {
+            // Monitor service dropdown changes
+            document.addEventListener('change', function(event) {
+                if (event.target.matches('select[name="service_ids[]"]') ||
+                    event.target.matches('input[name="service_quantities[]"]')) {
+                    // Service or quantity changed, update calculations
+                    handleServiceSelection(event.target);
+                    setTimeout(updateTaxCalculations, 100); // Small delay to ensure DOM is updated
+                }
+            });
+
+            // Monitor input changes for quantities
+            document.addEventListener('input', function(event) {
+                if (event.target.matches('input[name="service_quantities[]"]') ||
+                    event.target.matches('input[name="product_quantities[]"]') ||
+                    event.target.matches('input[name="product_prices[]"]')) {
+                    setTimeout(updateTaxCalculations, 100);
+                }
+            });
+
+            // Monitor when new service rows are added
+            const observer = new MutationObserver(function(mutations) {
+                mutations.forEach(function(mutation) {
+                    mutation.addedNodes.forEach(function(node) {
+                        if (node.nodeType === 1 && node.classList.contains('service-row')) {
+                            // New service row added, attach listeners
+                            const serviceSelect = node.querySelector('select[name="service_ids[]"]');
+                            const quantityInput = node.querySelector('input[name="service_quantities[]"]');
+
+                            if (serviceSelect) {
+                                serviceSelect.addEventListener('change', (e) => {
+                                    handleServiceSelection(e.target);
+                                    setTimeout(updateTaxCalculations, 100);
+                                });
+                            }
+
+                            if (quantityInput) {
+                                quantityInput.addEventListener('input', () => {
+                                    setTimeout(updateTaxCalculations, 100);
+                                });
+                            }
+                        }
+                    });
+                });
+            });
+
+            observer.observe(document.getElementById('servicesContainer'), {
+                childList: true,
+                subtree: true
+            });
+        }
+
+        // --- Action button handlers ---
+        function proceedWithInvoiceCreation() {
+            document.getElementById('billingForm').submit();
+        }
+
+        function printInvoice() {
+            const invoiceId = document.getElementById('printInvoiceBtn').dataset.invoiceId;
+            if (invoiceId) {
+                window.open(`/integrated-billing/print-invoice/${invoiceId}`, '_blank');
+            } else {
+                alert('Invoice ID not found. Cannot print.');
+            }
+        }
+
+        function emailInvoice() {
+            const invoiceId = document.getElementById('emailInvoiceBtn').dataset.invoiceId;
+            if (invoiceId) {
+                // In a real application, this would trigger an email sending process
+                alert(`Email invoice functionality for Invoice ID: ${invoiceId} is being processed.`);
+                // Example: fetch(`/integrated-billing/email-invoice/${invoiceId}`) ...
+            } else {
+                alert('Invoice ID not found. Cannot email.');
+            }
+        }
+
+        function whatsappInvoice() {
+            const invoiceId = document.getElementById('whatsappInvoiceBtn').dataset.invoiceId;
+            if (invoiceId) {
+                // In a real application, this would trigger a WhatsApp sharing process
+                alert(`WhatsApp invoice functionality for Invoice ID: ${invoiceId} is being processed.`);
+                // Example: fetch(`/integrated-billing/whatsapp-invoice/${invoiceId}`) ...
+            } else {
+                alert('Invoice ID not found. Cannot send via WhatsApp.');
+            }
+        }
+
+        // Auto-select customer and load appointments if coming from appointment context menu
+        document.addEventListener('DOMContentLoaded', function() {
+            // Handle customer selection change
+            const clientSelect = document.getElementById('client_id');
+            if (clientSelect) {
+                clientSelect.addEventListener('change', function() {
+                    const customerId = this.value;
+                    if (customerId) {
+                        console.log('Loading client data for ID:', customerId);
+                        loadCustomerPackages(customerId);
+                        loadCustomerAppointments(customerId);
+                    } else {
+                        // Clear packages display
+                        document.getElementById('customerPackages').innerHTML = 
+                            '<small><i class="fas fa-info-circle me-1"></i>Select a customer to view their active packages</small>';
+                        // Clear appointments section if it exists
+                        let appointmentsSection = document.querySelector('.card.border-info');
+                        if (appointmentsSection) {
+                            appointmentsSection.style.display = 'none';
+                        }
+                    }
+                });
+            }
+
+            // Function to load customer appointments dynamically
+            function loadCustomerAppointments(customerId) {
+                console.log('🔍 Fetching appointments for customer:', customerId);
+
+                fetch(`/api/customer/${customerId}/appointments`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            console.log('✅ Appointments loaded:', data.appointments.length);
+                            displayCustomerAppointments(data);
+                        } else {
+                            console.error('❌ Failed to load appointments:', data.error);
+                            showNotification('Failed to load appointments: ' + data.error, 'error');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('❌ Error fetching appointments:', error);
+                        showNotification('Error loading appointments. Please try again.', 'error');
+                    });
+            }
+
+            // Function to display customer appointments
+            function displayCustomerAppointments(data) {
+                const appointments = data.appointments;
+                const services = data.services;
+                const customer = data.customer;
+
+                // Find or create the appointments section
+                let appointmentsSection = document.querySelector('.card.border-info');
+                const container = document.querySelector('.col-12'); // Container where the card should be appended
+
+                if (!appointmentsSection && container) {
+                    // Create the section if it doesn't exist
+                    appointmentsSection = document.createElement('div');
+                    appointmentsSection.className = 'card border-info mb-4';
+                    container.appendChild(appointmentsSection);
+                }
+
+                if (!appointmentsSection) return; // Exit if section still not found
+
+                // Build the HTML
+                let html = `
+                    <div class="card-header bg-info text-white">
+                        <h6 class="mb-0">
+                            <i class="fas fa-user me-2"></i>${customer.name}'s Current Bookings
+                            <span class="badge bg-primary text-white ms-2">${appointments.length} Ready to Bill</span>
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                `;
+
+                if (services.length > 0) {
+                    html += `
+                        <div class="alert alert-success">
+                            <i class="fas fa-check-circle me-2"></i>
+                            <strong>${services.length} Different Services Found</strong> - Ready to add to bill
+                        </div>
+                        <h6 class="text-primary mb-3">Available Services for Billing:</h6>
+                        <div class="row">
+                    `;
+
+                    services.forEach(service => {
+                        // Ensure price is formatted correctly
+                        const formattedPrice = parseFloat(service.price).toFixed(2);
+                        html += `
+                            <div class="col-md-4 mb-2">
+                                <div class="d-flex align-items-center">
+                                    <i class="fas fa-spa text-success me-2"></i>
+                                    <span class="fw-bold">${service.name}</span>
+                                    <span class="text-muted ms-2">₹${formattedPrice}</span>
+                                </div>
+                            </div>
+                        `;
+                    });
+
+                    html += `
+                        </div>
+                    `;
+                }
+
+                if (appointments.length > 0) {
+                    html += `
+                        <hr>
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h6 class="text-success mb-0">
+                                <i class="fas fa-clock me-1"></i>All Confirmed Bookings Ready for Billing
+                            </h6>
+                            <div class="badge bg-success fs-6">${appointments.length} Bookings Found</div>
+                        </div>
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            These are all the confirmed/scheduled appointments for <strong>${customer.name}</strong> that can be billed.
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-sm table-bordered">
+                                <thead class="table-success">
+                                    <tr>
+                                        <th>Date & Time</th>
+                                        <th>Service</th>
+                                        <th>Staff</th>
+                                        <th>Status</th>
+                                        <th>Amount</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                    `;
+
+                    appointments.forEach(appointment => {
+                        // Format appointment details
+                        const formattedDate = appointment.appointment_date || 'N/A';
+                        const formattedStartTime = appointment.start_time || 'N/A';
+                        const formattedEndTime = appointment.end_time || 'N/A';
+                        const formattedServicePrice = parseFloat(appointment.service_price).toFixed(2);
+
+                        html += `
+                            <tr class="bg-light">
+                                <td>
+                                    <strong>${formattedDate}</strong><br>
+                                    <small class="text-muted">${formattedStartTime} - ${formattedEndTime}</small>
+                                </td>
+                                <td>
+                                    <strong>${appointment.service_name || 'N/A'}</strong><br>
+                                    <small class="text-muted">${appointment.service_duration || 0} mins</small>
+                                </td>
+                                <td>${appointment.staff_name || 'N/A'}</td>
+                                <td>
+                                    <span class="badge badge-warning">${appointment.status ? appointment.status.charAt(0).toUpperCase() + appointment.status.slice(1) : 'Unknown'}</span>
+                                </td>
+                                <td>
+                                    <strong class="text-success">₹${formattedServicePrice}</strong>
+                                </td>
+                                <td>
+                                    <button type="button" class="btn btn-primary btn-sm" 
+                                            onclick="addAppointmentToBill('${appointment.service_name || 'Unknown Service'}', ${parseFloat(appointment.service_price || 0)}, ${parseInt(appointment.service_duration || 0)})">
+                                        <i class="fas fa-plus me-1"></i>Add to Bill
+                                    </button>
+                                </td>
+                            </tr>
+                        `;
+                    });
+
+                    html += `
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="mt-3">
+                            <button type="button" class="btn btn-outline-primary btn-sm" onclick="autoFillAllAppointments()">
+                                <i class="fas fa-bolt me-1"></i>Auto-Fill ALL Bookings to Bill
+                            </button>
+                            <small class="text-muted d-block mt-1">
+                                <i class="fas fa-lightbulb me-1"></i>
+                                Auto-Fill will add all ${appointments.length} confirmed bookings to your billing form instantly
+                            </small>
+                        </div>
+                    `;
+                } else {
+                    html += `
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <strong>No ready-to-bill bookings found.</strong> This customer has no scheduled or confirmed appointments ready for billing.
+                        </div>
+                    `;
+                }
+
+                html += `
+                    </div>
+                `;
+
+                appointmentsSection.innerHTML = html;
+                appointmentsSection.style.display = 'block'; // Make section visible
+            }
+
+            // Helper function to add appointment to billing form
+            function addAppointmentToBill(serviceName, servicePrice, serviceDuration) {
+                // Find the service in the dropdown
+                const serviceSelect = document.querySelector('select[name="service_ids[]"]');
+                if (serviceSelect) {
+                    // Find matching option
+                    let matchedOption = null;
+                    for (let i = 0; i < serviceSelect.options.length; i++) {
+                        const option = serviceSelect.options[i];
+                        if (option.value && option.text.toLowerCase().includes(serviceName.toLowerCase())) {
+                            matchedOption = option;
+                            break;
+                        }
+                    }
+
+                    if (matchedOption) {
+                        serviceSelect.value = matchedOption.value;
+                        // Trigger handleServiceSelection to update price and trigger calculations
+                        handleServiceSelection(serviceSelect);
+                        showNotification(`Service "${serviceName}" added to bill successfully!`, 'success');
+                    } else {
+                        showNotification(`Service "${serviceName}" not found in the dropdown. Please add it manually.`, 'warning');
+                    }
+                } else {
+                    showNotification('Service dropdown not found.','error');
+                }
+            }
+
+            // Helper function to auto-fill all appointments
+            function autoFillAllAppointments() {
+                showNotification('Auto-fill feature is under development.', 'info');
+            }
+
+            // Auto-select customer and load appointments if coming from appointment context menu
+            {% if selected_customer %}
+            const customerSelect = document.getElementById('client_id');
+            if (customerSelect) {
+                customerSelect.value = '{{ selected_customer.id }}';
+                // Trigger change event to load customer packages and appointments
+                customerSelect.dispatchEvent(new Event('change'));
+
+                // Show single consolidated notification
+                showNotification(
+                    'Customer Auto-Selected: {{ selected_customer.full_name }}' + 
+                    {% if customer_appointments|length > 0 %}
+                    ' - {{ customer_appointments|length }} pending appointment{{ "s" if customer_appointments|length != 1 else "" }} ready for billing'
+                    {% else %}
+                    ''
+                    {% endif %},
+                    'info'
+                );
+            }
+            {% endif %}
+        });
+
+        // Function to populate services from customer appointments
+        {% if customer_appointments %}
+        function populateCustomerAppointments() {
+            const appointments = {{ customer_appointments | tojson }};
+
+            if (appointments && appointments.length > 0) {
+                // Add success message
+                const successAlert = document.createElement('div');
+                successAlert.className = 'alert alert-success alert-dismissible fade show mt-3';
+                successAlert.innerHTML = `
+                    <i class="fas fa-check-circle me-2"></i>
+                    <strong>Services Ready for Billing:</strong> ${appointments.length} service${appointments.length !== 1 ? 's' : ''} from pending appointments
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                `;
+
+                const container = document.querySelector('.container-fluid');
+                const billingCard = container.querySelector('.card');
+                billingCard.parentNode.insertBefore(successAlert, billingCard);
+
+                // Auto-dismiss after 8 seconds
+                setTimeout(() => {
+                    if (successAlert.parentNode) {
+                        successAlert.remove();
+                    }
+                }, 8000);
+            }
+        }
+        {% endif %}
+
+        // Helper function to update service price in the UI
+        function updateServicePrice(serviceId, price) {
+            const serviceRows = document.querySelectorAll('.service-row');
+            let targetRow = null;
+
+            // Find the row associated with the selected service ID
+            serviceRows.forEach(row => {
+                const selectElement = row.querySelector('select[name="service_ids[]"]');
+                if (selectElement && selectElement.value === serviceId) {
+                    targetRow = row;
+                }
+            });
+
+            if (targetRow) {
+                const priceInput = targetRow.querySelector('input[name="service_prices[]"]'); // Assuming such input exists or needs to be added
+                if (priceInput) {
+                    priceInput.value = parseFloat(price).toFixed(2);
+                }
+            } else if (serviceId === '') { // Handle deselection or "Select Service"
+                // If no service is selected, we don't need to update a price input
+            } else {
+                // If the service is not found in existing rows, it might be a new one
+                // Or an auto-populated one. We need to ensure the price is set correctly.
+                // For auto-populated, the price should be handled by handleServiceSelection itself.
+                console.log(`Could not find row for service ID: ${serviceId} to update price directly.`);
+            }
+        }
+
+
+function handleServiceSelection(selectElement) {
+    const selectedOption = selectElement.options[selectElement.selectedIndex];
+
+    if (selectedOption && selectedOption.value) {
+        // Extract price from data attribute or option text
+        let price = selectedOption.dataset.price;
+
+        if (!price) {
+            // Try to extract price from option text
+            const priceMatch = selectedOption.text.match(/₹([\d,]+\.?\d*)/);
+            if (priceMatch) {
+                price = parseFloat(priceMatch[1].replace(/,/g, ''));
+                // Store it for future use
+                selectedOption.dataset.price = price.toString();
+            }
+        }
+
+        if (price) {
+            console.log(`Service selected: ${selectedOption.text}, Price: ₹${price}`);
+            updateServicePrice(selectElement.value, price);
+
+            // Trigger calculation update
+            setTimeout(() => {
+                updateTaxCalculations();
+            }, 50);
+        } else {
+            console.warn('No price found for selected service:', selectedOption.text);
+            updateServicePrice(selectElement.value, '0.00');
+        }
+    } else {
+        // Reset for empty selection
+        updateServicePrice(selectElement.value, '0.00');
+        setTimeout(() => {
+            updateTaxCalculations();
+        }, 50);
+    }
+}
+
+// Initialize components and event listeners
+        window.addServiceRow = addServiceRow;
+        window.addAppointmentToBill = addAppointmentToBill;
+        window.previewInvoice = previewInvoice;
+        window.proceedWithInvoiceCreation = proceedWithInvoiceCreation;
+        window.saveAsDraft = saveAsDraft;
+        window.sendQuotation = sendQuotation;
+        window.clearForm = clearForm;
+        window.findEmptyServiceRow = findEmptyServiceRow;
+        window.autoFillCurrentServices = autoFillCurrentServices;
+        window.viewFullCustomerHistory = viewFullCustomerHistory;
+        window.handleServiceSelection = handleServiceSelection;
+        window.updateTaxCalculations = updateTaxCalculations;
+        window.loadBatchesForProduct = loadBatchesForProduct;
+        window.validateInventoryQuantity = validateInventoryQuantity;
+
+        // Set up tax calculation listeners
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Setting up tax calculation listeners...');
+
+            // Tax input listeners
+            const taxInputs = document.querySelectorAll('.tax-input, .billing-input');
+            taxInputs.forEach(input => {
+                input.addEventListener('input', updateTaxCalculations);
+                input.addEventListener('change', updateTaxCalculations);
+            });
+
+            // Service selection listeners
+            document.addEventListener('change', function(e) {
+                if (e.target.matches('select[name="service_ids[]"]') ||
+                    e.target.matches('input[name="service_quantities[]"]') ||
+                    e.target.matches('input[name="product_quantities[]"]') ||
+                    e.target.matches('input[name="product_prices[]"]')) {
+                    updateTaxCalculations();
+                }
+            });
+
+            // Initial calculation
+            updateTaxCalculations();
+
+            console.log('Tax calculation listeners set up successfully');
+        });
+
+        // Setup event listeners for service selection changes
+        function setupServiceChangeListeners() {
+            // Monitor service dropdown changes
+            document.addEventListener('change', function(event) {
+                if (event.target.matches('select[name="service_ids[]"]') ||
+                    event.target.matches('input[name="service_quantities[]"]')) {
+                    // Service or quantity changed, update calculations
+                    handleServiceSelection(event.target);
+                    setTimeout(updateTaxCalculations, 100); // Small delay to ensure DOM is updated
+                }
+            });
+
+            // Monitor input changes for quantities
+            document.addEventListener('input', function(event) {
+                if (event.target.matches('input[name="service_quantities[]"]') ||
+                    event.target.matches('input[name="product_quantities[]"]') ||
+                    event.target.matches('input[name="product_prices[]"]')) {
+                    setTimeout(updateTaxCalculations, 100);
+                }
+            });
+
+            // Monitor when new service rows are added
+            const observer = new MutationObserver(function(mutations) {
+                mutations.forEach(function(mutation) {
+                    mutation.addedNodes.forEach(function(node) {
+                        if (node.nodeType === 1 && node.classList.contains('service-row')) {
+                            // New service row added, attach listeners
+                            const serviceSelect = node.querySelector('select[name="service_ids[]"]');
+                            const quantityInput = node.querySelector('input[name="service_quantities[]"]');
+
+                            if (serviceSelect) {
+                                serviceSelect.addEventListener('change', (e) => {
+                                    handleServiceSelection(e.target);
+                                    setTimeout(updateTaxCalculations, 100);
+                                });
+                            }
+
+                            if (quantityInput) {
+                                quantityInput.addEventListener('input', () => {
+                                    setTimeout(updateTaxCalculations, 100);
+                                });
+                            }
+                        }
+                    });
+                });
+            });
+
+            observer.observe(document.getElementById('servicesContainer'), {
+                childList: true,
+                subtree: true
+            });
+        }
+
+        // --- Action button handlers ---
+        function proceedWithInvoiceCreation() {
+            document.getElementById('billingForm').submit();
+        }
+
+        function printInvoice() {
+            const invoiceId = document.getElementById('printInvoiceBtn').dataset.invoiceId;
+            if (invoiceId) {
+                window.open(`/integrated-billing/print-invoice/${invoiceId}`, '_blank');
+            } else {
+                alert('Invoice ID not found. Cannot print.');
+            }
+        }
+
+        function emailInvoice() {
+            const invoiceId = document.getElementById('emailInvoiceBtn').dataset.invoiceId;
+            if (invoiceId) {
+                // In a real application, this would trigger an email sending process
+                alert(`Email invoice functionality for Invoice ID: ${invoiceId} is being processed.`);
+                // Example: fetch(`/integrated-billing/email-invoice/${invoiceId}`) ...
+            } else {
+                alert('Invoice ID not found. Cannot email.');
+            }
+        }
+
+        function whatsappInvoice() {
+            const invoiceId = document.getElementById('whatsappInvoiceBtn').dataset.invoiceId;
+            if (invoiceId) {
+                // In a real application, this would trigger a WhatsApp sharing process
+                alert(`WhatsApp invoice functionality for Invoice ID: ${invoiceId} is being processed.`);
+                // Example: fetch(`/integrated-billing/whatsapp-invoice/${invoiceId}`) ...
+            } else {
+                alert('Invoice ID not found. Cannot send via WhatsApp.');
             }
         }
 </script>
