@@ -325,57 +325,30 @@ class AppointmentContextMenu {
     goToBilling(appointmentId) {
         console.log(`Redirecting to integrated billing for appointment ${appointmentId}`);
         
-        // Extract client info from appointment data on the page
-        const appointmentElement = document.querySelector(`[data-appointment-id="${appointmentId}"]`);
-        let clientName = '';
-        let clientPhone = '';
-        
-        if (appointmentElement) {
-            // Try to extract client name and phone from the appointment element
-            const clientNameEl = appointmentElement.querySelector('.appointment-client, .client-name');
-            const clientPhoneEl = appointmentElement.querySelector('.appointment-phone, .client-phone');
-            
-            if (clientNameEl) {
-                clientName = clientNameEl.textContent.trim();
-            }
-            if (clientPhoneEl) {
-                clientPhone = clientPhoneEl.textContent.trim();
-            }
-        }
-        
-        // First get the customer ID from the appointment
-        fetch(`/api/appointment/${appointmentId}/customer-id`)
+        // Use the Unaki-specific API endpoint to get booking details
+        fetch(`/api/unaki/bookings/${appointmentId}`)
             .then(response => response.json())
             .then(data => {
-                if (data.success && data.customer_id) {
-                    // Build URL with client data for better matching
-                    let url = `/integrated-billing/${data.customer_id}`;
-                    const params = new URLSearchParams();
+                if (data.success && data.booking) {
+                    const booking = data.booking;
                     
-                    if (clientName) {
-                        params.append('client_name', clientName);
+                    // Try to use client_id if available, otherwise redirect to general billing
+                    if (booking.client_id) {
+                        // Redirect to integrated billing with customer pre-selected
+                        window.location.href = `/appointment/${appointmentId}/go-to-billing`;
+                    } else {
+                        // No client_id, try to match by phone or name
+                        console.warn('No client_id found, redirecting to general billing');
+                        window.location.href = `/appointment/${appointmentId}/go-to-billing`;
                     }
-                    if (clientPhone) {
-                        params.append('client_phone', clientPhone);
-                    }
-                    params.append('appointment_id', appointmentId);
-                    
-                    if (params.toString()) {
-                        url += '?' + params.toString();
-                    }
-                    
-                    // Redirect to integrated billing with customer ID and name for better matching
-                    window.location.href = url;
                 } else {
-                    console.error('Failed to get customer ID:', data.error);
-                    // Fallback to general integrated billing page
-                    window.location.href = '/integrated-billing';
+                    console.error('Failed to get booking details:', data.error);
+                    this.showToast('Failed to load booking details. Please try again.', 'error');
                 }
             })
             .catch(error => {
-                console.error('Error getting customer ID:', error);
-                // Fallback to general integrated billing page
-                window.location.href = '/integrated-billing';
+                console.error('Error getting booking details:', error);
+                this.showToast('Error loading booking details. Please try again.', 'error');
             });
     }
 

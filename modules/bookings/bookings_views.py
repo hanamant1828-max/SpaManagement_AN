@@ -1415,6 +1415,33 @@ def api_unaki_update_booking(booking_id):
         return jsonify({'error': str(e), 'success': False}), 500
 
 
+@app.route('/api/unaki/bookings/<int:booking_id>')
+@login_required
+def api_get_unaki_booking(booking_id):
+    """API endpoint to get Unaki booking details with customer information"""
+    try:
+        from models import UnakiBooking
+        
+        booking = UnakiBooking.query.get(booking_id)
+        if not booking:
+            return jsonify({
+                'success': False,
+                'error': 'Booking not found'
+            }), 404
+        
+        return jsonify({
+            'success': True,
+            'booking': booking.to_dict()
+        })
+    
+    except Exception as e:
+        print(f"Error fetching Unaki booking {booking_id}: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
 @app.route('/api/unaki/check-conflicts', methods=['POST'])
 @login_required
 def api_unaki_check_conflicts():
