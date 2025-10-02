@@ -1125,7 +1125,7 @@ body {
                         <div style="font-size: 10px; color: #6b7280;">Done</div>
                     </div>
                 </div>
-
+                
                 <div class="calendar-actions">
                     <button class="action-btn action-btn-primary" onclick="openMultiBookModal()">
                         <i class="fas fa-plus-circle"></i>
@@ -1351,7 +1351,7 @@ body {
                                 End Time
                             </label>
                             <input type="time" id="editEndTime" class="form-control" readonly
-                                   style="border-radius: 10px; padding: 12px; background: #f0f4f8; font-weight: 600; color: var(--success-color);">
+                                   style="border-radius: 10px; padding: 12px; background: #f0fdf4; font-weight: 600; color: var(--success-color);">
                         </div>
                     </div>
 
@@ -1504,7 +1504,7 @@ body {
                                             End Time
                                         </label>
                                         <input type="time" class="form-control end-time" readonly
-                                               style="border-radius: 10px; padding: 12px; background: #f0f4f8; font-weight: 600; color: var(--success-color);">
+                                               style="border-radius: 10px; padding: 12px; background: #f0fdf4; font-weight: 600; color: var(--success-color);">
                                     </div>
                                 </div>
 
@@ -1856,7 +1856,7 @@ function addAppointment() {
                     End Time
                 </label>
                 <input type="time" class="form-control end-time" readonly
-                       style="border-radius: 10px; padding: 12px; background: #f0f4f8; font-weight: 600; color: var(--success-color);">
+                       style="border-radius: 10px; padding: 12px; background: #f0fdf4; font-weight: 600; color: var(--success-color);">
             </div>
         </div>
 
@@ -2214,26 +2214,10 @@ function hideContextMenu() {
 
 function viewAppointmentDetails() {
     if (selectedAppointmentId) {
-        const id = parseInt(selectedAppointmentId, 10);
-        const booking = bookingsData.find(b => b.id === id);
-        if (booking) {
-            // Populate modal fields (this part is hypothetical as modal structure is not in JS)
-            // For now, just log to console or show an alert
-            console.log('Viewing details for:', booking);
-            alert('Viewing details for appointment: ' + booking.client_name);
-
-            // If you had a dedicated modal for viewing details, you'd populate it here.
-            // Example:
-            // document.getElementById('view-modal-client-name').textContent = booking.client_name;
-            // ... populate other fields
-            // new bootstrap.Modal(document.getElementById('viewAppointmentModal')).show();
-        } else {
-            console.error(`Booking with ID ${id} not found in bookingsData`);
-        }
+        alert('View details for appointment ' + selectedAppointmentId);
     }
     hideContextMenu();
 }
-
 
 function editAppointment() {
     if (selectedAppointmentId) {
@@ -2465,29 +2449,6 @@ function updateCurrentTimeLine() {
         timeLine.style.left = leftPosition + 'px';
         timeLine.style.display = 'block';
     }
-}
-
-// Helper function to get status badge color
-function getStatusColor(status) {
-    switch (status) {
-        case 'scheduled': return 'primary';
-        case 'confirmed': return 'info';
-        case 'checked_in': return 'warning';
-        case 'completed': return 'success';
-        case 'cancelled': return 'danger';
-        case 'no_show': return 'secondary';
-        default: return 'light';
-    }
-}
-
-// Initialize context menu for existing appointments on load
-function reinitializeContextMenu() {
-    document.querySelectorAll('.appointment-block').forEach(block => {
-        block.addEventListener('contextmenu', function(e) {
-            const appointmentId = this.dataset.appointmentId;
-            showContextMenu(e, appointmentId);
-        });
-    });
 }
     </script>
 </body>
