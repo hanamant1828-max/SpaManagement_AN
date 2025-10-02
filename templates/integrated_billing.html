@@ -844,9 +844,17 @@ function addUnakiAppointmentToBill(appointmentId, serviceName, servicePrice, sta
             }
 
             if (matchedServiceId) {
+                // Set the value FIRST
                 serviceSelect.value = matchedServiceId;
                 quantityInput.value = '1';
                 appointmentInput.value = `unaki_${appointmentId}`;
+
+                // CRITICAL: Set the price data attribute BEFORE selecting staff
+                const selectedOption = serviceSelect.options[serviceSelect.selectedIndex];
+                if (selectedOption) {
+                    selectedOption.dataset.price = finalServicePrice.toString();
+                    console.log(`Set service price data attribute: ${finalServicePrice}`);
+                }
 
                 // Auto-select staff if available
                 if (staffName && staffSelect) {
@@ -858,11 +866,6 @@ function addUnakiAppointmentToBill(appointmentId, serviceName, servicePrice, sta
                     }
                 }
 
-                const selectedOption = serviceSelect.options[serviceSelect.selectedIndex];
-                if (selectedOption) {
-                    selectedOption.dataset.price = finalServicePrice.toString();
-                }
-
                 targetRow.style.borderLeft = '4px solid #007bff';
                 targetRow.style.backgroundColor = 'rgba(0, 123, 255, 0.1)';
 
@@ -870,15 +873,17 @@ function addUnakiAppointmentToBill(appointmentId, serviceName, servicePrice, sta
                 if (!indicator) {
                     indicator = document.createElement('small');
                     indicator.className = 'unaki-indicator text-info fw-bold d-block';
-                    indicator.innerHTML = '<i class="fas fa-calendar-check me-1"></i>Unaki Booking';
+                    indicator.innerHTML = `<i class="fas fa-calendar-check me-1"></i>Unaki Booking - ₹${finalServicePrice}`;
                     targetRow.appendChild(indicator);
                 }
 
+                // Trigger the selection handler to update calculations
                 handleServiceSelection(serviceSelect);
 
+                // Force immediate recalculation
                 setTimeout(() => {
                     updateTaxCalculations();
-                }, 200);
+                }, 100);
 
                 showNotification(`Added Unaki booking: ${serviceName} (₹${finalServicePrice}) to bill successfully!`, 'success');
             } else {
@@ -935,14 +940,15 @@ function autoFillCurrentServices() {
             const appointmentInput = targetRow.querySelector('input[name="appointment_ids[]"]');
 
             let matchedServiceId = null;
-            let servicePrice = appointment.service_price || 0;
+            let servicePrice = parseFloat(appointment.service_price) || 0;
 
             for (let option of serviceSelect.options) {
                 if (option.value && option.text.toLowerCase().includes(appointment.service_name.toLowerCase())) {
                     matchedServiceId = option.value;
                     const priceMatch = option.text.match(/₹([\d,]+\.?\d*)/);
                     if (priceMatch) {
-                        servicePrice = parseFloat(priceMatch[1].replace(/,/g, ''));
+                        const systemPrice = parseFloat(priceMatch[1].replace(/,/g, ''));
+                        servicePrice = systemPrice > 0 ? systemPrice : servicePrice;
                     }
                     break;
                 }
@@ -953,13 +959,15 @@ function autoFillCurrentServices() {
                 quantityInput.value = '1';
                 appointmentInput.value = `unaki_${appointment.id}`;
 
-                if (appointment.staff_id && staffSelect) {
-                    staffSelect.value = appointment.staff_id;
+                // CRITICAL: Always set the price data attribute
+                const selectedOption = serviceSelect.options[serviceSelect.selectedIndex];
+                if (selectedOption) {
+                    selectedOption.dataset.price = servicePrice.toString();
+                    console.log(`Auto-fill set price for ${appointment.service_name}: ₹${servicePrice}`);
                 }
 
-                const selectedOption = serviceSelect.options[serviceSelect.selectedIndex];
-                if (selectedOption && !selectedOption.dataset.price) {
-                    selectedOption.dataset.price = servicePrice;
+                if (appointment.staff_id && staffSelect) {
+                    staffSelect.value = appointment.staff_id;
                 }
 
                 targetRow.style.borderLeft = '4px solid #007bff';
@@ -969,7 +977,7 @@ function autoFillCurrentServices() {
                 if (!indicator) {
                     indicator = document.createElement('small');
                     indicator.className = 'unaki-indicator text-info fw-bold d-block';
-                    indicator.innerHTML = '<i class="fas fa-calendar-check me-1"></i>Unaki Booking';
+                    indicator.innerHTML = `<i class="fas fa-calendar-check me-1"></i>Unaki Booking - ₹${servicePrice}`;
                     targetRow.appendChild(indicator);
                 }
 
@@ -996,7 +1004,7 @@ function autoFillCurrentServices() {
 
     setTimeout(() => {
         updateTaxCalculations();
-    }, 100);
+    }, 150);
 
     showNotification(`Auto-filled ${servicesAdded} of ${customerAppointments.length} Unaki appointments with staff assignments!`, servicesAdded > 0 ? 'success' : 'warning');
     {% else %}
