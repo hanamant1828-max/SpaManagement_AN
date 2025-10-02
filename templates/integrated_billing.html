@@ -876,9 +876,20 @@
                                     <span id="productCount">0</span> Products
                                 </small>
                             </div>
-                            <button type="submit" class="btn btn-primary btn-lg px-5">
-                                <i class="fas fa-check-circle me-2"></i>Generate Invoice (₹<span id="grandTotalBtn">0.00</span>)
-                            </button>
+                            <div class="d-flex gap-2 flex-wrap">
+                                <button type="button" class="btn btn-outline-info btn-lg" onclick="previewInvoice()">
+                                    <i class="fas fa-eye me-2"></i>Preview
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary btn-lg" onclick="saveAsDraft()">
+                                    <i class="fas fa-save me-2"></i>Save as Draft
+                                </button>
+                                <button type="submit" class="btn btn-success btn-lg" name="action" value="save">
+                                    <i class="fas fa-check-circle me-2"></i>Save (₹<span id="grandTotalBtn">0.00</span>)
+                                </button>
+                                <button type="button" class="btn btn-primary btn-lg" onclick="saveAndPrint()">
+                                    <i class="fas fa-print me-2"></i>Save & Print
+                                </button>
+                            </div>
                         </div>
                     </form>
                 </div>
@@ -1936,6 +1947,8 @@ function handleBillingFormSubmit(event) {
     event.preventDefault();
     
     const formData = new FormData(event.target);
+    const action = event.submitter?.value || 'save'; // Get the action from submit button
+    
     const data = {
         client_id: formData.get('client_id'),
         payment_method: formData.get('payment_method'),
@@ -1945,6 +1958,7 @@ function handleBillingFormSubmit(event) {
         gst_percentage: document.getElementById('gstEnabled')?.checked ? 
             (parseFloat(formData.get('gst_percentage')) || 0) : 0,
         notes: formData.get('notes') || '',
+        action: action, // Include action in data
         services: [],
         products: []
     };
@@ -2030,6 +2044,208 @@ function showNotification(message, type = 'info') {
     setTimeout(() => {
         notification.remove();
     }, 5000);
+}
+
+function saveAndPrint() {
+    const form = document.getElementById('billingForm');
+    const formData = new FormData(form);
+    
+    // Validate form
+    if (!formData.get('client_id')) {
+        showNotification('Please select a customer', 'error');
+        return;
+    }
+    
+    // Create invoice data
+    const data = collectInvoiceData();
+    data.action = 'save_and_print';
+    
+    // Submit invoice
+    fetch('/integrated-billing/create', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(result => {
+        if (result.success) {
+            showNotification('Invoice saved successfully!', 'success');
+            // Open print page in new window
+            window.open(`/integrated-billing/print-invoice/${result.invoice_id}`, '_blank');
+            setTimeout(() => {
+                window.location.reload();
+            }, 1500);
+        } else {
+            showNotification(result.error || 'Failed to save invoice', 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showNotification('An error occurred while saving the invoice', 'error');
+    });
+}
+
+function saveAsDraft() {
+    const form = document.getElementById('billingForm');
+    const formData = new FormData(form);
+    
+    // Validate minimum requirements for draft
+    if (!formData.get('client_id')) {
+        showNotification('Please select a customer to save as draft', 'error');
+        return;
+    }
+    
+    // Create invoice data
+    const data = collectInvoiceData();
+    data.action = 'save_as_draft';
+    data.payment_status = 'draft'; // Override payment status
+    
+    // Submit invoice
+    fetch('/integrated-billing/save-draft', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(result => {
+        if (result.success) {
+            showNotification('Invoice saved as draft successfully!', 'success');
+            setTimeout(() => {
+                window.location.reload();
+            }, 1500);
+        } else {
+            showNotification(result.error || 'Failed to save draft', 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showNotification('An error occurred while saving draft', 'error');
+    });
+}
+
+function previewInvoice() {
+    const form = document.getElementById('billingForm');
+    const formData = new FormData(form);
+    
+    // Validate form
+    if (!formData.get('client_id')) {
+        showNotification('Please select a customer to preview invoice', 'error');
+        return;
+    }
+    
+    // Create invoice data
+    const data = collectInvoiceData();
+    
+    // Generate preview
+    fetch('/integrated-billing/preview', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(result => {
+        if (result.success) {
+            // Open preview in modal
+            showPreviewModal(result.preview_html);
+        } else {
+            showNotification(result.error || 'Failed to generate preview', 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showNotification('An error occurred while generating preview', 'error');
+    });
+}
+
+function collectInvoiceData() {
+    const formData = new FormData(document.getElementById('billingForm'));
+    const data = {
+        client_id: formData.get('client_id'),
+        payment_method: formData.get('payment_method'),
+        payment_status: formData.get('payment_status'),
+        discount_percentage: parseFloat(formData.get('discount_percentage')) || 0,
+        gst_enabled: document.getElementById('gstEnabled')?.checked || false,
+        gst_percentage: document.getElementById('gstEnabled')?.checked ? 
+            (parseFloat(formData.get('gst_percentage')) || 0) : 0,
+        notes: formData.get('notes') || '',
+        services: [],
+        products: []
+    };
+    
+    // Collect services
+    document.querySelectorAll('.service-row').forEach((row, index) => {
+        const serviceId = row.querySelector('select[name="service_ids[]"]')?.value;
+        const staffId = row.querySelector('select[name="staff_ids[]"]')?.value;
+        const quantity = row.querySelector('input[name="service_quantities[]"]')?.value;
+        const appointmentId = row.querySelector('input[name="appointment_ids[]"]')?.value;
+        
+        if (serviceId && staffId) {
+            data.services.push({
+                service_id: parseInt(serviceId),
+                staff_id: parseInt(staffId),
+                quantity: parseFloat(quantity) || 1,
+                appointment_id: appointmentId ? parseInt(appointmentId) : null
+            });
+        }
+    });
+    
+    // Collect products
+    document.querySelectorAll('.product-row').forEach((row, index) => {
+        const productId = row.querySelector('select[name="product_ids[]"]')?.value;
+        const batchId = row.querySelector('select[name="batch_ids[]"]')?.value;
+        const quantity = row.querySelector('input[name="product_quantities[]"]')?.value;
+        const price = row.querySelector('input[name="product_prices[]"]')?.value;
+        
+        if (productId && batchId && quantity && price) {
+            data.products.push({
+                product_id: parseInt(productId),
+                batch_id: parseInt(batchId),
+                quantity: parseFloat(quantity),
+                unit_price: parseFloat(price)
+            });
+        }
+    });
+    
+    return data;
+}
+
+function showPreviewModal(previewHtml) {
+    // Create modal if it doesn't exist
+    let modal = document.getElementById('invoicePreviewModal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'invoicePreviewModal';
+        modal.className = 'modal fade';
+        modal.innerHTML = `
+            <div class="modal-dialog modal-xl">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Invoice Preview</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body" id="previewContent">
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+    }
+    
+    // Update preview content
+    document.getElementById('previewContent').innerHTML = previewHtml;
+    
+    // Show modal
+    const bsModal = new bootstrap.Modal(modal);
+    bsModal.show();
 }
 </script>
 {% endblock %}

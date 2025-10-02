@@ -797,6 +797,179 @@ def create_professional_invoice():
                     item.item_id = product.id
                     item.product_id = product.id
                     item.batch_id = batch.id
+
+
+@app.route('/integrated-billing/preview', methods=['POST'])
+@login_required
+def preview_invoice():
+    """Generate invoice preview without saving"""
+    if not current_user.is_active:
+        return jsonify({'success': False, 'message': 'Access denied'}), 403
+
+    try:
+        from models import Service, Customer
+        from modules.inventory.models import InventoryProduct, InventoryBatch
+        import datetime
+        
+        data = request.get_json()
+        
+        # Get customer
+        client_id = data.get('client_id')
+        if not client_id:
+            return jsonify({'success': False, 'message': 'Client is required'})
+        
+        customer = Customer.query.get(client_id)
+        if not customer:
+            return jsonify({'success': False, 'message': 'Customer not found'})
+        
+        # Parse services and products
+        services_data = data.get('services', [])
+        inventory_data = data.get('products', [])
+        
+        # Calculate totals
+        services_subtotal = 0
+        service_items = []
+        for service_data in services_data:
+            service = Service.query.get(service_data['service_id'])
+            if service:
+                amount = service.price * service_data['quantity']
+                services_subtotal += amount
+                service_items.append({
+                    'name': service.name,
+                    'quantity': service_data['quantity'],
+                    'price': service.price,
+                    'amount': amount
+                })
+        
+        inventory_subtotal = 0
+        inventory_items = []
+        for item_data in inventory_data:
+            product = InventoryProduct.query.get(item_data['product_id'])
+            if product:
+                amount = item_data['unit_price'] * item_data['quantity']
+                inventory_subtotal += amount
+                inventory_items.append({
+                    'name': product.name,
+                    'quantity': item_data['quantity'],
+                    'price': item_data['unit_price'],
+                    'amount': amount
+                })
+        
+        gross_subtotal = services_subtotal + inventory_subtotal
+        discount_percentage = float(data.get('discount_percentage', 0))
+        discount_amount = (gross_subtotal * discount_percentage) / 100
+        
+        gst_enabled = data.get('gst_enabled', False)
+        gst_percentage = float(data.get('gst_percentage', 0)) if gst_enabled else 0
+        
+        net_subtotal = gross_subtotal - discount_amount
+        tax_amount = (net_subtotal * gst_percentage) / 100
+        total_amount = net_subtotal + tax_amount
+        
+        # Generate preview HTML
+        preview_html = f"""
+        <div class="invoice-preview">
+            <div class="text-center mb-4">
+                <h3>INVOICE PREVIEW</h3>
+                <p class="text-muted">This is a preview only - not saved</p>
+            </div>
+            
+            <div class="row mb-4">
+                <div class="col-6">
+                    <strong>Customer:</strong><br>
+                    {customer.full_name}<br>
+                    {customer.phone or ''}<br>
+                    {customer.email or ''}
+                </div>
+                <div class="col-6 text-end">
+                    <strong>Date:</strong> {datetime.datetime.now().strftime('%d-%m-%Y')}<br>
+                    <strong>Status:</strong> <span class="badge bg-warning">Preview</span>
+                </div>
+            </div>
+            
+            <table class="table table-bordered">
+                <thead class="table-light">
+                    <tr>
+                        <th>Item</th>
+                        <th class="text-center">Qty</th>
+                        <th class="text-end">Price</th>
+                        <th class="text-end">Amount</th>
+                    </tr>
+                </thead>
+                <tbody>
+        """
+        
+        # Add service items
+        for item in service_items:
+            preview_html += f"""
+                    <tr>
+                        <td>{item['name']} <small class="text-muted">(Service)</small></td>
+                        <td class="text-center">{item['quantity']}</td>
+                        <td class="text-end">₹{item['price']:.2f}</td>
+                        <td class="text-end">₹{item['amount']:.2f}</td>
+                    </tr>
+            """
+        
+        # Add inventory items
+        for item in inventory_items:
+            preview_html += f"""
+                    <tr>
+                        <td>{item['name']} <small class="text-muted">(Product)</small></td>
+                        <td class="text-center">{item['quantity']}</td>
+                        <td class="text-end">₹{item['price']:.2f}</td>
+                        <td class="text-end">₹{item['amount']:.2f}</td>
+                    </tr>
+            """
+        
+        # Add totals
+        preview_html += f"""
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <td colspan="3" class="text-end"><strong>Subtotal:</strong></td>
+                        <td class="text-end">₹{gross_subtotal:.2f}</td>
+                    </tr>
+        """
+        
+        if discount_amount > 0:
+            preview_html += f"""
+                    <tr>
+                        <td colspan="3" class="text-end"><strong>Discount ({discount_percentage}%):</strong></td>
+                        <td class="text-end text-success">-₹{discount_amount:.2f}</td>
+                    </tr>
+            """
+        
+        if tax_amount > 0:
+            preview_html += f"""
+                    <tr>
+                        <td colspan="3" class="text-end"><strong>GST ({gst_percentage}%):</strong></td>
+                        <td class="text-end">₹{tax_amount:.2f}</td>
+                    </tr>
+            """
+        
+        preview_html += f"""
+                    <tr class="table-primary">
+                        <td colspan="3" class="text-end"><strong>Total Amount:</strong></td>
+                        <td class="text-end"><strong>₹{total_amount:.2f}</strong></td>
+                    </tr>
+                </tfoot>
+            </table>
+            
+            <div class="alert alert-info mt-3">
+                <i class="fas fa-info-circle me-2"></i>
+                This is a preview only. Click "Save" or "Save & Print" to create the actual invoice.
+            </div>
+        </div>
+        """
+        
+        return jsonify({
+            'success': True,
+            'preview_html': preview_html
+        })
+        
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'Error generating preview: {str(e)}'})
+
                     item.item_name = product.name
                     item.description = f"Batch: {batch.batch_name}"
                     item.batch_name = batch.batch_name
@@ -1431,9 +1604,119 @@ def save_invoice_draft():
         return jsonify({'success': False, 'message': 'Access denied'}), 403
 
     try:
-        # Implementation for saving draft invoices
-        return jsonify({'success': True, 'message': 'Draft saved successfully'})
+        from models import Service, EnhancedInvoice, InvoiceItem
+        import datetime
+        
+        data = request.get_json()
+        
+        # Parse form data
+        client_id = data.get('client_id')
+        if not client_id:
+            return jsonify({'success': False, 'message': 'Client is required'})
+
+        customer = Customer.query.get(client_id)
+        if not customer:
+            return jsonify({'success': False, 'message': 'Customer not found'})
+
+        # Parse services and products
+        services_data = data.get('services', [])
+        inventory_data = data.get('products', [])
+        
+        # Calculate totals
+        services_subtotal = 0
+        for service_data in services_data:
+            service = Service.query.get(service_data['service_id'])
+            if service:
+                services_subtotal += service.price * service_data['quantity']
+
+        inventory_subtotal = 0
+        for item in inventory_data:
+            inventory_subtotal += item['unit_price'] * item['quantity']
+
+        gross_subtotal = services_subtotal + inventory_subtotal
+        
+        discount_percentage = float(data.get('discount_percentage', 0))
+        discount_amount = (gross_subtotal * discount_percentage) / 100
+        
+        gst_enabled = data.get('gst_enabled', False)
+        gst_percentage = float(data.get('gst_percentage', 0)) if gst_enabled else 0
+        
+        net_subtotal = gross_subtotal - discount_amount
+        tax_amount = (net_subtotal * gst_percentage) / 100
+        total_amount = net_subtotal + tax_amount
+        
+        # Generate draft invoice number
+        current_date = datetime.datetime.now()
+        invoice_number = f"DRAFT-{current_date.strftime('%Y%m%d%H%M%S')}"
+        
+        # Create draft invoice
+        invoice = EnhancedInvoice()
+        invoice.invoice_number = invoice_number
+        invoice.client_id = int(client_id)
+        invoice.invoice_date = current_date
+        invoice.services_subtotal = services_subtotal
+        invoice.inventory_subtotal = inventory_subtotal
+        invoice.gross_subtotal = gross_subtotal
+        invoice.net_subtotal = net_subtotal
+        invoice.tax_amount = tax_amount
+        invoice.discount_amount = discount_amount
+        invoice.total_amount = total_amount
+        invoice.balance_due = total_amount
+        invoice.payment_status = 'draft'
+        invoice.notes = data.get('notes', '')
+        
+        db.session.add(invoice)
+        db.session.flush()
+        
+        # Create invoice items for services
+        for service_data in services_data:
+            service = Service.query.get(service_data['service_id'])
+            if service:
+                item = InvoiceItem()
+                item.invoice_id = invoice.id
+                item.item_type = 'service'
+                item.item_id = service.id
+                item.item_name = service.name
+                item.description = service.description
+                item.quantity = service_data['quantity']
+                item.unit_price = service.price
+                item.original_amount = service.price * service_data['quantity']
+                item.final_amount = service.price * service_data['quantity']
+                item.staff_id = service_data.get('staff_id')
+                db.session.add(item)
+        
+        # Create invoice items for inventory (without reducing stock)
+        for item_data in inventory_data:
+            from modules.inventory.models import InventoryProduct, InventoryBatch
+            batch = InventoryBatch.query.get(item_data['batch_id'])
+            product = InventoryProduct.query.get(item_data['product_id'])
+            
+            if batch and product:
+                item = InvoiceItem()
+                item.invoice_id = invoice.id
+                item.item_type = 'inventory'
+                item.item_id = product.id
+                item.product_id = product.id
+                item.batch_id = batch.id
+                item.item_name = product.name
+                item.description = f"Batch: {batch.batch_name}"
+                item.quantity = item_data['quantity']
+                item.unit_price = item_data['unit_price']
+                item.original_amount = item_data['unit_price'] * item_data['quantity']
+                item.final_amount = item_data['unit_price'] * item_data['quantity']
+                db.session.add(item)
+        
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': f'Draft invoice {invoice_number} saved successfully',
+            'invoice_id': invoice.id,
+            'invoice_number': invoice_number
+        })
+        
     except Exception as e:
+        db.session.rollback()
         return jsonify({'success': False, 'message': f'Error saving draft: {str(e)}'})
 
 @app.route('/debug/fix-customer-bookings')
