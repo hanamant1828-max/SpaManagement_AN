@@ -432,7 +432,7 @@ def appointment_to_billing(appointment_id):
 def get_customer_appointments(customer_id):
     """API endpoint to fetch all confirmed/scheduled appointments for a customer"""
     try:
-        from models import UnakiBooking, Customer
+        from models import UnakiBooking, Customer, Service
 
         customer = Customer.query.get(customer_id)
         if not customer:
@@ -482,19 +482,38 @@ def get_customer_appointments(customer_id):
 
         app.logger.info(f"Found {len(customer_appointments_query)} appointments for customer {customer_id}")
 
-        # Convert to dictionaries
+        # Convert to dictionaries with proper service linking
         appointments_data = []
         for appointment in customer_appointments_query:
             apt_dict = appointment.to_dict()
+            
+            # Ensure service_price is set
             if not apt_dict.get('service_price'):
                 apt_dict['service_price'] = 0.0
+            
+            # Try to match service by name or service_id
+            matching_service = None
+            if appointment.service_id:
+                matching_service = Service.query.get(appointment.service_id)
+            elif appointment.service_name:
+                matching_service = Service.query.filter(
+                    Service.name.ilike(f'%{appointment.service_name}%'),
+                    Service.is_active == True
+                ).first()
+            
+            # Add service details to appointment data
+            if matching_service:
+                apt_dict['service_id'] = matching_service.id
+                apt_dict['service_name'] = matching_service.name
+                apt_dict['service_price'] = float(matching_service.price)
+                apt_dict['service_duration'] = matching_service.duration
+            
             appointments_data.append(apt_dict)
 
-        # Get unique services
+        # Get unique services with full details
         service_names = list(set([apt.get('service_name') for apt in appointments_data if apt.get('service_name')]))
         services_data = []
         if service_names:
-            from models import Service
             services = Service.query.filter(Service.name.in_(service_names)).all()
             services_data = [
                 {

@@ -335,7 +335,7 @@
                                     <i class="fas fa-spa me-2 text-primary"></i>Services
                                 </h6>
                                 <small class="text-muted">
-                                    <i class="fas fa-magic me-1"></i>Package benefits auto-applied
+                                    <i class="fas fa-sync-alt me-1"></i>Package benefits auto-applied
                                 </small>
                             </div>
                             <div id="servicesContainer">
@@ -805,6 +805,66 @@ function handleServiceSelection(selectElement) {
 // ============================================================================
 // APPOINTMENT FUNCTIONS
 // ============================================================================
+
+async function loadCustomerAppointments(customerId) {
+    try {
+        const response = await fetch(`/api/customer/${customerId}/appointments`);
+        const data = await response.json();
+
+        if (data.success) {
+            console.log('Customer appointments loaded:', data.appointments);
+            console.log('Customer services available:', data.services);
+
+            // Store appointments globally for reference
+            window.currentCustomerAppointments = data.appointments;
+            window.currentCustomerServices = data.services;
+
+            // Update UI to show appointments
+            const appointmentsSection = document.querySelector('#customerAppointmentsSection');
+            if (appointmentsSection && data.appointments.length > 0) {
+                appointmentsSection.classList.remove('d-none');
+
+                // Display appointments in the UI
+                const appointmentsList = document.querySelector('#customerAppointmentsList');
+                if (appointmentsList) {
+                    appointmentsList.innerHTML = data.appointments.map(apt => {
+                        const servicePrice = apt.service_price || 0;
+                        const serviceName = apt.service_name || 'Unknown Service';
+                        const staffName = apt.staff_name || 'Unknown Staff';
+
+                        return `
+                            <div class="appointment-item mb-2 p-2 border rounded">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <strong>${serviceName}</strong> - ₹${servicePrice.toFixed(2)}<br>
+                                        <small class="text-muted">Staff: ${staffName} | Date: ${apt.appointment_date || 'N/A'}</small>
+                                    </div>
+                                    <button class="btn btn-sm btn-primary" 
+                                            onclick="addUnakiAppointmentToBill(${apt.id}, '${serviceName}', ${servicePrice}, '${staffName}')">
+                                        <i class="fas fa-plus me-1"></i>Add to Bill
+                                    </button>
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+                }
+            } else {
+                if (appointmentsSection) {
+                    appointmentsSection.classList.add('d-none');
+                }
+            }
+
+            return data;
+        } else {
+            console.error('Failed to load appointments:', data.error);
+            showNotification('Failed to load customer appointments', 'error');
+        }
+    } catch (error) {
+        console.error('Error loading customer appointments:', error);
+        showNotification('Error loading customer appointments', 'error');
+    }
+}
+
 
 function addUnakiAppointmentToBill(appointmentId, serviceName, servicePrice, staffName) {
     console.log('Adding Unaki appointment to bill:', appointmentId, serviceName, servicePrice, staffName);
@@ -1756,12 +1816,48 @@ document.addEventListener('DOMContentLoaded', function() {
     // Setup customer selection handler
     const clientSelect = document.getElementById('client_id');
     if (clientSelect) {
-        clientSelect.addEventListener('change', function() {
+        clientSelect.addEventListener('change', async function() {
             const clientId = this.value;
+
             if (clientId) {
-                loadCustomerPackages(clientId);
+                // Clear any existing service rows except the first one
+                const servicesContainer = document.getElementById('servicesContainer');
+                const serviceRows = servicesContainer.querySelectorAll('.service-row');
+                serviceRows.forEach((row, index) => {
+                    if (index > 0) {
+                        row.remove();
+                    } else {
+                        // Clear the first row
+                        row.querySelector('select[name="service_ids[]"]').value = '';
+                        row.querySelector('select[name="staff_ids[]"]').value = '';
+                        row.querySelector('input[name="service_quantities[]"]').value = '1';
+                        row.querySelector('input[name="appointment_ids[]"]').value = '';
+                    }
+                });
+
+                // Load customer package data
+                loadCustomerPackages(clientId); // Assuming loadClientData is a typo and loadCustomerPackages is intended
+
+                // Load customer appointments and wait for completion
+                const appointmentData = await loadCustomerAppointments(clientId);
+
+                // Reset calculations
+                updateTaxCalculations();
+
+                console.log(`Customer ${clientId} selected - appointments loaded and ready for billing`);
             } else {
-                loadCustomerPackages(null);
+                // Clear package display
+                const packagesDiv = document.getElementById('customerPackages');
+                if (packagesDiv) {
+                    packagesDiv.innerHTML = '<small><i class="fas fa-info-circle me-1"></i>Select a customer to view their active packages</small>';
+                }
+
+                // Clear appointments
+                window.currentCustomerAppointments = [];
+                window.currentCustomerServices = [];
+
+                // Reset calculations
+                updateTaxCalculations();
             }
         });
     }
@@ -1828,6 +1924,8 @@ window.emailInvoice = emailInvoice;
 window.whatsappInvoice = whatsappInvoice;
 window.addPaymentMethod = addPaymentMethod;
 window.removePaymentMethod = removePaymentMethod;
+window.loadCustomerAppointments = loadCustomerAppointments;
+window.loadCustomerPackages = loadCustomerPackages; // Assuming loadClientData was a typo
 
 </script>
 {% endblock %}
