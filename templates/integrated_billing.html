@@ -491,15 +491,15 @@
     .page-header {
         padding: 20px;
     }
-    
+
     .stats-card h3 {
         font-size: 1.75rem;
     }
-    
+
     .form-section {
         padding: 20px;
     }
-    
+
     .main-billing-card .card-body {
         padding: 20px;
     }
@@ -909,7 +909,7 @@
                 <i class="fas fa-times"></i>
             </button>
         </div>
-        
+
         <div class="mb-3 pb-3 border-bottom border-white border-opacity-25">
             <div class="d-flex justify-content-between mb-2">
                 <span>Services Subtotal:</span>
@@ -1005,7 +1005,7 @@ window.customerAppointments = {{ customer_appointments|tojson if customer_appoin
 
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Integrated Billing page loaded');
-    
+
     globalStaffMembers = [
         {% for staff in staff_members %}
         {
@@ -1015,9 +1015,9 @@ document.addEventListener('DOMContentLoaded', function() {
         }{{ ',' if not loop.last else '' }}
         {% endfor %}
     ];
-    
+
     loadAvailableBatches();
-    
+
     const clientSelect = document.getElementById('client_id');
     if (clientSelect) {
         clientSelect.addEventListener('change', function() {
@@ -1035,7 +1035,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
-    
+
     const gstCheckbox = document.getElementById('gstEnabled');
     const gstInput = document.getElementById('gstPercentage');
     if (gstCheckbox && gstInput) {
@@ -1048,12 +1048,12 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
-    
+
     const billingForm = document.getElementById('billingForm');
     if (billingForm) {
         billingForm.addEventListener('submit', handleBillingFormSubmit);
     }
-    
+
     {% if selected_customer %}
     loadCustomerPackages({{ selected_customer.id }});
     loadCustomerAppointments({{ selected_customer.id }});
@@ -1066,9 +1066,9 @@ function addServiceRow() {
         console.error('Services container not found or empty');
         return;
     }
-    
+
     const newRow = container.children[0].cloneNode(true);
-    
+
     newRow.querySelectorAll('select, input').forEach(input => {
         if (input.type === 'number') {
             input.value = input.name.includes('quantities') ? '1' : '';
@@ -1076,12 +1076,12 @@ function addServiceRow() {
             input.value = '';
         }
     });
-    
+
     const benefitDisplay = newRow.querySelector('.package-benefit-display');
     if (benefitDisplay) {
         benefitDisplay.remove();
     }
-    
+
     const button = newRow.querySelector('button');
     if (button) {
         button.className = 'btn btn-danger btn-sm w-100';
@@ -1091,49 +1091,50 @@ function addServiceRow() {
             updateTaxCalculations();
         };
     }
-    
+
     container.appendChild(newRow);
 }
 
 function handleServiceSelection(selectElement) {
     const selectedOption = selectElement.options[selectElement.selectedIndex];
-    if (selectedOption && selectedOption.value) {
-        const serviceId = selectedOption.value;
-        const serviceName = selectedOption.text;
-        const servicePrice = parseFloat(selectedOption.dataset.price) || 0;
-        console.log(`Service ${serviceId} selected with price: ${servicePrice}`);
-        console.log('Calling updateTaxCalculations from handleServiceSelection');
-        updateTaxCalculations();
+    if (selectedOption && selectedOption.dataset.price) {
+        const price = selectedOption.dataset.price;
+        updateServicePrice(selectElement.value, price);
+    } else {
+        // If no price is found (e.g., for "Select a service..."), reset price fields
+        updateServicePrice(selectElement.value, '0.00');
     }
+    // Immediately update tax calculations to reflect new service price
+    updateTaxCalculations();
 }
 
 function addUnakiAppointmentToBill(appointmentId, serviceName, servicePrice, staffName) {
     console.log(`Adding appointment ${appointmentId} to bill`);
-    
+
     const container = document.getElementById('servicesContainer');
     if (!container) {
         console.error('Services container not found');
         return;
     }
-    
+
     const firstRow = container.children[0];
     const serviceSelect = firstRow.querySelector('select[name="service_ids[]"]');
     const staffSelect = firstRow.querySelector('select[name="staff_ids[]"]');
     const qtyInput = firstRow.querySelector('input[name="service_quantities[]"]');
     const appointmentInput = firstRow.querySelector('input[name="appointment_ids[]"]');
-    
+
     const isFirstRowEmpty = !serviceSelect.value && !qtyInput.value;
-    
+
     if (isFirstRowEmpty) {
         const serviceOption = Array.from(serviceSelect.options).find(opt => 
             opt.text.toLowerCase().includes(serviceName.toLowerCase())
         );
-        
+
         if (serviceOption) {
             serviceSelect.value = serviceOption.value;
             handleServiceSelection(serviceSelect);
         }
-        
+
         if (staffName && staffSelect) {
             const staffOption = Array.from(staffSelect.options).find(opt => 
                 opt.text.toLowerCase().includes(staffName.toLowerCase())
@@ -1142,27 +1143,27 @@ function addUnakiAppointmentToBill(appointmentId, serviceName, servicePrice, sta
                 staffSelect.value = staffOption.value;
             }
         }
-        
+
         if (qtyInput) qtyInput.value = 1;
         if (appointmentInput) appointmentInput.value = appointmentId;
     } else {
         addServiceRow();
-        
+
         const newRow = container.children[container.children.length - 1];
         const newServiceSelect = newRow.querySelector('select[name="service_ids[]"]');
         const newStaffSelect = newRow.querySelector('select[name="staff_ids[]"]');
         const newQtyInput = newRow.querySelector('input[name="service_quantities[]"]');
         const newAppointmentInput = newRow.querySelector('input[name="appointment_ids[]"]');
-        
+
         const serviceOption = Array.from(newServiceSelect.options).find(opt => 
             opt.text.toLowerCase().includes(serviceName.toLowerCase())
         );
-        
+
         if (serviceOption) {
             newServiceSelect.value = serviceOption.value;
             handleServiceSelection(newServiceSelect);
         }
-        
+
         if (staffName && newStaffSelect) {
             const staffOption = Array.from(newStaffSelect.options).find(opt => 
                 opt.text.toLowerCase().includes(staffName.toLowerCase())
@@ -1171,11 +1172,11 @@ function addUnakiAppointmentToBill(appointmentId, serviceName, servicePrice, sta
                 newStaffSelect.value = staffOption.value;
             }
         }
-        
+
         if (newQtyInput) newQtyInput.value = 1;
         if (newAppointmentInput) newAppointmentInput.value = appointmentId;
     }
-    
+
     updateTaxCalculations();
     showNotification('Service added to bill!', 'success');
 }
@@ -1184,20 +1185,20 @@ function loadCustomerAppointments(clientId) {
     if (!clientId) {
         window.customerAppointments = [];
         // Hide the bookings card if no customer selected
-        const bookingsCard = document.getElementById('customerBookingsCard');
+        const bookingsCard = document.getElementById('customerBookingsCardCard');
         if (bookingsCard) {
             bookingsCard.style.display = 'none';
         }
         return;
     }
-    
+
     fetch(`/api/customer/${clientId}/appointments`)
         .then(response => response.json())
         .then(data => {
             if (data.success && data.appointments) {
                 window.customerAppointments = data.appointments;
                 console.log(`Loaded ${data.appointments.length} appointments for customer ${clientId}`);
-                
+
                 // Render the appointments in the UI
                 renderCustomerAppointments(data.appointments, data.customer);
             } else {
@@ -1216,7 +1217,7 @@ function loadCustomerAppointments(clientId) {
 function renderCustomerAppointments(appointments, customer) {
     // Check if bookings card container exists, if not create it
     let bookingsCardContainer = document.getElementById('customerBookingsCardContainer');
-    
+
     if (!bookingsCardContainer) {
         // Create the container after the customer selection section
         const customerSection = document.querySelector('.form-section');
@@ -1229,14 +1230,14 @@ function renderCustomerAppointments(appointments, customer) {
             return; // Can't render without a place to put it
         }
     }
-    
+
     if (!appointments || appointments.length === 0) {
         bookingsCardContainer.innerHTML = '';
         return;
     }
-    
+
     const customerName = customer ? customer.name : 'Customer';
-    
+
     // Build the appointments table HTML
     let appointmentsHTML = appointments.map(apt => {
         const appointmentDate = apt.appointment_date || 'N/A';
@@ -1247,7 +1248,7 @@ function renderCustomerAppointments(appointments, customer) {
         const staffName = apt.staff_name || 'N/A';
         const status = apt.status || 'scheduled';
         const servicePrice = apt.service_price || 0;
-        
+
         return `
             <tr>
                 <td>
@@ -1277,7 +1278,7 @@ function renderCustomerAppointments(appointments, customer) {
             </tr>
         `;
     }).join('');
-    
+
     // Render the complete card
     bookingsCardContainer.innerHTML = `
         <div class="col-12">
@@ -1295,7 +1296,7 @@ function renderCustomerAppointments(appointments, customer) {
                         <i class="fas fa-check-circle me-2"></i>
                         <strong>${appointments.length} Confirmed Bookings Found</strong> - Ready to add to bill
                     </div>
-                    
+
                     <div class="table-responsive">
                         <table class="table table-sm">
                             <thead class="table-success">
@@ -1313,7 +1314,7 @@ function renderCustomerAppointments(appointments, customer) {
                             </tbody>
                         </table>
                     </div>
-                    
+
                     <div class="mt-3 d-flex gap-2 flex-wrap">
                         <button type="button" class="btn btn-outline-primary btn-sm" onclick="autoFillCurrentServices()">
                             <i class="fas fa-bolt me-1"></i>Auto-Fill ALL Bookings to Bill
@@ -1334,24 +1335,24 @@ function autoPopulateBillingFromAppointments(appointments) {
         console.log('No appointments to auto-populate');
         return;
     }
-    
+
     const unpaidAppointments = appointments.filter(apt => 
         (apt.status === 'confirmed' || apt.status === 'scheduled') && 
         apt.payment_status === 'pending'
     );
-    
+
     if (unpaidAppointments.length === 0) {
         console.log('No unpaid confirmed/scheduled appointments found');
         return;
     }
-    
+
     console.log(`Auto-populating ${unpaidAppointments.length} unpaid appointments into billing form`);
-    
+
     const container = document.getElementById('servicesContainer');
     const firstRow = container.children[0];
     container.innerHTML = '';
     container.appendChild(firstRow);
-    
+
     firstRow.querySelectorAll('select, input').forEach(input => {
         if (input.type === 'number') {
             input.value = input.name.includes('quantities') ? '1' : '';
@@ -1359,14 +1360,14 @@ function autoPopulateBillingFromAppointments(appointments) {
             input.value = '';
         }
     });
-    
+
     unpaidAppointments.forEach((apt, index) => {
         if (index === 0) {
             const serviceSelect = firstRow.querySelector('select[name="service_ids[]"]');
             const staffSelect = firstRow.querySelector('select[name="staff_ids[]"]');
             const qtyInput = firstRow.querySelector('input[name="service_quantities[]"]');
             const appointmentInput = firstRow.querySelector('input[name="appointment_ids[]"]');
-            
+
             if (serviceSelect && apt.service_id) {
                 serviceSelect.value = apt.service_id;
                 handleServiceSelection(serviceSelect);
@@ -1380,12 +1381,12 @@ function autoPopulateBillingFromAppointments(appointments) {
             addServiceRow();
             const rows = container.querySelectorAll('.service-row');
             const newRow = rows[rows.length - 1];
-            
+
             const serviceSelect = newRow.querySelector('select[name="service_ids[]"]');
             const staffSelect = newRow.querySelector('select[name="staff_ids[]"]');
             const qtyInput = newRow.querySelector('input[name="service_quantities[]"]');
             const appointmentInput = newRow.querySelector('input[name="appointment_ids[]"]');
-            
+
             if (serviceSelect && apt.service_id) {
                 serviceSelect.value = apt.service_id;
                 handleServiceSelection(serviceSelect);
@@ -1397,9 +1398,9 @@ function autoPopulateBillingFromAppointments(appointments) {
             if (appointmentInput) appointmentInput.value = apt.id;
         }
     });
-    
+
     updateTaxCalculations();
-    
+
     showNotification(`Auto-added ${unpaidAppointments.length} unpaid services to billing`, 'success');
 }
 
@@ -1408,7 +1409,7 @@ function autoFillCurrentServices() {
         showNotification('No appointments found for this customer', 'warning');
         return;
     }
-    
+
     autoPopulateBillingFromAppointments(window.customerAppointments);
 }
 
@@ -1424,9 +1425,9 @@ function addProductRow() {
         console.error('Products container not found or empty');
         return;
     }
-    
+
     const newRow = container.children[0].cloneNode(true);
-    
+
     newRow.querySelectorAll('select, input').forEach(input => {
         if (input.type === 'number') {
             input.value = input.name.includes('quantities') ? '1' : '';
@@ -1434,18 +1435,18 @@ function addProductRow() {
             input.value = '';
         }
     });
-    
+
     const batchSelect = newRow.querySelector('.batch-select');
     if (batchSelect) {
         batchSelect.innerHTML = '<option value="">Select Product First</option>';
         batchSelect.disabled = true;
     }
-    
+
     const batchInfo = newRow.querySelector('.batch-info');
     if (batchInfo) {
         batchInfo.innerHTML = '';
     }
-    
+
     const button = newRow.querySelector('button');
     if (button) {
         button.className = 'btn btn-danger btn-sm w-100';
@@ -1455,7 +1456,7 @@ function addProductRow() {
             updateTaxCalculations();
         };
     }
-    
+
     container.appendChild(newRow);
 }
 
@@ -1479,24 +1480,24 @@ function loadBatchesForProduct(productSelect) {
     const batchInfo = row.querySelector('.batch-info');
     const quantityInput = row.querySelector('input[name="product_quantities[]"]');
     const priceInput = row.querySelector('input[name="product_prices[]"]');
-    
+
     const productId = parseInt(productSelect.value);
-    
+
     batchSelect.innerHTML = '<option value="">Loading batches...</option>';
     batchSelect.disabled = true;
     batchInfo.innerHTML = '';
-    
+
     if (!productId) {
         batchSelect.innerHTML = '<option value="">Select Product First</option>';
         return;
     }
-    
+
     const productBatches = availableBatches.filter(batch => {
         return batch.product_id === productId && batch.qty_available > 0;
     });
-    
+
     console.log(`DEBUG: Product ID ${productId} has ${productBatches.length} available batches`);
-    
+
     if (productBatches.length === 0) {
         batchSelect.innerHTML = '<option value="">No stock available</option>';
         batchInfo.innerHTML = '<span class="text-danger">⚠️ No stock available for this product</span>';
@@ -1504,26 +1505,26 @@ function loadBatchesForProduct(productSelect) {
         if (priceInput) priceInput.value = '';
         return;
     }
-    
+
     productBatches.sort((a, b) => {
         if (!a.expiry_date && !b.expiry_date) return 0;
         if (!a.expiry_date) return 1;
         if (!b.expiry_date) return -1;
         return new Date(a.expiry_date) - new Date(b.expiry_date);
     });
-    
+
     const firstBatch = productBatches[0];
     batchSelect.innerHTML = `<option value="${firstBatch.id}" selected>${firstBatch.dropdown_display}</option>`;
-    
+
     productBatches.slice(1).forEach(batch => {
         const option = document.createElement('option');
         option.value = batch.id;
         option.textContent = batch.dropdown_display;
         batchSelect.appendChild(option);
     });
-    
+
     batchSelect.disabled = false;
-    
+
     const expiryText = firstBatch.expiry_date ?
         `Expires: ${new Date(firstBatch.expiry_date).toLocaleDateString()}` : 'No expiry date';
     batchInfo.innerHTML = `
@@ -1531,20 +1532,20 @@ function loadBatchesForProduct(productSelect) {
         <strong>Available:</strong> ${firstBatch.qty_available} ${firstBatch.unit}<br>
         <strong>${expiryText}</strong>
     `;
-    
+
     if (quantityInput) {
         quantityInput.max = firstBatch.qty_available;
         quantityInput.placeholder = `Max: ${firstBatch.qty_available}`;
         quantityInput.value = '1';
         validateInventoryQuantity(quantityInput);
     }
-    
+
     if (priceInput) {
         const sellingPrice = firstBatch.selling_price || firstBatch.unit_price || firstBatch.unit_cost || 0;
         priceInput.value = parseFloat(sellingPrice).toFixed(2);
         updateTaxCalculations();
     }
-    
+
     batchSelect.addEventListener('change', function() {
         const selectedBatch = productBatches.find(b => b.id == this.value);
         if (selectedBatch) {
@@ -1575,7 +1576,7 @@ function validateInventoryQuantity(quantityInput) {
     const batchSelect = productRow.querySelector('.batch-select');
     const selectedOption = batchSelect.options[batchSelect.selectedIndex];
     const batchInfo = productRow.querySelector('.batch-info');
-    
+
     if (!selectedOption || selectedOption.value === "") {
         if (batchInfo) {
             batchInfo.innerHTML = '<span class="text-muted">Select batch to see stock</span>';
@@ -1583,14 +1584,14 @@ function validateInventoryQuantity(quantityInput) {
         quantityInput.setCustomValidity('');
         return;
     }
-    
+
     const selectedBatchId = selectedOption.value;
     const selectedBatch = availableBatches.find(b => b.id == selectedBatchId);
-    
+
     if (selectedBatch) {
         const available = parseFloat(selectedBatch.qty_available);
         const requested = parseFloat(quantityInput.value) || 0;
-        
+
         if (requested > available) {
             quantityInput.style.borderColor = '#dc3545';
             if (batchInfo) {
@@ -1621,7 +1622,7 @@ function validateInventoryQuantity(quantityInput) {
 
 function loadCustomerPackages(clientId) {
     const packagesDiv = document.getElementById('customerPackages');
-    
+
     if (!clientId) {
         packagesDiv.innerHTML = '<small>Select a customer to view their active packages</small>';
         customerPackageData = null;
@@ -1629,16 +1630,16 @@ function loadCustomerPackages(clientId) {
         updateTaxCalculations();
         return;
     }
-    
+
     if (lastLoadedCustomerId === clientId) {
         console.log('Customer packages already loaded for:', clientId);
         return;
     }
-    
+
     lastLoadedCustomerId = clientId;
-    
+
     packagesDiv.innerHTML = '<small class="text-info"><i class="fas fa-spinner fa-spin"></i> Loading packages...</small>';
-    
+
     fetch(`/integrated-billing/customer-packages/${clientId}`)
         .then(response => {
             if (!response.ok) {
@@ -1648,21 +1649,21 @@ function loadCustomerPackages(clientId) {
         })
         .then(data => {
             console.log('Package data received:', data);
-            
+
             if (!data || data.error) {
                 packagesDiv.innerHTML = `<small class="text-danger">Error: ${data.error || 'Unknown error'}</small>`;
                 customerPackageData = null;
                 return;
             }
-            
+
             customerPackageData = data;
-            
+
             if (data.packages && data.packages.length > 0) {
                 let html = '<div class="alert alert-success mb-0"><strong>Active Packages:</strong><br>';
-                
+
                 data.packages.forEach(pkg => {
                     html += `<div class="badge bg-success me-1 mb-1">${pkg.package_name}</div>`;
-                    
+
                     if (pkg.package_type === 'service_package') {
                         html += `<small class="d-block">${pkg.service_name || 'Any Service'}: ${pkg.sessions_remaining || 0} sessions remaining</small>`;
                     } else if (pkg.package_type === 'prepaid') {
@@ -1671,18 +1672,18 @@ function loadCustomerPackages(clientId) {
                         html += `<small class="d-block text-success">Unlimited Access</small>`;
                     }
                 });
-                
+
                 if (data.total) {
                     html += `<hr class="my-1"><small class="text-muted">Total Active: ${data.total} package(s)</small>`;
                 }
                 html += '</div>';
-                
+
                 packagesDiv.innerHTML = html;
             } else {
                 packagesDiv.innerHTML = '<small class="text-muted">No active packages found</small>';
                 customerPackageData = { packages: [], total: 0 };
             }
-            
+
             updateTaxCalculations();
         })
         .catch(error => {
@@ -1696,12 +1697,12 @@ function checkServicePackageBenefit(serviceId, serviceName, originalPrice, quant
     if (!customerPackageData || !customerPackageData.packages) {
         return null;
     }
-    
+
     quantity = Math.max(1, quantity);
-    
+
     for (const pkg of customerPackageData.packages) {
         if (!pkg.is_active && pkg.status !== 'active') continue;
-        
+
         if (pkg.package_type === 'membership') {
             return {
                 type: 'unlimited',
@@ -1712,19 +1713,19 @@ function checkServicePackageBenefit(serviceId, serviceName, originalPrice, quant
                 description: `FREE via ${pkg.package_name} (Unlimited Membership)`
             };
         }
-        
+
         if (pkg.package_type === 'service_package' && pkg.sessions_remaining > 0) {
             const pricePerSession = originalPrice;
             const sessionsToCover = Math.min(quantity, pkg.sessions_remaining);
             const sessionsToPayFor = Math.max(0, quantity - sessionsToCover);
-            
+
             const coveredAmount = sessionsToCover * pricePerSession;
             const finalPrice = sessionsToPayFor * pricePerSession;
-            
+
             const totalServicePrice = originalPrice * quantity;
             const actualDiscount = Math.min(coveredAmount, totalServicePrice);
             const actualFinalPrice = Math.max(0, totalServicePrice - actualDiscount);
-            
+
             if (sessionsToPayFor > 0) {
                 return {
                     type: 'service_package_partial',
@@ -1751,7 +1752,7 @@ function checkServicePackageBenefit(serviceId, serviceName, originalPrice, quant
                 };
             }
         }
-        
+
         if (pkg.package_type === 'prepaid' && pkg.credit_remaining > 0) {
             const serviceTotal = originalPrice * quantity;
             if (pkg.credit_remaining >= serviceTotal) {
@@ -1775,7 +1776,7 @@ function checkServicePackageBenefit(serviceId, serviceName, originalPrice, quant
             }
         }
     }
-    
+
     return null;
 }
 
@@ -1786,7 +1787,7 @@ function updateServiceDisplayWithBenefit(row, benefit, index) {
         benefitDisplay.className = 'package-benefit-display mt-2';
         row.appendChild(benefitDisplay);
     }
-    
+
     if (benefit.finalPrice === 0) {
         benefitDisplay.innerHTML = `
             <small class="text-success fw-bold">
@@ -1800,7 +1801,7 @@ function updateServiceDisplayWithBenefit(row, benefit, index) {
     } else {
         const isPartialCoverage = benefit.sessionsCovered && benefit.sessionsToPayFor;
         const coveragePercent = Math.round((benefit.discount / benefit.originalPrice) * 100);
-        
+
         benefitDisplay.innerHTML = `
             <small class="fw-bold">
                 <i class="fas fa-percentage me-1 text-info"></i>${benefit.description}
@@ -1832,7 +1833,7 @@ function calculateServicesSubtotal() {
     document.querySelectorAll('.service-row').forEach((row, index) => {
         const serviceSelect = row.querySelector('select[name="service_ids[]"]');
         const quantityInput = row.querySelector('input[name="service_quantities[]"]');
-        
+
         if (serviceSelect && serviceSelect.value && quantityInput && quantityInput.value) {
             const selectedOption = serviceSelect.options[serviceSelect.selectedIndex];
             if (selectedOption && selectedOption.dataset.price) {
@@ -1840,10 +1841,10 @@ function calculateServicesSubtotal() {
                 const quantity = parseFloat(quantityInput.value) || 1;
                 const serviceId = parseInt(serviceSelect.value);
                 const serviceName = selectedOption.text;
-                
+
                 let finalPrice = originalPrice * quantity;
                 let packageBenefit = null;
-                
+
                 if (customerPackageData && customerPackageData.packages) {
                     packageBenefit = checkServicePackageBenefit(serviceId, serviceName, originalPrice, quantity);
                     if (packageBenefit) {
@@ -1851,16 +1852,16 @@ function calculateServicesSubtotal() {
                         updateServiceDisplayWithBenefit(row, packageBenefit, index);
                     }
                 }
-                
+
                 if (!packageBenefit) {
                     clearServiceBenefitDisplay(row, index);
                 }
-                
+
                 total += finalPrice;
             }
         }
     });
-    
+
     return total;
 }
 
@@ -1870,24 +1871,24 @@ function calculateProductsSubtotal() {
         const productSelect = row.querySelector('select[name="product_ids[]"]');
         const quantityInput = row.querySelector('input[name="product_quantities[]"]');
         const priceInput = row.querySelector('input[name="product_prices[]"]');
-        
+
         if (productSelect && productSelect.value && quantityInput && quantityInput.value && priceInput && priceInput.value) {
             const quantity = parseFloat(quantityInput.value) || 0;
             const price = parseFloat(priceInput.value) || 0;
             total += quantity * price;
         }
     });
-    
+
     return total;
 }
 
 function calculatePackageDeductions() {
     let totalDeductions = 0;
-    
+
     document.querySelectorAll('.service-row').forEach((row, index) => {
         const serviceSelect = row.querySelector('select[name="service_ids[]"]');
         const quantityInput = row.querySelector('input[name="service_quantities[]"]');
-        
+
         if (serviceSelect && serviceSelect.value && quantityInput && quantityInput.value) {
             const selectedOption = serviceSelect.options[serviceSelect.selectedIndex];
             if (selectedOption && selectedOption.dataset.price) {
@@ -1895,7 +1896,7 @@ function calculatePackageDeductions() {
                 const quantity = parseFloat(quantityInput.value) || 1;
                 const serviceId = parseInt(serviceSelect.value);
                 const serviceName = selectedOption.text;
-                
+
                 if (customerPackageData && customerPackageData.packages) {
                     const packageBenefit = checkServicePackageBenefit(serviceId, serviceName, originalPrice, quantity);
                     if (packageBenefit && packageBenefit.discount) {
@@ -1905,7 +1906,7 @@ function calculatePackageDeductions() {
             }
         }
     });
-    
+
     return totalDeductions;
 }
 
@@ -1913,36 +1914,36 @@ function updateTaxCalculations() {
     const servicesSubtotal = calculateServicesSubtotal();
     const productsSubtotal = calculateProductsSubtotal();
     const packageDeductions = calculatePackageDeductions();
-    
+
     const totalBeforeDiscount = servicesSubtotal + productsSubtotal;
-    
+
     const discountPercentage = parseFloat(document.querySelector('input[name="discount_percentage"]')?.value) || 0;
     const discountAmount = (totalBeforeDiscount * discountPercentage) / 100;
-    
+
     const subtotalAfterDeductions = Math.max(0, totalBeforeDiscount - discountAmount);
-    
+
     const gstEnabled = document.getElementById('gstEnabled')?.checked || false;
     const gstPercentage = gstEnabled ? (parseFloat(document.getElementById('gstPercentage')?.value) || 0) : 0;
     const gstAmount = (subtotalAfterDeductions * gstPercentage) / 100;
-    
+
     const grandTotal = subtotalAfterDeductions + gstAmount;
-    
+
     const serviceCount = document.querySelectorAll('.service-row select[name="service_ids[]"]').length;
     const productCount = document.querySelectorAll('.product-row select[name="product_ids[]"]').length;
-    
+
     // Update main display (with null checks)
     const grandTotalEl = document.getElementById('grandTotal');
     if (grandTotalEl) grandTotalEl.textContent = grandTotal.toFixed(2);
-    
+
     const grandTotalBtnEl = document.getElementById('grandTotalBtn');
     if (grandTotalBtnEl) grandTotalBtnEl.textContent = grandTotal.toFixed(2);
-    
+
     const serviceCountEl = document.getElementById('serviceCount');
     if (serviceCountEl) serviceCountEl.textContent = serviceCount;
-    
+
     const productCountEl = document.getElementById('productCount');
     if (productCountEl) productCountEl.textContent = productCount;
-    
+
     // Debug log
     console.log('💰 Tax Calculations Updated:', {
         servicesSubtotal: servicesSubtotal.toFixed(2),
@@ -1952,7 +1953,7 @@ function updateTaxCalculations() {
         gstAmount: gstAmount.toFixed(2),
         grandTotal: grandTotal.toFixed(2)
     });
-    
+
     // Update floating panel (if exists)
     if (document.getElementById('servicesSubtotalPanel')) {
         document.getElementById('servicesSubtotalPanel').textContent = servicesSubtotal.toFixed(2);
@@ -1970,10 +1971,10 @@ function updateTaxCalculations() {
 
 function handleBillingFormSubmit(event) {
     event.preventDefault();
-    
+
     const formData = new FormData(event.target);
     const action = event.submitter?.value || 'save'; // Get the action from submit button
-    
+
     const data = {
         client_id: formData.get('client_id'),
         payment_method: formData.get('payment_method'),
@@ -1987,13 +1988,13 @@ function handleBillingFormSubmit(event) {
         services: [],
         products: []
     };
-    
+
     document.querySelectorAll('.service-row').forEach((row, index) => {
         const serviceId = row.querySelector('select[name="service_ids[]"]')?.value;
         const staffId = row.querySelector('select[name="staff_ids[]"]')?.value;
         const quantity = row.querySelector('input[name="service_quantities[]"]')?.value;
         const appointmentId = row.querySelector('input[name="appointment_ids[]"]')?.value;
-        
+
         if (serviceId && staffId) {
             data.services.push({
                 service_id: parseInt(serviceId),
@@ -2003,13 +2004,13 @@ function handleBillingFormSubmit(event) {
             });
         }
     });
-    
+
     document.querySelectorAll('.product-row').forEach((row, index) => {
         const productId = row.querySelector('select[name="product_ids[]"]')?.value;
         const batchId = row.querySelector('select[name="batch_ids[]"]')?.value;
         const quantity = row.querySelector('input[name="product_quantities[]"]')?.value;
         const price = row.querySelector('input[name="product_prices[]"]')?.value;
-        
+
         if (productId && batchId && quantity && price) {
             data.products.push({
                 product_id: parseInt(productId),
@@ -2019,17 +2020,17 @@ function handleBillingFormSubmit(event) {
             });
         }
     });
-    
+
     if (!data.client_id) {
         showNotification('Please select a customer', 'error');
         return;
     }
-    
+
     if (data.services.length === 0 && data.products.length === 0) {
         showNotification('Please add at least one service or product', 'error');
         return;
     }
-    
+
     fetch('/integrated-billing/create', {
         method: 'POST',
         headers: {
@@ -2065,7 +2066,7 @@ function showNotification(message, type = 'info') {
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     `;
     document.body.appendChild(notification);
-    
+
     setTimeout(() => {
         notification.remove();
     }, 5000);
@@ -2074,17 +2075,17 @@ function showNotification(message, type = 'info') {
 function saveAndPrint() {
     const form = document.getElementById('billingForm');
     const formData = new FormData(form);
-    
+
     // Validate form
     if (!formData.get('client_id')) {
         showNotification('Please select a customer', 'error');
         return;
     }
-    
+
     // Create invoice data
     const data = collectInvoiceData();
     data.action = 'save_and_print';
-    
+
     // Submit invoice
     fetch('/integrated-billing/create', {
         method: 'POST',
@@ -2115,18 +2116,18 @@ function saveAndPrint() {
 function saveAsDraft() {
     const form = document.getElementById('billingForm');
     const formData = new FormData(form);
-    
+
     // Validate minimum requirements for draft
     if (!formData.get('client_id')) {
         showNotification('Please select a customer to save as draft', 'error');
         return;
     }
-    
+
     // Create invoice data
     const data = collectInvoiceData();
     data.action = 'save_as_draft';
     data.payment_status = 'draft'; // Override payment status
-    
+
     // Submit invoice
     fetch('/integrated-billing/save-draft', {
         method: 'POST',
@@ -2155,16 +2156,16 @@ function saveAsDraft() {
 function previewInvoice() {
     const form = document.getElementById('billingForm');
     const formData = new FormData(form);
-    
+
     // Validate form
     if (!formData.get('client_id')) {
         showNotification('Please select a customer to preview invoice', 'error');
         return;
     }
-    
+
     // Create invoice data
     const data = collectInvoiceData();
-    
+
     // Generate preview
     fetch('/integrated-billing/preview', {
         method: 'POST',
@@ -2202,14 +2203,14 @@ function collectInvoiceData() {
         services: [],
         products: []
     };
-    
+
     // Collect services
     document.querySelectorAll('.service-row').forEach((row, index) => {
         const serviceId = row.querySelector('select[name="service_ids[]"]')?.value;
         const staffId = row.querySelector('select[name="staff_ids[]"]')?.value;
         const quantity = row.querySelector('input[name="service_quantities[]"]')?.value;
         const appointmentId = row.querySelector('input[name="appointment_ids[]"]')?.value;
-        
+
         if (serviceId && staffId) {
             data.services.push({
                 service_id: parseInt(serviceId),
@@ -2219,14 +2220,14 @@ function collectInvoiceData() {
             });
         }
     });
-    
+
     // Collect products
     document.querySelectorAll('.product-row').forEach((row, index) => {
         const productId = row.querySelector('select[name="product_ids[]"]')?.value;
         const batchId = row.querySelector('select[name="batch_ids[]"]')?.value;
         const quantity = row.querySelector('input[name="product_quantities[]"]')?.value;
         const price = row.querySelector('input[name="product_prices[]"]')?.value;
-        
+
         if (productId && batchId && quantity && price) {
             data.products.push({
                 product_id: parseInt(productId),
@@ -2236,7 +2237,7 @@ function collectInvoiceData() {
             });
         }
     });
-    
+
     return data;
 }
 
@@ -2264,10 +2265,10 @@ function showPreviewModal(previewHtml) {
         `;
         document.body.appendChild(modal);
     }
-    
+
     // Update preview content
     document.getElementById('previewContent').innerHTML = previewHtml;
-    
+
     // Show modal
     const bsModal = new bootstrap.Modal(modal);
     bsModal.show();

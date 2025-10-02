@@ -1428,6 +1428,10 @@ function handleServiceSelection(selectElement) {
         // If no price is found (e.g., for "Select a service..."), reset price fields
         updateServicePrice(selectElement.value, '0.00');
     }
+    // Trigger calculation update if updateTaxCalculations exists
+    if (typeof updateTaxCalculations === 'function') {
+        updateTaxCalculations();
+    }
 }
 
 function loadClientData(clientId) {
