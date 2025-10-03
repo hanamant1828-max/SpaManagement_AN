@@ -2142,15 +2142,21 @@ function handleBillingFormSubmit(event) {
     const productIds = formData.getAll('product_ids[]').filter(id => id && id.trim());
 
     if (serviceIds.length === 0 && productIds.length === 0) {
-        showNotification('Please add at least one service or product', 'error');
+        showNotification('⚠️ Please add at least one service or product', 'error', 5000);
         return;
     }
 
-    // Validate staff assignment for all services
+    // CRITICAL: Validate staff assignment for all services FIRST
     const staffIds = formData.getAll('staff_ids[]');
     for (let i = 0; i < serviceIds.length; i++) {
         if (!staffIds[i] || !staffIds[i].trim()) {
-            showNotification(`Please assign staff for service #${i + 1}`, 'error');
+            showNotification(`⚠️ Staff member is required for service #${i + 1}. Please assign staff to all services.`, 'error', 5000);
+            // Scroll to the service row
+            const serviceRows = document.querySelectorAll('.service-row');
+            if (serviceRows[i]) {
+                serviceRows[i].querySelector('select[name="staff_ids[]"]').focus();
+                serviceRows[i].scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
             return;
         }
     }
@@ -2159,7 +2165,7 @@ function handleBillingFormSubmit(event) {
     const batchIds = formData.getAll('batch_ids[]');
     for (let i = 0; i < productIds.length; i++) {
         if (!batchIds[i] || !batchIds[i].trim()) {
-            showNotification(`Please select batch for product #${i + 1}`, 'error');
+            showNotification(`⚠️ Please select batch for product #${i + 1}`, 'error', 5000);
             return;
         }
     }
@@ -2174,7 +2180,7 @@ function handleBillingFormSubmit(event) {
         return;
     }
 
-    // Check if all services have staff assigned (this is a duplicate check but harmless)
+    // Double-check if all services have staff assigned
     const servicesWithoutStaff = Array.from(document.querySelectorAll('.service-row')).filter(row => {
         const serviceSelect = row.querySelector('select[name="service_ids[]"]');
         const staffSelect = row.querySelector('select[name="staff_ids[]"]');
@@ -2182,8 +2188,9 @@ function handleBillingFormSubmit(event) {
     });
 
     if (servicesWithoutStaff.length > 0) {
-        showNotification('⚠️ Please assign staff for all services', 'warning', 5000);
+        showNotification('⚠️ Please assign staff for all services before saving', 'error', 5000);
         servicesWithoutStaff[0].querySelector('select[name="staff_ids[]"]').focus();
+        servicesWithoutStaff[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
         return;
     }
 
@@ -2289,18 +2296,31 @@ function handleBillingFormSubmit(event) {
         const grandTotal = document.getElementById('grandTotal')?.textContent || '0.00';
         submitBtn.innerHTML = `<span class="btn-content"><i class="fas fa-check-circle me-2"></i> <span class="btn-text">Save Invoice</span> <span class="btn-amount">(₹${grandTotal})</span></span>`;
 
+        // Extract meaningful error message
+        let errorDetail = error.message || 'Unknown error occurred';
+        
+        // Check if it's a validation error
+        if (errorDetail.includes('Staff member is required')) {
+            errorDetail = 'Please assign staff members to all services';
+        } else if (errorDetail.includes('batch')) {
+            errorDetail = 'Please select valid batches for all products';
+        } else if (errorDetail.includes('Customer not found')) {
+            errorDetail = 'Please select a valid customer';
+        }
+
         const errorMessage = `
             ❌ Failed to Save Invoice
 
-            Error: ${error.message || 'Unknown error'}
+            Error: ${errorDetail}
 
             Please check:
-            ✓ All required fields are filled
-            ✓ Staff assigned to all services
-            ✓ Valid inventory quantities
-            ✓ Internet connection is stable
+            ✓ Customer is selected
+            ✓ Staff assigned to ALL services
+            ✓ Batches selected for all products
+            ✓ Valid quantities entered
+            ✓ Payment method selected
 
-            Contact support if the problem persists.
+            ${errorDetail.includes('Staff') ? '\n⚠️ IMPORTANT: Every service MUST have a staff member assigned!' : ''}
         `.trim();
 
         showNotification(errorMessage, 'error', 10000);
