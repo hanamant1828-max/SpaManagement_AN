@@ -13,13 +13,13 @@
     --primary: #6366f1;
     --primary-dark: #4f46e5;
     --primary-light: #818cf8;
-    
+
     /* Status Colors */
     --success: #10b981;
     --warning: #f59e0b;
     --danger: #ef4444;
     --info: #06b6d4;
-    
+
     /* Neutral Palette */
     --gray-50: #f9fafb;
     --gray-100: #f3f4f6;
@@ -28,23 +28,23 @@
     --gray-500: #6b7280;
     --gray-700: #374151;
     --gray-900: #111827;
-    
+
     /* Shadows */
     --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
     --shadow-sm: 0 2px 4px -1px rgba(0, 0, 0, 0.1);
     --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
     --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
     --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
-    
+
     /* Gradients */
     --gradient-primary: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
     --gradient-success: linear-gradient(135deg, #10b981 0%, #059669 100%);
     --gradient-info: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
-    
+
     /* Spacing */
     --space-unit: 8px;
     --border-radius: 12px;
-    
+
     /* Transitions */
     --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -426,21 +426,21 @@ body {
     .billing-page-header {
         padding: calc(var(--space-unit) * 2);
     }
-    
+
     .page-title {
         font-size: 1.5rem;
     }
-    
+
     .card-body-custom,
     .section-divider {
         padding: calc(var(--space-unit) * 2);
     }
-    
+
     .btn-custom {
         width: 100%;
         justify-content: center;
     }
-    
+
     .grand-total-display {
         font-size: 2rem;
     }
@@ -637,6 +637,13 @@ body {
                                     </select>
                                 </div>
                                 <div class="col-md-2">
+                                    <label class="form-label-custom">Batch</label>
+                                    <select class="form-select form-select-custom batch-select" name="batch_ids[]" disabled>
+                                        <option value="">Select Product First</option>
+                                    </select>
+                                    <div class="batch-info-display"></div>
+                                </div>
+                                <div class="col-md-2">
                                     <label class="form-label-custom required-field">Staff</label>
                                     <select class="form-select form-select-custom" name="product_staff_ids[]" required>
                                         <option value="">Select Staff</option>
@@ -644,13 +651,6 @@ body {
                                         <option value="{{ staff.id }}">{{ staff.full_name }}</option>
                                         {% endfor %}
                                     </select>
-                                </div>
-                                <div class="col-md-2">
-                                    <label class="form-label-custom">Batch</label>
-                                    <select class="form-select form-select-custom batch-select" name="batch_ids[]" disabled>
-                                        <option value="">Select Product First</option>
-                                    </select>
-                                    <div class="batch-info-display"></div>
                                 </div>
                                 <div class="col-md-2">
                                     <label class="form-label-custom">Qty</label>
@@ -721,36 +721,36 @@ body {
                         <i class="fas fa-calculator me-2"></i>
                         Bill Summary
                     </h5>
-                    
+
                     <div class="summary-row">
                         <span class="summary-label">Services:</span>
                         <span class="summary-value" id="servicesSubtotal">₹0.00</span>
                     </div>
-                    
+
                     <div class="summary-row">
                         <span class="summary-label">Products:</span>
                         <span class="summary-value" id="productsSubtotal">₹0.00</span>
                     </div>
-                    
+
                     <div class="summary-row text-success">
                         <span class="summary-label">Package Benefits:</span>
                         <span class="summary-value" id="packageDeductions">-₹0.00</span>
                     </div>
-                    
+
                     <div class="summary-row text-warning">
                         <span class="summary-label">Discount:</span>
                         <span class="summary-value" id="discountAmount">-₹0.00</span>
                     </div>
-                    
+
                     <div class="summary-row">
                         <span class="summary-label">GST (<span id="gstRate">0</span>%):</span>
                         <span class="summary-value" id="gstAmount">₹0.00</span>
                     </div>
-                    
+
                     <hr style="border-color: rgba(255, 255, 255, 0.3); margin: 20px 0;">
-                    
+
                     <div class="grand-total-display" id="grandTotal">₹0.00</div>
-                    
+
                     <div class="d-grid gap-2 mt-4">
                         <button type="submit" class="btn btn-success-custom btn-lg-custom btn-save-invoice" id="saveInvoiceBtn">
                             <span class="btn-content">
@@ -766,13 +766,13 @@ body {
                                 Saved!
                             </span>
                         </button>
-                        
+
                         <button type="button" class="btn btn-primary-custom" onclick="previewInvoice()">
                             <i class="fas fa-eye"></i>
                             Preview
                         </button>
                     </div>
-                    
+
                     <div class="text-center mt-3 text-white-50 small">
                         <i class="fas fa-shield-alt me-1"></i>
                         Secure & Encrypted
@@ -796,10 +796,10 @@ let formSubmitting = false;
 // ==========================================
 document.addEventListener('DOMContentLoaded', function() {
     console.log('✅ Billing system initialized');
-    
+
     // Load batch data
     loadAvailableBatches();
-    
+
     // Setup customer selector
     const clientSelect = document.getElementById('client_id');
     if (clientSelect) {
@@ -813,7 +813,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
-    
+
     // Setup GST toggle
     const gstCheckbox = document.getElementById('gstEnabled');
     const gstInput = document.getElementById('gstPercentage');
@@ -823,16 +823,16 @@ document.addEventListener('DOMContentLoaded', function() {
             updateCalculations();
         });
     }
-    
+
     // Setup form submission
     const form = document.getElementById('billingForm');
     if (form) {
         form.addEventListener('submit', handleFormSubmit);
     }
-    
+
     // Initial calculation
     updateCalculations();
-    
+
     {% if selected_customer %}
     loadCustomerPackages({{ selected_customer.id }});
     {% endif %}
@@ -844,33 +844,33 @@ document.addEventListener('DOMContentLoaded', function() {
 function handleFormSubmit(event) {
     event.preventDefault();
     event.stopPropagation();
-    
+
     // Prevent double submission
     if (formSubmitting) {
         console.log('⚠️ Already submitting, ignoring...');
         return;
     }
-    
+
     const form = event.target;
     const submitBtn = document.getElementById('saveInvoiceBtn');
     const clientId = form.querySelector('#client_id').value;
-    
+
     console.log('📝 Form submission started for client:', clientId);
-    
+
     // Validation
     if (!clientId) {
         showNotification('⚠️ Please select a customer', 'warning');
         return;
     }
-    
+
     const serviceIds = Array.from(form.querySelectorAll('select[name="service_ids[]"]')).filter(s => s.value);
     const productIds = Array.from(form.querySelectorAll('select[name="product_ids[]"]')).filter(p => p.value);
-    
+
     if (serviceIds.length === 0 && productIds.length === 0) {
         showNotification('⚠️ Add at least one service or product', 'warning');
         return;
     }
-    
+
     // Validate staff for services
     const staffIds = Array.from(form.querySelectorAll('select[name="staff_ids[]"]'));
     for (let i = 0; i < serviceIds.length; i++) {
@@ -880,7 +880,7 @@ function handleFormSubmit(event) {
             return;
         }
     }
-    
+
     // Validate staff for products
     const productStaffIds = Array.from(form.querySelectorAll('select[name="product_staff_ids[]"]'));
     for (let i = 0; i < productIds.length; i++) {
@@ -890,20 +890,20 @@ function handleFormSubmit(event) {
             return;
         }
     }
-    
+
     // Set submitting flag
     formSubmitting = true;
-    
+
     // Disable button and show loading
     submitBtn.disabled = true;
     submitBtn.classList.add('saving');
     submitBtn.querySelector('.btn-content').classList.add('d-none');
     submitBtn.querySelector('.btn-loading').classList.remove('d-none');
-    
+
     // Progress stages
     let stage = 0;
     const stages = ['Creating invoice...', 'Applying packages...', 'Updating records...', 'Finalizing...'];
-    
+
     const progressInterval = setInterval(() => {
         if (stage < stages.length) {
             const loadingText = submitBtn.querySelector('.loading-text');
@@ -913,10 +913,10 @@ function handleFormSubmit(event) {
             stage++;
         }
     }, 1000);
-    
+
     // Submit form data
     const formData = new FormData(form);
-    
+
     fetch('/integrated-billing/create-professional', {
         method: 'POST',
         body: formData
@@ -944,10 +944,10 @@ function handleFormSubmit(event) {
             submitBtn.classList.add('saved');
             submitBtn.querySelector('.btn-loading').classList.add('d-none');
             submitBtn.querySelector('.btn-success-state').classList.remove('d-none');
-            
+
             const successMsg = `✅ Invoice Created Successfully!\n\nInvoice #${data.invoice_number}\nTotal: ₹${parseFloat(data.total_amount).toFixed(2)}\n\nRedirecting...`;
             showNotification(successMsg, 'success');
-            
+
             setTimeout(() => {
                 window.location.href = `/integrated-billing/invoice/${data.invoice_id}`;
             }, 2000);
@@ -958,14 +958,14 @@ function handleFormSubmit(event) {
     .catch(error => {
         clearInterval(progressInterval);
         console.error('❌ Billing Error:', error);
-        
+
         // Reset button
         formSubmitting = false;
         submitBtn.disabled = false;
         submitBtn.classList.remove('saving', 'saved');
         submitBtn.querySelector('.btn-loading').classList.add('d-none');
         submitBtn.querySelector('.btn-content').classList.remove('d-none');
-        
+
         const errorMsg = `❌ Failed to Save Invoice\n\n${error.message}\n\nPlease check:\n✓ All fields are filled\n✓ Staff assigned to all items\n✓ Valid quantities`;
         showNotification(errorMsg, 'error', 10000);
     });
@@ -977,7 +977,7 @@ function handleFormSubmit(event) {
 function addServiceRow() {
     const container = document.getElementById('servicesContainer');
     const newRow = container.children[0].cloneNode(true);
-    
+
     // Reset inputs
     newRow.querySelectorAll('select, input').forEach(input => {
         if (input.type === 'number') {
@@ -986,22 +986,22 @@ function addServiceRow() {
             input.value = '';
         }
     });
-    
+
     // Show delete button
     const deleteBtn = newRow.querySelector('button[onclick*="removeRow"]');
     if (deleteBtn) deleteBtn.style.display = 'block';
-    
+
     // Remove package benefit display
     const benefit = newRow.querySelector('.package-benefit-badge');
     if (benefit) benefit.remove();
-    
+
     container.appendChild(newRow);
 }
 
 function addProductRow() {
     const container = document.getElementById('productsContainer');
     const newRow = container.children[0].cloneNode(true);
-    
+
     // Reset inputs
     newRow.querySelectorAll('select, input').forEach(input => {
         if (input.type === 'number') {
@@ -1010,22 +1010,22 @@ function addProductRow() {
             input.value = '';
         }
     });
-    
+
     // Reset batch selector
     const batchSelect = newRow.querySelector('.batch-select');
     if (batchSelect) {
         batchSelect.innerHTML = '<option value="">Select Product First</option>';
         batchSelect.disabled = true;
     }
-    
+
     // Clear batch info
     const batchInfo = newRow.querySelector('.batch-info-display');
     if (batchInfo) batchInfo.innerHTML = '';
-    
+
     // Show delete button
     const deleteBtn = newRow.querySelector('button[onclick*="removeRow"]');
     if (deleteBtn) deleteBtn.style.display = 'block';
-    
+
     container.appendChild(newRow);
 }
 
@@ -1045,15 +1045,15 @@ function loadCustomerPackages(clientId) {
         updateCalculations();
         return;
     }
-    
+
     packagesDiv.innerHTML = '<small><i class="fas fa-spinner fa-spin"></i> Loading packages...</small>';
-    
+
     fetch(`/integrated-billing/customer-packages/${clientId}`)
         .then(response => response.json())
         .then(data => {
             console.log('Package data received:', data);
             customerPackageData = data;
-            
+
             if (data.packages && data.packages.length > 0) {
                 let html = '<div class="alert alert-success-custom"><strong>Active Packages:</strong><br>';
                 data.packages.forEach(pkg => {
@@ -1064,7 +1064,7 @@ function loadCustomerPackages(clientId) {
             } else {
                 packagesDiv.innerHTML = '<small class="text-muted-custom">No active packages</small>';
             }
-            
+
             updateCalculations();
         })
         .catch(error => {
@@ -1094,31 +1094,31 @@ function loadBatchesForProduct(productSelect) {
     const batchSelect = row.querySelector('.batch-select');
     const batchInfo = row.querySelector('.batch-info-display');
     const priceInput = row.querySelector('input[name="product_prices[]"]');
-    
+
     const productId = parseInt(productSelect.value);
-    
+
     if (!productId) {
         batchSelect.innerHTML = '<option value="">Select Product First</option>';
         batchSelect.disabled = true;
         batchInfo.innerHTML = '';
         return;
     }
-    
+
     const productBatches = availableBatches.filter(b => b.product_id === productId && b.qty_available > 0);
-    
+
     if (productBatches.length === 0) {
         batchSelect.innerHTML = '<option value="">No stock available</option>';
         batchInfo.innerHTML = '<span class="text-danger">⚠️ Out of stock</span>';
         return;
     }
-    
+
     // Sort by expiry (FIFO)
     productBatches.sort((a, b) => {
         if (!a.expiry_date) return 1;
         if (!b.expiry_date) return -1;
         return new Date(a.expiry_date) - new Date(b.expiry_date);
     });
-    
+
     // Populate batch dropdown
     batchSelect.innerHTML = '';
     productBatches.forEach((batch, index) => {
@@ -1128,15 +1128,15 @@ function loadBatchesForProduct(productSelect) {
         if (index === 0) option.selected = true;
         batchSelect.appendChild(option);
     });
-    
+
     batchSelect.disabled = false;
-    
+
     // Show first batch info
     const firstBatch = productBatches[0];
     const expiryText = firstBatch.expiry_date ? 
         `Exp: ${new Date(firstBatch.expiry_date).toLocaleDateString()}` : 'No expiry';
     batchInfo.innerHTML = `<strong>FIFO:</strong> ${firstBatch.batch_name}<br><strong>Avail:</strong> ${firstBatch.qty_available}<br>${expiryText}`;
-    
+
     // Set price
     if (priceInput && firstBatch.selling_price) {
         priceInput.value = parseFloat(firstBatch.selling_price).toFixed(2);
@@ -1155,51 +1155,51 @@ function updateCalculations() {
     // Calculate services subtotal
     let servicesSubtotal = 0;
     let packageDeductions = 0;
-    
+
     document.querySelectorAll('.service-row').forEach(row => {
         const serviceSelect = row.querySelector('select[name="service_ids[]"]');
         const qtyInput = row.querySelector('input[name="service_quantities[]"]');
-        
+
         if (serviceSelect && serviceSelect.value && qtyInput && qtyInput.value) {
             const option = serviceSelect.options[serviceSelect.selectedIndex];
             const price = parseFloat(option.dataset.price) || 0;
             const qty = parseFloat(qtyInput.value) || 1;
-            
+
             servicesSubtotal += price * qty;
-            
+
             // Check package benefits (simplified)
             // Full implementation would check customerPackageData
         }
     });
-    
+
     // Calculate products subtotal
     let productsSubtotal = 0;
-    
+
     document.querySelectorAll('.product-row').forEach(row => {
         const qtyInput = row.querySelector('input[name="product_quantities[]"]');
         const priceInput = row.querySelector('input[name="product_prices[]"]');
-        
+
         if (qtyInput && qtyInput.value && priceInput && priceInput.value) {
             const qty = parseFloat(qtyInput.value) || 0;
             const price = parseFloat(priceInput.value) || 0;
             productsSubtotal += qty * price;
         }
     });
-    
+
     // Calculate discount
     const discountPercentage = parseFloat(document.querySelector('input[name="discount_percentage"]')?.value) || 0;
     const totalBeforeDiscount = servicesSubtotal + productsSubtotal;
     const discountAmount = (totalBeforeDiscount * discountPercentage) / 100;
-    
+
     // Calculate GST
     const gstEnabled = document.getElementById('gstEnabled')?.checked || false;
     const gstPercentage = gstEnabled ? (parseFloat(document.getElementById('gstPercentage')?.value) || 0) : 0;
     const subtotalAfterDiscount = Math.max(0, totalBeforeDiscount - discountAmount);
     const gstAmount = (subtotalAfterDiscount * gstPercentage) / 100;
-    
+
     // Grand total
     const grandTotal = subtotalAfterDiscount + gstAmount;
-    
+
     // Update display
     document.getElementById('servicesSubtotal').textContent = `₹${servicesSubtotal.toFixed(2)}`;
     document.getElementById('productsSubtotal').textContent = `₹${productsSubtotal.toFixed(2)}`;
@@ -1208,7 +1208,7 @@ function updateCalculations() {
     document.getElementById('gstRate').textContent = gstPercentage.toFixed(0);
     document.getElementById('gstAmount').textContent = `₹${gstAmount.toFixed(2)}`;
     document.getElementById('grandTotal').textContent = `₹${grandTotal.toFixed(2)}`;
-    
+
     console.log('💰 Calculations updated - Grand Total:', grandTotal.toFixed(2));
 }
 
@@ -1229,7 +1229,7 @@ function showNotification(message, type = 'info', duration = 5000) {
         'warning': 'alert-warning',
         'info': 'alert-info'
     }[type] || 'alert-info';
-    
+
     const notification = document.createElement('div');
     notification.className = `alert ${alertClass} alert-dismissible fade show`;
     notification.style.cssText = 'position: fixed; top: 20px; right: 20px; z-index: 9999; max-width: 400px; white-space: pre-wrap;';
@@ -1237,9 +1237,9 @@ function showNotification(message, type = 'info', duration = 5000) {
         ${message}
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     `;
-    
+
     document.body.appendChild(notification);
-    
+
     setTimeout(() => {
         notification.classList.remove('show');
         setTimeout(() => notification.remove(), 300);
