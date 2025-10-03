@@ -30,7 +30,9 @@ def fix_invoice_item_schema():
             required_columns = {
                 'product_id': 'INTEGER REFERENCES inventory_products(id)',
                 'batch_id': 'INTEGER REFERENCES inventory_batches(id)',
-                'batch_name': 'VARCHAR(100)'
+                'batch_name': 'VARCHAR(100)',
+                'staff_id': 'INTEGER REFERENCES user(id)',
+                'staff_name': 'VARCHAR(100)'
             }
             
             columns_added = 0
