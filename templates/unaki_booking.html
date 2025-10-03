@@ -2914,262 +2914,43 @@
                 alert("View appointment " + appointmentId);
             }
 
-            // Context menu functions
+            // Context menu functions - delegate to appointment_context_menu.js
             function showContextMenu(event, appointmentId) {
                 event.preventDefault();
-                selectedAppointmentId = appointmentId;
-
-                const contextMenu = document.getElementById("contextMenu");
-                contextMenu.style.left = event.pageX + "px";
-                contextMenu.style.top = event.pageY + "px";
-                contextMenu.classList.add("show");
+                if (window.appointmentContextMenu) {
+                    window.appointmentContextMenu.showContextMenu(event.pageX, event.pageY, appointmentId);
+                }
             }
 
             function hideContextMenu() {
-                const contextMenu = document.getElementById("contextMenu");
-                contextMenu.classList.remove("show");
+                if (window.appointmentContextMenu) {
+                    window.appointmentContextMenu.hideContextMenu();
+                }
             }
 
             function viewAppointmentDetails() {
-                if (selectedAppointmentId) {
-                    alert(
-                        "View details for appointment " + selectedAppointmentId,
-                    );
+                if (selectedAppointmentId && window.appointmentContextMenu) {
+                    window.appointmentContextMenu.viewAppointment(selectedAppointmentId);
                 }
-                hideContextMenu();
             }
 
             function editAppointment() {
                 if (selectedAppointmentId) {
-                    const id = parseInt(selectedAppointmentId, 10);
-                    const booking = bookingsData.find((b) => b.id === id);
-                    if (booking) {
-                        openEditModal(booking);
+                    if (window.appointmentContextMenu) {
+                        window.appointmentContextMenu.editAppointment(selectedAppointmentId);
                     } else {
-                        console.error(
-                            `Booking with ID ${id} not found in bookingsData`,
-                        );
-                    }
-                }
-                hideContextMenu();
-            }
-
-            function openEditModal(booking) {
-                // Populate modal with booking data
-                document.getElementById("editAppointmentId").value = booking.id;
-                document.getElementById("editClientName").value =
-                    booking.client_name;
-                document.getElementById("editServiceSelect").value =
-                    booking.service_id || "";
-                document.getElementById("editStaffSelect").value =
-                    booking.staff_id;
-                document.getElementById("editAppointmentDate").value =
-                    booking.appointment_date;
-                document.getElementById("editStartTime").value =
-                    booking.start_time;
-                document.getElementById("editEndTime").value = booking.end_time;
-                document.getElementById("editNotes").value =
-                    booking.notes || "";
-
-                // Set status and paid fields if they exist on the booking object
-                // Assuming these fields are available for editing, though the UI for them isn't visible
-                // You might need to adjust this based on your actual data structure
-                if (booking.status) {
-                    // Example: if you had a status dropdown, you'd set its value here.
-                    // For now, we'll just log it or assume it's handled by backend logic.
-                    console.log("Booking status:", booking.status);
-                }
-                if (booking.paid !== undefined) {
-                    // Example: if you had a paid checkbox, you'd set its checked state here.
-                    console.log("Booking paid:", booking.paid);
-                }
-
-
-                // Clear conflict alert
-                document
-                    .getElementById("editConflictAlert")
-                    .classList.add("d-none");
-
-                // Setup event listeners for auto-calculation
-                const serviceSelect =
-                    document.getElementById("editServiceSelect");
-                const startTime = document.getElementById("editStartTime");
-
-                serviceSelect.onchange = calculateEditEndTime;
-                startTime.onchange = calculateEditEndTime;
-
-                // Show modal
-                const modal = new bootstrap.Modal(
-                    document.getElementById("editAppointmentModal"),
-                );
-                modal.show();
-            }
-
-            function calculateEditEndTime() {
-                const serviceSelect =
-                    document.getElementById("editServiceSelect");
-                const startTimeInput = document.getElementById("editStartTime");
-                const endTimeInput = document.getElementById("editEndTime");
-
-                const selectedOption = serviceSelect.selectedOptions[0];
-                const startTime = startTimeInput.value;
-
-                if (!selectedOption || !startTime) {
-                    endTimeInput.value = "";
-                    return;
-                }
-
-                const duration =
-                    parseInt(selectedOption.dataset.duration) || 60;
-                const [hours, minutes] = startTime.split(":").map(Number);
-                const startDate = new Date();
-                startDate.setHours(hours, minutes, 0);
-
-                const endDate = new Date(
-                    startDate.getTime() + duration * 60000,
-                );
-                const endTimeStr = endDate.toTimeString().substr(0, 5);
-                endTimeInput.value = endTimeStr;
-
-                // Check for conflicts
-                checkEditConflicts();
-            }
-
-            function checkEditConflicts() {
-                const appointmentId = parseInt(
-                    document.getElementById("editAppointmentId").value,
-                );
-                const staffId = parseInt(
-                    document.getElementById("editStaffSelect").value,
-                );
-                const date = document.getElementById(
-                    "editAppointmentDate",
-                ).value;
-                const startTime =
-                    document.getElementById("editStartTime").value;
-                const endTime = document.getElementById("editEndTime").value;
-                const conflictAlert =
-                    document.getElementById("editConflictAlert");
-                const conflictMessage = document.getElementById(
-                    "editConflictMessage",
-                );
-
-                if (!staffId || !date || !startTime || !endTime) {
-                    conflictAlert.classList.add("d-none");
-                    return;
-                }
-
-                // Check against existing bookings (excluding current appointment)
-                const conflicts = bookingsData.filter(
-                    (b) =>
-                        b.id !== appointmentId &&
-                        b.staff_id === staffId &&
-                        b.appointment_date === date &&
-                        startTime < b.end_time &&
-                        endTime > b.start_time,
-                );
-
-                if (conflicts.length > 0) {
-                    const conflict = conflicts[0];
-                    conflictMessage.textContent = `Conflicts with existing appointment: ${conflict.client_name} (${conflict.start_time} - ${conflict.end_time})`;
-                    conflictAlert.classList.remove("d-none");
-                } else {
-                    conflictAlert.classList.add("d-none");
-                }
-            }
-
-            function saveEditedAppointment() {
-                const appointmentId =
-                    document.getElementById("editAppointmentId").value;
-                const serviceId =
-                    document.getElementById("editServiceSelect").value;
-                const staffId =
-                    document.getElementById("editStaffSelect").value;
-                const date = document.getElementById(
-                    "editAppointmentDate",
-                ).value;
-                const startTime =
-                    document.getElementById("editStartTime").value;
-                const endTime = document.getElementById("editEndTime").value;
-                const notes = document.getElementById("editNotes").value;
-
-                // Validation
-                if (!serviceId || !staffId || !date || !startTime || !endTime) {
-                    alert("Please fill in all required fields");
-                    return;
-                }
-
-                // Check for conflicts
-                if (
-                    !document
-                        .getElementById("editConflictAlert")
-                        .classList.contains("d-none")
-                ) {
-                    if (
-                        !confirm(
-                            "There is a scheduling conflict. Do you want to proceed anyway?",
-                        )
-                    ) {
-                        return;
-                    }
-                }
-
-                const overlay = document.getElementById("loadingOverlay");
-                overlay.classList.add("show");
-
-                // Get service name from select
-                const serviceSelect =
-                    document.getElementById("editServiceSelect");
-                const serviceName = serviceSelect.selectedOptions[0].text
-                    .split("(")[0]
-                    .trim();
-
-                const updateData = {
-                    service_id: serviceId,
-                    service_name: serviceName,
-                    staff_id: staffId,
-                    appointment_date: date,
-                    start_time: startTime,
-                    end_time: endTime,
-                    notes: notes,
-                    // Add status and paid fields here if they are editable in the UI
-                    // For now, assuming they are handled by backend logic or not directly editable here
-                    // status: document.getElementById('editStatusSelect').value, // Example
-                    // paid: document.getElementById('editPaidCheckbox').checked, // Example
-                };
-
-                fetch(`/api/unaki/bookings/${appointmentId}`, {
-                    method: "PUT",
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify(updateData),
-                })
-                    .then((response) => response.json())
-                    .then((data) => {
-                        overlay.classList.remove("show");
-
-                        if (data.success) {
-                            bootstrap.Modal.getInstance(
-                                document.getElementById("editAppointmentModal"),
-                            ).hide();
-                            showNotification(
-                                "Appointment updated successfully!",
-                                "success",
-                            );
-                            loadBookings();
+                        // Fallback to local edit modal
+                        const id = parseInt(selectedAppointmentId, 10);
+                        const booking = bookingsData.find((b) => b.id === id);
+                        if (booking) {
+                            openEditModal(booking);
                         } else {
-                            alert(
-                                "Error updating appointment: " +
-                                    (data.error || "Unknown error"),
+                            console.error(
+                                `Booking with ID ${id} not found in bookingsData`,
                             );
                         }
-                    })
-                    .catch((error) => {
-                        overlay.classList.remove("show");
-                        console.error("Error:", error);
-                        alert("Error updating appointment. Please try again.");
-                    });
+                    }
+                }
             }
 
             function checkInAppointment() {
