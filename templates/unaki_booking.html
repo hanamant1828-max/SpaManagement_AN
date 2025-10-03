@@ -21,10 +21,10 @@
             href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
             rel="stylesheet"
         />
+        <!-- Appointment Context Menu Script - Load first -->
+        <script src="{{ url_for('static', filename='js/appointment_context_menu.js') }}"></script>
         <!-- Bootstrap JavaScript Bundle -->
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-        <!-- Appointment Context Menu Script -->
-        <script src="{{ url_for('static', filename='js/appointment_context_menu.js') }}"></script>
         <style>
             * {
                 margin: 0;
@@ -2376,10 +2376,11 @@
                 });
 
                 // Reinitialize context menu for all appointment blocks
-                if (typeof reinitializeContextMenu === "function") {
-                    reinitializeContextMenu();
-                } else if (window.appointmentContextMenu) {
+                if (window.appointmentContextMenu && typeof window.appointmentContextMenu.reinitializeForAppointments === 'function') {
+                    console.log('🔄 Reinitializing context menu after rendering bookings');
                     window.appointmentContextMenu.reinitializeForAppointments();
+                } else {
+                    console.error('❌ AppointmentContextMenu not available');
                 }
             }
 
@@ -2917,8 +2918,11 @@
             // Context menu functions - delegate to appointment_context_menu.js
             function showContextMenu(event, appointmentId) {
                 event.preventDefault();
+                console.log('🎯 showContextMenu called for appointment:', appointmentId);
                 if (window.appointmentContextMenu) {
                     window.appointmentContextMenu.showContextMenu(event.pageX, event.pageY, appointmentId);
+                } else {
+                    console.error('❌ AppointmentContextMenu not available');
                 }
             }
 
@@ -3035,23 +3039,17 @@
                 }
             }
 
-            // Dummy function for reinitializeContextMenu to avoid errors if not defined elsewhere
-            function reinitializeContextMenu() {
-                console.log("Context menu reinitialized (or placeholder called)");
-                // If appointment context menu is handled by a separate script, call its init here.
-                // Example: if (window.appointmentContextMenu && typeof window.appointmentContextMenu.init === 'function') {
-                //     window.appointmentContextMenu.init();
-                // }
-            }
-
-            // Dummy function for hideContextMenu to avoid errors if not defined elsewhere
-            function hideContextMenu() {
-                console.log("Context menu hidden (or placeholder called)");
-                const contextMenu = document.getElementById("contextMenu");
-                if (contextMenu) {
-                    contextMenu.classList.remove("show");
-                }
-            }
+            // Initialize context menu when page loads
+            document.addEventListener('DOMContentLoaded', function() {
+                // Wait a bit for appointmentContextMenu to be available
+                setTimeout(function() {
+                    if (window.appointmentContextMenu) {
+                        console.log('✅ AppointmentContextMenu is available');
+                    } else {
+                        console.error('❌ AppointmentContextMenu not loaded');
+                    }
+                }, 100);
+            });
 
         </script>
     </body>
