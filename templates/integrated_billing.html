@@ -198,6 +198,8 @@
     font-weight: 600;
     transition: all 0.3s ease;
     border: none;
+    position: relative;
+    overflow: hidden;
 }
 
 .btn-primary {
@@ -215,9 +217,26 @@
     box-shadow: 0 4px 12px rgba(17, 153, 142, 0.4);
 }
 
-.btn-success:hover {
+.btn-success:hover:not(:disabled) {
     transform: translateY(-2px);
     box-shadow: 0 6px 16px rgba(17, 153, 142, 0.5);
+}
+
+.btn-success:disabled,
+.btn-success.disabled {
+    background: linear-gradient(135deg, #94a3b8 0%, #64748b 100%);
+    box-shadow: none;
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
+.btn-success:disabled .fa-spinner {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
 }
 
 .btn-outline-primary {
@@ -2040,8 +2059,10 @@ function handleBillingFormSubmit(event) {
 
     const submitButton = form.querySelector('button[type="submit"]');
     const originalText = submitButton.innerHTML;
+    
     submitButton.disabled = true;
-    submitButton.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Saving...';
+    submitButton.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Processing Invoice...';
+    submitButton.classList.add('disabled');
 
     const formData = new FormData(form);
 
@@ -2051,32 +2072,124 @@ function handleBillingFormSubmit(event) {
         method: 'POST',
         body: formData
     })
-    .then(response => response.json())
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`Server error: ${response.status} ${response.statusText}`);
+        }
+        return response.json();
+    })
     .then(data => {
+        submitButton.disabled = false;
+        submitButton.innerHTML = originalText;
+        submitButton.classList.remove('disabled');
+        
         if (data.success) {
-            showNotification(data.message, 'success');
             console.log('Invoice created successfully:', data);
-            // Redirect to invoice detail page or reset form
-            if (data.invoice_id) {
-                setTimeout(() => {
-                    window.location.href = `/integrated-billing/invoice/${data.invoice_id}`;
-                }, 1000);
-            } else {
-                form.reset();
-                updateTaxCalculations();
-            }
+            
+            showSuccessModal({
+                invoiceNumber: data.invoice_number || 'N/A',
+                invoiceId: data.invoice_id,
+                amount: data.total_amount || '0.00',
+                customerName: form.querySelector('#client_id option:checked')?.text || 'Customer',
+                message: data.message
+            });
         } else {
-            showNotification(data.message || 'Error creating invoice', 'error');
+            const errorMessage = data.message || 'Error creating invoice';
+            const details = data.details ? `<br><small>${data.details}</small>` : '';
+            showNotification(errorMessage + details, 'error');
         }
     })
     .catch(error => {
         console.error('Form submission error:', error);
-        showNotification('Error creating invoice: ' + error.message, 'error');
-    })
-    .finally(() => {
         submitButton.disabled = false;
         submitButton.innerHTML = originalText;
+        submitButton.classList.remove('disabled');
+        
+        showNotification('Network error: Unable to save invoice. Please check your connection and try again.', 'error');
     });
+}
+
+function showSuccessModal(invoiceData) {
+    const modalHtml = `
+        <div class="modal fade" id="invoiceSuccessModal" tabindex="-1" aria-labelledby="invoiceSuccessModalLabel" data-bs-backdrop="static" data-bs-keyboard="false">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header bg-success text-white">
+                        <h5 class="modal-title" id="invoiceSuccessModalLabel">
+                            <i class="fas fa-check-circle me-2"></i>Invoice Saved Successfully!
+                        </h5>
+                    </div>
+                    <div class="modal-body text-center py-4">
+                        <div class="mb-4">
+                            <i class="fas fa-file-invoice text-success" style="font-size: 4rem;"></i>
+                        </div>
+                        <h4 class="mb-3">Invoice #${invoiceData.invoiceNumber}</h4>
+                        <p class="text-muted mb-2">Customer: <strong>${invoiceData.customerName}</strong></p>
+                        <p class="mb-4">Total Amount: <strong class="text-success fs-3">₹${parseFloat(invoiceData.amount).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</strong></p>
+                        ${invoiceData.message ? `<div class="alert alert-info"><small>${invoiceData.message}</small></div>` : ''}
+                    </div>
+                    <div class="modal-footer justify-content-between">
+                        <button type="button" class="btn btn-outline-secondary" onclick="createAnotherInvoice()">
+                            <i class="fas fa-plus me-2"></i>Create Another Invoice
+                        </button>
+                        <div>
+                            <button type="button" class="btn btn-primary me-2" onclick="viewInvoice(${invoiceData.invoiceId})">
+                                <i class="fas fa-eye me-2"></i>View Invoice
+                            </button>
+                            <button type="button" class="btn btn-success" onclick="printInvoice(${invoiceData.invoiceId})">
+                                <i class="fas fa-print me-2"></i>Print Invoice
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    let existingModal = document.getElementById('invoiceSuccessModal');
+    if (existingModal) {
+        existingModal.remove();
+    }
+    
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    
+    const modal = new bootstrap.Modal(document.getElementById('invoiceSuccessModal'));
+    modal.show();
+}
+
+function createAnotherInvoice() {
+    const modal = bootstrap.Modal.getInstance(document.getElementById('invoiceSuccessModal'));
+    if (modal) {
+        modal.hide();
+    }
+    
+    const form = document.getElementById('billingForm');
+    form.reset();
+    
+    document.getElementById('customerPackages').innerHTML = '<small><i class="fas fa-info-circle me-1"></i>Select a customer to view their active packages</small>';
+    
+    const bookingsCard = document.getElementById('customerBookingsCardContainer');
+    if (bookingsCard) {
+        bookingsCard.style.display = 'none';
+    }
+    
+    updateTaxCalculations();
+    
+    showNotification('Form cleared. Ready to create a new invoice!', 'success');
+    
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function viewInvoice(invoiceId) {
+    if (invoiceId) {
+        window.location.href = `/integrated-billing/invoice/${invoiceId}`;
+    }
+}
+
+function printInvoice(invoiceId) {
+    if (invoiceId) {
+        window.open(`/integrated-billing/print-invoice/${invoiceId}`, '_blank');
+    }
 }
 
 function saveAndPrint() {
