@@ -1440,7 +1440,8 @@ def get_customer_packages(client_id):
                     package_template = assignment.get_package_template()
                     if package_template and hasattr(package_template, 'name'):
                         package_name = package_template.name
-                except:
+                except Exception as template_error:
+                    app.logger.warning(f"Could not get package template for assignment {assignment.id}: {str(template_error)}")
                     # If get_package_template fails, try to get name from package relationship
                     if hasattr(assignment, 'package') and assignment.package:
                         package_name = assignment.package.name
@@ -1467,8 +1468,8 @@ def get_customer_packages(client_id):
                             service = Service.query.get(assignment.service_id)
                             if service:
                                 service_name = service.name
-                        except:
-                            pass
+                        except Exception as service_error:
+                            app.logger.warning(f"Could not get service for assignment {assignment.id}: {str(service_error)}")
                     package_info['service_name'] = service_name
 
                 elif assignment.package_type == 'prepaid':
@@ -1500,7 +1501,7 @@ def get_customer_packages(client_id):
             'success': True,
             'packages': package_data,
             'total': len(package_data)
-        })
+        }), 200
 
     except Exception as e:
         app.logger.error(f"Error fetching customer packages for client {client_id}: {str(e)}")
@@ -1509,8 +1510,9 @@ def get_customer_packages(client_id):
         return jsonify({
             'success': False,
             'error': f'Error fetching packages: {str(e)}',
-            'packages': []
-        })
+            'packages': [],
+            'total': 0
+        }), 200
 
 @app.route('/api/inventory/batches/for-product/<int:product_id>')
 @login_required
