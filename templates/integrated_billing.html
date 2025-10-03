@@ -537,6 +537,46 @@
 * {
     transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
 }
+
+/* Save Button Enhancements */
+.btn-save-invoice .btn-loading,
+.btn-save-invoice .btn-success-state {
+    display: none;
+}
+
+.btn-save-invoice.saving .btn-content {
+    display: none;
+}
+
+.btn-save-invoice.saving .btn-loading {
+    display: inline-flex;
+    align-items: center;
+}
+
+.btn-save-invoice.saved .btn-content,
+.btn-save-invoice.saved .btn-loading {
+    display: none;
+}
+
+.btn-save-invoice.saved .btn-success-state {
+    display: inline-flex;
+    align-items: center;
+}
+
+.btn-save-invoice .btn-amount {
+    margin-left: 5px;
+    font-size: 0.8em;
+    opacity: 0.8;
+}
+
+.btn-save-invoice .loading-text,
+.btn-save-invoice .btn-text {
+    font-size: 0.9em;
+}
+
+.btn-save-invoice .btn-success-state span {
+    font-weight: bold;
+}
 </style>
 {% endblock %}
 
@@ -902,8 +942,20 @@
                                 <button type="button" class="btn btn-outline-secondary btn-lg" onclick="saveAsDraft()">
                                     <i class="fas fa-save me-2"></i>Save as Draft
                                 </button>
-                                <button type="submit" class="btn btn-success btn-lg" name="action" value="save">
-                                    <i class="fas fa-check-circle me-2"></i>Save (₹<span id="grandTotalBtn">0.00</span>)
+                                <button type="submit" class="btn btn-success btn-lg btn-save-invoice" name="action" value="save" id="saveInvoiceBtn">
+                                    <span class="btn-content">
+                                        <i class="fas fa-check-circle me-2"></i>
+                                        <span class="btn-text">Save Invoice</span>
+                                        <span class="btn-amount">(₹<span id="grandTotalBtn">0.00</span>)</span>
+                                    </span>
+                                    <span class="btn-loading d-none">
+                                        <i class="fas fa-spinner fa-spin me-2"></i>
+                                        <span class="loading-text">Saving...</span>
+                                    </span>
+                                    <span class="btn-success-state d-none">
+                                        <i class="fas fa-check-double me-2"></i>
+                                        <span>Saved!</span>
+                                    </span>
                                 </button>
                                 <button type="button" class="btn btn-primary btn-lg" onclick="saveAndPrint()">
                                     <i class="fas fa-print me-2"></i>Save & Print
@@ -2026,8 +2078,9 @@ function handleBillingFormSubmit(event) {
     event.preventDefault();
 
     const form = event.target;
-    const submitBtn = form.querySelector('button[type="submit"]');
-    const originalText = submitBtn.innerHTML;
+    const submitBtn = document.getElementById('saveInvoiceBtn');
+    const originalText = submitBtn.querySelector('.btn-content').innerHTML; // Store original button content
+    const originalAmount = document.getElementById('grandTotalBtn').textContent; // Store original amount
 
     const customerId = form.querySelector('#client_id').value;
     const selectedCustomerName = form.querySelector('#client_id option:checked')?.text || 'Unknown Customer';
@@ -2048,22 +2101,10 @@ function handleBillingFormSubmit(event) {
         return;
     }
 
-    // Show processing notification
-    showNotification(`
-        🔄 Processing Invoice...
-
-        • Customer: ${selectedCustomerName}
-        • Services: ${selectedServices} item(s)
-        • Products: ${selectedProducts} item(s)
-        • Total Amount: ₹${grandTotal}
-
-        Please wait...
-    `.trim(), 'info', 3000);
-
-    submitBtn.disabled = true;
-    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Processing...';
-    submitBtn.classList.add('disabled');
-
+    // Show processing state on button
+    submitBtn.classList.add('saving');
+    submitBtn.querySelector('.loading-text').textContent = 'Saving...';
+    
     const formData = new FormData(form);
     const data = collectInvoiceData(); // Use the dedicated function to collect data
 
@@ -2107,12 +2148,14 @@ function handleBillingFormSubmit(event) {
         return response.json();
     })
     .then(data => {
-        submitBtn.disabled = false;
-        submitBtn.innerHTML = originalText;
-        submitBtn.classList.remove('disabled');
+        submitBtn.classList.remove('saving'); // Remove saving class
 
         if (data.success) {
             console.log('Invoice created successfully:', data);
+
+            // Show success state on button
+            submitBtn.classList.add('saved');
+            submitBtn.querySelector('.btn-success-state span').textContent = 'Saved!';
 
             // Show comprehensive success notification
             const invoiceDetails = `
@@ -2132,7 +2175,7 @@ function handleBillingFormSubmit(event) {
 
             showNotification(invoiceDetails, 'success', 8000);
 
-            // Redirect after delay
+            // Redirect after a short delay to allow notification to be seen
             setTimeout(() => {
                 window.location.href = '/integrated-billing';
             }, 2000);
@@ -2141,10 +2184,21 @@ function handleBillingFormSubmit(event) {
             const errorMessage = data.message || 'Error creating invoice';
             const details = data.details ? `<br><small>${data.details}</small>` : '';
             showNotification(`${errorMessage}${details}`, 'error');
+            // Revert button to original state on error
+            submitBtn.classList.remove('saving');
+            submitBtn.classList.remove('saved');
+            submitBtn.querySelector('.btn-content').innerHTML = originalText;
+            document.getElementById('grandTotalBtn').textContent = originalAmount;
         }
     })
     .catch(error => {
         console.error('Error:', error);
+        
+        // Show error state on button
+        submitBtn.classList.remove('saving');
+        submitBtn.classList.remove('saved');
+        submitBtn.querySelector('.btn-content').innerHTML = originalText;
+        document.getElementById('grandTotalBtn').textContent = originalAmount;
 
         const errorDetails = `
             ❌ Failed to create invoice
@@ -2162,9 +2216,6 @@ function handleBillingFormSubmit(event) {
         `.trim();
 
         showNotification(errorDetails, 'error', 10000);
-        submitBtn.disabled = false;
-        submitBtn.innerHTML = originalText;
-        submitBtn.classList.remove('disabled');
     });
 }
 
