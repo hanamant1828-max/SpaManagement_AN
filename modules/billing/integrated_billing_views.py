@@ -572,9 +572,9 @@ def create_professional_invoice():
         staff_ids = request.form.getlist('staff_ids[]')
 
         for i, service_id in enumerate(service_ids):
-            if service_id:
+            if service_id and str(service_id).strip():
                 # Validate staff assignment
-                staff_id = staff_ids[i] if i < len(staff_ids) and staff_ids[i] else None
+                staff_id = staff_ids[i] if i < len(staff_ids) and staff_ids[i] and str(staff_ids[i]).strip() else None
                 if not staff_id:
                     app.logger.warning(f'Staff not assigned for service index {i}')
                     return jsonify({
@@ -1171,9 +1171,9 @@ def create_integrated_invoice():
         staff_ids = request.form.getlist('staff_ids[]')
 
         for i, service_id in enumerate(service_ids):
-            if service_id:
+            if service_id and str(service_id).strip():
                 # Validate staff assignment
-                staff_id = staff_ids[i] if i < len(staff_ids) and staff_ids[i] else None
+                staff_id = staff_ids[i] if i < len(staff_ids) and staff_ids[i] and str(staff_ids[i]).strip() else None
                 if not staff_id:
                     app.logger.warning(f'Staff not assigned for service index {i}')
                     return jsonify({

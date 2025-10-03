@@ -2135,10 +2135,38 @@ function handleBillingFormSubmit(event) {
     event.preventDefault();
 
     const form = event.target;
+    const formData = new FormData(form);
+
+    // Validate that at least one service or product is selected
+    const serviceIds = formData.getAll('service_ids[]').filter(id => id && id.trim());
+    const productIds = formData.getAll('product_ids[]').filter(id => id && id.trim());
+
+    if (serviceIds.length === 0 && productIds.length === 0) {
+        showNotification('Please add at least one service or product', 'error');
+        return;
+    }
+
+    // Validate staff assignment for all services
+    const staffIds = formData.getAll('staff_ids[]');
+    for (let i = 0; i < serviceIds.length; i++) {
+        if (!staffIds[i] || !staffIds[i].trim()) {
+            showNotification(`Please assign staff for service #${i + 1}`, 'error');
+            return;
+        }
+    }
+
+    // Validate batch selection for all products
+    const batchIds = formData.getAll('batch_ids[]');
+    for (let i = 0; i < productIds.length; i++) {
+        if (!batchIds[i] || !batchIds[i].trim()) {
+            showNotification(`Please select batch for product #${i + 1}`, 'error');
+            return;
+        }
+    }
+    
     const submitBtn = document.getElementById('saveInvoiceBtn');
     const clientId = form.querySelector('#client_id').value;
 
-    // 🔍 Enhanced Validation
     if (!clientId) {
         showNotification('⚠️ Please select a customer before saving', 'warning', 5000);
         form.querySelector('#client_id').focus();
@@ -2146,17 +2174,7 @@ function handleBillingFormSubmit(event) {
         return;
     }
 
-    const selectedServices = Array.from(document.querySelectorAll('.service-row select[name="service_ids[]"]'))
-        .filter(select => select.value).length;
-    const selectedProducts = Array.from(document.querySelectorAll('.product-row select[name="product_ids[]"]'))
-        .filter(select => select.value).length;
-
-    if (selectedServices === 0 && selectedProducts === 0) {
-        showNotification('⚠️ Please add at least one service or product', 'warning', 5000);
-        return;
-    }
-
-    // Check if all services have staff assigned
+    // Check if all services have staff assigned (this is a duplicate check but harmless)
     const servicesWithoutStaff = Array.from(document.querySelectorAll('.service-row')).filter(row => {
         const serviceSelect = row.querySelector('select[name="service_ids[]"]');
         const staffSelect = row.querySelector('select[name="staff_ids[]"]');
@@ -2194,11 +2212,12 @@ function handleBillingFormSubmit(event) {
     }, 1200);
 
     // 📤 Send FormData (matches backend expectations)
-    const formData = new FormData(form);
+    // Re-fetch formData to ensure it has latest values
+    const currentFormData = new FormData(form);
 
     fetch('/integrated-billing/create-professional', {
         method: 'POST',
-        body: formData  // Send as FormData, NOT JSON
+        body: currentFormData  // Send as FormData, NOT JSON
         // Don't set Content-Type header - browser sets it automatically for FormData
     })
     .then(response => {
@@ -2268,7 +2287,7 @@ function handleBillingFormSubmit(event) {
 
         // Reset button to original state
         const grandTotal = document.getElementById('grandTotal')?.textContent || '0.00';
-        submitBtn.innerHTML = `<i class="fas fa-check-circle me-2"></i> <span class="btn-text">Save Invoice</span> <span class="btn-amount">(₹${grandTotal})</span>`;
+        submitBtn.innerHTML = `<span class="btn-content"><i class="fas fa-check-circle me-2"></i> <span class="btn-text">Save Invoice</span> <span class="btn-amount">(₹${grandTotal})</span></span>`;
 
         const errorMessage = `
             ❌ Failed to Save Invoice
