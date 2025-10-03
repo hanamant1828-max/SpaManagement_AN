@@ -1213,8 +1213,10 @@ def api_unaki_get_bookings():
         except ValueError:
             return jsonify({'success': False, 'error': 'Invalid date format'}), 400
 
-        # Get all bookings for the date
-        bookings = UnakiBooking.query.filter_by(appointment_date=booking_date).all()
+        # Get all bookings for the date, excluding completed appointments
+        bookings = UnakiBooking.query.filter_by(appointment_date=booking_date).filter(
+            UnakiBooking.status != 'completed'
+        ).all()
 
         bookings_data = []
         for booking in bookings:
