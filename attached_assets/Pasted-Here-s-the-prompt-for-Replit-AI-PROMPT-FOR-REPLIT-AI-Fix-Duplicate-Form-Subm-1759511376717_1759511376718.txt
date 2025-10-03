@@ -1,0 +1,128 @@
+Here's the prompt for Replit AI:
+
+---
+
+**PROMPT FOR REPLIT AI:**
+
+```
+Fix Duplicate Form Submission Bug in Integrated Billing
+
+PROBLEM:
+The billing form submits TWICE when "Save Invoice" is clicked, causing empty Error {} objects. 
+Console shows "Billing Error: Error {}" appearing 2 times consecutively.
+
+ROOT CAUSE:
+Multiple event listeners attached to the form, or form submitting before validation completes.
+
+FILES TO FIX:
+templates/integrated_billing.html (JavaScript section at bottom)
+
+SOLUTION REQUIRED:
+
+1. PREVENT DUPLICATE SUBMISSIONS:
+   - Remove duplicate event listener attachments
+   - Add form submission guard flag
+   - Clone form to remove old listeners
+   - Attach submit handler only ONCE in DOMContentLoaded
+
+2. ADD PROPER ERROR LOGGING:
+   - Log actual fetch errors with full error details
+   - Check Network tab response in browser DevTools
+   - Display server error messages to user
+   - Don't show empty Error {} objects
+
+3. IMPLEMENTATION PATTERN:
+
+```javascript
+let formSubmitting = false; // Guard flag
+
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('billingForm');
+    
+    // Remove old listeners by cloning
+    const newForm = form.cloneNode(true);
+    form.parentNode.replaceChild(newForm, form);
+    
+    // Attach ONCE
+    newForm.addEventListener('submit', function(event) {
+        event.preventDefault();
+        event.stopPropagation();
+        
+        // Prevent double submission
+        if (formSubmitting) {
+            console.log('Already submitting, ignoring...');
+            return;
+        }
+        formSubmitting = true;
+        
+        handleBillingFormSubmit(event);
+    });
+});
+
+function handleBillingFormSubmit(event) {
+    const form = event.target;
+    
+    // ... validation ...
+    
+    const formData = new FormData(form);
+    
+    fetch('/integrated-billing/create-professional', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => {
+        if (!response.ok) {
+            return response.text().then(text => {
+                console.error('Server Response:', text);
+                throw new Error(text || 'Server error');
+            });
+        }
+        return response.json();
+    })
+    .then(data => {
+        formSubmitting = false; // Reset flag
+        if (data.success) {
+            // Success handling
+        }
+    })
+    .catch(error => {
+        formSubmitting = false; // Reset flag
+        console.error('Full Error:', error);
+        console.error('Error message:', error.message);
+        console.error('Error stack:', error.stack);
+        
+        showNotification(
+            'Failed to save invoice: ' + (error.message || 'Unknown error'),
+            'error',
+            8000
+        );
+    });
+}
+```
+
+4. DEBUG LOGGING:
+   Add these console logs:
+   - Form submission started
+   - Validation results
+   - FormData contents
+   - Fetch request sent
+   - Server response received
+   - Error details (full error object)
+
+5. TESTING:
+   After fix, clicking "Save Invoice" should:
+   - Log "Form submission started" ONCE
+   - Show progress indicator
+   - Either redirect on success OR show specific error message
+   - Never show empty "Error {}" objects
+
+CRITICAL:
+- Do NOT remove existing functionality
+- Keep all validation logic
+- Maintain progress indicators
+- Preserve FormData submission (not JSON)
+```
+
+---
+
+Copy this and paste into Replit AI.
