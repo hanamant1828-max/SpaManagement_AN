@@ -1,0 +1,70 @@
+# Prompt: Display Service Names in Customer Packages
+
+## Requirement
+
+When a customer is selected, show **complete package details** including:
+
+### Must Display:
+
+1. **Package Name** (e.g., "Thai Massage Special", "VIP Membership")
+2. **Service Names** covered by each package
+3. **Package Type** (Service Package / Membership / Prepaid)
+4. **Sessions Information:**
+   - Total sessions purchased
+   - Sessions used
+   - Sessions remaining
+5. **Dates:**
+   - Purchase date
+   - Expiry date
+   - Days remaining
+6. **Credit Information** (for prepaid packages):
+   - Original amount
+   - Amount used
+   - Remaining balance
+
+## Example Display Format
+
+```
+Active Packages: 2
+
+┌─────────────────────────────────────────────┐
+│ Package: "Thai Massage Bundle" (only2)      │
+│ Service: Thai Massage (60 min)              │
+│ Type: Service Package                       │
+│                                             │
+│ Sessions: 2 remaining of 2 total           │
+│ Progress: [██████████] 100%                │
+│                                             │
+│ Purchased: 15 Sep 2025                     │
+│ Expires: 15 Dec 2025 (72 days left)       │
+└─────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────┐
+│ Package: "Buy 3 Get 1 Free" (3+1)          │
+│ Service: Swedish Massage (90 min)          │
+│ Type: Service Package                       │
+│                                             │
+│ Sessions: 4 remaining of 4 total           │
+│ Progress: [██████████] 100%                │
+│                                             │
+│ Purchased: 20 Sep 2025                     │
+│ Expires: 20 Jan 2026 (109 days left)      │
+└─────────────────────────────────────────────┘
+```
+
+## Key Points
+
+- **Service Name** must be clearly visible (e.g., "Thai Massage", "Swedish Massage", "Facial Treatment")
+- Show which specific service each package covers
+- For membership packages, show if it covers "All Services" or specific categories
+- Use visual progress bars to show session usage
+- Color-code by package type
+- Show expiry warnings if less than 30 days remaining
+
+## Current vs Required
+
+**Current:** Shows only package names ("only2", "3+1")
+
+**Required:** Show package name + service name + all usage details
+
+This helps staff know exactly what services the customer can claim under each package.
