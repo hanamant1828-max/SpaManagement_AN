@@ -1767,17 +1767,6 @@ def get_customer_packages(client_id):
             'total': 0
         }), 200
 
-    except Exception as e:
-        app.logger.error(f"Error fetching customer packages for client {client_id}: {str(e)}")
-        import traceback
-        app.logger.error(traceback.format_exc())
-        return jsonify({
-            'success': False,
-            'error': f'Error fetching packages: {str(e)}',
-            'packages': [],
-            'total': 0
-        }), 200
-
 @app.route('/api/inventory/batches/for-product/<int:product_id>')
 @login_required
 def api_get_batches_for_product(product_id):
