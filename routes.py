@@ -165,11 +165,12 @@ def test_navigation():
     return render_template('test_navigation.html')
 
 # Enhanced API routes for Unaki Booking System with live database integration
+# Note: These routes are now handled in app.py
 
-@app.route('/api/unaki/staff', methods=['GET'])
-@login_required
+# @app.route('/api/unaki/staff', methods=['GET'])
+# @login_required
 # Unaki staff API is handled in app.py
-
+'''
         # If no staff exist, create sample ones
         if not staff_data:
             print("No staff found, creating sample staff...")
