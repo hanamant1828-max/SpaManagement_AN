@@ -839,6 +839,42 @@ def create_professional_invoice():
                     )
                     stock_reduced_count += 1
 
+            # === CRITICAL UPDATE 2: Staff Commission & Performance ===
+            staff_commissions_created = 0
+            for service_data in services_data:
+                if service_data.get('staff_id'):
+                    service = Service.query.get(service_data['service_id'])
+                    staff = User.query.get(service_data['staff_id'])
+                    
+                    if service and staff:
+                        service_amount = service.price * service_data['quantity']
+                        commission_rate = staff.commission_percentage or 0.0
+                        commission_amount = service_amount * (commission_rate / 100)
+                        
+                        # Create commission record
+                        from models import Commission
+                        commission = Commission(
+                            staff_id=staff.id,
+                            appointment_id=service_data.get('appointment_id'),
+                            service_amount=service_amount,
+                            commission_rate=commission_rate,
+                            commission_amount=commission_amount,
+                            pay_period_start=current_date.date(),
+                            pay_period_end=current_date.date(),
+                            is_paid=False
+                        )
+                        db.session.add(commission)
+                        staff_commissions_created += 1
+                        
+                        # Update staff performance metrics
+                        staff.total_revenue_generated = (staff.total_revenue_generated or 0.0) + service_amount
+                        staff.total_clients_served = (staff.total_clients_served or 0) + 1
+
+            # === CRITICAL UPDATE 3: Client Visit & Spending History ===
+            customer.last_visit = current_date
+            customer.total_visits = (customer.total_visits or 0) + 1
+            customer.total_spent = (customer.total_spent or 0.0) + total_amount
+            
             # Commit all changes
             db.session.commit()
 
@@ -856,7 +892,9 @@ def create_professional_invoice():
                 'inventory_items_created': inventory_items_created,
                 'stock_reduced': stock_reduced_count,
                 'deductions_applied': 0,
-                'appointments_completed': completed_appointments
+                'appointments_completed': completed_appointments,
+                'commissions_created': staff_commissions_created,
+                'client_updated': True
             })
 
         except Exception as e:
