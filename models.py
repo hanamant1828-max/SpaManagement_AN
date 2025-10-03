@@ -1026,7 +1026,7 @@ class InvoiceItem(db.Model):
     # Item details
     item_type = db.Column(db.String(20), nullable=False)  # service, package_service, inventory, subscription
     item_id = db.Column(db.Integer)  # ID of service/inventory item
-    appointment_id = db.Column(db.Integer, db.ForeignKey('appointment.id'))  # For service items
+    appointment_id = db.Column(db.Integer)  # For service items - can reference UnakiBooking or Appointment
 
     # Batch-level inventory integration
     product_id = db.Column(db.Integer, db.ForeignKey('inventory_products.id'))  # For inventory items
@@ -1054,7 +1054,7 @@ class InvoiceItem(db.Model):
     staff_name = db.Column(db.String(100))  # Denormalized for quick access
 
     # Relationships
-    appointment = db.relationship('Appointment', backref='invoice_items')
+    # Note: appointment_id can reference either Appointment or UnakiBooking, so no relationship defined
     assigned_staff = db.relationship('User', backref='invoice_service_items', foreign_keys=[staff_id], overlaps="unaki_breaks")
 
 
