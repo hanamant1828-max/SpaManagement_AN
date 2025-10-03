@@ -2104,7 +2104,7 @@ function handleBillingFormSubmit(event) {
     // Show processing state on button
     submitBtn.classList.add('saving');
     submitBtn.querySelector('.loading-text').textContent = 'Saving...';
-    
+
     const formData = new FormData(form);
     const data = collectInvoiceData(); // Use the dedicated function to collect data
 
@@ -2193,7 +2193,7 @@ function handleBillingFormSubmit(event) {
     })
     .catch(error => {
         console.error('Error:', error);
-        
+
         // Show error state on button
         submitBtn.classList.remove('saving');
         submitBtn.classList.remove('saved');
@@ -2468,59 +2468,74 @@ function previewInvoice() {
     });
 }
 
+// Collect invoice data function
 function collectInvoiceData() {
-    const formData = new FormData(document.getElementById('billingForm'));
+    const form = document.getElementById('billingForm');
+    if (!form) {
+        console.error('Billing form not found');
+        return null;
+    }
+
+    const formData = new FormData(form);
     const data = {
-        client_id: formData.get('client_id'),
-        payment_method: formData.get('payment_method'),
-        payment_status: formData.get('payment_status'),
+        client_id: formData.get('client_id') || '',
+        payment_method: formData.get('payment_method') || '',
+        payment_status: formData.get('payment_status') || 'paid',
         discount_percentage: parseFloat(formData.get('discount_percentage')) || 0,
         gst_enabled: document.getElementById('gstEnabled')?.checked || false,
-        gst_percentage: document.getElementById('gstEnabled')?.checked ? 
-            (parseFloat(formData.get('gst_percentage')) || 0) : 0,
+        gst_percentage: parseFloat(formData.get('gst_percentage')) || 0,
         notes: formData.get('notes') || '',
         services: [],
         products: []
     };
 
-    // Collect services
-    document.querySelectorAll('.service-row').forEach((row, index) => {
+    // Collect services data
+    const serviceRows = document.querySelectorAll('.service-row');
+    serviceRows.forEach(row => {
         const serviceSelect = row.querySelector('select[name="service_ids[]"]');
-        const staffId = row.querySelector('select[name="staff_ids[]"]')?.value;
-        const quantity = row.querySelector('input[name="service_quantities[]"]')?.value;
-        const appointmentId = row.querySelector('input[name="appointment_ids[]"]')?.value;
+        const staffSelect = row.querySelector('select[name="staff_ids[]"]');
+        const qtyInput = row.querySelector('input[name="service_quantities[]"]');
+        const appointmentInput = row.querySelector('input[name="appointment_ids[]"]');
 
-        const serviceId = serviceSelect?.value;
-
-        if (serviceId && staffId) {
+        if (serviceSelect && serviceSelect.value) {
             data.services.push({
-                service_id: parseInt(serviceId),
-                staff_id: parseInt(staffId),
-                quantity: parseFloat(quantity) || 1,
-                appointment_id: appointmentId ? parseInt(appointmentId) : null
+                service_id: parseInt(serviceSelect.value),
+                staff_id: staffSelect?.value ? parseInt(staffSelect.value) : null,
+                quantity: qtyInput?.value ? parseFloat(qtyInput.value) : 1,
+                appointment_id: appointmentInput?.value ? parseInt(appointmentInput.value) : null
             });
         }
     });
 
-    // Collect products
-    document.querySelectorAll('.product-row').forEach((row, index) => {
-        const productId = row.querySelector('select[name="product_ids[]"]')?.value;
-        const batchId = row.querySelector('select[name="batch_ids[]"]')?.value;
-        const quantity = row.querySelector('input[name="product_quantities[]"]')?.value;
-        const price = row.querySelector('input[name="product_prices[]"]')?.value;
+    // Collect products data
+    const productRows = document.querySelectorAll('.product-row');
+    productRows.forEach(row => {
+        const productSelect = row.querySelector('select[name="product_ids[]"]');
+        const batchSelect = row.querySelector('select[name="batch_ids[]"]');
+        const qtyInput = row.querySelector('input[name="product_quantities[]"]');
+        const priceInput = row.querySelector('input[name="product_prices[]"]');
 
-        if (productId && batchId && quantity && price) {
+        if (productSelect && productSelect.value && batchSelect && batchSelect.value) {
             data.products.push({
-                product_id: parseInt(productId),
-                batch_id: parseInt(batchId),
-                quantity: parseFloat(quantity),
-                unit_price: parseFloat(price)
+                product_id: parseInt(productSelect.value),
+                batch_id: parseInt(batchSelect.value),
+                quantity: qtyInput?.value ? parseFloat(qtyInput.value) : 1,
+                unit_price: priceInput?.value ? parseFloat(priceInput.value) : 0
             });
         }
     });
 
-    console.log('Collected invoice data:', data); // Debug log
+    console.log('Collected invoice data:', data);
     return data;
+}
+
+// Define updateServicePrice function globally first
+function updateServicePrice(serviceId, price) {
+    try {
+        console.log('Service ' + serviceId + ' selected with price: ' + price);
+    } catch (error) {
+        console.error('Error in updateServicePrice:', error);
+    }
 }
 
 // Invoice preview functionality
@@ -2552,7 +2567,13 @@ function showPreviewModal(previewHtml) {
     }
 
     // Update modal body
-    document.getElementById('invoicePreviewBody').innerHTML = previewHtml;
+    const modalBody = document.getElementById('invoicePreviewBody');
+    if (modalBody) {
+        modalBody.innerHTML = previewHtml;
+    } else {
+        console.error('Invoice preview body not found.');
+        return; // Exit if the body element isn't found
+    }
 
     // Show modal
     const modal = new bootstrap.Modal(previewModal);
@@ -2587,9 +2608,12 @@ function showNotification(message, type = 'info', duration = 5000) {
     const timeoutId = setTimeout(removeNotification, duration);
 
     // Add event listener to the dismiss button to clear the timeout if clicked early
-    notification.querySelector('.btn-close').addEventListener('click', () => {
-        clearTimeout(timeoutId);
-    });
+    const dismissButton = notification.querySelector('.btn-close');
+    if (dismissButton) {
+        dismissButton.addEventListener('click', () => {
+            clearTimeout(timeoutId);
+        });
+    }
 }
 </script>
 {% endblock %}
