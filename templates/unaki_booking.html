@@ -2,7 +2,7 @@
 <html lang="en">
     <head>
         <meta charset="UTF-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta name="viewport" content="width=device-width, and-width, initial-scale=1.0" />
         <title>Unaki Appointment Booking - Premium Timeline</title>
         <!-- Bootstrap CSS -->
         <link
@@ -2043,7 +2043,7 @@
                                     style="
                                         background: linear-gradient(
                                             135deg,
-                                            #d1fae5 0%,
+                                            #a7f3d0 0%,
                                             #a7f3d0 100%
                                         );
                                         padding: 16px;
@@ -2971,6 +2971,20 @@
                 document.getElementById("editNotes").value =
                     booking.notes || "";
 
+                // Set status and paid fields if they exist on the booking object
+                // Assuming these fields are available for editing, though the UI for them isn't visible
+                // You might need to adjust this based on your actual data structure
+                if (booking.status) {
+                    // Example: if you had a status dropdown, you'd set its value here.
+                    // For now, we'll just log it or assume it's handled by backend logic.
+                    console.log("Booking status:", booking.status);
+                }
+                if (booking.paid !== undefined) {
+                    // Example: if you had a paid checkbox, you'd set its checked state here.
+                    console.log("Booking paid:", booking.paid);
+                }
+
+
                 // Clear conflict alert
                 document
                     .getElementById("editConflictAlert")
@@ -3118,6 +3132,10 @@
                     start_time: startTime,
                     end_time: endTime,
                     notes: notes,
+                    // Add status and paid fields here if they are editable in the UI
+                    // For now, assuming they are handled by backend logic or not directly editable here
+                    // status: document.getElementById('editStatusSelect').value, // Example
+                    // paid: document.getElementById('editPaidCheckbox').checked, // Example
                 };
 
                 fetch(`/api/unaki/bookings/${appointmentId}`, {
@@ -3235,6 +3253,25 @@
                     timeLine.style.display = "block";
                 }
             }
+
+            // Dummy function for reinitializeContextMenu to avoid errors if not defined elsewhere
+            function reinitializeContextMenu() {
+                console.log("Context menu reinitialized (or placeholder called)");
+                // If appointment context menu is handled by a separate script, call its init here.
+                // Example: if (window.appointmentContextMenu && typeof window.appointmentContextMenu.init === 'function') {
+                //     window.appointmentContextMenu.init();
+                // }
+            }
+
+            // Dummy function for hideContextMenu to avoid errors if not defined elsewhere
+            function hideContextMenu() {
+                console.log("Context menu hidden (or placeholder called)");
+                const contextMenu = document.getElementById("contextMenu");
+                if (contextMenu) {
+                    contextMenu.classList.remove("show");
+                }
+            }
+
         </script>
     </body>
 </html>

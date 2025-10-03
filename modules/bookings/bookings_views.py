@@ -626,16 +626,6 @@ def book_appointment_api():
                 shift_end_12h = shift_end.strftime('%I:%M %p')
                 return jsonify({'error': f'{staff.first_name} {staff.last_name} is off duty at {appointment_time.strftime("%I:%M %p")}. Shift hours: {shift_start_12h} - {shift_end_12h}'}), 400
 
-        # Check if appointment time conflicts with break time
-        break_start = shift_log.break_start_time
-        break_end = shift_log.break_end_time
-
-        if break_start and break_end:
-            if break_start <= appointment_time < break_end:
-                break_start_12h = break_start.strftime('%I:%M %p')
-                break_end_12h = break_end.strftime('%I:%M %p')
-                return jsonify({'error': f'{staff.first_name} {staff.last_name} is on break at {appointment_time.strftime("%I:%M %p")}. Break time: {break_start_12h} - {break_end_12h}'}), 400
-
         # Check for existing appointments - improved overlap detection
         existing_appointments = get_appointments_by_date(appointment_date)
         for apt in existing_appointments:
@@ -646,7 +636,7 @@ def book_appointment_api():
                 existing_end = existing_start + timedelta(minutes=existing_service_duration)
 
                 # Check for any overlap between new appointment and existing appointment
-                if not (appointment_datetime >= existing_end or end_datetime <= existing_start):
+                if not (appointment_datetime >= existing_end or appointment_datetime + timedelta(minutes=Service.query.get(data['service_id']).duration if Service.query.get(data['service_id']) else 60) <= existing_start):
                     return jsonify({'error': f'{staff.first_name} {staff.last_name} has a conflicting appointment from {existing_start.strftime("%I:%M %p")} to {existing_end.strftime("%I:%M %p")}'}), 400
 
         # Get service details for pricing
@@ -1230,7 +1220,7 @@ def api_appointment_details(appointment_id):
         print(f"Error fetching appointment details: {e}")
         return jsonify({'error': f'Error fetching appointment details: {str(e)}'}), 500
 
-@app.route('/api/appointments')
+@app.route('/api/all-appointments')
 @login_required
 def api_all_appointments():
     """API endpoint to get all appointments with filters"""
@@ -1440,19 +1430,19 @@ def api_get_unaki_booking(booking_id):
     """API endpoint to get Unaki booking details with customer information"""
     try:
         from models import UnakiBooking
-        
+
         booking = UnakiBooking.query.get(booking_id)
         if not booking:
             return jsonify({
                 'success': False,
                 'error': 'Booking not found'
             }), 404
-        
+
         return jsonify({
             'success': True,
             'booking': booking.to_dict()
         })
-    
+
     except Exception as e:
         print(f"Error fetching Unaki booking {booking_id}: {e}")
         return jsonify({
@@ -1993,7 +1983,7 @@ def cancel_appointment(appointment_id):
         if request.is_json:
             return jsonify({'error': 'Appointment not found'}), 404
         flash('Appointment not found', 'danger')
-        return redirect(url_for('staff_availability'))
+        return redirect(url_for('dashboard'))
 
     try:
         # Get cancellation reason if provided
@@ -2059,7 +2049,7 @@ def delete_appointment_permanent(appointment_id):
         if request.is_json:
             return jsonify({'error': 'Appointment not found'}), 404
         flash('Appointment not found', 'danger')
-        return redirect(url_for('staff_availability'))
+        return redirect(url_for('dashboard'))
 
     try:
         appointment_date = appointment.appointment_date.strftime('%Y-%m-%d')
@@ -2105,7 +2095,7 @@ def edit_appointment(appointment_id):
         if request.is_json:
             return jsonify({'error': 'Appointment not found'}), 404
         flash('Appointment not found', 'danger')
-        return redirect(url_for('staff_availability'))
+        return redirect(url_for('dashboard'))
 
     if request.method in ['POST', 'PUT']:
         try:
@@ -2532,3 +2522,70 @@ def appointment_go_to_billing(appointment_id):
         print(f"Error in appointment_go_to_billing: {e}")
         flash('Error accessing billing information', 'error')
         return redirect('/unaki-booking')
+
+# Endpoint to save a draft booking
+@app.route('/api/unaki/save-draft', methods=['POST'])
+@login_required
+def api_unaki_save_draft():
+    """Save Unaki booking as draft - keeps status as scheduled and payment as pending"""
+    if not current_user.can_access('bookings'):
+        return jsonify({'error': 'Access denied', 'success': False}), 403
+
+    try:
+        from app import db
+        from models import UnakiBooking
+
+        data = request.get_json()
+        print(f"📝 Saving draft booking with data: {data}")
+
+        # Extract and validate fields
+        client_name = data.get('clientName')
+        staff_id = data.get('staffId')
+        service_type = data.get('serviceType')
+        start_time_str = data.get('startTime')
+        end_time_str = data.get('endTime')
+        appointment_date_str = data.get('date', datetime.now().strftime('%Y-%m-%d'))
+        notes = data.get('notes', '')
+
+        if not all([client_name, staff_id, service_type, start_time_str, end_time_str]):
+            return jsonify({
+                'error': 'Missing required fields: client name, staff, service, start time, and end time are required for draft.',
+                'success': False
+            }), 400
+
+        # Parse date and times
+        appointment_date = datetime.strptime(appointment_date_str, '%Y-%m-%d').date()
+        start_time = datetime.strptime(start_time_str, '%H:%M').time()
+        end_time = datetime.strptime(end_time_str, '%H:%M').time()
+
+        # Create UnakiBooking object with draft status
+        booking = UnakiBooking(
+            client_name=client_name,
+            staff_id=int(staff_id),
+            service_name=service_type,
+            appointment_date=appointment_date,
+            start_time=start_time,
+            end_time=end_time,
+            notes=notes,
+            status='scheduled',  # Keep as scheduled for draft
+            payment_status='pending'  # Keep payment as pending
+        )
+
+        db.session.add(booking)
+        db.session.commit()
+
+        print(f"✅ Draft booking saved successfully: ID {booking.id}")
+
+        return jsonify({
+            'success': True,
+            'message': 'Booking saved as draft successfully.',
+            'booking_id': booking.id
+        })
+
+    except Exception as e:
+        print(f"❌ Error saving draft Unaki booking: {e}")
+        import traceback
+        traceback.print_exc()
+        if 'db' in locals():
+            db.session.rollback()
+        return jsonify({'error': str(e), 'success': False}), 500
