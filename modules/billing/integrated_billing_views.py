@@ -562,11 +562,13 @@ def create_professional_invoice():
         # Parse form data
         client_id = request.form.get('client_id')
         if not client_id:
-            return jsonify({'success': False, 'message': 'Client is required'})
+            app.logger.error('Client ID is missing from form data')
+            return jsonify({'success': False, 'message': 'Client is required'}), 400
 
         customer = Customer.query.get(client_id)
         if not customer:
-            return jsonify({'success': False, 'message': 'Customer not found'})
+            app.logger.error(f'Customer not found with ID: {client_id}')
+            return jsonify({'success': False, 'message': f'Customer not found with ID: {client_id}'}), 404
 
         # Parse services data
         services_data = []

@@ -2231,14 +2231,24 @@ function handleBillingFormSubmit(event) {
     })
     .catch(error => {
         clearInterval(progressInterval);
+
+        // FAILURE STATE
+        submitBtn.classList.remove('saving', 'saved');
+        submitBtn.disabled = false;
+
+        // Reset button to original state
+        const grandTotal = document.getElementById('grandTotal')?.textContent || '0.00';
+        submitBtn.innerHTML = `<i class="fas fa-check-circle me-2"></i> <span class="btn-text">Save Invoice</span> <span class="btn-amount">(₹${grandTotal})</span>`;
+
+        // Enhanced error notification
         console.error('Billing Error:', error);
 
-        // ERROR STATE - Reset button
-        submitBtn.disabled = false;
-        submitBtn.classList.remove('saving', 'saved');
-        submitBtn.innerHTML = '<i class="fas fa-save"></i> Save Invoice';
-
-        const errorMessage = `❌ Failed to Save Invoice\n\nError: ${error.message || 'Unknown error'}\n\nPlease check:\n✓ All required fields are filled\n✓ Staff assigned to all services\n✓ Valid inventory quantities\n✓ Internet connection is stable\n\nContact support if the problem persists.`;
+        let errorMessage = '❌ Error creating invoice: ';
+        if (error.message) {
+            errorMessage += error.message;
+        } else {
+            errorMessage += 'Unknown error occurred. Please check your input and try again.';
+        }
 
         showNotification(errorMessage, 'error', 10000);
     });
