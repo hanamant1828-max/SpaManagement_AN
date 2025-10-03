@@ -885,7 +885,7 @@ def create_professional_invoice():
                         staff.total_revenue_generated = (staff.total_revenue_generated or 0.0) + service_amount
                         staff.total_clients_served = (staff.total_clients_served or 0) + 1
                         staff.total_sales = (staff.total_sales or 0.0) + service_amount
-                        staff.last_service_performed = datetime.now()
+                        staff.last_service_performed = current_date
                         staff_updated_count += 1
 
             # === CRITICAL UPDATE 3: Client Visit & Spending History ===
@@ -986,15 +986,22 @@ def preview_invoice():
                 })
 
         gross_subtotal = services_subtotal + inventory_subtotal
-        discount_percentage = float(data.get('discount_percentage', 0))
-        discount_amount = (gross_subtotal * discount_percentage) / 100
+        discount_type = data.get('discount_type', 'amount')
+        discount_value = float(data.get('discount_value', 0))
+
+        if discount_type == 'percentage':
+            discount_amount = (gross_subtotal * discount_value) / 100
+        else:
+            discount_amount = discount_value
 
         gst_enabled = data.get('gst_enabled', False)
         gst_percentage = float(data.get('gst_percentage', 0)) if gst_enabled else 0
 
         net_subtotal = gross_subtotal - discount_amount
         tax_amount = (net_subtotal * gst_percentage) / 100
-        total_amount = net_subtotal + tax_amount
+        additional_charges = float(data.get('additional_charges', 0))
+        tips_amount = float(data.get('tips_amount', 0))
+        total_amount = net_subtotal + tax_amount + additional_charges + tips_amount
 
         # Generate preview HTML
         preview_html = f"""
@@ -1066,7 +1073,7 @@ def preview_invoice():
         if discount_amount > 0:
             preview_html += f"""
                     <tr>
-                        <td colspan="3" class="text-end"><strong>Discount ({discount_percentage}%):</strong></td>
+                        <td colspan="3" class="text-end"><strong>Discount ({discount_type}):</strong></td>
                         <td class="text-end text-success">-₹{discount_amount:.2f}</td>
                     </tr>
             """
@@ -1076,6 +1083,20 @@ def preview_invoice():
                     <tr>
                         <td colspan="3" class="text-end"><strong>GST ({gst_percentage}%):</strong></td>
                         <td class="text-end">₹{tax_amount:.2f}</td>
+                    </tr>
+            """
+        if additional_charges > 0:
+            preview_html += f"""
+                    <tr>
+                        <td colspan="3" class="text-end"><strong>Additional Charges:</strong></td>
+                        <td class="text-end">₹{additional_charges:.2f}</td>
+                    </tr>
+            """
+        if tips_amount > 0:
+            preview_html += f"""
+                    <tr>
+                        <td colspan="3" class="text-end"><strong>Tips:</strong></td>
+                        <td class="text-end">₹{tips_amount:.2f}</td>
                     </tr>
             """
 
@@ -1581,8 +1602,8 @@ def process_payment(invoice_id):
                 })
 
         # Validate payment amount
-        if total_payment > invoice.balance_due:
-            return jsonify({'success': False, 'message': 'Payment amount exceeds balance due'})
+        if total_payment > invoice.balance_due + 0.01: # Allow for small floating point errors
+            return jsonify({'success': False, 'message': f'Payment amount ₹{total_payment:,.2f} exceeds balance due ₹{invoice.balance_due:,.2f}'})
 
         # Create payment records
         from models import InvoicePayment
@@ -1599,21 +1620,30 @@ def process_payment(invoice_id):
 
         # Update invoice
         invoice.amount_paid += total_payment
-        invoice.balance_due = invoice.total_amount - invoice.amount_paid
+        invoice.balance_due = round(invoice.total_amount - invoice.amount_paid, 2) # Round to 2 decimal places
 
-        if invoice.balance_due <= 0:
+        if invoice.balance_due <= 0.01: # Check against a small tolerance
             invoice.payment_status = 'paid'
         elif invoice.amount_paid > 0:
             invoice.payment_status = 'partial'
+        else: # If no payment was actually applied (e.g., zero amount payment)
+            invoice.payment_status = invoice.payment_status # Keep original status
 
         # Update payment methods (store as JSON)
         payment_methods_summary = {}
+        if invoice.payment_methods:
+            try:
+                payment_methods_summary = json.loads(invoice.payment_methods)
+            except json.JSONDecodeError:
+                payment_methods_summary = {} # Reset if corrupted
+
         for payment in payments_data:
             method = payment['payment_method']
+            amount = payment['amount']
             if method in payment_methods_summary:
-                payment_methods_summary[method] += payment['amount']
+                payment_methods_summary[method] += amount
             else:
-                payment_methods_summary[method] = payment['amount']
+                payment_methods_summary[method] = amount
 
         invoice.payment_methods = json.dumps(payment_methods_summary)
 
@@ -1628,6 +1658,7 @@ def process_payment(invoice_id):
 
     except Exception as e:
         db.session.rollback()
+        app.logger.error(f"Error processing payment for invoice {invoice_id}: {str(e)}")
         return jsonify({'success': False, 'message': f'Error processing payment: {str(e)}'})
 
 @app.route('/integrated-billing/invoice/<int:invoice_id>')
@@ -1683,6 +1714,8 @@ def list_integrated_invoices():
         query = query.filter_by(payment_status='paid')
     elif status_filter == 'overdue':
         query = query.filter_by(payment_status='overdue')
+    elif status_filter == 'draft':
+        query = query.filter_by(payment_status='draft')
 
     invoices = query.order_by(EnhancedInvoice.created_at.desc()).all()
 
@@ -1737,19 +1770,25 @@ def save_invoice_draft():
 
         gross_subtotal = services_subtotal + inventory_subtotal
 
-        discount_percentage = float(data.get('discount_percentage', 0))
-        discount_amount = (gross_subtotal * discount_percentage) / 100
+        discount_type = data.get('discount_type', 'amount')
+        discount_value = float(data.get('discount_value', 0))
+        if discount_type == 'percentage':
+            discount_amount = (gross_subtotal * discount_value) / 100
+        else:
+            discount_amount = discount_value
 
         gst_enabled = data.get('gst_enabled', False)
         gst_percentage = float(data.get('gst_percentage', 0)) if gst_enabled else 0
 
         net_subtotal = gross_subtotal - discount_amount
         tax_amount = (net_subtotal * gst_percentage) / 100
-        total_amount = net_subtotal + tax_amount
+        additional_charges = float(data.get('additional_charges', 0))
+        tips_amount = float(data.get('tips_amount', 0))
+        total_amount = net_subtotal + tax_amount + additional_charges + tips_amount
 
         # Generate draft invoice number
         current_date = datetime.datetime.now()
-        invoice_number = f"DRAFT-{current_date.strftime('%Y%m%d%H%M%S')}"
+        invoice_number = f"DRAFT-{current_date.strftime('%Y%m%d%H%M%S')}-{current_user.id}" # Include user ID for uniqueness
 
         # Create draft invoice
         invoice = EnhancedInvoice()
@@ -1762,10 +1801,13 @@ def save_invoice_draft():
         invoice.net_subtotal = net_subtotal
         invoice.tax_amount = tax_amount
         invoice.discount_amount = discount_amount
+        invoice.additional_charges = additional_charges
+        invoice.tips_amount = tips_amount
         invoice.total_amount = total_amount
         invoice.balance_due = total_amount
         invoice.payment_status = 'draft'
         invoice.notes = data.get('notes', '')
+        invoice.created_by = current_user.id
 
         db.session.add(invoice)
         db.session.flush()
@@ -1778,6 +1820,7 @@ def save_invoice_draft():
                 item.invoice_id = invoice.id
                 item.item_type = 'service'
                 item.item_id = service.id
+                item.appointment_id = service_data.get('appointment_id')
                 item.item_name = service.name
                 item.description = service.description
                 item.quantity = service_data['quantity']
@@ -1819,6 +1862,7 @@ def save_invoice_draft():
 
     except Exception as e:
         db.session.rollback()
+        app.logger.error(f"Error saving draft invoice: {str(e)}")
         return jsonify({'success': False, 'message': f'Error saving draft: {str(e)}'})
 
 @app.route('/debug/fix-customer-bookings')
