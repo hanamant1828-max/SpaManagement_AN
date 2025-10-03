@@ -827,6 +827,7 @@ def create_professional_invoice():
                             unaki_appointment.payment_status = 'paid'
                             unaki_appointment.completed_at = dt.now()
                             unaki_appointment.amount_charged = service.price * service_data['quantity']
+                            unaki_appointment.payment_method = payment_method
                             db.session.add(unaki_appointment)
                             completed_appointments += 1
                             app.logger.info(f"✅ Marked Unaki appointment {service_data['appointment_id']} as completed and paid")
@@ -1305,6 +1306,7 @@ def create_integrated_invoice():
                                 unaki_appointment.payment_status = 'paid'
                                 unaki_appointment.completed_at = dt.now()
                                 unaki_appointment.amount_charged = service.price * service_data['quantity']
+                                unaki_appointment.payment_method = request.form.get('payment_method', 'cash')
                                 db.session.add(unaki_appointment)
                                 completed_appointments += 1
                                 app.logger.info(f"✅ Marked Unaki appointment {service_data['appointment_id']} as completed and paid")
