@@ -1,459 +1,291 @@
 {% extends "base.html" %}
 
-{% block title %}Professional Billing & Invoice Management{% endblock %}
+{% block title %}Professional Invoice Management{% endblock %}
 
 {% block extra_head %}
 <style>
-/* Enhanced Modern Billing Page Styles */
+/* ==========================================
+   PROFESSIONAL BILLING SYSTEM STYLES
+   ========================================== */
+
 :root {
-    --gradient-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    --gradient-success: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
-    --gradient-info: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-    --gradient-warning: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
-    --shadow-sm: 0 2px 8px rgba(0,0,0,0.08);
-    --shadow-md: 0 4px 16px rgba(0,0,0,0.12);
-    --shadow-lg: 0 8px 32px rgba(0,0,0,0.16);
-    --border-radius: 16px;
+    /* Brand Colors */
+    --primary: #6366f1;
+    --primary-dark: #4f46e5;
+    --primary-light: #818cf8;
+    
+    /* Status Colors */
+    --success: #10b981;
+    --warning: #f59e0b;
+    --danger: #ef4444;
+    --info: #06b6d4;
+    
+    /* Neutral Palette */
+    --gray-50: #f9fafb;
+    --gray-100: #f3f4f6;
+    --gray-200: #e5e7eb;
+    --gray-300: #d1d5db;
+    --gray-500: #6b7280;
+    --gray-700: #374151;
+    --gray-900: #111827;
+    
+    /* Shadows */
+    --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    --shadow-sm: 0 2px 4px -1px rgba(0, 0, 0, 0.1);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+    
+    /* Gradients */
+    --gradient-primary: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+    --gradient-success: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    --gradient-info: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
+    
+    /* Spacing */
+    --space-unit: 8px;
+    --border-radius: 12px;
+    
+    /* Transitions */
+    --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Page Header Enhancements */
-.page-header {
-    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+/* ==========================================
+   GLOBAL STYLES
+   ========================================== */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--gray-50);
+    color: var(--gray-900);
+    line-height: 1.6;
+}
+
+/* ==========================================
+   PAGE HEADER
+   ========================================== */
+
+.billing-page-header {
+    background: white;
+    border-bottom: 1px solid var(--gray-200);
+    padding: calc(var(--space-unit) * 3) calc(var(--space-unit) * 4);
+    margin-bottom: calc(var(--space-unit) * 4);
     border-radius: var(--border-radius);
-    padding: 30px;
-    margin-bottom: 30px;
     box-shadow: var(--shadow-sm);
 }
 
-.page-header h1 {
+.page-title {
     font-size: 2rem;
     font-weight: 700;
-    color: #2d3748;
-    margin-bottom: 8px;
+    color: var(--gray-900);
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: calc(var(--space-unit) * 2);
 }
 
-.page-header p {
-    font-size: 1rem;
-    color: #718096;
-    margin-bottom: 0;
+.page-title i {
+    color: var(--primary);
 }
 
-/* Enhanced Stats Cards */
-.stats-card {
-    border-radius: var(--border-radius) !important;
-    border: none !important;
-    box-shadow: var(--shadow-md) !important;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    overflow: hidden;
-    position: relative;
+.page-subtitle {
+    color: var(--gray-500);
+    font-size: 0.95rem;
+    margin-top: calc(var(--space-unit));
 }
 
-.stats-card:hover {
-    transform: translateY(-8px);
-    box-shadow: var(--shadow-lg) !important;
-}
+/* ==========================================
+   CARDS & SECTIONS
+   ========================================== */
 
-.stats-card::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 4px;
-    background: rgba(255, 255, 255, 0.4);
-}
-
-.gradient-card-success {
-    background: var(--gradient-success);
-    color: white !important;
-}
-
-.gradient-card-info {
-    background: var(--gradient-info);
-    color: white !important;
-}
-
-.gradient-card-warning {
-    background: var(--gradient-warning);
-    color: white !important;
-}
-
-.stats-card .card-body {
-    padding: 32px 24px;
-}
-
-.stats-card .icon-wrapper {
-    background: rgba(255, 255, 255, 0.25);
-    backdrop-filter: blur(10px);
-    transition: all 0.3s ease;
-}
-
-.stats-card:hover .icon-wrapper {
-    transform: scale(1.1) rotate(5deg);
-}
-
-.stats-card h6 {
-    font-weight: 600;
-    letter-spacing: 1.5px;
-    text-transform: uppercase;
-    font-size: 0.75rem;
-    opacity: 0.95;
-}
-
-.stats-card h3 {
-    font-size: 2.25rem;
-    font-weight: 800;
-    text-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
-
-/* Main Card Enhancements */
-.main-billing-card {
+.billing-card {
+    background: white;
     border-radius: var(--border-radius);
-    border: none;
     box-shadow: var(--shadow-md);
     overflow: hidden;
+    transition: var(--transition);
+    margin-bottom: calc(var(--space-unit) * 3);
 }
 
-.main-billing-card .card-header {
+.billing-card:hover {
+    box-shadow: var(--shadow-lg);
+}
+
+.card-header-custom {
     background: var(--gradient-primary);
-    border-radius: var(--border-radius) var(--border-radius) 0 0;
-    padding: 24px 32px;
-    border: none;
+    color: white;
+    padding: calc(var(--space-unit) * 3);
+    border-bottom: none;
 }
 
-.main-billing-card .card-header h5 {
-    font-size: 1.5rem;
-    font-weight: 700;
+.card-header-custom h5 {
     margin: 0;
-}
-
-.main-billing-card .card-body {
-    padding: 32px;
-    background: #fafbfc;
-}
-
-/* Enhanced Form Sections */
-.form-section {
-    background: white;
-    border-radius: 12px;
-    padding: 28px;
-    margin-bottom: 24px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-    border: 1px solid #e2e8f0;
-    transition: all 0.3s ease;
-}
-
-.form-section:hover {
-    box-shadow: var(--shadow-sm);
-    border-color: #667eea;
-}
-
-.section-header {
-    border-bottom: 3px solid #667eea;
-    padding-bottom: 12px;
-    margin-bottom: 24px;
-    font-size: 1.125rem;
-    font-weight: 700;
-    color: #2d3748;
-}
-
-.section-header i {
     font-size: 1.25rem;
-}
-
-/* Enhanced Form Controls */
-.form-label {
     font-weight: 600;
-    color: #4a5568;
-    margin-bottom: 8px;
-    font-size: 0.875rem;
+    display: flex;
+    align-items: center;
+    gap: calc(var(--space-unit) * 2);
 }
 
-.form-select,
-.form-control {
-    border-radius: 10px;
-    border: 2px solid #e2e8f0;
-    padding: 12px 16px;
-    font-size: 0.9375rem;
-    transition: all 0.3s ease;
-    background-color: white;
+.card-body-custom {
+    padding: calc(var(--space-unit) * 4);
 }
 
-.form-select:focus,
-.form-control:focus {
-    border-color: #667eea;
-    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-    outline: none;
+.section-divider {
+    background: white;
+    border-radius: var(--border-radius);
+    padding: calc(var(--space-unit) * 3);
+    margin-bottom: calc(var(--space-unit) * 3);
+    border: 1px solid var(--gray-200);
+    transition: var(--transition);
 }
 
-.form-select-lg {
-    padding: 14px 18px;
-    font-size: 1rem;
-}
-
-/* Enhanced Buttons */
-.btn {
-    border-radius: 10px;
-    padding: 10px 20px;
-    font-weight: 600;
-    transition: all 0.3s ease;
-    border: none;
-    position: relative;
-    overflow: hidden;
-}
-
-.btn-primary {
-    background: var(--gradient-primary);
-    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
-}
-
-.btn-primary:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 16px rgba(102, 126, 234, 0.5);
-}
-
-.btn-success {
-    background: var(--gradient-success);
-    box-shadow: 0 4px 12px rgba(17, 153, 142, 0.4);
-}
-
-.btn-success:hover:not(:disabled) {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 16px rgba(17, 153, 142, 0.5);
-}
-
-.btn-success:disabled,
-.btn-success.disabled {
-    background: linear-gradient(135deg, #94a3b8 0%, #64748b 100%);
-    box-shadow: none;
-    cursor: not-allowed;
-    opacity: 0.7;
-}
-
-.btn-success:disabled .fa-spinner {
-    animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
-}
-
-/* Enhanced Save Button States */
-.btn-save-invoice {
-    position: relative;
-    overflow: hidden;
-    transition: all 0.3s ease;
-}
-
-.btn-save-invoice:disabled {
-    background: linear-gradient(135deg, #94a3b8 0%, #64748b 100%);
-    cursor: not-allowed;
-}
-
-.btn-save-invoice.saving {
-    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-    animation: pulse 1.5s ease-in-out infinite;
-}
-
-.btn-save-invoice.saved {
-    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-    transform: scale(1.05);
-}
-
-@keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.8; }
-}
-
-/* Loading text animation */
-.btn-save-invoice .loading-text {
-    animation: fadeIn 0.5s ease;
-}
-
-@keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
-}
-
-.btn-outline-primary {
-    border: 2px solid #667eea;
-    color: #667eea;
-    background: transparent;
-}
-
-.btn-outline-primary:hover {
-    background: #667eea;
-    color: white;
-    transform: translateY(-2px);
-}
-
-.btn-outline-info {
-    border: 2px solid #4facfe;
-    color: #4facfe;
-    background: transparent;
-}
-
-.btn-outline-info:hover {
-    background: #4facfe;
-    color: white;
-    transform: translateY(-2px);
-}
-
-.btn-sm {
-    padding: 6px 14px;
-    font-size: 0.875rem;
-}
-
-/* Enhanced Badges */
-.badge {
-    padding: 6px 12px;
-    border-radius: 8px;
-    font-weight: 600;
-    font-size: 0.75rem;
-    letter-spacing: 0.5px;
-}
-
-.badge.bg-light {
-    background: rgba(255, 255, 255, 0.3) !important;
-    color: white !important;
-    backdrop-filter: blur(10px);
-}
-
-.badge.bg-success {
-    background: var(--gradient-success) !important;
-}
-
-.badge.bg-primary {
-    background: var(--gradient-primary) !important;
-}
-
-.badge.bg-info {
-    background: var(--gradient-info) !important;
-}
-
-/* Enhanced Alert Boxes */
-.alert {
-    border-radius: 12px;
-    border: none;
-    padding: 16px 20px;
+.section-divider:hover {
+    border-color: var(--primary);
     box-shadow: var(--shadow-sm);
 }
 
-.alert-info {
-    background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%);
-    color: #075985;
+.section-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--gray-900);
+    margin-bottom: calc(var(--space-unit) * 2);
+    padding-bottom: calc(var(--space-unit) * 2);
+    border-bottom: 2px solid var(--primary);
+    display: flex;
+    align-items: center;
+    gap: calc(var(--space-unit) * 2);
 }
 
-.alert-success {
-    background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
-    color: #065f46;
+.section-title i {
+    color: var(--primary);
+    font-size: 1.2rem;
 }
 
-.alert-warning {
-    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
-    color: #92400e;
+/* ==========================================
+   FORM CONTROLS
+   ========================================== */
+
+.form-label-custom {
+    font-weight: 600;
+    color: var(--gray-700);
+    font-size: 0.875rem;
+    margin-bottom: calc(var(--space-unit));
+    display: flex;
+    align-items: center;
+    gap: calc(var(--space-unit));
 }
 
-.alert i {
+.form-control-custom,
+.form-select-custom {
+    border: 2px solid var(--gray-200);
+    border-radius: 10px;
+    padding: calc(var(--space-unit) * 1.5) calc(var(--space-unit) * 2);
+    font-size: 0.95rem;
+    transition: var(--transition);
+    width: 100%;
+    background: white;
+}
+
+.form-control-custom:focus,
+.form-select-custom:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+.form-control-custom:hover,
+.form-select-custom:hover {
+    border-color: var(--primary-light);
+}
+
+/* ==========================================
+   BUTTONS
+   ========================================== */
+
+.btn-custom {
+    border-radius: 10px;
+    padding: calc(var(--space-unit) * 1.5) calc(var(--space-unit) * 3);
+    font-weight: 600;
+    font-size: 0.95rem;
+    transition: var(--transition);
+    border: none;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: calc(var(--space-unit));
+    text-decoration: none;
+}
+
+.btn-primary-custom {
+    background: var(--gradient-primary);
+    color: white;
+    box-shadow: var(--shadow-md);
+}
+
+.btn-primary-custom:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+}
+
+.btn-success-custom {
+    background: var(--gradient-success);
+    color: white;
+    box-shadow: var(--shadow-md);
+}
+
+.btn-success-custom:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+}
+
+.btn-custom:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none !important;
+}
+
+.btn-sm-custom {
+    padding: calc(var(--space-unit)) calc(var(--space-unit) * 2);
+    font-size: 0.875rem;
+}
+
+.btn-lg-custom {
+    padding: calc(var(--space-unit) * 2) calc(var(--space-unit) * 4);
     font-size: 1.1rem;
 }
 
-/* Customer Packages Display */
-#customerPackages {
-    border-radius: 12px;
-    padding: 16px;
-    min-height: 60px;
-    display: flex;
-    align-items: center;
-}
+/* ==========================================
+   ITEM ROWS (Services & Products)
+   ========================================== */
 
-/* Customer Bookings Card */
-.customer-bookings-card {
+.item-row {
     background: white;
+    border: 2px solid var(--gray-200);
     border-radius: var(--border-radius);
-    box-shadow: var(--shadow-md);
-    border: none;
-    overflow: hidden;
-    margin-bottom: 24px;
+    padding: calc(var(--space-unit) * 3);
+    margin-bottom: calc(var(--space-unit) * 2);
+    transition: var(--transition);
 }
 
-.customer-bookings-card .card-header {
-    background: var(--gradient-info);
-    color: white;
-    padding: 20px 24px;
-    border: none;
-}
-
-.customer-bookings-card .card-body {
-    padding: 24px;
-}
-
-/* Enhanced Table */
-.table {
-    border-radius: 12px;
-    overflow: hidden;
-    box-shadow: var(--shadow-sm);
-}
-
-.table thead {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-}
-
-.table thead th {
-    border: none;
-    padding: 16px;
-    font-weight: 700;
-    text-transform: uppercase;
-    font-size: 0.75rem;
-    letter-spacing: 1px;
-}
-
-.table tbody tr {
-    transition: all 0.2s ease;
-}
-
-.table tbody tr:hover {
-    background: #f7fafc;
-    transform: scale(1.01);
-    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-}
-
-.table tbody td {
-    padding: 16px;
-    vertical-align: middle;
-    border-color: #e2e8f0;
-}
-
-.table-success thead {
-    background: var(--gradient-success) !important;
-}
-
-/* Service and Product Rows */
-.service-row,
-.product-row {
-    background: white;
-    border: 2px solid #e2e8f0;
-    border-radius: 12px;
-    padding: 20px;
-    margin-bottom: 16px;
-    transition: all 0.3s ease;
-}
-
-.service-row:hover,
-.product-row:hover {
-    border-color: #667eea;
+.item-row:hover {
+    border-color: var(--primary);
     box-shadow: var(--shadow-sm);
     transform: translateX(4px);
 }
 
-/* Package Benefit Display */
-.package-benefit-display {
-    margin-top: 12px;
-    padding: 12px 16px;
-    border-radius: 10px;
-    border-left: 4px solid;
+.package-benefit-badge {
+    background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+    color: #065f46;
+    padding: calc(var(--space-unit) * 1.5);
+    border-radius: 8px;
+    margin-top: calc(var(--space-unit) * 2);
+    border-left: 4px solid var(--success);
     animation: slideIn 0.3s ease;
 }
 
@@ -468,1772 +300,610 @@
     }
 }
 
-/* Batch Info */
-.batch-info {
-    font-size: 0.8125rem;
-    color: #718096;
-    margin-top: 8px;
-    padding: 8px 12px;
-    background: #f7fafc;
-    border-radius: 8px;
-    border-left: 3px solid #4facfe;
+/* ==========================================
+   BATCH INFO
+   ========================================== */
+
+.batch-info-display {
+    background: var(--gray-50);
+    border-left: 3px solid var(--info);
+    padding: calc(var(--space-unit) * 1.5);
+    border-radius: 6px;
+    font-size: 0.85rem;
+    margin-top: calc(var(--space-unit));
+    color: var(--gray-700);
 }
 
-.batch-warning {
-    color: #dc2626;
-    font-weight: 600;
-}
+/* ==========================================
+   CALCULATION SUMMARY
+   ========================================== */
 
-.batch-success {
-    color: #059669;
-    font-weight: 600;
-}
-
-/* Item Rows */
-.item-row {
-    border-left: 4px solid transparent;
-    padding: 16px;
-    margin-bottom: 12px;
-    border-radius: 10px;
-    background: white;
-    transition: all 0.3s ease;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-}
-
-.item-row:hover {
-    box-shadow: var(--shadow-sm);
-    transform: translateX(4px);
-}
-
-.item-row.package-item {
-    border-left-color: #059669;
-    background: linear-gradient(135deg, rgba(16, 185, 129, 0.05) 0%, rgba(16, 185, 129, 0.02) 100%);
-}
-
-.item-row.extra-item {
-    border-left-color: #dc2626;
-    background: linear-gradient(135deg, rgba(220, 38, 38, 0.05) 0%, rgba(220, 38, 38, 0.02) 100%);
-}
-
-.package-deduction {
-    color: #059669;
-    font-weight: 700;
-}
-
-.extra-charge {
-    color: #dc2626;
-    font-weight: 700;
-}
-
-/* Calculation Preview */
-.calculation-preview {
+.calculation-summary {
     background: var(--gradient-primary);
     color: white;
     border-radius: var(--border-radius);
-    padding: 28px;
-    box-shadow: var(--shadow-lg);
+    padding: calc(var(--space-unit) * 4);
     position: sticky;
-    top: 20px;
+    top: calc(var(--space-unit) * 2);
+    box-shadow: var(--shadow-xl);
 }
 
-.calculation-preview .amount {
+.summary-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: calc(var(--space-unit) * 1.5) 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.summary-row:last-child {
+    border-bottom: none;
+}
+
+.summary-label {
+    font-weight: 500;
+    opacity: 0.9;
+}
+
+.summary-value {
+    font-weight: 700;
+    font-size: 1.1rem;
+}
+
+.grand-total-display {
     font-size: 2.5rem;
     font-weight: 800;
-    text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    text-align: center;
+    margin: calc(var(--space-unit) * 3) 0;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
-/* Responsive Improvements */
-@media (max-width: 768px) {
-    .page-header {
-        padding: 20px;
-    }
+/* ==========================================
+   SAVE BUTTON STATES
+   ========================================== */
 
-    .stats-card h3 {
-        font-size: 1.75rem;
-    }
-
-    .form-section {
-        padding: 20px;
-    }
-
-    .main-billing-card .card-body {
-        padding: 20px;
-    }
+.btn-save-invoice {
+    position: relative;
+    overflow: hidden;
 }
 
-/* Loading Animation */
-@keyframes spin {
-    to { transform: rotate(360deg); }
+.btn-save-invoice.saving {
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    animation: pulse 1.5s ease-in-out infinite;
 }
 
-.fa-spinner {
+.btn-save-invoice.saved {
+    background: var(--gradient-success);
+    transform: scale(1.05);
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.85; }
+}
+
+.loading-spinner {
     animation: spin 1s linear infinite;
 }
 
-/* Smooth Transitions */
-* {
-    transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
 }
 
-/* Save Button Enhancements */
-.btn-save-invoice .btn-loading,
-.btn-save-invoice .btn-success-state {
-    display: none;
+/* ==========================================
+   ALERTS & NOTIFICATIONS
+   ========================================== */
+
+.alert-custom {
+    border-radius: var(--border-radius);
+    padding: calc(var(--space-unit) * 2);
+    border: none;
+    box-shadow: var(--shadow-sm);
+    margin-bottom: calc(var(--space-unit) * 2);
 }
 
-.btn-save-invoice.saving .btn-content {
-    display: none;
+.alert-success-custom {
+    background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+    color: #065f46;
 }
 
-.btn-save-invoice.saving .btn-loading {
+.alert-info-custom {
+    background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%);
+    color: #075985;
+}
+
+.alert-warning-custom {
+    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+    color: #92400e;
+}
+
+/* ==========================================
+   RESPONSIVE DESIGN
+   ========================================== */
+
+@media (max-width: 768px) {
+    .billing-page-header {
+        padding: calc(var(--space-unit) * 2);
+    }
+    
+    .page-title {
+        font-size: 1.5rem;
+    }
+    
+    .card-body-custom,
+    .section-divider {
+        padding: calc(var(--space-unit) * 2);
+    }
+    
+    .btn-custom {
+        width: 100%;
+        justify-content: center;
+    }
+    
+    .grand-total-display {
+        font-size: 2rem;
+    }
+}
+
+/* ==========================================
+   CUSTOM UTILITIES
+   ========================================== */
+
+.text-muted-custom {
+    color: var(--gray-500);
+}
+
+.badge-custom {
+    padding: calc(var(--space-unit) * 0.75) calc(var(--space-unit) * 1.5);
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 0.8rem;
     display: inline-flex;
     align-items: center;
+    gap: calc(var(--space-unit) * 0.5);
 }
 
-.btn-save-invoice.saved .btn-content,
-.btn-save-invoice.saved .btn-loading {
-    display: none;
+.badge-success-custom {
+    background: var(--gradient-success);
+    color: white;
 }
 
-.btn-save-invoice.saved .btn-success-state {
-    display: inline-flex;
+.badge-info-custom {
+    background: var(--gradient-info);
+    color: white;
+}
+
+.required-field::after {
+    content: '*';
+    color: var(--danger);
+    margin-left: 4px;
+}
+
+/* ==========================================
+   FLOATING ACTION PANEL
+   ========================================== */
+
+.floating-summary-panel {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: white;
+    box-shadow: 0 -4px 6px -1px rgba(0, 0, 0, 0.1);
+    padding: calc(var(--space-unit) * 2) calc(var(--space-unit) * 3);
+    z-index: 1000;
+    display: flex;
+    justify-content: space-between;
     align-items: center;
+    border-top: 3px solid var(--primary);
 }
 
-.btn-save-invoice .btn-amount {
-    margin-left: 5px;
-    font-size: 0.8em;
-    opacity: 0.8;
-}
-
-.btn-save-invoice .loading-text,
-.btn-save-invoice .btn-text {
-    font-size: 0.9em;
-}
-
-.btn-save-invoice .btn-success-state span {
-    font-weight: bold;
-}
-
-/* Additional styles for the updated save button */
-.btn-save-invoice.saving .loading-text {
-    animation: fadeInText 0.5s ease;
-    display: inline-block;
-}
-
-@keyframes fadeInText {
-    from { opacity: 0; transform: translateY(-5px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-
-.btn-save-invoice.saved .btn-success-state {
-    animation: checkmarkBounce 0.6s ease;
-}
-
-@keyframes checkmarkBounce {
-    0%, 100% { transform: scale(1); }
-    50% { transform: scale(1.3); }
+@media (min-width: 769px) {
+    .floating-summary-panel {
+        display: none;
+    }
 }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="container-fluid">
-    <!-- Compact Page Header -->
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h3 class="mb-0">
-            <i class="fas fa-cash-register me-2 text-primary"></i>Create Invoice
-        </h3>
-        <div class="d-flex gap-2 align-items-center">
-            <small class="text-muted">Quick Billing</small>
-            <button type="button" class="btn btn-sm btn-outline-primary" onclick="toggleBillSummary()">
-                <i class="fas fa-calculator me-1"></i>Bill Summary
-            </button>
-        </div>
+<div class="container-fluid px-4 py-4">
+    <!-- Page Header -->
+    <div class="billing-page-header">
+        <h1 class="page-title">
+            <i class="fas fa-file-invoice-dollar"></i>
+            Create Professional Invoice
+        </h1>
+        <p class="page-subtitle">
+            <i class="fas fa-info-circle me-2"></i>
+            Comprehensive billing with package benefits, inventory tracking, and staff management
+        </p>
     </div>
 
-    <div class="row">
-        <!-- New Invoice Creation - Full Width -->
-        <div class="col-12 mb-4" id="billingFormContainer">
-            <div class="card main-billing-card">
-                <div class="card-header">
-                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-                        <h5>
-                            <i class="fas fa-file-invoice-dollar me-2"></i>Create Professional Invoice
-                        </h5>
-                        <div class="d-flex gap-2">
-                            <span class="badge bg-light">Services</span>
-                            <span class="badge bg-light">Packages</span>
-                            <span class="badge bg-light">Inventory</span>
+    <!-- Main Billing Form -->
+    <form id="billingForm" method="POST" action="/integrated-billing/create-professional">
+        <div class="row">
+            <!-- Left Column: Form Inputs -->
+            <div class="col-lg-8">
+                <!-- Customer Selection -->
+                <div class="section-divider">
+                    <h6 class="section-title">
+                        <i class="fas fa-user-circle"></i>
+                        Customer Information
+                    </h6>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label-custom required-field">
+                                <i class="fas fa-user"></i>
+                                Select Customer
+                            </label>
+                            <select class="form-select form-select-custom" id="client_id" name="client_id" required>
+                                <option value="">Choose customer...</option>
+                                {% for customer in customers %}
+                                <option value="{{ customer.id }}" {{ 'selected' if selected_customer and customer.id == selected_customer.id else '' }}>
+                                    {{ customer.full_name }} - {{ customer.phone }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label-custom">
+                                <i class="fas fa-gift"></i>
+                                Active Packages
+                            </label>
+                            <div id="customerPackages" class="alert alert-info-custom">
+                                <small><i class="fas fa-info-circle me-1"></i>Select customer to view packages</small>
+                            </div>
                         </div>
                     </div>
                 </div>
-                <div class="card-body">
-                    <form id="billingForm">
-                        <!-- Customer Selection Section -->
-                        <div class="form-section">
-                            <h6 class="section-header">
-                                <i class="fas fa-user-circle me-2"></i>Customer Information
-                            </h6>
-                            <div class="row">
-                                <div class="col-md-6 mb-3">
-                                    <label for="client_id" class="form-label">
-                                        <i class="fas fa-user me-1"></i>Select Customer <span class="text-danger">*</span>
-                                    </label>
-                                    <select class="form-select form-select-lg" id="client_id" name="client_id" required>
-                                        <option value="">Choose a customer...</option>
-                                        {% for customer in customers %}
-                                        <option value="{{ customer.id }}" {{ 'selected' if selected_customer and customer.id == selected_customer.id else '' }}>
-                                            {{ customer.full_name }} - {{ customer.phone }}
+
+                <!-- Services Section -->
+                <div class="section-divider">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6 class="section-title mb-0">
+                            <i class="fas fa-spa"></i>
+                            Services
+                        </h6>
+                        <button type="button" class="btn btn-sm btn-primary-custom btn-sm-custom" onclick="addServiceRow()">
+                            <i class="fas fa-plus"></i>
+                            Add Service
+                        </button>
+                    </div>
+                    <div id="servicesContainer">
+                        <div class="item-row service-row">
+                            <div class="row g-3">
+                                <div class="col-md-4">
+                                    <label class="form-label-custom">Service</label>
+                                    <select class="form-select form-select-custom" name="service_ids[]" onchange="handleServiceSelection(this)">
+                                        <option value="">Select Service</option>
+                                        {% for service in services %}
+                                        <option value="{{ service.id }}" data-price="{{ service.price|float }}">
+                                            {{ service.name }} - ₹{{ "{:,.2f}".format(service.price) }}
                                         </option>
                                         {% endfor %}
                                     </select>
                                 </div>
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label">
-                                        <i class="fas fa-gift me-1"></i>Active Packages
-                                    </label>
-                                    <div id="customerPackages" class="alert alert-info mb-0">
-                                        <small><i class="fas fa-info-circle me-1"></i>Select a customer to view their active packages</small>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Customer Services History Section -->
-                        {% if selected_customer %}
-                        <div class="row mb-4" id="customerBookingsCardContainer">
-                            <div class="col-12">
-                                <div class="card customer-bookings-card">
-                                    <div class="card-header">
-                                        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-                                            <h6 class="mb-0">
-                                                <i class="fas fa-user me-2"></i>{{ selected_customer.full_name }}'s Current Bookings
-                                            </h6>
-                                            <span class="badge bg-light">{{ customer_appointments|length }} Ready to Bill</span>
-                                        </div>
-                                    </div>
-                                    <div class="card-body">
-                                        {% if customer_services %}
-                                        <div class="alert alert-success">
-                                            <i class="fas fa-check-circle me-2"></i>
-                                            <strong>{{ customer_services|length }} Different Services Found</strong> - Ready to add to bill
-                                        </div>
-                                        <h6 class="text-primary mb-3 fw-bold">Available Services for Billing:</h6>
-                                        <div class="row">
-                                            {% for service in customer_services %}
-                                            <div class="col-md-4 mb-2">
-                                                <div class="d-flex align-items-center p-2 bg-light rounded">
-                                                    <i class="fas fa-spa text-success me-2"></i>
-                                                    <span class="fw-bold">{{ service.name }}</span>
-                                                    <span class="text-muted ms-2">₹{{ "{:,.2f}".format(service.price) }}</span>
-                                                </div>
-                                            </div>
-                                            {% endfor %}
-                                        </div>
-                                        {% endif %}
-
-                                        {% if customer_appointments and customer_appointments|length > 0 %}
-                                        <hr class="my-4">
-                                        <div class="d-flex justify-content-between align-items-center mb-3">
-                                            <h6 class="text-success mb-0 fw-bold">
-                                                <i class="fas fa-clock me-1"></i>All Confirmed Bookings Ready for Billing
-                                            </h6>
-                                            <div class="badge bg-success fs-6">{{ customer_appointments|length }} Bookings Found</div>
-                                        </div>
-                                        <div class="alert alert-info">
-                                            <i class="fas fa-info-circle me-2"></i>
-                                            These are all the confirmed/scheduled appointments for <strong>{{ selected_customer.full_name }}</strong> that can be billed.
-                                        </div>
-                                        <div class="table-responsive">
-                                            <table class="table table-sm">
-                                                <thead class="table-success">
-                                                    <tr>
-                                                        <th>Date & Time</th>
-                                                        <th>Service</th>
-                                                        <th>Staff</th>
-                                                        <th>Status</th>
-                                                        <th>Amount</th>
-                                                        <th>Action</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody>
-                                                    {% for appointment in customer_appointments %}
-                                                    <tr>
-                                                        <td>
-                                                            <strong>
-                                                                {% if appointment.appointment_date.strftime is defined %}
-                                                                    {{ appointment.appointment_date.strftime('%d %b %Y') }}
-                                                                {% else %}
-                                                                    {{ appointment.appointment_date }}
-                                                                {% endif %}
-                                                            </strong><br>
-                                                            <small class="text-muted">
-                                                                {% if appointment.start_time and appointment.start_time.strftime is defined %}
-                                                                    {{ appointment.start_time.strftime('%I:%M %p') }}
-                                                                {% else %}
-                                                                    {{ appointment.start_time if appointment.start_time else 'N/A' }}
-                                                                {% endif %}
-                                                                -
-                                                                {% if appointment.end_time and appointment.end_time.strftime is defined %}
-                                                                    {{ appointment.end_time.strftime('%I:%M %p') }}
-                                                                {% else %}
-                                                                    {{ appointment.end_time if appointment.end_time else 'N/A' }}
-                                                                {% endif %}
-                                                            </small>
-                                                        </td>
-                                                        <td>
-                                                            <strong>{{ appointment.service_name if appointment.service_name else 'N/A' }}</strong><br>
-                                                            <small class="text-muted">{{ appointment.service_duration if appointment.service_duration else '0' }} mins</small>
-                                                        </td>
-                                                        <td>{{ appointment.staff_name if appointment.staff_name else 'N/A' }}</td>
-                                                        <td>
-                                                            <span class="badge badge-warning">
-                                                                {{ appointment.status.title() }}
-                                                            </span>
-                                                        </td>
-                                                        <td>
-                                                            <strong class="text-success">₹{{ "{:,.2f}".format(appointment.service_price) if appointment.service_price else '0.00' }}</strong>
-                                                        </td>
-                                                        <td>
-                                                            <button type="button"
-                                                                    class="btn btn-primary btn-sm"
-                                                                    onclick="addUnakiAppointmentToBill({{ appointment.id }}, '{{ appointment.service_name }}', {{ appointment.service_price }}, '{{ appointment.staff_name }}')">
-                                                                <i class="fas fa-plus me-1"></i>Add to Bill
-                                                            </button>
-                                                        </td>
-                                                    </tr>
-                                                    {% endfor %}
-                                                </tbody>
-                                            </table>
-                                        </div>
-                                        {% else %}
-                                        <div class="alert alert-info">
-                                            <i class="fas fa-info-circle me-2"></i>
-                                            <strong>No ready-to-bill bookings found.</strong> This customer has no scheduled or confirmed appointments ready for billing.
-                                        </div>
-                                        {% endif %}
-
-                                        <div class="mt-3 d-flex gap-2 flex-wrap">
-                                            <button type="button" class="btn btn-outline-primary btn-sm" onclick="autoFillCurrentServices()">
-                                                <i class="fas fa-bolt me-1"></i>Auto-Fill ALL Bookings to Bill
-                                            </button>
-                                            <button type="button" class="btn btn-outline-info btn-sm" onclick="viewFullCustomerHistory()">
-                                                <i class="fas fa-history me-1"></i>View Full Customer History
-                                            </button>
-                                        </div>
-                                        <small class="text-muted d-block mt-2">
-                                            <i class="fas fa-lightbulb me-1"></i>
-                                            Auto-Fill will add all {{ customer_appointments|length }} confirmed bookings to your billing form instantly
-                                        </small>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        {% endif %}
-
-                        <!-- Services Section -->
-                        <div class="form-section">
-                            <div class="d-flex justify-content-between align-items-center mb-3">
-                                <h6 class="section-header mb-0">
-                                    <i class="fas fa-spa me-2"></i>Services
-                                </h6>
-                                <small class="text-muted">
-                                    <i class="fas fa-sync-alt me-1"></i>Package benefits auto-applied
-                                </small>
-                            </div>
-                            <div id="servicesContainer">
-                                <div class="service-row">
-                                    <div class="row">
-                                        <div class="col-md-4 mb-2">
-                                            <label class="form-label">Service</label>
-                                            <select class="form-select" name="service_ids[]" onchange="handleServiceSelection(this)">
-                                                <option value="">Select Service</option>
-                                                {% for service in services %}
-                                                <option value="{{ service.id }}" data-price="{{ service.price|float }}">
-                                                    {{ service.name }} - ₹{{ "{:,.2f}".format(service.price) }}
-                                                </option>
-                                                {% endfor %}
-                                            </select>
-                                        </div>
-                                        <div class="col-md-3 mb-2">
-                                            <label class="form-label">Staff Member <span class="text-danger">*</span></label>
-                                            <select class="form-select" name="staff_ids[]" required>
-                                                <option value="">Select Staff</option>
-                                                {% for staff_member in staff_members %}
-                                                <option value="{{ staff_member.id }}">
-                                                    {{ staff_member.full_name }} - {{ staff_member.designation or staff_member.role }}
-                                                </option>
-                                                {% endfor %}
-                                            </select>
-                                        </div>
-                                        <div class="col-md-2 mb-2">
-                                            <label class="form-label">Quantity</label>
-                                            <input type="number" class="form-control" name="service_quantities[]" placeholder="Qty" min="1" value="1" step="0.5" oninput="updateTaxCalculations()">
-                                        </div>
-                                        <div class="col-md-2 mb-2">
-                                            <label class="form-label">Appointment ID</label>
-                                            <input type="number" class="form-control" name="appointment_ids[]" placeholder="Optional">
-                                        </div>
-                                        <div class="col-md-1 mb-2">
-                                            <label class="form-label">&nbsp;</label>
-                                            <button type="button" class="btn btn-success btn-sm w-100" onclick="addServiceRow()">
-                                                <i class="fas fa-plus"></i>
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Products & Inventory Section (Batch-wise) -->
-                        <div class="form-section">
-                            <div class="d-flex justify-content-between align-items-center mb-3">
-                                <h6 class="section-header mb-0">
-                                    <i class="fas fa-box-open me-2"></i>Products & Inventory
-                                </h6>
-                                <small class="text-muted">
-                                    <i class="fas fa-sync-alt me-1"></i>FIFO auto-deduction from batches
-                                </small>
-                            </div>
-                            <div id="productsContainer">
-                                <div class="product-row">
-                                    <div class="row">
-                                        <div class="col-md-3 mb-2">
-                                            <label class="form-label">Product</label>
-                                            <select class="form-select product-select" name="product_ids[]" onchange="loadBatchesForProduct(this)">
-                                                <option value="">Select Product</option>
-                                                {% for product in inventory_items %}
-                                                <option value="{{ product.id }}" data-name="{{ product.name }}">{{ product.name }} (Total Stock: {{ product.total_stock }})</option>
-                                                {% endfor %}
-                                            </select>
-                                        </div>
-                                        <div class="col-md-2 mb-2">
-                                            <label class="form-label">Staff Member <span class="text-danger">*</span></label>
-                                            <select class="form-select" name="product_staff_ids[]" required>
-                                                <option value="">Select Staff</option>
-                                                {% for staff_member in staff_members %}
-                                                <option value="{{ staff_member.id }}">
-                                                    {{ staff_member.full_name }} - {{ staff_member.designation or staff_member.role }}
-                                                </option>
-                                                {% endfor %}
-                                            </select>
-                                        </div>
-                                        <div class="col-md-2 mb-2">
-                                            <label class="form-label">Batch (Auto-selected FIFO)</label>
-                                            <select class="form-select batch-select" name="batch_ids[]" disabled>
-                                                <option value="">Select Product First</option>
-                                            </select>
-                                            <div class="batch-info"></div>
-                                        </div>
-                                        <div class="col-md-2 mb-2">
-                                            <label class="form-label">Quantity</label>
-                                            <input type="number" class="form-control" name="product_quantities[]" placeholder="Qty" min="0.01" value="1" step="0.01" oninput="validateInventoryQuantity(this); updateTaxCalculations();">
-                                        </div>
-                                        <div class="col-md-2 mb-2">
-                                            <label class="form-label">Unit Price</label>
-                                            <input type="number" class="form-control" name="product_prices[]" placeholder="₹0.00" min="0" step="0.01" oninput="updateTaxCalculations()">
-                                        </div>
-                                        <div class="col-md-1 mb-2">
-                                            <label class="form-label">&nbsp;</label>
-                                            <button type="button" class="btn btn-success btn-sm w-100" onclick="addProductRow()">
-                                                <i class="fas fa-plus"></i>
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Payment & Tax Section -->
-                        <div class="form-section">
-                            <h6 class="section-header">
-                                <i class="fas fa-calculator me-2"></i>Payment & Tax Details
-                            </h6>
-                            <div class="row">
-                                <div class="col-md-4 mb-3">
-                                    <label class="form-label">Payment Method <span class="text-danger">*</span></label>
-                                    <select class="form-select" name="payment_method" required>
-                                        <option value="">Select Payment Method</option>
-                                        <option value="cash">Cash</option>
-                                        <option value="card">Card</option>
-                                        <option value="upi">UPI</option>
-                                        <option value="bank_transfer">Bank Transfer</option>
-                                        <option value="other">Other</option>
+                                <div class="col-md-3">
+                                    <label class="form-label-custom required-field">Staff</label>
+                                    <select class="form-select form-select-custom" name="staff_ids[]" required>
+                                        <option value="">Select Staff</option>
+                                        {% for staff in staff_members %}
+                                        <option value="{{ staff.id }}">{{ staff.full_name }}</option>
+                                        {% endfor %}
                                     </select>
                                 </div>
-                                <div class="col-md-4 mb-3">
-                                    <label class="form-label">Payment Status <span class="text-danger">*</span></label>
-                                    <select class="form-select" name="payment_status" required>
-                                        <option value="paid">Paid</option>
-                                        <option value="partial">Partially Paid</option>
-                                        <option value="pending">Pending</option>
+                                <div class="col-md-2">
+                                    <label class="form-label-custom">Qty</label>
+                                    <input type="number" class="form-control form-control-custom" name="service_quantities[]" value="1" min="0.5" step="0.5" oninput="updateCalculations()">
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label-custom">Apt ID</label>
+                                    <input type="number" class="form-control form-control-custom" name="appointment_ids[]" placeholder="Optional">
+                                </div>
+                                <div class="col-md-1 d-flex align-items-end">
+                                    <button type="button" class="btn btn-danger btn-sm-custom w-100" onclick="removeRow(this)" style="display:none;">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Products Section -->
+                <div class="section-divider">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6 class="section-title mb-0">
+                            <i class="fas fa-box"></i>
+                            Products & Inventory
+                        </h6>
+                        <button type="button" class="btn btn-sm btn-primary-custom btn-sm-custom" onclick="addProductRow()">
+                            <i class="fas fa-plus"></i>
+                            Add Product
+                        </button>
+                    </div>
+                    <div id="productsContainer">
+                        <div class="item-row product-row">
+                            <div class="row g-3">
+                                <div class="col-md-3">
+                                    <label class="form-label-custom">Product</label>
+                                    <select class="form-select form-select-custom product-select" name="product_ids[]" onchange="loadBatchesForProduct(this)">
+                                        <option value="">Select Product</option>
+                                        {% for product in inventory_items %}
+                                        <option value="{{ product.id }}">{{ product.name }}</option>
+                                        {% endfor %}
                                     </select>
                                 </div>
-                                <div class="col-md-4 mb-3">
-                                    <label class="form-label">Discount (%)</label>
-                                    <input type="number" class="form-control" name="discount_percentage" placeholder="0" min="0" max="100" step="0.01" oninput="updateTaxCalculations()">
+                                <div class="col-md-2">
+                                    <label class="form-label-custom required-field">Staff</label>
+                                    <select class="form-select form-select-custom" name="product_staff_ids[]" required>
+                                        <option value="">Select Staff</option>
+                                        {% for staff in staff_members %}
+                                        <option value="{{ staff.id }}">{{ staff.full_name }}</option>
+                                        {% endfor %}
+                                    </select>
                                 </div>
-                            </div>
-
-                            <div class="row">
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label">
-                                        <input type="checkbox" id="gstEnabled" name="gst_enabled" onchange="updateTaxCalculations()" class="form-check-input me-2">
-                                        Enable GST
-                                    </label>
-                                    <input type="number" class="form-control" name="gst_percentage" id="gstPercentage" placeholder="GST %" min="0" max="100" step="0.01" oninput="updateTaxCalculations()" disabled>
+                                <div class="col-md-2">
+                                    <label class="form-label-custom">Batch</label>
+                                    <select class="form-select form-select-custom batch-select" name="batch_ids[]" disabled>
+                                        <option value="">Select Product First</option>
+                                    </select>
+                                    <div class="batch-info-display"></div>
                                 </div>
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label">Notes (Optional)</label>
-                                    <textarea class="form-control" name="notes" rows="2" placeholder="Add any notes here..."></textarea>
+                                <div class="col-md-2">
+                                    <label class="form-label-custom">Qty</label>
+                                    <input type="number" class="form-control form-control-custom" name="product_quantities[]" value="1" min="0.01" step="0.01" oninput="updateCalculations()">
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label-custom">Price</label>
+                                    <input type="number" class="form-control form-control-custom" name="product_prices[]" placeholder="₹0.00" min="0" step="0.01" oninput="updateCalculations()">
+                                </div>
+                                <div class="col-md-1 d-flex align-items-end">
+                                    <button type="button" class="btn btn-danger btn-sm-custom w-100" onclick="removeRow(this)" style="display:none;">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
                                 </div>
                             </div>
                         </div>
+                    </div>
+                </div>
 
-                        <!-- Submit Button with Total Display -->
-                        <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
-                            <div>
-                                <h4 class="mb-0">
-                                    <span class="text-muted">Total Amount:</span>
-                                    <span class="text-primary fw-bold">₹<span id="grandTotal">0.00</span></span>
-                                </h4>
-                                <small class="text-muted">
-                                    <span id="serviceCount">0</span> Services, 
-                                    <span id="productCount">0</span> Products
-                                </small>
-                            </div>
-                            <div class="d-flex gap-2 flex-wrap">
-                                <button type="button" class="btn btn-outline-info btn-lg" onclick="previewInvoice()">
-                                    <i class="fas fa-eye me-2"></i>Preview
-                                </button>
-                                <button type="button" class="btn btn-outline-secondary btn-lg" onclick="saveAsDraft()">
-                                    <i class="fas fa-save me-2"></i>Save as Draft
-                                </button>
-                                <button type="submit" class="btn btn-success btn-lg btn-save-invoice" name="action" value="save" id="saveInvoiceBtn">
-                                    <span class="btn-content">
-                                        <i class="fas fa-check-circle me-2"></i>
-                                        <span class="btn-text">Save Invoice</span>
-                                        <span class="btn-amount">(₹<span id="grandTotalBtn">0.00</span>)</span>
-                                    </span>
-                                    <span class="btn-loading d-none">
-                                        <i class="fas fa-spinner fa-spin me-2"></i>
-                                        <span class="loading-text">Saving...</span>
-                                    </span>
-                                    <span class="btn-success-state d-none">
-                                        <i class="fas fa-check-double me-2"></i>
-                                        <span>Saved!</span>
-                                    </span>
-                                </button>
-                                <button type="button" class="btn btn-primary btn-lg" onclick="saveAndPrint()">
-                                    <i class="fas fa-print me-2"></i>Save & Print
-                                </button>
-                            </div>
+                <!-- Payment Details -->
+                <div class="section-divider">
+                    <h6 class="section-title">
+                        <i class="fas fa-credit-card"></i>
+                        Payment & Tax Details
+                    </h6>
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label-custom required-field">Payment Method</label>
+                            <select class="form-select form-select-custom" name="payment_method" required>
+                                <option value="">Select Method</option>
+                                <option value="cash">Cash</option>
+                                <option value="card">Card</option>
+                                <option value="upi">UPI</option>
+                                <option value="bank_transfer">Bank Transfer</option>
+                            </select>
                         </div>
-                    </form>
+                        <div class="col-md-4">
+                            <label class="form-label-custom required-field">Payment Status</label>
+                            <select class="form-select form-select-custom" name="payment_status" required>
+                                <option value="paid">Paid</option>
+                                <option value="partial">Partially Paid</option>
+                                <option value="pending">Pending</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label-custom">Discount (%)</label>
+                            <input type="number" class="form-control form-control-custom" name="discount_percentage" value="0" min="0" max="100" step="0.01" oninput="updateCalculations()">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label-custom">
+                                <input type="checkbox" id="gstEnabled" name="gst_enabled" onchange="updateCalculations()" class="form-check-input me-2">
+                                Enable GST
+                            </label>
+                            <input type="number" class="form-control form-control-custom" id="gstPercentage" name="gst_percentage" placeholder="GST %" value="18" min="0" max="100" step="0.01" disabled oninput="updateCalculations()">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label-custom">Notes</label>
+                            <textarea class="form-control form-control-custom" name="notes" rows="3" placeholder="Add notes..."></textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column: Calculation Summary -->
+            <div class="col-lg-4">
+                <div class="calculation-summary">
+                    <h5 class="text-center mb-4" style="font-size: 1.3rem; font-weight: 700;">
+                        <i class="fas fa-calculator me-2"></i>
+                        Bill Summary
+                    </h5>
+                    
+                    <div class="summary-row">
+                        <span class="summary-label">Services:</span>
+                        <span class="summary-value" id="servicesSubtotal">₹0.00</span>
+                    </div>
+                    
+                    <div class="summary-row">
+                        <span class="summary-label">Products:</span>
+                        <span class="summary-value" id="productsSubtotal">₹0.00</span>
+                    </div>
+                    
+                    <div class="summary-row text-success">
+                        <span class="summary-label">Package Benefits:</span>
+                        <span class="summary-value" id="packageDeductions">-₹0.00</span>
+                    </div>
+                    
+                    <div class="summary-row text-warning">
+                        <span class="summary-label">Discount:</span>
+                        <span class="summary-value" id="discountAmount">-₹0.00</span>
+                    </div>
+                    
+                    <div class="summary-row">
+                        <span class="summary-label">GST (<span id="gstRate">0</span>%):</span>
+                        <span class="summary-value" id="gstAmount">₹0.00</span>
+                    </div>
+                    
+                    <hr style="border-color: rgba(255, 255, 255, 0.3); margin: 20px 0;">
+                    
+                    <div class="grand-total-display" id="grandTotal">₹0.00</div>
+                    
+                    <div class="d-grid gap-2 mt-4">
+                        <button type="submit" class="btn btn-success-custom btn-lg-custom btn-save-invoice" id="saveInvoiceBtn">
+                            <span class="btn-content">
+                                <i class="fas fa-check-circle"></i>
+                                Save Invoice
+                            </span>
+                            <span class="btn-loading d-none">
+                                <i class="fas fa-spinner loading-spinner"></i>
+                                <span class="loading-text">Saving...</span>
+                            </span>
+                            <span class="btn-success-state d-none">
+                                <i class="fas fa-check-double"></i>
+                                Saved!
+                            </span>
+                        </button>
+                        
+                        <button type="button" class="btn btn-primary-custom" onclick="previewInvoice()">
+                            <i class="fas fa-eye"></i>
+                            Preview
+                        </button>
+                    </div>
+                    
+                    <div class="text-center mt-3 text-white-50 small">
+                        <i class="fas fa-shield-alt me-1"></i>
+                        Secure & Encrypted
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
+    </form>
 </div>
 
-<!-- Floating Bill Summary Panel -->
-<div id="billSummaryPanel" class="bill-summary-panel" style="display: none;">
-    <div class="calculation-preview" style="height: auto; max-height: 90vh; overflow-y: auto;">
-        <div class="d-flex justify-content-between align-items-center mb-3">
-            <h5 class="mb-0 fw-bold">
-                <i class="fas fa-receipt me-2"></i>Bill Summary
-            </h5>
-            <button type="button" class="btn btn-sm btn-light" onclick="toggleBillSummary()">
-                <i class="fas fa-times"></i>
-            </button>
-        </div>
-
-        <div class="mb-3 pb-3 border-bottom border-white border-opacity-25">
-            <div class="d-flex justify-content-between mb-2">
-                <span>Services Subtotal:</span>
-                <span class="fw-bold">₹<span id="servicesSubtotalPanel">0.00</span></span>
-            </div>
-            <div class="d-flex justify-content-between mb-2">
-                <span>Products Subtotal:</span>
-                <span class="fw-bold">₹<span id="productsSubtotalPanel">0.00</span></span>
-            </div>
-            <div class="d-flex justify-content-between mb-2">
-                <span>Package Deductions:</span>
-                <span class="fw-bold text-success">-₹<span id="packageDeductionsPanel">0.00</span></span>
-            </div>
-            <div class="d-flex justify-content-between">
-                <span>Discount:</span>
-                <span class="fw-bold text-warning">-₹<span id="discountAmountPanel">0.00</span></span>
-            </div>
-        </div>
-
-        <div class="mb-3 pb-3 border-bottom border-white border-opacity-25">
-            <div class="d-flex justify-content-between mb-2">
-                <span>Subtotal After Deductions:</span>
-                <span class="fw-bold">₹<span id="subtotalAfterDeductionsPanel">0.00</span></span>
-            </div>
-            <div class="d-flex justify-content-between">
-                <span>GST (<span id="gstRateDisplayPanel">0</span>%):</span>
-                <span class="fw-bold">₹<span id="gstAmountPanel">0.00</span></span>
-            </div>
-        </div>
-
-        <div class="text-center py-3">
-            <h6 class="text-uppercase mb-2" style="opacity: 0.9; letter-spacing: 2px;">Total Amount</h6>
-            <div class="amount">₹<span id="grandTotalPanel">0.00</span></div>
-        </div>
-
-        <div class="alert alert-light">
-            <small class="d-block mb-1"><i class="fas fa-info-circle me-1"></i><strong>Items Added:</strong></small>
-            <small class="d-block">Services: <span id="serviceCountPanel" class="fw-bold">0</span></small>
-            <small class="d-block">Products: <span id="productCountPanel" class="fw-bold">0</span></small>
-        </div>
-    </div>
-</div>
-
-<!-- Invoice Preview Modal -->
-<div class="modal fade" id="invoicePreviewModal" tabindex="-1" aria-labelledby="invoicePreviewModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-xl">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="invoicePreviewModalLabel">Invoice Preview</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body" id="invoicePreviewBody">
-                <!-- Preview content will be loaded here -->
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<style>
-.bill-summary-panel {
-    position: fixed;
-    top: 70px;
-    right: 20px;
-    width: 350px;
-    z-index: 1050;
-    animation: slideIn 0.3s ease;
-}
-
-@keyframes slideIn {
-    from {
-        transform: translateX(100%);
-        opacity: 0;
-    }
-    to {
-        transform: translateX(0);
-        opacity: 1;
-    }
-}
-
-@media (max-width: 768px) {
-    .bill-summary-panel {
-        width: calc(100% - 40px);
-        right: 20px;
-        left: 20px;
-    }
-}
-</style>
-
-<!-- Keep all the existing JavaScript from the original template -->
 <script>
-// Placeholder for validateForm function if it exists in the original context
-// This is a common helper for form validation.
-function validateForm(form) {
-    let isValid = true;
-    form.querySelectorAll('[required]').forEach(input => {
-        if (!input.value.trim()) {
-            input.classList.add('is-invalid');
-            isValid = false;
-        } else {
-            input.classList.remove('is-invalid');
-        }
-    });
-    // Add custom validation logic here if needed
-    return isValid;
-}
-
-function toggleBillSummary() {
-    const panel = document.getElementById('billSummaryPanel');
-    if (panel.style.display === 'none') {
-        panel.style.display = 'block';
-    } else {
-        panel.style.display = 'none';
-    }
-}
-
-// All the existing JavaScript code remains exactly the same
-// (Copying the complete JavaScript section from the original file)
-
+// ==========================================
+// GLOBAL VARIABLES
+// ==========================================
 let customerPackageData = null;
-let lastLoadedCustomerId = null;
 let availableBatches = [];
-let globalStaffMembers = [];
-window.customerAppointments = {{ customer_appointments|tojson if customer_appointments else '[]' }};
+let formSubmitting = false;
 
+// ==========================================
+// INITIALIZATION
+// ==========================================
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('Integrated Billing page loaded');
-
-    globalStaffMembers = [
-        {% for staff in staff_members %}
-        {
-            id: {{ staff.id }},
-            name: '{{ staff.full_name }}',
-            designation: '{{ staff.designation or staff.role }}'
-        }{{ ',' if not loop.last else '' }}
-        {% endfor %}
-    ];
-
+    console.log('✅ Billing system initialized');
+    
+    // Load batch data
     loadAvailableBatches();
-
+    
+    // Setup customer selector
     const clientSelect = document.getElementById('client_id');
     if (clientSelect) {
         clientSelect.addEventListener('change', function() {
             const clientId = this.value;
             if (clientId) {
                 loadCustomerPackages(clientId);
-                loadCustomerAppointments(clientId);
             } else {
-                const packagesDiv = document.getElementById('customerPackages');
-                if (packagesDiv) {
-                    packagesDiv.innerHTML = '<small class="text-muted">Select a customer to view their active packages</small>';
-                }
+                document.getElementById('customerPackages').innerHTML = '<small>Select customer to view packages</small>';
                 customerPackageData = null;
-                lastLoadedCustomerId = null;
             }
         });
     }
-
+    
+    // Setup GST toggle
     const gstCheckbox = document.getElementById('gstEnabled');
     const gstInput = document.getElementById('gstPercentage');
     if (gstCheckbox && gstInput) {
         gstCheckbox.addEventListener('change', function() {
             gstInput.disabled = !this.checked;
-            if (!this.checked) {
-                gstInput.value = '';
-            } else {
-                gstInput.value = '18';
-            }
+            updateCalculations();
         });
     }
-
-    const billingForm = document.getElementById('billingForm');
-    if (billingForm) {
-        billingForm.addEventListener('submit', handleBillingFormSubmit);
+    
+    // Setup form submission
+    const form = document.getElementById('billingForm');
+    if (form) {
+        form.addEventListener('submit', handleFormSubmit);
     }
-
+    
+    // Initial calculation
+    updateCalculations();
+    
     {% if selected_customer %}
     loadCustomerPackages({{ selected_customer.id }});
-    loadCustomerAppointments({{ selected_customer.id }});
     {% endif %}
 });
 
-function addServiceRow() {
-    const container = document.getElementById('servicesContainer');
-    if (!container || container.children.length === 0) {
-        console.error('Services container not found or empty');
-        return;
-    }
-
-    const newRow = container.children[0].cloneNode(true);
-
-    newRow.querySelectorAll('select, input').forEach(input => {
-        if (input.type === 'number') {
-            input.value = input.name.includes('quantities') ? '1' : '';
-        } else {
-            input.value = '';
-        }
-    });
-
-    const benefitDisplay = newRow.querySelector('.package-benefit-display');
-    if (benefitDisplay) {
-        benefitDisplay.remove();
-    }
-
-    const button = newRow.querySelector('button');
-    if (button) {
-        button.className = 'btn btn-danger btn-sm w-100';
-        button.innerHTML = '<i class="fas fa-minus"></i>';
-        button.onclick = function() { 
-            this.closest('.service-row').remove(); 
-            updateTaxCalculations();
-        };
-    }
-
-    container.appendChild(newRow);
-}
-
-function handleServiceSelection(selectElement) {
-    const selectedOption = selectElement.options[selectElement.selectedIndex];
-    if (selectedOption && selectedOption.dataset.price) {
-        const price = selectedOption.dataset.price;
-        updateServicePrice(selectElement.value, price);
-    } else {
-        // If no price is found (e.g., for "Select a service..."), reset price fields
-        updateServicePrice(selectElement.value, '0.00');
-    }
-    // Immediately update tax calculations to reflect new service price
-    updateTaxCalculations();
-}
-
-function addUnakiAppointmentToBill(appointmentId, serviceName, servicePrice, staffName) {
-    console.log(`Adding appointment ${appointmentId} to bill`);
-
-    const container = document.getElementById('servicesContainer');
-    if (!container) {
-        console.error('Services container not found');
-        return;
-    }
-
-    const firstRow = container.children[0];
-    const serviceSelect = firstRow.querySelector('select[name="service_ids[]"]');
-    const staffSelect = firstRow.querySelector('select[name="staff_ids[]"]');
-    const qtyInput = firstRow.querySelector('input[name="service_quantities[]"]');
-    const appointmentInput = firstRow.querySelector('input[name="appointment_ids[]"]');
-
-    const isFirstRowEmpty = !serviceSelect.value && !qtyInput.value;
-
-    if (isFirstRowEmpty) {
-        const serviceOption = Array.from(serviceSelect.options).find(opt => 
-            opt.text.toLowerCase().includes(serviceName.toLowerCase())
-        );
-
-        if (serviceOption) {
-            serviceSelect.value = serviceOption.value;
-            handleServiceSelection(serviceSelect);
-        }
-
-        if (staffName && staffSelect) {
-            const staffOption = Array.from(staffSelect.options).find(opt => 
-                opt.text.toLowerCase().includes(staffName.toLowerCase())
-            );
-            if (staffOption) {
-                staffSelect.value = staffOption.value;
-            }
-        }
-
-        if (qtyInput) qtyInput.value = 1;
-        if (appointmentInput) appointmentInput.value = appointmentId;
-    } else {
-        addServiceRow();
-
-        const newRow = container.children[container.children.length - 1];
-        const newServiceSelect = newRow.querySelector('select[name="service_ids[]"]');
-        const newStaffSelect = newRow.querySelector('select[name="staff_ids[]"]');
-        const newQtyInput = newRow.querySelector('input[name="service_quantities[]"]');
-        const newAppointmentInput = newRow.querySelector('input[name="appointment_ids[]"]');
-
-        const serviceOption = Array.from(newServiceSelect.options).find(opt => 
-            opt.text.toLowerCase().includes(serviceName.toLowerCase())
-        );
-
-        if (serviceOption) {
-            newServiceSelect.value = serviceOption.value;
-            handleServiceSelection(newServiceSelect);
-        }
-
-        if (staffName && newStaffSelect) {
-            const staffOption = Array.from(newStaffSelect.options).find(opt => 
-                opt.text.toLowerCase().includes(staffName.toLowerCase())
-            );
-            if (staffOption) {
-                newStaffSelect.value = staffOption.value;
-            }
-        }
-
-        if (newQtyInput) newQtyInput.value = 1;
-        if (newAppointmentInput) newAppointmentInput.value = appointmentId;
-    }
-
-    updateTaxCalculations();
-    showNotification('Service added to bill!', 'success');
-}
-
-function loadCustomerAppointments(clientId) {
-    if (!clientId) {
-        window.customerAppointments = [];
-        // Hide the bookings card if no customer selected
-        const bookingsCard = document.getElementById('customerBookingsCardContainer');
-        if (bookingsCard) {
-            bookingsCard.style.display = 'none';
-        }
-        return;
-    }
-
-    fetch(`/api/customer/${clientId}/appointments`)
-        .then(response => response.json())
-        .then(data => {
-            if (data.success && data.appointments) {
-                window.customerAppointments = data.appointments;
-                console.log(`Loaded ${data.appointments.length} appointments for customer ${clientId}`);
-
-                // Render the appointments in the UI
-                renderCustomerAppointments(data.appointments, data.customer);
-            } else {
-                window.customerAppointments = [];
-                console.log('No appointments found or error loading appointments');
-                renderCustomerAppointments([], null);
-            }
-        })
-        .catch(error => {
-            console.error('Error loading appointments:', error);
-            window.customerAppointments = [];
-            renderCustomerAppointments([], null);
-        });
-}
-
-function renderCustomerAppointments(appointments, customer) {
-    // Check if bookings card container exists, if not create it
-    let bookingsCardContainer = document.getElementById('customerBookingsCardContainer');
-
-    if (!bookingsCardContainer) {
-        // Create the container after the customer selection section
-        const customerSection = document.querySelector('.form-section');
-        if (customerSection) {
-            bookingsCardContainer = document.createElement('div');
-            bookingsCardContainer.id = 'customerBookingsCardContainer';
-            bookingsCardContainer.className = 'row mb-4';
-            customerSection.after(bookingsCardContainer);
-        } else {
-            return; // Can't render without a place to put it
-        }
-    }
-
-    if (!appointments || appointments.length === 0) {
-        bookingsCardContainer.innerHTML = '';
-        return;
-    }
-
-    const customerName = customer ? customer.name : 'Customer';
-
-    // Build the appointments table HTML
-    let appointmentsHTML = appointments.map(apt => {
-        const appointmentDate = apt.appointment_date || 'N/A';
-        const startTime = apt.start_time || 'N/A';
-        const endTime = apt.end_time || 'N/A';
-        const serviceName = apt.service_name || 'N/A';
-        const serviceDuration = apt.service_duration || 0;
-        const staffName = apt.staff_name || 'N/A';
-        const status = apt.status || 'scheduled';
-        const servicePrice = apt.service_price || 0;
-
-        return `
-            <tr>
-                <td>
-                    <strong>${appointmentDate}</strong><br>
-                    <small class="text-muted">${startTime} - ${endTime}</small>
-                </td>
-                <td>
-                    <strong>${serviceName}</strong><br>
-                    <small class="text-muted">${serviceDuration} mins</small>
-                </td>
-                <td>${staffName}</td>
-                <td>
-                    <span class="badge badge-warning">
-                        ${status.charAt(0).toUpperCase() + status.slice(1)}
-                    </span>
-                </td>
-                <td>
-                    <strong class="text-success">₹${parseFloat(servicePrice).toFixed(2)}</strong>
-                </td>
-                <td>
-                    <button type="button"
-                            class="btn btn-primary btn-sm"
-                            onclick="addUnakiAppointmentToBill(${apt.id}, '${serviceName.replace(/'/g, "\\'")}', ${servicePrice}, '${staffName.replace(/'/g, "\\'")}')">
-                        <i class="fas fa-plus me-1"></i>Add to Bill
-                    </button>
-                </td>
-            </tr>
-        `;
-    }).join('');
-
-    // Render the complete card
-    bookingsCardContainer.innerHTML = `
-        <div class="col-12">
-            <div class="card customer-bookings-card">
-                <div class="card-header">
-                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-                        <h6 class="mb-0">
-                            <i class="fas fa-user me-2"></i>${customerName}'s Current Bookings
-                        </h6>
-                        <span class="badge bg-light">${appointments.length} Ready to Bill</span>
-                    </div>
-                </div>
-                <div class="card-body">
-                    <div class="alert alert-success">
-                        <i class="fas fa-check-circle me-2"></i>
-                        <strong>${appointments.length} Confirmed Bookings Found</strong> - Ready to add to bill
-                    </div>
-
-                    <div class="table-responsive">
-                        <table class="table table-sm">
-                            <thead class="table-success">
-                                <tr>
-                                    <th>Date & Time</th>
-                                    <th>Service</th>
-                                    <th>Staff</th>
-                                    <th>Status</th>
-                                    <th>Amount</th>
-                                    <th>Action</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                ${appointmentsHTML}
-                            </tbody>
-                        </table>
-                    </div>
-
-                    <div class="mt-3 d-flex gap-2 flex-wrap">
-                        <button type="button" class="btn btn-outline-primary btn-sm" onclick="autoFillCurrentServices()">
-                            <i class="fas fa-bolt me-1"></i>Auto-Fill ALL Bookings to Bill
-                        </button>
-                    </div>
-                    <small class="text-muted d-block mt-2">
-                        <i class="fas fa-lightbulb me-1"></i>
-                        Auto-Fill will add all ${appointments.length} confirmed bookings to your billing form instantly
-                    </small>
-                </div>
-            </div>
-        </div>
-    `;
-}
-
-function autoPopulateBillingFromAppointments(appointments) {
-    if (!appointments || appointments.length === 0) {
-        console.log('No appointments to auto-populate');
-        return;
-    }
-
-    const unpaidAppointments = appointments.filter(apt => 
-        (apt.status === 'confirmed' || apt.status === 'scheduled') && 
-        apt.payment_status === 'pending'
-    );
-
-    if (unpaidAppointments.length === 0) {
-        console.log('No unpaid confirmed/scheduled appointments found');
-        return;
-    }
-
-    console.log(`Auto-populating ${unpaidAppointments.length} unpaid appointments into billing form`);
-
-    const container = document.getElementById('servicesContainer');
-    const firstRow = container.children[0];
-    container.innerHTML = '';
-    container.appendChild(firstRow);
-
-    firstRow.querySelectorAll('select, input').forEach(input => {
-        if (input.type === 'number') {
-            input.value = input.name.includes('quantities') ? '1' : '';
-        } else {
-            input.value = '';
-        }
-    });
-
-    unpaidAppointments.forEach((apt, index) => {
-        if (index === 0) {
-            const serviceSelect = firstRow.querySelector('select[name="service_ids[]"]');
-            const staffSelect = firstRow.querySelector('select[name="staff_ids[]"]');
-            const qtyInput = firstRow.querySelector('input[name="service_quantities[]"]');
-            const appointmentInput = firstRow.querySelector('input[name="appointment_ids[]"]');
-
-            if (serviceSelect && apt.service_id) {
-                serviceSelect.value = apt.service_id;
-                handleServiceSelection(serviceSelect);
-            }
-            if (staffSelect && apt.staff_id) {
-                staffSelect.value = apt.staff_id;
-            }
-            if (qtyInput) qtyInput.value = 1;
-            if (appointmentInput) appointmentInput.value = apt.id;
-        } else {
-            addServiceRow();
-            const rows = container.querySelectorAll('.service-row');
-            const newRow = rows[rows.length - 1];
-
-            const serviceSelect = newRow.querySelector('select[name="service_ids[]"]');
-            const staffSelect = newRow.querySelector('select[name="staff_ids[]"]');
-            const qtyInput = newRow.querySelector('input[name="service_quantities[]"]');
-            const appointmentInput = newRow.querySelector('input[name="appointment_ids[]"]');
-
-            if (serviceSelect && apt.service_id) {
-                serviceSelect.value = apt.service_id;
-                handleServiceSelection(serviceSelect);
-            }
-            if (staffSelect && apt.staff_id) {
-                staffSelect.value = apt.staff_id;
-            }
-            if (qtyInput) qtyInput.value = 1;
-            if (appointmentInput) appointmentInput.value = apt.id;
-        }
-    });
-
-    updateTaxCalculations();
-
-    showNotification(`Auto-added ${unpaidAppointments.length} unpaid services to billing`, 'success');
-}
-
-function autoFillCurrentServices() {
-    if (!window.customerAppointments || window.customerAppointments.length === 0) {
-        showNotification('No appointments found for this customer', 'warning');
-        return;
-    }
-
-    autoPopulateBillingFromAppointments(window.customerAppointments);
-}
-
-function viewFullCustomerHistory() {
-    {% if selected_customer %}
-    window.open('/clients/{{ selected_customer.id }}', '_blank');
-    {% endif %}
-}
-
-function addProductRow() {
-    const container = document.getElementById('productsContainer');
-    if (!container || container.children.length === 0) {
-        console.error('Products container not found or empty');
-        return;
-    }
-
-    const newRow = container.children[0].cloneNode(true);
-
-    newRow.querySelectorAll('select, input').forEach(input => {
-        if (input.type === 'number') {
-            input.value = input.name.includes('quantities') ? '1' : '';
-        } else {
-            input.value = '';
-        }
-    });
-
-    const batchSelect = newRow.querySelector('.batch-select');
-    if (batchSelect) {
-        batchSelect.innerHTML = '<option value="">Select Product First</option>';
-        batchSelect.disabled = true;
-    }
-
-    const batchInfo = newRow.querySelector('.batch-info');
-    if (batchInfo) {
-        batchInfo.innerHTML = '';
-    }
-
-    const button = newRow.querySelector('button');
-    if (button) {
-        button.className = 'btn btn-danger btn-sm w-100';
-        button.innerHTML = '<i class="fas fa-minus"></i>';
-        button.onclick = function() { 
-            this.closest('.product-row').remove(); 
-            updateTaxCalculations();
-        };
-    }
-
-    container.appendChild(newRow);
-}
-
-function loadAvailableBatches() {
-    fetch('/api/inventory/batches/for-consumption')
-        .then(response => response.json())
-        .then(data => {
-            if (data.success && data.batches) {
-                availableBatches = data.batches;
-                console.log('Available batches loaded:', availableBatches.length);
-            }
-        })
-        .catch(error => {
-            console.error('Error loading batches:', error);
-        });
-}
-
-function loadBatchesForProduct(productSelect) {
-    const row = productSelect.closest('.row');
-    const batchSelect = row.querySelector('.batch-select');
-    const batchInfo = row.querySelector('.batch-info');
-    const quantityInput = row.querySelector('input[name="product_quantities[]"]');
-    const priceInput = row.querySelector('input[name="product_prices[]"]');
-
-    const productId = parseInt(productSelect.value);
-
-    batchSelect.innerHTML = '<option value="">Loading batches...</option>';
-    batchSelect.disabled = true;
-    batchInfo.innerHTML = '';
-
-    if (!productId) {
-        batchSelect.innerHTML = '<option value="">Select Product First</option>';
-        return;
-    }
-
-    const productBatches = availableBatches.filter(batch => {
-        return batch.product_id === productId && batch.qty_available > 0;
-    });
-
-    console.log(`DEBUG: Product ID ${productId} has ${productBatches.length} available batches`);
-
-    if (productBatches.length === 0) {
-        batchSelect.innerHTML = '<option value="">No stock available</option>';
-        batchInfo.innerHTML = '<span class="text-danger">⚠️ No stock available for this product</span>';
-        if (quantityInput) quantityInput.value = '0';
-        if (priceInput) priceInput.value = '';
-        return;
-    }
-
-    productBatches.sort((a, b) => {
-        if (!a.expiry_date && !b.expiry_date) return 0;
-        if (!a.expiry_date) return 1;
-        if (!b.expiry_date) return -1;
-        return new Date(a.expiry_date) - new Date(b.expiry_date);
-    });
-
-    const firstBatch = productBatches[0];
-    batchSelect.innerHTML = `<option value="${firstBatch.id}" selected>${firstBatch.dropdown_display}</option>`;
-
-    productBatches.slice(1).forEach(batch => {
-        const option = document.createElement('option');
-        option.value = batch.id;
-        option.textContent = batch.dropdown_display;
-        batchSelect.appendChild(option);
-    });
-
-    batchSelect.disabled = false;
-
-    const expiryText = firstBatch.expiry_date ?
-        `Expires: ${new Date(firstBatch.expiry_date).toLocaleDateString()}` : 'No expiry date';
-    batchInfo.innerHTML = `
-        <strong>Auto-selected:</strong> ${firstBatch.batch_name}<br>
-        <strong>Available:</strong> ${firstBatch.qty_available} ${firstBatch.unit}<br>
-        <strong>${expiryText}</strong>
-    `;
-
-    if (quantityInput) {
-        quantityInput.max = firstBatch.qty_available;
-        quantityInput.placeholder = `Max: ${firstBatch.qty_available}`;
-        quantityInput.value = '1';
-        validateInventoryQuantity(quantityInput);
-    }
-
-    if (priceInput) {
-        const sellingPrice = firstBatch.selling_price || firstBatch.unit_price || firstBatch.unit_cost || 0;
-        priceInput.value = parseFloat(sellingPrice).toFixed(2);
-        updateTaxCalculations();
-    }
-
-    batchSelect.addEventListener('change', function() {
-        const selectedBatch = productBatches.find(b => b.id == this.value);
-        if (selectedBatch) {
-            const expiryText = selectedBatch.expiry_date ?
-                `Expires: ${new Date(selectedBatch.expiry_date).toLocaleDateString()}` : 'No expiry date';
-            batchInfo.innerHTML = `
-                <strong>Selected:</strong> ${selectedBatch.batch_name}<br>
-                <strong>Available:</strong> ${selectedBatch.qty_available} ${selectedBatch.unit}<br>
-                <strong>${expiryText}</strong>
-            `;
-            if (quantityInput) {
-                quantityInput.max = selectedBatch.qty_available;
-                quantityInput.placeholder = `Max: ${selectedBatch.qty_available}`;
-                quantityInput.value = '1';
-                validateInventoryQuantity(quantityInput);
-            }
-            if (priceInput) {
-                const sellingPrice = selectedBatch.selling_price || selectedBatch.unit_price || selectedBatch.unit_cost || 0;
-                priceInput.value = parseFloat(sellingPrice).toFixed(2);
-                updateTaxCalculations();
-            }
-        }
-    });
-}
-
-function validateInventoryQuantity(quantityInput) {
-    const productRow = quantityInput.closest('.product-row');
-    const batchSelect = productRow.querySelector('.batch-select');
-    const selectedOption = batchSelect.options[batchSelect.selectedIndex];
-    const batchInfo = productRow.querySelector('.batch-info');
-
-    if (!selectedOption || selectedOption.value === "") {
-        if (batchInfo) {
-            batchInfo.innerHTML = '<span class="text-muted">Select batch to see stock</span>';
-        }
-        quantityInput.setCustomValidity('');
-        return;
-    }
-
-    const selectedBatchId = selectedOption.value;
-    const selectedBatch = availableBatches.find(b => b.id == selectedBatchId);
-
-    if (selectedBatch) {
-        const available = parseFloat(selectedBatch.qty_available);
-        const requested = parseFloat(quantityInput.value) || 0;
-
-        if (requested > available) {
-            quantityInput.style.borderColor = '#dc3545';
-            if (batchInfo) {
-                batchInfo.innerHTML = '<span class="batch-warning">Available: ' + available + ' (Insufficient stock!)</span>';
-            }
-            quantityInput.setCustomValidity('Insufficient stock');
-        } else {
-            quantityInput.style.borderColor = '#28a745';
-             if (batchInfo) {
-                const expiryText = selectedBatch.expiry_date ?
-                    `Expires: ${new Date(selectedBatch.expiry_date).toLocaleDateString()}` : 'No expiry date';
-                batchInfo.innerHTML = `
-                    <strong>Selected:</strong> ${selectedBatch.batch_name}<br>
-                    <strong>Available:</strong> ${selectedBatch.qty_available} ${selectedBatch.unit}<br>
-                    <strong>${expiryText}</strong>
-                `;
-            }
-            quantityInput.setCustomValidity('');
-        }
-    } else {
-        quantityInput.style.borderColor = '';
-        if (batchInfo) {
-            batchInfo.innerHTML = '';
-        }
-        quantityInput.setCustomValidity('');
-    }
-}
-
-function loadCustomerPackages(clientId) {
-    const packagesDiv = document.getElementById('customerPackages');
-
-    if (!clientId) {
-        packagesDiv.innerHTML = '<small>Select a customer to view their active packages</small>';
-        customerPackageData = null;
-        lastLoadedCustomerId = null;
-        updateTaxCalculations();
-        return;
-    }
-
-    if (lastLoadedCustomerId === clientId) {
-        console.log('Customer packages already loaded for:', clientId);
-        return;
-    }
-
-    lastLoadedCustomerId = clientId;
-
-    packagesDiv.innerHTML = '<small class="text-info"><i class="fas fa-spinner fa-spin"></i> Loading packages...</small>';
-
-    fetch(`/integrated-billing/customer-packages/${clientId}`)
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-            }
-            return response.json();
-        })
-        .then(data => {
-            console.log('Package data received:', data);
-
-            if (!data || data.error) {
-                packagesDiv.innerHTML = `<small class="text-danger">Error: ${data.error || 'Unknown error'}</small>`;
-                customerPackageData = null;
-                return;
-            }
-
-            customerPackageData = data;
-
-            if (data.packages && data.packages.length > 0) {
-                let html = '<div class="alert alert-success mb-0"><strong>Active Packages:</strong><br>';
-
-                data.packages.forEach(pkg => {
-                    html += `<div class="badge bg-success me-1 mb-1">${pkg.package_name}</div>`;
-
-                    if (pkg.package_type === 'service_package') {
-                        html += `<small class="d-block">${pkg.service_name || 'Any Service'}: ${pkg.sessions_remaining || 0} sessions remaining</small>`;
-                    } else if (pkg.package_type === 'prepaid') {
-                        html += `<small class="d-block text-info">Prepaid Credit: ₹${pkg.credit_remaining || 0}</small>`;
-                    } else if (pkg.package_type === 'membership') {
-                        html += `<small class="d-block text-success">Unlimited Access</small>`;
-                    }
-                });
-
-                if (data.total) {
-                    html += `<hr class="my-1"><small class="text-muted">Total Active: ${data.total} package(s)</small>`;
-                }
-                html += '</div>';
-
-                packagesDiv.innerHTML = html;
-            } else {
-                packagesDiv.innerHTML = '<small class="text-muted">No active packages found</small>';
-                customerPackageData = { packages: [], total: 0 };
-            }
-
-            updateTaxCalculations();
-        })
-        .catch(error => {
-            console.error('Error loading packages:', error);
-            packagesDiv.innerHTML = '<small class="text-danger">Error loading packages. Please try again.</small>';
-            customerPackageData = null;
-        });
-}
-
-function checkServicePackageBenefit(serviceId, serviceName, originalPrice, quantity) {
-    if (!customerPackageData || !customerPackageData.packages) {
-        return null;
-    }
-
-    quantity = Math.max(1, quantity);
-
-    for (const pkg of customerPackageData.packages) {
-        if (!pkg.is_active && pkg.status !== 'active') continue;
-
-        if (pkg.package_type === 'membership') {
-            return {
-                type: 'unlimited',
-                packageName: pkg.package_name,
-                originalPrice: originalPrice * quantity,
-                finalPrice: 0,
-                discount: originalPrice * quantity,
-                description: `FREE via ${pkg.package_name} (Unlimited Membership)`
-            };
-        }
-
-        if (pkg.package_type === 'service_package' && pkg.sessions_remaining > 0) {
-            const pricePerSession = originalPrice;
-            const sessionsToCover = Math.min(quantity, pkg.sessions_remaining);
-            const sessionsToPayFor = Math.max(0, quantity - sessionsToCover);
-
-            const coveredAmount = sessionsToCover * pricePerSession;
-            const finalPrice = sessionsToPayFor * pricePerSession;
-
-            const totalServicePrice = originalPrice * quantity;
-            const actualDiscount = Math.min(coveredAmount, totalServicePrice);
-            const actualFinalPrice = Math.max(0, totalServicePrice - actualDiscount);
-
-            if (sessionsToPayFor > 0) {
-                return {
-                    type: 'service_package_partial',
-                    packageName: pkg.package_name,
-                    originalPrice: totalServicePrice,
-                    finalPrice: actualFinalPrice,
-                    discount: actualDiscount,
-                    description: `${sessionsToCover} of ${quantity} sessions FREE, ${sessionsToPayFor} charged via ${pkg.package_name}`,
-                    sessionsRemaining: pkg.sessions_remaining,
-                    sessionsCovered: sessionsToCover,
-                    sessionsToPayFor: sessionsToPayFor
-                };
-            } else {
-                return {
-                    type: 'service_package_full',
-                    packageName: pkg.package_name,
-                    originalPrice: totalServicePrice,
-                    finalPrice: 0,
-                    discount: totalServicePrice,
-                    description: `All ${sessionsToCover} sessions FREE via ${pkg.package_name} (${pkg.sessions_remaining - sessionsToCover} remaining)`,
-                    sessionsRemaining: pkg.sessions_remaining,
-                    sessionsCovered: sessionsToCover,
-                    sessionsToPayFor: 0
-                };
-            }
-        }
-
-        if (pkg.package_type === 'prepaid' && pkg.credit_remaining > 0) {
-            const serviceTotal = originalPrice * quantity;
-            if (pkg.credit_remaining >= serviceTotal) {
-                return {
-                    type: 'prepaid_full',
-                    packageName: pkg.package_name,
-                    originalPrice: serviceTotal,
-                    finalPrice: 0,
-                    discount: serviceTotal,
-                    description: `FREE via ${pkg.package_name} (₹${pkg.credit_remaining} credit)`
-                };
-            } else {
-                return {
-                    type: 'prepaid_partial',
-                    packageName: pkg.package_name,
-                    originalPrice: serviceTotal,
-                    finalPrice: serviceTotal - pkg.credit_remaining,
-                    discount: pkg.credit_remaining,
-                    description: `₹${pkg.credit_remaining} off via ${pkg.package_name}`
-                };
-            }
-        }
-    }
-
-    return null;
-}
-
-function updateServiceDisplayWithBenefit(row, benefit, index) {
-    let benefitDisplay = row.querySelector('.package-benefit-display');
-    if (!benefitDisplay) {
-        benefitDisplay = document.createElement('div');
-        benefitDisplay.className = 'package-benefit-display mt-2';
-        row.appendChild(benefitDisplay);
-    }
-
-    if (benefit.finalPrice === 0) {
-        benefitDisplay.innerHTML = `
-            <small class="text-success fw-bold">
-                <i class="fas fa-gift me-1"></i>FREE - ${benefit.description}
-                <br><strike class="text-muted">₹${benefit.originalPrice.toFixed(2)}</strike>
-                <span class="badge bg-success ms-1">100% Covered</span>
-            </small>
-        `;
-        benefitDisplay.style.backgroundColor = '#d1fae5';
-        benefitDisplay.style.borderLeftColor = '#059669';
-    } else {
-        const isPartialCoverage = benefit.sessionsCovered && benefit.sessionsToPayFor;
-        const coveragePercent = Math.round((benefit.discount / benefit.originalPrice) * 100);
-
-        benefitDisplay.innerHTML = `
-            <small class="fw-bold">
-                <i class="fas fa-percentage me-1 text-info"></i>${benefit.description}
-                <br>
-                ${isPartialCoverage ?
-                    `<span class="text-success">✓ Free: ${benefit.sessionsCovered} sessions</span> | <span class="text-warning">₹ Pay: ${benefit.sessionsToPayFor} sessions</span><br>` :
-                    ''
-                }
-                <span class="text-dark">Pay: ₹${benefit.finalPrice.toFixed(2)}</span>
-                <strike class="text-muted small">₹${benefit.originalPrice.toFixed(2)}</strike>
-                <span class="badge bg-info ms-1">${coveragePercent}% Saved</span>
-                <br><span class="text-success small">Package Discount: ₹${benefit.discount.toFixed(2)}</span>
-            </small>
-        `;
-        benefitDisplay.style.backgroundColor = '#e0f2fe';
-        benefitDisplay.style.borderLeftColor = '#0ea5e9';
-    }
-}
-
-function clearServiceBenefitDisplay(row, index) {
-    const benefitDisplay = row.querySelector('.package-benefit-display');
-    if (benefitDisplay) {
-        benefitDisplay.remove();
-    }
-}
-
-function calculateServicesSubtotal() {
-    let total = 0;
-    document.querySelectorAll('.service-row').forEach((row, index) => {
-        const serviceSelect = row.querySelector('select[name="service_ids[]"]');
-        const quantityInput = row.querySelector('input[name="service_quantities[]"]');
-
-        if (serviceSelect && serviceSelect.value && quantityInput && quantityInput.value) {
-            const selectedOption = serviceSelect.options[serviceSelect.selectedIndex];
-            if (selectedOption && selectedOption.dataset.price) {
-                const originalPrice = parseFloat(selectedOption.dataset.price);
-                const quantity = parseFloat(quantityInput.value) || 1;
-                const serviceId = parseInt(serviceSelect.value);
-                const serviceName = selectedOption.text;
-
-                let finalPrice = originalPrice * quantity;
-                let packageBenefit = null;
-
-                if (customerPackageData && customerPackageData.packages) {
-                    packageBenefit = checkServicePackageBenefit(serviceId, serviceName, originalPrice, quantity);
-                    if (packageBenefit) {
-                        finalPrice = packageBenefit.finalPrice;
-                        updateServiceDisplayWithBenefit(row, packageBenefit, index);
-                    }
-                }
-
-                if (!packageBenefit) {
-                    clearServiceBenefitDisplay(row, index);
-                }
-
-                total += finalPrice;
-            }
-        }
-    });
-
-    return total;
-}
-
-function calculateProductsSubtotal() {
-    let total = 0;
-    document.querySelectorAll('.product-row').forEach(row => {
-        const productSelect = row.querySelector('select[name="product_ids[]"]');
-        const quantityInput = row.querySelector('input[name="product_quantities[]"]');
-        const priceInput = row.querySelector('input[name="product_prices[]"]');
-
-        if (productSelect && productSelect.value && quantityInput && quantityInput.value && priceInput && priceInput.value) {
-            const quantity = parseFloat(quantityInput.value) || 0;
-            const price = parseFloat(priceInput.value) || 0;
-            total += quantity * price;
-        }
-    });
-
-    return total;
-}
-
-function calculatePackageDeductions() {
-    let totalDeductions = 0;
-
-    document.querySelectorAll('.service-row').forEach((row, index) => {
-        const serviceSelect = row.querySelector('select[name="service_ids[]"]');
-        const quantityInput = row.querySelector('input[name="service_quantities[]"]');
-
-        if (serviceSelect && serviceSelect.value && quantityInput && quantityInput.value) {
-            const selectedOption = serviceSelect.options[serviceSelect.selectedIndex];
-            if (selectedOption && selectedOption.dataset.price) {
-                const originalPrice = parseFloat(selectedOption.dataset.price);
-                const quantity = parseFloat(quantityInput.value) || 1;
-                const serviceId = parseInt(serviceSelect.value);
-                const serviceName = selectedOption.text;
-
-                if (customerPackageData && customerPackageData.packages) {
-                    const packageBenefit = checkServicePackageBenefit(serviceId, serviceName, originalPrice, quantity);
-                    if (packageBenefit && packageBenefit.discount) {
-                        totalDeductions += packageBenefit.discount;
-                    }
-                }
-            }
-        }
-    });
-
-    return totalDeductions;
-}
-
-function updateTaxCalculations() {
-    const servicesSubtotal = calculateServicesSubtotal();
-    const productsSubtotal = calculateProductsSubtotal();
-    const packageDeductions = calculatePackageDeductions();
-
-    const totalBeforeDiscount = servicesSubtotal + productsSubtotal;
-
-    const discountPercentage = parseFloat(document.querySelector('input[name="discount_percentage"]')?.value) || 0;
-    const discountAmount = (totalBeforeDiscount * discountPercentage) / 100;
-
-    const subtotalAfterDeductions = Math.max(0, totalBeforeDiscount - discountAmount);
-
-    const gstEnabled = document.getElementById('gstEnabled')?.checked || false;
-    const gstPercentage = gstEnabled ? (parseFloat(document.getElementById('gstPercentage')?.value) || 0) : 0;
-    const gstAmount = (subtotalAfterDeductions * gstPercentage) / 100;
-
-    const grandTotal = subtotalAfterDeductions + gstAmount;
-
-    const serviceCount = document.querySelectorAll('.service-row select[name="service_ids[]"]').length;
-    const productCount = document.querySelectorAll('.product-row select[name="product_ids[]"]').length;
-
-    // Update main display (with null checks)
-    const grandTotalEl = document.getElementById('grandTotal');
-    if (grandTotalEl) grandTotalEl.textContent = grandTotal.toFixed(2);
-
-    const grandTotalBtnEl = document.getElementById('grandTotalBtn');
-    if (grandTotalBtnEl) grandTotalBtnEl.textContent = grandTotal.toFixed(2);
-
-    const serviceCountEl = document.getElementById('serviceCount');
-    if (serviceCountEl) serviceCountEl.textContent = serviceCount;
-
-    const productCountEl = document.getElementById('productCount');
-    if (productCountEl) productCountEl.textContent = productCount;
-
-    // Debug log
-    console.log('💰 Tax Calculations Updated:', {
-        servicesSubtotal: servicesSubtotal.toFixed(2),
-        productsSubtotal: productsSubtotal.toFixed(2),
-        packageDeductions: packageDeductions.toFixed(2),
-        discountAmount: discountAmount.toFixed(2),
-        gstAmount: gstAmount.toFixed(2),
-        grandTotal: grandTotal.toFixed(2)
-    });
-
-    // Update floating panel (if exists)
-    if (document.getElementById('servicesSubtotalPanel')) {
-        document.getElementById('servicesSubtotalPanel').textContent = servicesSubtotal.toFixed(2);
-        document.getElementById('productsSubtotalPanel').textContent = productsSubtotal.toFixed(2);
-        document.getElementById('packageDeductionsPanel').textContent = packageDeductions.toFixed(2);
-        document.getElementById('discountAmountPanel').textContent = discountAmount.toFixed(2);
-        document.getElementById('subtotalAfterDeductionsPanel').textContent = subtotalAfterDeductions.toFixed(2);
-        document.getElementById('gstAmountPanel').textContent = gstAmount.toFixed(2);
-        document.getElementById('gstRateDisplayPanel').textContent = gstPercentage.toFixed(0);
-        document.getElementById('grandTotalPanel').textContent = grandTotal.toFixed(2);
-        document.getElementById('serviceCountPanel').textContent = serviceCount;
-        document.getElementById('productCountPanel').textContent = productCount;
-    }
-}
-
-function handleBillingFormSubmit(event) {
+// ==========================================
+// FORM SUBMISSION
+// ==========================================
+function handleFormSubmit(event) {
     event.preventDefault();
-
-    const form = event.target;
-    const formData = new FormData(form);
-
-    // Validate that at least one service or product is selected
-    const serviceIds = formData.getAll('service_ids[]').filter(id => id && id.trim());
-    const productIds = formData.getAll('product_ids[]').filter(id => id && id.trim());
-
-    if (serviceIds.length === 0 && productIds.length === 0) {
-        showNotification('⚠️ Please add at least one service or product', 'error', 5000);
+    event.stopPropagation();
+    
+    // Prevent double submission
+    if (formSubmitting) {
+        console.log('⚠️ Already submitting, ignoring...');
         return;
     }
-
-    // CRITICAL: Validate staff assignment for all services FIRST
-    const staffIds = formData.getAll('staff_ids[]');
-    for (let i = 0; i < serviceIds.length; i++) {
-        if (!staffIds[i] || !staffIds[i].trim()) {
-            showNotification(`⚠️ Staff member is required for service #${i + 1}. Please assign staff to all services.`, 'error', 5000);
-            // Scroll to the service row
-            const serviceRows = document.querySelectorAll('.service-row');
-            if (serviceRows[i]) {
-                serviceRows[i].querySelector('select[name="staff_ids[]"]').focus();
-                serviceRows[i].scrollIntoView({ behavior: 'smooth', block: 'center' });
-            }
-            return;
-        }
-    }
-
-    // Validate staff assignment for all products
-    const productStaffIds = formData.getAll('product_staff_ids[]');
-    for (let i = 0; i < productIds.length; i++) {
-        if (!productStaffIds[i] || !productStaffIds[i].trim()) {
-            showNotification(`⚠️ Staff member is required for product #${i + 1}. Please assign staff to all products.`, 'error', 5000);
-            // Scroll to the product row
-            const productRows = document.querySelectorAll('.product-row');
-            if (productRows[i]) {
-                productRows[i].querySelector('select[name="product_staff_ids[]"]').focus();
-                productRows[i].scrollIntoView({ behavior: 'smooth', block: 'center' });
-            }
-            return;
-        }
-    }
-
-    // Validate batch selection for all products
-    const batchIds = formData.getAll('batch_ids[]');
-    for (let i = 0; i < productIds.length; i++) {
-        if (!batchIds[i] || !batchIds[i].trim()) {
-            showNotification(`⚠️ Please select batch for product #${i + 1}`, 'error', 5000);
-            return;
-        }
-    }
-
+    
+    const form = event.target;
     const submitBtn = document.getElementById('saveInvoiceBtn');
     const clientId = form.querySelector('#client_id').value;
-
+    
+    console.log('📝 Form submission started for client:', clientId);
+    
+    // Validation
     if (!clientId) {
-        showNotification('⚠️ Please select a customer before saving', 'warning', 5000);
-        form.querySelector('#client_id').focus();
-        form.querySelector('#client_id').scrollIntoView({ behavior: 'smooth', block: 'center' });
+        showNotification('⚠️ Please select a customer', 'warning');
         return;
     }
-
-    // Double-check if all services have staff assigned
-    const servicesWithoutStaff = Array.from(document.querySelectorAll('.service-row')).filter(row => {
-        const serviceSelect = row.querySelector('select[name="service_ids[]"]');
-        const staffSelect = row.querySelector('select[name="staff_ids[]"]');
-        return serviceSelect && serviceSelect.value && (!staffSelect || !staffSelect.value);
-    });
-
-    if (servicesWithoutStaff.length > 0) {
-        showNotification('⚠️ Please assign staff for all services before saving', 'error', 5000);
-        servicesWithoutStaff[0].querySelector('select[name="staff_ids[]"]').focus();
-        servicesWithoutStaff[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+    
+    const serviceIds = Array.from(form.querySelectorAll('select[name="service_ids[]"]')).filter(s => s.value);
+    const productIds = Array.from(form.querySelectorAll('select[name="product_ids[]"]')).filter(p => p.value);
+    
+    if (serviceIds.length === 0 && productIds.length === 0) {
+        showNotification('⚠️ Add at least one service or product', 'warning');
         return;
     }
-
-    // 🎯 Disable button and show progress
+    
+    // Validate staff for services
+    const staffIds = Array.from(form.querySelectorAll('select[name="staff_ids[]"]'));
+    for (let i = 0; i < serviceIds.length; i++) {
+        if (!staffIds[i] || !staffIds[i].value) {
+            showNotification(`⚠️ Please assign staff for service #${i + 1}`, 'error');
+            staffIds[i].focus();
+            return;
+        }
+    }
+    
+    // Validate staff for products
+    const productStaffIds = Array.from(form.querySelectorAll('select[name="product_staff_ids[]"]'));
+    for (let i = 0; i < productIds.length; i++) {
+        if (!productStaffIds[i] || !productStaffIds[i].value) {
+            showNotification(`⚠️ Please assign staff for product #${i + 1}`, 'error');
+            productStaffIds[i].focus();
+            return;
+        }
+    }
+    
+    // Set submitting flag
+    formSubmitting = true;
+    
+    // Disable button and show loading
     submitBtn.disabled = true;
     submitBtn.classList.add('saving');
-
-    // 📊 Multi-stage progress indicator
+    submitBtn.querySelector('.btn-content').classList.add('d-none');
+    submitBtn.querySelector('.btn-loading').classList.remove('d-none');
+    
+    // Progress stages
     let stage = 0;
-    const stages = [
-        'Creating invoice...',
-        'Applying packages...',
-        'Updating bookings...',
-        'Processing inventory...',
-        'Finalizing...'
-    ];
-
+    const stages = ['Creating invoice...', 'Applying packages...', 'Updating records...', 'Finalizing...'];
+    
     const progressInterval = setInterval(() => {
         if (stage < stages.length) {
             const loadingText = submitBtn.querySelector('.loading-text');
@@ -2242,30 +912,24 @@ function handleBillingFormSubmit(event) {
             }
             stage++;
         }
-    }, 1200);
-
-    // 📤 Send FormData (matches backend expectations)
-    // Re-fetch formData to ensure it has latest values
-    const currentFormData = new FormData(form);
-
+    }, 1000);
+    
+    // Submit form data
+    const formData = new FormData(form);
+    
     fetch('/integrated-billing/create-professional', {
         method: 'POST',
-        body: currentFormData  // Send as FormData, NOT JSON
-        // Don't set Content-Type header - browser sets it automatically for FormData
+        body: formData
     })
     .then(response => {
         clearInterval(progressInterval);
-
-        // Check if response is OK
         if (!response.ok) {
-            // Try to get error message from response
             return response.text().then(text => {
                 let errorMsg = `Server error: ${response.status}`;
                 try {
                     const json = JSON.parse(text);
-                    errorMsg = json.message || json.error || errorMsg;
+                    errorMsg = json.message || errorMsg;
                 } catch (e) {
-                    // If not JSON, use status text
                     errorMsg = text || response.statusText || errorMsg;
                 }
                 throw new Error(errorMsg);
@@ -2275,34 +939,15 @@ function handleBillingFormSubmit(event) {
     })
     .then(data => {
         if (data.success) {
-            // ✅ SUCCESS STATE
+            // Success state
             submitBtn.classList.remove('saving');
             submitBtn.classList.add('saved');
-            const successState = submitBtn.querySelector('.btn-success-state span');
-            if (successState) {
-                successState.textContent = 'Saved Successfully!';
-            }
-
-            // 🎉 ENHANCED SUCCESS NOTIFICATION
-            const customer = document.querySelector('#client_id option:checked')?.text || 'Customer';
-            const successMessage = `
-                ✅ Invoice ${data.invoice_number || 'Created'} Successfully!
-
-                📋 Summary:
-                • Customer: ${customer}
-                • Total: ₹${parseFloat(data.total_amount || 0).toFixed(2)}
-                • Services: ${data.service_items_created || 0} items
-                • Products: ${data.inventory_items_created || 0} items
-                ${data.package_deductions_applied > 0 ? `\n• Package Benefits: ${data.package_deductions_applied} applied` : ''}
-                ${data.appointments_completed > 0 ? `\n• Bookings Completed: ${data.appointments_completed}` : ''}
-                ${data.staff_performance_updated > 0 ? `\n• Staff Updated: ${data.staff_performance_updated}` : ''}
-
-                Redirecting to invoice...
-            `.trim();
-
-            showNotification(successMessage, 'success', 5000);
-
-            // 🔄 Redirect after success
+            submitBtn.querySelector('.btn-loading').classList.add('d-none');
+            submitBtn.querySelector('.btn-success-state').classList.remove('d-none');
+            
+            const successMsg = `✅ Invoice Created Successfully!\n\nInvoice #${data.invoice_number}\nTotal: ₹${parseFloat(data.total_amount).toFixed(2)}\n\nRedirecting...`;
+            showNotification(successMsg, 'success');
+            
             setTimeout(() => {
                 window.location.href = `/integrated-billing/invoice/${data.invoice_id}`;
             }, 2000);
@@ -2312,442 +957,293 @@ function handleBillingFormSubmit(event) {
     })
     .catch(error => {
         clearInterval(progressInterval);
-        console.error('Billing Error:', error);
-
-        // ❌ ERROR STATE - Reset button
+        console.error('❌ Billing Error:', error);
+        
+        // Reset button
+        formSubmitting = false;
         submitBtn.disabled = false;
         submitBtn.classList.remove('saving', 'saved');
-
-        // Reset button to original state
-        const grandTotal = document.getElementById('grandTotal')?.textContent || '0.00';
-        submitBtn.innerHTML = `<span class="btn-content"><i class="fas fa-check-circle me-2"></i> <span class="btn-text">Save Invoice</span> <span class="btn-amount">(₹${grandTotal})</span></span>`;
-
-        // Extract meaningful error message
-        let errorDetail = error.message || 'Unknown error occurred';
-
-        // Check if it's a validation error
-        if (errorDetail.includes('Staff member is required')) {
-            errorDetail = 'Please assign staff members to all services';
-        } else if (errorDetail.includes('batch')) {
-            errorDetail = 'Please select valid batches for all products';
-        } else if (errorDetail.includes('Customer not found')) {
-            errorDetail = 'Please select a valid customer';
-        }
-
-        const errorMessage = `
-            ❌ Failed to Save Invoice
-
-            Error: ${errorDetail}
-
-            Please check:
-            ✓ Customer is selected
-            ✓ Staff assigned to ALL services
-            ✓ Batches selected for all products
-            ✓ Valid quantities entered
-            ✓ Payment method selected
-
-            ${errorDetail.includes('Staff') ? '\n⚠️ IMPORTANT: Every service MUST have a staff member assigned!' : ''}
-        `.trim();
-
-        showNotification(errorMessage, 'error', 10000);
+        submitBtn.querySelector('.btn-loading').classList.add('d-none');
+        submitBtn.querySelector('.btn-content').classList.remove('d-none');
+        
+        const errorMsg = `❌ Failed to Save Invoice\n\n${error.message}\n\nPlease check:\n✓ All fields are filled\n✓ Staff assigned to all items\n✓ Valid quantities`;
+        showNotification(errorMsg, 'error', 10000);
     });
 }
 
-function showSuccessModal(invoiceData) {
-    const modalHtml = `
-        <div class="modal fade" id="invoiceSuccessModal" tabindex="-1" aria-labelledby="invoiceSuccessModalLabel" data-bs-backdrop="static" data-bs-keyboard="false">
-            <div class="modal-dialog modal-dialog-centered">
-                <div class="modal-content">
-                    <div class="modal-header bg-success text-white">
-                        <h5 class="modal-title" id="invoiceSuccessModalLabel">
-                            <i class="fas fa-check-circle me-2"></i>Invoice Saved Successfully!
-                        </h5>
-                    </div>
-                    <div class="modal-body text-center py-4">
-                        <div class="mb-4">
-                            <i class="fas fa-file-invoice text-success" style="font-size: 4rem;"></i>
-                        </div>
-                        <h4 class="mb-3">Invoice #${invoiceData.invoiceNumber}</h4>
-                        <p class="text-muted mb-2">Customer: <strong>${invoiceData.customerName}</strong></p>
-                        <p class="mb-4">Total Amount: <strong class="text-success fs-3">₹${parseFloat(invoiceData.amount).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</strong></p>
-                        ${invoiceData.message ? `<div class="alert alert-info"><small>${invoiceData.message}</small></div>` : ''}
-                    </div>
-                    <div class="modal-footer justify-content-between">
-                        <button type="button" class="btn btn-outline-secondary" onclick="createAnotherInvoice()">
-                            <i class="fas fa-plus me-2"></i>Create Another Invoice
-                        </button>
-                        <div>
-                            <button type="button" class="btn btn-primary me-2" onclick="viewInvoice(${invoiceData.invoiceId})">
-                                <i class="fas fa-eye me-2"></i>View Invoice
-                            </button>
-                            <button type="button" class="btn btn-success" onclick="printInvoice(${invoiceData.invoiceId})">
-                                <i class="fas fa-print me-2"></i>Print Invoice
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    `;
-
-    let existingModal = document.getElementById('invoiceSuccessModal');
-    if (existingModal) {
-        existingModal.remove();
-    }
-
-    document.body.insertAdjacentHTML('beforeend', modalHtml);
-
-    const modal = new bootstrap.Modal(document.getElementById('invoiceSuccessModal'));
-    modal.show();
+// ==========================================
+// ADD/REMOVE ROWS
+// ==========================================
+function addServiceRow() {
+    const container = document.getElementById('servicesContainer');
+    const newRow = container.children[0].cloneNode(true);
+    
+    // Reset inputs
+    newRow.querySelectorAll('select, input').forEach(input => {
+        if (input.type === 'number') {
+            input.value = input.name.includes('quantities') ? '1' : '';
+        } else {
+            input.value = '';
+        }
+    });
+    
+    // Show delete button
+    const deleteBtn = newRow.querySelector('button[onclick*="removeRow"]');
+    if (deleteBtn) deleteBtn.style.display = 'block';
+    
+    // Remove package benefit display
+    const benefit = newRow.querySelector('.package-benefit-badge');
+    if (benefit) benefit.remove();
+    
+    container.appendChild(newRow);
 }
 
-function createAnotherInvoice() {
-    const modal = bootstrap.Modal.getInstance(document.getElementById('invoiceSuccessModal'));
-    if (modal) {
-        modal.hide();
+function addProductRow() {
+    const container = document.getElementById('productsContainer');
+    const newRow = container.children[0].cloneNode(true);
+    
+    // Reset inputs
+    newRow.querySelectorAll('select, input').forEach(input => {
+        if (input.type === 'number') {
+            input.value = input.name.includes('quantities') ? '1' : '';
+        } else {
+            input.value = '';
+        }
+    });
+    
+    // Reset batch selector
+    const batchSelect = newRow.querySelector('.batch-select');
+    if (batchSelect) {
+        batchSelect.innerHTML = '<option value="">Select Product First</option>';
+        batchSelect.disabled = true;
     }
-
-    const form = document.getElementById('billingForm');
-    form.reset();
-
-    document.getElementById('customerPackages').innerHTML = '<small><i class="fas fa-info-circle me-1"></i>Select a customer to view their active packages</small>';
-
-    const bookingsCard = document.getElementById('customerBookingsCardContainer');
-    if (bookingsCard) {
-        bookingsCard.style.display = 'none';
-    }
-
-    updateTaxCalculations();
-
-    showNotification('Form cleared. Ready to create a new invoice!', 'success');
-
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    
+    // Clear batch info
+    const batchInfo = newRow.querySelector('.batch-info-display');
+    if (batchInfo) batchInfo.innerHTML = '';
+    
+    // Show delete button
+    const deleteBtn = newRow.querySelector('button[onclick*="removeRow"]');
+    if (deleteBtn) deleteBtn.style.display = 'block';
+    
+    container.appendChild(newRow);
 }
 
-function viewInvoice(invoiceId) {
-    if (invoiceId) {
-        window.location.href = `/integrated-billing/invoice/${invoiceId}`;
-    }
+function removeRow(button) {
+    button.closest('.item-row').remove();
+    updateCalculations();
 }
 
-function printInvoice(invoiceId) {
-    if (invoiceId) {
-        window.open(`/integrated-billing/print-invoice/${invoiceId}`, '_blank');
-    }
-}
-
-function saveAndPrint() {
-    const form = document.getElementById('billingForm');
-    const formData = new FormData(form);
-
-    // Validate form
-    if (!formData.get('client_id')) {
-        showNotification('Please select a customer', 'error');
+// ==========================================
+// PACKAGE HANDLING
+// ==========================================
+function loadCustomerPackages(clientId) {
+    const packagesDiv = document.getElementById('customerPackages');
+    if (!clientId) {
+        packagesDiv.innerHTML = '<small>Select customer to view packages</small>';
+        customerPackageData = null;
+        updateCalculations();
         return;
     }
-
-    // Create invoice data
-    const data = collectInvoiceData();
-    data.action = 'save_and_print';
-
-    // Submit invoice
-    fetch('/integrated-billing/create', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data)
-    })
-    .then(response => response.json())
-    .then(result => {
-        if (result.success) {
-            showNotification('Invoice saved successfully!', 'success');
-            // Open print page in new window
-            window.open(`/integrated-billing/print-invoice/${result.invoice_id}`, '_blank');
-            setTimeout(() => {
-                window.location.reload();
-            }, 1500);
-        } else {
-            showNotification(result.error || 'Failed to save invoice', 'error');
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        showNotification('An error occurred while saving the invoice', 'error');
-    });
+    
+    packagesDiv.innerHTML = '<small><i class="fas fa-spinner fa-spin"></i> Loading packages...</small>';
+    
+    fetch(`/integrated-billing/customer-packages/${clientId}`)
+        .then(response => response.json())
+        .then(data => {
+            console.log('Package data received:', data);
+            customerPackageData = data;
+            
+            if (data.packages && data.packages.length > 0) {
+                let html = '<div class="alert alert-success-custom"><strong>Active Packages:</strong><br>';
+                data.packages.forEach(pkg => {
+                    html += `<span class="badge badge-success-custom me-1">${pkg.package_name}</span>`;
+                });
+                html += '</div>';
+                packagesDiv.innerHTML = html;
+            } else {
+                packagesDiv.innerHTML = '<small class="text-muted-custom">No active packages</small>';
+            }
+            
+            updateCalculations();
+        })
+        .catch(error => {
+            console.error('Error loading packages:', error);
+            packagesDiv.innerHTML = '<small class="text-danger">Error loading packages</small>';
+            customerPackageData = null;
+        });
 }
 
-function saveAsDraft() {
-    const form = document.getElementById('billingForm');
-    const formData = new FormData(form);
+// ==========================================
+// BATCH HANDLING
+// ==========================================
+function loadAvailableBatches() {
+    fetch('/api/inventory/batches/for-consumption')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && data.batches) {
+                availableBatches = data.batches;
+                console.log('✅ Loaded', availableBatches.length, 'batches');
+            }
+        })
+        .catch(error => console.error('Error loading batches:', error));
+}
 
-    // Validate minimum requirements for draft
-    if (!formData.get('client_id')) {
-        showNotification('Please select a customer to save as draft', 'error');
+function loadBatchesForProduct(productSelect) {
+    const row = productSelect.closest('.item-row');
+    const batchSelect = row.querySelector('.batch-select');
+    const batchInfo = row.querySelector('.batch-info-display');
+    const priceInput = row.querySelector('input[name="product_prices[]"]');
+    
+    const productId = parseInt(productSelect.value);
+    
+    if (!productId) {
+        batchSelect.innerHTML = '<option value="">Select Product First</option>';
+        batchSelect.disabled = true;
+        batchInfo.innerHTML = '';
         return;
     }
-
-    // Create invoice data
-    const data = collectInvoiceData();
-    data.action = 'save_as_draft';
-    data.payment_status = 'draft'; // Override payment status
-
-    // Submit invoice
-    fetch('/integrated-billing/save-draft', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data)
-    })
-    .then(response => response.json())
-    .then(result => {
-        if (result.success) {
-            showNotification('Invoice saved as draft successfully!', 'success');
-            setTimeout(() => {
-                window.location.reload();
-            }, 1500);
-        } else {
-            showNotification(result.error || 'Failed to save draft', 'error');
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        showNotification('An error occurred while saving draft', 'error');
-    });
-}
-
-function previewInvoice() {
-    const form = document.getElementById('billingForm');
-    if (!validateForm(form)) {
-        showNotification('Please fill in all required fields', 'error');
+    
+    const productBatches = availableBatches.filter(b => b.product_id === productId && b.qty_available > 0);
+    
+    if (productBatches.length === 0) {
+        batchSelect.innerHTML = '<option value="">No stock available</option>';
+        batchInfo.innerHTML = '<span class="text-danger">⚠️ Out of stock</span>';
         return;
     }
-
-    const formData = new FormData(form);
-    const data = {
-        client_id: formData.get('client_id'),
-        services: [],
-        products: [],
-        discount_percentage: formData.get('discount_percentage') || 0,
-        gst_enabled: document.getElementById('gstEnabled')?.checked || false,
-        gst_percentage: formData.get('gst_percentage') || 0
-    };
-
-    // Collect services data with proper validation
-    const serviceIds = formData.getAll('service_ids[]').filter(id => id);
-    const serviceQuantities = formData.getAll('service_quantities[]');
-    const staffIds = formData.getAll('staff_ids[]');
-
-    console.log('Preview - Service IDs:', serviceIds);
-    console.log('Preview - Service Quantities:', serviceQuantities);
-    console.log('Preview - Staff IDs:', staffIds);
-
-    serviceIds.forEach((id, index) => {
-        if (id && id !== '') {
-            const quantity = parseFloat(serviceQuantities[index]) || 1;
-            const staffId = staffIds[index];
-            data.services.push({
-                service_id: parseInt(id),
-                quantity: quantity,
-                staff_id: staffId ? parseInt(staffId) : null
-            });
-        }
+    
+    // Sort by expiry (FIFO)
+    productBatches.sort((a, b) => {
+        if (!a.expiry_date) return 1;
+        if (!b.expiry_date) return -1;
+        return new Date(a.expiry_date) - new Date(b.expiry_date);
     });
-
-    // Collect products data with proper validation
-    const productIds = formData.getAll('product_ids[]');
-    const batchIds = formData.getAll('batch_ids[]');
-    const productQuantities = formData.getAll('product_quantities[]');
-    const productPrices = formData.getAll('product_prices[]');
-
-    console.log('Preview - Product IDs:', productIds);
-    console.log('Preview - Batch IDs:', batchIds);
-    console.log('Preview - Product Quantities:', productQuantities);
-    console.log('Preview - Product Prices:', productPrices);
-
-    productIds.forEach((id, index) => {
-        if (id && id !== '' && batchIds[index] && batchIds[index] !== '') {
-            const quantity = parseFloat(productQuantities[index]) || 1;
-            const unitPrice = parseFloat(productPrices[index]) || 0;
-            data.products.push({
-                product_id: parseInt(id),
-                batch_id: parseInt(batchIds[index]),
-                quantity: quantity,
-                unit_price: unitPrice
-            });
-        }
+    
+    // Populate batch dropdown
+    batchSelect.innerHTML = '';
+    productBatches.forEach((batch, index) => {
+        const option = document.createElement('option');
+        option.value = batch.id;
+        option.textContent = `${batch.batch_name} - ${batch.qty_available} available`;
+        if (index === 0) option.selected = true;
+        batchSelect.appendChild(option);
     });
-
-    console.log('Preview data being sent:', data);
-
-    fetch('/integrated-billing/preview', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data)
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            showPreviewModal(data.preview_html);
-        } else {
-            showNotification(data.message || 'Error generating preview', 'error');
-        }
-    })
-    .catch(error => {
-        console.error('Preview error:', error);
-        showNotification('Error generating preview', 'error');
-    });
+    
+    batchSelect.disabled = false;
+    
+    // Show first batch info
+    const firstBatch = productBatches[0];
+    const expiryText = firstBatch.expiry_date ? 
+        `Exp: ${new Date(firstBatch.expiry_date).toLocaleDateString()}` : 'No expiry';
+    batchInfo.innerHTML = `<strong>FIFO:</strong> ${firstBatch.batch_name}<br><strong>Avail:</strong> ${firstBatch.qty_available}<br>${expiryText}`;
+    
+    // Set price
+    if (priceInput && firstBatch.selling_price) {
+        priceInput.value = parseFloat(firstBatch.selling_price).toFixed(2);
+        updateCalculations();
+    }
 }
 
-// Collect invoice data function
-function collectInvoiceData() {
-    const form = document.getElementById('billingForm');
-    if (!form) {
-        console.error('Billing form not found');
-        return null;
-    }
+// ==========================================
+// CALCULATIONS
+// ==========================================
+function handleServiceSelection(selectElement) {
+    updateCalculations();
+}
 
-    const formData = new FormData(form);
-    const data = {
-        client_id: formData.get('client_id') || '',
-        payment_method: formData.get('payment_method') || '',
-        payment_status: formData.get('payment_status') || 'paid',
-        discount_percentage: parseFloat(formData.get('discount_percentage')) || 0,
-        gst_enabled: document.getElementById('gstEnabled')?.checked || false,
-        gst_percentage: parseFloat(formData.get('gst_percentage')) || 0,
-        notes: formData.get('notes') || '',
-        services: [],
-        products: []
-    };
-
-    // Collect services data
-    const serviceRows = document.querySelectorAll('.service-row');
-    serviceRows.forEach(row => {
+function updateCalculations() {
+    // Calculate services subtotal
+    let servicesSubtotal = 0;
+    let packageDeductions = 0;
+    
+    document.querySelectorAll('.service-row').forEach(row => {
         const serviceSelect = row.querySelector('select[name="service_ids[]"]');
-        const staffSelect = row.querySelector('select[name="staff_ids[]"]');
         const qtyInput = row.querySelector('input[name="service_quantities[]"]');
-        const appointmentInput = row.querySelector('input[name="appointment_ids[]"]');
-
-        if (serviceSelect && serviceSelect.value) {
-            data.services.push({
-                service_id: parseInt(serviceSelect.value),
-                staff_id: staffSelect?.value ? parseInt(staffSelect.value) : null,
-                quantity: qtyInput?.value ? parseFloat(qtyInput.value) : 1,
-                appointment_id: appointmentInput?.value ? parseInt(appointmentInput.value) : null
-            });
+        
+        if (serviceSelect && serviceSelect.value && qtyInput && qtyInput.value) {
+            const option = serviceSelect.options[serviceSelect.selectedIndex];
+            const price = parseFloat(option.dataset.price) || 0;
+            const qty = parseFloat(qtyInput.value) || 1;
+            
+            servicesSubtotal += price * qty;
+            
+            // Check package benefits (simplified)
+            // Full implementation would check customerPackageData
         }
     });
-
-    // Collect products data
-    const productRows = document.querySelectorAll('.product-row');
-    productRows.forEach(row => {
-        const productSelect = row.querySelector('select[name="product_ids[]"]');
-        const batchSelect = row.querySelector('select[name="batch_ids[]"]');
+    
+    // Calculate products subtotal
+    let productsSubtotal = 0;
+    
+    document.querySelectorAll('.product-row').forEach(row => {
         const qtyInput = row.querySelector('input[name="product_quantities[]"]');
         const priceInput = row.querySelector('input[name="product_prices[]"]');
-
-        if (productSelect && productSelect.value && batchSelect && batchSelect.value) {
-            data.products.push({
-                product_id: parseInt(productSelect.value),
-                batch_id: parseInt(batchSelect.value),
-                quantity: qtyInput?.value ? parseFloat(qtyInput.value) : 1,
-                unit_price: priceInput?.value ? parseFloat(priceInput.value) : 0
-            });
+        
+        if (qtyInput && qtyInput.value && priceInput && priceInput.value) {
+            const qty = parseFloat(qtyInput.value) || 0;
+            const price = parseFloat(priceInput.value) || 0;
+            productsSubtotal += qty * price;
         }
     });
-
-    console.log('Collected invoice data:', data);
-    return data;
+    
+    // Calculate discount
+    const discountPercentage = parseFloat(document.querySelector('input[name="discount_percentage"]')?.value) || 0;
+    const totalBeforeDiscount = servicesSubtotal + productsSubtotal;
+    const discountAmount = (totalBeforeDiscount * discountPercentage) / 100;
+    
+    // Calculate GST
+    const gstEnabled = document.getElementById('gstEnabled')?.checked || false;
+    const gstPercentage = gstEnabled ? (parseFloat(document.getElementById('gstPercentage')?.value) || 0) : 0;
+    const subtotalAfterDiscount = Math.max(0, totalBeforeDiscount - discountAmount);
+    const gstAmount = (subtotalAfterDiscount * gstPercentage) / 100;
+    
+    // Grand total
+    const grandTotal = subtotalAfterDiscount + gstAmount;
+    
+    // Update display
+    document.getElementById('servicesSubtotal').textContent = `₹${servicesSubtotal.toFixed(2)}`;
+    document.getElementById('productsSubtotal').textContent = `₹${productsSubtotal.toFixed(2)}`;
+    document.getElementById('packageDeductions').textContent = `-₹${packageDeductions.toFixed(2)}`;
+    document.getElementById('discountAmount').textContent = `-₹${discountAmount.toFixed(2)}`;
+    document.getElementById('gstRate').textContent = gstPercentage.toFixed(0);
+    document.getElementById('gstAmount').textContent = `₹${gstAmount.toFixed(2)}`;
+    document.getElementById('grandTotal').textContent = `₹${grandTotal.toFixed(2)}`;
+    
+    console.log('💰 Calculations updated - Grand Total:', grandTotal.toFixed(2));
 }
 
-// Define updateServicePrice function globally first
-function updateServicePrice(serviceId, price) {
-    try {
-        console.log('Service ' + serviceId + ' selected with price: ' + price);
-    } catch (error) {
-        console.error('Error in updateServicePrice:', error);
-    }
+// ==========================================
+// PREVIEW
+// ==========================================
+function previewInvoice() {
+    showNotification('Preview feature coming soon!', 'info');
 }
 
-// Invoice preview functionality
-function showPreviewModal(previewHtml) {
-    // Create or get preview modal
-    let previewModal = document.getElementById('invoicePreviewModal');
-
-    if (!previewModal) {
-        // Create modal if it doesn't exist
-        const modalHtml = `
-            <div class="modal fade" id="invoicePreviewModal" tabindex="-1" aria-labelledby="invoicePreviewModalLabel" aria-hidden="true">
-                <div class="modal-dialog modal-xl">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h5 class="modal-title" id="invoicePreviewModalLabel">Invoice Preview</h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                        </div>
-                        <div class="modal-body" id="invoicePreviewBody">
-                        </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
-        document.body.insertAdjacentHTML('beforeend', modalHtml);
-        previewModal = document.getElementById('invoicePreviewModal');
-    }
-
-    // Update modal body
-    const modalBody = document.getElementById('invoicePreviewBody');
-    if (modalBody) {
-        modalBody.innerHTML = previewHtml;
-    } else {
-        console.error('Invoice preview body not found.');
-        return; // Exit if the body element isn't found
-    }
-
-    // Show modal
-    const modal = new bootstrap.Modal(previewModal);
-    modal.show();
-}
-
-// Modified showNotification to accept duration and handle multiple notifications
+// ==========================================
+// NOTIFICATIONS
+// ==========================================
 function showNotification(message, type = 'info', duration = 5000) {
-    const alertClass = type === 'success' ? 'alert-success' : type === 'error' ? 'alert-danger' : type === 'warning' ? 'alert-warning' : 'alert-info';
+    const alertClass = {
+        'success': 'alert-success',
+        'error': 'alert-danger',
+        'warning': 'alert-warning',
+        'info': 'alert-info'
+    }[type] || 'alert-info';
+    
     const notification = document.createElement('div');
-    notification.className = `alert ${alertClass} alert-dismissible fade show custom-notification`;
-    notification.style.zIndex = '9999';
-    notification.style.position = 'fixed';
-    notification.style.top = '20px'; // Adjust top position as needed
-    notification.style.right = '20px'; // Align to the right
-    notification.style.maxWidth = '400px';
-    notification.style.whiteSpace = 'pre-wrap'; // Preserve newlines
+    notification.className = `alert ${alertClass} alert-dismissible fade show`;
+    notification.style.cssText = 'position: fixed; top: 20px; right: 20px; z-index: 9999; max-width: 400px; white-space: pre-wrap;';
     notification.innerHTML = `
         ${message}
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     `;
+    
     document.body.appendChild(notification);
-
-    // Remove the notification after the specified duration
-    const removeNotification = () => {
+    
+    setTimeout(() => {
         notification.classList.remove('show');
-        notification.addEventListener('transitionend', () => {
-            notification.remove();
-        });
-    };
-
-    const timeoutId = setTimeout(removeNotification, duration);
-
-    // Add event listener to the dismiss button to clear the timeout if clicked early
-    const dismissButton = notification.querySelector('.btn-close');
-    if (dismissButton) {
-        dismissButton.addEventListener('click', () => {
-            clearTimeout(timeoutId);
-        });
-    }
+        setTimeout(() => notification.remove(), 300);
+    }, duration);
 }
 </script>
 {% endblock %}
