@@ -1,141 +1,138 @@
-# Spa Management System
+# Spa & Salon Management Suite
 
 ## Overview
-A comprehensive Flask-based spa management system featuring appointment booking, client management, billing, inventory tracking, staff scheduling, and reporting. This is an imported GitHub project now configured to run in the Replit environment.
+A comprehensive Flask-based spa and salon management system with features for appointment booking, client management, staff scheduling, billing, inventory management, and more.
 
-## Recent Changes
-- **2025-10-03**: ✅ Fresh GitHub import successfully configured for Replit environment
-- **2025-10-03**: ✅ Python 3.11 environment confirmed with all dependencies installed
-- **2025-10-03**: ✅ Configured Flask Server workflow on port 5000 with webview output type
-- **2025-10-03**: ✅ Verified application running successfully - login page loads with professional styling
-- **2025-10-03**: ✅ Configured deployment settings for autoscale with Gunicorn
-- **2025-10-03**: ✅ Confirmed SQLite database initialized in hanamantdatabase/workspace.db
-- **2025-10-03**: ✅ Verified all static assets (CSS, JS) loading correctly
-- **2025-10-03**: ✅ Confirmed ProxyFix middleware and Replit proxy compatibility working
-- **2025-10-03**: ✅ Successful login test - admin user can access dashboard
-- **2025-10-03**: ✅ All modules imported successfully (Auth, Dashboard, Clients, Services, Expenses, Reports, Settings, Checkin, Inventory, Bookings, Shift Scheduler, Integrated Billing)
+## Project Status
+**Current State:** Fully functional and running in Replit environment
+**Last Updated:** October 3, 2025
 
-## User Preferences
-- Using Flask with SQLite backend for local development
-- Modular architecture with separate modules for different features
-- Development environment setup with debug logging enabled
+## Key Features
+- **Dashboard:** Real-time overview of business metrics
+- **Client Management:** Detailed customer profiles with history and loyalty tracking
+- **Staff Management:** Comprehensive CRUD operations with roles, departments, and schedules
+- **Shift Scheduler:** Dynamic shift scheduling with day-by-day configuration
+- **Appointment Booking:** Flexible booking system with multiple booking sources (Unaki, etc.)
+- **Integrated Billing:** Professional invoicing with GST/SGST/IGST calculations
+- **Services Management:** Service catalog with categories, pricing, and durations
+- **Package Management:** Prepaid packages, memberships, student offers, and kitty party packages
+- **Inventory Management:** Batch-centric stock tracking with location management
+- **Check-In System:** Staff attendance and facial recognition support
+- **Reports:** Revenue, expenses, staff performance, and inventory reports
+- **WhatsApp Notifications:** Automated customer communications
+- **User Roles & Permissions:** Granular access control system
 
-## Project Architecture
+## Architecture
 
-### Main Application Structure
-- `app.py` - Main Flask application configuration and initialization
-- `main.py` - Application entry point with error handling
-- `models.py` - Database models and schemas
-- `routes.py` - Application routes (legacy)
-- `forms.py` - WTForms form definitions
-- `utils.py` - Utility functions
+### Technology Stack
+- **Backend:** Flask 3.1.1 with SQLAlchemy 2.0.41
+- **Database:** SQLite (development) with PostgreSQL support
+- **Authentication:** Flask-Login with role-based access control
+- **Frontend:** Bootstrap 5 with custom CSS and vanilla JavaScript
+- **Deployment:** Gunicorn with autoscale configuration
 
-### Module Structure
-The application uses a modular architecture in the `modules/` directory:
-
-- **auth/** - Authentication and user management
-- **billing/** - Billing and invoice management
-- **bookings/** - Appointment booking system
-- **checkin/** - Client check-in functionality
-- **clients/** - Customer/client management
-- **dashboard/** - Main dashboard views
-- **expenses/** - Expense tracking
-- **inventory/** - Inventory management with stock control
-- **notifications/** - Notification system
-- **packages/** - Package and membership management
-- **reports/** - Reporting and analytics
-- **services/** - Service catalog management
-- **settings/** - System settings and configuration
-- **staff/** - Staff management and scheduling
-
-### Templates
-- `templates/` - Jinja2 templates for all views
-- `templates/base.html` - Base template with navigation
-- Organized by module for maintainability
+### Project Structure
+```
+/
+├── app.py                  # Main Flask application configuration
+├── main.py                 # Application entry point
+├── models.py               # SQLAlchemy database models
+├── forms.py                # WTForms form definitions
+├── routes.py               # Legacy route definitions
+├── utils.py                # Utility functions
+├── requirements.txt        # Python dependencies
+├── modules/                # Modular application components
+│   ├── auth/              # Authentication and authorization
+│   ├── dashboard/         # Dashboard views and queries
+│   ├── clients/           # Customer management
+│   ├── staff/             # Staff management and shift scheduling
+│   ├── services/          # Service catalog management
+│   ├── bookings/          # Appointment booking system
+│   ├── billing/           # Integrated billing and invoicing
+│   ├── inventory/         # Inventory management
+│   ├── packages/          # Package management (memberships, offers)
+│   ├── expenses/          # Expense tracking
+│   ├── reports/           # Business reporting
+│   ├── settings/          # System and business settings
+│   ├── checkin/           # Staff check-in system
+│   └── notifications/     # Communication system
+├── templates/             # Jinja2 HTML templates
+├── static/                # CSS, JavaScript, and assets
+├── hanamantdatabase/      # SQLite database directory (gitignored)
+├── instance/              # Flask instance folder
+└── demo_data/             # Demo data generation scripts
+```
 
 ### Database Configuration
-- **Database**: SQLite with local file storage in `hanamantdatabase/` directory
-- **Features**: WAL mode, foreign key constraints, thread-safe configuration
-- **Models**: SQLAlchemy with declarative base
-- **Location**: Automatically creates database files based on instance identifier
+- **Development:** SQLite database stored in `hanamantdatabase/` directory
+- **Production:** Supports PostgreSQL via `DATABASE_URL` environment variable
+- **Schema:** Comprehensive relational database with 50+ tables
+- **Key Tables:** User, Customer, Service, Appointment, Invoice, Inventory, Package, ShiftManagement
 
-### Key Features
-1. **Appointment Booking**: Comprehensive booking system with conflict detection
-2. **Billing System**: Integrated billing with invoice generation
-3. **Inventory Management**: Stock tracking with batch management
-4. **Staff Scheduling**: Shift management and availability tracking
-5. **Client Management**: Customer profiles and history
-6. **Package Management**: Membership and prepaid packages
-7. **Reporting**: Analytics and business intelligence
-8. **Multi-user Support**: Role-based access control
+## Replit Environment Setup
 
-### Environment Variables Required
-- `SESSION_SECRET` - Flask session security key
-- `PORT` - Server port (defaults to 5000)
-- `SPA_DB_INSTANCE` - Optional database instance identifier (uses REPL_SLUG or 'default')
-
-### Development Setup
-- Debug mode enabled for development
-- CSRF protection disabled for development
-- Cache control configured for Replit environment
-- ProxyFix middleware for proper HTTPS handling
-
-### External Dependencies
-- Flask ecosystem (Flask-SQLAlchemy, Flask-Login, Flask-WTF)
-- PostgreSQL (psycopg2-binary)
-- Gunicorn for production deployment
-- Various utilities (pandas, openpyxl, requests, etc.)
-
-## Architecture Decisions
-- **Date**: 2024-09-28 - Using SQLite for local development and easy deployment in Replit environment
-- **Date**: 2024-09-28 - Maintained existing modular architecture to preserve functionality
-- **Date**: 2024-09-28 - Configured for Replit's proxy system with appropriate headers and CORS
-
-## Replit Environment Configuration
-
-### Flask Server Configuration
-- **Host**: 0.0.0.0 (required for Replit proxy)
-- **Port**: 5000 (configured for webview)
-- **Debug Mode**: Enabled for development
-- **Reloader**: Disabled (use_reloader=False for stability)
-- **Threading**: Enabled for concurrent requests
-
-### Proxy Configuration
-- **ProxyFix Middleware**: Configured with x_proto=1, x_host=1
-- **Purpose**: Ensures correct HTTPS and host headers in Replit environment
-- **CORS**: Configured for Replit Preview compatibility
-- **Cache Control**: Disabled for development (no-cache headers)
-
-### Workflow Setup
-- **Primary Workflow**: Flask Server (webview output type)
-- **Command**: `python main.py`
-- **Wait for Port**: 5000 (ensures server is ready before showing webview)
-- **Output Type**: webview (displays web interface to user)
-
-### Environment Variables (Auto-configured by Replit)
-- `SESSION_SECRET`: Flask session security key (auto-generated)
-- `DATABASE_URL`: PostgreSQL connection string (available but using SQLite)
+### Environment Variables
+- `SESSION_SECRET`: Required for Flask session management (configured)
+- `DATABASE_URL`: Optional PostgreSQL connection string (defaults to SQLite)
 - `PORT`: Server port (defaults to 5000)
-- `REPL_SLUG`: Used for database instance identifier
 
-## Setup Status
-✅ **COMPLETED** - Application is fully configured and running in Replit environment
-- All module imports successful
-- Database tables created successfully
-- Web interface functioning properly
-- Workflow configured for development (Flask Server on port 5000)
-- Deployment settings configured for production (Gunicorn with autoscale)
-- Application accessible via webview
-- Proxy configuration verified and working
+### Workflow Configuration
+- **Name:** Spa Management App
+- **Command:** `python main.py`
+- **Port:** 5000
+- **Output Type:** webview
+- **Purpose:** Runs the Flask development server with hot reload
 
-## Running the Application
-- **Development**: The Flask Server workflow runs automatically
-- **Port**: 5000 (configured for Replit webview)
-- **Database**: SQLite database stored in `hanamantdatabase/workspace.db`
-- **Login**: Use existing credentials from the imported database
+### Deployment Configuration
+- **Type:** autoscale (stateless web application)
+- **Command:** `gunicorn --bind 0.0.0.0:5000 --reuse-port main:app`
+- **Port:** 5000
 
-## Deployment
-- **Target**: Autoscale deployment (stateless web application)
-- **Server**: Gunicorn with 2 workers, 4 threads per worker
-- **Port**: 5000
-- **Configuration**: Optimized for Replit's deployment environment
+## Development Notes
+
+### Flask Configuration
+- The app is configured to listen on `0.0.0.0:5000` for Replit proxy compatibility
+- CORS headers are enabled for Replit Preview functionality
+- Cache control headers are set to disable caching for development
+- Session cookies are configured with `SameSite=Lax` for development
+
+### Database Management
+- Database is automatically initialized on first run
+- Demo data can be loaded using scripts in `demo_data/` directory
+- Multiple seed scripts available for testing different scenarios
+
+### Default Login Credentials
+```
+Admin User:
+- Username: admin
+- Password: admin123
+
+Manager:
+- Username: spa_manager
+- Password: password123
+```
+
+## Recent Changes
+- **October 3, 2025:** Initial Replit environment setup
+  - Cleaned up duplicate entries in requirements.txt
+  - Configured Flask server for Replit proxy (0.0.0.0:5000)
+  - Set up workflow with webview output on port 5000
+  - Configured deployment with autoscale and Gunicorn
+  - Verified application is running successfully
+
+## Known Issues
+- LSP diagnostics show some unused imports in app.py and models.py (non-critical)
+- Dashboard charts may not display on first load (requires data)
+
+## Testing
+- Application loads successfully at root URL
+- Login page displays correctly with professional UI
+- All modules are loading without errors
+- Static assets (CSS, JS) are serving correctly
+
+## Future Enhancements
+- Integration with external appointment booking systems
+- Mobile app integration
+- Advanced analytics and reporting
+- Multi-location support
+- Payment gateway integration
