@@ -532,21 +532,22 @@
                 <!-- Header Summary -->
                 <div class="row mb-4">
                     <div class="col-12">
-                        <div class="card bg-light">
+                        <div class="card bg-light border-primary">
                             <div class="card-body">
                                 <div class="row g-3">
                                     <div class="col-md-3">
-                                        <strong>Customer:</strong><br>
-                                        <span id="detailCustomerName"></span>
+                                        <strong><i class="fas fa-user me-2"></i>Customer:</strong><br>
+                                        <span id="detailCustomerName" class="fs-6"></span>
                                     </div>
                                     <div class="col-md-3">
-                                        <strong>Package:</strong><br>
-                                        <span id="detailPackageName"></span>
+                                        <strong><i class="fas fa-box me-2"></i>Package:</strong><br>
+                                        <span id="detailPackageName" class="fs-6"></span>
+                                        <div id="packageTypeInfo" class="mt-1"></div>
                                     </div>
                                     <div class="col-md-2">
-                                        <strong>Price Paid:</strong><br>
-                                        ₹<span id="detailPrice"></span>
-                                    </div>
+                                        <strong><i class="fas fa-rupee-sign me-2"></i>Price Paid:</strong><br>
+                                        <span class="fs-5 text-success">₹<span id="detailPrice"></span></span>
+                                    </div>v>
                                     <div class="col-md-2">
                                         <strong>Status:</strong><br>
                                         <span id="detailStatus" class="badge"></span>
@@ -576,10 +577,94 @@
                     </div>
                 </div>
 
-                <!-- Recent Usage -->
+                <!-- Complete Usage History -->
                 <div class="row">
                     <div class="col-12">
-                        <h6>Recent Usage:</h6>
+                        <h6><i class="fas fa-history me-2"></i>Complete Usage History:</h6>
+                        <div class="table-responsive">
+                            <table class="table table-sm table-hover">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th><i class="fas fa-calendar me-1"></i>Date Used</th>
+                                        <th><i class="fas fa-spa me-1"></i>Service</th>
+                                        <th><i class="fas fa-hashtag me-1"></i>Quantity</th>
+                                        <th><i class="fas fa-receipt me-1"></i>Invoice</th>
+                                        <th><i class="fas fa-sticky-note me-1"></i>Notes</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="usageHistory">
+                                    <tr>
+                                        <td colspan="5" class="text-center text-muted">
+                                            <i class="fas fa-spinner fa-spin me-2"></i>Loading usage history...
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Package Summary Statistics -->
+                <div class="row mt-4">
+                    <div class="col-12">
+                        <div class="card bg-info bg-opacity-10">
+                            <div class="card-body">
+                                <h6 class="mb-3"><i class="fas fa-chart-bar me-2"></i>Package Summary</h6>
+                                <div class="row text-center">
+                                    <div class="col-md-3">
+                                        <div class="border-end">
+                                            <div class="text-muted small">Total Value</div>
+                                            <div class="fs-4 fw-bold text-primary">₹<span id="summaryTotalValue">0</span></div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="border-end">
+                                            <div class="text-muted small">Value Used</div>
+                                            <div class="fs-4 fw-bold text-warning">₹<span id="summaryValueUsed">0</span></div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="border-end">
+                                            <div class="text-muted small">Remaining Value</div>
+                                            <div class="fs-4 fw-bold text-success">₹<span id="summaryRemaining">0</span></div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="text-muted small">Days Until Expiry</div>
+                                        <div class="fs-4 fw-bold" id="summaryDaysLeft">-</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-2"></i>Close
+                </button>
+                <button type="button" class="btn btn-primary" onclick="printPackageDetails()">
+                    <i class="fas fa-print me-2"></i>Print Details
+                </button>
+                <button type="button" class="btn btn-success" onclick="downloadPackageDetails()">
+                    <i class="fas fa-download me-2"></i>Download PDF
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Add print functionality
+function printPackageDetails() {
+    window.print();
+}
+
+// Add download functionality
+function downloadPackageDetails() {
+    alert('PDF download functionality coming soon!');
+}
+</script>6>
                         <div class="table-responsive">
                             <table class="table table-sm">
                                 <thead>

@@ -1345,19 +1345,145 @@ function renderPackageDetails() {
     // Populate header information
     document.getElementById('detailCustomerName').textContent = pkg.customer_name;
     document.getElementById('detailPackageName').textContent = pkg.package_name;
-    document.getElementById('detailPrice').textContent = pkg.price_paid.toFixed(2);
-    document.getElementById('detailAssigned').textContent = pkg.assigned_on;
+    document.getElementById('detailPrice').textContent = pkg.price_paid ? pkg.price_paid.toFixed(2) : '0.00';
+    document.getElementById('detailAssigned').textContent = pkg.assigned_on || 'N/A';
     document.getElementById('detailExpires').textContent = pkg.expires_on || 'No expiry';
 
     const statusBadge = document.getElementById('detailStatus');
-    statusBadge.textContent = pkg.status;
-    statusBadge.className = `badge ${getStatusClass(pkg.status)}`; // Use helper function for badge class
+    statusBadge.textContent = pkg.status || 'Unknown';
+    statusBadge.className = `badge ${getStatusClass(pkg.status || 'active')}`; // Use helper function for badge class
 
-    // Populate service items section
+    // Populate service items section with complete details
     const serviceItems = document.getElementById('serviceItems');
-    serviceItems.innerHTML = pkg.items.map(item => {
-        // Calculate progress percentage for the service item
-        const progressPercent = item.total_qty > 0 ? ((item.used_qty / item.total_qty) * 100).toFixed(1) : 0;
+    if (pkg.items && pkg.items.length > 0) {
+        serviceItems.innerHTML = pkg.items.map(item => {
+            // Calculate progress percentage for the service item
+            const totalQty = item.total_qty || 0;
+            const usedQty = item.used_qty || 0;
+            const remainingQty = totalQty - usedQty;
+            const progressPercent = totalQty > 0 ? ((usedQty / totalQty) * 100).toFixed(1) : 0;
+            
+            return `
+                <div class="col-12 mb-3">
+                    <div class="card border-${progressPercent >= 100 ? 'danger' : progressPercent >= 75 ? 'warning' : 'success'}">
+                        <div class="card-body">
+                            <h6 class="mb-2">
+                                <i class="fas fa-spa me-2"></i>${item.service_name || 'Unknown Service'}
+                            </h6>
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <small class="text-muted">Total Sessions:</small>
+                                    <div class="fw-bold">${totalQty}</div>
+                                </div>
+                                <div class="col-md-4">
+                                    <small class="text-muted">Used:</small>
+                                    <div class="fw-bold text-primary">${usedQty}</div>
+                                </div>
+                                <div class="col-md-4">
+                                    <small class="text-muted">Remaining:</small>
+                                    <div class="fw-bold text-success">${remainingQty}</div>
+                                </div>
+                            </div>
+                            <div class="progress mt-2" style="height: 20px;">
+                                <div class="progress-bar ${progressPercent >= 100 ? 'bg-danger' : progressPercent >= 75 ? 'bg-warning' : 'bg-success'}" 
+                                     role="progressbar" 
+                                     style="width: ${Math.min(progressPercent, 100)}%"
+                                     aria-valuenow="${progressPercent}" 
+                                     aria-valuemin="0" 
+                                     aria-valuemax="100">
+                                    ${progressPercent}% Used
+                                </div>
+                            </div>
+                            ${item.discount > 0 ? `
+                                <div class="mt-2">
+                                    <span class="badge bg-success">
+                                        <i class="fas fa-tag me-1"></i>${item.discount}% Discount Applied
+                                    </span>
+                                </div>
+                            ` : ''}
+                            ${item.original_price ? `
+                                <div class="mt-2">
+                                    <small class="text-muted">Price per session: ₹${item.original_price.toFixed(2)}</small>
+                                </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    } else {
+        serviceItems.innerHTML = `
+            <div class="col-12">
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>No service details available for this package.
+                </div>
+            </div>
+        `;
+    }
+
+    // Populate usage history section with complete details
+    const usageHistory = document.getElementById('usageHistory');
+    if (pkg.usage_history && pkg.usage_history.length > 0) {
+        usageHistory.innerHTML = pkg.usage_history.slice(0, 10).map(usage => {
+            return `
+                <tr>
+                    <td>${usage.used_on || 'N/A'}</td>
+                    <td>${usage.service_name || 'N/A'}</td>
+                    <td>
+                        <span class="badge bg-primary">${usage.qty_used || 0} session(s)</span>
+                    </td>
+                    <td>
+                        ${usage.invoice_id ? `
+                            <a href="/integrated-billing/invoice/${usage.invoice_id}" 
+                               class="btn btn-sm btn-outline-primary" 
+                               target="_blank">
+                                <i class="fas fa-receipt me-1"></i>INV-${usage.invoice_id}
+                            </a>
+                        ` : '<span class="text-muted">N/A</span>'}
+                    </td>
+                    <td>
+                        <small class="text-muted">${usage.notes || 'No notes'}</small>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+    } else {
+        usageHistory.innerHTML = `
+            <tr>
+                <td colspan="5" class="text-center text-muted">
+                    <i class="fas fa-inbox me-2"></i>No usage history yet
+                </td>
+            </tr>
+        `;
+    }
+
+    // Add package type indicator
+    const packageTypeInfo = document.getElementById('packageTypeInfo');
+    if (packageTypeInfo) {
+        let typeIcon = 'fa-gift';
+        let typeText = 'Standard Package';
+        let typeColor = 'primary';
+        
+        if (pkg.package_type === 'membership') {
+            typeIcon = 'fa-crown';
+            typeText = 'Membership Package';
+            typeColor = 'warning';
+        } else if (pkg.package_type === 'service_package') {
+            typeIcon = 'fa-box';
+            typeText = 'Service Package';
+            typeColor = 'info';
+        } else if (pkg.package_type === 'prepaid') {
+            typeIcon = 'fa-wallet';
+            typeText = 'Prepaid Package';
+            typeColor = 'success';
+        }
+        
+        packageTypeInfo.innerHTML = `
+            <span class="badge bg-${typeColor}">
+                <i class="fas ${typeIcon} me-1"></i>${typeText}
+            </span>
+        `;
+    }
 
         return `
             <div class="col-md-6 mb-2">
