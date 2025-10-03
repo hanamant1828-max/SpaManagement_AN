@@ -239,6 +239,43 @@
     to { transform: rotate(360deg); }
 }
 
+/* Enhanced Save Button States */
+.btn-save-invoice {
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.btn-save-invoice:disabled {
+    background: linear-gradient(135deg, #94a3b8 0%, #64748b 100%);
+    cursor: not-allowed;
+}
+
+.btn-save-invoice.saving {
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    animation: pulse 1.5s ease-in-out infinite;
+}
+
+.btn-save-invoice.saved {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    transform: scale(1.05);
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.8; }
+}
+
+/* Loading text animation */
+.btn-save-invoice .loading-text {
+    animation: fadeIn 0.5s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
 .btn-outline-primary {
     border: 2px solid #667eea;
     color: #667eea;
@@ -2090,20 +2127,44 @@ function handleBillingFormSubmit(event) {
     const paymentMethod = form.querySelector('select[name="payment_method"]').value;
     const paymentStatus = form.querySelector('select[name="payment_status"]').value;
 
-    // Validate before submission
+    // 🔍 VALIDATION with focus and detailed feedback
     if (!customerId) {
-        showNotification('⚠️ Validation Error: Please select a customer to proceed', 'error', 5000);
+        showNotification('⚠️ Please select a customer before saving', 'error', 5000);
+        form.querySelector('#client_id').focus();
         return;
     }
 
     if (selectedServices === 0 && selectedProducts === 0) {
-        showNotification('⚠️ Validation Error: Please add at least one service or product to create an invoice', 'error', 5000);
+        showNotification('⚠️ Please add at least one service or product', 'error', 5000);
         return;
     }
 
-    // Show processing state on button
+    // 🎯 Show processing state with multi-stage progress
+    submitBtn.disabled = true;
     submitBtn.classList.add('saving');
-    submitBtn.querySelector('.loading-text').textContent = 'Saving...';
+    
+    const btnContent = submitBtn.querySelector('.btn-content');
+    const btnLoading = submitBtn.querySelector('.btn-loading');
+    const btnSuccess = submitBtn.querySelector('.btn-success-state');
+    
+    btnContent.classList.add('d-none');
+    btnLoading.classList.remove('d-none');
+    
+    // 📊 SHOW PROGRESS STAGES  
+    let stage = 1;
+    const stages = [
+        'Creating invoice...',
+        'Processing packages...',
+        'Updating inventory...',
+        'Finalizing payment...'
+    ];
+    
+    const progressInterval = setInterval(() => {
+        if (stage < stages.length) {
+            btnLoading.querySelector('.loading-text').textContent = stages[stage];
+            stage++;
+        }
+    }, 800);
 
     const formData = new FormData(form);
     const data = collectInvoiceData(); // Use the dedicated function to collect data
@@ -2136,6 +2197,7 @@ function handleBillingFormSubmit(event) {
         body: JSON.stringify(data)
     })
     .then(response => {
+        clearInterval(progressInterval);
         if (!response.ok) {
             // Attempt to parse JSON error details if available
             return response.json().then(errorData => {
@@ -2148,74 +2210,54 @@ function handleBillingFormSubmit(event) {
         return response.json();
     })
     .then(data => {
-        submitBtn.classList.remove('saving'); // Remove saving class
-
         if (data.success) {
             console.log('Invoice created successfully:', data);
 
-            // Show success state on button
+            // ✅ SUCCESS STATE
+            submitBtn.classList.remove('saving');
             submitBtn.classList.add('saved');
-            submitBtn.querySelector('.btn-success-state span').textContent = 'Saved!';
+            btnLoading.classList.add('d-none');
+            btnSuccess.classList.remove('d-none');
 
-            // Show comprehensive success notification
-            const invoiceDetails = `
-                Invoice #${data.invoice_id} created successfully!
+            // 🎉 ENHANCED SUCCESS NOTIFICATION
+            const successMessage = `✅ Invoice #${data.invoice_number || 'Created'} saved successfully!\n\n` +
+                `📋 Summary:\n` +
+                `• Customer: ${selectedCustomerName}\n` +
+                `• Services: ${data.service_items_created || 0} items\n` +
+                `• Products: ${data.inventory_items_created || 0} items\n` +
+                `• Total: ₹${parseFloat(data.total_amount || 0).toFixed(2)}\n` +
+                (data.appointments_completed ? `• Bookings Completed: ${data.appointments_completed}\n` : '') +
+                (data.staff_performance_updated ? `• Staff Updated: ${data.staff_performance_updated}\n` : '') +
+                `\nRedirecting to invoice...`;
 
-                📋 Details:
-                • Customer: ${selectedCustomerName}
-                • Services: ${selectedServices} item(s) - ₹${data.services_total || '0.00'}
-                • Products: ${selectedProducts} item(s) - ₹${data.products_total || '0.00'}
-                ${data.package_deductions > 0 ? `• Package Deductions: -₹${data.package_deductions}` : ''}
-                ${data.discount_amount > 0 ? `• Discount: -₹${data.discount_amount}` : ''}
-                ${data.gst_amount > 0 ? `• GST (18%): +₹${data.gst_amount}` : ''}
+            showNotification(successMessage, 'success', 5000);
 
-                💰 Grand Total: ₹${data.grand_total}
-                💳 Payment: ${data.payment_method || 'Cash'} - ${data.payment_status || 'Paid'}
-            `.trim();
-
-            showNotification(invoiceDetails, 'success', 8000);
-
-            // Redirect after a short delay to allow notification to be seen
+            // 🔄 REDIRECT after success
             setTimeout(() => {
-                window.location.href = '/integrated-billing';
+                window.location.href = `/integrated-billing/invoice/${data.invoice_id}`;
             }, 2000);
         } else {
-            // Handle specific errors from the server response
-            const errorMessage = data.message || 'Error creating invoice';
-            const details = data.details ? `<br><small>${data.details}</small>` : '';
-            showNotification(`${errorMessage}${details}`, 'error');
-            // Revert button to original state on error
-            submitBtn.classList.remove('saving');
-            submitBtn.classList.remove('saved');
-            submitBtn.querySelector('.btn-content').innerHTML = originalText;
-            document.getElementById('grandTotalBtn').textContent = originalAmount;
+            throw new Error(data.message || 'Failed to create invoice');
         }
     })
     .catch(error => {
+        clearInterval(progressInterval);
         console.error('Error:', error);
 
-        // Show error state on button
-        submitBtn.classList.remove('saving');
-        submitBtn.classList.remove('saved');
-        submitBtn.querySelector('.btn-content').innerHTML = originalText;
-        document.getElementById('grandTotalBtn').textContent = originalAmount;
+        // ❌ ERROR STATE - Reset button
+        submitBtn.disabled = false;
+        submitBtn.classList.remove('saving', 'saved');
+        btnLoading.classList.add('d-none');
+        btnSuccess.classList.add('d-none');
+        btnContent.classList.remove('d-none');
 
-        const errorDetails = `
-            ❌ Failed to create invoice
+        const errorMessage = `❌ Failed to save invoice\n\n${error.message || 'Unknown error'}\n\n` +
+            `Please check:\n` +
+            `✓ All required fields are filled\n` +
+            `✓ Quantities are valid\n` +
+            `✓ Internet connection is stable`;
 
-            Error Details:
-            • ${error.message || 'Unknown error occurred'}
-
-            Please check:
-            ✓ Customer is selected
-            ✓ At least one service/product is added
-            ✓ All quantities are valid
-            ✓ Payment method is selected
-
-            If the problem persists, contact support.
-        `.trim();
-
-        showNotification(errorDetails, 'error', 10000);
+        showNotification(errorMessage, 'error', 8000);
     });
 }
 

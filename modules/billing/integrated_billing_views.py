@@ -884,6 +884,8 @@ def create_professional_invoice():
                         # Update staff performance metrics - track total revenue generated
                         staff.total_revenue_generated = (staff.total_revenue_generated or 0.0) + service_amount
                         staff.total_clients_served = (staff.total_clients_served or 0) + 1
+                        staff.total_sales = (staff.total_sales or 0.0) + service_amount
+                        staff.last_service_performed = datetime.now()
                         staff_updated_count += 1
 
             # === CRITICAL UPDATE 3: Client Visit & Spending History ===
