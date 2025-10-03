@@ -608,17 +608,26 @@ def create_professional_invoice():
         # Parse inventory data
         inventory_data = []
         product_ids = request.form.getlist('product_ids[]')
+        product_staff_ids = request.form.getlist('product_staff_ids[]')
         batch_ids = request.form.getlist('batch_ids[]')
         product_quantities = request.form.getlist('product_quantities[]')
         product_prices = request.form.getlist('product_prices[]')
 
         for i, product_id in enumerate(product_ids):
             if product_id and i < len(batch_ids) and batch_ids[i]:
+                # Validate staff assignment for products
+                if i >= len(product_staff_ids) or not product_staff_ids[i]:
+                    return jsonify({
+                        'success': False,
+                        'message': f'Staff member is required for product #{i+1}. Please assign staff to all products.'
+                    }), 400
+                
                 inventory_data.append({
                     'product_id': int(product_id),
                     'batch_id': int(batch_ids[i]),
                     'quantity': float(product_quantities[i]) if i < len(product_quantities) else 1,
-                    'unit_price': float(product_prices[i]) if i < len(product_prices) and product_prices[i] else 0
+                    'unit_price': float(product_prices[i]) if i < len(product_prices) and product_prices[i] else 0,
+                    'staff_id': int(product_staff_ids[i])
                 })
 
         # Validate inventory stock
@@ -869,7 +878,8 @@ def create_professional_invoice():
                         quantity=item_data['quantity'],
                         unit_price=item_data['unit_price'],
                         original_amount=item_data['unit_price'] * item_data['quantity'],
-                        final_amount=item_data['unit_price'] * item_data['quantity']
+                        final_amount=item_data['unit_price'] * item_data['quantity'],
+                        staff_id=item_data.get('staff_id')
                     )
                     db.session.add(item)
                     inventory_items_created += 1
@@ -899,6 +909,21 @@ def create_professional_invoice():
                         staff.total_revenue_generated = (staff.total_revenue_generated or 0.0) + service_amount
                         staff.total_clients_served = (staff.total_clients_served or 0) + 1
                         staff.total_sales = (staff.total_sales or 0.0) + service_amount
+                        staff.last_service_performed = current_date
+                        staff_updated_count += 1
+
+            # Update staff metrics for product sales
+            for item_data in inventory_data:
+                if item_data.get('staff_id'):
+                    staff = User.query.get(item_data['staff_id'])
+                    
+                    if staff:
+                        product_amount = item_data['unit_price'] * item_data['quantity']
+                        
+                        # Update staff performance metrics for product sales
+                        staff.total_revenue_generated = (staff.total_revenue_generated or 0.0) + product_amount
+                        staff.total_clients_served = (staff.total_clients_served or 0) + 1
+                        staff.total_sales = (staff.total_sales or 0.0) + product_amount
                         staff.last_service_performed = current_date
                         staff_updated_count += 1
 
@@ -1207,17 +1232,26 @@ def create_integrated_invoice():
         # Parse batch-wise inventory data
         inventory_data = []
         product_ids = request.form.getlist('product_ids[]')
+        product_staff_ids = request.form.getlist('product_staff_ids[]')
         batch_ids = request.form.getlist('batch_ids[]')
         product_quantities = request.form.getlist('product_quantities[]')
         product_prices = request.form.getlist('product_prices[]')
 
         for i, product_id in enumerate(product_ids):
             if product_id and i < len(batch_ids) and batch_ids[i]:
+                # Validate staff assignment for products
+                if i >= len(product_staff_ids) or not product_staff_ids[i]:
+                    return jsonify({
+                        'success': False,
+                        'message': f'Staff member is required for product #{i+1}. Please assign staff to all products.'
+                    }), 400
+                
                 inventory_data.append({
                     'product_id': int(product_id),
                     'batch_id': int(batch_ids[i]),
                     'quantity': float(product_quantities[i]) if i < len(product_quantities) else 1,
-                    'unit_price': float(product_prices[i]) if i < len(product_prices) and product_prices[i] else 0
+                    'unit_price': float(product_prices[i]) if i < len(product_prices) and product_prices[i] else 0,
+                    'staff_id': int(product_staff_ids[i])
                 })
 
         # Validate stock availability and prices for all inventory items
@@ -1397,7 +1431,8 @@ def create_integrated_invoice():
                         quantity=item_data['quantity'],
                         unit_price=item_data['unit_price'],
                         original_amount=item_data['unit_price'] * item_data['quantity'],
-                        final_amount=item_data['unit_price'] * item_data['quantity']
+                        final_amount=item_data['unit_price'] * item_data['quantity'],
+                        staff_id=item_data.get('staff_id')
                     )
                     db.session.add(item)
                     inventory_items_created += 1
@@ -1417,6 +1452,40 @@ def create_integrated_invoice():
                         'quantity': item_data['quantity'],
                         'batch_name': batch.batch_name
                     })
+
+                # Update staff performance metrics
+                staff_updated_count = 0
+                current_date = datetime.datetime.utcnow().date()
+                
+                for service_data in services_data:
+                    if service_data.get('staff_id'):
+                        service = Service.query.get(service_data['service_id'])
+                        staff = User.query.get(service_data['staff_id'])
+                        
+                        if service and staff:
+                            service_amount = service.price * service_data['quantity']
+                            staff.total_revenue_generated = (staff.total_revenue_generated or 0.0) + service_amount
+                            staff.total_clients_served = (staff.total_clients_served or 0) + 1
+                            staff.total_sales = (staff.total_sales or 0.0) + service_amount
+                            staff.last_service_performed = current_date
+                            staff_updated_count += 1
+                
+                for item_data in inventory_data:
+                    if item_data.get('staff_id'):
+                        staff = User.query.get(item_data['staff_id'])
+                        
+                        if staff:
+                            product_amount = item_data['unit_price'] * item_data['quantity']
+                            staff.total_revenue_generated = (staff.total_revenue_generated or 0.0) + product_amount
+                            staff.total_clients_served = (staff.total_clients_served or 0) + 1
+                            staff.total_sales = (staff.total_sales or 0.0) + product_amount
+                            staff.last_service_performed = current_date
+                            staff_updated_count += 1
+                
+                # Update customer metrics
+                customer.last_visit = current_date
+                customer.total_visits = (customer.total_visits or 0) + 1
+                customer.total_spent = (customer.total_spent or 0.0) + total_amount
 
                 # If we reach here, all operations succeeded
                 # Commit the entire transaction
@@ -1888,6 +1957,7 @@ def save_invoice_draft():
                 item.unit_price = item_data['unit_price']
                 item.original_amount = item_data['unit_price'] * item_data['quantity']
                 item.final_amount = item_data['unit_price'] * item_data['quantity']
+                item.staff_id = item_data.get('staff_id')
                 db.session.add(item)
 
         db.session.commit()

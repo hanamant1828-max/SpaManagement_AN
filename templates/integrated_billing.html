@@ -899,7 +899,7 @@
                             <div id="productsContainer">
                                 <div class="product-row">
                                     <div class="row">
-                                        <div class="col-md-4 mb-2">
+                                        <div class="col-md-3 mb-2">
                                             <label class="form-label">Product</label>
                                             <select class="form-select product-select" name="product_ids[]" onchange="loadBatchesForProduct(this)">
                                                 <option value="">Select Product</option>
@@ -908,7 +908,18 @@
                                                 {% endfor %}
                                             </select>
                                         </div>
-                                        <div class="col-md-3 mb-2">
+                                        <div class="col-md-2 mb-2">
+                                            <label class="form-label">Staff Member <span class="text-danger">*</span></label>
+                                            <select class="form-select" name="product_staff_ids[]" required>
+                                                <option value="">Select Staff</option>
+                                                {% for staff_member in staff_members %}
+                                                <option value="{{ staff_member.id }}">
+                                                    {{ staff_member.full_name }} - {{ staff_member.designation or staff_member.role }}
+                                                </option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                        <div class="col-md-2 mb-2">
                                             <label class="form-label">Batch (Auto-selected FIFO)</label>
                                             <select class="form-select batch-select" name="batch_ids[]" disabled>
                                                 <option value="">Select Product First</option>
@@ -2156,6 +2167,21 @@ function handleBillingFormSubmit(event) {
             if (serviceRows[i]) {
                 serviceRows[i].querySelector('select[name="staff_ids[]"]').focus();
                 serviceRows[i].scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+            return;
+        }
+    }
+
+    // Validate staff assignment for all products
+    const productStaffIds = formData.getAll('product_staff_ids[]');
+    for (let i = 0; i < productIds.length; i++) {
+        if (!productStaffIds[i] || !productStaffIds[i].trim()) {
+            showNotification(`⚠️ Staff member is required for product #${i + 1}. Please assign staff to all products.`, 'error', 5000);
+            // Scroll to the product row
+            const productRows = document.querySelectorAll('.product-row');
+            if (productRows[i]) {
+                productRows[i].querySelector('select[name="product_staff_ids[]"]').focus();
+                productRows[i].scrollIntoView({ behavior: 'smooth', block: 'center' });
             }
             return;
         }

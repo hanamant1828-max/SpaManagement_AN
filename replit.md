@@ -113,6 +113,13 @@ Manager:
 ```
 
 ## Recent Changes
+- **October 3, 2025:** Staff tracking for product sales
+  - Added staff assignment dropdowns for all product rows in integrated billing
+  - Implemented backend validation requiring staff for every product sale
+  - Extended staff metrics (total_revenue_generated, total_sales, total_clients_served) to track product sales
+  - Staff performance now reflects both service and product sales activity
+  - Applied changes across all invoice creation flows (professional, v2, and draft)
+  
 - **October 3, 2025:** Initial Replit environment setup
   - Cleaned up duplicate entries in requirements.txt
   - Configured Flask server for Replit proxy (0.0.0.0:5000)
