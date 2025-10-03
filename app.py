@@ -277,8 +277,33 @@ try:
 except Exception as e:
     print(f"⚠️ Integrated billing views import error: {e}")
 
+# Import packages views
+try:
+    from modules.packages.new_packages_views import *
+    print("✅ New packages views imported")
+except Exception as e:
+    print(f"⚠️ New packages views import error: {e}")
+
+try:
+    from modules.packages.membership_views import *
+    print("✅ Membership views imported")
+except Exception as e:
+    print(f"⚠️ Membership views import error: {e}")
+
+try:
+    from modules.packages.prepaid_views import *
+    print("✅ Prepaid views imported")
+except Exception as e:
+    print(f"⚠️ Prepaid views import error: {e}")
+
+try:
+    from modules.packages.student_offer_views import *
+    print("✅ Student offer views imported")
+except Exception as e:
+    print(f"⚠️ Student offer views import error: {e}")
+
 # Skip other problematic imports that cause route conflicts
-print("⚠️ Skipping other staff, notifications, and packages views to avoid conflicts")
+print("⚠️ Skipping other staff and notifications views to avoid conflicts")
 
 # Routes are imported via module views, avoiding import conflicts
 
