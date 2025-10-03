@@ -2026,86 +2026,145 @@ function handleBillingFormSubmit(event) {
     event.preventDefault();
 
     const form = event.target;
+    const submitBtn = form.querySelector('button[type="submit"]');
+    const originalText = submitBtn.innerHTML;
 
-    if (!validateForm(form)) {
-        showNotification('Please fill in all required fields', 'error');
+    const customerId = form.querySelector('#client_id').value;
+    const selectedCustomerName = form.querySelector('#client_id option:checked')?.text || 'Unknown Customer';
+    const selectedServices = document.querySelectorAll('.service-row select[name="service_ids[]"]').length;
+    const selectedProducts = document.querySelectorAll('.product-row select[name="product_ids[]"]').length;
+    const grandTotal = document.getElementById('grandTotal').textContent;
+    const paymentMethod = form.querySelector('select[name="payment_method"]').value;
+    const paymentStatus = form.querySelector('select[name="payment_status"]').value;
+
+    // Validate before submission
+    if (!customerId) {
+        showNotification('⚠️ Validation Error: Please select a customer to proceed', 'error', 5000);
         return;
     }
 
-    // Validate that at least one service or product is selected
-    const serviceIds = Array.from(form.querySelectorAll('select[name="service_ids[]"]'))
-        .map(s => s.value).filter(v => v && v !== '');
-    const productIds = Array.from(form.querySelectorAll('select[name="product_ids[]"]'))
-        .map(p => p.value).filter(v => v && v !== '');
-
-    if (serviceIds.length === 0 && productIds.length === 0) {
-        showNotification('Please add at least one service or product', 'error');
+    if (selectedServices === 0 && selectedProducts === 0) {
+        showNotification('⚠️ Validation Error: Please add at least one service or product to create an invoice', 'error', 5000);
         return;
     }
 
-    // Validate staff assignment for all services
-    const staffIds = Array.from(form.querySelectorAll('select[name="staff_ids[]"]'));
-    let missingStaff = false;
-    serviceIds.forEach((serviceId, index) => {
-        if (serviceId && (!staffIds[index] || !staffIds[index].value)) {
-            missingStaff = true;
-        }
-    });
+    // Show processing notification
+    showNotification(`
+        🔄 Processing Invoice...
 
-    if (missingStaff) {
-        showNotification('Please assign staff for all services', 'error');
-        return;
-    }
+        • Customer: ${selectedCustomerName}
+        • Services: ${selectedServices} item(s)
+        • Products: ${selectedProducts} item(s)
+        • Total Amount: ₹${grandTotal}
 
-    const submitButton = form.querySelector('button[type="submit"]');
-    const originalText = submitButton.innerHTML;
-    
-    submitButton.disabled = true;
-    submitButton.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Processing Invoice...';
-    submitButton.classList.add('disabled');
+        Please wait...
+    `.trim(), 'info', 3000);
+
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Processing...';
+    submitBtn.classList.add('disabled');
 
     const formData = new FormData(form);
+    const data = collectInvoiceData(); // Use the dedicated function to collect data
 
-    console.log('Submitting invoice with services:', serviceIds.length, 'and products:', productIds.length);
+    // Add derived/contextual data to the submission payload
+    data.selectedCustomerName = selectedCustomerName;
+    data.selectedServices = selectedServices;
+    data.selectedProducts = selectedProducts;
+    data.grand_total = grandTotal;
+    data.payment_method = paymentMethod;
+    data.payment_status = paymentStatus;
+
+    // Add package, discount, and GST details if available
+    data.package_deductions = calculatePackageDeductions();
+    data.discount_amount = (calculateServicesSubtotal() + calculateProductsSubtotal()) * (parseFloat(formData.get('discount_percentage')) || 0) / 100;
+    data.gst_amount = document.getElementById('gstEnabled')?.checked ? 
+                        (parseFloat(document.getElementById('gstPercentage')?.value) || 0) : 0;
+    if (data.gst_amount > 0) {
+        data.gst_amount = ( (calculateServicesSubtotal() + calculateProductsSubtotal()) - data.discount_amount ) * data.gst_amount / 100;
+    } else {
+        data.gst_amount = 0;
+    }
+
 
     fetch('/integrated-billing/create-professional', {
         method: 'POST',
-        body: formData
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data)
     })
     .then(response => {
         if (!response.ok) {
-            throw new Error(`Server error: ${response.status} ${response.statusText}`);
+            // Attempt to parse JSON error details if available
+            return response.json().then(errorData => {
+                throw new Error(errorData.message || `Server error: ${response.status} ${response.statusText}`);
+            }).catch(() => {
+                // If not JSON, throw a generic error
+                throw new Error(`Server error: ${response.status} ${response.statusText}`);
+            });
         }
         return response.json();
     })
     .then(data => {
-        submitButton.disabled = false;
-        submitButton.innerHTML = originalText;
-        submitButton.classList.remove('disabled');
-        
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalText;
+        submitBtn.classList.remove('disabled');
+
         if (data.success) {
             console.log('Invoice created successfully:', data);
-            
-            showSuccessModal({
-                invoiceNumber: data.invoice_number || 'N/A',
-                invoiceId: data.invoice_id,
-                amount: data.total_amount || '0.00',
-                customerName: form.querySelector('#client_id option:checked')?.text || 'Customer',
-                message: data.message
-            });
+
+            // Show comprehensive success notification
+            const invoiceDetails = `
+                Invoice #${data.invoice_id} created successfully!
+
+                📋 Details:
+                • Customer: ${selectedCustomerName}
+                • Services: ${selectedServices} item(s) - ₹${data.services_total || '0.00'}
+                • Products: ${selectedProducts} item(s) - ₹${data.products_total || '0.00'}
+                ${data.package_deductions > 0 ? `• Package Deductions: -₹${data.package_deductions}` : ''}
+                ${data.discount_amount > 0 ? `• Discount: -₹${data.discount_amount}` : ''}
+                ${data.gst_amount > 0 ? `• GST (18%): +₹${data.gst_amount}` : ''}
+
+                💰 Grand Total: ₹${data.grand_total}
+                💳 Payment: ${data.payment_method || 'Cash'} - ${data.payment_status || 'Paid'}
+            `.trim();
+
+            showNotification(invoiceDetails, 'success', 8000);
+
+            // Redirect after delay
+            setTimeout(() => {
+                window.location.href = '/integrated-billing';
+            }, 2000);
         } else {
+            // Handle specific errors from the server response
             const errorMessage = data.message || 'Error creating invoice';
             const details = data.details ? `<br><small>${data.details}</small>` : '';
-            showNotification(errorMessage + details, 'error');
+            showNotification(`${errorMessage}${details}`, 'error');
         }
     })
     .catch(error => {
-        console.error('Form submission error:', error);
-        submitButton.disabled = false;
-        submitButton.innerHTML = originalText;
-        submitButton.classList.remove('disabled');
-        
-        showNotification('Network error: Unable to save invoice. Please check your connection and try again.', 'error');
+        console.error('Error:', error);
+
+        const errorDetails = `
+            ❌ Failed to create invoice
+
+            Error Details:
+            • ${error.message || 'Unknown error occurred'}
+
+            Please check:
+            ✓ Customer is selected
+            ✓ At least one service/product is added
+            ✓ All quantities are valid
+            ✓ Payment method is selected
+
+            If the problem persists, contact support.
+        `.trim();
+
+        showNotification(errorDetails, 'error', 10000);
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalText;
+        submitBtn.classList.remove('disabled');
     });
 }
 
@@ -2145,14 +2204,14 @@ function showSuccessModal(invoiceData) {
             </div>
         </div>
     `;
-    
+
     let existingModal = document.getElementById('invoiceSuccessModal');
     if (existingModal) {
         existingModal.remove();
     }
-    
+
     document.body.insertAdjacentHTML('beforeend', modalHtml);
-    
+
     const modal = new bootstrap.Modal(document.getElementById('invoiceSuccessModal'));
     modal.show();
 }
@@ -2162,21 +2221,21 @@ function createAnotherInvoice() {
     if (modal) {
         modal.hide();
     }
-    
+
     const form = document.getElementById('billingForm');
     form.reset();
-    
+
     document.getElementById('customerPackages').innerHTML = '<small><i class="fas fa-info-circle me-1"></i>Select a customer to view their active packages</small>';
-    
+
     const bookingsCard = document.getElementById('customerBookingsCardContainer');
     if (bookingsCard) {
         bookingsCard.style.display = 'none';
     }
-    
+
     updateTaxCalculations();
-    
+
     showNotification('Form cleared. Ready to create a new invoice!', 'success');
-    
+
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
@@ -2286,7 +2345,7 @@ function previewInvoice() {
         services: [],
         products: [],
         discount_percentage: formData.get('discount_percentage') || 0,
-        gst_enabled: formData.get('gst_enabled') === 'on',
+        gst_enabled: document.getElementById('gstEnabled')?.checked || false,
         gst_percentage: formData.get('gst_percentage') || 0
     };
 
@@ -2449,21 +2508,37 @@ function showPreviewModal(previewHtml) {
     modal.show();
 }
 
-function showNotification(message, type = 'info') {
-    const alertClass = type === 'success' ? 'alert-success' : type === 'error' ? 'alert-danger' : 'alert-info';
+// Modified showNotification to accept duration and handle multiple notifications
+function showNotification(message, type = 'info', duration = 5000) {
+    const alertClass = type === 'success' ? 'alert-success' : type === 'error' ? 'alert-danger' : type === 'warning' ? 'alert-warning' : 'alert-info';
     const notification = document.createElement('div');
-    notification.className = `alert ${alertClass} alert-dismissible fade show position-fixed top-0 end-0 m-3`;
+    notification.className = `alert ${alertClass} alert-dismissible fade show custom-notification`;
     notification.style.zIndex = '9999';
+    notification.style.position = 'fixed';
+    notification.style.top = '20px'; // Adjust top position as needed
+    notification.style.right = '20px'; // Align to the right
     notification.style.maxWidth = '400px';
+    notification.style.whiteSpace = 'pre-wrap'; // Preserve newlines
     notification.innerHTML = `
         ${message}
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     `;
     document.body.appendChild(notification);
 
-    setTimeout(() => {
-        notification.remove();
-    }, 5000);
+    // Remove the notification after the specified duration
+    const removeNotification = () => {
+        notification.classList.remove('show');
+        notification.addEventListener('transitionend', () => {
+            notification.remove();
+        });
+    };
+
+    const timeoutId = setTimeout(removeNotification, duration);
+
+    // Add event listener to the dismiss button to clear the timeout if clicked early
+    notification.querySelector('.btn-close').addEventListener('click', () => {
+        clearTimeout(timeoutId);
+    });
 }
 </script>
 {% endblock %}

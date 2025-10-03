@@ -1148,16 +1148,28 @@ function showNotification(message, type = 'info', duration = 5000) {
         'info': 'bg-info'
     }[type] || 'bg-info';
 
+    // Convert multi-line messages to HTML with proper formatting
+    const formattedMessage = message.split('\n').map(line => {
+        line = line.trim();
+        if (!line) return '<br>';
+        // Make lines starting with • or ✓ or ❌ or 💰 etc. stand out
+        if (line.match(/^[•✓❌💰💳📋🔄⚠️]/)) {
+            return `<div style="margin: 2px 0;">${line}</div>`;
+        }
+        return `<div style="margin: 4px 0;">${line}</div>`;
+    }).join('');
+
     notification.className = `toast ${bgClass} text-white`;
     notification.setAttribute('role', 'alert');
+    notification.style.maxWidth = '400px';
     notification.innerHTML = `
         <div class="toast-header ${bgClass} text-white border-0">
             <i class="fas fa-${getNotificationIcon(type)} me-2"></i>
-            <strong class="me-auto">Notification</strong>
+            <strong class="me-auto">${type === 'error' ? 'Error' : type === 'success' ? 'Success' : type === 'warning' ? 'Warning' : 'Info'}</strong>
             <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast"></button>
         </div>
-        <div class="toast-body">
-            ${message}
+        <div class="toast-body" style="white-space: pre-wrap; font-size: 13px; line-height: 1.5;">
+            ${formattedMessage}
         </div>
     `;
 

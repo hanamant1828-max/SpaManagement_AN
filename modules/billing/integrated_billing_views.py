@@ -809,7 +809,7 @@ def create_professional_invoice():
                         item.final_amount = package_result.get('final_price', item.final_amount)
                         item.is_package_deduction = True
                         package_deductions_applied += 1
-                        
+
                         # Log package usage
                         app.logger.info(f"✅ Package benefit applied: {package_result.get('message')}")
                     elif package_result.get('success') and not package_result.get('applied'):
@@ -877,10 +877,10 @@ def create_professional_invoice():
                 if service_data.get('staff_id'):
                     service = Service.query.get(service_data['service_id'])
                     staff = User.query.get(service_data['staff_id'])
-                    
+
                     if service and staff:
                         service_amount = service.price * service_data['quantity']
-                        
+
                         # Update staff performance metrics - track total revenue generated
                         staff.total_revenue_generated = (staff.total_revenue_generated or 0.0) + service_amount
                         staff.total_clients_served = (staff.total_clients_served or 0) + 1
@@ -890,10 +890,11 @@ def create_professional_invoice():
             customer.last_visit = current_date
             customer.total_visits = (customer.total_visits or 0) + 1
             customer.total_spent = (customer.total_spent or 0.0) + total_amount
-            
+
             # Commit all changes
             db.session.commit()
 
+            # Return detailed response data
             return jsonify({
                 'success': True,
                 'message': f'Invoice {invoice_number} created successfully. {completed_appointments} appointments marked as completed. {package_deductions_applied} package benefits applied.',
