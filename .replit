@@ -145,10 +145,10 @@ author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "workflow.run"
-args = "Flask Server"
+args = "Spa Management App"
 
 [[workflows.workflow]]
-name = "Flask Server"
+name = "Spa Management App"
 author = "agent"
 
 [[workflows.workflow.tasks]]
