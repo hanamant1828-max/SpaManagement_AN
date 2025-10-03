@@ -272,7 +272,7 @@ def integrated_billing(customer_id=None):
                     apt_dict['service_price'] = 0.0
                 customer_appointments.append(apt_dict)
 
-            # Get customer services from Unaki appointments
+            # Get unique services from Unaki appointments
             unaki_service_names = list(set([apt.get('service_name') for apt in customer_appointments if apt.get('service_name')]))
             if unaki_service_names:
                 customer_services_objects = Service.query.filter(Service.name.in_(unaki_service_names)).all()
@@ -285,8 +285,7 @@ def integrated_billing(customer_id=None):
                         'price': float(service.price),
                         'duration': service.duration,
                         'category': service.category,
-                        'is_active': service.is_active,
-                        'item_type': 'service'  # Add type identifier
+                        'is_active': service.is_active
                     }
                     for service in customer_services_objects
                 ]
@@ -294,7 +293,6 @@ def integrated_billing(customer_id=None):
                 customer_services = []
 
             print(f"DEBUG: Customer {customer_id} has {len(customer_appointments)} ready-to-bill Unaki appointments and {len(customer_services)} services ready for billing")
-            print(f"DEBUG: Customer services data: {customer_services}")
 
     return render_template('integrated_billing.html',
                          customers=customers,
