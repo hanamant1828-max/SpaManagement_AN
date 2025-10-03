@@ -1039,14 +1039,17 @@ function removeRow(button) {
 // ==========================================
 function loadCustomerPackages(clientId) {
     const packagesDiv = document.getElementById('customerPackages');
+    const totalPackagesCountSpan = document.getElementById('totalPackagesCount');
     if (!clientId) {
         packagesDiv.innerHTML = '<small>Select customer to view packages</small>';
+        if (totalPackagesCountSpan) totalPackagesCountSpan.textContent = '0';
         customerPackageData = null;
         updateCalculations();
         return;
     }
 
     packagesDiv.innerHTML = '<small><i class="fas fa-spinner fa-spin"></i> Loading packages...</small>';
+    if (totalPackagesCountSpan) totalPackagesCountSpan.textContent = '...';
 
     fetch(`/integrated-billing/customer-packages/${clientId}`)
         .then(response => response.json())
@@ -1055,14 +1058,17 @@ function loadCustomerPackages(clientId) {
             customerPackageData = data;
 
             if (data.packages && data.packages.length > 0) {
-                let html = '<div class="alert alert-success-custom"><strong>Active Packages:</strong><br>';
+                let html = '<div class="alert alert-success-custom p-2"><strong>Details:</strong><br>';
                 data.packages.forEach(pkg => {
-                    html += `<span class="badge badge-success-custom me-1">${pkg.package_name}</span>`;
+                    html += `<span class="badge badge-success-custom me-1 mb-1">${pkg.package_name}</span>`;
+                    // Detailed service names could be listed here if available in pkg data
                 });
                 html += '</div>';
                 packagesDiv.innerHTML = html;
+                if (totalPackagesCountSpan) totalPackagesCountSpan.textContent = data.packages.length;
             } else {
                 packagesDiv.innerHTML = '<small class="text-muted-custom">No active packages</small>';
+                if (totalPackagesCountSpan) totalPackagesCountSpan.textContent = '0';
             }
 
             updateCalculations();
@@ -1070,6 +1076,7 @@ function loadCustomerPackages(clientId) {
         .catch(error => {
             console.error('Error loading packages:', error);
             packagesDiv.innerHTML = '<small class="text-danger">Error loading packages</small>';
+            if (totalPackagesCountSpan) totalPackagesCountSpan.textContent = 'ERR';
             customerPackageData = null;
         });
 }
@@ -1133,7 +1140,7 @@ function loadBatchesForProduct(productSelect) {
 
     // Show first batch info
     const firstBatch = productBatches[0];
-    const expiryText = firstBatch.expiry_date ? 
+    const expiryText = firstBatch.expiry_date ?
         `Exp: ${new Date(firstBatch.expiry_date).toLocaleDateString()}` : 'No expiry';
     batchInfo.innerHTML = `<strong>FIFO:</strong> ${firstBatch.batch_name}<br><strong>Avail:</strong> ${firstBatch.qty_available}<br>${expiryText}`;
 
