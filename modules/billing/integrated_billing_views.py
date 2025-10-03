@@ -770,19 +770,19 @@ def create_professional_invoice():
             for service_data in services_data:
                 service = Service.query.get(service_data['service_id'])
                 if service:
-                    item = InvoiceItem()
-                    item.invoice_id = invoice.id
-                    item.item_type = 'service'
-                    item.item_id = service.id
-                    item.appointment_id = service_data.get('appointment_id')
-                    item.item_name = service.name
-                    item.description = service.description
-                    item.quantity = service_data['quantity']
-                    item.unit_price = service.price
-                    item.original_amount = service.price * service_data['quantity']
-                    item.final_amount = service.price * service_data['quantity']
-                    # Add staff_id to the invoice item
-                    item.staff_id = service_data.get('staff_id')
+                    item = InvoiceItem(
+                        invoice_id=invoice.id,
+                        item_type='service',
+                        item_id=service.id,
+                        appointment_id=service_data.get('appointment_id'),
+                        item_name=service.name,
+                        description=service.description or '',
+                        quantity=service_data['quantity'],
+                        unit_price=service.price,
+                        original_amount=service.price * service_data['quantity'],
+                        final_amount=service.price * service_data['quantity'],
+                        staff_id=service_data.get('staff_id')
+                    )
                     db.session.add(item)
                     service_items_created += 1
 
@@ -811,18 +811,20 @@ def create_professional_invoice():
 
                 if batch and product:
                     # Create invoice item
-                    item = InvoiceItem()
-                    item.invoice_id = invoice.id
-                    item.item_type = 'inventory'
-                    item.item_id = product.id
-                    item.product_id = product.id
-                    item.batch_id = batch.id
-                    item.item_name = product.name
-                    item.batch_name = batch.batch_name
-                    item.quantity = item_data['quantity']
-                    item.unit_price = item_data['unit_price']
-                    item.original_amount = item_data['unit_price'] * item_data['quantity']
-                    item.final_amount = item_data['unit_price'] * item_data['quantity']
+                    item = InvoiceItem(
+                        invoice_id=invoice.id,
+                        item_type='inventory',
+                        item_id=product.id,
+                        product_id=product.id,
+                        batch_id=batch.id,
+                        item_name=product.name,
+                        description=f"Batch: {batch.batch_name}",
+                        batch_name=batch.batch_name,
+                        quantity=item_data['quantity'],
+                        unit_price=item_data['unit_price'],
+                        original_amount=item_data['unit_price'] * item_data['quantity'],
+                        final_amount=item_data['unit_price'] * item_data['quantity']
+                    )
                     db.session.add(item)
                     inventory_items_created += 1
 
@@ -1224,19 +1226,19 @@ def create_integrated_invoice():
                 for service_data in services_data:
                     service = Service.query.get(service_data['service_id'])
                     if service:
-                        item = InvoiceItem()
-                        item.invoice_id = invoice.id
-                        item.item_type = 'service'
-                        item.item_id = service.id
-                        item.appointment_id = service_data.get('appointment_id')
-                        item.item_name = service.name
-                        item.description = service.description
-                        item.quantity = service_data['quantity']
-                        item.unit_price = service.price
-                        item.original_amount = service.price * service_data['quantity']
-                        item.final_amount = service.price * service_data['quantity']
-                        # Add staff_id to the invoice item
-                        item.staff_id = service_data.get('staff_id')
+                        item = InvoiceItem(
+                            invoice_id=invoice.id,
+                            item_type='service',
+                            item_id=service.id,
+                            appointment_id=service_data.get('appointment_id'),
+                            item_name=service.name,
+                            description=service.description or '',
+                            quantity=service_data['quantity'],
+                            unit_price=service.price,
+                            original_amount=service.price * service_data['quantity'],
+                            final_amount=service.price * service_data['quantity'],
+                            staff_id=service_data.get('staff_id')
+                        )
                         db.session.add(item)
                         service_items_created += 1
 
@@ -1267,19 +1269,20 @@ def create_integrated_invoice():
                         raise Exception(f"Batch or product not found for item {item_data}")
 
                     # Create invoice item
-                    item = InvoiceItem()
-                    item.invoice_id = invoice.id
-                    item.item_type = 'inventory'
-                    item.item_id = product.id
-                    item.product_id = product.id
-                    item.batch_id = batch.id
-                    item.item_name = product.name
-                    item.description = f"Batch: {batch.batch_name}"
-                    item.batch_name = batch.batch_name
-                    item.quantity = item_data['quantity']
-                    item.unit_price = item_data['unit_price']
-                    item.original_amount = item_data['unit_price'] * item_data['quantity']
-                    item.final_amount = item_data['unit_price'] * item_data['quantity']
+                    item = InvoiceItem(
+                        invoice_id=invoice.id,
+                        item_type='inventory',
+                        item_id=product.id,
+                        product_id=product.id,
+                        batch_id=batch.id,
+                        item_name=product.name,
+                        description=f"Batch: {batch.batch_name}",
+                        batch_name=batch.batch_name,
+                        quantity=item_data['quantity'],
+                        unit_price=item_data['unit_price'],
+                        original_amount=item_data['unit_price'] * item_data['quantity'],
+                        final_amount=item_data['unit_price'] * item_data['quantity']
+                    )
                     db.session.add(item)
                     inventory_items_created += 1
 
