@@ -7,7 +7,7 @@ from flask_login import login_required, current_user
 from app import app, db
 from datetime import datetime
 import json
-from models import Customer, Service, Appointment
+from models import Customer, Service, Appointment, User
 from sqlalchemy import and_
 try:
     from modules.inventory.models import InventoryProduct, InventoryBatch
@@ -105,11 +105,6 @@ def integrated_billing(customer_id=None):
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
 
-    # Allow all authenticated users to access billing
-    if not current_user.is_active:
-        flash('Access denied', 'danger')
-        return redirect(url_for('dashboard'))
-
     # Extract client parameters from URL for auto-selection
     client_name = request.args.get('client_name', '')
     client_phone = request.args.get('client_phone', '')
@@ -119,7 +114,6 @@ def integrated_billing(customer_id=None):
     customers = Customer.query.filter_by(is_active=True).order_by(Customer.first_name, Customer.last_name).all()
     services = Service.query.filter_by(is_active=True).order_by(Service.name).all()
     # Fetch staff for the dropdown
-    from models import User
     staff_members = User.query.filter_by(is_active=True).order_by(User.first_name, User.last_name).all()
 
     print(f"DEBUG: Found {len(customers)} customers and {len(services)} services for billing interface")
@@ -579,9 +573,30 @@ def create_professional_invoice():
 
         for i, service_id in enumerate(service_ids):
             if service_id:
+                # Validate staff assignment
                 staff_id = staff_ids[i] if i < len(staff_ids) and staff_ids[i] else None
                 if not staff_id:
-                    return jsonify({'success': False, 'message': f'Please select staff for service {i+1}'})
+                    app.logger.warning(f'Staff not assigned for service index {i}')
+                    return jsonify({
+                        'success': False,
+                        'message': f'Staff member is required for service #{i+1}. Please assign staff to all services.'
+                    }), 400
+
+                # Verify service exists
+                service = Service.query.get(int(service_id))
+                if not service:
+                    return jsonify({
+                        'success': False,
+                        'message': f'Service #{i+1} not found in database. Please refresh and try again.'
+                    }), 404
+
+                # Verify staff exists
+                staff = User.query.get(int(staff_id))
+                if not staff:
+                    return jsonify({
+                        'success': False,
+                        'message': f'Selected staff member for service #{i+1} not found. Please refresh and try again.'
+                    }), 404
 
                 services_data.append({
                     'service_id': int(service_id),
@@ -605,20 +620,6 @@ def create_professional_invoice():
                     'quantity': float(product_quantities[i]) if i < len(product_quantities) else 1,
                     'unit_price': float(product_prices[i]) if i < len(product_prices) and product_prices[i] else 0
                 })
-
-        # Professional Tax Calculation
-        cgst_rate = float(request.form.get('cgst_rate', 9)) / 100
-        sgst_rate = float(request.form.get('sgst_rate', 9)) / 100
-        igst_rate = float(request.form.get('igst_rate', 0)) / 100
-        is_interstate = request.form.get('is_interstate') == 'on'
-
-        discount_type = request.form.get('discount_type', 'amount')
-        discount_value = float(request.form.get('discount_value', 0))
-        additional_charges = float(request.form.get('additional_charges', 0))
-        tips_amount = float(request.form.get('tips_amount', 0))
-
-        payment_terms = request.form.get('payment_terms', 'immediate')
-        payment_method = request.form.get('payment_method', 'cash')
 
         # Validate inventory stock
         for item in inventory_data:
@@ -647,6 +648,8 @@ def create_professional_invoice():
         gross_subtotal = services_subtotal + inventory_subtotal
 
         # Calculate discount
+        discount_type = request.form.get('discount_type', 'amount')
+        discount_value = float(request.form.get('discount_value', 0))
         if discount_type == 'percentage':
             discount_amount = (gross_subtotal * discount_value) / 100
         else:
@@ -655,9 +658,14 @@ def create_professional_invoice():
         # Service prices are GST INCLUSIVE - extract GST from the price
         # Formula: Base Amount = Price / (1 + GST Rate)
         # Formula: GST Amount = Price - Base Amount
+        cgst_rate = float(request.form.get('cgst_rate', 9)) / 100
+        sgst_rate = float(request.form.get('sgst_rate', 9)) / 100
+        igst_rate = float(request.form.get('igst_rate', 0)) / 100
+        is_interstate = request.form.get('is_interstate') == 'on'
         total_gst_rate = igst_rate if is_interstate else (cgst_rate + sgst_rate)
-        service_base_amount = services_subtotal / (1 + total_gst_rate)
-        service_gst_amount = services_subtotal - service_base_amount
+
+        service_base_amount = services_subtotal / (1 + total_gst_rate) if total_gst_rate > 0 else services_subtotal
+        service_gst_amount = services_subtotal - service_base_amount if total_gst_rate > 0 else 0
 
         # For inventory, GST is calculated normally (exclusive)
         inventory_gst_amount = inventory_subtotal * total_gst_rate
@@ -695,6 +703,8 @@ def create_professional_invoice():
             igst_amount = 0
 
         net_subtotal = net_base_amount
+        additional_charges = float(request.form.get('additional_charges', 0))
+        tips_amount = float(request.form.get('tips_amount', 0))
         total_amount = net_base_amount + total_tax + additional_charges + tips_amount
 
         # Create professional invoice with proper transaction handling
@@ -742,6 +752,8 @@ def create_professional_invoice():
             invoice.igst_amount = igst_amount
             invoice.is_interstate = is_interstate
             invoice.additional_charges = additional_charges
+            payment_terms = request.form.get('payment_terms', 'immediate')
+            payment_method = request.form.get('payment_method', 'cash')
             invoice.payment_terms = payment_terms
             invoice.payment_method = payment_method # Record the payment method
 
@@ -794,7 +806,7 @@ def create_professional_invoice():
                     db.session.flush()  # Get item.id
                     service_items_created += 1
 
-                    # === CRITICAL: APPLY PACKAGE DEDUCTION ===
+                    # === CRITICAL: APPLY PACKAGE BENEFIT ===
                     package_result = PackageBillingService.apply_package_benefit(
                         customer_id=int(client_id),
                         service_id=service.id,
@@ -1158,9 +1170,30 @@ def create_integrated_invoice():
 
         for i, service_id in enumerate(service_ids):
             if service_id:
+                # Validate staff assignment
                 staff_id = staff_ids[i] if i < len(staff_ids) and staff_ids[i] else None
                 if not staff_id:
-                    return jsonify({'success': False, 'message': f'Please select staff for service {i+1}'})
+                    app.logger.warning(f'Staff not assigned for service index {i}')
+                    return jsonify({
+                        'success': False,
+                        'message': f'Staff member is required for service #{i+1}. Please assign staff to all services.'
+                    }), 400
+
+                # Verify service exists
+                service = Service.query.get(int(service_id))
+                if not service:
+                    return jsonify({
+                        'success': False,
+                        'message': f'Service #{i+1} not found in database. Please refresh and try again.'
+                    }), 404
+
+                # Verify staff exists
+                staff = User.query.get(int(staff_id))
+                if not staff:
+                    return jsonify({
+                        'success': False,
+                        'message': f'Selected staff member for service #{i+1} not found. Please refresh and try again.'
+                    }), 404
 
                 services_data.append({
                     'service_id': int(service_id),

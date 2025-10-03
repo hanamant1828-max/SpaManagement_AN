@@ -2131,42 +2131,65 @@ function updateTaxCalculations() {
     }
 }
 
-function handleBillingFormSubmit(event) {
-    event.preventDefault();
+function handleBillingFormSubmit(e) {
+    e.preventDefault();
 
-    const form = event.target;
+    const form = e.target;
     const submitBtn = document.getElementById('saveInvoiceBtn');
-    const clientId = form.querySelector('#client_id').value;
 
-    // Enhanced Validation
+    // Get form data
+    const formData = new FormData(form);
+
+    // 1. Validate customer selection
+    const clientId = formData.get('client_id');
     if (!clientId) {
-        showNotification('⚠️ Please select a customer before saving', 'warning', 5000);
-        form.querySelector('#client_id').focus();
-        form.querySelector('#client_id').scrollIntoView({ behavior: 'smooth', block: 'center' });
-        return;
+        showNotification('❌ Please select a customer', 'error');
+        document.getElementById('client_id').focus();
+        return false;
     }
 
-    const selectedServices = Array.from(document.querySelectorAll('.service-row select[name="service_ids[]"]'))
-        .filter(select => select.value).length;
-    const selectedProducts = Array.from(document.querySelectorAll('.product-row select[name="product_ids[]"]'))
-        .filter(select => select.value).length;
+    // 2. Validate at least one service or product
+    const serviceIds = formData.getAll('service_ids[]').filter(id => id);
+    const productIds = formData.getAll('product_ids[]').filter(id => id);
 
-    if (selectedServices === 0 && selectedProducts === 0) {
-        showNotification('⚠️ Please add at least one service or product', 'warning', 5000);
-        return;
+    if (serviceIds.length === 0 && productIds.length === 0) {
+        showNotification('❌ Please add at least one service or product to the invoice', 'error');
+        return false;
     }
 
-    // Check if all services have staff assigned
-    const servicesWithoutStaff = Array.from(document.querySelectorAll('.service-row')).filter(row => {
-        const serviceSelect = row.querySelector('select[name="service_ids[]"]');
-        const staffSelect = row.querySelector('select[name="staff_ids[]"]');
-        return serviceSelect && serviceSelect.value && (!staffSelect || !staffSelect.value);
-    });
+    // 3. Validate staff assignment for all services
+    const staffIds = formData.getAll('staff_ids[]');
+    for (let i = 0; i < serviceIds.length; i++) {
+        if (serviceIds[i] && !staffIds[i]) {
+            showNotification(`❌ Please select staff member for service #${i + 1}`, 'error');
+            // Focus on the staff dropdown for this service
+            const staffSelects = document.querySelectorAll('select[name="staff_ids[]"]');
+            if (staffSelects[i]) {
+                staffSelects[i].focus();
+                staffSelects[i].style.border = '2px solid #dc3545';
+                setTimeout(() => {
+                    staffSelects[i].style.border = '';
+                }, 3000);
+            }
+            return false;
+        }
+    }
 
-    if (servicesWithoutStaff.length > 0) {
-        showNotification('⚠️ Please assign staff for all services', 'warning', 5000);
-        servicesWithoutStaff[0].querySelector('select[name="staff_ids[]"]').focus();
-        return;
+    // 4. Validate payment method
+    const paymentMethod = formData.get('payment_method');
+    if (!paymentMethod) {
+        showNotification('❌ Please select a payment method', 'error');
+        document.querySelector('select[name="payment_method"]').focus();
+        return false;
+    }
+
+    // 5. Validate inventory batch selection
+    const batchIds = formData.getAll('batch_ids[]');
+    for (let i = 0; i < productIds.length; i++) {
+        if (productIds[i] && !batchIds[i]) {
+            showNotification(`❌ Please select a batch for product #${i + 1}`, 'error');
+            return false;
+        }
     }
 
     // Disable button and show progress
@@ -2191,11 +2214,15 @@ function handleBillingFormSubmit(event) {
     }, 1200);
 
     // Collect form data
-    const formData = new FormData(form);
+    const dataToSend = collectInvoiceData(); // Use the helper function
+    dataToSend.action = 'save'; // Explicitly set action for submission
 
     fetch('/integrated-billing/create-professional', {
         method: 'POST',
-        body: formData
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(dataToSend)
     })
     .then(response => {
         clearInterval(progressInterval);
@@ -2232,23 +2259,33 @@ function handleBillingFormSubmit(event) {
     .catch(error => {
         clearInterval(progressInterval);
 
-        // FAILURE STATE
+        // FAILURE STATE - Reset button
         submitBtn.classList.remove('saving', 'saved');
         submitBtn.disabled = false;
 
         // Reset button to original state
         const grandTotal = document.getElementById('grandTotal')?.textContent || '0.00';
-        submitBtn.innerHTML = `<i class="fas fa-check-circle me-2"></i> <span class="btn-text">Save Invoice</span> <span class="btn-amount">(₹${grandTotal})</span>`;
+        submitBtn.innerHTML = `<span class="btn-content"><i class="fas fa-check-circle me-2"></i><span class="btn-text">Save Invoice</span><span class="btn-amount">(₹${grandTotal})</span></span>`;
 
-        // Enhanced error notification
+        // Enhanced error notification with detailed message
         console.error('Billing Error:', error);
 
-        let errorMessage = '❌ Error creating invoice: ';
+        let errorMessage = '❌ Failed to Create Invoice\n\n';
+
         if (error.message) {
-            errorMessage += error.message;
+            errorMessage += `Error: ${error.message}\n\n`;
         } else {
-            errorMessage += 'Unknown error occurred. Please check your input and try again.';
+            errorMessage += 'Unknown error occurred.\n\n';
         }
+
+        errorMessage += 'Please verify:\n';
+        errorMessage += '✓ Customer is selected\n';
+        errorMessage += '✓ At least one service/product is added\n';
+        errorMessage += '✓ Staff is assigned to all services\n';
+        errorMessage += '✓ Payment method is selected\n';
+        errorMessage += '✓ Inventory batches are selected\n';
+        errorMessage += '✓ Internet connection is stable\n\n';
+        errorMessage += 'If problem persists, please refresh the page.';
 
         showNotification(errorMessage, 'error', 10000);
     });
@@ -2436,7 +2473,7 @@ function previewInvoice() {
     };
 
     // Collect services data with proper validation
-    const serviceIds = formData.getAll('service_ids[]');
+    const serviceIds = formData.getAll('service_ids[]').filter(id => id);
     const serviceQuantities = formData.getAll('service_quantities[]');
     const staffIds = formData.getAll('staff_ids[]');
 
