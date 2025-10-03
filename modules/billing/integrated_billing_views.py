@@ -1999,7 +1999,8 @@ def print_professional_invoice(invoice_id):
                          invoice=invoice,
                          invoice_items=invoice_items,
                          tax_details=tax_details,
-                         staff_names=staff_names) # Pass staff names to template
+                         staff_names=staff_names,
+                         total_amount_words=number_to_words) # Pass function to template
 
 @app.route('/api/invoice-preview', methods=['POST'])
 @login_required
