@@ -789,14 +789,16 @@ def create_professional_invoice():
                     # Mark Unaki appointment as completed and paid if appointment_id exists
                     if service_data.get('appointment_id'):
                         from models import UnakiBooking
+                        from datetime import datetime as dt
                         unaki_appointment = UnakiBooking.query.get(service_data['appointment_id'])
                         if unaki_appointment:
                             unaki_appointment.status = 'completed'
                             unaki_appointment.payment_status = 'paid'
-                            unaki_appointment.completed_at = datetime.now()
+                            unaki_appointment.completed_at = dt.now()
                             unaki_appointment.amount_charged = service.price * service_data['quantity']
                             db.session.add(unaki_appointment)
                             completed_appointments += 1
+                            app.logger.info(f"✅ Marked Unaki appointment {service_data['appointment_id']} as completed and paid")
 
 
             # Create invoice items for inventory and reduce stock
@@ -1241,14 +1243,16 @@ def create_integrated_invoice():
                         # Mark Unaki appointment as completed and paid if appointment_id exists
                         if service_data.get('appointment_id'):
                             from models import UnakiBooking
+                            from datetime import datetime as dt
                             unaki_appointment = UnakiBooking.query.get(service_data['appointment_id'])
                             if unaki_appointment:
                                 unaki_appointment.status = 'completed'
                                 unaki_appointment.payment_status = 'paid'
-                                unaki_appointment.completed_at = datetime.now()
+                                unaki_appointment.completed_at = dt.now()
                                 unaki_appointment.amount_charged = service.price * service_data['quantity']
                                 db.session.add(unaki_appointment)
                                 completed_appointments += 1
+                                app.logger.info(f"✅ Marked Unaki appointment {service_data['appointment_id']} as completed and paid")
 
                 # Create invoice items for inventory and reduce stock atomically
                 inventory_items_created = 0

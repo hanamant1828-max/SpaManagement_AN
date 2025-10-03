@@ -2966,3 +2966,90 @@ function deleteService(serviceId) {
         });
     }
 }
+
+function addUnakiAppointmentToBill(appointmentId, serviceName, servicePrice, staffName) {
+    console.log(`Adding appointment ${appointmentId} to bill - Service: ${serviceName}, Staff: ${staffName}`);
+
+    const container = document.getElementById('servicesContainer');
+    if (!container) {
+        console.error('Services container not found');
+        return;
+    }
+
+    const firstRow = container.children[0];
+    const serviceSelect = firstRow.querySelector('select[name="service_ids[]"]');
+    const staffSelect = firstRow.querySelector('select[name="staff_ids[]"]');
+    const qtyInput = firstRow.querySelector('input[name="service_quantities[]"]');
+    const appointmentInput = firstRow.querySelector('input[name="appointment_ids[]"]');
+
+    const isFirstRowEmpty = !serviceSelect.value && !qtyInput.value;
+
+    if (isFirstRowEmpty) {
+        const serviceOption = Array.from(serviceSelect.options).find(opt => 
+            opt.text.toLowerCase().includes(serviceName.toLowerCase())
+        );
+
+        if (serviceOption) {
+            serviceSelect.value = serviceOption.value;
+            handleServiceSelection(serviceSelect);
+        }
+
+        if (staffName && staffSelect) {
+            const staffOption = Array.from(staffSelect.options).find(opt => 
+                opt.text.toLowerCase().includes(staffName.toLowerCase())
+            );
+            if (staffOption) {
+                staffSelect.value = staffOption.value;
+            }
+        }
+
+        if (qtyInput) qtyInput.value = 1;
+        if (appointmentInput) {
+            appointmentInput.value = appointmentId;
+            console.log(`✅ Set appointment ID ${appointmentId} in first row`);
+        }
+    } else {
+        // Add a new row
+        const newRow = firstRow.cloneNode(true);
+        const newServiceSelect = newRow.querySelector('select[name="service_ids[]"]');
+        const newStaffSelect = newRow.querySelector('select[name="staff_ids[]"]');
+        const newQtyInput = newRow.querySelector('input[name="service_quantities[]"]');
+        const newAppointmentInput = newRow.querySelector('input[name="appointment_ids[]"]');
+
+        // Clear values for the new row except for appointment ID
+        newServiceSelect.value = '';
+        newStaffSelect.value = '';
+        newQtyInput.value = '';
+        newAppointmentInput.value = '';
+
+        container.appendChild(newRow);
+
+        // Populate the new row
+        const serviceOption = Array.from(newServiceSelect.options).find(opt => 
+            opt.text.toLowerCase().includes(serviceName.toLowerCase())
+        );
+
+        if (serviceOption) {
+            newServiceSelect.value = serviceOption.value;
+            handleServiceSelection(newServiceSelect);
+        }
+
+        if (staffName && newStaffSelect) {
+            const staffOption = Array.from(newStaffSelect.options).find(opt => 
+                opt.text.toLowerCase().includes(staffName.toLowerCase())
+            );
+            if (staffOption) {
+                newStaffSelect.value = staffOption.value;
+            }
+        }
+
+        if (newQtyInput) newQtyInput.value = 1;
+        if (newAppointmentInput) {
+            newAppointmentInput.value = appointmentId;
+            console.log(`✅ Set appointment ID ${appointmentId} in new row`);
+        }
+    }
+
+    updateTaxCalculations();
+    showNotification(`Service added to bill! Appointment ID: ${appointmentId}`, 'success');
+}
