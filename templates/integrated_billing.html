@@ -2195,7 +2195,7 @@ function handleBillingFormSubmit(event) {
             return;
         }
     }
-    
+
     const submitBtn = document.getElementById('saveInvoiceBtn');
     const clientId = form.querySelector('#client_id').value;
 
@@ -2324,7 +2324,7 @@ function handleBillingFormSubmit(event) {
 
         // Extract meaningful error message
         let errorDetail = error.message || 'Unknown error occurred';
-        
+
         // Check if it's a validation error
         if (errorDetail.includes('Staff member is required')) {
             errorDetail = 'Please assign staff members to all services';
