@@ -1023,6 +1023,39 @@ class InvoiceItem(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     invoice_id = db.Column(db.Integer, db.ForeignKey('enhanced_invoice.id'), nullable=False)
 
+    # Item details
+    item_type = db.Column(db.String(20), nullable=False)  # service, package_service, inventory, subscription
+    item_id = db.Column(db.Integer)  # ID of service/inventory item
+    appointment_id = db.Column(db.Integer, db.ForeignKey('appointment.id'))  # For service items
+
+    # Batch-level inventory integration
+    product_id = db.Column(db.Integer, db.ForeignKey('inventory_products.id'))  # For inventory items
+    batch_id = db.Column(db.Integer, db.ForeignKey('inventory_batches.id'))  # For batch tracking
+
+    # Descriptions
+    item_name = db.Column(db.String(200), nullable=False)
+    description = db.Column(db.Text)
+    batch_name = db.Column(db.String(100))  # Store batch name for display
+
+    # Pricing
+    quantity = db.Column(db.Float, default=1.0)
+    unit_price = db.Column(db.Float, default=0.0)
+    original_amount = db.Column(db.Float, default=0.0)  # Before any deductions
+    deduction_amount = db.Column(db.Float, default=0.0)  # Package/subscription deduction
+    final_amount = db.Column(db.Float, default=0.0)  # Amount actually charged
+
+    # Status indicators
+    is_package_deduction = db.Column(db.Boolean, default=False)
+    is_subscription_deduction = db.Column(db.Boolean, default=False)
+    is_extra_charge = db.Column(db.Boolean, default=False)  # Beyond package/subscription
+
+    # Staff assignment for services
+    staff_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
+    staff_name = db.Column(db.String(100))  # Denormalized for quick access
+
+    # Relationships
+    appointment = db.relationship('Appointment', backref='invoice_items')
+    assigned_staff = db.relationship('User', backref='invoice_service_items', foreign_keys=[staff_id], overlaps="unaki_breaks")
 
 
 # Unaki Booking System Models
@@ -1211,44 +1244,7 @@ class UnakiBreak(db.Model):
         }
 
 
-    # Item details
-    item_type = db.Column(db.String(20), nullable=False)  # service, package_service, inventory, subscription
-    item_id = db.Column(db.Integer)  # ID of service/inventory item
-    appointment_id = db.Column(db.Integer, db.ForeignKey('appointment.id'))  # For service items
-    # Note: Package ID references handled differently with new package system
-
-    # Batch-level inventory integration
-    product_id = db.Column(db.Integer, db.ForeignKey('inventory_products.id'))  # For inventory items
-    batch_id = db.Column(db.Integer, db.ForeignKey('inventory_batches.id'))  # For batch tracking
-
-    # Descriptions
-    item_name = db.Column(db.String(200), nullable=False)
-    description = db.Column(db.Text)
-    batch_name = db.Column(db.String(100))  # Store batch name for display
-
-    # Pricing
-    quantity = db.Column(db.Float, default=1.0)
-    unit_price = db.Column(db.Float, default=0.0)
-    original_amount = db.Column(db.Float, default=0.0)  # Before any deductions
-    deduction_amount = db.Column(db.Float, default=0.0)  # Package/subscription deduction
-    final_amount = db.Column(db.Float, default=0.0)  # Amount actually charged
-
-    # Status indicators
-    is_package_deduction = db.Column(db.Boolean, default=False)
-    is_subscription_deduction = db.Column(db.Boolean, default=False)
-    is_extra_charge = db.Column(db.Boolean, default=False)  # Beyond package/subscription
-
-    # Staff assignment for services
-    staff_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
-    staff_name = db.Column(db.String(100))  # Denormalized for quick access
-
-    # Relationships
-    appointment = db.relationship('Appointment', backref='invoice_items')
-    assigned_staff = db.relationship('User', backref='invoice_service_items', foreign_keys=[staff_id], overlaps="unaki_breaks")
-    # Note: Package relationships handled separately with new package system
-    # Note: Inventory relationships are handled in the inventory module to avoid circular imports
-
-class InvoicePayment(db.Model):
+    class InvoicePayment(db.Model):
     """Multiple payment records for a single invoice supporting mixed payment methods"""
     __tablename__ = 'invoice_payment'
 
