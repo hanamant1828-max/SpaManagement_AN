@@ -1552,7 +1552,7 @@ def get_customer_packages(client_id):
                 sessions_used = 0
                 sessions_remaining = 0
                 expiry_date = None
-                purchase_date = assignment.assigned_date
+                purchase_date = assignment.assigned_on
                 days_remaining = None
                 prepaid_amount = None
                 prepaid_used = None
@@ -1562,7 +1562,7 @@ def get_customer_packages(client_id):
                 # Get package-specific details based on type
                 if package_type == 'service_package':
                     # Service Package
-                    service_pkg = ServicePackage.query.get(assignment.package_id)
+                    service_pkg = ServicePackage.query.get(assignment.package_reference_id)
                     if service_pkg:
                         package_name = service_pkg.name
                         package_description = service_pkg.description or ''
@@ -1587,7 +1587,7 @@ def get_customer_packages(client_id):
 
                 elif package_type == 'membership':
                     # Membership Package
-                    membership = Membership.query.get(assignment.package_id)
+                    membership = Membership.query.get(assignment.package_reference_id)
                     if membership:
                         package_name = membership.name
                         package_description = membership.description or ''
@@ -1607,7 +1607,7 @@ def get_customer_packages(client_id):
 
                 elif package_type == 'prepaid':
                     # Prepaid Package
-                    prepaid = PrepaidPackage.query.get(assignment.package_id)
+                    prepaid = PrepaidPackage.query.get(assignment.package_reference_id)
                     if prepaid:
                         package_name = prepaid.name
                         package_description = prepaid.description or ''
@@ -1615,7 +1615,7 @@ def get_customer_packages(client_id):
                         
                         # Calculate credit instead of sessions
                         prepaid_amount = float(prepaid.after_value) if prepaid.after_value else 0
-                        prepaid_used = float(assignment.amount_used) if hasattr(assignment, 'amount_used') else 0
+                        prepaid_used = float(assignment.used_credit) if hasattr(assignment, 'used_credit') else 0
                         prepaid_remaining = max(0, prepaid_amount - prepaid_used)
                         
                         # Calculate expiry
@@ -1649,7 +1649,7 @@ def get_customer_packages(client_id):
                 # Build package data object
                 package_info = {
                     'id': assignment.id,
-                    'package_id': assignment.package_id,
+                    'package_id': assignment.package_reference_id,
                     'package_name': package_name,
                     'service_name': service_name,
                     'package_type': package_type,
