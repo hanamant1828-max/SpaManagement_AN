@@ -2131,72 +2131,49 @@ function updateTaxCalculations() {
     }
 }
 
-function handleBillingFormSubmit(e) {
-    e.preventDefault();
+function handleBillingFormSubmit(event) {
+    event.preventDefault();
 
-    const form = e.target;
+    const form = event.target;
     const submitBtn = document.getElementById('saveInvoiceBtn');
+    const clientId = form.querySelector('#client_id').value;
 
-    // Get form data
-    const formData = new FormData(form);
-
-    // 1. Validate customer selection
-    const clientId = formData.get('client_id');
+    // 🔍 Enhanced Validation
     if (!clientId) {
-        showNotification('❌ Please select a customer', 'error');
-        document.getElementById('client_id').focus();
-        return false;
+        showNotification('⚠️ Please select a customer before saving', 'warning', 5000);
+        form.querySelector('#client_id').focus();
+        form.querySelector('#client_id').scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return;
     }
 
-    // 2. Validate at least one service or product
-    const serviceIds = formData.getAll('service_ids[]').filter(id => id);
-    const productIds = formData.getAll('product_ids[]').filter(id => id);
+    const selectedServices = Array.from(document.querySelectorAll('.service-row select[name="service_ids[]"]'))
+        .filter(select => select.value).length;
+    const selectedProducts = Array.from(document.querySelectorAll('.product-row select[name="product_ids[]"]'))
+        .filter(select => select.value).length;
 
-    if (serviceIds.length === 0 && productIds.length === 0) {
-        showNotification('❌ Please add at least one service or product to the invoice', 'error');
-        return false;
+    if (selectedServices === 0 && selectedProducts === 0) {
+        showNotification('⚠️ Please add at least one service or product', 'warning', 5000);
+        return;
     }
 
-    // 3. Validate staff assignment for all services
-    const staffIds = formData.getAll('staff_ids[]');
-    for (let i = 0; i < serviceIds.length; i++) {
-        if (serviceIds[i] && !staffIds[i]) {
-            showNotification(`❌ Please select staff member for service #${i + 1}`, 'error');
-            // Focus on the staff dropdown for this service
-            const staffSelects = document.querySelectorAll('select[name="staff_ids[]"]');
-            if (staffSelects[i]) {
-                staffSelects[i].focus();
-                staffSelects[i].style.border = '2px solid #dc3545';
-                setTimeout(() => {
-                    staffSelects[i].style.border = '';
-                }, 3000);
-            }
-            return false;
-        }
+    // Check if all services have staff assigned
+    const servicesWithoutStaff = Array.from(document.querySelectorAll('.service-row')).filter(row => {
+        const serviceSelect = row.querySelector('select[name="service_ids[]"]');
+        const staffSelect = row.querySelector('select[name="staff_ids[]"]');
+        return serviceSelect && serviceSelect.value && (!staffSelect || !staffSelect.value);
+    });
+
+    if (servicesWithoutStaff.length > 0) {
+        showNotification('⚠️ Please assign staff for all services', 'warning', 5000);
+        servicesWithoutStaff[0].querySelector('select[name="staff_ids[]"]').focus();
+        return;
     }
 
-    // 4. Validate payment method
-    const paymentMethod = formData.get('payment_method');
-    if (!paymentMethod) {
-        showNotification('❌ Please select a payment method', 'error');
-        document.querySelector('select[name="payment_method"]').focus();
-        return false;
-    }
-
-    // 5. Validate inventory batch selection
-    const batchIds = formData.getAll('batch_ids[]');
-    for (let i = 0; i < productIds.length; i++) {
-        if (productIds[i] && !batchIds[i]) {
-            showNotification(`❌ Please select a batch for product #${i + 1}`, 'error');
-            return false;
-        }
-    }
-
-    // Disable button and show progress
+    // 🎯 Disable button and show progress
     submitBtn.disabled = true;
     submitBtn.classList.add('saving');
 
-    // Multi-stage progress indicator
+    // 📊 Multi-stage progress indicator
     let stage = 0;
     const stages = [
         'Creating invoice...',
@@ -2208,47 +2185,72 @@ function handleBillingFormSubmit(e) {
 
     const progressInterval = setInterval(() => {
         if (stage < stages.length) {
-            submitBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> <span class="loading-text">${stages[stage]}</span>`;
+            const loadingText = submitBtn.querySelector('.loading-text');
+            if (loadingText) {
+                loadingText.textContent = stages[stage];
+            }
             stage++;
         }
     }, 1200);
 
-    // Collect form data
-    const dataToSend = collectInvoiceData(); // Use the helper function
-    dataToSend.action = 'save'; // Explicitly set action for submission
+    // 📤 Send FormData (matches backend expectations)
+    const formData = new FormData(form);
 
     fetch('/integrated-billing/create-professional', {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(dataToSend)
+        body: formData  // Send as FormData, NOT JSON
+        // Don't set Content-Type header - browser sets it automatically for FormData
     })
     .then(response => {
         clearInterval(progressInterval);
+
+        // Check if response is OK
         if (!response.ok) {
-            return response.json().then(errorData => {
-                throw new Error(errorData.message || `Server error: ${response.status}`);
-            }).catch(() => {
-                throw new Error(`Server error: ${response.status} ${response.statusText}`);
+            // Try to get error message from response
+            return response.text().then(text => {
+                let errorMsg = `Server error: ${response.status}`;
+                try {
+                    const json = JSON.parse(text);
+                    errorMsg = json.message || json.error || errorMsg;
+                } catch (e) {
+                    // If not JSON, use status text
+                    errorMsg = text || response.statusText || errorMsg;
+                }
+                throw new Error(errorMsg);
             });
         }
         return response.json();
     })
     .then(data => {
         if (data.success) {
-            // SUCCESS STATE
+            // ✅ SUCCESS STATE
             submitBtn.classList.remove('saving');
             submitBtn.classList.add('saved');
-            submitBtn.innerHTML = '<i class="fas fa-check-circle"></i> <span class="btn-success-state">Saved Successfully!</span>';
+            const successState = submitBtn.querySelector('.btn-success-state span');
+            if (successState) {
+                successState.textContent = 'Saved Successfully!';
+            }
 
-            // ENHANCED SUCCESS NOTIFICATION
+            // 🎉 ENHANCED SUCCESS NOTIFICATION
             const customer = document.querySelector('#client_id option:checked')?.text || 'Customer';
-            const successMessage = `✅ Invoice ${data.invoice_number} Created Successfully!\n\n📋 Summary:\n• Customer: ${customer}\n• Total: ₹${parseFloat(data.total_amount || 0).toFixed(2)}\n• Services: ${data.service_items_created || 0} items\n• Products: ${data.inventory_items_created || 0} items${data.package_deductions_applied > 0 ? `\n• Package Benefits: ${data.package_deductions_applied} applied` : ''}${data.appointments_completed > 0 ? `\n• Bookings Completed: ${data.appointments_completed}` : ''}${data.staff_performance_updated > 0 ? `\n• Staff Updated: ${data.staff_performance_updated}` : ''}\n\nRedirecting to invoice...`;
+            const successMessage = `
+                ✅ Invoice ${data.invoice_number || 'Created'} Successfully!
+
+                📋 Summary:
+                • Customer: ${customer}
+                • Total: ₹${parseFloat(data.total_amount || 0).toFixed(2)}
+                • Services: ${data.service_items_created || 0} items
+                • Products: ${data.inventory_items_created || 0} items
+                ${data.package_deductions_applied > 0 ? `\n• Package Benefits: ${data.package_deductions_applied} applied` : ''}
+                ${data.appointments_completed > 0 ? `\n• Bookings Completed: ${data.appointments_completed}` : ''}
+                ${data.staff_performance_updated > 0 ? `\n• Staff Updated: ${data.staff_performance_updated}` : ''}
+
+                Redirecting to invoice...
+            `.trim();
 
             showNotification(successMessage, 'success', 5000);
 
-            // Redirect after success
+            // 🔄 Redirect after success
             setTimeout(() => {
                 window.location.href = `/integrated-billing/invoice/${data.invoice_id}`;
             }, 2000);
@@ -2258,34 +2260,29 @@ function handleBillingFormSubmit(e) {
     })
     .catch(error => {
         clearInterval(progressInterval);
+        console.error('Billing Error:', error);
 
-        // FAILURE STATE - Reset button
-        submitBtn.classList.remove('saving', 'saved');
+        // ❌ ERROR STATE - Reset button
         submitBtn.disabled = false;
+        submitBtn.classList.remove('saving', 'saved');
 
         // Reset button to original state
         const grandTotal = document.getElementById('grandTotal')?.textContent || '0.00';
-        submitBtn.innerHTML = `<span class="btn-content"><i class="fas fa-check-circle me-2"></i><span class="btn-text">Save Invoice</span><span class="btn-amount">(₹${grandTotal})</span></span>`;
+        submitBtn.innerHTML = `<i class="fas fa-check-circle me-2"></i> <span class="btn-text">Save Invoice</span> <span class="btn-amount">(₹${grandTotal})</span>`;
 
-        // Enhanced error notification with detailed message
-        console.error('Billing Error:', error);
+        const errorMessage = `
+            ❌ Failed to Save Invoice
 
-        let errorMessage = '❌ Failed to Create Invoice\n\n';
+            Error: ${error.message || 'Unknown error'}
 
-        if (error.message) {
-            errorMessage += `Error: ${error.message}\n\n`;
-        } else {
-            errorMessage += 'Unknown error occurred.\n\n';
-        }
+            Please check:
+            ✓ All required fields are filled
+            ✓ Staff assigned to all services
+            ✓ Valid inventory quantities
+            ✓ Internet connection is stable
 
-        errorMessage += 'Please verify:\n';
-        errorMessage += '✓ Customer is selected\n';
-        errorMessage += '✓ At least one service/product is added\n';
-        errorMessage += '✓ Staff is assigned to all services\n';
-        errorMessage += '✓ Payment method is selected\n';
-        errorMessage += '✓ Inventory batches are selected\n';
-        errorMessage += '✓ Internet connection is stable\n\n';
-        errorMessage += 'If problem persists, please refresh the page.';
+            Contact support if the problem persists.
+        `.trim();
 
         showNotification(errorMessage, 'error', 10000);
     });
