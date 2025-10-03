@@ -911,7 +911,7 @@ def create_professional_invoice():
             db.session.commit()
 
             # Return detailed response data
-            return jsonify({
+            response_data = {
                 'success': True,
                 'message': f'Invoice {invoice_number} created successfully. {completed_appointments} appointments marked as completed. {package_deductions_applied} package benefits applied.',
                 'invoice_id': invoice.id,
@@ -928,7 +928,9 @@ def create_professional_invoice():
                 'appointments_completed': completed_appointments,
                 'staff_performance_updated': staff_updated_count,
                 'client_updated': True
-            })
+            }
+            app.logger.info(f"✅ Invoice {invoice_number} created successfully - returning response")
+            return jsonify(response_data)
 
         except Exception as e:
             db.session.rollback()
