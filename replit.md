@@ -1,145 +1,144 @@
-# Spa & Salon Management Suite
+# Spa & Salon Suite Management System
 
 ## Overview
-A comprehensive Flask-based spa and salon management system with features for appointment booking, client management, staff scheduling, billing, inventory management, and more.
+A comprehensive spa and salon management system built with Flask, designed to streamline business operations for spas and salons. This application provides a complete suite of tools for managing clients, staff, appointments, billing, inventory, and more.
 
-## Project Status
-**Current State:** Fully functional and running in Replit environment
-**Last Updated:** October 3, 2025
+## Current State
+- **Status**: Successfully migrated to Replit environment
+- **Database**: SQLite for development (located in `hanamantdatabase/`)
+- **Server**: Running on port 5000 with Flask development server
+- **Date**: October 3, 2025
+
+## Technology Stack
+- **Backend**: Flask 3.1.1, Python 3.11
+- **Database**: SQLite (development), PostgreSQL-ready for production
+- **ORM**: SQLAlchemy 2.0.41
+- **Authentication**: Flask-Login 0.6.3
+- **Forms**: Flask-WTF 1.2.2, WTForms 3.2.1
+- **Frontend**: Bootstrap, Feather Icons, Chart.js
+- **Production Server**: Gunicorn 23.0.0
 
 ## Key Features
-- **Dashboard:** Real-time overview of business metrics
-- **Client Management:** Detailed customer profiles with history and loyalty tracking
-- **Staff Management:** Comprehensive CRUD operations with roles, departments, and schedules
-- **Shift Scheduler:** Dynamic shift scheduling with day-by-day configuration
-- **Appointment Booking:** Flexible booking system with multiple booking sources (Unaki, etc.)
-- **Integrated Billing:** Professional invoicing with GST/SGST/IGST calculations
-- **Services Management:** Service catalog with categories, pricing, and durations
-- **Package Management:** Prepaid packages, memberships, student offers, and kitty party packages
-- **Inventory Management:** Batch-centric stock tracking with location management
-- **Check-In System:** Staff attendance and facial recognition support
-- **Reports:** Revenue, expenses, staff performance, and inventory reports
-- **WhatsApp Notifications:** Automated customer communications
-- **User Roles & Permissions:** Granular access control system
+1. **Dashboard**: Real-time business metrics and overview
+2. **Client Management**: Customer profiles with visit history and loyalty tracking
+3. **Staff Management**: Full CRUD operations, role assignments, department management
+4. **Shift Scheduling**: Dynamic shift scheduler with day-by-day configuration
+5. **Appointment Booking**: Flexible booking system (Unaki integration)
+6. **Integrated Billing**: Professional invoices with GST/SGST/IGST calculations
+7. **Service Catalog**: Service management with categorization, pricing, and duration
+8. **Package Management**: 
+   - Prepaid credits
+   - Service packages
+   - Memberships
+   - Student discounts
+   - Kitty party bundles
+9. **Inventory Management**: Batch-centric stock tracking with location management
+10. **Check-In System**: Staff attendance tracking with facial recognition support
+11. **Reporting**: Revenue, expense, staff performance, and inventory reports
+12. **Notifications**: WhatsApp reminders and automated customer communications
+13. **User Roles & Permissions**: Granular access control
 
-## Architecture
-
-### Technology Stack
-- **Backend:** Flask 3.1.1 with SQLAlchemy 2.0.41
-- **Database:** SQLite (development) with PostgreSQL support
-- **Authentication:** Flask-Login with role-based access control
-- **Frontend:** Bootstrap 5 with custom CSS and vanilla JavaScript
-- **Deployment:** Gunicorn with autoscale configuration
-
-### Project Structure
+## Project Structure
 ```
-/
-├── app.py                  # Main Flask application configuration
-├── main.py                 # Application entry point
-├── models.py               # SQLAlchemy database models
-├── forms.py                # WTForms form definitions
-├── routes.py               # Legacy route definitions
-├── utils.py                # Utility functions
-├── requirements.txt        # Python dependencies
-├── modules/                # Modular application components
-│   ├── auth/              # Authentication and authorization
-│   ├── dashboard/         # Dashboard views and queries
-│   ├── clients/           # Customer management
-│   ├── staff/             # Staff management and shift scheduling
-│   ├── services/          # Service catalog management
-│   ├── bookings/          # Appointment booking system
-│   ├── billing/           # Integrated billing and invoicing
-│   ├── inventory/         # Inventory management
-│   ├── packages/          # Package management (memberships, offers)
-│   ├── expenses/          # Expense tracking
-│   ├── reports/           # Business reporting
-│   ├── settings/          # System and business settings
-│   ├── checkin/           # Staff check-in system
-│   └── notifications/     # Communication system
-├── templates/             # Jinja2 HTML templates
-├── static/                # CSS, JavaScript, and assets
-├── hanamantdatabase/      # SQLite database directory (gitignored)
-├── instance/              # Flask instance folder
-└── demo_data/             # Demo data generation scripts
+.
+├── app.py                    # Main Flask application configuration
+├── main.py                   # Application entry point
+├── models.py                 # Database models
+├── routes.py                 # Route definitions
+├── forms.py                  # Form definitions
+├── utils.py                  # Utility functions
+├── modules/                  # Feature modules
+│   ├── auth/                 # Authentication
+│   ├── dashboard/            # Dashboard views
+│   ├── clients/              # Client management
+│   ├── staff/                # Staff management
+│   ├── bookings/             # Appointment booking
+│   ├── billing/              # Billing and invoicing
+│   ├── services/             # Service management
+│   ├── inventory/            # Inventory control
+│   ├── packages/             # Package management
+│   ├── expenses/             # Expense tracking
+│   ├── reports/              # Reporting
+│   ├── settings/             # System settings
+│   ├── checkin/              # Staff check-in
+│   └── notifications/        # Notifications
+├── templates/                # Jinja2 templates
+├── static/                   # Static assets (CSS, JS, images)
+├── hanamantdatabase/         # SQLite database directory
+└── demo_data/                # Demo data generation scripts
 ```
 
-### Database Configuration
-- **Development:** SQLite database stored in `hanamantdatabase/` directory
-- **Production:** Supports PostgreSQL via `DATABASE_URL` environment variable
-- **Schema:** Comprehensive relational database with 50+ tables
-- **Key Tables:** User, Customer, Service, Appointment, Invoice, Inventory, Package, ShiftManagement
+## Environment Configuration
+Required environment variables:
+- `SESSION_SECRET`: Session encryption key (configured in Replit secrets)
+- `DATABASE_URL`: Database connection string (configured in Replit secrets)
+- `PORT`: Server port (default: 5000)
 
-## Replit Environment Setup
-
-### Environment Variables
-- `SESSION_SECRET`: Required for Flask session management (configured)
-- `DATABASE_URL`: Optional PostgreSQL connection string (defaults to SQLite)
-- `PORT`: Server port (defaults to 5000)
-
-### Workflow Configuration
-- **Name:** Spa Management App
-- **Command:** `python main.py`
-- **Port:** 5000
-- **Output Type:** webview
-- **Purpose:** Runs the Flask development server with hot reload
-
-### Deployment Configuration
-- **Type:** autoscale (stateless web application)
-- **Command:** `gunicorn --bind 0.0.0.0:5000 --reuse-port main:app`
-- **Port:** 5000
-
-## Development Notes
-
-### Flask Configuration
-- The app is configured to listen on `0.0.0.0:5000` for Replit proxy compatibility
-- CORS headers are enabled for Replit Preview functionality
-- Cache control headers are set to disable caching for development
-- Session cookies are configured with `SameSite=Lax` for development
-
-### Database Management
-- Database is automatically initialized on first run
-- Demo data can be loaded using scripts in `demo_data/` directory
-- Multiple seed scripts available for testing different scenarios
-
-### Default Login Credentials
+## Running the Application
+The application is configured to run automatically via Replit workflow:
+```bash
+python main.py
 ```
+
+The server binds to `0.0.0.0:5000` to work with Replit's proxy system.
+
+## Database Setup
+The application uses SQLite in development with automatic table creation on startup. The database is stored in `hanamantdatabase/workspace.db` with WAL mode enabled for better concurrency.
+
+For demo data, run:
+```bash
+python setup_demo_database.py
+```
+
+## Default Login Credentials
 Admin User:
-- Username: admin
-- Password: admin123
+- Username: `admin`
+- Password: `admin123`
 
 Manager:
-- Username: spa_manager
-- Password: password123
-```
+- Username: `spa_manager`
+- Password: `password123`
+
+## Deployment
+The application is configured for Replit Autoscale deployment:
+- **Type**: Autoscale (stateless)
+- **Command**: `gunicorn --bind 0.0.0.0:5000 --reuse-port main:app`
+- **Port**: 5000
 
 ## Recent Changes
-- **October 3, 2025:** Staff tracking for product sales
-  - Added staff assignment dropdowns for all product rows in integrated billing
-  - Implemented backend validation requiring staff for every product sale
-  - Extended staff metrics (total_revenue_generated, total_sales, total_clients_served) to track product sales
-  - Staff performance now reflects both service and product sales activity
-  - Applied changes across all invoice creation flows (professional, v2, and draft)
-  
-- **October 3, 2025:** Initial Replit environment setup
-  - Cleaned up duplicate entries in requirements.txt
-  - Configured Flask server for Replit proxy (0.0.0.0:5000)
-  - Set up workflow with webview output on port 5000
-  - Configured deployment with autoscale and Gunicorn
-  - Verified application is running successfully
+### October 3, 2025 - Replit Migration
+- Migrated from GitHub to Replit environment
+- Fixed syntax error in `modules/billing/integrated_billing_views.py` (removed duplicate code block)
+- Configured Flask application for Replit proxy compatibility
+- Set up workflow to run on port 5000 with webview output
+- Configured deployment settings for Autoscale
+- Application successfully running and accessible via webview
+
+## Development Guidelines
+1. **Database**: Always use SQLite for development, PostgreSQL for production
+2. **Port**: Frontend must use port 5000 (Replit requirement)
+3. **Host**: Bind to `0.0.0.0` for Replit compatibility
+4. **CORS**: Configured in `app.py` for Replit Preview
+5. **Cache Control**: Disabled for development to ensure live updates
+6. **Session Secret**: Never hardcode, always use environment variable
 
 ## Known Issues
-- LSP diagnostics show some unused imports in app.py and models.py (non-critical)
-- Dashboard charts may not display on first load (requires data)
+- Minor LSP diagnostics in `app.py` and `integrated_billing_views.py` (non-critical)
+- These are related to import order and type checking, not affecting runtime
 
-## Testing
-- Application loads successfully at root URL
-- Login page displays correctly with professional UI
-- All modules are loading without errors
-- Static assets (CSS, JS) are serving correctly
+## File Locations
+- **Logs**: `/tmp/logs/`
+- **Database**: `hanamantdatabase/workspace.db`
+- **Static Assets**: `static/`
+- **Templates**: `templates/`
 
-## Future Enhancements
-- Integration with external appointment booking systems
-- Mobile app integration
-- Advanced analytics and reporting
-- Multi-location support
-- Payment gateway integration
+## User Preferences
+None documented yet.
+
+## Architecture Notes
+- Modular design with separate feature modules
+- Blueprint-based routing
+- SQLAlchemy ORM with relationship management
+- Flask-Login for authentication
+- CSRF protection (disabled for development, enable for production)
+- Proxy-aware URL generation for deployment environments
