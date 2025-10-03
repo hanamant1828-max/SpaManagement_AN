@@ -766,10 +766,15 @@ def create_professional_invoice():
             # Create invoice items for services and mark Unaki appointments as completed
             service_items_created = 0
             completed_appointments = 0
+            package_deductions_applied = 0
+
+            # Import package billing service
+            from modules.packages.package_billing_service import PackageBillingService
 
             for service_data in services_data:
                 service = Service.query.get(service_data['service_id'])
                 if service:
+                    # Create invoice item FIRST (to get invoice_item_id)
                     item = InvoiceItem(
                         invoice_id=invoice.id,
                         item_type='service',
@@ -784,7 +789,33 @@ def create_professional_invoice():
                         staff_id=service_data.get('staff_id')
                     )
                     db.session.add(item)
+                    db.session.flush()  # Get item.id
                     service_items_created += 1
+
+                    # === CRITICAL: APPLY PACKAGE DEDUCTION ===
+                    package_result = PackageBillingService.apply_package_benefit(
+                        customer_id=int(client_id),
+                        service_id=service.id,
+                        service_price=service.price * service_data['quantity'],
+                        invoice_id=invoice.id,
+                        invoice_item_id=item.id,
+                        service_date=current_date,
+                        requested_quantity=int(service_data['quantity'])
+                    )
+
+                    if package_result.get('success') and package_result.get('applied'):
+                        # Update invoice item with package deduction
+                        item.deduction_amount = package_result.get('deduction_amount', 0)
+                        item.final_amount = package_result.get('final_price', item.final_amount)
+                        item.is_package_deduction = True
+                        package_deductions_applied += 1
+                        
+                        # Log package usage
+                        app.logger.info(f"✅ Package benefit applied: {package_result.get('message')}")
+                    elif package_result.get('success') and not package_result.get('applied'):
+                        app.logger.info(f"ℹ️ No package benefit: {package_result.get('message')}")
+                    else:
+                        app.logger.warning(f"⚠️ Package deduction error: {package_result.get('message')}")
 
                     # Mark Unaki appointment as completed and paid if appointment_id exists
                     if service_data.get('appointment_id'):
@@ -864,7 +895,7 @@ def create_professional_invoice():
 
             return jsonify({
                 'success': True,
-                'message': f'Invoice {invoice_number} created successfully. {completed_appointments} appointments marked as completed.',
+                'message': f'Invoice {invoice_number} created successfully. {completed_appointments} appointments marked as completed. {package_deductions_applied} package benefits applied.',
                 'invoice_id': invoice.id,
                 'invoice_number': invoice_number,
                 'total_amount': float(total_amount),
@@ -875,7 +906,7 @@ def create_professional_invoice():
                 'service_items_created': service_items_created,
                 'inventory_items_created': inventory_items_created,
                 'stock_reduced': stock_reduced_count,
-                'deductions_applied': 0,
+                'package_deductions_applied': package_deductions_applied,
                 'appointments_completed': completed_appointments,
                 'staff_performance_updated': staff_updated_count,
                 'client_updated': True
