@@ -621,7 +621,7 @@ def create_professional_invoice():
                         'success': False,
                         'message': f'Staff member is required for product #{i+1}. Please assign staff to all products.'
                     }), 400
-                
+
                 inventory_data.append({
                     'product_id': int(product_id),
                     'batch_id': int(batch_ids[i]),
@@ -916,10 +916,10 @@ def create_professional_invoice():
             for item_data in inventory_data:
                 if item_data.get('staff_id'):
                     staff = User.query.get(item_data['staff_id'])
-                    
+
                     if staff:
                         product_amount = item_data['unit_price'] * item_data['quantity']
-                        
+
                         # Update staff performance metrics for product sales
                         staff.total_revenue_generated = (staff.total_revenue_generated or 0.0) + product_amount
                         staff.total_clients_served = (staff.total_clients_served or 0) + 1
@@ -1245,7 +1245,7 @@ def create_integrated_invoice():
                         'success': False,
                         'message': f'Staff member is required for product #{i+1}. Please assign staff to all products.'
                     }), 400
-                
+
                 inventory_data.append({
                     'product_id': int(product_id),
                     'batch_id': int(batch_ids[i]),
@@ -1456,12 +1456,12 @@ def create_integrated_invoice():
                 # Update staff performance metrics
                 staff_updated_count = 0
                 current_date = datetime.datetime.utcnow().date()
-                
+
                 for service_data in services_data:
                     if service_data.get('staff_id'):
                         service = Service.query.get(service_data['service_id'])
                         staff = User.query.get(service_data['staff_id'])
-                        
+
                         if service and staff:
                             service_amount = service.price * service_data['quantity']
                             staff.total_revenue_generated = (staff.total_revenue_generated or 0.0) + service_amount
@@ -1469,11 +1469,11 @@ def create_integrated_invoice():
                             staff.total_sales = (staff.total_sales or 0.0) + service_amount
                             staff.last_service_performed = current_date
                             staff_updated_count += 1
-                
+
                 for item_data in inventory_data:
                     if item_data.get('staff_id'):
                         staff = User.query.get(item_data['staff_id'])
-                        
+
                         if staff:
                             product_amount = item_data['unit_price'] * item_data['quantity']
                             staff.total_revenue_generated = (staff.total_revenue_generated or 0.0) + product_amount
@@ -1481,7 +1481,7 @@ def create_integrated_invoice():
                             staff.total_sales = (staff.total_sales or 0.0) + product_amount
                             staff.last_service_performed = current_date
                             staff_updated_count += 1
-                
+
                 # Update customer metrics
                 customer.last_visit = current_date
                 customer.total_visits = (customer.total_visits or 0) + 1
@@ -1526,7 +1526,7 @@ def get_customer_packages(client_id):
         return jsonify({'success': False, 'error': 'Access denied', 'packages': []}), 403
 
     try:
-        from models import (ServicePackageAssignment, Service, PrepaidPackage, 
+        from models import (ServicePackageAssignment, Service, PrepaidPackage,
                           ServicePackage, Membership, Customer)
         from datetime import datetime, date
 
@@ -1565,19 +1565,19 @@ def get_customer_packages(client_id):
                     service_pkg = ServicePackage.query.get(assignment.package_reference_id)
                     if service_pkg:
                         package_name = service_pkg.name
-                        package_description = service_pkg.description or ''
-                        
+                        package_description = ''  # ServicePackage doesn't have description field
+
                         # Get service name from the service_id field
                         if service_pkg.service_id:
                             service = Service.query.get(service_pkg.service_id)
                             if service:
                                 service_name = service.name
-                        
+
                         # Calculate sessions
                         sessions_total = service_pkg.total_sessions or 0
                         sessions_used = assignment.sessions_used or 0
                         sessions_remaining = max(0, sessions_total - sessions_used)
-                        
+
                         # Calculate expiry
                         if assignment.expires_on:
                             expiry_date = assignment.expires_on
@@ -1592,12 +1592,12 @@ def get_customer_packages(client_id):
                         package_name = membership.name
                         package_description = membership.description or ''
                         service_name = membership.membership_type or 'All Services'
-                        
+
                         # Memberships typically don't have session limits
                         sessions_total = 999  # Unlimited representation
                         sessions_used = 0
                         sessions_remaining = 999
-                        
+
                         # Calculate expiry
                         if assignment.expires_on:
                             expiry_date = assignment.expires_on
@@ -1612,12 +1612,12 @@ def get_customer_packages(client_id):
                         package_name = prepaid.name
                         package_description = prepaid.description or ''
                         service_name = 'Any Service (Credit-based)'
-                        
+
                         # Calculate credit instead of sessions
                         prepaid_amount = float(prepaid.after_value) if prepaid.after_value else 0
                         prepaid_used = float(assignment.used_credit) if hasattr(assignment, 'used_credit') else 0
                         prepaid_remaining = max(0, prepaid_amount - prepaid_used)
-                        
+
                         # Calculate expiry
                         if assignment.expires_on:
                             expiry_date = assignment.expires_on
