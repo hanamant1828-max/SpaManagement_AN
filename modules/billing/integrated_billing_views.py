@@ -717,6 +717,7 @@ def create_professional_invoice():
             invoice.invoice_number = invoice_number
             invoice.client_id = int(client_id)
             invoice.invoice_date = current_date
+            invoice.created_at = datetime.datetime.utcnow() # Add created_at timestamp
 
             # Professional billing fields
             invoice.services_subtotal = services_subtotal
@@ -728,6 +729,7 @@ def create_professional_invoice():
             invoice.tips_amount = tips_amount
             invoice.total_amount = total_amount
             invoice.balance_due = total_amount
+            invoice.payment_status = 'paid' # Set to paid since payment is assumed to be taken
 
             # Store GST fields properly
             invoice.cgst_rate = cgst_rate * 100
@@ -739,6 +741,7 @@ def create_professional_invoice():
             invoice.is_interstate = is_interstate
             invoice.additional_charges = additional_charges
             invoice.payment_terms = payment_terms
+            invoice.payment_method = payment_method # Record the payment method
 
             # Tax breakdown for legacy support
             tax_breakdown = {
@@ -760,8 +763,10 @@ def create_professional_invoice():
             db.session.add(invoice)
             db.session.flush()  # Get the invoice ID
 
-            # Create invoice items for services
+            # Create invoice items for services and mark Unaki appointments as completed
             service_items_created = 0
+            completed_appointments = 0
+
             for service_data in services_data:
                 service = Service.query.get(service_data['service_id'])
                 if service:
@@ -780,6 +785,19 @@ def create_professional_invoice():
                     item.staff_id = service_data.get('staff_id')
                     db.session.add(item)
                     service_items_created += 1
+
+                    # Mark Unaki appointment as completed and paid if appointment_id exists
+                    if service_data.get('appointment_id'):
+                        from models import UnakiBooking
+                        unaki_appointment = UnakiBooking.query.get(service_data['appointment_id'])
+                        if unaki_appointment:
+                            unaki_appointment.status = 'completed'
+                            unaki_appointment.payment_status = 'paid'
+                            unaki_appointment.completed_at = datetime.now()
+                            unaki_appointment.amount_charged = service.price * service_data['quantity']
+                            db.session.add(unaki_appointment)
+                            completed_appointments += 1
+
 
             # Create invoice items for inventory and reduce stock
             inventory_items_created = 0
@@ -822,7 +840,7 @@ def create_professional_invoice():
 
             return jsonify({
                 'success': True,
-                'message': f'Professional Invoice {invoice_number} created successfully',
+                'message': f'Invoice {invoice_number} created successfully. {completed_appointments} appointments marked as completed.',
                 'invoice_id': invoice.id,
                 'invoice_number': invoice_number,
                 'total_amount': float(total_amount),
@@ -833,7 +851,8 @@ def create_professional_invoice():
                 'service_items_created': service_items_created,
                 'inventory_items_created': inventory_items_created,
                 'stock_reduced': stock_reduced_count,
-                'deductions_applied': 0
+                'deductions_applied': 0,
+                'appointments_completed': completed_appointments
             })
 
         except Exception as e:
@@ -1189,13 +1208,17 @@ def create_integrated_invoice():
                 invoice.tips_amount = tips_amount
                 invoice.total_amount = total_amount
                 invoice.balance_due = total_amount
+                invoice.payment_status = 'paid' # Assuming payment is taken at time of billing
                 invoice.notes = request.form.get('notes', '')
+                invoice.payment_method = request.form.get('payment_method', 'cash') # Store payment method
 
                 db.session.add(invoice)
                 db.session.flush()  # Get invoice ID
 
-                # Create invoice items for services
+                # Create invoice items for services and mark Unaki appointments as completed
                 service_items_created = 0
+                completed_appointments = 0
+
                 for service_data in services_data:
                     service = Service.query.get(service_data['service_id'])
                     if service:
@@ -1214,6 +1237,18 @@ def create_integrated_invoice():
                         item.staff_id = service_data.get('staff_id')
                         db.session.add(item)
                         service_items_created += 1
+
+                        # Mark Unaki appointment as completed and paid if appointment_id exists
+                        if service_data.get('appointment_id'):
+                            from models import UnakiBooking
+                            unaki_appointment = UnakiBooking.query.get(service_data['appointment_id'])
+                            if unaki_appointment:
+                                unaki_appointment.status = 'completed'
+                                unaki_appointment.payment_status = 'paid'
+                                unaki_appointment.completed_at = datetime.now()
+                                unaki_appointment.amount_charged = service.price * service_data['quantity']
+                                db.session.add(unaki_appointment)
+                                completed_appointments += 1
 
                 # Create invoice items for inventory and reduce stock atomically
                 inventory_items_created = 0
@@ -1266,14 +1301,15 @@ def create_integrated_invoice():
 
                 return jsonify({
                     'success': True,
-                    'message': f'Invoice {invoice_number} created successfully',
+                    'message': f'Invoice {invoice_number} created successfully. {completed_appointments} appointments marked as completed.',
                     'invoice_id': invoice.id,
                     'invoice_number': invoice_number,
                     'total_amount': float(total_amount),
                     'service_items_created': service_items_created,
                     'inventory_items_created': inventory_items_created,
                     'stock_reduced': stock_reduced_count,
-                    'deductions_applied': 0  # Future enhancement for package deductions
+                    'deductions_applied': 0,  # Future enhancement for package deductions
+                    'appointments_completed': completed_appointments
                 })
 
         except Exception as e:
