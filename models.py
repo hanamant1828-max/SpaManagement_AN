@@ -1244,7 +1244,7 @@ class UnakiBreak(db.Model):
         }
 
 
-    class InvoicePayment(db.Model):
+class InvoicePayment(db.Model):
     """Multiple payment records for a single invoice supporting mixed payment methods"""
     __tablename__ = 'invoice_payment'
 
