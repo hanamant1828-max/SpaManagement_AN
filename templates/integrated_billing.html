@@ -1377,7 +1377,7 @@ function updateCalculations() {
     document.getElementById('packageDeductions').textContent = `-₹${packageDeductions.toFixed(2)}`; // Placeholder
     document.getElementById('discountAmount').textContent = `-₹${discountAmount.toFixed(2)}`;
     document.getElementById('gstRate').textContent = gstPercentage.toFixed(0);
-    document.getElementById('gstAmount').textContent = `₹${gstAmount.toFixed(2)}`;
+    document.getElementById('gstAmount').textContent = `₹${finalGstAmount.toFixed(2)}`;
     document.getElementById('grandTotal').textContent = `₹${grandTotal.toFixed(2)}`;
 
     console.log('💰 Calculations updated - Grand Total:', grandTotal.toFixed(2));
