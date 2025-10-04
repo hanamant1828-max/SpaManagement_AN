@@ -48,9 +48,23 @@ def shift_scheduler():
 
     # Get all active staff members
     staff_members = User.query.filter_by(is_active=True).order_by(User.first_name, User.last_name).all()
+    
+    # Convert to dictionaries for JSON serialization
+    staff_members_dict = [
+        {
+            'id': staff.id,
+            'first_name': staff.first_name,
+            'last_name': staff.last_name,
+            'full_name': f"{staff.first_name} {staff.last_name}",
+            'role': staff.role,
+            'department': staff.department,
+            'is_active': staff.is_active
+        }
+        for staff in staff_members
+    ]
 
     return render_template('shift_scheduler.html',
-                         staff_members=staff_members,
+                         staff_members=staff_members_dict,
                          today=date.today().strftime('%Y-%m-%d'))
 
 # Add alias route for the main interface to match template expectations
