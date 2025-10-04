@@ -1614,5 +1614,101 @@ class ServiceInventoryItem(db.Model):
     # Relationships
     service = db.relationship('Service', backref='inventory_items')
 
+# ========================================
+# PAYMENT AND RECEIPT MODELS
+# ========================================
+
+class Payment(db.Model):
+    """Track payments collected from customers"""
+    __tablename__ = 'payments'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    customer_id = db.Column(db.Integer, db.ForeignKey('client.id'), nullable=False)
+    invoice_id = db.Column(db.Integer, nullable=True)
+    assignment_id = db.Column(db.Integer, db.ForeignKey('service_package_assignment.id'), nullable=True)
+    
+    amount = db.Column(db.Float, nullable=False)
+    payment_method = db.Column(db.String(30), nullable=False)  # cash, card, upi, wallet, bank
+    reference = db.Column(db.String(100), nullable=True)  # transaction ref, UPI ID, last 4 digits
+    
+    collected_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
+    collected_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    notes = db.Column(db.Text, nullable=True)
+    
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    customer = db.relationship('Customer', backref='payments')
+    collector = db.relationship('User', backref='payments_collected')
+    assignment = db.relationship('ServicePackageAssignment', backref='payments')
+    
+    def __repr__(self):
+        return f'<Payment {self.id}: {self.amount} via {self.payment_method}>'
+
+
+class Receipt(db.Model):
+    """Track receipts issued for payments"""
+    __tablename__ = 'receipts'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    receipt_number = db.Column(db.String(30), unique=True, nullable=False)  # e.g., RC-2504-0007
+    
+    customer_id = db.Column(db.Integer, db.ForeignKey('client.id'), nullable=False)
+    invoice_id = db.Column(db.Integer, nullable=True)
+    assignment_id = db.Column(db.Integer, db.ForeignKey('service_package_assignment.id'), nullable=True)
+    payment_id = db.Column(db.Integer, db.ForeignKey('payments.id'), nullable=True)
+    
+    amount = db.Column(db.Float, nullable=False)
+    currency = db.Column(db.String(10), default='INR')
+    
+    # Tax breakdown
+    subtotal = db.Column(db.Float, default=0)
+    discount = db.Column(db.Float, default=0)
+    tax_rate = db.Column(db.Float, default=0)
+    tax_amount = db.Column(db.Float, default=0)
+    cgst_amount = db.Column(db.Float, default=0)
+    sgst_amount = db.Column(db.Float, default=0)
+    
+    # Metadata
+    payment_method = db.Column(db.String(30), nullable=True)
+    meta = db.Column(db.Text, nullable=True)  # JSON for additional data
+    
+    issued_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    
+    # Relationships
+    customer = db.relationship('Customer', backref='receipts')
+    assignment = db.relationship('ServicePackageAssignment', backref='receipts')
+    payment = db.relationship('Payment', backref='receipt')
+    issuer = db.relationship('User', backref='receipts_issued')
+    
+    def __repr__(self):
+        return f'<Receipt {self.receipt_number}: {self.amount}>'
+    
+    @staticmethod
+    def generate_receipt_number():
+        """Generate unique receipt number in format RC-YYMM-####"""
+        from datetime import datetime
+        now = datetime.utcnow()
+        prefix = f"RC-{now.strftime('%y%m')}"
+        
+        # Get the last receipt for this month
+        last_receipt = Receipt.query.filter(
+            Receipt.receipt_number.like(f"{prefix}%")
+        ).order_by(Receipt.id.desc()).first()
+        
+        if last_receipt:
+            # Extract the sequence number and increment
+            try:
+                last_seq = int(last_receipt.receipt_number.split('-')[-1])
+                next_seq = last_seq + 1
+            except (ValueError, IndexError):
+                next_seq = 1
+        else:
+            next_seq = 1
+        
+        return f"{prefix}-{next_seq:04d}"
+
+
 # Import Hanaman Inventory Models after all other models are defined
 # Hanamantinventory models import removed to fix startup issues
