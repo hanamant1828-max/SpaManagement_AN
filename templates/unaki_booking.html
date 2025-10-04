@@ -2398,8 +2398,9 @@
                         }
                         syncingFromStaff = false;
 
-                        // Keep sticky header aligned with horizontal scroll
-                        header.style.transform = `translateX(-${panel.scrollLeft}px)`;
+                        // Keep header aligned with horizontal scroll
+                        header.style.left = `-${panel.scrollLeft}px`;
+                        header.style.position = 'relative';
                     },
                     { passive: true },
                 );
