@@ -92,16 +92,20 @@
                         <div class="card-body">
                             <table class="table table-sm">
                                 <tr>
-                                    <td>Subtotal:</td>
+                                    <td>Package Price (incl. GST):</td>
                                     <td class="text-right" id="displaySubtotal">₹0.00</td>
+                                </tr>
+                                <tr class="text-muted">
+                                    <td>&nbsp;&nbsp;└ Net Price (excl. GST):</td>
+                                    <td class="text-right" id="displayNetPrice">₹0.00</td>
+                                </tr>
+                                <tr class="text-muted">
+                                    <td>&nbsp;&nbsp;└ GST Amount (18%):</td>
+                                    <td class="text-right" id="displayTax">₹0.00</td>
                                 </tr>
                                 <tr>
                                     <td>Discount:</td>
-                                    <td class="text-right" id="displayDiscount">₹0.00</td>
-                                </tr>
-                                <tr>
-                                    <td>Tax (18%):</td>
-                                    <td class="text-right" id="displayTax">₹0.00</td>
+                                    <td class="text-right text-danger" id="displayDiscount">₹0.00</td>
                                 </tr>
                                 <tr class="font-weight-bold border-top">
                                     <td>Grand Total:</td>
@@ -374,9 +378,13 @@ function recalculateTotals() {
     const tax = taxable * 0.18;
     const grandTotal = taxable + tax;
 
-    document.getElementById('displaySubtotal').textContent = `₹${subtotal.toFixed(2)}`;
+    const netPrice = taxable; // Net price is the subtotal after discount but before tax
+    const gstAmount = tax;
+
+    document.getElementById('displaySubtotal').textContent = `₹${grandTotal.toFixed(2)}`; // Displaying total incl GST here as per the user's example
+    document.getElementById('displayNetPrice').textContent = `₹${netPrice.toFixed(2)}`;
+    document.getElementById('displayTax').textContent = `₹${gstAmount.toFixed(2)}`;
     document.getElementById('displayDiscount').textContent = `₹${discount.toFixed(2)}`;
-    document.getElementById('displayTax').textContent = `₹${tax.toFixed(2)}`;
     document.getElementById('displayGrandTotal').textContent = `₹${grandTotal.toFixed(2)}`;
     document.getElementById('paymentAmount').value = grandTotal.toFixed(2);
 }
@@ -432,6 +440,8 @@ document.getElementById('btnAssignAndPay').addEventListener('click', async funct
 
     const grandTotal = parseFloat(document.getElementById('displayGrandTotal').textContent.replace('₹', ''));
     const discount = parseFloat(document.getElementById('displayDiscount').textContent.replace('₹', ''));
+    const netPrice = parseFloat(document.getElementById('displayNetPrice').textContent.replace('₹', ''));
+    const gstAmount = parseFloat(document.getElementById('displayTax').textContent.replace('₹', ''));
 
     const payload = {
         assignment: {
@@ -442,7 +452,10 @@ document.getElementById('btnAssignAndPay').addEventListener('click', async funct
             price_paid: grandTotal,
             discount: discount,
             expires_on: expiresOn || null,
-            notes: notes
+            notes: notes,
+            // Include net price and GST amount for clarity in backend if needed
+            net_price: netPrice,
+            gst_amount: gstAmount
         },
         payment: {
             collect: true,
