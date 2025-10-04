@@ -2490,6 +2490,7 @@
 
                 updateAppointmentCount();
                 updateSummary();
+                updateSubmitButton(); // Ensure button is enabled/disabled correctly
             }
 
             // Add a new appointment card to the modal
@@ -2663,22 +2664,20 @@
             }
 
             // Check for conflicts for a specific appointment card
-            function checkConflicts(index) {
-                const card = document.querySelector(
-                    `[data-appointment-index="${index}"]`,
-                );
-                if (!card) return;
+            function checkConflicts(appointmentIndex) { // Renamed parameter for clarity
+                const appointment = document.querySelector(`[data-appointment-index="${appointmentIndex}"]`);
+                if (!appointment) return;
 
-                const staffSelect = card.querySelector(".staff-select");
-                const dateInput = card.querySelector(".appointment-date");
-                const startTimeInput = card.querySelector(".start-time");
-                const endTimeInput = card.querySelector(".end-time");
-                const conflictAlert = card.querySelector(".alert");
-                const conflictMessageSpan = conflictAlert.querySelector(".conflict-message");
+                const staffSelect = appointment.querySelector('.staff-select');
+                const dateInput = appointment.querySelector('.appointment-date');
+                const startTimeInput = appointment.querySelector('.start-time');
+                const endTimeInput = appointment.querySelector('.end-time');
+                const conflictAlert = appointment.querySelector(`#conflictAlert${appointmentIndex}`);
+                const conflictMessageSpan = conflictAlert?.querySelector('.conflict-message');
 
                 // Clear previous conflict styling and message
-                conflictAlert.classList.add("d-none");
-                card.classList.remove("duplicate");
+                if (conflictAlert) conflictAlert.classList.add('d-none');
+                appointment.classList.remove('duplicate');
                 clearFieldError(staffSelect); // Clear staff conflict error if any
                 clearFieldError(startTimeInput); // Clear time conflict error if any
 
@@ -2707,9 +2706,9 @@
 
                         if (timesOverlap(startTime, endTime, bookingStart, bookingEnd)) {
                             const message = `Staff member is already booked from ${formatTime(bookingStart)} to ${formatTime(bookingEnd)}`;
-                            conflictMessageSpan.textContent = message;
-                            conflictAlert.classList.remove("d-none");
-                            card.classList.add("duplicate");
+                            if (conflictMessageSpan) conflictMessageSpan.textContent = message;
+                            if (conflictAlert) conflictAlert.classList.remove('d-none');
+                            appointment.classList.add('duplicate');
                             showFieldError(staffSelect, message); // Show error on staff select
                             conflictFound = true;
                         }
@@ -2719,7 +2718,7 @@
                 // Check for conflicts within the current multi-booking session
                 const currentAppointments = document.querySelectorAll('.appointment-card');
                 currentAppointments.forEach((otherCard, otherIndex) => {
-                    if (otherCard === card) return; // Skip self-comparison
+                    if (parseInt(otherCard.dataset.appointmentIndex) === appointmentIndex) return; // Skip self-comparison
 
                     const otherStaffSelect = otherCard.querySelector('.staff-select');
                     const otherDateInput = otherCard.querySelector('.appointment-date');
@@ -2730,9 +2729,9 @@
                         if (parseInt(otherStaffSelect.value) === staffId && otherDateInput.value === date) {
                             if (timesOverlap(startTime, endTime, otherStartTimeInput.value, otherEndTimeInput.value)) {
                                 const message = `Conflict with Appointment #${otherIndex + 1}`;
-                                conflictMessageSpan.textContent = message;
-                                conflictAlert.classList.remove("d-none");
-                                card.classList.add("duplicate");
+                                if (conflictMessageSpan) conflictMessageSpan.textContent = message;
+                                if (conflictAlert) conflictAlert.classList.remove('d-none');
+                                appointment.classList.add('duplicate');
                                 showFieldError(startTimeInput, message); // Show error on start time
                                 conflictFound = true;
                             }
@@ -2783,8 +2782,41 @@
             // SUBMISSION AND VALIDATION LOGIC
             // ==========================================
 
-            // Submit multi-appointment booking
-            async function submitMultiAppointment() {
+            function submitMultiAppointment() {
+                console.log('📝 Starting multi-appointment submission...');
+
+                // Get client information
+                const clientSelect = document.getElementById('multiClientSelect');
+                const clientId = clientSelect?.value;
+                const clientName = clientSelect?.options[clientSelect.selectedIndex]?.text;
+
+                if (!clientId) {
+                    showNotification('⚠️ Please select a client', 'error');
+                    return;
+                }
+
+                // Check for past appointments on submission
+                const now = new Date();
+                const appointments = document.querySelectorAll('.appointment-card');
+                let hasPastAppointment = false;
+
+                appointments.forEach(appointment => {
+                    const date = appointment.querySelector('.appointment-date')?.value;
+                    const startTime = appointment.querySelector('.start-time')?.value;
+                    if (date && startTime) {
+                        const appointmentDateTime = new Date(`${date}T${startTime}`);
+                        if (appointmentDateTime < now) {
+                            hasPastAppointment = true;
+                        }
+                    }
+                });
+
+                if (hasPastAppointment) {
+                    if (!confirm('⚠️ One or more appointments are scheduled in the past. Do you want to proceed anyway?')) {
+                        return;
+                    }
+                }
+
                 // Final validation check before submission
                 const errors = validateAllAppointments();
 
@@ -2802,12 +2834,11 @@
                 }
 
                 // Proceed with booking if validation passes
-                const clientId = document.getElementById('multiClientSelect').value;
                 const appointmentCards = document.querySelectorAll('.appointment-card');
-                const appointments = [];
+                const appointmentsToBook = [];
 
                 // Gather appointment data from each card
-                appointmentCards.forEach((card, index) => {
+                appointmentCards.forEach((card) => {
                     const serviceId = card.querySelector('.service-select').value;
                     const staffId = card.querySelector('.staff-select').value;
                     const date = card.querySelector('.appointment-date').value;
@@ -2815,7 +2846,7 @@
 
                     // Only include appointments with all required fields filled
                     if (serviceId && staffId && date && startTime) {
-                        appointments.push({
+                        appointmentsToBook.push({
                             service_id: serviceId,
                             staff_id: staffId,
                             date: date,
@@ -2825,7 +2856,7 @@
                 });
 
                 // Ensure at least one valid appointment is selected
-                if (appointments.length === 0) {
+                if (appointmentsToBook.length === 0) {
                     showNotification('Please add at least one valid appointment', 'error');
                     return;
                 }
@@ -2835,7 +2866,7 @@
                 overlay.classList.add("show");
 
                 // Submit each appointment individually
-                const bookingPromises = appointments.map((appointment) => {
+                const bookingPromises = appointmentsToBook.map((appointment) => {
                     return fetch("/api/unaki/book-appointment", {
                         method: "POST",
                         headers: {
@@ -3026,8 +3057,8 @@
                     // Check for conflicts within the current multi-booking session
                     currentAppointments.forEach(otherApt => {
                         // Ensure it's not comparing the same appointment card and check for overlap
-                        if (apt.index !== otherApt.index && 
-                            apt.staffId === otherApt.staffId && 
+                        if (apt.index !== otherApt.index &&
+                            apt.staffId === otherApt.staffId &&
                             apt.date === otherApt.date) {
                             if (timesOverlap(apt.startTime, apt.endTime, otherApt.startTime, otherApt.endTime)) {
                                 conflicts.push({
@@ -3286,6 +3317,7 @@
                     firstCard.querySelector(".start-time").value = time;
                     calculateEndTime(0); // Calculate end time based on default service
                     checkConflicts(0); // Check conflicts for the pre-filled card
+                    updateSubmitButton(); // Ensure button state is correct initially
                 }
             }
 
