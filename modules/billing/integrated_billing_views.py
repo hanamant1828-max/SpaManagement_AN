@@ -297,10 +297,34 @@ def integrated_billing(customer_id=None):
                     apt_dict['service_price'] = 0.0
                 customer_appointments.append(apt_dict)
 
-            # Get unique services from Unaki appointments
+            # Get unique services from Unaki appointments and map service_ids
             unaki_service_names = list(set([apt.get('service_name') for apt in customer_appointments if apt.get('service_name')]))
             if unaki_service_names:
                 customer_services_objects = Service.query.filter(Service.name.in_(unaki_service_names)).all()
+                
+                # Create a mapping of service names to service objects
+                service_name_map = {service.name: service for service in customer_services_objects}
+                
+                # Update appointments with correct service_id from matching service name
+                for apt in customer_appointments:
+                    if apt.get('service_name'):
+                        # Try exact match first
+                        matching_service = service_name_map.get(apt['service_name'])
+                        
+                        # If no exact match, try partial match (service name might include price/duration)
+                        if not matching_service:
+                            service_base_name = apt['service_name'].split('(')[0].strip()
+                            for service in customer_services_objects:
+                                if service.name in apt['service_name'] or apt['service_name'].startswith(service.name):
+                                    matching_service = service
+                                    break
+                        
+                        # Update appointment with service_id and price
+                        if matching_service:
+                            apt['service_id'] = matching_service.id
+                            apt['service_price'] = float(matching_service.price)
+                            apt['service_duration'] = matching_service.duration
+                
                 # Convert Service objects to dictionaries for JSON serialization
                 customer_services = [
                     {
@@ -552,10 +576,19 @@ def get_customer_appointments(customer_id):
             if appointment.service_id:
                 matching_service = Service.query.get(appointment.service_id)
             elif appointment.service_name:
+                # Try exact match first
                 matching_service = Service.query.filter(
-                    Service.name.ilike(f'%{appointment.service_name}%'),
+                    Service.name == appointment.service_name,
                     Service.is_active == True
                 ).first()
+                
+                # If no exact match, try partial match (service name might include price/duration)
+                if not matching_service:
+                    service_base_name = appointment.service_name.split('(')[0].strip()
+                    matching_service = Service.query.filter(
+                        Service.name.ilike(f'{service_base_name}%'),
+                        Service.is_active == True
+                    ).first()
 
             # Add service details to appointment data
             if matching_service:
@@ -563,6 +596,9 @@ def get_customer_appointments(customer_id):
                 apt_dict['service_name'] = matching_service.name
                 apt_dict['service_price'] = float(matching_service.price)
                 apt_dict['service_duration'] = matching_service.duration
+            else:
+                # If still no match, log it for debugging
+                app.logger.warning(f"No matching service found for appointment {appointment.id} with service_name: {appointment.service_name}")
 
             appointments_data.append(apt_dict)
 
