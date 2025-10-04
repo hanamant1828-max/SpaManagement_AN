@@ -595,9 +595,9 @@ textarea.form-control {
                         </div>
                         <div class="col-md-6">
                             <div class="form-group">
-                                <label class="form-label">Active Packages</label>
-                                <div id="customerPackages" class="alert alert-info" style="max-height: 200px; overflow-y: auto;">
-                                    <small><i class="fas fa-info-circle me-1"></i>Select customer to view packages</small>
+                                <label class="form-label">Booked Appointments</label>
+                                <div id="customerAppointments" class="alert alert-info" style="max-height: 200px; overflow-y: auto;">
+                                    <small><i class="fas fa-info-circle me-1"></i>Select customer to view appointments</small>
                                 </div>
                             </div>
                         </div>
@@ -960,64 +960,45 @@ function loadCustomerPackages(customerId) {
 }
 
 function displayPackagesAndAppointments(packages, appointments) {
-    const packagesDiv = document.getElementById('customerPackages');
+    const appointmentsDiv = document.getElementById('customerAppointments');
     
-    if (!packages.length && !appointments.length) {
-        packagesDiv.innerHTML = '<small class="text-muted"><i class="fas fa-info-circle"></i> No active packages or appointments</small>';
+    if (!appointments.length) {
+        appointmentsDiv.innerHTML = '<small class="text-muted"><i class="fas fa-info-circle"></i> No booked appointments</small>';
         return;
     }
 
     let html = '';
     
-    // Display packages
-    if (packages.length > 0) {
-        html += '<div class="mb-2"><strong>Active Packages:</strong></div>';
-        packages.forEach(pkg => {
-            const icon = pkg.package_type === 'service_package' ? 'fa-spa' : 
-                         pkg.package_type === 'prepaid' ? 'fa-wallet' : 'fa-crown';
+    // Display appointments with Add to Bill button
+    const upcomingAppointments = appointments.filter(apt => 
+        apt.status === 'scheduled' || apt.status === 'confirmed'
+    );
+    
+    if (upcomingAppointments.length > 0) {
+        upcomingAppointments.forEach(apt => {
+            const date = new Date(apt.appointment_date);
+            const formattedDate = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            const serviceName = apt.service_name || 'Service';
+            const staffName = apt.staff_name || 'Staff';
+            const price = apt.service_price || 0;
+            const duration = apt.service_duration || 60;
             
-            html += `<div class="package-benefit mb-2 ms-2">
-                <strong><i class="fas ${icon}"></i> ${pkg.package_name}</strong><br>
-                <small>`;
-            
-            if (pkg.package_type === 'service_package') {
-                html += `${pkg.remaining_sessions || 0} of ${pkg.total_sessions || 0} sessions remaining`;
-            } else if (pkg.package_type === 'prepaid') {
-                html += `₹${(pkg.remaining_credit || 0).toFixed(2)} credit remaining`;
-            } else if (pkg.package_type === 'membership') {
-                const services = pkg.services?.map(s => s.service_name).join(', ') || 'All services';
-                html += `Covers: ${services}`;
-            }
-            
-            html += `</small></div>`;
+            html += `<div class="package-benefit mb-2 ms-2" style="display: flex; justify-content: space-between; align-items: center;">
+                <div style="flex: 1;">
+                    <strong><i class="fas fa-calendar-check"></i> ${formattedDate} at ${apt.start_time}</strong><br>
+                    <small>Service: ${serviceName} (${duration} min - ₹${price.toFixed(2)})</small><br>
+                    <small>Staff: ${staffName}</small>
+                </div>
+                <button type="button" class="btn btn-sm btn-primary" onclick="addAppointmentToBill(${apt.id}, '${serviceName}', ${price}, '${staffName}', ${apt.service_id || 0})">
+                    <i class="fas fa-plus"></i> Add to Bill
+                </button>
+            </div>`;
         });
+    } else {
+        html += '<div class="ms-2"><small class="text-muted">No upcoming appointments</small></div>';
     }
     
-    // Display appointments
-    if (appointments.length > 0) {
-        html += '<div class="mt-3 mb-2"><strong>Booked Appointments:</strong></div>';
-        // Filter for upcoming/scheduled appointments
-        const upcomingAppointments = appointments.filter(apt => 
-            apt.status === 'scheduled' || apt.status === 'confirmed'
-        ).slice(0, 5); // Show only first 5
-        
-        if (upcomingAppointments.length > 0) {
-            upcomingAppointments.forEach(apt => {
-                const date = new Date(apt.appointment_date);
-                const formattedDate = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-                html += `<div class="package-benefit mb-1 ms-2">
-                    <small><i class="fas fa-calendar-check"></i> ${formattedDate} at ${apt.start_time} - ${apt.service_names || 'Service'}</small>
-                </div>`;
-            });
-            if (appointments.length > 5) {
-                html += `<div class="ms-2"><small class="text-muted">+${appointments.length - 5} more...</small></div>`;
-            }
-        } else {
-            html += '<div class="ms-2"><small class="text-muted">No upcoming appointments</small></div>';
-        }
-    }
-    
-    packagesDiv.innerHTML = html;
+    appointmentsDiv.innerHTML = html;
 }
 
 function displayPackages(packages) {
@@ -1026,10 +1007,88 @@ function displayPackages(packages) {
 }
 
 function resetCustomerPackages() {
-    document.getElementById('customerPackages').innerHTML = 
-        '<small class="text-muted"><i class="fas fa-info-circle"></i> Select customer to view packages</small>';
+    document.getElementById('customerAppointments').innerHTML = 
+        '<small class="text-muted"><i class="fas fa-info-circle"></i> Select customer to view appointments</small>';
     BillingState.customerPackages = null;
     updateCalculations();
+}
+
+function addAppointmentToBill(appointmentId, serviceName, servicePrice, staffName, serviceId) {
+    console.log(`Adding appointment ${appointmentId} to bill - Service: ${serviceName}, Staff: ${staffName}, Price: ${servicePrice}`);
+
+    const container = document.getElementById('servicesContainer');
+    if (!container) {
+        console.error('Services container not found');
+        return;
+    }
+
+    const firstRow = container.children[0];
+    const serviceSelect = firstRow.querySelector('select[name="service_ids[]"]');
+    const staffSelect = firstRow.querySelector('select[name="staff_ids[]"]');
+    const qtyInput = firstRow.querySelector('input[name="service_quantities[]"]');
+    const appointmentInput = firstRow.querySelector('input[name="appointment_ids[]"]');
+
+    const isFirstRowEmpty = !serviceSelect.value && !qtyInput.value;
+
+    if (isFirstRowEmpty) {
+        // Use first row if empty
+        if (serviceId && serviceSelect) {
+            serviceSelect.value = serviceId;
+            handleServiceChange(serviceSelect);
+        }
+
+        if (staffName && staffSelect) {
+            const staffOption = Array.from(staffSelect.options).find(opt => 
+                opt.text.toLowerCase().includes(staffName.toLowerCase())
+            );
+            if (staffOption) {
+                staffSelect.value = staffOption.value;
+            }
+        }
+
+        if (qtyInput) qtyInput.value = 1;
+        if (appointmentInput) {
+            appointmentInput.value = appointmentId;
+            console.log(`✅ Set appointment ID ${appointmentId} in first row`);
+        }
+    } else {
+        // Add new row
+        addServiceRow();
+        
+        const newRow = container.children[container.children.length - 1];
+        const newServiceSelect = newRow.querySelector('select[name="service_ids[]"]');
+        const newStaffSelect = newRow.querySelector('select[name="staff_ids[]"]');
+        const newQtyInput = newRow.querySelector('input[name="service_quantities[]"]');
+        const newAppointmentInput = newRow.querySelector('input[name="appointment_ids[]"]');
+
+        if (serviceId && newServiceSelect) {
+            newServiceSelect.value = serviceId;
+            handleServiceChange(newServiceSelect);
+        }
+
+        if (staffName && newStaffSelect) {
+            const staffOption = Array.from(newStaffSelect.options).find(opt => 
+                opt.text.toLowerCase().includes(staffName.toLowerCase())
+            );
+            if (staffOption) {
+                newStaffSelect.value = staffOption.value;
+            }
+        }
+
+        if (newQtyInput) newQtyInput.value = 1;
+        if (newAppointmentInput) {
+            newAppointmentInput.value = appointmentId;
+            console.log(`✅ Set appointment ID ${appointmentId} in new row`);
+        }
+    }
+
+    updateCalculations();
+    showNotification(`Service added to bill! Appointment #${appointmentId}`, 'success');
+}
+
+function showNotification(message, type = 'info') {
+    // Simple notification - you can enhance this
+    alert(message);
 }
 
 // ==========================================

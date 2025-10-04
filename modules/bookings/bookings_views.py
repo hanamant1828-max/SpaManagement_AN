@@ -2612,7 +2612,7 @@ def api_unaki_customer_appointments(client_id):
             UnakiBooking.status.in_(['scheduled', 'confirmed'])
         ).order_by(UnakiBooking.appointment_date.desc()).all()
 
-        # If no results, try matching by phone
+        # If no results, try to match by phone
         if not appointments and customer.phone:
             appointments = UnakiBooking.query.filter(
                 UnakiBooking.client_phone == customer.phone,
