@@ -14,6 +14,9 @@ logger.info("✅ Using SQLite database for local storage")
 # Set PORT from environment if available (for Replit deployment)
 port = int(os.environ.get("PORT", 5000))
 
+# Import app at module level for gunicorn/WSGI compatibility
+from app import app
+
 def main():
     """Main application entry point with crash guards"""
     logger.info("🚀 Starting Spa Management System...")
@@ -21,9 +24,6 @@ def main():
     logger.info("🌐 Access via webview or browser")
 
     try:
-        # Import app with timeout protection
-        logger.info("📦 Importing Flask application...")
-        from app import app
         logger.info("✅ App imported successfully")
 
         # Start the server with host configuration for Replit
