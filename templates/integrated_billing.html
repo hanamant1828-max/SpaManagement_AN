@@ -244,6 +244,17 @@ body {
     box-shadow: var(--shadow-lg);
 }
 
+.btn-info-custom {
+    background: var(--gradient-info);
+    color: white;
+    box-shadow: var(--shadow-md);
+}
+
+.btn-info-custom:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+}
+
 .btn-custom:disabled {
     opacity: 0.6;
     cursor: not-allowed;
@@ -790,6 +801,11 @@ body {
                             </span>
                         </button>
 
+                        <button type="button" class="btn btn-info-custom btn-lg-custom" onclick="saveAndPrintInvoice()">
+                            <i class="fas fa-print"></i>
+                            Save & Print
+                        </button>
+
                         <button type="button" class="btn btn-primary-custom" onclick="previewInvoice()">
                             <i class="fas fa-eye"></i>
                             Preview
@@ -949,11 +965,22 @@ function handleFormSubmit(event) {
             submitBtn.querySelector('.btn-loading').classList.add('d-none');
             submitBtn.querySelector('.btn-success-state').classList.remove('d-none');
 
-            const successMsg = `✅ Invoice Created Successfully!\n\nInvoice #${data.invoice_number}\nTotal: ₹${parseFloat(data.total_amount).toFixed(2)}\n\nRedirecting...`;
+            const successMsg = `✅ Invoice Created Successfully!\n\nInvoice #${data.invoice_number}\nTotal: ₹${parseFloat(data.total_amount).toFixed(2)}\n\n${window.printAfterSave ? 'Opening print...' : 'Redirecting...'}`;
             showNotification(successMsg, 'success');
 
             setTimeout(() => {
-                window.location.href = `/integrated-billing/invoice/${data.invoice_id}`;
+                if (window.printAfterSave) {
+                    // Open print page in new window
+                    window.open(`/integrated-billing/print-invoice/${data.invoice_id}`, '_blank');
+                    // Reset flag
+                    window.printAfterSave = false;
+                    // Still redirect to invoice detail
+                    setTimeout(() => {
+                        window.location.href = `/integrated-billing/invoice/${data.invoice_id}`;
+                    }, 1000);
+                } else {
+                    window.location.href = `/integrated-billing/invoice/${data.invoice_id}`;
+                }
             }, 2000);
         } else {
             throw new Error(data.message || 'Failed to create invoice');
@@ -1319,12 +1346,232 @@ function updateCalculations() {
 }
 
 // ==========================================
-// PREVIEW
+// PREVIEW WITH VALIDATION
 // ==========================================
 function previewInvoice() {
-    // This function would typically gather form data and display a preview
-    // For now, just show a notification
-    showNotification('Preview functionality is under development.', 'info');
+    // Validate form first
+    if (!validateBillingForm()) {
+        console.log('❌ Validation failed for preview');
+        return false;
+    }
+
+    // Show preview notification
+    showNotification('✅ Validation passed! Generating preview...', 'info', 3000);
+
+    // Generate preview data
+    const formData = gatherFormData();
+    
+    // Display preview modal or new window
+    displayPreviewModal(formData);
+}
+
+function displayPreviewModal(formData) {
+    // Create preview HTML
+    let previewHTML = `
+        <div class="preview-container">
+            <h3 class="text-center mb-4">Invoice Preview</h3>
+            
+            <div class="row mb-3">
+                <div class="col-6">
+                    <strong>Customer:</strong> ${formData.customerName || 'Not Selected'}
+                </div>
+                <div class="col-6 text-end">
+                    <strong>Date:</strong> ${new Date().toLocaleDateString()}
+                </div>
+            </div>
+
+            <h5 class="mt-4">Services</h5>
+            <table class="table table-sm">
+                <thead><tr><th>Service</th><th>Staff</th><th>Qty</th><th>Amount</th></tr></thead>
+                <tbody>
+    `;
+
+    formData.services.forEach(service => {
+        previewHTML += `
+            <tr>
+                <td>${service.name}</td>
+                <td>${service.staffName}</td>
+                <td>${service.quantity}</td>
+                <td>₹${service.amount.toFixed(2)}</td>
+            </tr>
+        `;
+    });
+
+    previewHTML += `</tbody></table>`;
+
+    if (formData.products.length > 0) {
+        previewHTML += `
+            <h5 class="mt-4">Products</h5>
+            <table class="table table-sm">
+                <thead><tr><th>Product</th><th>Batch</th><th>Staff</th><th>Qty</th><th>Amount</th></tr></thead>
+                <tbody>
+        `;
+
+        formData.products.forEach(product => {
+            previewHTML += `
+                <tr>
+                    <td>${product.name}</td>
+                    <td>${product.batchName}</td>
+                    <td>${product.staffName}</td>
+                    <td>${product.quantity}</td>
+                    <td>₹${product.amount.toFixed(2)}</td>
+                </tr>
+            `;
+        });
+
+        previewHTML += `</tbody></table>`;
+    }
+
+    previewHTML += `
+            <div class="row mt-4">
+                <div class="col-6 offset-6">
+                    <table class="table table-sm">
+                        <tr><td>Subtotal:</td><td class="text-end">₹${formData.subtotal.toFixed(2)}</td></tr>
+                        <tr><td>Discount:</td><td class="text-end text-success">-₹${formData.discount.toFixed(2)}</td></tr>
+                        <tr><td>GST (${formData.gstRate}%):</td><td class="text-end">₹${formData.gst.toFixed(2)}</td></tr>
+                        <tr class="fw-bold"><td>Total:</td><td class="text-end">₹${formData.total.toFixed(2)}</td></tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+    `;
+
+    // Show in modal
+    const modal = document.createElement('div');
+    modal.className = 'modal fade';
+    modal.innerHTML = `
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Invoice Preview</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    ${previewHTML}
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    const bsModal = new bootstrap.Modal(modal);
+    bsModal.show();
+    
+    modal.addEventListener('hidden.bs.modal', () => {
+        modal.remove();
+    });
+}
+
+// ==========================================
+// SAVE AND PRINT WITH VALIDATION
+// ==========================================
+function saveAndPrintInvoice() {
+    // Validate form first
+    if (!validateBillingForm()) {
+        console.log('❌ Validation failed for save & print');
+        return false;
+    }
+
+    // Show confirmation
+    if (!confirm('✅ Validation passed!\n\nProceed to save and print invoice?')) {
+        return false;
+    }
+
+    // Set a flag to print after successful save
+    window.printAfterSave = true;
+
+    // Submit the form
+    document.getElementById('billingForm').submit();
+}
+
+// ==========================================
+// GATHER FORM DATA FOR PREVIEW
+// ==========================================
+function gatherFormData() {
+    const form = document.getElementById('billingForm');
+    const clientSelect = document.getElementById('client_id');
+    const customerName = clientSelect.options[clientSelect.selectedIndex]?.text || 'Not Selected';
+
+    const data = {
+        customerName: customerName,
+        services: [],
+        products: [],
+        subtotal: 0,
+        discount: 0,
+        gst: 0,
+        gstRate: 0,
+        total: 0
+    };
+
+    // Gather services
+    document.querySelectorAll('.service-row').forEach(row => {
+        const serviceSelect = row.querySelector('select[name="service_ids[]"]');
+        const staffSelect = row.querySelector('select[name="staff_ids[]"]');
+        const qtyInput = row.querySelector('input[name="service_quantities[]"]');
+
+        if (serviceSelect && serviceSelect.value && staffSelect && staffSelect.value) {
+            const option = serviceSelect.options[serviceSelect.selectedIndex];
+            const price = parseFloat(option.dataset.price) || 0;
+            const qty = parseFloat(qtyInput.value) || 1;
+            const amount = price * qty;
+
+            data.services.push({
+                name: option.text.split(' - ')[0],
+                staffName: staffSelect.options[staffSelect.selectedIndex].text,
+                quantity: qty,
+                price: price,
+                amount: amount
+            });
+
+            data.subtotal += amount;
+        }
+    });
+
+    // Gather products
+    document.querySelectorAll('.product-row').forEach(row => {
+        const productSelect = row.querySelector('select[name="product_ids[]"]');
+        const batchSelect = row.querySelector('select[name="batch_ids[]"]');
+        const staffSelect = row.querySelector('select[name="product_staff_ids[]"]');
+        const qtyInput = row.querySelector('input[name="product_quantities[]"]');
+        const priceInput = row.querySelector('input[name="product_prices[]"]');
+
+        if (productSelect && productSelect.value && batchSelect && batchSelect.value) {
+            const price = parseFloat(priceInput.value) || 0;
+            const qty = parseFloat(qtyInput.value) || 1;
+            const amount = price * qty;
+
+            data.products.push({
+                name: productSelect.options[productSelect.selectedIndex].text,
+                batchName: batchSelect.options[batchSelect.selectedIndex].text,
+                staffName: staffSelect.options[staffSelect.selectedIndex].text,
+                quantity: qty,
+                price: price,
+                amount: amount
+            });
+
+            data.subtotal += amount;
+        }
+    });
+
+    // Calculate discount
+    const discountPercentage = parseFloat(form.querySelector('input[name="discount_percentage"]')?.value) || 0;
+    data.discount = (data.subtotal * discountPercentage) / 100;
+
+    // Calculate GST
+    const gstEnabled = document.getElementById('gstEnabled')?.checked || false;
+    const gstInput = document.getElementById('gstPercentage');
+    data.gstRate = gstEnabled ? (parseFloat(gstInput?.value) || 0) : 0;
+    
+    const subtotalAfterDiscount = data.subtotal - data.discount;
+    data.gst = (subtotalAfterDiscount * data.gstRate) / 100;
+
+    // Calculate total
+    data.total = subtotalAfterDiscount + data.gst;
+
+    return data;
 }
 
 // ==========================================
