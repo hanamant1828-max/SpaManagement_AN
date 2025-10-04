@@ -70,14 +70,14 @@
                 <ul class="nav nav-pills flex-column h-auto" style="padding: 1rem 0;">
                     <li class="nav-item">
                         <a class="nav-link text-white" href="{{ url_for('dashboard') }}">
-                            <i class="fas fa-tachometer-alt me-2"></i><span>Dashboard</span>
+                            <i class="fas fa-chart-line me-2"></i><span>Dashboard</span>
                         </a>
                     </li>
 
                     {% if true %}
                     <li class="nav-item">
                         <a class="nav-link text-white" href="{{ url_for('customers') }}">
-                            <i class="fas fa-users me-2"></i><span>Client History & Loyalty</span>
+                            <i class="fas fa-user-friends me-2"></i><span>Client Management</span>
                         </a>
                     </li>
                     {% endif %}
@@ -85,17 +85,17 @@
                     {% if true %}
                     <li class="nav-item">
                         <a class="nav-link text-white" href="{{ url_for('comprehensive_staff') }}">
-                            <i class="fas fa-users me-2"></i><span>Staff Management</span>
+                            <i class="fas fa-user-tie me-2"></i><span>Staff Management</span>
                         </a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link text-white" href="{{ url_for('shift_scheduler.shift_scheduler') }}">
-                            <i class="fas fa-calendar-week me-2"></i><span>Shift Scheduler</span>
+                            <i class="fas fa-calendar-alt me-2"></i><span>Shift Scheduler</span>
                         </a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link text-white" href="{{ url_for('shift_scheduler.out_of_office_management') }}">
-                            <i class="fas fa-briefcase me-2"></i><span>Out of Office</span>
+                            <i class="fas fa-plane-departure me-2"></i><span>Out of Office</span>
                         </a>
                     </li>
 
@@ -104,7 +104,7 @@
                     {% if true %}
                     <li class="nav-item">
                         <a class="nav-link text-white" href="{{ url_for('checkin') }}">
-                            <i class="fas fa-user-check me-2"></i><span>Check-In</span>
+                            <i class="fas fa-clipboard-check me-2"></i><span>Client Check-In</span>
                         </a>
                     </li>
                     {% endif %}
@@ -112,7 +112,7 @@
                     {% if true %}
                     <li class="nav-item">
                         <a class="nav-link text-white" href="/unaki-booking">
-                            <i class="fas fa-calendar-plus me-2"></i><span>Unaki Appointment Booking</span>
+                            <i class="fas fa-calendar-check me-2"></i><span>Appointment Booking</span>
                         </a>
                     </li>
                     {% endif %}
@@ -120,23 +120,24 @@
                     {% if true %}
                     <li class="nav-item">
                         <a class="nav-link text-white" href="{{ url_for('notifications') }}">
-                            <i class="fas fa-bell me-2"></i><span>WhatsApp Notifications</span>
+                            <i class="fab fa-whatsapp me-2"></i><span>Client Notifications</span>
                         </a>
                     </li>
                     {% endif %}
 
                     {% if true %}
-                    <a class="nav-link text-white" href="{{ url_for('integrated_billing') }}">
-                            <i class="fas fa-file-invoice-dollar"></i>
-                            Integrated Billing
+                    <li class="nav-item">
+                        <a class="nav-link text-white" href="{{ url_for('integrated_billing') }}">
+                            <i class="fas fa-cash-register me-2"></i><span>Billing & Invoices</span>
                         </a>
+                    </li>
                     {% endif %}
 
 
                     {% if true %}
                     <li class="nav-item">
                         <a class="nav-link text-white" href="{{ url_for('services') }}">
-                            <i class="fas fa-spa me-2"></i><span>Services Management</span>
+                            <i class="fas fa-concierge-bell me-2"></i><span>Services Catalog</span>
                         </a>
                     </li>
                     {% endif %}
@@ -144,12 +145,12 @@
                     {% if true %}
                     <li class="nav-item">
                         <a class="nav-link text-white" href="{{ url_for('packages') }}">
-                            <i class="fas fa-gift me-2"></i><span>Professional Packages</span>
+                            <i class="fas fa-box-open me-2"></i><span>Package Templates</span>
                         </a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link text-white" href="{{ url_for('customer_packages') }}">
-                            <i class="fas fa-users me-2"></i>Customer Packages
+                            <i class="fas fa-gift me-2"></i><span>Client Packages</span>
                         </a>
                     </li>
                     {% endif %}
@@ -157,7 +158,7 @@
                     {% if true %}
                     <li class="nav-item">
                         <a class="nav-link text-white" href="{{ url_for('reports') }}">
-                            <i class="fas fa-chart-bar me-2"></i><span>Reports & Insights</span>
+                            <i class="fas fa-chart-pie me-2"></i><span>Reports & Analytics</span>
                         </a>
                     </li>
                     {% endif %}
@@ -165,7 +166,7 @@
                     {% if true %}
                     <li class="nav-item">
                         <a class="nav-link text-white" href="{{ url_for('expenses') }}">
-                            <i class="fas fa-receipt me-2"></i><span>Daily Expense Tracker</span>
+                            <i class="fas fa-wallet me-2"></i><span>Expense Tracking</span>
                         </a>
                     </li>
                     {% endif %}
@@ -173,7 +174,7 @@
                     {% if true %}
                     <li class="nav-item">
                         <a class="nav-link text-white" href="{{ url_for('inventory_dashboard') }}">
-                            <i class="fas fa-boxes me-2"></i><span>Inventory Management</span>
+                            <i class="fas fa-warehouse me-2"></i><span>Inventory Control</span>
                         </a>
                     </li>
                     {% endif %}
@@ -181,7 +182,7 @@
                     {% if true %}
                     <li class="nav-item">
                         <a class="nav-link text-white" href="{{ url_for('alerts') }}">
-                            <i class="fas fa-exclamation-triangle me-2"></i><span>Expiring Product Alerts</span>
+                            <i class="fas fa-bell me-2"></i><span>Product Alerts</span>
                         </a>
                     </li>
                     {% endif %}
@@ -192,25 +193,25 @@
                     {% if true %}
                     <li class="nav-item mt-3 mb-2">
                         <div class="nav-section-header px-3">
-                            <span class="text-muted small">SYSTEM MANAGEMENT</span>
+                            <span class="text-muted small">SYSTEM ADMINISTRATION</span>
                         </div>
                     </li>
 
                     <li class="nav-item">
                         <a class="nav-link text-white" href="{{ url_for('system_management') }}">
-                            <i class="fas fa-server me-2"></i><span>System Management</span>
+                            <i class="fas fa-cogs me-2"></i><span>System Settings</span>
                         </a>
                     </li>
 
                     <li class="nav-item">
                         <a class="nav-link text-white" href="{{ url_for('settings') }}">
-                            <i class="fas fa-users-cog me-2"></i><span>Role Management</span>
+                            <i class="fas fa-user-shield me-2"></i><span>Role Management</span>
                         </a>
                     </li>
 
                     <li class="nav-item">
                         <a class="nav-link text-white" href="{{ url_for('settings') }}">
-                            <i class="fas fa-user-cog me-2"></i><span>User & Access Control</span>
+                            <i class="fas fa-lock me-2"></i><span>Access Control</span>
                         </a>
                     </li>
                     {% endif %}
