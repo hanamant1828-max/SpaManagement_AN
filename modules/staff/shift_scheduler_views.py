@@ -37,6 +37,22 @@ def add_shift_scheduler():
                          staff_members=staff_members,
                          today=date.today().strftime('%Y-%m-%d'))
 
+# Out of Office Management Page
+@shift_scheduler_bp.route('/out-of-office-management')
+@login_required
+def out_of_office_management():
+    """Dedicated page for managing Out of Office entries"""
+    if not current_user.can_access('staff'):
+        flash('Access denied', 'danger')
+        return redirect(url_for('dashboard'))
+
+    # Get all active staff members
+    staff_members = User.query.filter_by(is_active=True).order_by(User.first_name, User.last_name).all()
+    
+    return render_template('out_of_office_management.html',
+                         staff_members=staff_members,
+                         today=date.today().strftime('%Y-%m-%d'))
+
 # Main shift scheduler interface
 @shift_scheduler_bp.route('/shift-scheduler')
 @login_required
