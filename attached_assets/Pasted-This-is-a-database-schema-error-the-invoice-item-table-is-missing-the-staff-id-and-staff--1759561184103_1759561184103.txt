@@ -1,0 +1,72 @@
+This is a **database schema error** - the `invoice_item` table is missing the `staff_id` and `staff_name` columns that your backend code is trying to use.
+
+## Database Migration Needed
+
+Your backend is trying to insert staff information, but the table schema hasn't been updated. Here's the fix:Now create a quick-fix SQL script:## 🔧 **Issue Identified**
+
+Your **database schema is outdated**. The backend code is trying to store staff information with each invoice item, but the `invoice_item` table doesn't have the required columns yet.
+
+### **Error Breakdown:**
+```
+table invoice_item has no column named staff_id
+```
+
+The INSERT statement is trying to use:
+- `staff_id` (Integer) - References which staff member performed the service
+- `staff_name` (String) - Staff member's name
+
+## 📋 **How to Fix** (Choose One Method)
+
+### **Method 1: Quick SQL Fix (Fastest)**
+
+1. **Stop your Flask application**
+
+2. **Connect to your database:**
+   ```bash
+   sqlite3 path/to/your/database.db
+   ```
+
+3. **Run these commands:**
+   ```sql
+   ALTER TABLE invoice_item ADD COLUMN staff_id INTEGER;
+   ALTER TABLE invoice_item ADD COLUMN staff_name VARCHAR(100);
+   ```
+
+4. **Verify it worked:**
+   ```sql
+   PRAGMA table_info(invoice_item);
+   -- You should see staff_id and staff_name in the list
+   ```
+
+5. **Restart your Flask application**
+
+### **Method 2: Flask-Migrate (Recommended for Production)**
+
+1. **Update your SQLAlchemy model** (`models.py`):
+   ```python
+   class InvoiceItem(db.Model):
+       # ... existing columns ...
+       staff_id = db.Column(db.Integer, nullable=True)
+       staff_name = db.Column(db.String(100), nullable=True)
+   ```
+
+2. **Generate migration:**
+   ```bash
+   flask db migrate -m "Add staff columns to invoice_item"
+   ```
+
+3. **Apply migration:**
+   ```bash
+   flask db upgrade
+   ```
+
+## ✅ **After the Fix**
+
+Once you've added the columns, your billing form will work correctly and staff assignments will be saved with each invoice item.
+
+**The frontend template is fine** - this is purely a backend database schema issue that needs a one-time migration.
+
+---
+
+[View migration script](computer:///mnt/user-data/outputs/migration_add_staff_columns.py)  
+[View SQL fix commands](computer:///mnt/user-data/outputs/fix_database_schema.sql)
