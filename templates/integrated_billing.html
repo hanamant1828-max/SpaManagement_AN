@@ -969,7 +969,7 @@ function loadCustomerPackages(customerId) {
 
 function loadCustomerAppointments(customerId) {
     const appointmentsDiv = document.getElementById('customerAppointments');
-    appointmentsDiv.innerHTML = '<small><i class="fas fa-spinner spinner"></i> Loading appointments...</small>';
+    appointmentsDiv.innerHTML = '<div style="padding: var(--spacing-md); text-align: center;"><small><i class="fas fa-spinner spinner"></i> Loading appointments...</small></div>';
 
     fetch(`/api/customer/${customerId}/appointments`)
         .then(res => res.json())
@@ -977,14 +977,14 @@ function loadCustomerAppointments(customerId) {
             if (data.success) {
                 displayCustomerAppointments(data.appointments || []);
             } else {
-                appointmentsDiv.innerHTML = '<small class="text-danger"><i class="fas fa-exclamation-triangle"></i> No appointments found</small>';
+                appointmentsDiv.innerHTML = '<div style="padding: var(--spacing-xl); text-align: center; color: var(--danger);"><i class="fas fa-exclamation-triangle fa-2x mb-2"></i><p class="mb-0"><strong>Error Loading Appointments</strong></p><small>Please try again</small></div>';
             }
         })
         .catch(err => {
             console.error('Error loading appointments:', err);
-            appointmentsDiv.innerHTML = '<small class="text-danger"><i class="fas fa-exclamation-triangle"></i> Error loading appointments</small>';
+            appointmentsDiv.innerHTML = '<div style="padding: var(--spacing-xl); text-align: center; color: var(--danger);"><i class="fas fa-exclamation-triangle fa-2x mb-2"></i><p class="mb-0"><strong>Error Loading Appointments</strong></p><small>Please try again</small></div>';
         });
-    
+
     // Also load packages display
     loadCustomerPackagesDisplay(customerId);
 }
@@ -1012,7 +1012,7 @@ function loadCustomerPackagesDisplay(customerId) {
 
 function displayCustomerPackagesTable(packages) {
     const packagesDiv = document.getElementById('customerPackagesTable');
-    
+
     if (!packages || packages.length === 0) {
         packagesDiv.innerHTML = `
             <div style="padding: var(--spacing-xl); text-align: center; color: var(--gray-500);">
@@ -1022,7 +1022,7 @@ function displayCustomerPackagesTable(packages) {
             </div>`;
         return;
     }
-    
+
     let html = `
         <table class="table table-sm table-hover mb-0" style="font-size: 0.875rem;">
             <thead style="background: var(--gray-50); position: sticky; top: 0;">
@@ -1040,7 +1040,7 @@ function displayCustomerPackagesTable(packages) {
         const packageName = pkg.package_name || 'Unknown Package';
         const packageType = pkg.package_type || 'N/A';
         const status = pkg.status || 'active';
-        
+
         // Determine status badge
         let statusBadge = '';
         if (status === 'active') {
@@ -1097,9 +1097,16 @@ function displayCustomerPackagesTable(packages) {
 }
 
 function resetCustomerAppointments() {
+    // Clear tracking when customer changes
+    addedAppointmentIds.clear();
     document.getElementById('customerAppointments').innerHTML = 
-        '<small class="text-muted"><i class="fas fa-info-circle"></i> Select customer to view appointments</small>';
+        '<div style="padding: var(--spacing-md); text-align: center; color: var(--gray-500);"><small><i class="fas fa-info-circle"></i> Select customer to view appointments</small></div>';
+
+    // Also reset packages table
+    document.getElementById('customerPackagesTable').innerHTML = 
+        '<div style="padding: var(--spacing-md); text-align: center; color: var(--gray-500);"><small><i class="fas fa-gift"></i> Select customer to view active packages</small></div>';
 }
+
 
 // Track which appointments have been added to bill
 const addedAppointmentIds = new Set();
@@ -1111,79 +1118,73 @@ function displayCustomerAppointments(appointments) {
         appointmentsDiv.innerHTML = `
             <div style="padding: var(--spacing-xl); text-align: center; color: var(--gray-500);">
                 <i class="fas fa-calendar-times fa-2x mb-2" style="opacity: 0.5;"></i>
-                <p class="mb-0"><strong>No Appointments Found</strong></p>
-                <small>This customer has no booked or unpaid appointments</small>
+                <p class="mb-0"><strong>No Booked Appointments</strong></p>
+                <small>This customer has no confirmed appointments ready for billing</small>
             </div>`;
         return;
     }
 
-    // Build table HTML
     let html = `
-        <table class="table table-sm table-hover mb-0" style="font-size: 0.875rem;">
-            <thead style="background: var(--gray-50); position: sticky; top: 0;">
-                <tr>
-                    <th style="padding: 0.5rem;">Date & Time</th>
-                    <th style="padding: 0.5rem;">Service</th>
-                    <th style="padding: 0.5rem;">Staff</th>
-                    <th style="padding: 0.5rem;">Status</th>
-                    <th style="padding: 0.5rem; text-align: right;">Action</th>
-                </tr>
-            </thead>
-            <tbody>`;
+        <div style="padding: 0;">
+            <div style="background: var(--gray-50); padding: 8px 12px; border-bottom: 1px solid var(--gray-300);">
+                <small style="color: var(--gray-600);"><i class="fas fa-info-circle me-1"></i>Click "Add to Bill" to include appointment in invoice</small>
+            </div>
+            <table class="table table-sm mb-0" style="font-size: 0.875rem;">
+                <thead style="background: var(--gray-100); position: sticky; top: 0; z-index: 1;">
+                    <tr>
+                        <th style="padding: 8px;">Service</th>
+                        <th style="padding: 8px;">Staff</th>
+                        <th style="padding: 8px;">Date & Time</th>
+                        <th style="padding: 8px; text-align: right;">Price</th>
+                        <th style="padding: 8px; width: 120px;">Action</th>
+                    </tr>
+                </thead>
+                <tbody>`;
 
-    // Add appointment rows
     appointments.forEach(apt => {
-        const date = new Date(apt.appointment_date);
-        const formattedDate = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-        const serviceName = apt.service_name || 'Service';
-        const staffName = apt.staff_name || 'Staff';
-        const price = apt.service_price || 0;
-        const duration = apt.service_duration || 60;
+        const aptDate = new Date(apt.appointment_date);
+        const dateStr = aptDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        const timeStr = apt.start_time || aptDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+
+        const statusBadge = apt.status === 'completed' ? 
+            '<span class="badge bg-success" style="font-size: 0.7rem;">Done</span>' :
+            apt.status === 'confirmed' ?
+            '<span class="badge bg-info" style="font-size: 0.7rem;">Confirmed</span>' :
+            '<span class="badge bg-warning" style="font-size: 0.7rem;">Scheduled</span>';
+
         const isAdded = addedAppointmentIds.has(apt.id);
-        
-        // Determine status badge
-        let statusBadge = '';
-        let statusColor = '';
-        if (apt.status === 'completed' && apt.payment_status !== 'paid') {
-            statusBadge = 'Unpaid';
-            statusColor = 'background: #fef3c7; color: #92400e; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.75rem;';
-        } else if (apt.status === 'confirmed') {
-            statusBadge = 'Confirmed';
-            statusColor = 'background: #d1fae5; color: #065f46; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.75rem;';
-        } else if (apt.status === 'scheduled') {
-            statusBadge = 'Scheduled';
-            statusColor = 'background: #dbeafe; color: #1e40af; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.75rem;';
-        }
 
         html += `
-            <tr style="border-bottom: 1px solid var(--gray-200);">
-                <td style="padding: 0.5rem;">
-                    <strong>${formattedDate}</strong><br>
-                    <small class="text-muted">${apt.start_time}</small>
+            <tr style="border-bottom: 1px solid var(--gray-200); ${isAdded ? 'background: #f0fdf4;' : ''}">
+                <td style="padding: 8px;">
+                    <div style="font-weight: 600; color: var(--gray-900);">${apt.service_name || 'Service not specified'}</div>
+                    <small style="color: var(--gray-500);">${apt.service_duration ? apt.service_duration + ' min' : ''} ${statusBadge}</small>
                 </td>
-                <td style="padding: 0.5rem;">
-                    ${serviceName}<br>
-                    <small class="text-muted">${duration} min - ₹${price.toFixed(2)}</small>
+                <td style="padding: 8px;">
+                    <small style="color: var(--gray-700);">${apt.staff_name || 'Not assigned'}</small>
                 </td>
-                <td style="padding: 0.5rem;">${staffName}</td>
-                <td style="padding: 0.5rem;">
-                    <span style="${statusColor}">${statusBadge}</span>
+                <td style="padding: 8px;">
+                    <small style="color: var(--gray-700);">${dateStr}<br>${timeStr}</small>
                 </td>
-                <td style="padding: 0.5rem; text-align: right;">
+                <td style="padding: 8px; text-align: right;">
+                    <strong style="color: var(--primary);">₹${(apt.service_price || 0).toFixed(2)}</strong>
+                </td>
+                <td style="padding: 8px;">
                     <button type="button" 
-                            id="apt-btn-${apt.id}"
-                            class="btn btn-sm ${isAdded ? 'btn-danger' : 'btn-primary'}" 
-                            onclick="toggleAppointmentInBill(${apt.id}, '${serviceName}', ${price}, '${staffName}', ${apt.service_id || 0})"
-                            style="padding: 0.25rem 0.5rem; font-size: 0.75rem;">
-                        <i class="fas fa-${isAdded ? 'minus' : 'plus'}"></i> ${isAdded ? 'Remove' : 'Add'}
+                            class="btn btn-sm ${isAdded ? 'btn-success' : 'btn-primary'} w-100" 
+                            onclick="addAppointmentToBill(${apt.id}, '${(apt.service_name || '').replace(/'/g, "\\'")}', '${(apt.staff_name || '').replace(/'/g, "\\'")}', ${apt.service_id || 'null'}, ${apt.staff_id || 'null'}, ${apt.service_price || 0}, ${apt.service_duration || 60})"
+                            ${isAdded ? 'disabled' : ''}
+                            style="font-size: 0.75rem; padding: 4px 8px;">
+                        ${isAdded ? '<i class="fas fa-check"></i> Added' : '<i class="fas fa-plus"></i> Add'}
                     </button>
                 </td>
             </tr>`;
     });
 
     html += `
-            </tbody>
-        </table>`;
+                </tbody>
+            </table>
+        </div>`;
 
     appointmentsDiv.innerHTML = html;
 }
@@ -1197,32 +1198,32 @@ function resetCustomerPackages() {
 
 function toggleAppointmentInBill(appointmentId, serviceName, servicePrice, staffName, serviceId) {
     const isAdded = addedAppointmentIds.has(appointmentId);
-    
+
     if (isAdded) {
         // Remove from bill
         removeAppointmentFromBill(appointmentId);
         addedAppointmentIds.delete(appointmentId);
-        
+
         // Update button
         const btn = document.getElementById(`apt-btn-${appointmentId}`);
         if (btn) {
             btn.className = 'btn btn-sm btn-primary';
             btn.innerHTML = '<i class="fas fa-plus"></i> Add';
         }
-        
+
         showNotification(`Appointment #${appointmentId} removed from bill`, 'info');
     } else {
         // Add to bill
         addAppointmentToBill(appointmentId, serviceName, servicePrice, staffName, serviceId);
         addedAppointmentIds.add(appointmentId);
-        
+
         // Update button
         const btn = document.getElementById(`apt-btn-${appointmentId}`);
         if (btn) {
             btn.className = 'btn btn-sm btn-danger';
             btn.innerHTML = '<i class="fas fa-minus"></i> Remove';
         }
-        
+
         showNotification(`Appointment #${appointmentId} added to bill`, 'success');
     }
 }
@@ -1323,22 +1324,6 @@ function removeAppointmentFromBill(appointmentId) {
     });
 
     updateCalculations();
-}
-
-function resetCustomerAppointments() {
-    // Clear tracking when customer changes
-    addedAppointmentIds.clear();
-    document.getElementById('customerAppointments').innerHTML = 
-        '<div style="padding: var(--spacing-md); text-align: center; color: var(--gray-500);"><small><i class="fas fa-info-circle"></i> Select customer to view appointments</small></div>';
-    
-    // Also reset packages table
-    document.getElementById('customerPackagesTable').innerHTML = 
-        '<div style="padding: var(--spacing-md); text-align: center; color: var(--gray-500);"><small><i class="fas fa-gift"></i> Select customer to view active packages</small></div>';
-}
-
-function showNotification(message, type = 'info') {
-    // Simple notification - you can enhance this
-    alert(message);
 }
 
 // ==========================================
