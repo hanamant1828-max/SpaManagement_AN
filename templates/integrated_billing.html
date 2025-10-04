@@ -1378,26 +1378,26 @@ function handleFormSubmit(e) {
     })
     .then(data => {
         if (data.success) {
-            // Build success message for alert
-            let alertMessage = `✅ Bill Saved Successfully!\n\n`;
-            alertMessage += `Invoice Number: ${data.invoice_number}\n`;
-            alertMessage += `Total Amount: ₹${data.total_amount.toFixed(2)}\n\n`;
+            // Build success message for toast
+            let toastMessage = `✅ Bill Saved Successfully!\n\n`;
+            toastMessage += `📋 Invoice Number: ${data.invoice_number}\n`;
+            toastMessage += `💰 Total Amount: ₹${data.total_amount.toFixed(2)}\n\n`;
             
             if (data.service_items_created > 0) {
-                alertMessage += `✓ ${data.service_items_created} service(s) billed\n`;
+                toastMessage += `✓ ${data.service_items_created} service(s) billed\n`;
             }
             if (data.inventory_items_created > 0) {
-                alertMessage += `✓ ${data.inventory_items_created} product(s) billed\n`;
+                toastMessage += `✓ ${data.inventory_items_created} product(s) billed\n`;
             }
             if (data.appointments_completed > 0) {
-                alertMessage += `✓ ${data.appointments_completed} appointment(s) completed\n`;
+                toastMessage += `✓ ${data.appointments_completed} appointment(s) completed\n`;
             }
             if (data.package_deductions_applied > 0) {
-                alertMessage += `✓ ${data.package_deductions_applied} package benefit(s) applied\n`;
+                toastMessage += `✓ ${data.package_deductions_applied} package benefit(s) applied\n`;
             }
             
-            // Show success alert
-            alert(alertMessage);
+            // Show success toast
+            showNotification(toastMessage, 'success', 8000);
             
             // Handle print if needed
             if (window.printAfterSave && data.invoice_id) {
@@ -1407,7 +1407,7 @@ function handleFormSubmit(e) {
             // Redirect to invoice detail
             setTimeout(() => {
                 window.location.href = `/integrated-billing/invoice/${data.invoice_id}`;
-            }, 1000);
+            }, 2000);
         } else {
             throw new Error(data.message || 'Failed to create invoice');
         }
@@ -1417,9 +1417,9 @@ function handleFormSubmit(e) {
         btn.disabled = false;
         btn.classList.remove('btn-loading');
         
-        // Show error alert
+        // Show error toast
         const errorMessage = err.message || 'Failed to save invoice. Please try again.';
-        alert(`❌ Error: ${errorMessage}`);
+        showNotification(`❌ Error: ${errorMessage}`, 'error', 6000);
         
         console.error('Submission error:', err);
     });
