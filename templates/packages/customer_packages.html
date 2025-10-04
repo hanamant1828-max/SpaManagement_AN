@@ -950,12 +950,16 @@ function downloadPackageDetails() {
                             <input type="date" class="form-control" id="assignmentExpires" name="expires_on">
                         </div>
 
-                        <!-- Payment Information Section -->
+                        <!-- Payment Information Section - REQUIRED BEFORE ASSIGNMENT -->
                         <div class="col-12">
                             <hr class="my-3">
                             <h6 class="mb-3">
-                                <i class="fas fa-credit-card me-2 text-success"></i>Payment Information
+                                <i class="fas fa-credit-card me-2 text-danger"></i>Payment Information (Required Before Assignment)
                             </h6>
+                            <div class="alert alert-warning mb-3">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                <strong>Important:</strong> Package will only be assigned after payment is confirmed.
+                            </div>
                         </div>
 
                         <div class="col-md-6">
@@ -977,10 +981,11 @@ function downloadPackageDetails() {
                         <div class="col-md-6">
                             <label for="assignmentPaymentStatus" class="form-label">Payment Status *</label>
                             <select class="form-select" id="assignmentPaymentStatus" name="payment_status" required>
+                                <option value="">Select payment status...</option>
                                 <option value="paid">Paid (Full Payment)</option>
                                 <option value="partial">Partial Payment</option>
-                                <option value="pending">Pending Payment</option>
                             </select>
+                            <small class="text-muted">Assignment requires confirmed payment</small>
                         </div>
 
                         <div class="col-md-6" id="amountPaidSection" style="display: none;">

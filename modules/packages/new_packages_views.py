@@ -936,7 +936,7 @@ def api_create_template():
 @app.route('/packages/api/assign', methods=['POST'])
 @login_required
 def assign_package():
-    """Assign package to customer via API"""
+    """Assign package to customer via API - ONLY AFTER PAYMENT CONFIRMATION"""
     try:
         data = request.get_json()
         if not data:
@@ -964,9 +964,27 @@ def assign_package():
         if not customer:
             return jsonify({'success': False, 'error': 'Customer not found'}), 404
 
+        # PAYMENT VALIDATION - Must be completed before assignment
+        payment_method = data.get('payment_method')
+        payment_status = data.get('payment_status')
+        
+        if not payment_method:
+            return jsonify({'success': False, 'error': 'Payment method is required before assignment'}), 400
+            
+        if not payment_status:
+            return jsonify({'success': False, 'error': 'Payment status is required before assignment'}), 400
+        
+        # Only allow assignment if payment is completed (paid or partial)
+        if payment_status not in ['paid', 'partial']:
+            return jsonify({'success': False, 'error': 'Package can only be assigned after payment is received. Please complete payment first.'}), 400
+        
+        # For partial payments, validate amount paid
+        if payment_status == 'partial':
+            amount_paid = data.get('amount_paid')
+            if not amount_paid or float(amount_paid) <= 0:
+                return jsonify({'success': False, 'error': 'Please enter the amount paid for partial payment'}), 400
+        
         # Extract payment information
-        payment_method = data.get('payment_method', 'cash')
-        payment_status = data.get('payment_status', 'paid')
         amount_paid = float(data.get('amount_paid', data.get('price_paid', 0)))
         balance_due = float(data.get('balance_due', 0))
         transaction_ref = data.get('transaction_ref', '')

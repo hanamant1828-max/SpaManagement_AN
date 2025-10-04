@@ -1146,7 +1146,7 @@ function showPackagePreview() {
 }
 
 /**
- * Validate the assignment form fields
+ * Validate the assignment form fields - PAYMENT MUST BE CONFIRMED
  */
 function validateAssignForm() {
     const form = document.getElementById('assignPackageForm');
@@ -1158,11 +1158,39 @@ function validateAssignForm() {
     const paymentMethod = document.getElementById('assignmentPaymentMethod')?.value;
     const paymentStatus = document.getElementById('assignmentPaymentStatus')?.value;
 
-    // Basic validation: customer, package, price, and payment method must be selected/filled
-    const isValid = customer && package && price && parseFloat(price) > 0 && paymentMethod && paymentStatus;
+    // Basic validation: customer, package, price must be filled
+    let isValid = customer && package && price && parseFloat(price) > 0;
+    
+    // PAYMENT VALIDATION - Required before assignment
+    if (!paymentMethod) {
+        isValid = false;
+    }
+    
+    if (!paymentStatus) {
+        isValid = false;
+    }
+    
+    // Only allow assignment if payment is confirmed (paid or partial)
+    if (paymentStatus && paymentStatus !== 'paid' && paymentStatus !== 'partial') {
+        isValid = false;
+        if (saveBtn) {
+            saveBtn.title = 'Payment must be completed before assignment';
+        }
+    }
+    
+    // For partial payments, validate amount paid
+    if (paymentStatus === 'partial') {
+        const amountPaid = document.getElementById('assignmentAmountPaid')?.value;
+        if (!amountPaid || parseFloat(amountPaid) <= 0) {
+            isValid = false;
+        }
+    }
 
     if (saveBtn) {
         saveBtn.disabled = !isValid;
+        if (isValid) {
+            saveBtn.title = 'Assign package after payment confirmation';
+        }
     }
 
     if (form) {
