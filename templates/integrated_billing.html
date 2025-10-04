@@ -1305,7 +1305,7 @@ function handleServiceSelection(selectElement) {
 }
 
 function updateCalculations() {
-    // Calculate services subtotal
+    // Calculate services subtotal (GST-INCLUSIVE prices)
     let servicesSubtotal = 0;
     let packageDeductions = 0; // Placeholder for applying package benefits
 
@@ -1321,7 +1321,7 @@ function updateCalculations() {
         }
     });
 
-    // Calculate products subtotal
+    // Calculate products subtotal (GST-EXCLUSIVE prices)
     let productsSubtotal = 0;
 
     document.querySelectorAll('.product-row').forEach(row => {
@@ -1335,20 +1335,41 @@ function updateCalculations() {
         }
     });
 
-    // Calculate discount
-    const discountPercentage = parseFloat(document.querySelector('input[name="discount_percentage"]')?.value) || 0;
-    const totalBeforeDiscount = servicesSubtotal + productsSubtotal;
-    const discountAmount = (totalBeforeDiscount * discountPercentage) / 100;
-
-    // Calculate GST
+    // Get GST rate
     const gstEnabled = document.getElementById('gstEnabled')?.checked || false;
     const gstInput = document.getElementById('gstPercentage');
     const gstPercentage = gstEnabled ? (parseFloat(gstInput?.value) || 0) : 0;
-    const subtotalAfterDiscount = Math.max(0, totalBeforeDiscount - discountAmount);
-    const gstAmount = (subtotalAfterDiscount * gstPercentage) / 100;
+    const gstRate = gstPercentage / 100;
 
-    // Grand total
-    const grandTotal = subtotalAfterDiscount + gstAmount;
+    // Extract base amounts
+    // For services (GST-inclusive): base = price / (1 + gst_rate)
+    const serviceBaseAmount = gstRate > 0 ? servicesSubtotal / (1 + gstRate) : servicesSubtotal;
+    const serviceGstAmount = servicesSubtotal - serviceBaseAmount;
+
+    // For products (GST-exclusive): base = price, gst = price * gst_rate
+    const productBaseAmount = productsSubtotal;
+    const productGstAmount = productsSubtotal * gstRate;
+
+    // Total base amount
+    const totalBaseAmount = serviceBaseAmount + productBaseAmount;
+    const totalGstBeforeDiscount = serviceGstAmount + productGstAmount;
+
+    // Calculate discount on base amount only
+    const discountPercentage = parseFloat(document.querySelector('input[name="discount_percentage"]')?.value) || 0;
+    const discountAmount = (totalBaseAmount * discountPercentage) / 100;
+
+    // Net base after discount
+    const netBaseAmount = Math.max(0, totalBaseAmount - discountAmount);
+
+    // Recalculate GST proportionally after discount
+    let finalGstAmount = 0;
+    if (totalBaseAmount > 0 && gstRate > 0) {
+        const discountFactor = netBaseAmount / totalBaseAmount;
+        finalGstAmount = totalGstBeforeDiscount * discountFactor;
+    }
+
+    // Grand total = base + GST
+    const grandTotal = netBaseAmount + finalGstAmount;
 
     // Update display
     document.getElementById('servicesSubtotal').textContent = `₹${servicesSubtotal.toFixed(2)}`;

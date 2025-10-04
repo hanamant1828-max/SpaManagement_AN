@@ -656,41 +656,52 @@ def create_professional_invoice():
 
         gross_subtotal = services_subtotal + inventory_subtotal
 
-        # Calculate discount
-        discount_type = request.form.get('discount_type', 'amount')
-        discount_value = float(request.form.get('discount_value', 0))
-        if discount_type == 'percentage':
-            discount_amount = (gross_subtotal * discount_value) / 100
-        else:
-            discount_amount = discount_value
-
-        # Service prices are GST INCLUSIVE - extract GST from the price
-        # Formula: Base Amount = Price / (1 + GST Rate)
-        # Formula: GST Amount = Price - Base Amount
+        # Get tax rates
         cgst_rate = float(request.form.get('cgst_rate', 9)) / 100
         sgst_rate = float(request.form.get('sgst_rate', 9)) / 100
         igst_rate = float(request.form.get('igst_rate', 0)) / 100
         is_interstate = request.form.get('is_interstate') == 'on'
         total_gst_rate = igst_rate if is_interstate else (cgst_rate + sgst_rate)
 
-        service_base_amount = services_subtotal / (1 + total_gst_rate) if total_gst_rate > 0 else services_subtotal
-        service_gst_amount = services_subtotal - service_base_amount if total_gst_rate > 0 else 0
+        # IMPORTANT: Service prices are GST-INCLUSIVE
+        # Extract base amount and GST from service prices
+        if total_gst_rate > 0:
+            service_base_amount = services_subtotal / (1 + total_gst_rate)
+            service_gst_amount = services_subtotal - service_base_amount
+        else:
+            service_base_amount = services_subtotal
+            service_gst_amount = 0
 
-        # For inventory, GST is calculated normally (exclusive)
-        inventory_gst_amount = inventory_subtotal * total_gst_rate
+        # For inventory, GST is exclusive (added on top)
+        inventory_base_amount = inventory_subtotal
+        inventory_gst_amount = inventory_subtotal * total_gst_rate if total_gst_rate > 0 else 0
 
-        # Total amounts before discount
-        total_base_amount = service_base_amount + inventory_subtotal
-        total_gst_before_discount = service_gst_amount + inventory_gst_amount
+        # Total base amounts (before tax)
+        total_base_amount = service_base_amount + inventory_base_amount
 
-        # Apply discount to base amount only
+        # Calculate discount on base amount
+        discount_type = request.form.get('discount_type', 'amount')
+        discount_value = float(request.form.get('discount_value', 0))
+        if discount_type == 'percentage':
+            discount_amount = (total_base_amount * discount_value) / 100
+        else:
+            discount_amount = discount_value
+
+        # Net base after discount
         net_base_amount = max(0, total_base_amount - discount_amount)
 
         # Recalculate GST proportionally after discount
-        if total_base_amount > 0:
+        if total_base_amount > 0 and total_gst_rate > 0:
+            # Discount factor to apply proportionally
             discount_factor = net_base_amount / total_base_amount
+            
+            # Apply discount factor to service GST
             final_service_gst = service_gst_amount * discount_factor
-            final_inventory_gst = inventory_gst_amount * discount_factor
+            
+            # For inventory, recalculate GST on discounted base
+            inventory_discount = discount_amount * (inventory_base_amount / total_base_amount) if total_base_amount > 0 else 0
+            inventory_net_base = max(0, inventory_base_amount - inventory_discount)
+            final_inventory_gst = inventory_net_base * total_gst_rate
         else:
             final_service_gst = 0
             final_inventory_gst = 0
@@ -714,6 +725,8 @@ def create_professional_invoice():
         net_subtotal = net_base_amount
         additional_charges = float(request.form.get('additional_charges', 0))
         tips_amount = float(request.form.get('tips_amount', 0))
+        
+        # Final total: base amount + tax + charges + tips
         total_amount = net_base_amount + total_tax + additional_charges + tips_amount
 
         # Create professional invoice with proper transaction handling
