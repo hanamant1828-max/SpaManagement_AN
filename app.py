@@ -123,14 +123,22 @@ app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1) # needed for url_for 
 # Handle trailing slash variations
 app.url_map.strict_slashes = False
 
-# Configure the database - always use SQLite from project structure
-app.config["SQLALCHEMY_DATABASE_URI"] = compute_sqlite_uri()
-app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
-    "connect_args": {
-        "check_same_thread": False
+# Configure the database - use PostgreSQL if available, otherwise SQLite
+if os.environ.get("DATABASE_URL"):
+    app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL")
+    app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
+        "pool_recycle": 300,
+        "pool_pre_ping": True,
     }
-}
-print(f"Using SQLite database: {app.config['SQLALCHEMY_DATABASE_URI']}")
+    print(f"Using PostgreSQL database: {app.config['SQLALCHEMY_DATABASE_URI'][:50]}...")
+else:
+    app.config["SQLALCHEMY_DATABASE_URI"] = compute_sqlite_uri()
+    app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
+        "connect_args": {
+            "check_same_thread": False
+        }
+    }
+    print(f"Using SQLite database: {app.config['SQLALCHEMY_DATABASE_URI']}")
 
 # Configure cache control for Replit environment
 app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
