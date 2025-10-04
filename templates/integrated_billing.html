@@ -1150,15 +1150,37 @@ function handleServiceChange(select) {
 function updateCalculations() {
     let servicesTotal = 0;
     let productsTotal = 0;
+    let packageDeductions = 0;
 
-    // Calculate services
+    // Calculate services and check package benefits
     document.querySelectorAll('.service-row').forEach(row => {
         const select = row.querySelector('select[name="service_ids[]"]');
         const qty = parseFloat(row.querySelector('input[name="service_quantities[]"]')?.value) || 0;
         
         if (select?.value) {
             const price = parseFloat(select.selectedOptions[0]?.dataset.price) || 0;
-            servicesTotal += price * qty;
+            const serviceTotal = price * qty;
+            servicesTotal += serviceTotal;
+            
+            // Check if this service is covered by customer packages
+            const serviceId = parseInt(select.value);
+            const packageBenefit = checkPackageBenefit(serviceId, serviceTotal, qty);
+            
+            if (packageBenefit > 0) {
+                packageDeductions += packageBenefit;
+                
+                // Show package benefit indicator on the row
+                let benefitDiv = row.querySelector('.package-benefit');
+                if (!benefitDiv) {
+                    benefitDiv = document.createElement('div');
+                    benefitDiv.className = 'package-benefit';
+                    row.appendChild(benefitDiv);
+                }
+                benefitDiv.innerHTML = `<i class="fas fa-gift"></i> Package Benefit: -₹${packageBenefit.toFixed(2)}`;
+            } else {
+                // Remove benefit indicator if no benefit
+                row.querySelector('.package-benefit')?.remove();
+            }
         }
     });
 
@@ -1177,7 +1199,9 @@ function updateCalculations() {
     const discount = discountType === 'percentage' ? 
         (subtotal * discountValue / 100) : discountValue;
     
-    const afterDiscount = Math.max(0, subtotal - discount);
+    // Apply package deductions first
+    const afterPackages = Math.max(0, subtotal - packageDeductions);
+    const afterDiscount = Math.max(0, afterPackages - discount);
     
     // Tax calculation
     const cgstRate = parseFloat(document.querySelector('input[name="cgst_rate"]')?.value) || 0;
@@ -1195,12 +1219,50 @@ function updateCalculations() {
     document.getElementById('servicesSubtotal').textContent = `₹${servicesTotal.toFixed(2)}`;
     document.getElementById('productsSubtotal').textContent = `₹${productsTotal.toFixed(2)}`;
     document.getElementById('subtotalAmount').textContent = `₹${subtotal.toFixed(2)}`;
+    document.getElementById('packageDeductions').textContent = `-₹${packageDeductions.toFixed(2)}`;
     document.getElementById('discountAmount').textContent = `-₹${discount.toFixed(2)}`;
     document.getElementById('cgstAmount').textContent = `₹${cgst.toFixed(2)}`;
     document.getElementById('sgstAmount').textContent = `₹${sgst.toFixed(2)}`;
     document.getElementById('additionalCharges').textContent = `₹${additionalCharges.toFixed(2)}`;
     document.getElementById('tipsDisplay').textContent = `₹${tips.toFixed(2)}`;
     document.getElementById('grandTotal').textContent = `₹${total.toFixed(2)}`;
+}
+
+function checkPackageBenefit(serviceId, servicePrice, quantity) {
+    // Return 0 if no customer packages loaded
+    if (!BillingState.customerPackages || !BillingState.customerPackages.packages) {
+        return 0;
+    }
+
+    let totalBenefit = 0;
+
+    // Check each package for this service
+    for (const pkg of BillingState.customerPackages.packages) {
+        if (pkg.package_type === 'membership') {
+            // Check if membership covers this service
+            const coveredServices = pkg.services || [];
+            const isCovered = coveredServices.some(s => s.service_id === serviceId);
+            
+            if (isCovered) {
+                // Membership covers full price
+                return servicePrice;
+            }
+        } else if (pkg.package_type === 'service_package') {
+            // Check if service package has remaining sessions for this service
+            if (pkg.service_id === serviceId && pkg.remaining_sessions > 0) {
+                // Calculate how many sessions can be covered
+                const sessionsToCover = Math.min(quantity, pkg.remaining_sessions);
+                const pricePerSession = servicePrice / quantity;
+                totalBenefit += sessionsToCover * pricePerSession;
+            }
+        } else if (pkg.package_type === 'prepaid') {
+            // Prepaid can cover any service up to remaining credit
+            const deduction = Math.min(servicePrice, pkg.remaining_credit || 0);
+            totalBenefit += deduction;
+        }
+    }
+
+    return totalBenefit;
 }
 
 // ==========================================
