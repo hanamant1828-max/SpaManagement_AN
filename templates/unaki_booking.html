@@ -2470,6 +2470,11 @@
                         if (!data.success) {
                             throw new Error(data.error || 'Failed to load schedule');
                         }
+                        console.log('📅 Schedule data received:', data);
+                        console.log('👥 Staff count:', data.staff ? data.staff.length : 0);
+                        if (data.staff && data.staff.length > 0) {
+                            console.log('📊 First staff member:', data.staff[0]);
+                        }
                         renderShiftOverlays(data.staff);
                     })
                     .catch((error) => {
@@ -2482,7 +2487,7 @@
                             ${error.message || 'Unable to load schedule. Please refresh the page.'}
                         `;
 
-                        const container = document.querySelector('.calendar-main-layout'); // Changed container selector
+                        const container = document.querySelector('.calendar-main-layout');
                         if (container) {
                             container.insertBefore(errorMessage, container.firstChild);
                         }
@@ -2496,12 +2501,31 @@
 
             // Render shift overlays (breaks, OOO, off-duty)
             function renderShiftOverlays(staffData) {
+                console.log('🎨 Rendering shift overlays for', staffData ? staffData.length : 0, 'staff members');
+                
                 // Remove existing overlays
-                document.querySelectorAll(".shift-overlay").forEach((el) => el.remove());
+                const existingOverlays = document.querySelectorAll(".shift-overlay");
+                console.log('🧹 Removing', existingOverlays.length, 'existing overlays');
+                existingOverlays.forEach((el) => el.remove());
+
+                if (!staffData || staffData.length === 0) {
+                    console.warn('⚠️ No staff data to render overlays');
+                    return;
+                }
 
                 staffData.forEach((staff) => {
+                    console.log(`👤 Processing staff ${staff.id} (${staff.name}):`, {
+                        shift_start: staff.shift_start,
+                        shift_end: staff.shift_end,
+                        breaks: staff.breaks,
+                        ooo: staff.ooo
+                    });
+
                     const row = document.querySelector(`.timeline-row[data-staff-id="${staff.id}"]`);
-                    if (!row) return;
+                    if (!row) {
+                        console.warn(`⚠️ No timeline row found for staff ${staff.id}`);
+                        return;
+                    }
 
                     // Helper to convert time to position
                     function timeToPosition(timeStr) {
@@ -2522,36 +2546,47 @@
 
                     // Render off-duty overlay (gray) - before shift start
                     if (staff.shift_start && staff.shift_start !== '09:00') {
-                        const offDutyStart = createOverlay('off-duty', 0, timeToPosition(staff.shift_start));
+                        const left = 0;
+                        const width = timeToPosition(staff.shift_start);
+                        console.log(`  ⏰ Adding off-duty overlay BEFORE shift: left=${left}px, width=${width}px`);
+                        const offDutyStart = createOverlay('off-duty', left, width);
                         row.appendChild(offDutyStart);
                     }
 
                     // Render off-duty overlay (gray) - after shift end
                     if (staff.shift_end && staff.shift_end !== '22:00') {
-                        const offDutyEndPos = timeToPosition(staff.shift_end);
+                        const left = timeToPosition(staff.shift_end);
                         const gridEnd = 13 * 140; // 22:00 - 9:00 = 13 hours
-                        const offDutyEnd = createOverlay('off-duty', offDutyEndPos, gridEnd - offDutyEndPos);
+                        const width = gridEnd - left;
+                        console.log(`  ⏰ Adding off-duty overlay AFTER shift: left=${left}px, width=${width}px`);
+                        const offDutyEnd = createOverlay('off-duty', left, width);
                         row.appendChild(offDutyEnd);
                     }
 
                     // Render break overlays (yellow)
                     if (staff.breaks && staff.breaks.length > 0) {
-                        staff.breaks.forEach((breakTime) => {
+                        console.log(`  ☕ Processing ${staff.breaks.length} breaks`);
+                        staff.breaks.forEach((breakTime, index) => {
                             if (breakTime.start && breakTime.end) {
                                 const left = timeToPosition(breakTime.start);
                                 const width = calculateWidth(breakTime.start, breakTime.end);
+                                console.log(`    ☕ Break ${index + 1}: ${breakTime.start} - ${breakTime.end}, left=${left}px, width=${width}px`);
                                 const breakOverlay = createOverlay('break', left, width);
                                 row.appendChild(breakOverlay);
                             }
                         });
+                    } else {
+                        console.log('  ℹ️ No breaks defined for this staff');
                     }
 
                     // Render out-of-office overlays (red)
                     if (staff.ooo && staff.ooo.length > 0) {
-                        staff.ooo.forEach((oooTime) => {
+                        console.log(`  🚫 Processing ${staff.ooo.length} out-of-office periods`);
+                        staff.ooo.forEach((oooTime, index) => {
                             if (oooTime.start && oooTime.end) {
                                 const left = timeToPosition(oooTime.start);
                                 const width = calculateWidth(oooTime.start, oooTime.end);
+                                console.log(`    🚫 OOO ${index + 1}: ${oooTime.start} - ${oooTime.end}, left=${left}px, width=${width}px, reason=${oooTime.reason || 'N/A'}`);
                                 const oooOverlay = createOverlay('out-of-office', left, width);
                                 if (oooTime.reason) {
                                     oooOverlay.title = oooTime.reason;
@@ -2559,12 +2594,18 @@
                                 row.appendChild(oooOverlay);
                             }
                         });
+                    } else {
+                        console.log('  ℹ️ No out-of-office periods for this staff');
                     }
                 });
+
+                const totalOverlays = document.querySelectorAll(".shift-overlay").length;
+                console.log(`✅ Rendered ${totalOverlays} total overlays`);
             }
 
             // Create overlay element
             function createOverlay(type, left, width) {
+                console.log(`  🔨 Creating ${type} overlay: left=${left}px, width=${width}px`);
                 const overlay = document.createElement('div');
                 overlay.className = `shift-overlay shift-overlay-${type}`;
                 overlay.style.left = `${left}px`;
@@ -2579,6 +2620,7 @@
                     overlay.innerHTML = '<span class="overlay-label">Off Duty</span>';
                 }
 
+                console.log(`  ✅ Created ${type} overlay element`);
                 return overlay;
             }
 
