@@ -1,0 +1,187 @@
+yes — breaks, out-of-office, and off-hours are already covered. to also make **holidays / off days** unmistakable in the Unaki view (and block bookings there), add these tiny patches. Replit can paste them exactly.
+
+---
+
+## 1) Backend: label the day as “holiday” or “off”
+
+**File:** `app.py` (inside the `/api/unaki/shift-state` route you added)
+
+Find where you build `staff_map[staff_id] = { ... }`. Replace that block with this version (only this block):
+
+```python
+status_raw = (r["status"] or "").strip().lower()
+HOLIDAY_STATUSES = {"holiday"}
+OFFDAY_STATUSES  = {"absent", "leave", "weekoff", "off", "not_scheduled"}
+
+# derive base fields
+shift_start = str(r["shift_start_time"])[:5] if r["shift_start_time"] else None
+shift_end   = str(r["shift_end_time"])[:5]   if r["shift_end_time"]   else None
+is_working  = bool(shift_start and shift_end)
+
+# turn single break into list
+breaks = []
+if r["break_start_time"] and r["break_end_time"]:
+    breaks.append({
+        "start": str(r["break_start_time"])[:5],
+        "end":   str(r["break_end_time"])[:5]
+    })
+
+# turn single OOO into list
+ooo = []
+if r["out_of_office_start"] and r["out_of_office_end"]:
+    ooo.append({
+        "start":  str(r["out_of_office_start"])[:5],
+        "end":    str(r["out_of_office_end"])[:5],
+        "reason": r["out_of_office_reason"] or ""
+    })
+
+# apply holiday/offday rules (force not-working)
+day_status = "scheduled"
+if status_raw in HOLIDAY_STATUSES:
+    is_working = False
+    shift_start, shift_end = None, None
+    day_status = "holiday"
+elif status_raw in OFFDAY_STATUSES:
+    is_working = False
+    shift_start, shift_end = None, None
+    day_status = "off"
+
+staff_map[staff_id] = {
+    "staff_id": staff_id,
+    "shift_start": shift_start,
+    "shift_end": shift_end,
+    "breaks": breaks,
+    "ooo": ooo,
+    "is_working": is_working,
+    "shift_status": status_raw or ("scheduled" if is_working else "not_scheduled"),
+    "day_status": day_status  # <— NEW
+}
+```
+
+---
+
+## 2) CSS: add a distinct color for holidays
+
+**File:** your booking HTML, inside `<style>` (near the other overlay styles)
+
+```css
+/* Holiday overlay (distinct from generic off-duty gray) */
+.overlay-holiday{
+  position:absolute; top:0; bottom:0;
+  background: rgba(99,102,241,.25); /* indigo */
+  pointer-events:none; z-index:3;
+}
+```
+
+*(Keep your existing `.overlay-break`, `.overlay-ooo`, `.overlay-off` as-is.)*
+
+---
+
+## 3) Frontend JS: recognize holiday/off-day & render/bock
+
+**A.** Add these constants near your other shift helpers (where `HOUR_WIDTH`, etc. live):
+
+```js
+const HOLIDAY_STATUSES = new Set(["holiday"]);
+const OFFDAY_STATUSES  = new Set(["absent","leave","weekoff","off","not_scheduled","offday"]);
+```
+
+**B.** Update `renderShiftOverlays()` so holidays show a **full-row indigo overlay** and off-days stay gray:
+
+```js
+function renderShiftOverlays(){
+  document.querySelectorAll(".overlay-break, .overlay-ooo, .overlay-off, .overlay-holiday").forEach(el => el.remove());
+  document.querySelectorAll(".timeline-row").forEach(r => r.classList.remove("off-duty"));
+
+  const rows = document.querySelectorAll(".timeline-row");
+  rows.forEach(row => {
+    const staffId = row.getAttribute("data-staff-id");
+    const state = shiftByStaffId[String(staffId)];
+    const fullStart = `${String(DAY_START_HOUR).padStart(2,'0')}:00`;
+    const fullEnd   = `${String(DAY_END_HOUR).padStart(2,'0')}:00`;
+
+    // HOLIDAY (full-day, indigo)
+    if (state && state.day_status && HOLIDAY_STATUSES.has(state.day_status)) {
+      addOverlay(row, "overlay-holiday", fullStart, fullEnd, "Holiday");
+      row.classList.add("off-duty");
+      return;
+    }
+
+    // OFF DAY / NOT SCHEDULED (full gray)
+    if (!state || !state.is_working || !state.shift_start || !state.shift_end ||
+        (state.day_status && OFFDAY_STATUSES.has(state.day_status))) {
+      addOverlay(row, "overlay-off", fullStart, fullEnd, "Off day");
+      row.classList.add("off-duty");
+      return;
+    }
+
+    // Shade before/after shift
+    if (toMin(state.shift_start) > DAY_START_HOUR*60) addOverlay(row, "overlay-off", fullStart, state.shift_start);
+    if (toMin(state.shift_end)   < DAY_END_HOUR*60)   addOverlay(row, "overlay-off", state.shift_end, fullEnd);
+
+    // Breaks (yellow)
+    (state.breaks || []).forEach(br => addOverlay(row, "overlay-break", br.start, br.end, `Break ${br.start}–${br.end}`));
+
+    // Out of office (red)
+    (state.ooo || []).forEach(oo => addOverlay(row, "overlay-ooo", oo.start, oo.end, `OOO ${oo.start}–${oo.end}${oo.reason ? " • "+oo.reason : ""}`));
+  });
+
+  function addOverlay(row, cls, start, end, title=""){
+    const rng = clampRange(start, end);
+    if (!rng) return;
+    const el = document.createElement("div");
+    el.className = cls;
+    el.style.left  = hmToLeft(rng.start) + "px";
+    el.style.width = hmToWidth(rng.start, rng.end) + "px";
+    if (title) el.title = title;
+    row.appendChild(el);
+  }
+}
+```
+
+**C.** Strengthen booking validation so holidays/off-days are blocked (add to your existing `violatesShiftRules`):
+
+```js
+function violatesShiftRules(staffId, date, startHHMM, endHHMM){
+  const s = shiftByStaffId[String(staffId)];
+  if (!s) return { ok:false, reason: "Staff is not scheduled." };
+
+  // hard-stop on holiday/offday
+  if (s.day_status && (HOLIDAY_STATUSES.has(s.day_status) || OFFDAY_STATUSES.has(s.day_status))) {
+    const label = HOLIDAY_STATUSES.has(s.day_status) ? "Holiday" : "Off day";
+    return { ok:false, reason: `${label} — booking not allowed` };
+  }
+
+  if (!s.is_working || !s.shift_start || !s.shift_end) {
+    return { ok:false, reason: "Staff is not scheduled / on leave." };
+  }
+  if (startHHMM < s.shift_start || endHHMM > s.shift_end) {
+    return { ok:false, reason: "Outside of shift hours." };
+  }
+  for (const br of (s.breaks || [])) {
+    if (timesOverlap(startHHMM, endHHMM, br.start, br.end)) {
+      return { ok:false, reason: `During break ${br.start}–${br.end}.` };
+    }
+  }
+  for (const oo of (s.ooo || [])) {
+    if (timesOverlap(startHHMM, endHHMM, oo.start, oo.end)) {
+      return { ok:false, reason: `Out of office ${oo.start}–${oo.end}${oo.reason ? " • "+oo.reason : ""}` };
+    }
+  }
+  return { ok:true };
+}
+```
+
+> You already call `violatesShiftRules(...)` inside `checkConflicts(...)` per the previous step, so this automatically blocks bookings on holidays/off days too.
+
+---
+
+### Result
+
+* **Break time** ✅ (yellow)
+* **Out-of-office time** ✅ (red)
+* **Off-hours** ✅ (gray before/after shift)
+* **Holiday** ✅ (full-row indigo, bookings blocked)
+* **Off day / leave / absent / weekoff** ✅ (full-row gray, bookings blocked)
+
+If you want, I can also output your **entire HTML** with these patches applied inline so you can just replace it in Replit.

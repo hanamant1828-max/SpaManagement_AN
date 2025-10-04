@@ -602,6 +602,11 @@
                 border: 1px dashed rgba(107, 114, 128, 0.4);
             }
 
+            .shift-overlay-holiday {
+                background: rgba(99, 102, 241, 0.25);
+                border: 1px dashed rgba(99, 102, 241, 0.5);
+            }
+
             .overlay-label {
                 font-size: 11px;
                 font-weight: 600;
@@ -2529,7 +2534,8 @@
                         shift_start: staff.shift_start,
                         shift_end: staff.shift_end,
                         breaks: staff.breaks,
-                        ooo: staff.ooo
+                        ooo: staff.ooo,
+                        day_status: staff.day_status
                     });
 
                     const row = document.querySelector(`.timeline-row[data-staff-id="${staff.id}"]`);
@@ -2555,6 +2561,31 @@
                         const endMinutes = endH * 60 + endM;
                         const durationHours = (endMinutes - startMinutes) / 60;
                         return Math.max(0, durationHours * 140);
+                    }
+
+                    // Check for holiday or off-day status - render full-row overlay and skip shift overlays
+                    const HOLIDAY_STATUSES = ['holiday'];
+                    const OFFDAY_STATUSES = ['off', 'absent', 'leave', 'weekoff', 'not_scheduled', 'offday'];
+                    
+                    if (staff.day_status && HOLIDAY_STATUSES.includes(staff.day_status)) {
+                        // Full-row holiday overlay (indigo)
+                        const gridEnd = 13 * 140; // Full day 9:00 - 22:00
+                        console.log(`  🏖️ Adding HOLIDAY overlay: full day (0 - ${gridEnd}px)`);
+                        const holidayOverlay = createOverlay('holiday', 0, gridEnd, 'Holiday');
+                        row.appendChild(holidayOverlay);
+                        row.classList.add('off-duty');
+                        return; // Skip other overlays
+                    }
+                    
+                    if (!staff.is_working || !staff.shift_start || !staff.shift_end ||
+                        (staff.day_status && OFFDAY_STATUSES.includes(staff.day_status))) {
+                        // Full-row off-day overlay (gray)
+                        const gridEnd = 13 * 140; // Full day 9:00 - 22:00
+                        console.log(`  📅 Adding OFF DAY overlay: full day (0 - ${gridEnd}px)`);
+                        const offDayOverlay = createOverlay('off-duty', 0, gridEnd, 'Off Day');
+                        row.appendChild(offDayOverlay);
+                        row.classList.add('off-duty');
+                        return; // Skip other overlays
                     }
 
                     // Render off-duty overlay (gray) - before shift start

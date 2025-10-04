@@ -12,6 +12,18 @@ This is a comprehensive **Spa & Salon Management System** built with Flask and P
   - Automatically adds missing columns (out_of_office_start, out_of_office_end, out_of_office_reason) to shift_logs table
   - **This fix is permanent** - anyone cloning this project will have the database schema automatically corrected on first run
   - No manual database fixes needed after cloning from GitHub
+- **Holiday & Off-Day Support**: Implemented visual holiday/off-day tracking in Unaki booking system
+  - Added `day_status` field to shift_logs (values: "holiday", "off", or "scheduled")
+  - Visual overlays in booking calendar:
+    - Holidays: Indigo color (#6366f1) overlay with "Holiday" label
+    - Off-days: Gray overlay with "Off Day" label
+  - Test data script available: `test_shift_holidays.py`
+  - Test dates (Oct 4-9):
+    - Oct 4: All staff scheduled (9am-5pm)
+    - Oct 5: All staff on HOLIDAY
+    - Oct 6: Mixed schedule with some staff absent
+    - Oct 7-8: Regular scheduled shifts
+    - Oct 9: All staff on LEAVE (off-day)
 
 ## Technology Stack
 - **Backend**: Flask 3.1.1, SQLAlchemy 2.0.41

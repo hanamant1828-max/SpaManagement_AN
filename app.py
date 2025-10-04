@@ -534,14 +534,31 @@ def unaki_schedule():
                     
                     shift_status = shift_log.status
 
-                    # Determine working status based on shift log status
-                    is_working = shift_status in ['scheduled', 'completed']
-                    availability_status = {
-                        'scheduled': 'Working',
-                        'completed': 'Completed Shift',
-                        'absent': 'Absent',
-                        'holiday': 'Holiday'
-                    }.get(shift_status, 'Unknown')
+                    # Define holiday and off-day status sets
+                    HOLIDAY_STATUSES = {'holiday'}
+                    OFFDAY_STATUSES = {'absent', 'leave', 'weekoff', 'off', 'not_scheduled'}
+
+                    # Determine working status and day_status based on shift log status
+                    status_raw = (shift_status or '').strip().lower()
+                    day_status = "scheduled"
+                    
+                    if status_raw in HOLIDAY_STATUSES:
+                        is_working = False
+                        shift_start, shift_end = None, None
+                        day_status = "holiday"
+                        availability_status = 'Holiday'
+                    elif status_raw in OFFDAY_STATUSES:
+                        is_working = False
+                        shift_start, shift_end = None, None
+                        day_status = "off"
+                        availability_status = 'Off Day'
+                    else:
+                        is_working = status_raw in ['scheduled', 'completed']
+                        day_status = "scheduled" if is_working else "off"
+                        availability_status = {
+                            'scheduled': 'Working',
+                            'completed': 'Completed Shift'
+                        }.get(status_raw, 'Unknown')
 
                     # Calculate break duration if break times exist
                     break_duration = None
@@ -578,6 +595,7 @@ def unaki_schedule():
                         is_working = True
                         availability_status = 'Scheduled (Default)'
                         shift_status = 'no_log'
+                        day_status = 'scheduled'
                     else:
                         # No shift management at all
                         shift_start = '09:00'
@@ -585,6 +603,7 @@ def unaki_schedule():
                         is_working = False
                         availability_status = 'Not Scheduled'
                         shift_status = 'not_scheduled'
+                        day_status = 'off'
 
                     break_start = None
                     break_end = None
@@ -629,6 +648,7 @@ def unaki_schedule():
                     'ooo': ooo,
                     'is_working': is_working,
                     'shift_status': shift_status,
+                    'day_status': day_status,
                     'availability_status': availability_status,
                     'shift_display': shift_display,
                     'has_shift_log': shift_log is not None,
@@ -657,6 +677,7 @@ def unaki_schedule():
                     'ooo': [],
                     'is_working': staff.is_active,
                     'shift_status': 'error',
+                    'day_status': 'scheduled',
                     'availability_status': 'Error Loading',
                     'shift_display': '09:00 - 17:00 (Error)',
                     'has_shift_log': False,
