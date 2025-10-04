@@ -504,6 +504,18 @@ body {
         display: none;
     }
 }
+
+/* Custom styles for validation feedback */
+.is-invalid {
+    border-color: #dc3545 !important;
+}
+.invalid-feedback {
+    display: none; /* Hidden by default, shown by JS */
+    width: 100%;
+    margin-top: 0.25rem;
+    font-size: 0.875em;
+    color: #dc3545;
+}
 </style>
 {% endblock %}
 
@@ -546,6 +558,7 @@ body {
                                 </option>
                                 {% endfor %}
                             </select>
+                            <div class="invalid-feedback"></div>
                         </div>
                         <div class="col-md-6 mb-3">
                             <label class="form-label-custom">
@@ -576,7 +589,7 @@ body {
                             <div class="row g-3">
                                 <div class="col-md-4">
                                     <label class="form-label-custom">Service</label>
-                                    <select class="form-select form-select-custom" name="service_ids[]" onchange="handleServiceSelection(this)">
+                                    <select class="form-select form-select-custom" name="service_ids[]" onchange="handleServiceSelection(this); updateCalculations();">
                                         <option value="">Select Service</option>
                                         {% for service in services %}
                                         <option value="{{ service.id }}" data-price="{{ service.price|float }}">
@@ -584,19 +597,22 @@ body {
                                         </option>
                                         {% endfor %}
                                     </select>
+                                    <div class="invalid-feedback"></div>
                                 </div>
                                 <div class="col-md-3">
                                     <label class="form-label-custom required-field">Staff</label>
-                                    <select class="form-select form-select-custom" name="staff_ids[]" required>
+                                    <select class="form-select form-select-custom" name="staff_ids[]">
                                         <option value="">Select Staff</option>
                                         {% for staff in staff_members %}
                                         <option value="{{ staff.id }}">{{ staff.full_name }}</option>
                                         {% endfor %}
                                     </select>
+                                    <div class="invalid-feedback"></div>
                                 </div>
                                 <div class="col-md-2">
                                     <label class="form-label-custom">Qty</label>
                                     <input type="number" class="form-control form-control-custom" name="service_quantities[]" value="1" min="0.5" step="0.5" oninput="updateCalculations()">
+                                    <div class="invalid-feedback"></div>
                                 </div>
                                 <div class="col-md-2">
                                     <label class="form-label-custom">Apt ID</label>
@@ -629,12 +645,13 @@ body {
                             <div class="row g-3">
                                 <div class="col-md-3">
                                     <label class="form-label-custom">Product</label>
-                                    <select class="form-select form-select-custom product-select" name="product_ids[]" onchange="loadBatchesForProduct(this)">
+                                    <select class="form-select form-select-custom product-select" name="product_ids[]" onchange="loadBatchesForProduct(this); updateCalculations();">
                                         <option value="">Select Product</option>
                                         {% for product in inventory_items %}
                                         <option value="{{ product.id }}">{{ product.name }}</option>
                                         {% endfor %}
                                     </select>
+                                    <div class="invalid-feedback"></div>
                                 </div>
                                 <div class="col-md-2">
                                     <label class="form-label-custom">Batch</label>
@@ -642,23 +659,27 @@ body {
                                         <option value="">Select Product First</option>
                                     </select>
                                     <div class="batch-info-display"></div>
+                                    <div class="invalid-feedback"></div>
                                 </div>
                                 <div class="col-md-2">
                                     <label class="form-label-custom required-field">Staff</label>
-                                    <select class="form-select form-select-custom" name="product_staff_ids[]" required>
+                                    <select class="form-select form-select-custom" name="product_staff_ids[]">
                                         <option value="">Select Staff</option>
                                         {% for staff in staff_members %}
                                         <option value="{{ staff.id }}">{{ staff.full_name }}</option>
                                         {% endfor %}
                                     </select>
+                                    <div class="invalid-feedback"></div>
                                 </div>
                                 <div class="col-md-2">
                                     <label class="form-label-custom">Qty</label>
                                     <input type="number" class="form-control form-control-custom" name="product_quantities[]" value="1" min="0.01" step="0.01" oninput="updateCalculations()">
+                                    <div class="invalid-feedback"></div>
                                 </div>
                                 <div class="col-md-2">
                                     <label class="form-label-custom">Price</label>
                                     <input type="number" class="form-control form-control-custom" name="product_prices[]" placeholder="₹0.00" min="0" step="0.01" oninput="updateCalculations()">
+                                    <div class="invalid-feedback"></div>
                                 </div>
                                 <div class="col-md-1 d-flex align-items-end">
                                     <button type="button" class="btn btn-danger btn-sm-custom w-100" onclick="removeRow(this)" style="display:none;">
@@ -679,21 +700,23 @@ body {
                     <div class="row g-3">
                         <div class="col-md-4">
                             <label class="form-label-custom required-field">Payment Method</label>
-                            <select class="form-select form-select-custom" name="payment_method" required>
+                            <select class="form-select form-select-custom" name="payment_method">
                                 <option value="">Select Method</option>
                                 <option value="cash">Cash</option>
                                 <option value="card">Card</option>
                                 <option value="upi">UPI</option>
                                 <option value="bank_transfer">Bank Transfer</option>
                             </select>
+                            <div class="invalid-feedback"></div>
                         </div>
                         <div class="col-md-4">
                             <label class="form-label-custom required-field">Payment Status</label>
-                            <select class="form-select form-select-custom" name="payment_status" required>
+                            <select class="form-select form-select-custom" name="payment_status">
                                 <option value="paid">Paid</option>
                                 <option value="partial">Partially Paid</option>
                                 <option value="pending">Pending</option>
                             </select>
+                            <div class="invalid-feedback"></div>
                         </div>
                         <div class="col-md-4">
                             <label class="form-label-custom">Discount (%)</label>
@@ -815,6 +838,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 document.getElementById('customerPackages').innerHTML = '<small>Select customer to view packages</small>';
                 customerPackageData = null;
             }
+            updateCalculations(); // Recalculate in case package changes affect totals
         });
     }
 
@@ -840,12 +864,23 @@ document.addEventListener('DOMContentLoaded', function() {
     {% if selected_customer %}
     loadCustomerPackages({{ selected_customer.id }});
     {% endif %}
+
+    // Setup validation listeners for dynamic error clearing
+    setupValidationListeners();
 });
 
 // ==========================================
 // FORM SUBMISSION
 // ==========================================
 function handleFormSubmit(event) {
+    const form = event.target;
+
+    // Perform validation before submission
+    if (!validateBillingForm()) {
+        console.log('❌ Validation failed, submission aborted.');
+        return; // Stop submission if validation fails
+    }
+
     event.preventDefault();
     event.stopPropagation();
 
@@ -855,45 +890,10 @@ function handleFormSubmit(event) {
         return;
     }
 
-    const form = event.target;
     const submitBtn = document.getElementById('saveInvoiceBtn');
     const clientId = form.querySelector('#client_id').value;
 
     console.log('📝 Form submission started for client:', clientId);
-
-    // Validation
-    if (!clientId) {
-        showNotification('⚠️ Please select a customer', 'warning');
-        return;
-    }
-
-    const serviceIds = Array.from(form.querySelectorAll('select[name="service_ids[]"]')).filter(s => s.value);
-    const productIds = Array.from(form.querySelectorAll('select[name="product_ids[]"]')).filter(p => p.value);
-
-    if (serviceIds.length === 0 && productIds.length === 0) {
-        showNotification('⚠️ Add at least one service or product', 'warning');
-        return;
-    }
-
-    // Validate staff for services
-    const staffIds = Array.from(form.querySelectorAll('select[name="staff_ids[]"]'));
-    for (let i = 0; i < serviceIds.length; i++) {
-        if (!staffIds[i] || !staffIds[i].value) {
-            showNotification(`⚠️ Please assign staff for service #${i + 1}`, 'error');
-            staffIds[i].focus();
-            return;
-        }
-    }
-
-    // Validate staff for products
-    const productStaffIds = Array.from(form.querySelectorAll('select[name="product_staff_ids[]"]'));
-    for (let i = 0; i < productIds.length; i++) {
-        if (!productStaffIds[i] || !productStaffIds[i].value) {
-            showNotification(`⚠️ Please assign staff for product #${i + 1}`, 'error');
-            productStaffIds[i].focus();
-            return;
-        }
-    }
 
     // Set submitting flag
     formSubmitting = true;
@@ -918,7 +918,7 @@ function handleFormSubmit(event) {
         }
     }, 1000);
 
-    // Submit form data
+    // Submit form data using fetch API for better control
     const formData = new FormData(form);
 
     fetch('/integrated-billing/create-professional', {
@@ -989,6 +989,7 @@ function addServiceRow() {
         } else {
             input.value = '';
         }
+        clearError(input); // Clear any residual validation errors
     });
 
     // Show delete button
@@ -1000,6 +1001,7 @@ function addServiceRow() {
     if (benefit) benefit.remove();
 
     container.appendChild(newRow);
+    setupValidationListeners(); // Re-setup listeners for new row elements
 }
 
 function addProductRow() {
@@ -1013,6 +1015,7 @@ function addProductRow() {
         } else {
             input.value = '';
         }
+        clearError(input); // Clear any residual validation errors
     });
 
     // Reset batch selector
@@ -1031,6 +1034,7 @@ function addProductRow() {
     if (deleteBtn) deleteBtn.style.display = 'block';
 
     container.appendChild(newRow);
+    setupValidationListeners(); // Re-setup listeners for new row elements
 }
 
 function removeRow(button) {
@@ -1070,7 +1074,7 @@ function loadCustomerPackages(customerId) {
                 packagesDiv.innerHTML = '<small class="text-muted-custom">No active packages</small>';
             }
 
-            updateCalculations();
+            updateCalculations(); // Recalculate totals after packages are loaded
         })
         .catch(error => {
             console.error('Error loading packages:', error);
@@ -1080,7 +1084,7 @@ function loadCustomerPackages(customerId) {
 }
 
 
-// Display customer packages
+// Display customer packages (This function seems to be unused or redundant with loadCustomerPackages)
 function displayCustomerPackages(packages) {
     let html = '<div class="alert alert-success mb-3"><i class="fas fa-check-circle me-2"></i><strong>Active Packages for Customer:</strong></div>';
     html += '<div class="row">';
@@ -1095,7 +1099,7 @@ function displayCustomerPackages(packages) {
             progressPercent = ((pkg.total_sessions - pkg.remaining_sessions) / pkg.total_sessions) * 100;
             progressBar = `
                 <div class="progress mt-2" style="height: 8px;">
-                    <div class="progress-bar bg-success" role="progressbar" style="width: ${progressPercent}%" 
+                    <div class="progress-bar bg-success" role="progressbar" style="width: ${progressPercent}%"
                          aria-valuenow="${progressPercent}" aria-valuemin="0" aria-valuemax="100"></div>
                 </div>
             `;
@@ -1103,7 +1107,7 @@ function displayCustomerPackages(packages) {
             progressPercent = ((pkg.credit_amount - pkg.remaining_credit) / pkg.credit_amount) * 100;
             progressBar = `
                 <div class="progress mt-2" style="height: 8px;">
-                    <div class="progress-bar bg-info" role="progressbar" style="width: ${progressPercent}%" 
+                    <div class="progress-bar bg-info" role="progressbar" style="width: ${progressPercent}%"
                          aria-valuenow="${progressPercent}" aria-valuemin="0" aria-valuemax="100"></div>
                 </div>
             `;
@@ -1125,13 +1129,13 @@ function displayCustomerPackages(packages) {
         if (pkg.package_type === 'service_package') {
             packageCard += `
                             <strong><i class="fas fa-spa me-1"></i>Service:</strong> ${pkg.service_name || 'Any Service'}<br>
-                            <strong><i class="fas fa-calendar-check me-1"></i>Sessions:</strong> 
+                            <strong><i class="fas fa-calendar-check me-1"></i>Sessions:</strong>
                             <span class="text-success fw-bold">${pkg.remaining_sessions || 0}</span> / ${pkg.total_sessions || 0} remaining
                             ${progressBar}
             `;
         } else if (pkg.package_type === 'prepaid') {
             packageCard += `
-                            <strong><i class="fas fa-wallet me-1"></i>Balance:</strong> 
+                            <strong><i class="fas fa-wallet me-1"></i>Balance:</strong>
                             <span class="text-success fw-bold">₹${pkg.remaining_credit || 0}</span> / ₹${pkg.credit_amount || 0} remaining
                             ${progressBar}
             `;
@@ -1189,16 +1193,12 @@ function loadBatchesForProduct(productSelect) {
         batchSelect.innerHTML = '<option value="">Select Product First</option>';
         batchSelect.disabled = true;
         batchInfo.innerHTML = '';
+        clearError(productSelect);
+        clearError(batchSelect);
         return;
     }
 
     const productBatches = availableBatches.filter(b => b.product_id === productId && b.qty_available > 0);
-
-    if (productBatches.length === 0) {
-        batchSelect.innerHTML = '<option value="">No stock available</option>';
-        batchInfo.innerHTML = '<span class="text-danger">⚠️ Out of stock</span>';
-        return;
-    }
 
     // Sort by expiry (FIFO)
     productBatches.sort((a, b) => {
@@ -1208,41 +1208,62 @@ function loadBatchesForProduct(productSelect) {
     });
 
     // Populate batch dropdown
-    batchSelect.innerHTML = '';
-    productBatches.forEach((batch, index) => {
-        const option = document.createElement('option');
-        option.value = batch.id;
-        option.textContent = `${batch.batch_name} - ${batch.qty_available} available`;
-        if (index === 0) option.selected = true;
-        batchSelect.appendChild(option);
-    });
+    batchSelect.innerHTML = ''; // Clear previous options
+    if (productBatches.length === 0) {
+        batchSelect.innerHTML = '<option value="">No stock available</option>';
+        batchInfo.innerHTML = '<span class="text-danger">⚠️ Out of stock</span>';
+        batchSelect.disabled = true;
+        clearError(productSelect);
+        highlightError(batchSelect, 'No stock available for this product.');
+    } else {
+        productBatches.forEach((batch, index) => {
+            const option = document.createElement('option');
+            option.value = batch.id;
+            option.textContent = `${batch.batch_name} - ${batch.qty_available} available`;
+            if (index === 0) option.selected = true;
+            batchSelect.appendChild(option);
+        });
+        batchSelect.disabled = false;
 
-    batchSelect.disabled = false;
-
-    // Show first batch info
-    const firstBatch = productBatches[0];
-    const expiryText = firstBatch.expiry_date ?
-        `Exp: ${new Date(firstBatch.expiry_date).toLocaleDateString()}` : 'No expiry';
-    batchInfo.innerHTML = `<strong>FIFO:</strong> ${firstBatch.batch_name}<br><strong>Avail:</strong> ${firstBatch.qty_available}<br>${expiryText}`;
-
-    // Set price
-    if (priceInput && firstBatch.selling_price) {
-        priceInput.value = parseFloat(firstBatch.selling_price).toFixed(2);
-        updateCalculations();
+        // Show first batch info
+        const firstBatch = productBatches[0];
+        const expiryText = firstBatch.expiry_date ?
+            `Exp: ${new Date(firstBatch.expiry_date).toLocaleDateString()}` : 'No expiry';
+        batchInfo.innerHTML = `<strong>FIFO:</strong> ${firstBatch.batch_name}<br><strong>Avail:</strong> ${firstBatch.qty_available}<br>${expiryText}`;
+        clearError(batchSelect);
     }
+
+
+    // Set price based on the first batch if available
+    if (priceInput && productBatches.length > 0 && productBatches[0].selling_price) {
+        priceInput.value = parseFloat(productBatches[0].selling_price).toFixed(2);
+    } else if (priceInput) {
+        priceInput.value = ''; // Clear price if no batch or selling price
+    }
+    updateCalculations();
 }
 
 // ==========================================
 // CALCULATIONS
 // ==========================================
 function handleServiceSelection(selectElement) {
+    const row = selectElement.closest('.service-row');
+    const option = selectElement.options[selectElement.selectedIndex];
+    const price = parseFloat(option.dataset.price) || 0;
+    const qtyInput = row.querySelector('input[name="service_quantities[]"]');
+    const qty = parseFloat(qtyInput.value) || 1;
+
+    // Update calculations immediately if a service is selected
     updateCalculations();
+
+    // Clear errors on selection change
+    clearError(selectElement);
 }
 
 function updateCalculations() {
     // Calculate services subtotal
     let servicesSubtotal = 0;
-    let packageDeductions = 0; // This will be updated when package benefits are applied
+    let packageDeductions = 0; // Placeholder for applying package benefits
 
     document.querySelectorAll('.service-row').forEach(row => {
         const serviceSelect = row.querySelector('select[name="service_ids[]"]');
@@ -1252,7 +1273,6 @@ function updateCalculations() {
             const option = serviceSelect.options[serviceSelect.selectedIndex];
             const price = parseFloat(option.dataset.price) || 0;
             const qty = parseFloat(qtyInput.value) || 1;
-
             servicesSubtotal += price * qty;
         }
     });
@@ -1278,7 +1298,8 @@ function updateCalculations() {
 
     // Calculate GST
     const gstEnabled = document.getElementById('gstEnabled')?.checked || false;
-    const gstPercentage = gstEnabled ? (parseFloat(document.getElementById('gstPercentage')?.value) || 0) : 0;
+    const gstInput = document.getElementById('gstPercentage');
+    const gstPercentage = gstEnabled ? (parseFloat(gstInput?.value) || 0) : 0;
     const subtotalAfterDiscount = Math.max(0, totalBeforeDiscount - discountAmount);
     const gstAmount = (subtotalAfterDiscount * gstPercentage) / 100;
 
@@ -1288,7 +1309,7 @@ function updateCalculations() {
     // Update display
     document.getElementById('servicesSubtotal').textContent = `₹${servicesSubtotal.toFixed(2)}`;
     document.getElementById('productsSubtotal').textContent = `₹${productsSubtotal.toFixed(2)}`;
-    document.getElementById('packageDeductions').textContent = `-₹${packageDeductions.toFixed(2)}`; // Placeholder for now
+    document.getElementById('packageDeductions').textContent = `-₹${packageDeductions.toFixed(2)}`; // Placeholder
     document.getElementById('discountAmount').textContent = `-₹${discountAmount.toFixed(2)}`;
     document.getElementById('gstRate').textContent = gstPercentage.toFixed(0);
     document.getElementById('gstAmount').textContent = `₹${gstAmount.toFixed(2)}`;
@@ -1301,7 +1322,9 @@ function updateCalculations() {
 // PREVIEW
 // ==========================================
 function previewInvoice() {
-    showNotification('Preview feature coming soon!', 'info');
+    // This function would typically gather form data and display a preview
+    // For now, just show a notification
+    showNotification('Preview functionality is under development.', 'info');
 }
 
 // ==========================================
@@ -1329,6 +1352,274 @@ function showNotification(message, type = 'info', duration = 5000) {
         notification.classList.remove('show');
         setTimeout(() => notification.remove(), 300);
     }, duration);
+}
+
+// ==========================================
+// EDIT CUSTOMER FORM SUBMISSION
+// ==========================================
+// Handle edit customer form submission
+function handleEditCustomerSubmit(event) {
+    event.preventDefault();
+
+    const form = event.target;
+    const submitBtn = form.querySelector('button[type="submit"]');
+
+    // Prevent double submission
+    if (submitBtn.disabled) {
+        return;
+    }
+
+    const customerId = form.dataset.customerId || window.currentCustomerId;
+
+    if (!customerId) {
+        showNotification('Error: Customer ID not found.', 'error');
+        return;
+    }
+
+    // Show loading and disable button
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Updating...';
+
+    // Validate form action is set
+    if (!form.action || form.action.endsWith('/clients')) {
+        form.action = `/clients/update/${customerId}`;
+    }
+
+    // Submit form normally - let Flask handle it with proper redirect and flash messages
+    form.submit();
+}
+
+// ==========================================
+// COMPREHENSIVE BILLING VALIDATION
+// ==========================================
+function validateBillingForm() {
+    const form = document.getElementById('billingForm');
+    const errors = [];
+    const missingFields = []; // Stores elements and messages for scrolling/focus
+
+    // 1. Validate Customer Selection
+    const clientSelect = document.getElementById('client_id');
+    if (!clientSelect || !clientSelect.value) {
+        errors.push('Customer selection is required.');
+        missingFields.push({ element: clientSelect, message: 'Please select a customer' });
+        highlightError(clientSelect, 'Please select a customer');
+    } else {
+        clearError(clientSelect);
+    }
+
+    // 2. Validate Services
+    const serviceRows = document.querySelectorAll('.service-row');
+    let hasValidService = false;
+
+    serviceRows.forEach((row, index) => {
+        const serviceSelect = row.querySelector('select[name="service_ids[]"]');
+        const staffSelect = row.querySelector('select[name="staff_ids[]"]');
+        const qtyInput = row.querySelector('input[name="service_quantities[]"]');
+
+        // Only validate if a service is actually selected
+        if (serviceSelect && serviceSelect.value) {
+            hasValidService = true;
+
+            // Validate staff for this service
+            if (!staffSelect || !staffSelect.value) {
+                errors.push(`Service #${index + 1}: Staff assignment is required.`);
+                missingFields.push({ element: staffSelect, message: `Staff required for service #${index + 1}` });
+                highlightError(staffSelect, 'Staff is required');
+            } else {
+                clearError(staffSelect);
+            }
+
+            // Validate quantity
+            if (!qtyInput || !qtyInput.value || parseFloat(qtyInput.value) <= 0) {
+                errors.push(`Service #${index + 1}: Valid quantity is required.`);
+                missingFields.push({ element: qtyInput, message: 'Quantity must be greater than 0' });
+                highlightError(qtyInput, 'Quantity required');
+            } else {
+                clearError(qtyInput);
+            }
+        } else {
+            // If no service is selected, clear any potential errors from other fields in this row
+            clearError(staffSelect);
+            clearError(qtyInput);
+        }
+    });
+
+    // 3. Validate Products
+    const productRows = document.querySelectorAll('.product-row');
+    let hasValidProduct = false;
+
+    productRows.forEach((row, index) => {
+        const productSelect = row.querySelector('select[name="product_ids[]"]');
+        const batchSelect = row.querySelector('select[name="batch_ids[]"]');
+        const staffSelect = row.querySelector('select[name="product_staff_ids[]"]');
+        const qtyInput = row.querySelector('input[name="product_quantities[]"]');
+        const priceInput = row.querySelector('input[name="product_prices[]"]');
+
+        // Only validate if a product is actually selected
+        if (productSelect && productSelect.value) {
+            hasValidProduct = true;
+
+            // Validate batch selection
+            if (!batchSelect || !batchSelect.value) {
+                errors.push(`Product #${index + 1}: Batch selection is required.`);
+                missingFields.push({ element: batchSelect, message: 'Batch is required' });
+                highlightError(batchSelect, 'Batch required');
+            } else {
+                clearError(batchSelect);
+            }
+
+            // Validate staff for this product
+            if (!staffSelect || !staffSelect.value) {
+                errors.push(`Product #${index + 1}: Staff assignment is required.`);
+                missingFields.push({ element: staffSelect, message: `Staff required for product #${index + 1}` });
+                highlightError(staffSelect, 'Staff is required');
+            } else {
+                clearError(staffSelect);
+            }
+
+            // Validate quantity
+            if (!qtyInput || !qtyInput.value || parseFloat(qtyInput.value) <= 0) {
+                errors.push(`Product #${index + 1}: Valid quantity is required.`);
+                missingFields.push({ element: qtyInput, message: 'Quantity must be greater than 0' });
+                highlightError(qtyInput, 'Quantity required');
+            } else {
+                clearError(qtyInput);
+            }
+
+            // Validate price
+            if (!priceInput || !priceInput.value || parseFloat(priceInput.value) <= 0) {
+                errors.push(`Product #${index + 1}: Valid price is required.`);
+                missingFields.push({ element: priceInput, message: 'Price must be greater than 0' });
+                highlightError(priceInput, 'Price required');
+            } else {
+                clearError(priceInput);
+            }
+        } else {
+            // If no product is selected, clear potential errors
+            clearError(batchSelect);
+            clearError(staffSelect);
+            clearError(qtyInput);
+            clearError(priceInput);
+        }
+    });
+
+    // 4. Check if at least one service or product is added
+    if (!hasValidService && !hasValidProduct) {
+        errors.push('At least one service or product must be added.');
+        showNotification('⚠️ Please add at least one service or product to the invoice', 'warning', 5000);
+    }
+
+    // 5. Validate Payment Method
+    const paymentMethod = form.querySelector('select[name="payment_method"]');
+    if (!paymentMethod || !paymentMethod.value) {
+        errors.push('Payment method is required.');
+        missingFields.push({ element: paymentMethod, message: 'Payment method is required' });
+        highlightError(paymentMethod, 'Payment method required');
+    } else {
+        clearError(paymentMethod);
+    }
+
+    // 6. Display validation results
+    if (errors.length > 0) {
+        const errorMessage = `
+⚠️ Please fix the following issues before saving:
+
+${errors.join('\n')}
+        `.trim();
+
+        showNotification(errorMessage, 'error', 10000);
+
+        // Scroll to the first error element and focus it
+        if (missingFields.length > 0 && missingFields[0].element) {
+            missingFields[0].element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            missingFields[0].element.focus();
+        }
+
+        return false; // Indicate validation failure
+    }
+
+    return true; // Indicate validation success
+}
+
+// Visual error highlighting and feedback
+function highlightError(element, message) {
+    if (!element) return;
+
+    element.classList.add('is-invalid');
+    // Ensure custom styles don't conflict with bootstrap's .is-invalid
+    element.style.borderColor = '#dc3545';
+    element.style.boxShadow = '0 0 0 0.2rem rgba(220, 53, 69, 0.25)';
+
+    // Add or update the error message div
+    let errorDiv = element.parentElement.querySelector('.invalid-feedback');
+    if (!errorDiv) {
+        errorDiv = document.createElement('div');
+        errorDiv.className = 'invalid-feedback';
+        errorDiv.style.display = 'block'; // Make it visible
+        element.parentElement.appendChild(errorDiv);
+    }
+    errorDiv.textContent = message;
+}
+
+function clearError(element) {
+    if (!element) return;
+
+    element.classList.remove('is-invalid');
+    // Reset styles to default or their original values
+    element.style.borderColor = '';
+    element.style.boxShadow = '';
+
+    // Remove the error message div if it exists
+    const errorDiv = element.parentElement.querySelector('.invalid-feedback');
+    if (errorDiv) {
+        errorDiv.remove();
+    }
+}
+
+// Clear errors dynamically as user corrects input
+function setupValidationListeners() {
+    const form = document.getElementById('billingForm');
+    if (!form) return;
+
+    // Listen for changes on select elements
+    form.querySelectorAll('select').forEach(select => {
+        select.addEventListener('change', () => clearError(select));
+    });
+
+    // Listen for input events on number and text inputs
+    form.querySelectorAll('input[type="number"], input[type="text"], textarea').forEach(input => {
+        input.addEventListener('input', () => clearError(input));
+    });
+
+    // Special handling for dynamic rows (services and products)
+    // Use event delegation on the container
+    const servicesContainer = document.getElementById('servicesContainer');
+    if (servicesContainer) {
+        servicesContainer.addEventListener('change', (e) => {
+            if (e.target.matches('select[name="service_ids[]"], select[name="staff_ids[]"], input[name="service_quantities[]"]')) {
+                clearError(e.target);
+            }
+        });
+        servicesContainer.addEventListener('input', (e) => {
+             if (e.target.matches('input[name="service_quantities[]"]')) {
+                clearError(e.target);
+            }
+        });
+    }
+
+    const productsContainer = document.getElementById('productsContainer');
+    if (productsContainer) {
+        productsContainer.addEventListener('change', (e) => {
+            if (e.target.matches('select[name="product_ids[]"], select[name="batch_ids[]"], select[name="product_staff_ids[]"], input[name="product_quantities[]"], input[name="product_prices[]"]')) {
+                clearError(e.target);
+            }
+        });
+         productsContainer.addEventListener('input', (e) => {
+             if (e.target.matches('input[name="product_quantities[]"], input[name="product_prices[]"]')) {
+                clearError(e.target);
+            }
+        });
+    }
 }
 </script>
 {% endblock %}
