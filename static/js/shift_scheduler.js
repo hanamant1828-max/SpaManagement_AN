@@ -459,7 +459,10 @@
                             </td>
                             <td>${day.is_working ? (day.start_time_12h || 'N/A') : '-'}</td>
                             <td>${day.is_working ? (day.end_time_12h || 'N/A') : '-'}</td>
-                            <td>${day.is_working ? (day.break_time_display || 'No break') : '-'}</td>
+                            <td>
+                                ${day.is_working ? (day.break_time_display || 'No break') : '-'}
+                                ${day.out_of_office_display ? '<br><small class="text-warning"><i class="fas fa-briefcase"></i> Out: ' + day.out_of_office_display + '</small>' : ''}
+                            </td>
                             <td>${day.notes || '-'}</td>
                         </tr>
                     `;

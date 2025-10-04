@@ -179,6 +179,10 @@
                 breakStart: '13:00',
                 breakEnd: '14:00',
                 breakMinutes: 60,
+                outOfOfficeStart: '',
+                outOfOfficeEnd: '',
+                outOfOfficeMinutes: 0,
+                outOfOfficeReason: '',
                 notes: ''
             });
             current.setDate(current.getDate() + 1);
@@ -303,6 +307,28 @@
                         <input type="number" class="form-control form-control-sm break-input"
                                data-field="breakMinutes" data-index="${index}"
                                value="${day.breakMinutes}" min="0" max="480" ${day.working ? '' : 'disabled'} readonly>
+                    </td>
+                    <td>
+                        <input type="time" class="form-control form-control-sm time-input out-start"
+                               data-field="outOfOfficeStart" data-index="${index}"
+                               value="${day.outOfOfficeStart || ''}" ${day.working ? '' : 'disabled'} onchange="updateOutOfOfficeTime(this)">
+                        <small class="text-muted d-block">${day.outOfOfficeStart ? convert24To12Hour(day.outOfOfficeStart) : ''}</small>
+                    </td>
+                    <td>
+                        <input type="time" class="form-control form-control-sm time-input out-end"
+                               data-field="outOfOfficeEnd" data-index="${index}"
+                               value="${day.outOfOfficeEnd || ''}" ${day.working ? '' : 'disabled'} onchange="updateOutOfOfficeTime(this)">
+                        <small class="text-muted d-block">${day.outOfOfficeEnd ? convert24To12Hour(day.outOfOfficeEnd) : ''}</small>
+                    </td>
+                    <td>
+                        <input type="number" class="form-control form-control-sm out-minutes"
+                               data-field="outOfOfficeMinutes" data-index="${index}"
+                               value="${day.outOfOfficeMinutes || 0}" min="0" max="480" ${day.working ? '' : 'disabled'} readonly>
+                    </td>
+                    <td>
+                        <input type="text" class="form-control form-control-sm"
+                               data-field="outOfOfficeReason" data-index="${index}"
+                               value="${day.outOfOfficeReason || ''}" placeholder="Reason..." ${day.working ? '' : 'disabled'}>
                     </td>
                     <td class="text-center align-middle">
                         <div class="form-check form-switch">
@@ -563,6 +589,10 @@
                     breakStart: day.breakStart,
                     breakEnd: day.breakEnd,
                     breakMinutes: day.breakMinutes,
+                    outOfOfficeStart: day.outOfOfficeStart || '',
+                    outOfOfficeEnd: day.outOfOfficeEnd || '',
+                    outOfOfficeMinutes: day.outOfOfficeMinutes || 0,
+                    outOfOfficeReason: day.outOfOfficeReason || '',
                     notes: day.notes
                 });
             }
@@ -972,6 +1002,39 @@
                 currentScheduleDays[index].breakStart = breakStart;
                 currentScheduleDays[index].breakEnd = breakEnd;
                 currentScheduleDays[index].breakMinutes = 0;
+            }
+        }
+        updateReviewSection();
+    };
+
+    /**
+     * Update out of office time and calculate minutes
+     */
+    window.updateOutOfOfficeTime = function(element) { // Make globally accessible for inline onchange
+        updateTimeDisplay(element); // Update the 12hr format display
+
+        const $row = $(element).closest('tr');
+        const index = parseInt($row.data('index'));
+        const outStart = $row.find('.out-start').val();
+        const outEnd = $row.find('.out-end').val();
+
+        if (outStart && outEnd) {
+            const outMinutes = calculateBreakMinutes(outStart, outEnd);
+            $row.find('.out-minutes').val(outMinutes);
+
+            // Update the data array
+            if (currentScheduleDays[index]) {
+                currentScheduleDays[index].outOfOfficeStart = outStart;
+                currentScheduleDays[index].outOfOfficeEnd = outEnd;
+                currentScheduleDays[index].outOfOfficeMinutes = outMinutes;
+            }
+        } else {
+            // Clear out of office minutes if start or end is missing
+            $row.find('.out-minutes').val('');
+            if (currentScheduleDays[index]) {
+                currentScheduleDays[index].outOfOfficeStart = outStart;
+                currentScheduleDays[index].outOfOfficeEnd = outEnd;
+                currentScheduleDays[index].outOfOfficeMinutes = 0;
             }
         }
         updateReviewSection();

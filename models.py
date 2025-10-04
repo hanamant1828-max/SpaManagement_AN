@@ -294,6 +294,12 @@ class ShiftLogs(db.Model):
     shift_end_time = db.Column(db.Time, nullable=False)
     break_start_time = db.Column(db.Time, nullable=True)
     break_end_time = db.Column(db.Time, nullable=True)
+    
+    # Out of office / Field work tracking
+    out_of_office_start = db.Column(db.Time, nullable=True)
+    out_of_office_end = db.Column(db.Time, nullable=True)
+    out_of_office_reason = db.Column(db.String(200), nullable=True)  # e.g., "Field work", "Client visit", "Bank work"
+    
     status = db.Column(db.Enum('scheduled', 'absent', 'holiday', 'completed', name='shift_status'), default='scheduled')
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
@@ -309,6 +315,20 @@ class ShiftLogs(db.Model):
             return f"{duration} minutes ({start_12h} - {end_12h})"
         else:
             return "No break"
+    
+    def get_out_of_office_display(self):
+        """Get formatted out of office time display"""
+        if self.out_of_office_start and self.out_of_office_end:
+            start_12h = self.out_of_office_start.strftime('%I:%M %p')
+            end_12h = self.out_of_office_end.strftime('%I:%M %p')
+            # Calculate duration in minutes
+            start_minutes = self.out_of_office_start.hour * 60 + self.out_of_office_start.minute
+            end_minutes = self.out_of_office_end.hour * 60 + self.out_of_office_end.minute
+            duration = end_minutes - start_minutes
+            reason = self.out_of_office_reason or "Field work"
+            return f"{duration} min ({start_12h} - {end_12h}) - {reason}"
+        else:
+            return "No out of office"
 
     def __repr__(self):
         return f'<ShiftLogs {self.individual_date} - Management {self.shift_management_id}>'

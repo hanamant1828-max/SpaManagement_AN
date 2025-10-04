@@ -179,6 +179,11 @@ def save_daily_schedule():
             end_time = datetime.strptime(day['endTime'], '%H:%M').time() if day.get('endTime') else None
             break_start = datetime.strptime(day['breakStart'], '%H:%M').time() if day.get('breakStart') else None
             break_end = datetime.strptime(day['breakEnd'], '%H:%M').time() if day.get('breakEnd') else None
+            
+            # Out of office / field work
+            out_start = datetime.strptime(day['outOfOfficeStart'], '%H:%M').time() if day.get('outOfOfficeStart') else None
+            out_end = datetime.strptime(day['outOfOfficeEnd'], '%H:%M').time() if day.get('outOfOfficeEnd') else None
+            out_reason = day.get('outOfOfficeReason', '')
 
             shift_log = ShiftLogs(
                 shift_management_id=shift_management.id,
@@ -187,6 +192,9 @@ def save_daily_schedule():
                 shift_end_time=end_time,
                 break_start_time=break_start,
                 break_end_time=break_end,
+                out_of_office_start=out_start,
+                out_of_office_end=out_end,
+                out_of_office_reason=out_reason,
                 status='scheduled'
             )
             db.session.add(shift_log)
@@ -307,6 +315,7 @@ def api_get_staff_schedule_details(staff_id):
                 'start_time_12h': log.shift_start_time.strftime('%I:%M %p') if log.shift_start_time else None,
                 'end_time_12h': log.shift_end_time.strftime('%I:%M %p') if log.shift_end_time else None,
                 'break_time_display': log.get_break_time_display(),
+                'out_of_office_display': log.get_out_of_office_display() if log.out_of_office_start else None,
                 'notes': '',
                 'status': log.status
             })
@@ -522,6 +531,11 @@ def update_daily_schedule(schedule_id):
             end_time = datetime.strptime(day['endTime'], '%H:%M').time() if day.get('endTime') else None
             break_start = datetime.strptime(day['breakStart'], '%H:%M').time() if day.get('breakStart') else None
             break_end = datetime.strptime(day['breakEnd'], '%H:%M').time() if day.get('breakEnd') else None
+            
+            # Out of office / field work
+            out_start = datetime.strptime(day['outOfOfficeStart'], '%H:%M').time() if day.get('outOfOfficeStart') else None
+            out_end = datetime.strptime(day['outOfOfficeEnd'], '%H:%M').time() if day.get('outOfOfficeEnd') else None
+            out_reason = day.get('outOfOfficeReason', '')
 
             shift_log = ShiftLogs(
                 shift_management_id=shift_management.id,
@@ -530,6 +544,9 @@ def update_daily_schedule(schedule_id):
                 shift_end_time=end_time,
                 break_start_time=break_start,
                 break_end_time=break_end,
+                out_of_office_start=out_start,
+                out_of_office_end=out_end,
+                out_of_office_reason=out_reason,
                 status='scheduled'
             )
             db.session.add(shift_log)
