@@ -889,6 +889,10 @@ document.addEventListener('DOMContentLoaded', function() {
 // FORM SUBMISSION
 // ==========================================
 function handleFormSubmit(event) {
+    // CRITICAL: Prevent default form submission first
+    event.preventDefault();
+    event.stopPropagation();
+
     const form = event.target;
 
     // Perform validation before submission
@@ -896,9 +900,6 @@ function handleFormSubmit(event) {
         console.log('❌ Validation failed, submission aborted.');
         return; // Stop submission if validation fails
     }
-
-    event.preventDefault();
-    event.stopPropagation();
 
     // Prevent double submission
     if (formSubmitting) {
@@ -1371,14 +1372,14 @@ function updateCalculations() {
     // Grand total = base + GST
     const grandTotal = netBaseAmount + finalGstAmount;
 
-    // Update display
-    document.getElementById('servicesSubtotal').textContent = `₹${servicesSubtotal.toFixed(2)}`;
-    document.getElementById('productsSubtotal').textContent = `₹${productsSubtotal.toFixed(2)}`;
-    document.getElementById('packageDeductions').textContent = `-₹${packageDeductions.toFixed(2)}`; // Placeholder
-    document.getElementById('discountAmount').textContent = `-₹${discountAmount.toFixed(2)}`;
-    document.getElementById('gstRate').textContent = gstPercentage.toFixed(0);
-    document.getElementById('gstAmount').textContent = `₹${finalGstAmount.toFixed(2)}`;
-    document.getElementById('grandTotal').textContent = `₹${grandTotal.toFixed(2)}`;
+    // Update display - ensure all values are numbers before calling toFixed
+    document.getElementById('servicesSubtotal').textContent = `₹${(servicesSubtotal || 0).toFixed(2)}`;
+    document.getElementById('productsSubtotal').textContent = `₹${(productsSubtotal || 0).toFixed(2)}`;
+    document.getElementById('packageDeductions').textContent = `-₹${(packageDeductions || 0).toFixed(2)}`; // Placeholder
+    document.getElementById('discountAmount').textContent = `-₹${(discountAmount || 0).toFixed(2)}`;
+    document.getElementById('gstRate').textContent = (gstPercentage || 0).toFixed(0);
+    document.getElementById('gstAmount').textContent = `₹${(finalGstAmount || 0).toFixed(2)}`;
+    document.getElementById('grandTotal').textContent = `₹${(grandTotal || 0).toFixed(2)}`;
 
     console.log('💰 Calculations updated - Grand Total:', grandTotal.toFixed(2));
 }
