@@ -956,19 +956,24 @@ function setupFormFieldValidation(form) {
     });
 }
 
-function validateForm(form) {
-    // Handle case where form is not provided or is not a DOM element
-    if (!form || typeof form.querySelectorAll !== 'function') {
-        console.warn('validateForm called without a valid form element');
-        return true; // Return true to avoid blocking form operations
+function validateForm(formId) {
+    const form = document.getElementById(formId);
+
+    // Check if form exists before proceeding
+    if (!form) {
+        console.warn(`validateForm: Form with ID '${formId}' not found`);
+        return false;
     }
 
-    let isValid = true;
     const inputs = form.querySelectorAll('input[required], select[required], textarea[required]');
+    let isValid = true;
 
     inputs.forEach(input => {
-        if (!validateField(input)) {
+        if (!input.value.trim()) {
+            input.classList.add('is-invalid');
             isValid = false;
+        } else {
+            input.classList.remove('is-invalid');
         }
     });
 

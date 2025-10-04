@@ -1,4 +1,3 @@
-
 // Appointment Context Menu Implementation
 class AppointmentContextMenu {
     constructor() {
@@ -161,7 +160,7 @@ class AppointmentContextMenu {
 
     showContextMenu(x, y, appointmentId) {
         this.currentAppointmentId = appointmentId;
-        
+
         if (!this.contextMenu) {
             console.error('Context menu not initialized, recreating...');
             this.createContextMenuHTML();
@@ -208,7 +207,7 @@ class AppointmentContextMenu {
         if (appointmentElement) {
             const clientName = appointmentElement.querySelector('.appointment-client')?.textContent || 'Unknown Client';
             const serviceName = appointmentElement.querySelector('.appointment-service')?.textContent || 'Unknown Service';
-            
+
             const header = this.contextMenu.querySelector('#context-menu-title');
             header.textContent = `${clientName} - ${serviceName}`;
         }
@@ -252,7 +251,7 @@ class AppointmentContextMenu {
 
     viewAppointment(appointmentId) {
         console.log(`Viewing appointment ${appointmentId}`);
-        
+
         // Fetch appointment details from API
         fetch(`/api/unaki/bookings/${appointmentId}`)
             .then(response => response.json())
@@ -272,7 +271,7 @@ class AppointmentContextMenu {
 
     editAppointment(appointmentId) {
         console.log(`Editing appointment ${appointmentId}`);
-        
+
         // Fetch appointment details first
         fetch(`/api/unaki/bookings/${appointmentId}`)
             .then(response => response.json())
@@ -290,12 +289,12 @@ class AppointmentContextMenu {
             });
     }
 
-    
+
 
     cancelAppointment(appointmentId) {
         if (confirm('Are you sure you want to cancel this appointment?')) {
             console.log(`Cancelling appointment ${appointmentId}`);
-            
+
             // Update status to cancelled using the Unaki API endpoint
             fetch(`/api/unaki/bookings/${appointmentId}/update-status`, {
                 method: 'PUT',
@@ -314,7 +313,7 @@ class AppointmentContextMenu {
                 if (data.success) {
                     console.log(`✅ Appointment ${appointmentId} cancelled successfully`);
                     this.showToast('Appointment cancelled successfully', 'success');
-                    
+
                     // Refresh the schedule
                     setTimeout(() => {
                         if (typeof refreshSchedule === 'function') {
@@ -337,14 +336,14 @@ class AppointmentContextMenu {
 
     goToBilling(appointmentId) {
         console.log(`Redirecting to integrated billing for appointment ${appointmentId}`);
-        
+
         // Use the Unaki-specific API endpoint to get booking details
         fetch(`/api/unaki/bookings/${appointmentId}`)
             .then(response => response.json())
             .then(data => {
                 if (data.success && data.booking) {
                     const booking = data.booking;
-                    
+
                     // Try to use client_id if available, otherwise redirect to general billing
                     if (booking.client_id) {
                         // Redirect to integrated billing with customer pre-selected
@@ -420,22 +419,22 @@ class AppointmentContextMenu {
         .then(data => {
             if (data.success) {
                 console.log(`✅ Appointment ${appointmentId} status updated to ${status}`);
-                
+
                 // Update visual indication
                 const appointmentElement = document.querySelector(`[data-appointment-id="${appointmentId}"]`);
                 if (appointmentElement) {
                     appointmentElement.classList.add(`status-${status}`);
-                    
+
                     // If cancelled, add visual styling
                     if (status === 'cancelled') {
                         appointmentElement.style.opacity = '0.6';
                         appointmentElement.style.textDecoration = 'line-through';
                     }
                 }
-                
+
                 // Show success message
                 this.showToast(`Appointment marked as ${status}`, 'success');
-                
+
                 // Refresh schedule after short delay
                 setTimeout(() => {
                     if (typeof refreshSchedule === 'function') {
@@ -457,7 +456,7 @@ class AppointmentContextMenu {
 
     showAppointmentDetailsModal(appointment) {
         console.log('📋 Showing appointment details modal:', appointment);
-        
+
         // Create modal HTML
         const modalHTML = `
             <div class="modal fade" id="appointmentDetailsModal" tabindex="-1">
@@ -542,16 +541,16 @@ class AppointmentContextMenu {
                 </div>
             </div>
         `;
-        
+
         // Remove existing modal
         const existingModal = document.getElementById('appointmentDetailsModal');
         if (existingModal) {
             existingModal.remove();
         }
-        
+
         // Add modal to document
         document.body.insertAdjacentHTML('beforeend', modalHTML);
-        
+
         // Show modal
         const modal = new bootstrap.Modal(document.getElementById('appointmentDetailsModal'));
         modal.show();
@@ -559,7 +558,7 @@ class AppointmentContextMenu {
 
     showEditAppointmentModal(appointment) {
         console.log('✏️ Showing edit appointment modal:', appointment);
-        
+
         // Create edit modal HTML
         const modalHTML = `
             <div class="modal fade" id="editAppointmentModal" tabindex="-1">
@@ -667,20 +666,20 @@ class AppointmentContextMenu {
                 </div>
             </div>
         `;
-        
+
         // Remove existing modal
         const existingModal = document.getElementById('editAppointmentModal');
         if (existingModal) {
             existingModal.remove();
         }
-        
+
         // Add modal to document
         document.body.insertAdjacentHTML('beforeend', modalHTML);
-        
+
         // Show modal
         const modal = new bootstrap.Modal(document.getElementById('editAppointmentModal'));
         modal.show();
-        
+
         // Add form submit handler
         document.getElementById('editAppointmentForm').addEventListener('submit', (e) => {
             e.preventDefault();
@@ -690,7 +689,7 @@ class AppointmentContextMenu {
 
     saveAppointmentChanges(appointmentId, modal) {
         console.log(`💾 Saving changes for appointment ${appointmentId}`);
-        
+
         // Collect form data
         const formData = {
             client_name: document.getElementById('editClientName').value,
@@ -707,7 +706,7 @@ class AppointmentContextMenu {
             payment_status: document.getElementById('editPaymentStatus').value,
             notes: document.getElementById('editNotes').value
         };
-        
+
         // Send update request
         fetch(`/api/unaki/bookings/${appointmentId}`, {
             method: 'PUT',
@@ -721,14 +720,14 @@ class AppointmentContextMenu {
             if (data.success) {
                 console.log('✅ Appointment updated successfully');
                 modal.hide();
-                
+
                 // Show success message
                 if (typeof showNotification === 'function') {
                     showNotification('Appointment updated successfully', 'success');
                 } else {
                     this.showToast('Appointment updated successfully!', 'success');
                 }
-                
+
                 // Refresh schedule
                 if (typeof refreshSchedule === 'function') {
                     refreshSchedule();
@@ -785,7 +784,7 @@ class AppointmentContextMenu {
         // Create toast element
         const toast = document.createElement('div');
         toast.className = `custom-toast toast-${type}`;
-        
+
         // Set toast styles
         toast.style.cssText = `
             position: fixed;
@@ -807,7 +806,7 @@ class AppointmentContextMenu {
 
         // Escape the message to prevent XSS
         toast.textContent = message;
-        
+
         // Add icon
         const icon = document.createElement('i');
         icon.className = this.getToastIcon(type);
@@ -858,7 +857,7 @@ class AppointmentContextMenu {
     reinitializeForAppointments() {
         // This function is called after DOM updates to reattach event listeners
         console.log('🔄 Reinitializing context menu for appointments');
-        
+
         // Find all appointment blocks
         const appointmentBlocks = document.querySelectorAll('.appointment-block');
         console.log(`🔍 Found ${appointmentBlocks.length} appointment blocks to initialize`);
@@ -867,12 +866,12 @@ class AppointmentContextMenu {
             // Remove existing right-click listeners
             const clone = block.cloneNode(true);
             block.parentNode.replaceChild(clone, block);
-            
+
             // Add right-click event listener for desktop
             clone.addEventListener('contextmenu', (event) => {
                 event.preventDefault();
                 event.stopPropagation();
-                
+
                 const appointmentId = this.getAppointmentId(clone);
                 if (appointmentId) {
                     console.log(`🎯 Right-click detected on appointment ${appointmentId}`);
@@ -887,37 +886,37 @@ class AppointmentContextMenu {
             let touchStartX = 0;
             let touchStartY = 0;
             let longPressTriggered = false;
-            
+
             clone.addEventListener('touchstart', (event) => {
                 touchStartX = event.touches[0].clientX;
                 touchStartY = event.touches[0].clientY;
                 longPressTriggered = false;
-                
+
                 // Visual feedback for long press
                 clone.style.transform = 'scale(0.98)';
                 clone.style.opacity = '0.8';
-                
+
                 // Long press detection
                 touchTimer = setTimeout(() => {
                     const appointmentId = this.getAppointmentId(clone);
                     if (appointmentId) {
                         longPressTriggered = true;
                         console.log(`📱 Long press detected on appointment ${appointmentId}`);
-                        
+
                         // Add vibration feedback if available
                         if (navigator.vibrate) {
                             navigator.vibrate(50);
                         }
-                        
+
                         // Reset visual feedback
                         clone.style.transform = '';
                         clone.style.opacity = '';
-                        
+
                         this.showContextMenu(touchStartX, touchStartY, appointmentId);
                     }
                 }, 500); // 500ms long press
             });
-            
+
             clone.addEventListener('touchmove', (event) => {
                 // Cancel long press if finger moves too much
                 const moveX = Math.abs(event.touches[0].clientX - touchStartX);
@@ -928,19 +927,19 @@ class AppointmentContextMenu {
                     clone.style.opacity = '';
                 }
             });
-            
+
             clone.addEventListener('touchend', (event) => {
                 clearTimeout(touchTimer);
                 clone.style.transform = '';
                 clone.style.opacity = '';
-                
+
                 // Prevent click event if long press was triggered
                 if (longPressTriggered) {
                     event.preventDefault();
                     event.stopPropagation();
                 }
             });
-            
+
             // Add quick tap to edit directly (mobile-friendly)
             clone.addEventListener('click', (event) => {
                 const appointmentId = this.getAppointmentId(clone);
@@ -976,7 +975,7 @@ let appointmentContextMenu = null;
 // Initialize when DOM is ready
 document.addEventListener('DOMContentLoaded', function() {
     appointmentContextMenu = new AppointmentContextMenu();
-    
+
     // Make sure it's available globally
     window.appointmentContextMenu = appointmentContextMenu;
 });
@@ -1001,14 +1000,14 @@ window.reinitializeContextMenu = function() {
 
 window.handleAppointmentRightClick = function(event) {
     const contextMenu = window.appointmentContextMenu || appointmentContextMenu;
-    
+
     if (contextMenu) {
         event.preventDefault();
         event.stopPropagation();
-        
+
         const appointmentElement = event.currentTarget;
         const appointmentId = contextMenu.getAppointmentId(appointmentElement);
-        
+
         if (appointmentId) {
             console.log(`🎯 Right-click detected on appointment ${appointmentId}`);
             contextMenu.showContextMenu(event.pageX, event.pageY, appointmentId);

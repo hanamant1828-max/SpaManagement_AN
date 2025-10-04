@@ -147,17 +147,22 @@ $(document).ready(function() {
     }
 
     // Filter schedules based on search input
-    function filterSchedules() {
+    window.filterSchedules = function() {
         const searchInput = document.getElementById('staffSearchInput');
+        if (!searchInput) {
+            console.warn('Search input not found');
+            return;
+        }
+        
         const filter = searchInput.value.toLowerCase().trim();
-        const scheduleCards = document.querySelectorAll('.schedule-card');
+        const scheduleRows = document.querySelectorAll('#scheduleTableBody tr.schedule-row');
 
-        scheduleCards.forEach(card => {
-            const staffName = card.querySelector('.staff-info h3')?.textContent.toLowerCase() || '';
-            const scheduleName = card.querySelector('.staff-info p')?.textContent.toLowerCase() || '';
-            const fromDate = card.querySelector('.info-item:nth-child(1) p')?.textContent.toLowerCase() || '';
-            const toDate = card.querySelector('.info-item:nth-child(2) p')?.textContent.toLowerCase() || '';
-            const officeDays = card.querySelector('.badge')?.textContent.toLowerCase() || '';
+        scheduleRows.forEach(row => {
+            const staffName = row.querySelector('td:nth-child(2) strong')?.textContent.toLowerCase() || '';
+            const scheduleName = row.querySelector('td:nth-child(2) small')?.textContent.toLowerCase() || '';
+            const fromDate = row.querySelector('td:nth-child(3)')?.textContent.toLowerCase() || '';
+            const toDate = row.querySelector('td:nth-child(4)')?.textContent.toLowerCase() || '';
+            const officeDays = row.querySelector('td:nth-child(5)')?.textContent.toLowerCase() || '';
 
             const matchesSearch = staffName.includes(filter) ||
                                  scheduleName.includes(filter) ||
@@ -165,12 +170,12 @@ $(document).ready(function() {
                                  toDate.includes(filter) ||
                                  officeDays.includes(filter);
 
-            card.style.display = matchesSearch ? 'flex' : 'none';
+            row.style.display = matchesSearch ? '' : 'none';
         });
 
         // Show "no results" message if no schedules match
-        const visibleCards = Array.from(scheduleCards).filter(card => card.style.display !== 'none');
-        const scheduleGrid = document.querySelector('.schedule-grid');
+        const visibleRows = Array.from(scheduleRows).filter(row => row.style.display !== 'none');
+        const tbody = document.getElementById('scheduleTableBody');
 
         // Remove existing "no results" message
         const existingMessage = document.getElementById('noResultsMessage');
@@ -178,25 +183,27 @@ $(document).ready(function() {
             existingMessage.remove();
         }
 
-        if (visibleCards.length === 0 && filter !== '') {
-            const noResultsDiv = document.createElement('div');
-            noResultsDiv.id = 'noResultsMessage';
-            noResultsDiv.className = 'text-center text-muted';
-            noResultsDiv.style.padding = '40px 20px';
-            noResultsDiv.innerHTML = `
-                <i class="fas fa-search fa-3x mb-3"></i>
-                <h5>No schedules found</h5>
-                <p>No schedules match your search "${filter}"</p>
+        if (visibleRows.length === 0 && filter !== '') {
+            const noResultsRow = document.createElement('tr');
+            noResultsRow.id = 'noResultsMessage';
+            noResultsRow.innerHTML = `
+                <td colspan="8" class="text-center text-muted" style="padding: 40px 20px;">
+                    <i class="fas fa-search fa-3x mb-3 d-block"></i>
+                    <h5>No schedules found</h5>
+                    <p>No schedules match your search "${filter}"</p>
+                </td>
             `;
-            scheduleGrid.appendChild(noResultsDiv);
+            tbody.appendChild(noResultsRow);
         }
     }
 
     // Clear search input and show all schedules
-    function clearStaffSearch() {
+    window.clearStaffSearch = function() {
         const searchInput = document.getElementById('staffSearchInput');
-        searchInput.value = '';
-        filterSchedules();
+        if (searchInput) {
+            searchInput.value = '';
+            filterSchedules();
+        }
     }
 });
 </script>

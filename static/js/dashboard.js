@@ -100,25 +100,91 @@ function initializeDashboard() {
 
 function initializeCharts() {
     console.log('Initializing dashboard charts...');
-    
-    try {
-        // Check if Chart.js is loaded
-        if (!window.Chart) {
-            console.warn('Chart.js not loaded, charts will be unavailable');
-            return;
+
+    // Revenue Chart
+    const revenueCtx = document.getElementById('revenueChart');
+    if (revenueCtx && typeof Chart !== 'undefined') {
+        try {
+            new Chart(revenueCtx.getContext('2d'), {
+                type: 'line',
+                data: {
+                    labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+                    datasets: [{
+                        label: 'Revenue',
+                        data: [12000, 19000, 15000, 25000, 22000, 30000, 28000],
+                        borderColor: '#4F46E5',
+                        tension: 0.4
+                    }]
+                }
+            });
+        } catch (error) {
+            console.warn('Revenue chart initialization failed:', error.message);
         }
-        
-        // Initialize all new charts with error handling - only if elements exist
-        try { createRevenueChart(); } catch (e) { console.warn('Revenue chart not available:', e); }
-        try { createServiceChart(); } catch (e) { console.warn('Service chart not available:', e); }
-        try { createBookingsChart(); } catch (e) { console.warn('Bookings chart not available:', e); }
-        try { createStaffChart(); } catch (e) { console.warn('Staff chart not available:', e); }
-        console.log('Dashboard charts initialized successfully');
-    } catch (error) {
-        console.error('Error initializing charts:', error);
-        // Continue without charts rather than failing
     }
+
+    // Service Chart
+    const serviceCtx = document.getElementById('serviceChart');
+    if (serviceCtx && typeof Chart !== 'undefined') {
+        try {
+            new Chart(serviceCtx.getContext('2d'), {
+                type: 'doughnut',
+                data: {
+                    labels: ['Massage', 'Facial', 'Hair', 'Nails'],
+                    datasets: [{
+                        data: [30, 25, 25, 20],
+                        backgroundColor: ['#4F46E5', '#10B981', '#F59E0B', '#EF4444']
+                    }]
+                }
+            });
+        } catch (error) {
+            console.warn('Service chart initialization failed:', error.message);
+        }
+    }
+
+    // Bookings Chart
+    const bookingsCtx = document.getElementById('bookingsChart');
+    if (bookingsCtx && typeof Chart !== 'undefined') {
+        try {
+            new Chart(bookingsCtx.getContext('2d'), {
+                type: 'bar',
+                data: {
+                    labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+                    datasets: [{
+                        label: 'Bookings',
+                        data: [12, 19, 15, 25, 22, 30, 28],
+                        backgroundColor: '#4F46E5'
+                    }]
+                }
+            });
+        } catch (error) {
+            console.warn('Bookings chart initialization failed:', error.message);
+        }
+    }
+
+    // Staff Chart
+    const staffCtx = document.getElementById('staffChart');
+    if (staffCtx && typeof Chart !== 'undefined') {
+        try {
+            new Chart(staffCtx.getContext('2d'), {
+                type: 'radar',
+                data: {
+                    labels: ['Punctuality', 'Service', 'Sales', 'Customer Rating'],
+                    datasets: [{
+                        label: 'Performance',
+                        data: [85, 90, 75, 88],
+                        backgroundColor: 'rgba(79, 70, 229, 0.2)',
+                        borderColor: '#4F46E5'
+                    }]
+                }
+            });
+        } catch (error) {
+            console.warn('Staff chart initialization failed:', error.message);
+        }
+    }
+
+    console.log('Dashboard charts initialized successfully');
 }
+
 
 function createRevenueTrendChart(ctx) {
     // Get last 7 days of revenue data
