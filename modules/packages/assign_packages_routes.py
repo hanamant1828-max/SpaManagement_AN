@@ -305,4 +305,192 @@ def get_package_by_type(package_type, package_id):
     return None
 
 
+@app.route('/packages/api/assignments', methods=['GET'])
+@login_required
+def api_get_assignments():
+    """Get all package assignments with filtering, search, and pagination"""
+    try:
+        # Get query parameters
+        q = request.args.get('q', '').strip()
+        status = request.args.get('status', '').strip()
+        expiring_in = request.args.get('expiring_in', '').strip()
+        page = int(request.args.get('page', 1))
+        per_page = int(request.args.get('per_page', 20))
+        sort = request.args.get('sort', 'assigned_on:desc')
+        
+        # Base query
+        query = ServicePackageAssignment.query
+        
+        # Apply filters
+        if status:
+            query = query.filter(ServicePackageAssignment.status == status)
+        
+        # Expiring soon filter
+        if expiring_in:
+            days = int(expiring_in)
+            expiry_date = datetime.utcnow() + timedelta(days=days)
+            query = query.filter(
+                ServicePackageAssignment.expires_on.isnot(None),
+                ServicePackageAssignment.expires_on <= expiry_date,
+                ServicePackageAssignment.expires_on >= datetime.utcnow(),
+                ServicePackageAssignment.status == 'active'
+            )
+        
+        # Search filter
+        if q:
+            query = query.join(Customer).filter(
+                or_(
+                    Customer.first_name.ilike(f'%{q}%'),
+                    Customer.last_name.ilike(f'%{q}%'),
+                    Customer.phone.ilike(f'%{q}%')
+                )
+            )
+        
+        # Apply sorting
+        if ':' in sort:
+            field, direction = sort.split(':')
+            if field == 'expires_on':
+                query = query.order_by(
+                    ServicePackageAssignment.expires_on.desc() if direction == 'desc' 
+                    else ServicePackageAssignment.expires_on.asc()
+                )
+            elif field == 'assigned_on':
+                query = query.order_by(
+                    ServicePackageAssignment.assigned_on.desc() if direction == 'desc' 
+                    else ServicePackageAssignment.assigned_on.asc()
+                )
+        
+        # Pagination
+        paginated = query.paginate(page=page, per_page=per_page, error_out=False)
+        
+        # Build response
+        items = []
+        for assignment in paginated.items:
+            customer = assignment.customer
+            package = assignment.get_package_template()
+            service = assignment.service
+            
+            # Calculate expiring days
+            expiring_days = None
+            if assignment.expires_on:
+                delta = assignment.expires_on - datetime.utcnow()
+                expiring_days = delta.days
+            
+            # Get last usage
+            from models import PackageAssignmentUsage
+            last_usage = PackageAssignmentUsage.query.filter_by(
+                assignment_id=assignment.id
+            ).order_by(PackageAssignmentUsage.used_at.desc()).first()
+            
+            # Calculate savings
+            savings = 0
+            if assignment.package_type == 'service_package' and package:
+                benefit_percent = getattr(package, 'benefit_percent', 0)
+                if benefit_percent > 0:
+                    savings = (assignment.price_paid * benefit_percent) / 100
+            
+            item = {
+                'id': assignment.id,
+                'customer': {
+                    'id': customer.id,
+                    'name': f"{customer.first_name} {customer.last_name}",
+                    'phone': customer.phone or ''
+                },
+                'package': {
+                    'name': package.name if package else 'Unknown',
+                    'type': assignment.package_type,
+                    'service_name': service.name if service else None
+                },
+                'assigned_on': assignment.assigned_on.isoformat() if assignment.assigned_on else None,
+                'expires_on': assignment.expires_on.strftime('%Y-%m-%d') if assignment.expires_on else None,
+                'expiring_in_days': expiring_days,
+                'status': assignment.status,
+                'price_paid': float(assignment.price_paid) if assignment.price_paid else 0,
+                'savings_to_date': float(savings),
+                'last_used_at': last_usage.used_at.isoformat() if last_usage else None,
+                'sessions': {
+                    'total': assignment.total_sessions,
+                    'used': assignment.used_sessions,
+                    'remaining': assignment.remaining_sessions
+                } if assignment.package_type == 'service_package' else None,
+                'credit': {
+                    'total': float(assignment.credit_amount) if assignment.credit_amount else 0,
+                    'used': float(assignment.used_credit) if assignment.used_credit else 0,
+                    'remaining': float(assignment.remaining_credit) if assignment.remaining_credit else 0
+                } if assignment.package_type == 'prepaid' else None
+            }
+            items.append(item)
+        
+        return jsonify({
+            'success': True,
+            'items': items,
+            'page': page,
+            'per_page': per_page,
+            'total': paginated.total,
+            'pages': paginated.pages
+        })
+        
+    except Exception as e:
+        print(f"Error fetching assignments: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/packages/api/assignments/<int:assignment_id>/usage', methods=['GET'])
+@login_required
+def api_get_assignment_usage(assignment_id):
+    """Get usage history for a specific assignment"""
+    try:
+        assignment = ServicePackageAssignment.query.get_or_404(assignment_id)
+        
+        # Get usage logs
+        from models import PackageAssignmentUsage
+        usage_logs = PackageAssignmentUsage.query.filter_by(
+            assignment_id=assignment_id
+        ).order_by(PackageAssignmentUsage.used_at.desc()).all()
+        
+        # Build usage history
+        usage_history = []
+        for log in usage_logs:
+            from models import User
+            user = User.query.get(log.used_by) if log.used_by else None
+            service = log.service
+            
+            usage_history.append({
+                'id': log.id,
+                'date': log.used_at.isoformat() if log.used_at else None,
+                'service': service.name if service else 'N/A',
+                'type': log.transaction_type or 'use',
+                'sessions': log.sessions_used or 0,
+                'amount': float(log.amount_used) if log.amount_used else 0,
+                'invoice_id': log.invoice_id,
+                'user': f"{user.username}" if user else 'System',
+                'notes': log.notes or ''
+            })
+        
+        # Summary
+        summary = {
+            'total_sessions': assignment.total_sessions,
+            'sessions_used': assignment.used_sessions,
+            'sessions_remaining': assignment.remaining_sessions,
+            'total_credit': float(assignment.credit_amount) if assignment.credit_amount else 0,
+            'credit_used': float(assignment.used_credit) if assignment.used_credit else 0,
+            'credit_remaining': float(assignment.remaining_credit) if assignment.remaining_credit else 0,
+            'total_value': float(assignment.price_paid) if assignment.price_paid else 0
+        }
+        
+        return jsonify({
+            'success': True,
+            'summary': summary,
+            'usage': usage_history
+        })
+        
+    except Exception as e:
+        print(f"Error fetching usage: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 print("✅ Assign packages routes loaded")
