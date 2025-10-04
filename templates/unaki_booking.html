@@ -1348,6 +1348,15 @@
                             New Appointment
                         </button>
                         <a
+                            href="{{ url_for('shift_scheduler.shift_scheduler') }}"
+                            class="action-btn"
+                            style="background: var(--warning-color); color: white; text-decoration: none;"
+                            data-tooltip="Manage Staff Schedules"
+                        >
+                            <i class="fas fa-calendar-check"></i>
+                            Shift Scheduler
+                        </a>
+                        <a
                             href="{{ url_for('integrated_billing') }}"
                             class="action-btn"
                             style="background: var(--success-color); color: white; text-decoration: none;"
