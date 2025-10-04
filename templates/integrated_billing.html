@@ -576,7 +576,7 @@ body {
                                 <i class="fas fa-gift"></i>
                                 Active Packages
                             </label>
-                            <div id="customerPackages" class="alert alert-info-custom">
+                            <div id="customerPackages" class="alert alert-info-custom" style="max-height: 200px; overflow-y: auto;">
                                 <small><i class="fas fa-info-circle me-1"></i>Select customer to view packages</small>
                             </div>
                         </div>
@@ -1091,21 +1091,38 @@ function loadCustomerPackages(customerId) {
             customerPackageData = data;
 
             if (data.packages && data.packages.length > 0) {
-                let html = '<div class="alert alert-success-custom p-2"><strong>Details:</strong><br>';
+                let html = '<div class="p-2"><strong class="text-success"><i class="fas fa-check-circle"></i> Active Packages Found:</strong><br><br>';
+                
                 data.packages.forEach(pkg => {
-                    html += `<span class="badge badge-success-custom me-1 mb-1">${pkg.package_name}</span>`;
+                    let packageTypeIcon = pkg.package_type === 'service_package' ? 'fa-spa' : 
+                                         pkg.package_type === 'prepaid' ? 'fa-wallet' : 
+                                         pkg.package_type === 'membership' ? 'fa-crown' : 'fa-gift';
+                    
+                    html += `<div class="mb-2 p-2" style="background: #f0f9ff; border-left: 3px solid #0891b2; border-radius: 4px;">`;
+                    html += `<strong><i class="fas ${packageTypeIcon}"></i> ${pkg.package_name}</strong><br>`;
+                    html += `<small class="text-muted">Type: ${pkg.package_type.replace('_', ' ').toUpperCase()}</small><br>`;
+                    
+                    if (pkg.package_type === 'service_package') {
+                        html += `<small class="text-success"><i class="fas fa-check"></i> ${pkg.remaining_sessions || 0} sessions remaining</small>`;
+                    } else if (pkg.package_type === 'prepaid') {
+                        html += `<small class="text-success"><i class="fas fa-check"></i> ₹${pkg.remaining_credit || 0} credit remaining</small>`;
+                    } else if (pkg.package_type === 'membership') {
+                        html += `<small class="text-info"><i class="fas fa-infinity"></i> Active membership</small>`;
+                    }
+                    
+                    html += `</div>`;
                 });
                 html += '</div>';
                 packagesDiv.innerHTML = html;
             } else {
-                packagesDiv.innerHTML = '<small class="text-muted-custom">No active packages</small>';
+                packagesDiv.innerHTML = '<small class="text-muted-custom"><i class="fas fa-info-circle"></i> No active packages</small>';
             }
 
             updateCalculations(); // Recalculate totals after packages are loaded
         })
         .catch(error => {
             console.error('Error loading packages:', error);
-            packagesDiv.innerHTML = '<small class="text-danger">Error loading packages</small>';
+            packagesDiv.innerHTML = '<small class="text-danger"><i class="fas fa-exclamation-triangle"></i> Error loading packages</small>';
             customerPackageData = null;
         });
 }
