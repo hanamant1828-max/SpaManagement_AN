@@ -596,8 +596,10 @@ textarea.form-control {
                         <div class="col-md-6">
                             <div class="form-group">
                                 <label class="form-label">Booked Appointments</label>
-                                <div id="customerAppointments" class="alert alert-info" style="max-height: 200px; overflow-y: auto;">
-                                    <small><i class="fas fa-info-circle me-1"></i>Select customer to view appointments</small>
+                                <div id="customerAppointments" style="max-height: 300px; overflow-y: auto; border: 1px solid var(--gray-300); border-radius: var(--radius); background: white;">
+                                    <div style="padding: var(--spacing-md); text-align: center; color: var(--gray-500);">
+                                        <small><i class="fas fa-info-circle me-1"></i>Select customer to view appointments</small>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -983,13 +985,28 @@ function displayCustomerAppointments(appointments) {
     const appointmentsDiv = document.getElementById('customerAppointments');
 
     if (!appointments.length) {
-        appointmentsDiv.innerHTML = '<small class="text-muted"><i class="fas fa-info-circle"></i> No booked or unpaid appointments</small>';
+        appointmentsDiv.innerHTML = `
+            <div style="padding: var(--spacing-md); text-align: center; color: var(--gray-500);">
+                <small><i class="fas fa-info-circle"></i> No booked or unpaid appointments</small>
+            </div>`;
         return;
     }
 
-    let html = '';
+    // Build table HTML
+    let html = `
+        <table class="table table-sm table-hover mb-0" style="font-size: 0.875rem;">
+            <thead style="background: var(--gray-50); position: sticky; top: 0;">
+                <tr>
+                    <th style="padding: 0.5rem;">Date & Time</th>
+                    <th style="padding: 0.5rem;">Service</th>
+                    <th style="padding: 0.5rem;">Staff</th>
+                    <th style="padding: 0.5rem;">Status</th>
+                    <th style="padding: 0.5rem; text-align: right;">Action</th>
+                </tr>
+            </thead>
+            <tbody>`;
 
-    // Show all appointments (scheduled, confirmed, and completed unpaid)
+    // Add appointment rows
     appointments.forEach(apt => {
         const date = new Date(apt.appointment_date);
         const formattedDate = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
@@ -1000,25 +1017,45 @@ function displayCustomerAppointments(appointments) {
         
         // Determine status badge
         let statusBadge = '';
+        let statusColor = '';
         if (apt.status === 'completed' && apt.payment_status !== 'paid') {
-            statusBadge = '<span class="badge bg-warning text-dark">Completed - Unpaid</span>';
+            statusBadge = 'Unpaid';
+            statusColor = 'background: #fef3c7; color: #92400e; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.75rem;';
         } else if (apt.status === 'confirmed') {
-            statusBadge = '<span class="badge bg-success">Confirmed</span>';
+            statusBadge = 'Confirmed';
+            statusColor = 'background: #d1fae5; color: #065f46; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.75rem;';
         } else if (apt.status === 'scheduled') {
-            statusBadge = '<span class="badge bg-info">Scheduled</span>';
+            statusBadge = 'Scheduled';
+            statusColor = 'background: #dbeafe; color: #1e40af; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.75rem;';
         }
 
-        html += `<div class="package-benefit mb-2 ms-2" style="display: flex; justify-content: space-between; align-items: center;">
-            <div style="flex: 1;">
-                <strong><i class="fas fa-calendar-check"></i> ${formattedDate} at ${apt.start_time}</strong> ${statusBadge}<br>
-                <small>Service: ${serviceName} (${duration} min - ₹${price.toFixed(2)})</small><br>
-                <small>Staff: ${staffName}</small>
-            </div>
-            <button type="button" class="btn btn-sm btn-primary" onclick="addAppointmentToBill(${apt.id}, '${serviceName}', ${price}, '${staffName}', ${apt.service_id || 0})">
-                <i class="fas fa-plus"></i> Add to Bill
-            </button>
-        </div>`;
+        html += `
+            <tr style="border-bottom: 1px solid var(--gray-200);">
+                <td style="padding: 0.5rem;">
+                    <strong>${formattedDate}</strong><br>
+                    <small class="text-muted">${apt.start_time}</small>
+                </td>
+                <td style="padding: 0.5rem;">
+                    ${serviceName}<br>
+                    <small class="text-muted">${duration} min - ₹${price.toFixed(2)}</small>
+                </td>
+                <td style="padding: 0.5rem;">${staffName}</td>
+                <td style="padding: 0.5rem;">
+                    <span style="${statusColor}">${statusBadge}</span>
+                </td>
+                <td style="padding: 0.5rem; text-align: right;">
+                    <button type="button" class="btn btn-sm btn-primary" 
+                            onclick="addAppointmentToBill(${apt.id}, '${serviceName}', ${price}, '${staffName}', ${apt.service_id || 0})"
+                            style="padding: 0.25rem 0.5rem; font-size: 0.75rem;">
+                        <i class="fas fa-plus"></i> Add
+                    </button>
+                </td>
+            </tr>`;
     });
+
+    html += `
+            </tbody>
+        </table>`;
 
     appointmentsDiv.innerHTML = html;
 }
