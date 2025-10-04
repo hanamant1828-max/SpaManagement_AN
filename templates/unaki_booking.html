@@ -2651,7 +2651,6 @@
 
                 const duration =
                     parseInt(selectedOption.dataset.duration) || 60; // Default to 60 minutes
-                const [hours, minutes] = startTime.split(":").map(Number);
                 const startDate = new Date();
                 startDate.setHours(hours, minutes, 0, 0); // Set hours, minutes, seconds, ms
 
@@ -3483,6 +3482,111 @@
                 const displayHours = hours % 12 === 0 ? 12 : hours % 12;
                 return `${displayHours}:${String(minutes).padStart(2, '0')} ${period}`;
             }
+
+
+            // Add JavaScript functions for auto-calculating and updating end times
+            document.addEventListener('DOMContentLoaded', function() {
+                const serviceSelects = document.querySelectorAll('.service-select');
+                serviceSelects.forEach(select => {
+                    select.addEventListener('change', function() {
+                        updateEndTime(this);
+                    });
+                });
+
+                // Also add change listeners to start times
+                const startTimeInputs = document.querySelectorAll('.start-time');
+                startTimeInputs.forEach(input => {
+                    input.addEventListener('change', function() {
+                        updateAppointmentEndTime(this);
+                    });
+                });
+            });
+
+            // Calculate end time based on service duration and start time
+            function calculateEditEndTime() {
+                const serviceSelect = document.getElementById('editServiceSelect');
+                const startTimeInput = document.getElementById('editStartTime');
+                const endTimeInput = document.getElementById('editEndTime');
+
+                if (!serviceSelect || !startTimeInput || !endTimeInput) {
+                    return;
+                }
+
+                const selectedOption = serviceSelect.options[serviceSelect.selectedIndex];
+                const duration = parseInt(selectedOption.getAttribute('data-duration')) || 60;
+                const startTime = startTimeInput.value;
+
+                if (startTime) {
+                    const endTime = calculateEndTimeFromStart(startTime, duration);
+                    endTimeInput.value = endTime;
+                }
+            }
+
+            // Update end time for appointment cards
+            function updateAppointmentEndTime(startTimeElement) {
+                const appointmentCard = startTimeElement.closest('.appointment-card');
+                if (!appointmentCard) return;
+
+                const serviceSelect = appointmentCard.querySelector('.service-select');
+                const endTimeInput = appointmentCard.querySelector('.end-time');
+
+                if (!serviceSelect || !endTimeInput) return;
+
+                const selectedOption = serviceSelect.options[serviceSelect.selectedIndex];
+                const duration = parseInt(selectedOption.getAttribute('data-duration')) || 60;
+                const startTime = startTimeElement.value;
+
+                if (startTime && duration) {
+                    const endTime = calculateEndTimeFromStart(startTime, duration);
+                    endTimeInput.value = endTime;
+                }
+            }
+
+            // Helper function to calculate end time from start time and duration
+            function calculateEndTimeFromStart(startTime, durationMinutes) {
+                if (!startTime) return '';
+
+                const [hours, minutes] = startTime.split(':').map(Number);
+                const startDate = new Date();
+                startDate.setHours(hours, minutes, 0, 0);
+
+                const endDate = new Date(startDate.getTime() + durationMinutes * 60000);
+
+                const endHours = String(endDate.getHours()).padStart(2, '0');
+                const endMinutes = String(endDate.getMinutes()).padStart(2, '0');
+
+                return `${endHours}:${endMinutes}`;
+            }
+
+
+            function updateEndTime(serviceSelect) {
+                const card = serviceSelect.closest('.appointment-card');
+                const selectedOption = serviceSelect.options[serviceSelect.selectedIndex];
+                const duration = parseInt(selectedOption.getAttribute('data-duration')) || 60;
+                const startTimeInput = card.querySelector('.start-time');
+                const endTimeInput = card.querySelector('.end-time');
+
+                if (startTimeInput && endTimeInput) {
+                    const startTime = startTimeInput.value || '09:00';
+                    const endTime = calculateEndTimeFromStart(startTime, duration);
+                    endTimeInput.value = endTime;
+                }
+            }
+
+            // Update edit modal end time when service or start time changes
+            document.addEventListener('DOMContentLoaded', function() {
+                const editServiceSelect = document.getElementById('editServiceSelect');
+                const editStartTime = document.getElementById('editStartTime');
+
+                if (editServiceSelect) {
+                    editServiceSelect.addEventListener('change', calculateEditEndTime);
+                }
+
+                if (editStartTime) {
+                    editStartTime.addEventListener('change', calculateEditEndTime);
+                }
+            });
+
 
             // ==========================================
             // CONTEXT MENU INITIALIZATION
