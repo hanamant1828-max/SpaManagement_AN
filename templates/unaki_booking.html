@@ -2910,6 +2910,40 @@
                         }
                     }
                 });
+
+                // Check against shift constraints (breaks, out-of-office, shift hours) via backend
+                fetch('/api/unaki/check-conflicts', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        staff_id: staffId,
+                        start_time: startTime,
+                        end_time: endTime,
+                        date: date
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.shift_violation) {
+                        const message = data.reason || 'Shift constraint violation';
+                        if (conflictMessageSpan) conflictMessageSpan.textContent = message;
+                        if (conflictAlert) conflictAlert.classList.remove('d-none');
+                        appointment.classList.add('duplicate');
+                        showFieldError(startTimeInput, message);
+                    } else if (data.has_conflicts && data.conflicts && data.conflicts.length > 0) {
+                        const booking = data.conflicts[0];
+                        const message = `Conflicts with ${booking.client_name || 'booking'} (${booking.start_time} - ${booking.end_time})`;
+                        if (conflictMessageSpan) conflictMessageSpan.textContent = message;
+                        if (conflictAlert) conflictAlert.classList.remove('d-none');
+                        appointment.classList.add('duplicate');
+                        showFieldError(startTimeInput, message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error checking shift conflicts:', error);
+                });
             }
 
             // Update the summary section (total duration, price, staff count)
