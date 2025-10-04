@@ -44,6 +44,68 @@ def configure_sqlite_pragmas(dbapi_connection, connection_record):
         cursor.close()
 
 
+def run_automatic_migrations():
+    """
+    Automatic migration function to fix database schema issues.
+    This runs on every startup to ensure cloned projects have the correct schema.
+    """
+    import sqlite3
+    
+    # Get database path from SQLAlchemy URI
+    db_uri = app.config['SQLALCHEMY_DATABASE_URI']
+    if not db_uri or 'sqlite' not in db_uri:
+        return
+    
+    # Extract database path from URI (sqlite:///path/to/db.db)
+    db_path = db_uri.replace('sqlite:///', '')
+    
+    try:
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
+        
+        # Check if shift_logs table exists
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='shift_logs'")
+        if not cursor.fetchone():
+            print("  → shift_logs table doesn't exist yet, skipping migration")
+            conn.close()
+            return
+        
+        # Get current columns in shift_logs table
+        cursor.execute("PRAGMA table_info(shift_logs)")
+        columns = [row[1] for row in cursor.fetchall()]
+        
+        # Check and add missing columns for out_of_office tracking
+        migrations_applied = False
+        
+        if 'out_of_office_start' not in columns:
+            print("  → Adding column: out_of_office_start")
+            cursor.execute("ALTER TABLE shift_logs ADD COLUMN out_of_office_start TIME")
+            migrations_applied = True
+            
+        if 'out_of_office_end' not in columns:
+            print("  → Adding column: out_of_office_end")
+            cursor.execute("ALTER TABLE shift_logs ADD COLUMN out_of_office_end TIME")
+            migrations_applied = True
+            
+        if 'out_of_office_reason' not in columns:
+            print("  → Adding column: out_of_office_reason")
+            cursor.execute("ALTER TABLE shift_logs ADD COLUMN out_of_office_reason VARCHAR(200)")
+            migrations_applied = True
+        
+        if migrations_applied:
+            conn.commit()
+            print("  ✅ Database schema updated successfully")
+        else:
+            print("  ✅ Database schema is up to date")
+            
+        conn.close()
+        
+    except Exception as e:
+        print(f"  ⚠️ Migration error: {e}")
+        if 'conn' in locals():
+            conn.close()
+
+
 class Base(DeclarativeBase):
     pass
 
@@ -173,6 +235,16 @@ def init_app():
             db.create_all()
             print("Database tables created successfully")
             print(f"Database connection: {db_uri}")
+            
+            # Run automatic database migrations for missing columns
+            if db_uri and 'sqlite' in db_uri:
+                try:
+                    print("Checking for required database schema updates...")
+                    run_automatic_migrations()
+                    print("Database schema check completed")
+                except Exception as migration_error:
+                    print(f"Migration warning: {migration_error}")
+                    
         except Exception as e:
             print(f"Database initialization warning: {e}")
             print("Continuing with existing database...")

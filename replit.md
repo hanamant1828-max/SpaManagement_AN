@@ -8,7 +8,10 @@ This is a comprehensive **Spa & Salon Management System** built with Flask and P
 - **Database**: Using SQLite database stored in `hanamantdatabase/` directory
 - **Server**: Running on port 5000 with Gunicorn
 - **Environment**: Configured with SESSION_SECRET and DATABASE_URL environment variables
-- **Shift Scheduler Fix**: Added missing database columns (out_of_office_start, out_of_office_end, out_of_office_reason) to shift_logs table to fix shift scheduler errors
+- **Shift Scheduler Fix**: Added automatic database migration system that runs on startup
+  - Automatically adds missing columns (out_of_office_start, out_of_office_end, out_of_office_reason) to shift_logs table
+  - **This fix is permanent** - anyone cloning this project will have the database schema automatically corrected on first run
+  - No manual database fixes needed after cloning from GitHub
 
 ## Technology Stack
 - **Backend**: Flask 3.1.1, SQLAlchemy 2.0.41
@@ -116,6 +119,17 @@ The application uses SQLite by default with the database stored in:
 - WAL mode enabled for better concurrency
 - Foreign key constraints enabled
 - Automatic schema creation via SQLAlchemy
+
+### Automatic Database Migrations
+The application includes an automatic migration system that runs on every startup:
+- **Location**: `run_automatic_migrations()` function in `app.py`
+- **Purpose**: Ensures database schema is always up to date when cloning from GitHub
+- **How it works**:
+  1. Checks if tables exist
+  2. Compares current columns with required columns
+  3. Automatically adds any missing columns
+  4. Logs all changes to the console
+- **Benefits**: No manual database fixes needed after cloning the project
 
 ## API Endpoints
 - `/api/unaki/services` - Get active services
