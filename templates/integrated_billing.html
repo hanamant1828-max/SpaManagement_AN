@@ -996,20 +996,32 @@ function loadCustomerPackagesDisplay(customerId) {
     fetch(`/integrated-billing/customer-packages/${customerId}`)
         .then(res => res.json())
         .then(data => {
-            if (data.packages && data.packages.length > 0) {
-                displayCustomerPackagesTable(data.packages);
-            } else {
-                packagesDiv.innerHTML = '<div style="padding: var(--spacing-md); text-align: center; color: var(--gray-500);"><small><i class="fas fa-info-circle"></i> No active packages</small></div>';
-            }
+            // Use the new display function which handles empty packages
+            displayCustomerPackagesTable(data.packages || []);
         })
         .catch(err => {
             console.error('Error loading customer packages:', err);
-            packagesDiv.innerHTML = '<div style="padding: var(--spacing-md); text-align: center; color: var(--danger);"><small><i class="fas fa-exclamation-triangle"></i> Error loading packages</small></div>';
+            packagesDiv.innerHTML = `
+                <div style="padding: var(--spacing-xl); text-align: center; color: var(--danger);">
+                    <i class="fas fa-exclamation-triangle fa-2x mb-2"></i>
+                    <p class="mb-0"><strong>Error Loading Packages</strong></p>
+                    <small>Please try again</small>
+                </div>`;
         });
 }
 
 function displayCustomerPackagesTable(packages) {
     const packagesDiv = document.getElementById('customerPackagesTable');
+    
+    if (!packages || packages.length === 0) {
+        packagesDiv.innerHTML = `
+            <div style="padding: var(--spacing-xl); text-align: center; color: var(--gray-500);">
+                <i class="fas fa-box-open fa-2x mb-2" style="opacity: 0.5;"></i>
+                <p class="mb-0"><strong>No Active Packages Found</strong></p>
+                <small>This customer has no active packages</small>
+            </div>`;
+        return;
+    }
     
     let html = `
         <table class="table table-sm table-hover mb-0" style="font-size: 0.875rem;">
@@ -1095,10 +1107,12 @@ const addedAppointmentIds = new Set();
 function displayCustomerAppointments(appointments) {
     const appointmentsDiv = document.getElementById('customerAppointments');
 
-    if (!appointments.length) {
+    if (!appointments || !appointments.length) {
         appointmentsDiv.innerHTML = `
-            <div style="padding: var(--spacing-md); text-align: center; color: var(--gray-500);">
-                <small><i class="fas fa-info-circle"></i> No booked or unpaid appointments</small>
+            <div style="padding: var(--spacing-xl); text-align: center; color: var(--gray-500);">
+                <i class="fas fa-calendar-times fa-2x mb-2" style="opacity: 0.5;"></i>
+                <p class="mb-0"><strong>No Appointments Found</strong></p>
+                <small>This customer has no booked or unpaid appointments</small>
             </div>`;
         return;
     }
