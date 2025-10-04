@@ -409,8 +409,15 @@
                 display: flex;
                 position: sticky;
                 top: 0;
+                left: 0;
                 z-index: 9;
                 box-shadow: 0 2px 4px rgba(0, 0, 0, 0.03);
+                overflow: hidden;
+            }
+            
+            .timeline-header-inner {
+                display: flex;
+                transition: transform 0.05s linear;
             }
 
             .timeline-hour {
@@ -1426,20 +1433,22 @@
                 <div class="timeline-panel">
                     <!-- Timeline Header: 60px height (matches staff header) -->
                     <div class="timeline-header">
-                        {% for hour in range(9, 22) %}
-                        <div
-                            class="timeline-hour"
-                            data-tooltip="Click any slot to book"
-                        >
-                            <span class="hour-label">
-                                {{ '%d:00' % hour if hour < 12 else ('12:00' if
-                                hour == 12 else '%d:00' % (hour - 12)) }}
-                            </span>
-                            <span class="hour-period"
-                                >{{ 'AM' if hour < 12 else 'PM' }}</span
+                        <div class="timeline-header-inner" id="timelineHeaderInner">
+                            {% for hour in range(9, 22) %}
+                            <div
+                                class="timeline-hour"
+                                data-tooltip="Click any slot to book"
                             >
+                                <span class="hour-label">
+                                    {{ '%d:00' % hour if hour < 12 else ('12:00' if
+                                    hour == 12 else '%d:00' % (hour - 12)) }}
+                                </span>
+                                <span class="hour-period"
+                                    >{{ 'AM' if hour < 12 else 'PM' }}</span
+                                >
+                            </div>
+                            {% endfor %}
                         </div>
-                        {% endfor %}
                     </div>
 
                     <!-- Timeline Grid -->
@@ -2380,9 +2389,9 @@
             function setupScrollSync() {
                 const panel = document.querySelector(".timeline-panel");
                 const staff = document.querySelector(".staff-sidebar");
-                const header = document.querySelector(".timeline-header");
+                const headerInner = document.getElementById("timelineHeaderInner");
 
-                if (!panel || !staff || !header) return;
+                if (!panel || !staff || !headerInner) return;
 
                 // Flags to avoid feedback loop during scroll events
                 let syncingFromPanel = false;
@@ -2398,9 +2407,8 @@
                         }
                         syncingFromStaff = false;
 
-                        // Keep header aligned with horizontal scroll
-                        header.style.left = `-${panel.scrollLeft}px`;
-                        header.style.position = 'relative';
+                        // Keep header aligned with horizontal scroll using transform
+                        headerInner.style.transform = `translateX(-${panel.scrollLeft}px)`;
                     },
                     { passive: true },
                 );
