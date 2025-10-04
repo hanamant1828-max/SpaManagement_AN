@@ -9,7 +9,7 @@ from app import db, app
 from models import (
     Customer, Service, ServicePackageAssignment, Payment, Receipt,
     PrepaidPackage, ServicePackage, Membership, StudentOffer, 
-    YearlyMembership, KittyParty
+    YearlyMembership, KittyParty, PackageBenefitTracker
 )
 import json
 import uuid
@@ -195,6 +195,79 @@ def api_assign_and_pay():
         
         db.session.add(assignment)
         db.session.flush()  # Get assignment ID
+        
+        # === CRITICAL: Create PackageBenefitTracker for billing integration ===
+        from models import PackageBenefitTracker
+        
+        benefit_tracker = None
+        
+        if package_type == 'prepaid':
+            # Prepaid package - track credit balance
+            credit_amount = getattr(package, 'after_value', 0)
+            benefit_tracker = PackageBenefitTracker(
+                customer_id=customer.id,
+                package_assignment_id=assignment.id,
+                service_id=None,  # Prepaid works for all services
+                benefit_type='prepaid',
+                balance_total=credit_amount,
+                balance_used=0,
+                balance_remaining=credit_amount,
+                valid_from=datetime.utcnow(),
+                valid_to=expires_on or (datetime.utcnow() + timedelta(days=365)),
+                is_active=True
+            )
+        
+        elif package_type == 'service_package':
+            # Service package - track free sessions
+            total_sessions = getattr(package, 'total_sessions', 0)
+            benefit_tracker = PackageBenefitTracker(
+                customer_id=customer.id,
+                package_assignment_id=assignment.id,
+                service_id=assignment_data.get('service_id'),
+                benefit_type='free',
+                total_allocated=total_sessions,
+                used_count=0,
+                remaining_count=total_sessions,
+                valid_from=datetime.utcnow(),
+                valid_to=expires_on or (datetime.utcnow() + timedelta(days=365)),
+                is_active=True
+            )
+        
+        elif package_type == 'membership':
+            # Membership - unlimited access
+            benefit_tracker = PackageBenefitTracker(
+                customer_id=customer.id,
+                package_assignment_id=assignment.id,
+                service_id=None,  # Membership covers specific services (checked via membership_services)
+                benefit_type='unlimited',
+                total_allocated=999999,
+                used_count=0,
+                remaining_count=999999,
+                valid_from=datetime.utcnow(),
+                valid_to=expires_on or (datetime.utcnow() + timedelta(days=365)),
+                is_active=True
+            )
+        
+        elif package_type == 'student_offer':
+            # Student offer - discount percentage
+            discount_percent = getattr(package, 'discount_percentage', 0)
+            benefit_tracker = PackageBenefitTracker(
+                customer_id=customer.id,
+                package_assignment_id=assignment.id,
+                service_id=None,  # Student offer covers specific services (checked via student_offer_services)
+                benefit_type='discount',
+                discount_percentage=discount_percent,
+                total_allocated=999,  # High number for discount uses
+                used_count=0,
+                remaining_count=999,
+                valid_from=datetime.utcnow(),
+                valid_to=expires_on or (datetime.utcnow() + timedelta(days=365)),
+                is_active=True
+            )
+        
+        if benefit_tracker:
+            db.session.add(benefit_tracker)
+            db.session.flush()
         
         # Create payment record if payment is being collected
         payment = None
