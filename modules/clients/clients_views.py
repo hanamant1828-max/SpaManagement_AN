@@ -68,6 +68,10 @@ def create_customer_route():
             flash('Phone number is required. Please enter the customer\'s phone number.', 'danger')
             return redirect(url_for('customers'))
 
+        if not gender or gender == '':
+            flash('Gender is required. Please select a gender.', 'danger')
+            return redirect(url_for('customers'))
+
         # Clean email
         email_value = email.lower() if email else None
 
@@ -100,7 +104,7 @@ def create_customer_route():
             'email': email_value,
             'address': address,
             'date_of_birth': dob,
-            'gender': gender if gender else None,
+            'gender': gender,
             'preferences': preferences,
             'allergies': allergies,
             'notes': notes

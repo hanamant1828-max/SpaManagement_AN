@@ -810,8 +810,9 @@
                         </div>
                         <div class="col-md-6">
                             <div class="form-floating-modern">
-                                <label for="gender">Gender</label>
-                                {{ advanced_form.gender(class="form-select") }}
+                                <label for="gender">Gender *</label>
+                                {{ advanced_form.gender(class="form-select", required=true) }}
+                                <div class="form-text text-muted">Required field</div>
                             </div>
                         </div>
                     </div>
@@ -900,13 +901,14 @@
                         </div>
                         <div class="col-md-6">
                             <div class="form-floating-modern">
-                                <label for="edit_gender">Gender</label>
-                                <select class="form-select" name="gender" id="edit_gender">
+                                <label for="edit_gender">Gender *</label>
+                                <select class="form-select" name="gender" id="edit_gender" required>
                                     <option value="">Select Gender</option>
                                     <option value="male">Male</option>
                                     <option value="female">Female</option>
                                     <option value="other">Other</option>
                                 </select>
+                                <div class="form-text text-muted">Required field</div>
                             </div>
                         </div>
                     </div>
