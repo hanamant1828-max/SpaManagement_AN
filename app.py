@@ -376,6 +376,12 @@ try:
 except Exception as e:
     print(f"⚠️ Prepaid views import error: {e}")
 
+try:
+    from modules.packages.assign_packages_routes import *
+    print("✅ Assign packages routes imported")
+except Exception as e:
+    print(f"⚠️ Assign packages routes import error: {e}")
+
 # Student offer views module doesn't exist yet - commented out to prevent errors
 # try:
 #     from modules.packages.student_offer_views import *

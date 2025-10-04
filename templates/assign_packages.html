@@ -1,0 +1,354 @@
+{% extends 'base.html' %}
+{% block title %}Assign Package with Payment{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h4><i class="fas fa-box-open"></i> Assign Package & Collect Payment</h4>
+                </div>
+                <div class="card-body">
+                    
+                    <div class="form-group">
+                        <label for="customerId">Customer *</label>
+                        <select id="customerId" class="form-control" required>
+                            <option value="">Select Customer...</option>
+                            {% for customer in customers %}
+                            <option value="{{ customer.id }}" data-phone="{{ customer.phone }}" data-email="{{ customer.email }}">
+                                {{ customer.name }} ({{ customer.phone }})
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="packageType">Package Type *</label>
+                        <select id="packageType" class="form-control" required>
+                            <option value="">Select Package Type...</option>
+                            <option value="prepaid">Prepaid Package</option>
+                            <option value="service_package">Service Package</option>
+                            <option value="membership">Membership</option>
+                            <option value="student_offer">Student Offer</option>
+                            <option value="yearly">Yearly Membership</option>
+                            <option value="kitty">Kitty Party</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group" id="packageSelectGroup" style="display:none;">
+                        <label for="packageId">Select Package *</label>
+                        <select id="packageId" class="form-control">
+                            <option value="">Select Package...</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group" id="serviceSelectGroup" style="display:none;">
+                        <label for="serviceId">Select Service *</label>
+                        <select id="serviceId" class="form-control">
+                            <option value="">Select Service...</option>
+                            {% for service in services %}
+                            <option value="{{ service.id }}" data-price="{{ service.price }}">
+                                {{ service.name }} - ₹{{ service.price }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="expiresOn">Expiry Date</label>
+                        <input type="date" id="expiresOn" class="form-control">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="notes">Notes</label>
+                        <textarea id="notes" class="form-control" rows="2"></textarea>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h5>Payment Summary</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table table-sm">
+                        <tr>
+                            <td>Subtotal:</td>
+                            <td class="text-right" id="displaySubtotal">₹0.00</td>
+                        </tr>
+                        <tr>
+                            <td>Discount:</td>
+                            <td class="text-right" id="displayDiscount">₹0.00</td>
+                        </tr>
+                        <tr>
+                            <td>Tax (18%):</td>
+                            <td class="text-right" id="displayTax">₹0.00</td>
+                        </tr>
+                        <tr class="font-weight-bold border-top">
+                            <td>Grand Total:</td>
+                            <td class="text-right text-success" id="displayGrandTotal">₹0.00</td>
+                        </tr>
+                    </table>
+
+                    <hr>
+
+                    <h6>Payment Details</h6>
+                    
+                    <div class="form-group">
+                        <label>Payment Method *</label>
+                        <div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="paymentMethod" id="methodCash" value="cash" checked>
+                                <label class="form-check-label" for="methodCash">Cash</label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="paymentMethod" id="methodCard" value="card">
+                                <label class="form-check-label" for="methodCard">Card</label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="paymentMethod" id="methodUPI" value="upi">
+                                <label class="form-check-label" for="methodUPI">UPI</label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="paymentMethod" id="methodWallet" value="wallet">
+                                <label class="form-check-label" for="methodWallet">Wallet</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="paymentAmount">Amount *</label>
+                        <input type="number" id="paymentAmount" class="form-control" step="0.01" min="0" value="0">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="paymentReference">Reference (Optional)</label>
+                        <input type="text" id="paymentReference" class="form-control" placeholder="UPI ID, Last 4 digits, etc.">
+                    </div>
+
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" id="generateReceipt" checked>
+                        <label class="form-check-label" for="generateReceipt">
+                            Generate Receipt (PDF)
+                        </label>
+                    </div>
+
+                    <button type="button" id="btnAssignAndPay" class="btn btn-primary btn-lg btn-block" disabled>
+                        <i class="fas fa-check-circle"></i> Assign & Collect Payment
+                    </button>
+
+                    <div id="statusMessage" class="mt-3" style="display:none;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+const packages = {
+    prepaid: {{ prepaid_packages | tojson }},
+    service_package: {{ service_packages | tojson }},
+    membership: {{ memberships | tojson }},
+    student_offer: {{ student_offers | tojson }},
+    yearly: {{ yearly_memberships | tojson }},
+    kitty: {{ kitty_parties | tojson }}
+};
+
+let currentPackage = null;
+let currentService = null;
+
+document.getElementById('packageType').addEventListener('change', function() {
+    const type = this.value;
+    const packageSelect = document.getElementById('packageId');
+    const packageGroup = document.getElementById('packageSelectGroup');
+    const serviceGroup = document.getElementById('serviceSelectGroup');
+    
+    packageSelect.innerHTML = '<option value="">Select Package...</option>';
+    
+    if (type && packages[type]) {
+        packages[type].forEach(pkg => {
+            const option = document.createElement('option');
+            option.value = pkg.id;
+            option.textContent = `${pkg.name} - ₹${pkg.price || pkg.actual_price || 0}`;
+            option.dataset.package = JSON.stringify(pkg);
+            packageSelect.appendChild(option);
+        });
+        packageGroup.style.display = 'block';
+    } else {
+        packageGroup.style.display = 'none';
+    }
+    
+    serviceGroup.style.display = (type === 'service_package') ? 'block' : 'none';
+    recalculateTotals();
+});
+
+document.getElementById('packageId').addEventListener('change', function() {
+    const option = this.options[this.selectedIndex];
+    currentPackage = option.dataset.package ? JSON.parse(option.dataset.package) : null;
+    recalculateTotals();
+    validateForm();
+});
+
+document.getElementById('serviceId').addEventListener('change', function() {
+    const option = this.options[this.selectedIndex];
+    currentService = option.value ? {
+        id: option.value,
+        price: parseFloat(option.dataset.price || 0)
+    } : null;
+    recalculateTotals();
+});
+
+document.getElementById('customerId').addEventListener('change', validateForm);
+
+function recalculateTotals() {
+    let subtotal = 0;
+    let discount = 0;
+    
+    if (currentPackage) {
+        const packageType = document.getElementById('packageType').value;
+        
+        if (packageType === 'prepaid') {
+            subtotal = currentPackage.actual_price || 0;
+        } else if (packageType === 'service_package' && currentService) {
+            const payFor = currentPackage.pay_for || 0;
+            const free = currentPackage.free_sessions || 0;
+            subtotal = payFor * currentService.price;
+            discount = free * currentService.price;
+        } else {
+            subtotal = currentPackage.price || currentPackage.actual_price || 0;
+        }
+    }
+    
+    const taxable = Math.max(subtotal - discount, 0);
+    const tax = taxable * 0.18;
+    const grandTotal = taxable + tax;
+    
+    document.getElementById('displaySubtotal').textContent = `₹${subtotal.toFixed(2)}`;
+    document.getElementById('displayDiscount').textContent = `₹${discount.toFixed(2)}`;
+    document.getElementById('displayTax').textContent = `₹${tax.toFixed(2)}`;
+    document.getElementById('displayGrandTotal').textContent = `₹${grandTotal.toFixed(2)}`;
+    document.getElementById('paymentAmount').value = grandTotal.toFixed(2);
+}
+
+function validateForm() {
+    const customerId = document.getElementById('customerId').value;
+    const packageType = document.getElementById('packageType').value;
+    const packageId = document.getElementById('packageId').value;
+    const serviceId = document.getElementById('serviceId').value;
+    
+    let isValid = customerId && packageType && packageId;
+    
+    if (packageType === 'service_package') {
+        isValid = isValid && serviceId;
+    }
+    
+    document.getElementById('btnAssignAndPay').disabled = !isValid;
+}
+
+document.getElementById('btnAssignAndPay').addEventListener('click', async function() {
+    const btn = this;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+    
+    const statusDiv = document.getElementById('statusMessage');
+    statusDiv.style.display = 'none';
+    
+    const customerId = document.getElementById('customerId').value;
+    const packageType = document.getElementById('packageType').value;
+    const packageId = document.getElementById('packageId').value;
+    const serviceId = document.getElementById('serviceId').value;
+    const expiresOn = document.getElementById('expiresOn').value;
+    const notes = document.getElementById('notes').value;
+    const paymentMethod = document.querySelector('input[name="paymentMethod"]:checked').value;
+    const paymentAmount = parseFloat(document.getElementById('paymentAmount').value);
+    const paymentReference = document.getElementById('paymentReference').value;
+    const generateReceipt = document.getElementById('generateReceipt').checked;
+    
+    const grandTotal = parseFloat(document.getElementById('displayGrandTotal').textContent.replace('₹', ''));
+    const discount = parseFloat(document.getElementById('displayDiscount').textContent.replace('₹', ''));
+    
+    const payload = {
+        assignment: {
+            customer_id: parseInt(customerId),
+            package_type: packageType,
+            package_id: parseInt(packageId),
+            service_id: serviceId ? parseInt(serviceId) : null,
+            price_paid: grandTotal,
+            discount: discount,
+            expires_on: expiresOn || null,
+            notes: notes
+        },
+        payment: {
+            collect: true,
+            method: paymentMethod,
+            amount: paymentAmount,
+            reference: paymentReference
+        },
+        invoice: {
+            create: true,
+            tax_rate: 18.0,
+            rounding: 'nearest'
+        },
+        receipt: {
+            generate: generateReceipt,
+            pdf: true
+        }
+    };
+    
+    try {
+        const response = await fetch('/packages/api/assign-and-pay', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Idempotency-Key': generateUUID()
+            },
+            body: JSON.stringify(payload)
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            statusDiv.className = 'alert alert-success';
+            statusDiv.innerHTML = `
+                <h6>Success!</h6>
+                <p>Package assigned and payment collected successfully.</p>
+                ${result.receipt_url ? `
+                    <a href="${result.receipt_url}" target="_blank" class="btn btn-sm btn-primary">
+                        <i class="fas fa-print"></i> View Receipt
+                    </a>
+                ` : ''}
+            `;
+            statusDiv.style.display = 'block';
+            
+            if (result.receipt_url) {
+                window.open(result.receipt_url, '_blank');
+            }
+            
+            setTimeout(() => {
+                window.location.reload();
+            }, 2000);
+        } else {
+            throw new Error(result.error || 'Unknown error');
+        }
+    } catch (error) {
+        statusDiv.className = 'alert alert-danger';
+        statusDiv.innerHTML = `<strong>Error:</strong> ${error.message}`;
+        statusDiv.style.display = 'block';
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-check-circle"></i> Assign & Collect Payment';
+    }
+});
+
+function generateUUID() {
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+        const r = Math.random() * 16 | 0;
+        const v = c === 'x' ? r : (r & 0x3 | 0x8);
+        return v.toString(16);
+    });
+}
+</script>
+{% endblock %}
