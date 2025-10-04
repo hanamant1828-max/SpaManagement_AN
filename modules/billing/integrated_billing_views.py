@@ -951,7 +951,6 @@ def create_professional_invoice():
                 'stock_reduced': stock_reduced_count,
                 'package_deductions_applied': package_deductions_applied,
                 'appointments_completed': completed_appointments,
-                'staff_performance_updated': staff_updated_count,
                 'client_updated': True
             }
             app.logger.info(f"✅ Invoice {invoice_number} created successfully - returning response")
@@ -1535,167 +1534,91 @@ def get_customer_packages(client_id):
         if not customer:
             return jsonify({'success': False, 'error': 'Customer not found', 'packages': []}), 404
 
-        # Get active package assignments
+        # Get all active package assignments for this customer
         assignments = ServicePackageAssignment.query.filter_by(
             customer_id=client_id,
             status='active'
         ).all()
 
+        app.logger.info(f"🔍 Found {len(assignments)} active package assignments for customer {client_id}")
+        for a in assignments:
+            app.logger.info(f"   - Assignment {a.id}: {a.package_type} (ref_id: {a.package_reference_id})")
+
         package_data = []
         for assignment in assignments:
             try:
-                # Initialize default values
-                package_name = 'Unknown Package'
-                service_name = 'Not specified'
-                package_type = assignment.package_type or 'unknown'
-                sessions_total = 0
-                sessions_used = 0
-                sessions_remaining = 0
-                expiry_date = None
-                purchase_date = assignment.assigned_on
-                days_remaining = None
-                prepaid_amount = None
-                prepaid_used = None
-                prepaid_remaining = None
-                package_description = ''
+                package_template = assignment.get_package_template()
+                if not package_template:
+                    app.logger.warning(f"No package template found for assignment {assignment.id}")
+                    continue
 
-                # Get package-specific details based on type
-                if package_type == 'service_package':
-                    # Service Package
-                    service_pkg = ServicePackage.query.get(assignment.package_reference_id)
-                    if service_pkg:
-                        package_name = service_pkg.name
-                        package_description = ''  # ServicePackage doesn't have description field
-
-                        # Get service name from the service_id field
-                        if service_pkg.service_id:
-                            service = Service.query.get(service_pkg.service_id)
-                            if service:
-                                service_name = service.name
-
-                        # Calculate sessions
-                        sessions_total = service_pkg.total_sessions or 0
-                        sessions_used = assignment.sessions_used or 0
-                        sessions_remaining = max(0, sessions_total - sessions_used)
-
-                        # Calculate expiry
-                        if assignment.expires_on:
-                            expiry_date = assignment.expires_on
-                            if isinstance(expiry_date, datetime):
-                                expiry_date = expiry_date.date()
-                            days_remaining = (expiry_date - date.today()).days
-
-                elif package_type == 'membership':
-                    # Membership Package
-                    membership = Membership.query.get(assignment.package_reference_id)
-                    if membership:
-                        package_name = membership.name
-                        package_description = membership.description or ''
-                        service_name = membership.membership_type or 'All Services'
-
-                        # Memberships typically don't have session limits
-                        sessions_total = 999  # Unlimited representation
-                        sessions_used = 0
-                        sessions_remaining = 999
-
-                        # Calculate expiry
-                        if assignment.expires_on:
-                            expiry_date = assignment.expires_on
-                            if isinstance(expiry_date, datetime):
-                                expiry_date = expiry_date.date()
-                            days_remaining = (expiry_date - date.today()).days
-
-                elif package_type == 'prepaid':
-                    # Prepaid Package
-                    prepaid = PrepaidPackage.query.get(assignment.package_reference_id)
-                    if prepaid:
-                        package_name = prepaid.name
-                        package_description = prepaid.description or ''
-                        service_name = 'Any Service (Credit-based)'
-
-                        # Calculate credit instead of sessions
-                        prepaid_amount = float(prepaid.after_value) if prepaid.after_value else 0
-                        prepaid_used = float(assignment.used_credit) if hasattr(assignment, 'used_credit') else 0
-                        prepaid_remaining = max(0, prepaid_amount - prepaid_used)
-
-                        # Calculate expiry
-                        if assignment.expires_on:
-                            expiry_date = assignment.expires_on
-                            if isinstance(expiry_date, datetime):
-                                expiry_date = expiry_date.date()
-                            days_remaining = (expiry_date - date.today()).days
-
-                # Calculate usage percentage
-                usage_percentage = 0
-                if package_type == 'prepaid' and prepaid_amount and prepaid_amount > 0:
-                    usage_percentage = int((prepaid_used / prepaid_amount) * 100)
-                elif sessions_total > 0 and sessions_total != 999:
-                    usage_percentage = int((sessions_used / sessions_total) * 100)
-
-                # Determine status color/warning
-                status_class = 'success'
-                status_message = 'Active'
-                if days_remaining is not None:
-                    if days_remaining < 0:
-                        status_class = 'danger'
-                        status_message = 'Expired'
-                    elif days_remaining <= 7:
-                        status_class = 'danger'
-                        status_message = f'Expiring in {days_remaining} days'
-                    elif days_remaining <= 30:
-                        status_class = 'warning'
-                        status_message = f'{days_remaining} days left'
-
-                # Build package data object
                 package_info = {
-                    'id': assignment.id,
-                    'package_id': assignment.package_reference_id,
-                    'package_name': package_name,
-                    'service_name': service_name,
-                    'package_type': package_type,
-                    'package_type_display': {
-                        'service_package': 'Service Package',
-                        'membership': 'Membership',
-                        'prepaid': 'Prepaid Credit'
-                    }.get(package_type, 'Package'),
-                    'description': package_description,
-                    'sessions_total': sessions_total,
-                    'sessions_used': sessions_used,
-                    'sessions_remaining': sessions_remaining,
-                    'is_active': assignment.status == 'active',
-                    'status': assignment.status,
-                    'status_class': status_class,
-                    'status_message': status_message,
-                    'expiry_date': expiry_date.isoformat() if expiry_date else None,
-                    'purchase_date': purchase_date.isoformat() if purchase_date else None,
-                    'days_remaining': days_remaining,
-                    'usage_percentage': usage_percentage,
-                    'prepaid_amount': prepaid_amount,
-                    'prepaid_used': prepaid_used,
-                    'prepaid_remaining': prepaid_remaining
+                    'assignment_id': assignment.id,
+                    'package_type': assignment.package_type,
+                    'package_name': package_template.name,
+                    'assigned_date': assignment.assigned_on.strftime('%Y-%m-%d'),
+                    'expires_on': assignment.expires_on.strftime('%Y-%m-%d') if assignment.expires_on else None,
+                    'status': assignment.status
                 }
 
+                # Add type-specific details
+                if assignment.package_type == 'prepaid':
+                    package_info.update({
+                        'credit_amount': float(assignment.credit_amount or 0),
+                        'used_credit': float(assignment.used_credit or 0),
+                        'remaining_credit': float(assignment.remaining_credit or 0)
+                    })
+                elif assignment.package_type == 'service_package':
+                    # ServicePackageAssignment has these fields directly
+                    package_info.update({
+                        'service_id': assignment.service_id,
+                        'service_name': assignment.service.name if assignment.service else 'Any Service',
+                        'total_sessions': assignment.total_sessions or 0,
+                        'used_sessions': assignment.used_sessions or 0,
+                        'remaining_sessions': assignment.remaining_sessions or 0
+                    })
+                elif assignment.package_type == 'membership':
+                    # Get membership services
+                    membership_services = []
+                    if hasattr(package_template, 'membership_services'):
+                        for ms in package_template.membership_services:
+                            membership_services.append({
+                                'service_id': ms.service_id,
+                                'service_name': ms.service.name if ms.service else 'Unknown'
+                            })
+
+                    package_info.update({
+                        'services': membership_services,
+                        'description': package_template.description if hasattr(package_template, 'description') else ''
+                    })
+
                 package_data.append(package_info)
+                app.logger.info(f"✅ Successfully processed {assignment.package_type} assignment {assignment.id}")
 
             except Exception as assignment_error:
-                app.logger.error(f"Error processing assignment {assignment.id}: {str(assignment_error)}")
+                app.logger.error(f"❌ Error processing assignment {assignment.id}: {str(assignment_error)}")
+                import traceback
+                app.logger.error(traceback.format_exc())
                 continue
+
+        app.logger.info(f"📦 Returning {len(package_data)} packages for customer {client_id}")
 
         return jsonify({
             'success': True,
+            'customer_name': customer.full_name if customer else 'Unknown',
             'packages': package_data,
-            'total': len(package_data),
-            'customer_name': customer.full_name
+            'total': len(package_data)
         })
 
     except Exception as e:
-        app.logger.error(f"Error getting customer packages: {str(e)}")
+        app.logger.error(f"❌ Error fetching customer packages: {str(e)}")
         import traceback
-        traceback.print_exc()
+        app.logger.error(traceback.format_exc())
         return jsonify({
             'success': False,
-            'error': 'Failed to load customer packages',
-            'packages': []
+            'error': str(e),
+            'packages': [],
+            'total': 0
         }), 500
 
 
