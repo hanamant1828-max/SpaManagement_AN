@@ -111,6 +111,34 @@ The application is configured for Replit Autoscale deployment:
 - **Port**: 5000
 
 ## Recent Changes
+### October 4, 2025 - Shift Scheduler Integration with Unaki Booking System
+- **Backend Integration**:
+  - Enhanced `/api/unaki/schedule` endpoint to include comprehensive shift data:
+    - Shift hours (shift_start, shift_end)
+    - Break times (breaks array with start/end)
+    - Out-of-office periods (ooo array with start/end/reason)
+    - Staff working status and shift status
+  - Created `validate_against_shift()` helper function for booking validation:
+    - Validates bookings against shift hours
+    - Prevents bookings during break times
+    - Blocks bookings during out-of-office periods
+    - Checks staff availability (absent, holiday status)
+  - Integrated shift validation into `/api/unaki/check-conflicts` endpoint
+- **Frontend Enhancements**:
+  - Added visual overlays on Unaki booking timeline:
+    - Yellow overlays for staff break times
+    - Red overlays for out-of-office periods
+    - Gray overlays for off-duty hours
+  - Implemented `loadShiftSchedule()` to fetch shift data
+  - Implemented `renderShiftOverlays()` to visualize shift constraints
+  - Enhanced `checkConflicts()` to validate bookings against shift rules via backend API
+  - Added real-time conflict warnings showing shift violations
+- **User Experience**:
+  - Staff shifts, breaks, and OOO times are now visually clear in the booking interface
+  - Users receive immediate feedback when attempting to book during unavailable times
+  - Booking system respects staff schedules and prevents scheduling conflicts
+  - Tooltips display out-of-office reasons for transparency
+  
 ### October 4, 2025 - Professional Out of Office Feature Implementation
 - **Database Migration**: Added `out_of_office_start`, `out_of_office_end`, and `out_of_office_reason` columns to `shift_logs` table
 - **Backend Enhancements**:
