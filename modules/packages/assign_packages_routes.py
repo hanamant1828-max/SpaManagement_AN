@@ -20,7 +20,7 @@ assign_packages_bp = Blueprint('assign_packages', __name__, url_prefix='/assign-
 @login_required
 def assign_packages_page():
     """Main page for assigning packages with payment collection"""
-    customers = Customer.query.filter_by(is_active=True).order_by(Customer.name).all()
+    customers = Customer.query.filter_by(is_active=True).order_by(Customer.first_name).all()
     services = Service.query.filter_by(is_active=True).order_by(Service.name).all()
     
     # Get all active packages
