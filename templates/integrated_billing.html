@@ -603,6 +603,16 @@ textarea.form-control {
                                 </div>
                             </div>
                         </div>
+                        <div class="col-md-12 mt-3">
+                            <div class="form-group">
+                                <label class="form-label">Active Packages</label>
+                                <div id="customerPackagesTable" style="max-height: 250px; overflow-y: auto; border: 1px solid var(--gray-300); border-radius: var(--radius); background: white;">
+                                    <div style="padding: var(--spacing-md); text-align: center; color: var(--gray-500);">
+                                        <small><i class="fas fa-gift me-1"></i>Select customer to view active packages</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -974,6 +984,104 @@ function loadCustomerAppointments(customerId) {
             console.error('Error loading appointments:', err);
             appointmentsDiv.innerHTML = '<small class="text-danger"><i class="fas fa-exclamation-triangle"></i> Error loading appointments</small>';
         });
+    
+    // Also load packages display
+    loadCustomerPackagesDisplay(customerId);
+}
+
+function loadCustomerPackagesDisplay(customerId) {
+    const packagesDiv = document.getElementById('customerPackagesTable');
+    packagesDiv.innerHTML = '<div style="padding: var(--spacing-md); text-align: center;"><small><i class="fas fa-spinner spinner"></i> Loading packages...</small></div>';
+
+    fetch(`/integrated-billing/customer-packages/${customerId}`)
+        .then(res => res.json())
+        .then(data => {
+            if (data.packages && data.packages.length > 0) {
+                displayCustomerPackagesTable(data.packages);
+            } else {
+                packagesDiv.innerHTML = '<div style="padding: var(--spacing-md); text-align: center; color: var(--gray-500);"><small><i class="fas fa-info-circle"></i> No active packages</small></div>';
+            }
+        })
+        .catch(err => {
+            console.error('Error loading customer packages:', err);
+            packagesDiv.innerHTML = '<div style="padding: var(--spacing-md); text-align: center; color: var(--danger);"><small><i class="fas fa-exclamation-triangle"></i> Error loading packages</small></div>';
+        });
+}
+
+function displayCustomerPackagesTable(packages) {
+    const packagesDiv = document.getElementById('customerPackagesTable');
+    
+    let html = `
+        <table class="table table-sm table-hover mb-0" style="font-size: 0.875rem;">
+            <thead style="background: var(--gray-50); position: sticky; top: 0;">
+                <tr>
+                    <th style="padding: 0.5rem;">Package Name</th>
+                    <th style="padding: 0.5rem;">Type</th>
+                    <th style="padding: 0.5rem;">Status</th>
+                    <th style="padding: 0.5rem;">Balance</th>
+                    <th style="padding: 0.5rem;">Expiry</th>
+                </tr>
+            </thead>
+            <tbody>`;
+
+    packages.forEach(pkg => {
+        const packageName = pkg.package_name || 'Unknown Package';
+        const packageType = pkg.package_type || 'N/A';
+        const status = pkg.status || 'active';
+        
+        // Determine status badge
+        let statusBadge = '';
+        if (status === 'active') {
+            statusBadge = '<span style="background: #d1fae5; color: #065f46; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.75rem;">Active</span>';
+        } else if (status === 'expired') {
+            statusBadge = '<span style="background: #fee2e2; color: #991b1b; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.75rem;">Expired</span>';
+        } else if (status === 'completed') {
+            statusBadge = '<span style="background: #e5e7eb; color: #374151; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.75rem;">Completed</span>';
+        }
+
+        // Display balance based on package type
+        let balanceText = '';
+        if (packageType === 'prepaid') {
+            balanceText = `₹${(pkg.remaining_credit || 0).toFixed(2)} / ₹${(pkg.credit_amount || 0).toFixed(2)}`;
+        } else if (packageType === 'service_package') {
+            balanceText = `${pkg.remaining_sessions || 0} / ${pkg.total_sessions || 0} sessions`;
+        } else if (packageType === 'membership') {
+            balanceText = 'Unlimited';
+        }
+
+        // Format expiry date
+        const expiryDate = pkg.expires_on ? new Date(pkg.expires_on).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'No expiry';
+
+        // Type badge
+        let typeBadge = '';
+        if (packageType === 'prepaid') {
+            typeBadge = '<span style="background: #dbeafe; color: #1e40af; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.75rem;">Prepaid</span>';
+        } else if (packageType === 'service_package') {
+            typeBadge = '<span style="background: #fef3c7; color: #92400e; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.75rem;">Service</span>';
+        } else if (packageType === 'membership') {
+            typeBadge = '<span style="background: #e9d5ff; color: #6b21a8; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.75rem;">Membership</span>';
+        }
+
+        html += `
+            <tr style="border-bottom: 1px solid var(--gray-200);">
+                <td style="padding: 0.5rem;">
+                    <strong>${packageName}</strong>
+                    ${pkg.service_name ? `<br><small class="text-muted">${pkg.service_name}</small>` : ''}
+                </td>
+                <td style="padding: 0.5rem;">${typeBadge}</td>
+                <td style="padding: 0.5rem;">${statusBadge}</td>
+                <td style="padding: 0.5rem;"><strong>${balanceText}</strong></td>
+                <td style="padding: 0.5rem;">
+                    <small>${expiryDate}</small>
+                </td>
+            </tr>`;
+    });
+
+    html += `
+            </tbody>
+        </table>`;
+
+    packagesDiv.innerHTML = html;
 }
 
 function resetCustomerAppointments() {
@@ -1207,7 +1315,11 @@ function resetCustomerAppointments() {
     // Clear tracking when customer changes
     addedAppointmentIds.clear();
     document.getElementById('customerAppointments').innerHTML = 
-        '<small class="text-muted"><i class="fas fa-info-circle"></i> Select customer to view appointments</small>';
+        '<div style="padding: var(--spacing-md); text-align: center; color: var(--gray-500);"><small><i class="fas fa-info-circle"></i> Select customer to view appointments</small></div>';
+    
+    // Also reset packages table
+    document.getElementById('customerPackagesTable').innerHTML = 
+        '<div style="padding: var(--spacing-md); text-align: center; color: var(--gray-500);"><small><i class="fas fa-gift"></i> Select customer to view active packages</small></div>';
 }
 
 function showNotification(message, type = 'info') {
