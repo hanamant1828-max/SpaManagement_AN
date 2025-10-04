@@ -573,6 +573,56 @@
                 z-index: 100;
             }
 
+            /* Shift Overlays */
+            .shift-overlay {
+                position: absolute;
+                top: 0;
+                bottom: 0;
+                pointer-events: none;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 1;
+                border-radius: 6px;
+                opacity: 0.75;
+            }
+
+            .shift-overlay-break {
+                background: linear-gradient(135deg, rgba(245, 158, 11, 0.3), rgba(251, 191, 36, 0.3));
+                border: 1px dashed rgba(245, 158, 11, 0.5);
+            }
+
+            .shift-overlay-out-of-office {
+                background: linear-gradient(135deg, rgba(239, 68, 68, 0.4), rgba(252, 165, 165, 0.4));
+                border: 1px dashed rgba(239, 68, 68, 0.6);
+            }
+
+            .shift-overlay-off-duty {
+                background: linear-gradient(135deg, rgba(107, 114, 128, 0.2), rgba(156, 163, 175, 0.2));
+                border: 1px dashed rgba(107, 114, 128, 0.4);
+            }
+
+            .overlay-label {
+                font-size: 11px;
+                font-weight: 600;
+                color: rgba(0, 0, 0, 0.7);
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+                text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
+            }
+
+            .shift-overlay-break .overlay-label {
+                color: rgba(180, 83, 9, 0.9);
+            }
+
+            .shift-overlay-out-of-office .overlay-label {
+                color: rgba(153, 27, 27, 0.9);
+            }
+
+            .shift-overlay-off-duty .overlay-label {
+                color: rgba(55, 65, 81, 0.7);
+            }
+
             .appointment-header {
                 display: flex;
                 align-items: flex-start;
@@ -2209,6 +2259,7 @@
             // Initialize on page load
             document.addEventListener("DOMContentLoaded", function () {
                 loadBookings();
+                loadShiftSchedule(); // Load shift data with breaks and OOO
                 updateCurrentTimeLine();
                 setInterval(updateCurrentTimeLine, 60000);
                 setupTooltips();
@@ -2382,6 +2433,110 @@
                     .finally(() => {
                         overlay.classList.remove("show");
                     });
+            }
+
+            // Load shift schedule data with breaks and out-of-office info
+            function loadShiftSchedule() {
+                fetch("/api/unaki/schedule?date=" + currentDate)
+                    .then((response) => response.json())
+                    .then((data) => {
+                        if (data.success && data.staff) {
+                            renderShiftOverlays(data.staff);
+                        } else {
+                            console.error("Failed to load shift schedule:", data.error);
+                        }
+                    })
+                    .catch((error) => {
+                        console.error("Error loading shift schedule:", error);
+                    });
+            }
+
+            // Render shift overlays (breaks, OOO, off-duty)
+            function renderShiftOverlays(staffData) {
+                // Remove existing overlays
+                document.querySelectorAll(".shift-overlay").forEach((el) => el.remove());
+
+                staffData.forEach((staff) => {
+                    const row = document.querySelector(`.timeline-row[data-staff-id="${staff.id}"]`);
+                    if (!row) return;
+
+                    // Helper to convert time to position
+                    function timeToPosition(timeStr) {
+                        const [hours, minutes] = timeStr.split(':').map(Number);
+                        const hoursSince9AM = hours - 9 + minutes / 60;
+                        return hoursSince9AM * 140; // 140px per hour
+                    }
+
+                    // Helper to calculate width
+                    function calculateWidth(startTime, endTime) {
+                        const [startH, startM] = startTime.split(':').map(Number);
+                        const [endH, endM] = endTime.split(':').map(Number);
+                        const startMinutes = startH * 60 + startM;
+                        const endMinutes = endH * 60 + endM;
+                        const durationHours = (endMinutes - startMinutes) / 60;
+                        return durationHours * 140;
+                    }
+
+                    // Render off-duty overlay (gray) - before shift start
+                    if (staff.shift_start && staff.shift_start !== '09:00') {
+                        const offDutyStart = createOverlay('off-duty', 0, timeToPosition(staff.shift_start));
+                        row.appendChild(offDutyStart);
+                    }
+
+                    // Render off-duty overlay (gray) - after shift end
+                    if (staff.shift_end && staff.shift_end !== '22:00') {
+                        const offDutyEndPos = timeToPosition(staff.shift_end);
+                        const gridEnd = 13 * 140; // 22:00 - 9:00 = 13 hours
+                        const offDutyEnd = createOverlay('off-duty', offDutyEndPos, gridEnd - offDutyEndPos);
+                        row.appendChild(offDutyEnd);
+                    }
+
+                    // Render break overlays (yellow)
+                    if (staff.breaks && staff.breaks.length > 0) {
+                        staff.breaks.forEach((breakTime) => {
+                            if (breakTime.start && breakTime.end) {
+                                const left = timeToPosition(breakTime.start);
+                                const width = calculateWidth(breakTime.start, breakTime.end);
+                                const breakOverlay = createOverlay('break', left, width);
+                                row.appendChild(breakOverlay);
+                            }
+                        });
+                    }
+
+                    // Render out-of-office overlays (red)
+                    if (staff.ooo && staff.ooo.length > 0) {
+                        staff.ooo.forEach((oooTime) => {
+                            if (oooTime.start && oooTime.end) {
+                                const left = timeToPosition(oooTime.start);
+                                const width = calculateWidth(oooTime.start, oooTime.end);
+                                const oooOverlay = createOverlay('out-of-office', left, width);
+                                if (oooTime.reason) {
+                                    oooOverlay.title = oooTime.reason;
+                                }
+                                row.appendChild(oooOverlay);
+                            }
+                        });
+                    }
+                });
+            }
+
+            // Create overlay element
+            function createOverlay(type, left, width) {
+                const overlay = document.createElement('div');
+                overlay.className = `shift-overlay shift-overlay-${type}`;
+                overlay.style.left = `${left}px`;
+                overlay.style.width = `${width}px`;
+                
+                // Add label based on type
+                if (type === 'break') {
+                    overlay.innerHTML = '<span class="overlay-label">Break</span>';
+                } else if (type === 'out-of-office') {
+                    overlay.innerHTML = '<span class="overlay-label">OOO</span>';
+                } else if (type === 'off-duty') {
+                    overlay.innerHTML = '<span class="overlay-label">Off Duty</span>';
+                }
+                
+                return overlay;
             }
 
             // Update the displayed statistics (total and completed bookings)
@@ -3395,6 +3550,7 @@
             // Refresh the schedule view by reloading bookings
             function refreshSchedule() {
                 loadBookings();
+                loadShiftSchedule(); // Also refresh shift overlays
 
                 // Visual feedback for refresh button
                 const btn = event.target.closest(".action-icon");
