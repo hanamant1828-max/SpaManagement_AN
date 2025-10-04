@@ -302,10 +302,13 @@ function saveAssignSimple() {
         saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Assigning...';
     }
 
-    // Get payment information
-    const paymentMethod = document.getElementById('assignmentPaymentMethod')?.value || 'cash';
-    const paymentStatus = document.getElementById('assignmentPaymentStatus')?.value || 'paid';
-    const amountPaid = document.getElementById('assignmentAmountPaid')?.value;
+    // Get payment information from either modal
+    const paymentMethod = document.getElementById('assignmentPaymentMethod')?.value || 
+                         document.getElementById('asPaymentMethod')?.value || 'cash';
+    const paymentStatus = document.getElementById('assignmentPaymentStatus')?.value || 
+                         document.getElementById('asPaymentStatus')?.value || 'paid';
+    const amountPaid = document.getElementById('assignmentAmountPaid')?.value ||
+                      document.getElementById('asAmountPaid')?.value;
     const transactionRef = document.getElementById('assignmentTransactionRef')?.value || '';
     const discount = parseFloat(document.getElementById('assignmentDiscount')?.value || 0);
 
@@ -602,16 +605,29 @@ function setupEventListeners() {
         assignPackage.addEventListener('change', showPackagePreview);
     }
 
-    // Payment status change handler
+    // Payment status change handler for main modal
     const paymentStatusSelect = document.getElementById('assignmentPaymentStatus');
     if (paymentStatusSelect) {
         paymentStatusSelect.addEventListener('change', handlePaymentStatusChange);
     }
 
-    // Payment method change handler
+    // Payment method change handler for main modal
     const paymentMethodSelect = document.getElementById('assignmentPaymentMethod');
     if (paymentMethodSelect) {
         paymentMethodSelect.addEventListener('change', handlePaymentStatusChange);
+    }
+
+    // Payment status change handler for simple modal
+    const asPaymentStatusSelect = document.getElementById('asPaymentStatus');
+    if (asPaymentStatusSelect) {
+        asPaymentStatusSelect.addEventListener('change', function() {
+            const asAmountPaidSection = document.getElementById('asAmountPaidSection');
+            if (this.value === 'partial') {
+                if (asAmountPaidSection) asAmountPaidSection.style.display = 'block';
+            } else {
+                if (asAmountPaidSection) asAmountPaidSection.style.display = 'none';
+            }
+        });
     }
 
     // Price and discount change handlers

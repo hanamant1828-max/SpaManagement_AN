@@ -1006,6 +1006,62 @@ function downloadPackageDetails() {
                                    name="transaction_ref" placeholder="Cheque no., Transaction ID, etc.">
                         </div>
 
+                        <!-- Payment Information Section - REQUIRED BEFORE ASSIGNMENT -->
+                        <div class="col-12">
+                            <hr class="my-3">
+                            <h6 class="mb-3">
+                                <i class="fas fa-credit-card me-2 text-danger"></i>Payment Information (Required Before Assignment)
+                            </h6>
+                            <div class="alert alert-warning mb-3">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                <strong>Important:</strong> Package will only be assigned after payment is confirmed.
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label for="assignmentPaymentMethod" class="form-label">Payment Method *</label>
+                            <select class="form-select" id="assignmentPaymentMethod" name="payment_method" required>
+                                <option value="">Select payment method...</option>
+                                <option value="cash">Cash</option>
+                                <option value="card">Card</option>
+                                <option value="upi">UPI</option>
+                                <option value="online">Online Payment</option>
+                                <option value="cheque">Cheque</option>
+                                <option value="bank_transfer">Bank Transfer</option>
+                            </select>
+                            <div class="invalid-feedback">
+                                Please select a payment method
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label for="assignmentPaymentStatus" class="form-label">Payment Status *</label>
+                            <select class="form-select" id="assignmentPaymentStatus" name="payment_status" required>
+                                <option value="">Select payment status...</option>
+                                <option value="paid">Paid (Full Payment)</option>
+                                <option value="partial">Partial Payment</option>
+                            </select>
+                            <small class="text-muted">Assignment requires confirmed payment</small>
+                        </div>
+
+                        <div class="col-md-6" id="amountPaidSection" style="display: none;">
+                            <label for="assignmentAmountPaid" class="form-label">Amount Paid *</label>
+                            <div class="input-group">
+                                <span class="input-group-text">₹</span>
+                                <input type="number" class="form-control" id="assignmentAmountPaid" 
+                                       name="amount_paid" step="0.01" min="0">
+                            </div>
+                            <div class="invalid-feedback">
+                                Please enter the amount paid
+                            </div>
+                        </div>
+
+                        <div class="col-md-6" id="transactionRefSection" style="display: none;">
+                            <label for="assignmentTransactionRef" class="form-label">Transaction Reference</label>
+                            <input type="text" class="form-control" id="assignmentTransactionRef" 
+                                   name="transaction_ref" placeholder="Cheque no., Transaction ID, etc.">
+                        </div>
+
                         <div class="col-12">
                             <label for="assignmentNotes" class="form-label">Notes (Optional)</label>
                             <textarea class="form-control" id="assignmentNotes" name="notes" rows="3" 
@@ -1080,6 +1136,37 @@ function downloadPackageDetails() {
                     <div class="mb-3">
                         <label class="form-label">Price Paid</label>
                         <input type="number" id="asPricePaid" class="form-control" step="0.01" min="0" value="0">
+                    </div>
+
+                    <!-- Payment Information -->
+                    <div class="mb-3">
+                        <label class="form-label">Payment Method *</label>
+                        <select class="form-select" id="asPaymentMethod" required>
+                            <option value="">Select payment method...</option>
+                            <option value="cash">Cash</option>
+                            <option value="card">Card</option>
+                            <option value="upi">UPI</option>
+                            <option value="online">Online Payment</option>
+                            <option value="cheque">Cheque</option>
+                            <option value="bank_transfer">Bank Transfer</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Payment Status *</label>
+                        <select class="form-select" id="asPaymentStatus" required>
+                            <option value="">Select payment status...</option>
+                            <option value="paid">Paid (Full Payment)</option>
+                            <option value="partial">Partial Payment</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3" id="asAmountPaidSection" style="display: none;">
+                        <label class="form-label">Amount Paid *</label>
+                        <div class="input-group">
+                            <span class="input-group-text">₹</span>
+                            <input type="number" class="form-control" id="asAmountPaid" step="0.01" min="0">
+                        </div>
                     </div>
 
                     <div class="mb-3">
