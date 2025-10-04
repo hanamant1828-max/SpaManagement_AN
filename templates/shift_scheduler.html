@@ -50,6 +50,26 @@
             </div>
         </div>
 
+        <!-- Search Bar -->
+        <div class="search-container" style="margin: 20px 0; padding: 0 20px;">
+            <div class="input-group" style="max-width: 400px;">
+                <span class="input-group-text" style="background: white; border-right: none;">
+                    <i class="fas fa-search text-muted"></i>
+                </span>
+                <input
+                    type="text"
+                    id="staffSearchInput"
+                    class="form-control"
+                    placeholder="Search by staff name, schedule, or dates..."
+                    style="border-left: none; padding-left: 0;"
+                    onkeyup="filterSchedules()"
+                />
+                <button class="btn btn-outline-secondary" onclick="clearStaffSearch()" style="margin-left: 10px;">
+                    <i class="fas fa-times"></i> Clear
+                </button>
+            </div>
+        </div>
+
         <!-- Schedule Management Table -->
         <div class="spa-table-container">
             <table class="spa-table" id="scheduleTable">
@@ -121,8 +141,63 @@ $(document).ready(function() {
     // Load existing schedules
     loadSchedules();
 
-    
+    // View database records
+    function viewDatabase() {
+        window.location.href = '/shift_scheduler/database';
+    }
 
+    // Filter schedules based on search input
+    function filterSchedules() {
+        const searchInput = document.getElementById('staffSearchInput');
+        const filter = searchInput.value.toLowerCase().trim();
+        const scheduleCards = document.querySelectorAll('.schedule-card');
+
+        scheduleCards.forEach(card => {
+            const staffName = card.querySelector('.staff-info h3')?.textContent.toLowerCase() || '';
+            const scheduleName = card.querySelector('.staff-info p')?.textContent.toLowerCase() || '';
+            const fromDate = card.querySelector('.info-item:nth-child(1) p')?.textContent.toLowerCase() || '';
+            const toDate = card.querySelector('.info-item:nth-child(2) p')?.textContent.toLowerCase() || '';
+            const officeDays = card.querySelector('.badge')?.textContent.toLowerCase() || '';
+
+            const matchesSearch = staffName.includes(filter) ||
+                                 scheduleName.includes(filter) ||
+                                 fromDate.includes(filter) ||
+                                 toDate.includes(filter) ||
+                                 officeDays.includes(filter);
+
+            card.style.display = matchesSearch ? 'flex' : 'none';
+        });
+
+        // Show "no results" message if no schedules match
+        const visibleCards = Array.from(scheduleCards).filter(card => card.style.display !== 'none');
+        const scheduleGrid = document.querySelector('.schedule-grid');
+
+        // Remove existing "no results" message
+        const existingMessage = document.getElementById('noResultsMessage');
+        if (existingMessage) {
+            existingMessage.remove();
+        }
+
+        if (visibleCards.length === 0 && filter !== '') {
+            const noResultsDiv = document.createElement('div');
+            noResultsDiv.id = 'noResultsMessage';
+            noResultsDiv.className = 'text-center text-muted';
+            noResultsDiv.style.padding = '40px 20px';
+            noResultsDiv.innerHTML = `
+                <i class="fas fa-search fa-3x mb-3"></i>
+                <h5>No schedules found</h5>
+                <p>No schedules match your search "${filter}"</p>
+            `;
+            scheduleGrid.appendChild(noResultsDiv);
+        }
+    }
+
+    // Clear search input and show all schedules
+    function clearStaffSearch() {
+        const searchInput = document.getElementById('staffSearchInput');
+        searchInput.value = '';
+        filterSchedules();
+    }
 });
 </script>
 {% endblock %}
