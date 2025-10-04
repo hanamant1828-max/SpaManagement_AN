@@ -1451,6 +1451,78 @@ def api_get_unaki_booking(booking_id):
         }), 500
 
 
+def validate_against_shift(staff_id, date_obj, start_time_str, end_time_str):
+    """
+    Validate booking against shift rules (hours, breaks, out-of-office).
+    Returns (is_valid, error_message)
+    """
+    try:
+        from models import ShiftManagement, ShiftLogs
+        
+        # Helper to check time overlap
+        def time_overlaps(a_start, a_end, b_start, b_end):
+            def to_minutes(t):
+                h, m = map(int, t.split(':'))
+                return h * 60 + m
+            a_s, a_e = to_minutes(a_start), to_minutes(a_end)
+            b_s, b_e = to_minutes(b_start), to_minutes(b_end)
+            return a_e > b_s and a_s < b_e
+        
+        # Get shift management for this staff
+        shift_mgmt = ShiftManagement.query.filter(
+            ShiftManagement.staff_id == staff_id,
+            ShiftManagement.from_date <= date_obj,
+            ShiftManagement.to_date >= date_obj
+        ).first()
+        
+        if not shift_mgmt:
+            return False, "Staff is not scheduled for this date."
+        
+        # Get shift log for this specific date
+        shift_log = ShiftLogs.query.filter(
+            ShiftLogs.shift_management_id == shift_mgmt.id,
+            ShiftLogs.individual_date == date_obj
+        ).first()
+        
+        if not shift_log:
+            return False, "No shift log found for this date."
+        
+        # Check if staff is working
+        if shift_log.status in ['absent', 'holiday']:
+            return False, f"Staff is {shift_log.status} on this date."
+        
+        # Check if within shift hours
+        if not (shift_log.shift_start_time and shift_log.shift_end_time):
+            return False, "No shift hours set for this staff."
+        
+        shift_start = shift_log.shift_start_time.strftime('%H:%M')
+        shift_end = shift_log.shift_end_time.strftime('%H:%M')
+        
+        if not (start_time_str >= shift_start and end_time_str <= shift_end):
+            return False, f"Outside of shift hours ({shift_start} - {shift_end})."
+        
+        # Check break time
+        if shift_log.break_start_time and shift_log.break_end_time:
+            break_start = shift_log.break_start_time.strftime('%H:%M')
+            break_end = shift_log.break_end_time.strftime('%H:%M')
+            if time_overlaps(start_time_str, end_time_str, break_start, break_end):
+                return False, f"Overlaps with break time ({break_start} - {break_end})."
+        
+        # Check out-of-office time
+        if shift_log.out_of_office_start and shift_log.out_of_office_end:
+            ooo_start = shift_log.out_of_office_start.strftime('%H:%M')
+            ooo_end = shift_log.out_of_office_end.strftime('%H:%M')
+            ooo_reason = shift_log.out_of_office_reason or "Out of office"
+            if time_overlaps(start_time_str, end_time_str, ooo_start, ooo_end):
+                return False, f"Staff is out of office: {ooo_reason} ({ooo_start} - {ooo_end})."
+        
+        return True, None
+        
+    except Exception as e:
+        print(f"Error in shift validation: {e}")
+        return True, None  # Don't block bookings if validation fails
+
+
 @app.route('/api/unaki/check-conflicts', methods=['POST'])
 @login_required
 def api_unaki_check_conflicts():
@@ -1472,6 +1544,19 @@ def api_unaki_check_conflicts():
         end_time = data['end_time']
         check_date = datetime.strptime(data['date'], '%Y-%m-%d').date()
         exclude_id = data.get('exclude_id')  # For edit operations
+
+        # First check shift validation
+        is_valid_shift, shift_error = validate_against_shift(staff_id, check_date, start_time, end_time)
+        if not is_valid_shift:
+            return jsonify({
+                'has_conflicts': True,
+                'conflicts': [],
+                'shift_violation': True,
+                'reason': shift_error,
+                'suggestions': [],
+                'staff_id': staff_id,
+                'requested_time': f"{start_time} - {end_time}"
+            })
 
         # Get existing appointments for this staff on this date
         from models import UnakiBooking
