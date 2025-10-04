@@ -208,7 +208,7 @@ session_cookies.txt
 *.sqlite3-shm
 
 # Local database directories for this project
-hanamantdatabase/
+# hanamantdatabase/  # Uncommented to include database in Git
 
 # Vercel
 .vercel
