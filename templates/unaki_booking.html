@@ -2502,7 +2502,7 @@
             // Render shift overlays (breaks, OOO, off-duty)
             function renderShiftOverlays(staffData) {
                 console.log('🎨 Rendering shift overlays for', staffData ? staffData.length : 0, 'staff members');
-                
+
                 // Remove existing overlays
                 const existingOverlays = document.querySelectorAll(".shift-overlay");
                 console.log('🧹 Removing', existingOverlays.length, 'existing overlays');
@@ -2529,6 +2529,7 @@
 
                     // Helper to convert time to position
                     function timeToPosition(timeStr) {
+                        if (!timeStr) return 0;
                         const [hours, minutes] = timeStr.split(':').map(Number);
                         const hoursSince9AM = hours - 9 + minutes / 60;
                         return hoursSince9AM * 140; // 140px per hour
@@ -2536,21 +2537,24 @@
 
                     // Helper to calculate width
                     function calculateWidth(startTime, endTime) {
+                        if (!startTime || !endTime) return 0;
                         const [startH, startM] = startTime.split(':').map(Number);
                         const [endH, endM] = endTime.split(':').map(Number);
                         const startMinutes = startH * 60 + startM;
                         const endMinutes = endH * 60 + endM;
                         const durationHours = (endMinutes - startMinutes) / 60;
-                        return durationHours * 140;
+                        return Math.max(0, durationHours * 140);
                     }
 
                     // Render off-duty overlay (gray) - before shift start
                     if (staff.shift_start && staff.shift_start !== '09:00') {
                         const left = 0;
                         const width = timeToPosition(staff.shift_start);
-                        console.log(`  ⏰ Adding off-duty overlay BEFORE shift: left=${left}px, width=${width}px`);
-                        const offDutyStart = createOverlay('off-duty', left, width);
-                        row.appendChild(offDutyStart);
+                        if (width > 0) {
+                            console.log(`  ⏰ Adding off-duty overlay BEFORE shift: left=${left}px, width=${width}px`);
+                            const offDutyStart = createOverlay('off-duty', left, width, 'Before Shift');
+                            row.appendChild(offDutyStart);
+                        }
                     }
 
                     // Render off-duty overlay (gray) - after shift end
@@ -2558,21 +2562,25 @@
                         const left = timeToPosition(staff.shift_end);
                         const gridEnd = 13 * 140; // 22:00 - 9:00 = 13 hours
                         const width = gridEnd - left;
-                        console.log(`  ⏰ Adding off-duty overlay AFTER shift: left=${left}px, width=${width}px`);
-                        const offDutyEnd = createOverlay('off-duty', left, width);
-                        row.appendChild(offDutyEnd);
+                        if (width > 0) {
+                            console.log(`  ⏰ Adding off-duty overlay AFTER shift: left=${left}px, width=${width}px`);
+                            const offDutyEnd = createOverlay('off-duty', left, width, 'After Shift');
+                            row.appendChild(offDutyEnd);
+                        }
                     }
 
                     // Render break overlays (yellow)
-                    if (staff.breaks && staff.breaks.length > 0) {
+                    if (staff.breaks && Array.isArray(staff.breaks) && staff.breaks.length > 0) {
                         console.log(`  ☕ Processing ${staff.breaks.length} breaks`);
                         staff.breaks.forEach((breakTime, index) => {
-                            if (breakTime.start && breakTime.end) {
+                            if (breakTime && breakTime.start && breakTime.end) {
                                 const left = timeToPosition(breakTime.start);
                                 const width = calculateWidth(breakTime.start, breakTime.end);
-                                console.log(`    ☕ Break ${index + 1}: ${breakTime.start} - ${breakTime.end}, left=${left}px, width=${width}px`);
-                                const breakOverlay = createOverlay('break', left, width);
-                                row.appendChild(breakOverlay);
+                                if (width > 0) {
+                                    console.log(`    ☕ Break ${index + 1}: ${breakTime.start} - ${breakTime.end}, left=${left}px, width=${width}px`);
+                                    const breakOverlay = createOverlay('break', left, width, 'Break Time');
+                                    row.appendChild(breakOverlay);
+                                }
                             }
                         });
                     } else {
@@ -2580,18 +2588,21 @@
                     }
 
                     // Render out-of-office overlays (red)
-                    if (staff.ooo && staff.ooo.length > 0) {
+                    if (staff.ooo && Array.isArray(staff.ooo) && staff.ooo.length > 0) {
                         console.log(`  🚫 Processing ${staff.ooo.length} out-of-office periods`);
                         staff.ooo.forEach((oooTime, index) => {
-                            if (oooTime.start && oooTime.end) {
+                            if (oooTime && oooTime.start && oooTime.end) {
                                 const left = timeToPosition(oooTime.start);
                                 const width = calculateWidth(oooTime.start, oooTime.end);
-                                console.log(`    🚫 OOO ${index + 1}: ${oooTime.start} - ${oooTime.end}, left=${left}px, width=${width}px, reason=${oooTime.reason || 'N/A'}`);
-                                const oooOverlay = createOverlay('out-of-office', left, width);
-                                if (oooTime.reason) {
-                                    oooOverlay.title = oooTime.reason;
+                                if (width > 0) {
+                                    console.log(`    🚫 OOO ${index + 1}: ${oooTime.start} - ${oooTime.end}, left=${left}px, width=${width}px, reason=${oooTime.reason || 'N/A'}`);
+                                    const label = oooTime.reason || 'Out of Office';
+                                    const oooOverlay = createOverlay('out-of-office', left, width, label);
+                                    if (oooTime.reason) {
+                                        oooOverlay.title = oooTime.reason;
+                                    }
+                                    row.appendChild(oooOverlay);
                                 }
-                                row.appendChild(oooOverlay);
                             }
                         });
                     } else {
@@ -2603,26 +2614,25 @@
                 console.log(`✅ Rendered ${totalOverlays} total overlays`);
             }
 
-            // Create overlay element
-            function createOverlay(type, left, width) {
-                console.log(`  🔨 Creating ${type} overlay: left=${left}px, width=${width}px`);
+            // Create overlay element with improved styling and positioning
+            function createOverlay(type, left, width, labelText) {
+                console.log(`  🔨 Creating ${type} overlay: left=${left}px, width=${width}px, label="${labelText}"`);
                 const overlay = document.createElement('div');
                 overlay.className = `shift-overlay shift-overlay-${type}`;
+                overlay.style.position = 'absolute';
                 overlay.style.left = `${left}px`;
                 overlay.style.width = `${width}px`;
+                overlay.style.zIndex = '1';
 
                 // Add label based on type
-                if (type === 'break') {
-                    overlay.innerHTML = '<span class="overlay-label">Break</span>';
-                } else if (type === 'out-of-office') {
-                    overlay.innerHTML = '<span class="overlay-label">OOO</span>';
-                } else if (type === 'off-duty') {
-                    overlay.innerHTML = '<span class="overlay-label">Off Duty</span>';
-                }
+                const label = document.createElement('span');
+                label.className = 'overlay-label';
+                label.textContent = labelText;
+                overlay.appendChild(label);
 
-                console.log(`  ✅ Created ${type} overlay element`);
                 return overlay;
             }
+
 
             // Update the displayed statistics (total and completed bookings)
             function updateStats() {

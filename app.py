@@ -526,12 +526,21 @@ def unaki_schedule():
                 # Build breaks array for frontend rendering
                 breaks = []
                 if break_start and break_end:
-                    breaks.append({"start": break_start, "end": break_end})
+                    breaks.append({
+                        "start": break_start, 
+                        "end": break_end
+                    })
+                    print(f"    ☕ Break added: {break_start} - {break_end}")
                 
                 # Build out-of-office array for frontend rendering
                 ooo = []
                 if ooo_start and ooo_end:
-                    ooo.append({"start": ooo_start, "end": ooo_end, "reason": ooo_reason or ""})
+                    ooo.append({
+                        "start": ooo_start, 
+                        "end": ooo_end, 
+                        "reason": ooo_reason or "Out of Office"
+                    })
+                    print(f"    🚫 OOO added: {ooo_start} - {ooo_end}, reason: {ooo_reason or 'N/A'}")
 
                 staff_info = {
                     'id': staff.id,
