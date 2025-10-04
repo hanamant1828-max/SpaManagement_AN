@@ -1316,8 +1316,35 @@ function handleFormSubmit(e) {
     })
     .then(data => {
         if (data.success) {
-            const message = `Invoice ${data.invoice_number} created successfully!\nTotal: ₹${data.total_amount.toFixed(2)}`;
-            showNotification(message, 'success');
+            // Build detailed success message
+            let message = `✅ Invoice ${data.invoice_number} created successfully!\n\n`;
+            message += `💰 Total Amount: ₹${data.total_amount.toFixed(2)}\n`;
+            
+            if (data.tax_amount > 0) {
+                message += `📋 Tax Details:\n`;
+                if (data.cgst_amount > 0) message += `  • CGST: ₹${data.cgst_amount.toFixed(2)}\n`;
+                if (data.sgst_amount > 0) message += `  • SGST: ₹${data.sgst_amount.toFixed(2)}\n`;
+                if (data.igst_amount > 0) message += `  • IGST: ₹${data.igst_amount.toFixed(2)}\n`;
+            }
+            
+            if (data.service_items_created > 0) {
+                message += `\n✓ ${data.service_items_created} service(s) billed`;
+            }
+            if (data.inventory_items_created > 0) {
+                message += `\n✓ ${data.inventory_items_created} product(s) billed`;
+            }
+            if (data.appointments_completed > 0) {
+                message += `\n✓ ${data.appointments_completed} appointment(s) completed`;
+            }
+            if (data.package_deductions_applied > 0) {
+                message += `\n✓ ${data.package_deductions_applied} package benefit(s) applied`;
+            }
+            
+            // Show alert
+            alert(message);
+            
+            // Also show toast notification
+            showNotification(`Invoice ${data.invoice_number} created successfully!`, 'success');
             
             // Handle print if needed
             if (window.printAfterSave && data.invoice_id) {
