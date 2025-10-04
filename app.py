@@ -427,6 +427,24 @@ def unaki_schedule():
                         print(f"Error formatting break times for staff {staff.id}: {time_error}")
                         break_start = None
                         break_end = None
+                    
+                    # Safely format out-of-office times with proper validation
+                    ooo_start = None
+                    ooo_end = None
+                    ooo_reason = None
+                    try:
+                        if shift_log.out_of_office_start:
+                            ooo_start = shift_log.out_of_office_start.strftime('%H:%M')
+                        if shift_log.out_of_office_end:
+                            ooo_end = shift_log.out_of_office_end.strftime('%H:%M')
+                        if shift_log.out_of_office_reason:
+                            ooo_reason = shift_log.out_of_office_reason
+                    except Exception as ooo_error:
+                        print(f"Error formatting out-of-office times for staff {staff.id}: {ooo_error}")
+                        ooo_start = None
+                        ooo_end = None
+                        ooo_reason = None
+                    
                     shift_status = shift_log.status
 
                     # Determine working status based on shift log status
@@ -486,6 +504,19 @@ def unaki_schedule():
                     break_duration = None
                     break_display = 'No Break'
                     shift_display = f"{shift_start} - {shift_end} (Default)"
+                    ooo_start = None
+                    ooo_end = None
+                    ooo_reason = None
+
+                # Build breaks array for frontend rendering
+                breaks = []
+                if break_start and break_end:
+                    breaks.append({"start": break_start, "end": break_end})
+                
+                # Build out-of-office array for frontend rendering
+                ooo = []
+                if ooo_start and ooo_end:
+                    ooo.append({"start": ooo_start, "end": ooo_end, "reason": ooo_reason or ""})
 
                 staff_info = {
                     'id': staff.id,
@@ -498,6 +529,8 @@ def unaki_schedule():
                     'break_end': break_end,
                     'break_duration': break_duration,
                     'break_display': break_display,
+                    'breaks': breaks,
+                    'ooo': ooo,
                     'is_working': is_working,
                     'shift_status': shift_status,
                     'availability_status': availability_status,
@@ -524,6 +557,8 @@ def unaki_schedule():
                     'break_end': None,
                     'break_duration': None,
                     'break_display': 'No Break',
+                    'breaks': [],
+                    'ooo': [],
                     'is_working': staff.is_active,
                     'shift_status': 'error',
                     'availability_status': 'Error Loading',
