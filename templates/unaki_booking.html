@@ -414,7 +414,7 @@
                 box-shadow: 0 2px 4px rgba(0, 0, 0, 0.03);
                 overflow: hidden;
             }
-            
+
             .timeline-header-inner {
                 display: flex;
                 transition: transform 0.05s linear;
@@ -1233,6 +1233,25 @@
                 opacity: 0.6;
                 cursor: not-allowed !important;
             }
+
+            /* Multi-booking specific validation */
+            .multi-appointment-row .is-invalid {
+                border-color: #dc3545 !important;
+            }
+
+            .multi-appointment-row .invalid-feedback {
+                display: block;
+                width: 100%;
+                margin-top: 0.25rem;
+                font-size: 0.875rem;
+                color: #dc3545;
+            }
+            .multi-booking-summary {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
         </style>
     </head>
     <body>
@@ -1918,7 +1937,7 @@
                             >
                                 <!-- First appointment card (template) -->
                                 <div
-                                    class="appointment-card"
+                                    class="appointment-card multi-appointment-row"
                                     data-appointment-index="0"
                                 >
                                     <div class="appointment-number">1</div>
@@ -1946,6 +1965,7 @@
                                                 Service *
                                             </label>
                                             <select
+                                                name="service_id"
                                                 class="form-select service-select"
                                                 required
                                                 style="
@@ -1987,6 +2007,7 @@
                                                 Staff Member *
                                             </label>
                                             <select
+                                                name="staff_id"
                                                 class="form-select staff-select"
                                                 required
                                                 style="
@@ -2026,6 +2047,7 @@
                                             </label>
                                             <input
                                                 type="date"
+                                                name="date"
                                                 class="form-control appointment-date"
                                                 value="{{ today }}"
                                                 required
@@ -2051,6 +2073,7 @@
                                             </label>
                                             <input
                                                 type="time"
+                                                name="start_time"
                                                 class="form-control start-time"
                                                 value="09:00"
                                                 required
@@ -2076,6 +2099,7 @@
                                             </label>
                                             <input
                                                 type="time"
+                                                name="end_time"
                                                 class="form-control end-time"
                                                 readonly
                                                 style="
@@ -2262,7 +2286,7 @@
                         </button>
                         <button
                             type="button"
-                            class="btn btn-success"
+                            class="btn btn-success btn-book-all"
                             onclick="submitMultiAppointment()"
                             style="
                                 border-radius: 10px;
@@ -2285,6 +2309,9 @@
             const currentDate = "{{ today }}";
             let bookingsData = [];
             let appointmentCounter = 1; // Renamed from appointmentCount to avoid confusion
+
+            // Get the container for multi-booking event listeners
+            const multiBookingContainer = document.getElementById('multiBookModal');
 
             // ==========================================
             // INITIALIZATION AND EVENT HANDLERS
@@ -2584,7 +2611,7 @@
                     // Check for holiday or off-day status - render full-row overlay and skip shift overlays
                     const HOLIDAY_STATUSES = ['holiday'];
                     const OFFDAY_STATUSES = ['off', 'absent', 'leave', 'weekoff', 'not_scheduled', 'offday'];
-                    
+
                     if (staff.day_status && HOLIDAY_STATUSES.includes(staff.day_status)) {
                         // Full-row holiday overlay (indigo)
                         const gridEnd = 13 * 140; // Full day 9:00 - 22:00
@@ -2594,7 +2621,7 @@
                         row.classList.add('off-duty');
                         return; // Skip other overlays
                     }
-                    
+
                     if (!staff.is_working || !staff.shift_start || !staff.shift_end ||
                         (staff.day_status && OFFDAY_STATUSES.includes(staff.day_status))) {
                         // Full-row off-day overlay (gray)
@@ -2779,6 +2806,8 @@
                 appointmentCounter = 1; // Reset counter for new modal instance
                 resetMultiBookModal(); // Reset modal to default state
                 modal.show();
+                setupRealtimeValidation(); // Setup validation listeners when modal opens
+                updateSubmitButton(); // Ensure button state is correct initially
             }
 
             // Reset modal to its initial state with one appointment card
@@ -2831,7 +2860,7 @@
                 container.insertAdjacentHTML('beforeend', appointmentCardHTML);
 
                 // Setup validation listeners for the newly added card
-                setupRealtimeValidation();
+                // setupRealtimeValidation(); // This should be called once when the modal opens
                 updateSubmitButton(); // Update submit button state
                 updateAppointmentCount();
                 updateRemoveButtonsVisibility();
@@ -2840,7 +2869,7 @@
             // Helper function to create the HTML for a new appointment card
             function createAppointmentCard(index) {
                 return `
-        <div class="appointment-card" data-appointment-index="${index}">
+        <div class="appointment-card multi-appointment-row" data-appointment-index="${index}">
             <div class="appointment-number">${index + 1}</div>
             <button type="button" class="remove-appointment" onclick="removeAppointment(${index})">
                 <i class="fas fa-times"></i>
@@ -2852,11 +2881,11 @@
                         <i class="fas fa-concierge-bell me-2" style="color: var(--primary-color);"></i>
                         Service *
                     </label>
-                    <select class="form-select service-select" required style="border-radius: 10px; padding: 12px;">
+                    <select name="service_id" class="form-select service-select" required style="border-radius: 10px; padding: 12px;">
                         <option value="">Select service...</option>
                         {% if services %}
                         {% for service in services %}
-                            <option value="{{ service.id }}" 
+                            <option value="{{ service.id }}"
                                     data-duration="{{ service.duration or 60 }}"
                                     data-price="{{ service.price }}">
                                 {{ service.name }} ({{ service.duration or 60 }} min - ₹{{ "%.2f"|format(service.price) }})
@@ -2870,7 +2899,7 @@
                         <i class="fas fa-user-md me-2" style="color: var(--primary-color);"></i>
                         Staff Member *
                     </label>
-                    <select class="form-select staff-select" required style="border-radius: 10px; padding: 12px;">
+                    <select name="staff_id" class="form-select staff-select" required style="border-radius: 10px; padding: 12px;">
                         <option value="">Select staff member...</option>
                         {% if staff_members %}
                         {% for staff in staff_members %}
@@ -2889,7 +2918,7 @@
                         <i class="fas fa-calendar me-2" style="color: var(--primary-color);"></i>
                         Date *
                     </label>
-                    <input type="date" class="form-control appointment-date" 
+                    <input type="date" name="date" class="form-control appointment-date"
                            value="{{ today }}" required style="border-radius: 10px; padding: 12px;">
                 </div>
                 <div class="col-md-4 mb-3">
@@ -2897,7 +2926,7 @@
                         <i class="fas fa-clock me-2" style="color: var(--primary-color);"></i>
                         Start Time *
                     </label>
-                    <input type="time" class="form-control start-time" 
+                    <input type="time" name="start_time" class="form-control start-time"
                            value="09:00" required style="border-radius: 10px; padding: 12px;">
                 </div>
                 <div class="col-md-4 mb-3">
@@ -2905,14 +2934,14 @@
                         <i class="fas fa-clock me-2" style="color: var(--success-color);"></i>
                         End Time
                     </label>
-                    <input type="time" class="form-control end-time" readonly
+                    <input type="time" name="end_time" class="form-control end-time" readonly
                            style="border-radius: 10px; padding: 12px; background: #f0fdf4; font-weight: 600; color: var(--success-color);">
                 </div>
             </div>
 
             <div class="row">
                 <div class="col-md-12">
-                    <div id="conflictAlert${index}" class="alert alert-warning d-none" style="border-radius: 10px;">
+                    <div id="conflictAlert${index}" class="alert alert-warning d-none" style="border-radius: 10px">
                         <i class="fas fa-exclamation-triangle me-2"></i>
                         <span class="conflict-message"></span>
                     </div>
@@ -3143,153 +3172,256 @@
             // SUBMISSION AND VALIDATION LOGIC
             // ==========================================
 
-            function submitMultiAppointment() {
-                console.log('📝 Starting multi-appointment submission...');
+            // Validate single appointment row
+            function validateAppointmentRow(row, index) {
+                const errors = [];
+                const serviceSelect = row.querySelector('select[name="service_id"]');
+                const staffSelect = row.querySelector('select[name="staff_id"]');
+                const dateInput = row.querySelector('input[name="date"]');
+                const startTimeInput = row.querySelector('input[name="start_time"]');
+                const endTimeInput = row.querySelector('input[name="end_time"]');
 
-                // Get client information
-                const clientSelect = document.getElementById('multiClientSelect');
-                const clientId = clientSelect?.value;
-                const clientName = clientSelect?.options[clientSelect.selectedIndex]?.text;
-
-                if (!clientId) {
-                    showNotification('⚠️ Please select a client', 'error');
-                    return;
-                }
-
-                // Check for past appointments on submission
-                const now = new Date();
-                const appointments = document.querySelectorAll('.appointment-card');
-                let hasPastAppointment = false;
-
-                appointments.forEach(appointment => {
-                    const date = appointment.querySelector('.appointment-date')?.value;
-                    const startTime = appointment.querySelector('.start-time')?.value;
-                    if (date && startTime) {
-                        const appointmentDateTime = new Date(`${date}T${startTime}`);
-                        if (appointmentDateTime < now) {
-                            hasPastAppointment = true;
-                        }
+                // Clear previous validation errors
+                [serviceSelect, staffSelect, dateInput, startTimeInput, endTimeInput].forEach(input => {
+                    if (input) {
+                        input.classList.remove('is-invalid');
+                        const errorDiv = input.parentElement.querySelector('.invalid-feedback');
+                        if (errorDiv) errorDiv.remove();
                     }
                 });
 
-                if (hasPastAppointment) {
-                    if (!confirm('⚠️ One or more appointments are scheduled in the past. Do you want to proceed anyway?')) {
-                        return;
+                // Validate service selection
+                if (!serviceSelect.value) {
+                    errors.push('Service is required');
+                    addValidationError(serviceSelect, 'Please select a service');
+                }
+
+                // Validate staff selection
+                if (!staffSelect.value) {
+                    errors.push('Staff member is required');
+                    addValidationError(staffSelect, 'Please select a staff member');
+                }
+
+                // Validate date
+                if (!dateInput.value) {
+                    errors.push('Date is required');
+                    addValidationError(dateInput, 'Please select a date');
+                } else {
+                    const selectedDate = new Date(dateInput.value);
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+
+                    if (selectedDate < today) {
+                        errors.push('Date cannot be in the past');
+                        addValidationError(dateInput, 'Date cannot be in the past');
                     }
                 }
 
-                // Final validation check before submission
-                const errors = validateAllAppointments();
-
-                if (errors.length > 0) {
-                    // Display validation errors to the user
-                    const errorList = errors.map((err, i) => `${i + 1}. ${err}`).join('\n');
-                    showNotification(`Please fix the following errors:\n\n${errorList}`, 'error');
-
-                    // Focus the first invalid field for easier correction
-                    const firstInvalidField = document.querySelector('.is-invalid');
-                    if (firstInvalidField) {
-                        firstInvalidField.focus();
-                    }
-                    return; // Stop submission if there are errors
+                // Validate start time
+                if (!startTimeInput.value) {
+                    errors.push('Start time is required');
+                    addValidationError(startTimeInput, 'Please select a start time');
                 }
 
-                // Proceed with booking if validation passes
-                const appointmentCards = document.querySelectorAll('.appointment-card');
-                const appointmentsToBook = [];
+                // Validate end time
+                if (!endTimeInput.value) {
+                    errors.push('End time is required');
+                    addValidationError(endTimeInput, 'Please select an end time');
+                }
 
-                // Gather appointment data from each card
-                appointmentCards.forEach((card) => {
-                    const serviceSelect = card.querySelector('.service-select');
-                    const staffSelect = card.querySelector('.staff-select');
-                    const dateInput = card.querySelector('.appointment-date');
-                    const startTimeInput = card.querySelector('.start-time');
-                    const endTimeInput = card.querySelector('.end-time');
+                // Validate time range
+                if (startTimeInput.value && endTimeInput.value) {
+                    const startTime = parseTimeToMinutes(startTimeInput.value);
+                    const endTime = parseTimeToMinutes(endTimeInput.value);
 
-                    const serviceId = serviceSelect.value;
-                    const serviceName = serviceSelect.options[serviceSelect.selectedIndex]?.text;
-                    const staffId = staffSelect.value;
-                    const date = dateInput.value;
-                    const startTime = startTimeInput.value;
-                    const endTime = endTimeInput.value;
+                    if (endTime <= startTime) {
+                        errors.push('End time must be after start time');
+                        addValidationError(endTimeInput, 'End time must be after start time');
+                    }
 
-                    // Only include appointments with all required fields filled
-                    if (serviceId && serviceName && staffId && date && startTime && endTime) {
-                        appointmentsToBook.push({
-                            service_id: serviceId,
-                            service_name: serviceName,
-                            staff_id: staffId,
-                            client_name: clientName,
-                            date: date,
-                            start_time: startTime,
-                            end_time: endTime
+                    // Validate business hours (9 AM to 11 PM)
+                    if (startTime < 540 || endTime > 1380) {
+                        errors.push('Time must be within business hours (9 AM - 11 PM)');
+                        addValidationError(startTimeInput, 'Must be within business hours (9 AM - 11 PM)');
+                    }
+                }
+
+                return errors;
+            }
+
+            // Helper function to add validation error styling
+            function addValidationError(input, message) {
+                input.classList.add('is-invalid');
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'invalid-feedback';
+                errorDiv.textContent = message;
+                input.parentElement.appendChild(errorDiv);
+            }
+
+            // Helper function to parse time string to minutes
+            function parseTimeToMinutes(timeStr) {
+                const [hours, minutes] = timeStr.split(':').map(Number);
+                return hours * 60 + minutes;
+            }
+
+            // Validate all appointments for conflicts
+            async function checkAppointmentConflicts(appointments) {
+                const conflicts = [];
+
+                for (let i = 0; i < appointments.length; i++) {
+                    const appt1 = appointments[i];
+
+                    // Check for conflicts with other appointments in the batch
+                    for (let j = i + 1; j < appointments.length; j++) {
+                        const appt2 = appointments[j];
+
+                        // Same staff, same date
+                        if (appt1.staff_id === appt2.staff_id && appt1.date === appt2.date) {
+                            const start1 = parseTimeToMinutes(appt1.start_time);
+                            const end1 = parseTimeToMinutes(appt1.end_time);
+                            const start2 = parseTimeToMinutes(appt2.start_time);
+                            const end2 = parseTimeToMinutes(appt2.end_time);
+
+                            if ((start1 < end2 && end1 > start2)) {
+                                conflicts.push(`Appointments ${i + 1} and ${j + 1} overlap for the same staff member`);
+                            }
+                        }
+                    }
+                }
+
+                return conflicts;
+            }
+
+            // Book all appointments function
+            async function submitMultiAppointment() {
+                const clientDropdown = document.getElementById('multiClientSelect');
+
+                // Validate client selection
+                if (!clientDropdown || !clientDropdown.value) {
+                    showNotification('❌ Please select a client before booking', 'error');
+                    clientDropdown?.focus();
+                    return;
+                }
+
+                const appointmentRows = document.querySelectorAll('.multi-appointment-row');
+
+                // Validate at least one appointment exists
+                if (appointmentRows.length === 0) {
+                    showNotification('❌ Please add at least one appointment', 'error');
+                    return;
+                }
+
+                const appointments = [];
+                const validationErrors = [];
+
+                // Validate each appointment row
+                appointmentRows.forEach((row, index) => {
+                    const rowErrors = validateAppointmentRow(row, index);
+
+                    if (rowErrors.length > 0) {
+                        validationErrors.push(`Appointment ${index + 1}: ${rowErrors.join(', ')}`);
+                    } else {
+                        const serviceSelect = row.querySelector('select[name="service_id"]');
+                        const staffSelect = row.querySelector('select[name="staff_id"]');
+                        const dateInput = row.querySelector('input[name="date"]');
+                        const startTimeInput = row.querySelector('input[name="start_time"]');
+                        const endTimeInput = row.querySelector('input[name="end_time"]');
+
+                        appointments.push({
+                            service_id: serviceSelect.value,
+                            service_name: serviceSelect.options[serviceSelect.selectedIndex].text,
+                            staff_id: staffSelect.value,
+                            staff_name: staffSelect.options[staffSelect.selectedIndex].text,
+                            client_id: clientDropdown.value,
+                            client_name: clientDropdown.options[clientDropdown.selectedIndex].text,
+                            date: dateInput.value,
+                            start_time: startTimeInput.value,
+                            end_time: endTimeInput.value,
+                            notes: document.getElementById('multiNotes')?.value || ''
                         });
                     }
                 });
 
-                // Ensure at least one valid appointment is selected
-                if (appointmentsToBook.length === 0) {
-                    showNotification('Please add at least one valid appointment', 'error');
+                // Show validation errors if any
+                if (validationErrors.length > 0) {
+                    showNotification(
+                        `❌ Please fix the following errors:\n\n${validationErrors.join('\n')}`,
+                        'error'
+                    );
                     return;
                 }
 
-                // Show loading overlay during submission
-                const overlay = document.getElementById("loadingOverlay");
-                overlay.classList.add("show");
+                // Check for conflicts within the batch
+                const conflicts = await checkAppointmentConflicts(appointments);
+                if (conflicts.length > 0) {
+                    const confirmOverlap = confirm(
+                        `⚠️ Warning: The following conflicts were detected:\n\n${conflicts.join('\n')}\n\nDo you want to continue anyway?`
+                    );
+                    if (!confirmOverlap) {
+                        return;
+                    }
+                }
 
-                // Submit each appointment individually
-                const bookingPromises = appointmentsToBook.map((appointment) => {
-                    return fetch("/api/unaki/book-appointment", {
-                        method: "POST",
-                        headers: {
-                            "Content-Type": "application/json",
-                        },
-                        body: JSON.stringify({
-                            ...appointment,
-                            client_id: clientId,
-                            notes: document.getElementById('multiNotes').value.trim()
-                        }),
-                    });
-                });
+                // Disable the book button and show loading state
+                const bookButton = document.querySelector('.btn-book-all');
+                if (bookButton) {
+                    bookButton.disabled = true;
+                    bookButton.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Booking...';
+                }
 
-                // Wait for all booking requests to complete
-                Promise.all(bookingPromises)
-                    .then((responses) =>
-                        Promise.all(responses.map((r) => r.json())), // Parse JSON responses
-                    )
-                    .then((results) => {
-                        overlay.classList.remove("show"); // Hide loading overlay
+                // Book all appointments
+                let successCount = 0;
+                let errorMessages = [];
 
-                        const successCount = results.filter(
-                            (r) => r.success,
-                        ).length;
-                        const totalCount = results.length;
+                for (let i = 0; i < appointments.length; i++) {
+                    const appointment = appointments[i];
+                    try {
+                        const response = await fetch('/api/unaki/book', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify(appointment)
+                        });
 
-                        // Handle successful booking
-                        if (successCount === totalCount) {
-                            bootstrap.Modal.getInstance(
-                                document.getElementById("multiBookModal"),
-                            ).hide(); // Close the modal
-                            showNotification(
-                                `Successfully booked ${successCount} appointments!`,
-                                "success",
-                            );
-                            loadBookings(); // Refresh the schedule view
+                        const result = await response.json();
+
+                        if (result.success) {
+                            successCount++;
                         } else {
-                            // Handle partial or failed bookings
-                            const failures = results.filter((r) => !r.success);
-                            let errorMsg = `Booked ${successCount}/${totalCount} appointments.\n\nErrors:\n`;
-                            failures.forEach((failure, index) => {
-                                errorMsg += `- ${failure.error || "Unknown error"}\n`;
-                            });
-                            alert(errorMsg); // Show detailed errors
+                            errorMessages.push(`• Appointment ${i + 1} (${appointment.service_name}): ${result.error || 'Booking failed'}`);
                         }
-                    })
-                    .catch((error) => {
-                        overlay.classList.remove("show");
-                        console.error("Error during booking submission:", error);
-                        showNotification("An error occurred while booking appointments.", "error");
-                    });
+                    } catch (error) {
+                        errorMessages.push(`• Appointment ${i + 1} (${appointment.service_name}): Network error`);
+                    }
+                }
+
+                // Re-enable button
+                if (bookButton) {
+                    bookButton.disabled = false;
+                    bookButton.innerHTML = '<i class="fas fa-calendar-check me-2"></i>Book All Appointments';
+                }
+
+                // Show results
+                if (successCount === appointments.length) {
+                    showNotification(
+                        `✅ Success!\n\nAll ${successCount} appointment(s) booked successfully for ${appointments[0].client_name}`,
+                        'success'
+                    );
+                    bootstrap.Modal.getInstance(document.getElementById('multiBookModal')).hide();
+                    await loadBookingsForDate(currentDate); // Assuming loadBookingsForDate exists and works
+                } else if (successCount > 0) {
+                    showNotification(
+                        `⚠️ Partial Success\n\n${successCount} of ${appointments.length} appointments booked successfully.\n\nErrors:\n${errorMessages.join('\n')}`,
+                        'warning'
+                    );
+                    await loadBookingsForDate(currentDate); // Assuming loadBookingsForDate exists and works
+                } else {
+                    showNotification(
+                        `❌ Booking Failed\n\nFailed to book any appointments:\n${errorMessages.join('\n')}`,
+                        'error'
+                    );
+                }
             }
 
             // ==========================================
@@ -3543,7 +3675,7 @@
             // Update the disabled state of the submit button based on validation status
             function updateSubmitButton() {
                 // Find the submit button (assuming it has a specific class or attribute)
-                const submitBtn = document.querySelector('.modal-footer .btn-success[onclick="submitMultiAppointment()"]');
+                const submitBtn = document.querySelector('.btn-success[onclick="submitMultiAppointment()"]');
                 if (!submitBtn) return; // Exit if button not found
 
                 const errors = validateAllAppointments(); // Get current validation errors
@@ -3604,13 +3736,13 @@
                 let html = '<div class="list-group list-group-flush">';
                 appointments.forEach(apt => {
                     const date = new Date(apt.appointment_date);
-                    const formattedDate = date.toLocaleDateString('en-US', { 
-                        month: 'short', 
+                    const formattedDate = date.toLocaleDateString('en-US', {
+                        month: 'short',
                         day: 'numeric',
                         year: 'numeric'
                     });
 
-                    const statusColor = apt.status === 'confirmed' ? 'success' : 
+                    const statusColor = apt.status === 'confirmed' ? 'success' :
                                        apt.status === 'scheduled' ? 'primary' : 'secondary';
 
                     html += `
@@ -3997,7 +4129,7 @@
                 if (!serviceSelect || !endTimeInput) return;
 
                 const selectedOption = serviceSelect.options[serviceSelect.selectedIndex];
-                const duration = parseInt(selectedOption.getAttribute('data-duration')) || 60;
+                const duration = parseInt(selectedOption.dataset.duration) || 60;
                 const startTime = startTimeElement.value;
 
                 if (startTime && duration) {
@@ -4026,7 +4158,7 @@
             function updateEndTime(serviceSelect) {
                 const card = serviceSelect.closest('.appointment-card');
                 const selectedOption = serviceSelect.options[serviceSelect.selectedIndex];
-                const duration = parseInt(selectedOption.getAttribute('data-duration')) || 60;
+                const duration = parseInt(selectedOption.dataset.duration) || 60;
                 const startTimeInput = card.querySelector('.start-time');
                 const endTimeInput = card.querySelector('.end-time');
 
