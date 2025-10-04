@@ -1,4 +1,3 @@
-
 #!/usr/bin/env python3
 """
 Populate shift logs for all staff members for the week Oct 4-10, 2025
@@ -11,35 +10,35 @@ from datetime import datetime, date, time, timedelta
 
 def populate_week_shift_data():
     """Create shift management and logs for all active staff for Oct 4-10, 2025"""
-    
+
     with app.app_context():
         try:
             print("🚀 Starting shift logs population for week Oct 4-10, 2025...")
-            
+
             # Get all active staff members
             staff_members = User.query.filter_by(is_active=True).all()
             print(f"Found {len(staff_members)} active staff members")
-            
+
             # Define default shift times
             default_shift_start = time(9, 0)  # 9:00 AM
             default_shift_end = time(17, 0)   # 5:00 PM
             default_break_start = time(13, 0) # 1:00 PM
             default_break_end = time(14, 0)   # 2:00 PM
-            
+
             # Date range for shifts (Oct 4-10, 2025)
             start_date = date(2025, 10, 4)  # Friday
             end_date = date(2025, 10, 10)   # Thursday
-            
+
             total_logs_created = 0
             management_entries_created = 0
             staff_processed = 0
-            
+
             for staff in staff_members:
                 print(f"\nProcessing staff: {staff.full_name} (ID: {staff.id})")
-                
+
                 # Check if shift management already exists
                 existing_management = ShiftManagement.query.filter_by(staff_id=staff.id).first()
-                
+
                 if existing_management:
                     print(f"  - Shift management exists, updating date range...")
                     # Update date range to include our new range
@@ -61,19 +60,49 @@ def populate_week_shift_data():
                     db.session.add(shift_management)
                     db.session.flush()  # Get the ID
                     management_entries_created += 1
-                
+
                 # Delete existing logs for this week to avoid duplicates
                 ShiftLogs.query.filter(
                     ShiftLogs.shift_management_id == shift_management.id,
                     ShiftLogs.individual_date >= start_date,
                     ShiftLogs.individual_date <= end_date
                 ).delete()
-                
+
                 # Create daily shift logs for the week (all 7 days)
                 current_date = start_date
                 staff_logs_created = 0
-                
+
+                # Define out-of-office scenarios for variety
+                ooo_scenarios = [
+                    {'start': time(10, 0), 'end': time(11, 30), 'reason': 'Client visit at downtown location'},
+                    {'start': time(14, 30), 'end': time(15, 30), 'reason': 'Bank work'},
+                    {'start': time(11, 0), 'end': time(12, 0), 'reason': 'Supplier meeting'},
+                    {'start': time(15, 0), 'end': time(16, 30), 'reason': 'Product delivery'},
+                    {'start': time(9, 30), 'end': time(10, 30), 'reason': 'Field inspection'},
+                ]
+
+                day_index = 0
                 while current_date <= end_date:
+                    # Randomly assign out-of-office for some staff on some days
+                    # For variety: staff IDs 1, 5, 10, 15, 20 get OOO on specific days
+                    out_start = None
+                    out_end = None
+                    out_reason = None
+
+                    # Add OOO data for specific staff/day combinations
+                    if staff.id in [1, 5, 10, 15, 20]:
+                        if day_index in [0, 2, 4]:  # Monday, Wednesday, Friday
+                            scenario = ooo_scenarios[staff.id % len(ooo_scenarios)]
+                            out_start = scenario['start']
+                            out_end = scenario['end']
+                            out_reason = scenario['reason']
+                    elif staff.id in [2, 7, 12, 17]:
+                        if day_index in [1, 3]:  # Tuesday, Thursday
+                            scenario = ooo_scenarios[(staff.id + 1) % len(ooo_scenarios)]
+                            out_start = scenario['start']
+                            out_end = scenario['end']
+                            out_reason = scenario['reason']
+
                     # Create logs for all days (including weekends for testing)
                     shift_log = ShiftLogs(
                         shift_management_id=shift_management.id,
@@ -82,21 +111,25 @@ def populate_week_shift_data():
                         shift_end_time=default_shift_end,
                         break_start_time=default_break_start,
                         break_end_time=default_break_end,
+                        out_of_office_start=out_start,
+                        out_of_office_end=out_end,
+                        out_of_office_reason=out_reason,
                         status='scheduled',
                         created_at=datetime.utcnow()
                     )
                     db.session.add(shift_log)
                     staff_logs_created += 1
                     total_logs_created += 1
-                    
+
                     current_date += timedelta(days=1)
-                
+                    day_index += 1
+
                 print(f"  - Created {staff_logs_created} shift logs for {staff.full_name}")
                 staff_processed += 1
-            
+
             # Commit all changes
             db.session.commit()
-            
+
             print(f"\n✅ Successfully populated shift logs!")
             print(f"📊 Summary:")
             print(f"   - Processed {staff_processed} staff members")
@@ -106,7 +139,7 @@ def populate_week_shift_data():
             print(f"   - Days included: Friday Oct 4 to Thursday Oct 10, 2025")
             print(f"   - Shift time: 9:00 AM to 5:00 PM")
             print(f"   - Break time: 1:00 PM to 2:00 PM")
-            
+
             # Show breakdown by day
             print(f"\n📅 Breakdown by day:")
             current_date = start_date
@@ -115,9 +148,9 @@ def populate_week_shift_data():
                 day_logs = ShiftLogs.query.filter_by(individual_date=current_date).count()
                 print(f"   - {day_name}, {current_date}: {day_logs} staff scheduled")
                 current_date += timedelta(days=1)
-            
+
             return True
-            
+
         except Exception as e:
             print(f"❌ Error populating shift logs: {e}")
             import traceback
