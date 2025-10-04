@@ -4,10 +4,10 @@
 A comprehensive spa and salon management system built with Flask, designed to streamline business operations for spas and salons. This application provides a complete suite of tools for managing clients, staff, appointments, billing, inventory, and more.
 
 ## Current State
-- **Status**: Successfully migrated to Replit environment
+- **Status**: Successfully migrated to Replit environment with professional Out of Office feature
 - **Database**: SQLite for development (located in `hanamantdatabase/`)
-- **Server**: Running on port 5000 with Flask development server
-- **Date**: October 3, 2025
+- **Server**: Running on port 5000 with Gunicorn (production-ready)
+- **Date**: October 4, 2025
 
 ## Technology Stack
 - **Backend**: Flask 3.1.1, Python 3.11
@@ -23,6 +23,11 @@ A comprehensive spa and salon management system built with Flask, designed to st
 2. **Client Management**: Customer profiles with visit history and loyalty tracking
 3. **Staff Management**: Full CRUD operations, role assignments, department management
 4. **Shift Scheduling**: Dynamic shift scheduler with day-by-day configuration
+   - **Out of Office / Field Work**: Professional tracking system for staff out-of-office time
+     - Single date selection
+     - Specific start and return times
+     - Reason tracking (max 200 characters)
+     - Validation ensures data integrity
 5. **Appointment Booking**: Flexible booking system (Unaki integration)
 6. **Integrated Billing**: Professional invoices with GST/SGST/IGST calculations
 7. **Service Catalog**: Service management with categorization, pricing, and duration
@@ -75,12 +80,12 @@ Required environment variables:
 - `PORT`: Server port (default: 5000)
 
 ## Running the Application
-The application is configured to run automatically via Replit workflow:
+The application runs automatically via Replit workflow with Gunicorn:
 ```bash
-python main.py
+gunicorn --bind 0.0.0.0:5000 --reuse-port --reload main:app
 ```
 
-The server binds to `0.0.0.0:5000` to work with Replit's proxy system.
+The server binds to `0.0.0.0:5000` to work with Replit's proxy system. The app is exposed at module level in `main.py` for WSGI compatibility.
 
 ## Database Setup
 The application uses SQLite in development with automatic table creation on startup. The database is stored in `hanamantdatabase/workspace.db` with WAL mode enabled for better concurrency.
@@ -106,12 +111,26 @@ The application is configured for Replit Autoscale deployment:
 - **Port**: 5000
 
 ## Recent Changes
+### October 4, 2025 - Professional Out of Office Feature Implementation
+- **Database Migration**: Added `out_of_office_start`, `out_of_office_end`, and `out_of_office_reason` columns to `shift_logs` table
+- **Backend Enhancements**:
+  - Implemented comprehensive validation (required fields, time validation, 200-char limit)
+  - Added professional error handling with detailed messages
+  - Ensured start time must be before end time
+- **Frontend Improvements**:
+  - Updated UI to single date selection (removed date range)
+  - Added dedicated Start Time and Expected Return time fields
+  - Implemented client-side validation with user-friendly alerts
+  - Enhanced UX with success/error messages instead of alert boxes
+- **Workflow Configuration**: 
+  - Fixed main.py to expose app at module level for Gunicorn compatibility
+  - Configured workflow with webview output type on port 5000
+  - Successfully running with Gunicorn in production-ready mode
+
 ### October 3, 2025 - Replit Migration
 - Migrated from GitHub to Replit environment
-- Fixed syntax error in `modules/billing/integrated_billing_views.py` (removed duplicate code block)
+- Fixed syntax error in `modules/billing/integrated_billing_views.py`
 - Configured Flask application for Replit proxy compatibility
-- Set up workflow to run on port 5000 with webview output
-- Configured deployment settings for Autoscale
 - Application successfully running and accessible via webview
 
 ## Development Guidelines
@@ -123,8 +142,9 @@ The application is configured for Replit Autoscale deployment:
 6. **Session Secret**: Never hardcode, always use environment variable
 
 ## Known Issues
-- Minor LSP diagnostics in `app.py` and `integrated_billing_views.py` (non-critical)
+- Minor LSP diagnostics in `app.py`, `modules/staff/shift_scheduler_views.py`, and `templates/shift_scheduler.html` (non-critical)
 - These are related to import order and type checking, not affecting runtime
+- Some package views (`prepaid`, `student_offer`) have import warnings but don't affect core functionality
 
 ## File Locations
 - **Logs**: `/tmp/logs/`
