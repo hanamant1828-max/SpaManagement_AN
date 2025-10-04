@@ -385,7 +385,7 @@ def api_get_assignments():
             from models import PackageAssignmentUsage
             last_usage = PackageAssignmentUsage.query.filter_by(
                 assignment_id=assignment.id
-            ).order_by(PackageAssignmentUsage.used_at.desc()).first()
+            ).order_by(PackageAssignmentUsage.usage_date.desc()).first()
             
             # Calculate savings
             savings = 0
@@ -412,7 +412,7 @@ def api_get_assignments():
                 'status': assignment.status,
                 'price_paid': float(assignment.price_paid) if assignment.price_paid else 0,
                 'savings_to_date': float(savings),
-                'last_used_at': last_usage.used_at.isoformat() if last_usage else None,
+                'last_used_at': last_usage.usage_date.isoformat() if last_usage else None,
                 'sessions': {
                     'total': assignment.total_sessions,
                     'used': assignment.used_sessions,
@@ -453,23 +453,23 @@ def api_get_assignment_usage(assignment_id):
         from models import PackageAssignmentUsage
         usage_logs = PackageAssignmentUsage.query.filter_by(
             assignment_id=assignment_id
-        ).order_by(PackageAssignmentUsage.used_at.desc()).all()
+        ).order_by(PackageAssignmentUsage.usage_date.desc()).all()
         
         # Build usage history
         usage_history = []
         for log in usage_logs:
             from models import User
-            user = User.query.get(log.used_by) if log.used_by else None
+            user = User.query.get(log.staff_id) if log.staff_id else None
             service = log.service
             
             usage_history.append({
                 'id': log.id,
-                'date': log.used_at.isoformat() if log.used_at else None,
+                'date': log.usage_date.isoformat() if log.usage_date else None,
                 'service': service.name if service else 'N/A',
-                'type': log.transaction_type or 'use',
+                'type': log.change_type or 'use',
                 'sessions': log.sessions_used or 0,
-                'amount': float(log.amount_used) if log.amount_used else 0,
-                'invoice_id': log.invoice_id,
+                'amount': float(log.credit_used) if log.credit_used else 0,
+                'invoice_id': log.appointment_id or '',
                 'user': f"{user.username}" if user else 'System',
                 'notes': log.notes or ''
             })
