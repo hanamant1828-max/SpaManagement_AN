@@ -209,14 +209,21 @@ def integrated_billing(customer_id=None):
             # Import UnakiBooking model
             from models import UnakiBooking
 
-            # Get ALL scheduled and confirmed Unaki bookings for this customer
+            # Get ALL booked and unpaid Unaki bookings for this customer
+            # Include: scheduled, confirmed, and completed but unpaid appointments
             customer_appointments_query = []
 
             # Method 1: Try to match by client_id first (most reliable)
             if selected_customer.id:
                 customer_appointments_query = UnakiBooking.query.filter(
                     UnakiBooking.client_id == selected_customer.id,
-                    UnakiBooking.status.in_(['scheduled', 'confirmed'])
+                    db.or_(
+                        UnakiBooking.status.in_(['scheduled', 'confirmed']),
+                        db.and_(
+                            UnakiBooking.status == 'completed',
+                            UnakiBooking.payment_status != 'paid'
+                        )
+                    )
                 ).order_by(UnakiBooking.appointment_date.desc()).all()
 
             # Method 2: If no results, try matching by phone (exact match)
@@ -224,7 +231,13 @@ def integrated_billing(customer_id=None):
                 # Try exact match
                 customer_appointments_query = UnakiBooking.query.filter(
                     UnakiBooking.client_phone == selected_customer.phone,
-                    UnakiBooking.status.in_(['scheduled', 'confirmed'])
+                    db.or_(
+                        UnakiBooking.status.in_(['scheduled', 'confirmed']),
+                        db.and_(
+                            UnakiBooking.status == 'completed',
+                            UnakiBooking.payment_status != 'paid'
+                        )
+                    )
                 ).order_by(UnakiBooking.appointment_date.desc()).all()
 
                 # If still no results, try partial match (phone might have different formats)
@@ -236,7 +249,13 @@ def integrated_billing(customer_id=None):
                         last_10_digits = phone_digits[-10:]
                         customer_appointments_query = UnakiBooking.query.filter(
                             UnakiBooking.client_phone.like(f'%{last_10_digits}%'),
-                            UnakiBooking.status.in_(['scheduled', 'confirmed'])
+                            db.or_(
+                                UnakiBooking.status.in_(['scheduled', 'confirmed']),
+                                db.and_(
+                                    UnakiBooking.status == 'completed',
+                                    UnakiBooking.payment_status != 'paid'
+                                )
+                            )
                         ).order_by(UnakiBooking.appointment_date.desc()).all()
 
             # Method 3: If still no results, try matching by name
@@ -245,14 +264,26 @@ def integrated_billing(customer_id=None):
                 full_name = f"{selected_customer.first_name} {selected_customer.last_name}".strip()
                 customer_appointments_query = UnakiBooking.query.filter(
                     UnakiBooking.client_name.ilike(f'%{full_name}%'),
-                    UnakiBooking.status.in_(['scheduled', 'confirmed'])
+                    db.or_(
+                        UnakiBooking.status.in_(['scheduled', 'confirmed']),
+                        db.and_(
+                            UnakiBooking.status == 'completed',
+                            UnakiBooking.payment_status != 'paid'
+                        )
+                    )
                 ).order_by(UnakiBooking.appointment_date.desc()).all()
 
                 # If still no results, try first name only
                 if not customer_appointments_query:
                     customer_appointments_query = UnakiBooking.query.filter(
                         UnakiBooking.client_name.ilike(f'%{selected_customer.first_name}%'),
-                        UnakiBooking.status.in_(['scheduled', 'confirmed'])
+                        db.or_(
+                            UnakiBooking.status.in_(['scheduled', 'confirmed']),
+                            db.and_(
+                                UnakiBooking.status == 'completed',
+                                UnakiBooking.payment_status != 'paid'
+                            )
+                        )
                     ).order_by(UnakiBooking.appointment_date.desc()).all()
 
             print(f"DEBUG: Customer {selected_customer.id} ({selected_customer.first_name} {selected_customer.last_name}) phone: {selected_customer.phone}")
@@ -432,21 +463,34 @@ def get_customer_appointments(customer_id):
         if not customer:
             return jsonify({'success': False, 'error': 'Customer not found'}), 404
 
-        # Get ALL scheduled and confirmed Unaki bookings for this customer
+        # Get ALL booked and unpaid Unaki bookings for this customer
+        # Include: scheduled, confirmed, and completed but unpaid appointments
         customer_appointments_query = []
 
         # Method 1: Try to match by client_id first (most reliable)
         if customer.id:
             customer_appointments_query = UnakiBooking.query.filter(
                 UnakiBooking.client_id == customer.id,
-                UnakiBooking.status.in_(['scheduled', 'confirmed'])
+                db.or_(
+                    UnakiBooking.status.in_(['scheduled', 'confirmed']),
+                    db.and_(
+                        UnakiBooking.status == 'completed',
+                        UnakiBooking.payment_status != 'paid'
+                    )
+                )
             ).order_by(UnakiBooking.appointment_date.desc()).all()
 
         # Method 2: If no results, try matching by phone (exact match)
         if not customer_appointments_query and customer.phone:
             customer_appointments_query = UnakiBooking.query.filter(
                 UnakiBooking.client_phone == customer.phone,
-                UnakiBooking.status.in_(['scheduled', 'confirmed'])
+                db.or_(
+                    UnakiBooking.status.in_(['scheduled', 'confirmed']),
+                    db.and_(
+                        UnakiBooking.status == 'completed',
+                        UnakiBooking.payment_status != 'paid'
+                    )
+                )
             ).order_by(UnakiBooking.appointment_date.desc()).all()
 
             # Try partial match if exact match fails
@@ -456,7 +500,13 @@ def get_customer_appointments(customer_id):
                     last_10_digits = phone_digits[-10:]
                     customer_appointments_query = UnakiBooking.query.filter(
                         UnakiBooking.client_phone.like(f'%{last_10_digits}%'),
-                        UnakiBooking.status.in_(['scheduled', 'confirmed'])
+                        db.or_(
+                            UnakiBooking.status.in_(['scheduled', 'confirmed']),
+                            db.and_(
+                                UnakiBooking.status == 'completed',
+                                UnakiBooking.payment_status != 'paid'
+                            )
+                        )
                     ).order_by(UnakiBooking.appointment_date.desc()).all()
 
         # Method 3: If still no results, try matching by name
@@ -464,14 +514,26 @@ def get_customer_appointments(customer_id):
             full_name = f"{customer.first_name} {customer.last_name}".strip()
             customer_appointments_query = UnakiBooking.query.filter(
                 UnakiBooking.client_name.ilike(f'%{full_name}%'),
-                UnakiBooking.status.in_(['scheduled', 'confirmed'])
+                db.or_(
+                    UnakiBooking.status.in_(['scheduled', 'confirmed']),
+                    db.and_(
+                        UnakiBooking.status == 'completed',
+                        UnakiBooking.payment_status != 'paid'
+                    )
+                )
             ).order_by(UnakiBooking.appointment_date.desc()).all()
 
             # Try first name only if full name fails
             if not customer_appointments_query:
                 customer_appointments_query = UnakiBooking.query.filter(
                     UnakiBooking.client_name.ilike(f'%{customer.first_name}%'),
-                    UnakiBooking.status.in_(['scheduled', 'confirmed'])
+                    db.or_(
+                        UnakiBooking.status.in_(['scheduled', 'confirmed']),
+                        db.and_(
+                            UnakiBooking.status == 'completed',
+                            UnakiBooking.payment_status != 'paid'
+                        )
+                    )
                 ).order_by(UnakiBooking.appointment_date.desc()).all()
 
         app.logger.info(f"Found {len(customer_appointments_query)} appointments for customer {customer_id}")
