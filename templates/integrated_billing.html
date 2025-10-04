@@ -5,16 +5,13 @@
 {% block extra_head %}
 <style>
 /* ==========================================
-   PROFESSIONAL BILLING SYSTEM STYLES
+   DESIGN SYSTEM - PROFESSIONAL BILLING
    ========================================== */
 
 :root {
-    /* Brand Colors */
-    --primary: #6366f1;
-    --primary-dark: #4f46e5;
-    --primary-light: #818cf8;
-
-    /* Status Colors */
+    /* Brand Identity */
+    --primary: #4f46e5;
+    --primary-hover: #4338ca;
     --success: #10b981;
     --warning: #f59e0b;
     --danger: #ef4444;
@@ -29,28 +26,31 @@
     --gray-700: #374151;
     --gray-900: #111827;
 
-    /* Shadows */
-    --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-    --shadow-sm: 0 2px 4px -1px rgba(0, 0, 0, 0.1);
-    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-    --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+    /* Elevation */
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
 
-    /* Gradients */
-    --gradient-primary: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
-    --gradient-success: linear-gradient(135deg, #10b981 0%, #059669 100%);
-    --gradient-info: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
+    /* Spacing System */
+    --spacing-xs: 0.25rem;
+    --spacing-sm: 0.5rem;
+    --spacing-md: 1rem;
+    --spacing-lg: 1.5rem;
+    --spacing-xl: 2rem;
+    --spacing-2xl: 3rem;
 
-    /* Spacing */
-    --space-unit: 8px;
-    --border-radius: 12px;
+    /* Border Radius */
+    --radius-sm: 0.375rem;
+    --radius: 0.5rem;
+    --radius-lg: 0.75rem;
 
     /* Transitions */
-    --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* ==========================================
-   GLOBAL STYLES
+   GLOBAL RESET & BASE
    ========================================== */
 
 * {
@@ -60,33 +60,33 @@
 }
 
 body {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
     background: var(--gray-50);
     color: var(--gray-900);
     line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
 }
 
 /* ==========================================
-   PAGE HEADER
+   LAYOUT COMPONENTS
    ========================================== */
 
-.billing-page-header {
+.page-header {
     background: white;
     border-bottom: 1px solid var(--gray-200);
-    padding: calc(var(--space-unit) * 3) calc(var(--space-unit) * 4);
-    margin-bottom: calc(var(--space-unit) * 4);
-    border-radius: var(--border-radius);
+    padding: var(--spacing-xl) var(--spacing-2xl);
+    margin-bottom: var(--spacing-xl);
     box-shadow: var(--shadow-sm);
 }
 
 .page-title {
-    font-size: 2rem;
+    font-size: 1.875rem;
     font-weight: 700;
     color: var(--gray-900);
-    margin: 0;
     display: flex;
     align-items: center;
-    gap: calc(var(--space-unit) * 2);
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-sm);
 }
 
 .page-title i {
@@ -95,338 +95,432 @@ body {
 
 .page-subtitle {
     color: var(--gray-500);
-    font-size: 0.95rem;
-    margin-top: calc(var(--space-unit));
+    font-size: 0.875rem;
 }
 
 /* ==========================================
-   CARDS & SECTIONS
+   CARD COMPONENTS
    ========================================== */
 
-.billing-card {
+.card {
     background: white;
-    border-radius: var(--border-radius);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow);
+    padding: var(--spacing-xl);
+    margin-bottom: var(--spacing-lg);
+    transition: var(--transition);
+}
+
+.card:hover {
     box-shadow: var(--shadow-md);
-    overflow: hidden;
-    transition: var(--transition);
-    margin-bottom: calc(var(--space-unit) * 3);
 }
 
-.billing-card:hover {
-    box-shadow: var(--shadow-lg);
-}
-
-.card-header-custom {
-    background: var(--gradient-primary);
-    color: white;
-    padding: calc(var(--space-unit) * 3);
-    border-bottom: none;
-}
-
-.card-header-custom h5 {
-    margin: 0;
-    font-size: 1.25rem;
-    font-weight: 600;
+.card-header {
     display: flex;
+    justify-content: space-between;
     align-items: center;
-    gap: calc(var(--space-unit) * 2);
+    margin-bottom: var(--spacing-lg);
+    padding-bottom: var(--spacing-md);
+    border-bottom: 2px solid var(--gray-100);
 }
 
-.card-body-custom {
-    padding: calc(var(--space-unit) * 4);
-}
-
-.section-divider {
-    background: white;
-    border-radius: var(--border-radius);
-    padding: calc(var(--space-unit) * 3);
-    margin-bottom: calc(var(--space-unit) * 3);
-    border: 1px solid var(--gray-200);
-    transition: var(--transition);
-}
-
-.section-divider:hover {
-    border-color: var(--primary);
-    box-shadow: var(--shadow-sm);
-}
-
-.section-title {
-    font-size: 1.1rem;
+.card-title {
+    font-size: 1.125rem;
     font-weight: 600;
     color: var(--gray-900);
-    margin-bottom: calc(var(--space-unit) * 2);
-    padding-bottom: calc(var(--space-unit) * 2);
-    border-bottom: 2px solid var(--primary);
     display: flex;
     align-items: center;
-    gap: calc(var(--space-unit) * 2);
+    gap: var(--spacing-sm);
 }
 
-.section-title i {
+.card-title i {
     color: var(--primary);
-    font-size: 1.2rem;
 }
 
 /* ==========================================
    FORM CONTROLS
    ========================================== */
 
-.form-label-custom {
-    font-weight: 600;
-    color: var(--gray-700);
+.form-group {
+    margin-bottom: var(--spacing-lg);
+}
+
+.form-label {
+    display: block;
+    font-weight: 500;
     font-size: 0.875rem;
-    margin-bottom: calc(var(--space-unit));
-    display: flex;
-    align-items: center;
-    gap: calc(var(--space-unit));
+    color: var(--gray-700);
+    margin-bottom: var(--spacing-sm);
 }
 
-.form-control-custom,
-.form-select-custom {
-    border: 2px solid var(--gray-200);
-    border-radius: 10px;
-    padding: calc(var(--space-unit) * 1.5) calc(var(--space-unit) * 2);
-    font-size: 0.95rem;
-    transition: var(--transition);
+.form-label.required::after {
+    content: '*';
+    color: var(--danger);
+    margin-left: 0.25rem;
+}
+
+.form-control,
+.form-select {
     width: 100%;
+    padding: 0.625rem 0.875rem;
+    font-size: 0.875rem;
+    line-height: 1.5;
+    color: var(--gray-900);
     background: white;
+    border: 1px solid var(--gray-300);
+    border-radius: var(--radius);
+    transition: var(--transition);
 }
 
-.form-control-custom:focus,
-.form-select-custom:focus {
+.form-control:focus,
+.form-select:focus {
     outline: none;
     border-color: var(--primary);
-    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
 }
 
-.form-control-custom:hover,
-.form-select-custom:hover {
-    border-color: var(--primary-light);
+.form-control:hover:not(:focus),
+.form-select:hover:not(:focus) {
+    border-color: var(--gray-400);
+}
+
+.form-control.is-invalid,
+.form-select.is-invalid {
+    border-color: var(--danger);
+}
+
+.invalid-feedback {
+    display: none;
+    color: var(--danger);
+    font-size: 0.8125rem;
+    margin-top: var(--spacing-xs);
+}
+
+.is-invalid + .invalid-feedback {
+    display: block;
+}
+
+textarea.form-control {
+    resize: vertical;
+    min-height: 80px;
 }
 
 /* ==========================================
    BUTTONS
    ========================================== */
 
-.btn-custom {
-    border-radius: 10px;
-    padding: calc(var(--space-unit) * 1.5) calc(var(--space-unit) * 3);
-    font-weight: 600;
-    font-size: 0.95rem;
-    transition: var(--transition);
-    border: none;
-    cursor: pointer;
+.btn {
     display: inline-flex;
     align-items: center;
-    gap: calc(var(--space-unit));
+    justify-content: center;
+    gap: var(--spacing-sm);
+    padding: 0.625rem 1.25rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    line-height: 1.5;
+    text-align: center;
     text-decoration: none;
+    border: none;
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: var(--transition);
+    white-space: nowrap;
 }
 
-.btn-primary-custom {
-    background: var(--gradient-primary);
-    color: white;
-    box-shadow: var(--shadow-md);
-}
-
-.btn-primary-custom:hover:not(:disabled) {
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-lg);
-}
-
-.btn-success-custom {
-    background: var(--gradient-success);
-    color: white;
-    box-shadow: var(--shadow-md);
-}
-
-.btn-success-custom:hover:not(:disabled) {
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-lg);
-}
-
-.btn-info-custom {
-    background: var(--gradient-info);
-    color: white;
-    box-shadow: var(--shadow-md);
-}
-
-.btn-info-custom:hover:not(:disabled) {
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-lg);
-}
-
-.btn-custom:disabled {
+.btn:disabled {
     opacity: 0.6;
     cursor: not-allowed;
-    transform: none !important;
 }
 
-.btn-sm-custom {
-    padding: calc(var(--space-unit)) calc(var(--space-unit) * 2);
-    font-size: 0.875rem;
+.btn-primary {
+    background: var(--primary);
+    color: white;
 }
 
-.btn-lg-custom {
-    padding: calc(var(--space-unit) * 2) calc(var(--space-unit) * 4);
-    font-size: 1.1rem;
+.btn-primary:hover:not(:disabled) {
+    background: var(--primary-hover);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+}
+
+.btn-success {
+    background: var(--success);
+    color: white;
+}
+
+.btn-success:hover:not(:disabled) {
+    background: #059669;
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+}
+
+.btn-info {
+    background: var(--info);
+    color: white;
+}
+
+.btn-info:hover:not(:disabled) {
+    background: #0891b2;
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+}
+
+.btn-danger {
+    background: var(--danger);
+    color: white;
+}
+
+.btn-danger:hover:not(:disabled) {
+    background: #dc2626;
+}
+
+.btn-sm {
+    padding: 0.4rem 0.875rem;
+    font-size: 0.8125rem;
+}
+
+.btn-lg {
+    padding: 0.875rem 1.5rem;
+    font-size: 1rem;
+}
+
+/* Button States */
+.btn-loading .btn-text {
+    display: none;
+}
+
+.btn-loading .btn-spinner {
+    display: inline-block;
+}
+
+.btn:not(.btn-loading) .btn-spinner {
+    display: none;
 }
 
 /* ==========================================
-   ITEM ROWS (Services & Products)
+   ITEM ROWS
    ========================================== */
 
 .item-row {
-    background: white;
-    border: 2px solid var(--gray-200);
-    border-radius: var(--border-radius);
-    padding: calc(var(--space-unit) * 3);
-    margin-bottom: calc(var(--space-unit) * 2);
+    background: var(--gray-50);
+    border: 1px solid var(--gray-200);
+    border-radius: var(--radius);
+    padding: var(--spacing-lg);
+    margin-bottom: var(--spacing-md);
     transition: var(--transition);
 }
 
 .item-row:hover {
+    background: white;
     border-color: var(--primary);
     box-shadow: var(--shadow-sm);
-    transform: translateX(4px);
 }
 
-.package-benefit-badge {
+.item-row .row {
+    align-items: end;
+}
+
+.package-benefit {
     background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
     color: #065f46;
-    padding: calc(var(--space-unit) * 1.5);
-    border-radius: 8px;
-    margin-top: calc(var(--space-unit) * 2);
-    border-left: 4px solid var(--success);
-    animation: slideIn 0.3s ease;
+    padding: var(--spacing-sm) var(--spacing-md);
+    border-radius: var(--radius-sm);
+    margin-top: var(--spacing-sm);
+    font-size: 0.8125rem;
+    border-left: 3px solid var(--success);
 }
 
-@keyframes slideIn {
-    from {
-        opacity: 0;
-        transform: translateY(-10px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-/* ==========================================
-   BATCH INFO
-   ========================================== */
-
-.batch-info-display {
-    background: var(--gray-50);
+.batch-info {
+    background: var(--gray-100);
     border-left: 3px solid var(--info);
-    padding: calc(var(--space-unit) * 1.5);
-    border-radius: 6px;
-    font-size: 0.85rem;
-    margin-top: calc(var(--space-unit));
+    padding: var(--spacing-sm);
+    border-radius: var(--radius-sm);
+    font-size: 0.75rem;
+    margin-top: var(--spacing-xs);
     color: var(--gray-700);
 }
 
 /* ==========================================
-   CALCULATION SUMMARY
+   SUMMARY PANEL
    ========================================== */
 
-.calculation-summary {
-    background: var(--gradient-primary);
+.summary-panel {
+    background: linear-gradient(135deg, var(--primary) 0%, #6366f1 100%);
     color: white;
-    border-radius: var(--border-radius);
-    padding: calc(var(--space-unit) * 4);
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-xl);
     position: sticky;
-    top: calc(var(--space-unit) * 2);
-    box-shadow: var(--shadow-xl);
+    top: var(--spacing-lg);
+    box-shadow: var(--shadow-lg);
+}
+
+.summary-header {
+    text-align: center;
+    margin-bottom: var(--spacing-lg);
+    font-size: 1.25rem;
+    font-weight: 600;
 }
 
 .summary-row {
     display: flex;
     justify-content: space-between;
-    align-items: center;
-    padding: calc(var(--space-unit) * 1.5) 0;
+    padding: var(--spacing-md) 0;
     border-bottom: 1px solid rgba(255, 255, 255, 0.2);
 }
 
-.summary-row:last-child {
-    border-bottom: none;
+.summary-row:last-of-type {
+    border-bottom: 2px solid rgba(255, 255, 255, 0.3);
 }
 
 .summary-label {
-    font-weight: 500;
+    font-weight: 400;
     opacity: 0.9;
 }
 
 .summary-value {
-    font-weight: 700;
-    font-size: 1.1rem;
+    font-weight: 600;
 }
 
-.grand-total-display {
+.grand-total {
     font-size: 2.5rem;
     font-weight: 800;
     text-align: center;
-    margin: calc(var(--space-unit) * 3) 0;
+    margin: var(--spacing-xl) 0;
     text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
-/* ==========================================
-   SAVE BUTTON STATES
-   ========================================== */
-
-.btn-save-invoice {
-    position: relative;
-    overflow: hidden;
+.summary-actions {
+    display: grid;
+    gap: var(--spacing-md);
+    margin-top: var(--spacing-lg);
 }
 
-.btn-save-invoice.saving {
-    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-    animation: pulse 1.5s ease-in-out infinite;
-}
-
-.btn-save-invoice.saved {
-    background: var(--gradient-success);
-    transform: scale(1.05);
-}
-
-@keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.85; }
-}
-
-.loading-spinner {
-    animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
+.summary-footer {
+    text-align: center;
+    margin-top: var(--spacing-md);
+    font-size: 0.75rem;
+    opacity: 0.7;
 }
 
 /* ==========================================
    ALERTS & NOTIFICATIONS
    ========================================== */
 
-.alert-custom {
-    border-radius: var(--border-radius);
-    padding: calc(var(--space-unit) * 2);
-    border: none;
-    box-shadow: var(--shadow-sm);
-    margin-bottom: calc(var(--space-unit) * 2);
+.alert {
+    padding: var(--spacing-md) var(--spacing-lg);
+    border-radius: var(--radius);
+    margin-bottom: var(--spacing-md);
+    border-left: 4px solid;
 }
 
-.alert-success-custom {
-    background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
-    color: #065f46;
-}
-
-.alert-info-custom {
-    background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%);
+.alert-info {
+    background: #e0f2fe;
+    border-color: var(--info);
     color: #075985;
 }
 
-.alert-warning-custom {
-    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+.alert-success {
+    background: #d1fae5;
+    border-color: var(--success);
+    color: #065f46;
+}
+
+.alert-warning {
+    background: #fef3c7;
+    border-color: var(--warning);
     color: #92400e;
+}
+
+.alert-danger {
+    background: #fee2e2;
+    border-color: var(--danger);
+    color: #991b1b;
+}
+
+/* Toast Notifications */
+.toast-notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 9999;
+    max-width: 400px;
+    padding: var(--spacing-lg);
+    background: white;
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+    animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateX(100%);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+/* ==========================================
+   UTILITIES
+   ========================================== */
+
+.text-muted {
+    color: var(--gray-500);
+}
+
+.text-success {
+    color: var(--success);
+}
+
+.text-danger {
+    color: var(--danger);
+}
+
+.d-none {
+    display: none !important;
+}
+
+.d-block {
+    display: block !important;
+}
+
+.d-flex {
+    display: flex !important;
+}
+
+.d-grid {
+    display: grid !important;
+}
+
+.gap-2 {
+    gap: var(--spacing-sm);
+}
+
+.gap-3 {
+    gap: var(--spacing-md);
+}
+
+.mb-3 {
+    margin-bottom: var(--spacing-md);
+}
+
+.w-100 {
+    width: 100%;
+}
+
+.spinner {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
 }
 
 /* ==========================================
@@ -434,98 +528,26 @@ body {
    ========================================== */
 
 @media (max-width: 768px) {
-    .billing-page-header {
-        padding: calc(var(--space-unit) * 2);
+    .page-header {
+        padding: var(--spacing-lg);
     }
 
     .page-title {
         font-size: 1.5rem;
     }
 
-    .card-body-custom,
-    .section-divider {
-        padding: calc(var(--space-unit) * 2);
+    .card {
+        padding: var(--spacing-lg);
     }
 
-    .btn-custom {
-        width: 100%;
-        justify-content: center;
-    }
-
-    .grand-total-display {
+    .grand-total {
         font-size: 2rem;
     }
-}
 
-/* ==========================================
-   CUSTOM UTILITIES
-   ========================================== */
-
-.text-muted-custom {
-    color: var(--gray-500);
-}
-
-.badge-custom {
-    padding: calc(var(--space-unit) * 0.75) calc(var(--space-unit) * 1.5);
-    border-radius: 6px;
-    font-weight: 600;
-    font-size: 0.8rem;
-    display: inline-flex;
-    align-items: center;
-    gap: calc(var(--space-unit) * 0.5);
-}
-
-.badge-success-custom {
-    background: var(--gradient-success);
-    color: white;
-}
-
-.badge-info-custom {
-    background: var(--gradient-info);
-    color: white;
-}
-
-.required-field::after {
-    content: '*';
-    color: var(--danger);
-    margin-left: 4px;
-}
-
-/* ==========================================
-   FLOATING ACTION PANEL
-   ========================================== */
-
-.floating-summary-panel {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    background: white;
-    box-shadow: 0 -4px 6px -1px rgba(0, 0, 0, 0.1);
-    padding: calc(var(--space-unit) * 2) calc(var(--space-unit) * 3);
-    z-index: 1000;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    border-top: 3px solid var(--primary);
-}
-
-@media (min-width: 769px) {
-    .floating-summary-panel {
-        display: none;
+    .summary-panel {
+        position: static;
+        margin-top: var(--spacing-xl);
     }
-}
-
-/* Custom styles for validation feedback */
-.is-invalid {
-    border-color: #dc3545 !important;
-}
-.invalid-feedback {
-    display: none; /* Hidden by default, shown by JS */
-    width: 100%;
-    margin-top: 0.25rem;
-    font-size: 0.875em;
-    color: #dc3545;
 }
 </style>
 {% endblock %}
@@ -533,13 +555,12 @@ body {
 {% block content %}
 <div class="container-fluid px-4 py-4">
     <!-- Page Header -->
-    <div class="billing-page-header">
+    <div class="page-header">
         <h1 class="page-title">
             <i class="fas fa-file-invoice-dollar"></i>
             Create Professional Invoice
         </h1>
         <p class="page-subtitle">
-            <i class="fas fa-info-circle me-2"></i>
             Comprehensive billing with package benefits, inventory tracking, and staff management
         </p>
     </div>
@@ -549,48 +570,48 @@ body {
         <div class="row">
             <!-- Left Column: Form Inputs -->
             <div class="col-lg-8">
-                <!-- Customer Selection -->
-                <div class="section-divider">
-                    <h6 class="section-title">
-                        <i class="fas fa-user-circle"></i>
-                        Customer Information
-                    </h6>
+                <!-- Customer Section -->
+                <div class="card">
+                    <div class="card-header">
+                        <h6 class="card-title">
+                            <i class="fas fa-user-circle"></i>
+                            Customer Information
+                        </h6>
+                    </div>
                     <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label-custom required-field">
-                                <i class="fas fa-user"></i>
-                                Select Customer
-                            </label>
-                            <select class="form-select form-select-custom" id="client_id" name="client_id" required>
-                                <option value="">Choose customer...</option>
-                                {% for customer in customers %}
-                                <option value="{{ customer.id }}" {{ 'selected' if selected_customer and customer.id == selected_customer.id else '' }}>
-                                    {{ customer.full_name }} - {{ customer.phone }}
-                                </option>
-                                {% endfor %}
-                            </select>
-                            <div class="invalid-feedback"></div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="form-label required">Select Customer</label>
+                                <select class="form-select" id="client_id" name="client_id" required>
+                                    <option value="">Choose customer...</option>
+                                    {% for customer in customers %}
+                                    <option value="{{ customer.id }}" {{ 'selected' if selected_customer and customer.id == selected_customer.id else '' }}>
+                                        {{ customer.full_name }} - {{ customer.phone }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                                <div class="invalid-feedback">Please select a customer</div>
+                            </div>
                         </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label-custom">
-                                <i class="fas fa-gift"></i>
-                                Active Packages
-                            </label>
-                            <div id="customerPackages" class="alert alert-info-custom" style="max-height: 200px; overflow-y: auto;">
-                                <small><i class="fas fa-info-circle me-1"></i>Select customer to view packages</small>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="form-label">Active Packages</label>
+                                <div id="customerPackages" class="alert alert-info" style="max-height: 200px; overflow-y: auto;">
+                                    <small><i class="fas fa-info-circle me-1"></i>Select customer to view packages</small>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
 
                 <!-- Services Section -->
-                <div class="section-divider">
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <h6 class="section-title mb-0">
+                <div class="card">
+                    <div class="card-header">
+                        <h6 class="card-title">
                             <i class="fas fa-spa"></i>
                             Services
                         </h6>
-                        <button type="button" class="btn btn-sm btn-primary-custom btn-sm-custom" onclick="addServiceRow()">
+                        <button type="button" class="btn btn-primary btn-sm" onclick="addServiceRow()">
                             <i class="fas fa-plus"></i>
                             Add Service
                         </button>
@@ -599,38 +620,44 @@ body {
                         <div class="item-row service-row">
                             <div class="row g-3">
                                 <div class="col-md-4">
-                                    <label class="form-label-custom">Service</label>
-                                    <select class="form-select form-select-custom" name="service_ids[]" onchange="handleServiceSelection(this); updateCalculations();">
-                                        <option value="">Select Service</option>
-                                        {% for service in services %}
-                                        <option value="{{ service.id }}" data-price="{{ service.price|float }}">
-                                            {{ service.name }} - ₹{{ "{:,.2f}".format(service.price) }}
-                                        </option>
-                                        {% endfor %}
-                                    </select>
-                                    <div class="invalid-feedback"></div>
+                                    <div class="form-group">
+                                        <label class="form-label">Service</label>
+                                        <select class="form-select" name="service_ids[]" onchange="handleServiceChange(this)">
+                                            <option value="">Select Service</option>
+                                            {% for service in services %}
+                                            <option value="{{ service.id }}" data-price="{{ service.price|float }}">
+                                                {{ service.name }} - ₹{{ "{:,.2f}".format(service.price) }}
+                                            </option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
                                 </div>
                                 <div class="col-md-3">
-                                    <label class="form-label-custom required-field">Staff</label>
-                                    <select class="form-select form-select-custom" name="staff_ids[]">
-                                        <option value="">Select Staff</option>
-                                        {% for staff in staff_members %}
-                                        <option value="{{ staff.id }}">{{ staff.full_name }}</option>
-                                        {% endfor %}
-                                    </select>
-                                    <div class="invalid-feedback"></div>
+                                    <div class="form-group">
+                                        <label class="form-label required">Staff</label>
+                                        <select class="form-select" name="staff_ids[]">
+                                            <option value="">Select Staff</option>
+                                            {% for staff in staff_members %}
+                                            <option value="{{ staff.id }}">{{ staff.full_name }}</option>
+                                            {% endfor %}
+                                        </select>
+                                        <div class="invalid-feedback">Staff required</div>
+                                    </div>
                                 </div>
                                 <div class="col-md-2">
-                                    <label class="form-label-custom">Qty</label>
-                                    <input type="number" class="form-control form-control-custom" name="service_quantities[]" value="1" min="0.5" step="0.5" oninput="updateCalculations()">
-                                    <div class="invalid-feedback"></div>
+                                    <div class="form-group">
+                                        <label class="form-label">Qty</label>
+                                        <input type="number" class="form-control" name="service_quantities[]" value="1" min="0.5" step="0.5" oninput="updateCalculations()">
+                                    </div>
                                 </div>
                                 <div class="col-md-2">
-                                    <label class="form-label-custom">Apt ID</label>
-                                    <input type="number" class="form-control form-control-custom" name="appointment_ids[]" placeholder="Optional">
+                                    <div class="form-group">
+                                        <label class="form-label">Apt ID</label>
+                                        <input type="number" class="form-control" name="appointment_ids[]" placeholder="Optional">
+                                    </div>
                                 </div>
-                                <div class="col-md-1 d-flex align-items-end">
-                                    <button type="button" class="btn btn-danger btn-sm-custom w-100" onclick="removeRow(this)" style="display:none;">
+                                <div class="col-md-1">
+                                    <button type="button" class="btn btn-danger btn-sm w-100" onclick="removeRow(this)" style="display:none;">
                                         <i class="fas fa-trash"></i>
                                     </button>
                                 </div>
@@ -640,13 +667,13 @@ body {
                 </div>
 
                 <!-- Products Section -->
-                <div class="section-divider">
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <h6 class="section-title mb-0">
+                <div class="card">
+                    <div class="card-header">
+                        <h6 class="card-title">
                             <i class="fas fa-box"></i>
                             Products & Inventory
                         </h6>
-                        <button type="button" class="btn btn-sm btn-primary-custom btn-sm-custom" onclick="addProductRow()">
+                        <button type="button" class="btn btn-primary btn-sm" onclick="addProductRow()">
                             <i class="fas fa-plus"></i>
                             Add Product
                         </button>
@@ -655,45 +682,52 @@ body {
                         <div class="item-row product-row">
                             <div class="row g-3">
                                 <div class="col-md-3">
-                                    <label class="form-label-custom">Product</label>
-                                    <select class="form-select form-select-custom product-select" name="product_ids[]" onchange="loadBatchesForProduct(this); updateCalculations();">
-                                        <option value="">Select Product</option>
-                                        {% for product in inventory_items %}
-                                        <option value="{{ product.id }}">{{ product.name }}</option>
-                                        {% endfor %}
-                                    </select>
-                                    <div class="invalid-feedback"></div>
+                                    <div class="form-group">
+                                        <label class="form-label">Product</label>
+                                        <select class="form-select" name="product_ids[]" onchange="loadBatches(this)">
+                                            <option value="">Select Product</option>
+                                            {% for product in inventory_items %}
+                                            <option value="{{ product.id }}">{{ product.name }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
                                 </div>
                                 <div class="col-md-2">
-                                    <label class="form-label-custom">Batch</label>
-                                    <select class="form-select form-select-custom batch-select" name="batch_ids[]" disabled>
-                                        <option value="">Select Product First</option>
-                                    </select>
-                                    <div class="batch-info-display"></div>
-                                    <div class="invalid-feedback"></div>
+                                    <div class="form-group">
+                                        <label class="form-label">Batch</label>
+                                        <select class="form-select batch-select" name="batch_ids[]" disabled>
+                                            <option value="">Select Product</option>
+                                        </select>
+                                        <div class="batch-info"></div>
+                                        <div class="invalid-feedback">Batch required</div>
+                                    </div>
                                 </div>
                                 <div class="col-md-2">
-                                    <label class="form-label-custom required-field">Staff</label>
-                                    <select class="form-select form-select-custom" name="product_staff_ids[]">
-                                        <option value="">Select Staff</option>
-                                        {% for staff in staff_members %}
-                                        <option value="{{ staff.id }}">{{ staff.full_name }}</option>
-                                        {% endfor %}
-                                    </select>
-                                    <div class="invalid-feedback"></div>
+                                    <div class="form-group">
+                                        <label class="form-label required">Staff</label>
+                                        <select class="form-select" name="product_staff_ids[]">
+                                            <option value="">Select Staff</option>
+                                            {% for staff in staff_members %}
+                                            <option value="{{ staff.id }}">{{ staff.full_name }}</option>
+                                            {% endfor %}
+                                        </select>
+                                        <div class="invalid-feedback">Staff required</div>
+                                    </div>
                                 </div>
                                 <div class="col-md-2">
-                                    <label class="form-label-custom">Qty</label>
-                                    <input type="number" class="form-control form-control-custom" name="product_quantities[]" value="1" min="0.01" step="0.01" oninput="updateCalculations()">
-                                    <div class="invalid-feedback"></div>
+                                    <div class="form-group">
+                                        <label class="form-label">Qty</label>
+                                        <input type="number" class="form-control" name="product_quantities[]" value="1" min="0.01" step="0.01" oninput="updateCalculations()">
+                                    </div>
                                 </div>
                                 <div class="col-md-2">
-                                    <label class="form-label-custom">Price</label>
-                                    <input type="number" class="form-control form-control-custom" name="product_prices[]" placeholder="₹0.00" min="0" step="0.01" oninput="updateCalculations()">
-                                    <div class="invalid-feedback"></div>
+                                    <div class="form-group">
+                                        <label class="form-label">Price</label>
+                                        <input type="number" class="form-control" name="product_prices[]" placeholder="₹0.00" min="0" step="0.01" oninput="updateCalculations()">
+                                    </div>
                                 </div>
-                                <div class="col-md-1 d-flex align-items-end">
-                                    <button type="button" class="btn btn-danger btn-sm-custom w-100" onclick="removeRow(this)" style="display:none;">
+                                <div class="col-md-1">
+                                    <button type="button" class="btn btn-danger btn-sm w-100" onclick="removeRow(this)" style="display:none;">
                                         <i class="fas fa-trash"></i>
                                     </button>
                                 </div>
@@ -703,55 +737,80 @@ body {
                 </div>
 
                 <!-- Payment Details -->
-                <div class="section-divider">
-                    <h6 class="section-title">
-                        <i class="fas fa-credit-card"></i>
-                        Payment & Tax Details
-                    </h6>
+                <div class="card">
+                    <div class="card-header">
+                        <h6 class="card-title">
+                            <i class="fas fa-credit-card"></i>
+                            Payment & Tax Details
+                        </h6>
+                    </div>
                     <div class="row g-3">
                         <div class="col-md-4">
-                            <label class="form-label-custom required-field">Payment Method</label>
-                            <select class="form-select form-select-custom" name="payment_method">
-                                <option value="">Select Method</option>
-                                <option value="cash">Cash</option>
-                                <option value="card">Card</option>
-                                <option value="upi">UPI</option>
-                                <option value="bank_transfer">Bank Transfer</option>
-                            </select>
-                            <div class="invalid-feedback"></div>
+                            <div class="form-group">
+                                <label class="form-label required">Payment Method</label>
+                                <select class="form-select" name="payment_method" required>
+                                    <option value="">Select Method</option>
+                                    <option value="cash">Cash</option>
+                                    <option value="card">Card</option>
+                                    <option value="upi">UPI</option>
+                                    <option value="bank_transfer">Bank Transfer</option>
+                                </select>
+                                <div class="invalid-feedback">Payment method required</div>
+                            </div>
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label-custom required-field">Payment Status</label>
-                            <select class="form-select form-select-custom" name="payment_status">
-                                <option value="paid">Paid</option>
-                                <option value="partial">Partially Paid</option>
-                                <option value="pending">Pending</option>
-                            </select>
-                            <div class="invalid-feedback"></div>
+                            <div class="form-group">
+                                <label class="form-label">Discount Type</label>
+                                <select class="form-select" name="discount_type" onchange="updateCalculations()">
+                                    <option value="percentage">Percentage (%)</option>
+                                    <option value="amount">Amount (₹)</option>
+                                </select>
+                            </div>
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label-custom">Discount (%)</label>
-                            <input type="number" class="form-control form-control-custom" name="discount_percentage" value="0" min="0" max="100" step="0.01" oninput="updateCalculations()">
+                            <div class="form-group">
+                                <label class="form-label">Discount Value</label>
+                                <input type="number" class="form-control" name="discount_value" value="0" min="0" step="0.01" oninput="updateCalculations()">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label class="form-label">CGST Rate (%)</label>
+                                <input type="number" class="form-control" name="cgst_rate" value="9" min="0" max="100" step="0.01" oninput="updateCalculations()">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label class="form-label">SGST Rate (%)</label>
+                                <input type="number" class="form-control" name="sgst_rate" value="9" min="0" max="100" step="0.01" oninput="updateCalculations()">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label class="form-label">Additional Charges</label>
+                                <input type="number" class="form-control" name="additional_charges" value="0" min="0" step="0.01" oninput="updateCalculations()">
+                            </div>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label-custom">
-                                <input type="checkbox" id="gstEnabled" name="gst_enabled" onchange="updateCalculations()" class="form-check-input me-2">
-                                Enable GST
-                            </label>
-                            <input type="number" class="form-control form-control-custom" id="gstPercentage" name="gst_percentage" placeholder="GST %" value="18" min="0" max="100" step="0.01" disabled oninput="updateCalculations()">
+                            <div class="form-group">
+                                <label class="form-label">Tips Amount</label>
+                                <input type="number" class="form-control" name="tips_amount" value="0" min="0" step="0.01" oninput="updateCalculations()">
+                            </div>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label-custom">Notes</label>
-                            <textarea class="form-control form-control-custom" name="notes" rows="3" placeholder="Add notes..."></textarea>
+                            <div class="form-group">
+                                <label class="form-label">Notes</label>
+                                <textarea class="form-control" name="notes" rows="3" placeholder="Add invoice notes..."></textarea>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Right Column: Calculation Summary -->
+            <!-- Right Column: Summary -->
             <div class="col-lg-4">
-                <div class="calculation-summary">
-                    <h5 class="text-center mb-4" style="font-size: 1.3rem; font-weight: 700;">
+                <div class="summary-panel">
+                    <h5 class="summary-header">
                         <i class="fas fa-calculator me-2"></i>
                         Bill Summary
                     </h5>
@@ -766,53 +825,67 @@ body {
                         <span class="summary-value" id="productsSubtotal">₹0.00</span>
                     </div>
 
+                    <div class="summary-row">
+                        <span class="summary-label">Subtotal:</span>
+                        <span class="summary-value" id="subtotalAmount">₹0.00</span>
+                    </div>
+
                     <div class="summary-row text-success">
                         <span class="summary-label">Package Benefits:</span>
                         <span class="summary-value" id="packageDeductions">-₹0.00</span>
                     </div>
 
-                    <div class="summary-row text-warning">
+                    <div class="summary-row">
                         <span class="summary-label">Discount:</span>
                         <span class="summary-value" id="discountAmount">-₹0.00</span>
                     </div>
 
                     <div class="summary-row">
-                        <span class="summary-label">GST (<span id="gstRate">0</span>%):</span>
-                        <span class="summary-value" id="gstAmount">₹0.00</span>
+                        <span class="summary-label">CGST:</span>
+                        <span class="summary-value" id="cgstAmount">₹0.00</span>
                     </div>
 
-                    <hr style="border-color: rgba(255, 255, 255, 0.3); margin: 20px 0;">
+                    <div class="summary-row">
+                        <span class="summary-label">SGST:</span>
+                        <span class="summary-value" id="sgstAmount">₹0.00</span>
+                    </div>
 
-                    <div class="grand-total-display" id="grandTotal">₹0.00</div>
+                    <div class="summary-row">
+                        <span class="summary-label">Additional Charges:</span>
+                        <span class="summary-value" id="additionalCharges">₹0.00</span>
+                    </div>
 
-                    <div class="d-grid gap-2 mt-4">
-                        <button type="submit" class="btn btn-success-custom btn-lg-custom btn-save-invoice" id="saveInvoiceBtn">
-                            <span class="btn-content">
+                    <div class="summary-row">
+                        <span class="summary-label">Tips:</span>
+                        <span class="summary-value" id="tipsDisplay">₹0.00</span>
+                    </div>
+
+                    <div class="grand-total" id="grandTotal">₹0.00</div>
+
+                    <div class="summary-actions">
+                        <button type="submit" class="btn btn-success btn-lg" id="saveBtn">
+                            <span class="btn-text">
                                 <i class="fas fa-check-circle"></i>
                                 Save Invoice
                             </span>
-                            <span class="btn-loading d-none">
-                                <i class="fas fa-spinner loading-spinner"></i>
-                                <span class="loading-text">Saving...</span>
-                            </span>
-                            <span class="btn-success-state d-none">
-                                <i class="fas fa-check-double"></i>
-                                Saved!
+                            <span class="btn-spinner">
+                                <i class="fas fa-spinner spinner"></i>
+                                Saving...
                             </span>
                         </button>
 
-                        <button type="button" class="btn btn-info-custom btn-lg-custom" onclick="saveAndPrintInvoice()">
+                        <button type="button" class="btn btn-info btn-lg" onclick="saveAndPrint()">
                             <i class="fas fa-print"></i>
                             Save & Print
                         </button>
 
-                        <button type="button" class="btn btn-primary-custom" onclick="previewInvoice()">
+                        <button type="button" class="btn btn-primary" onclick="previewInvoice()">
                             <i class="fas fa-eye"></i>
                             Preview
                         </button>
                     </div>
 
-                    <div class="text-center mt-3 text-white-50 small">
+                    <div class="summary-footer">
                         <i class="fas fa-shield-alt me-1"></i>
                         Secure & Encrypted
                     </div>
@@ -822,247 +895,243 @@ body {
     </form>
 </div>
 
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-<script src="https://kit.fontawesome.com/a076d05399.js"></script>
-
 <script>
 // ==========================================
-// GLOBAL VARIABLES
+// STATE MANAGEMENT
 // ==========================================
-let customerPackageData = null;
-let availableBatches = [];
-let formSubmitting = false;
+const BillingState = {
+    customerPackages: null,
+    batchCache: {},
+    isSubmitting: false
+};
 
 // ==========================================
 // INITIALIZATION
 // ==========================================
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('✅ Billing system initialized');
-
-    // Load batch data
-    loadAvailableBatches();
-
-    // Setup customer selector
-    const clientSelect = document.getElementById('client_id');
-    if (clientSelect) {
-        clientSelect.addEventListener('change', function() {
-            const clientId = this.value;
-            if (clientId) {
-                loadCustomerPackages(clientId);
-            } else {
-                document.getElementById('customerPackages').innerHTML = '<small>Select customer to view packages</small>';
-                customerPackageData = null;
-            }
-            updateCalculations(); // Recalculate in case package changes affect totals
-        });
-    }
-
-    // Setup GST toggle
-    const gstCheckbox = document.getElementById('gstEnabled');
-    const gstInput = document.getElementById('gstPercentage');
-    if (gstCheckbox && gstInput) {
-        gstCheckbox.addEventListener('change', function() {
-            gstInput.disabled = !this.checked;
-            updateCalculations();
-        });
-    }
-
-    // Setup form submission
-    const form = document.getElementById('billingForm');
-    if (form) {
-        form.addEventListener('submit', handleFormSubmit);
-    }
-
-    // Initial calculation
+    initializeBillingSystem();
     updateCalculations();
 
     {% if selected_customer %}
     loadCustomerPackages({{ selected_customer.id }});
     {% endif %}
-
-    // Setup validation listeners for dynamic error clearing
-    setupValidationListeners();
 });
 
-// ==========================================
-// FORM SUBMISSION
-// ==========================================
-function handleFormSubmit(event) {
-    // CRITICAL: Prevent default form submission first
-    event.preventDefault();
-    event.stopPropagation();
-
-    const form = event.target;
-
-    // Perform validation before submission
-    if (!validateBillingForm()) {
-        console.log('❌ Validation failed, submission aborted.');
-        return; // Stop submission if validation fails
-    }
-
-    // Prevent double submission
-    if (formSubmitting) {
-        console.log('⚠️ Already submitting, ignoring...');
-        return;
-    }
-
-    const submitBtn = document.getElementById('saveInvoiceBtn');
-    const clientId = form.querySelector('#client_id').value;
-
-    console.log('📝 Form submission started for client:', clientId);
-
-    // Set submitting flag
-    formSubmitting = true;
-
-    // Disable button and show loading
-    submitBtn.disabled = true;
-    submitBtn.classList.add('saving');
-    submitBtn.querySelector('.btn-content').classList.add('d-none');
-    submitBtn.querySelector('.btn-loading').classList.remove('d-none');
-
-    // Progress stages
-    let stage = 0;
-    const stages = ['Creating invoice...', 'Applying packages...', 'Updating records...', 'Finalizing...'];
-
-    const progressInterval = setInterval(() => {
-        if (stage < stages.length) {
-            const loadingText = submitBtn.querySelector('.loading-text');
-            if (loadingText) {
-                loadingText.textContent = stages[stage];
-            }
-            stage++;
-        }
-    }, 1000);
-
-    // Submit form data using fetch API for better control
-    const formData = new FormData(form);
-
-    fetch('/integrated-billing/create-professional', {
-        method: 'POST',
-        body: formData
-    })
-    .then(response => {
-        clearInterval(progressInterval);
-        if (!response.ok) {
-            return response.text().then(text => {
-                let errorMsg = `Server error: ${response.status}`;
-                try {
-                    const json = JSON.parse(text);
-                    errorMsg = json.message || errorMsg;
-                } catch (e) {
-                    errorMsg = text || response.statusText || errorMsg;
-                }
-                throw new Error(errorMsg);
-            });
-        }
-        return response.json();
-    })
-    .then(data => {
-        if (data.success) {
-            // Success state
-            submitBtn.classList.remove('saving');
-            submitBtn.classList.add('saved');
-            submitBtn.querySelector('.btn-loading').classList.add('d-none');
-            submitBtn.querySelector('.btn-success-state').classList.remove('d-none');
-
-            const successMsg = `✅ Invoice Created Successfully!\n\nInvoice #${data.invoice_number}\nTotal: ₹${parseFloat(data.total_amount).toFixed(2)}\n\n${window.printAfterSave ? 'Opening print...' : 'Redirecting...'}`;
-            showNotification(successMsg, 'success');
-
-            setTimeout(() => {
-                if (window.printAfterSave) {
-                    // Open print page in new window
-                    window.open(`/integrated-billing/print-invoice/${data.invoice_id}`, '_blank');
-                    // Reset flag
-                    window.printAfterSave = false;
-                    // Still redirect to invoice detail
-                    setTimeout(() => {
-                        window.location.href = `/integrated-billing/invoice/${data.invoice_id}`;
-                    }, 1000);
-                } else {
-                    window.location.href = `/integrated-billing/invoice/${data.invoice_id}`;
-                }
-            }, 2000);
+function initializeBillingSystem() {
+    // Customer selector
+    const clientSelect = document.getElementById('client_id');
+    clientSelect?.addEventListener('change', function() {
+        if (this.value) {
+            loadCustomerPackages(this.value);
         } else {
-            throw new Error(data.message || 'Failed to create invoice');
+            resetCustomerPackages();
         }
-    })
-    .catch(error => {
-        clearInterval(progressInterval);
-        console.error('❌ Billing Error:', error);
-
-        // Reset button
-        formSubmitting = false;
-        submitBtn.disabled = false;
-        submitBtn.classList.remove('saving', 'saved');
-        submitBtn.querySelector('.btn-loading').classList.add('d-none');
-        submitBtn.querySelector('.btn-content').classList.remove('d-none');
-
-        const errorMsg = `❌ Failed to Save Invoice\n\n${error.message}\n\nPlease check:\n✓ All fields are filled\n✓ Staff assigned to all items\n✓ Valid quantities`;
-        showNotification(errorMsg, 'error', 10000);
     });
+
+    // Form submission
+    const form = document.getElementById('billingForm');
+    form?.addEventListener('submit', handleFormSubmit);
+    
+    // Input validation
+    setupInputValidation();
 }
 
 // ==========================================
-// ADD/REMOVE ROWS
+// CUSTOMER & PACKAGES
+// ==========================================
+function loadCustomerPackages(customerId) {
+    const packagesDiv = document.getElementById('customerPackages');
+    packagesDiv.innerHTML = '<small><i class="fas fa-spinner spinner"></i> Loading packages...</small>';
+
+    fetch(`/integrated-billing/customer-packages/${customerId}`)
+        .then(res => res.json())
+        .then(data => {
+            BillingState.customerPackages = data;
+            displayPackages(data.packages || []);
+            updateCalculations();
+        })
+        .catch(err => {
+            console.error('Error loading packages:', err);
+            packagesDiv.innerHTML = '<small class="text-danger"><i class="fas fa-exclamation-triangle"></i> Error loading packages</small>';
+        });
+}
+
+function displayPackages(packages) {
+    const packagesDiv = document.getElementById('customerPackages');
+    
+    if (!packages.length) {
+        packagesDiv.innerHTML = '<small class="text-muted"><i class="fas fa-info-circle"></i> No active packages</small>';
+        return;
+    }
+
+    let html = '';
+    packages.forEach(pkg => {
+        const icon = pkg.package_type === 'service_package' ? 'fa-spa' : 
+                     pkg.package_type === 'prepaid' ? 'fa-wallet' : 'fa-crown';
+        
+        html += `<div class="package-benefit mb-2">
+            <strong><i class="fas ${icon}"></i> ${pkg.package_name}</strong><br>
+            <small>`;
+        
+        if (pkg.package_type === 'service_package') {
+            html += `${pkg.remaining_sessions || 0} of ${pkg.total_sessions || 0} sessions remaining`;
+        } else if (pkg.package_type === 'prepaid') {
+            html += `₹${(pkg.remaining_credit || 0).toFixed(2)} credit remaining`;
+        } else if (pkg.package_type === 'membership') {
+            const services = pkg.services?.map(s => s.service_name).join(', ') || 'All services';
+            html += `Covers: ${services}`;
+        }
+        
+        html += `</small></div>`;
+    });
+    
+    packagesDiv.innerHTML = html;
+}
+
+function resetCustomerPackages() {
+    document.getElementById('customerPackages').innerHTML = 
+        '<small class="text-muted"><i class="fas fa-info-circle"></i> Select customer to view packages</small>';
+    BillingState.customerPackages = null;
+    updateCalculations();
+}
+
+// ==========================================
+// BATCH MANAGEMENT
+// ==========================================
+function loadBatches(productSelect) {
+    const row = productSelect.closest('.item-row');
+    const batchSelect = row.querySelector('.batch-select');
+    const batchInfo = row.querySelector('.batch-info');
+    const priceInput = row.querySelector('input[name="product_prices[]"]');
+    const productId = parseInt(productSelect.value);
+
+    if (!productId) {
+        batchSelect.innerHTML = '<option value="">Select Product</option>';
+        batchSelect.disabled = true;
+        batchInfo.innerHTML = '';
+        return;
+    }
+
+    // Check cache first
+    if (BillingState.batchCache[productId]) {
+        populateBatchSelect(BillingState.batchCache[productId], batchSelect, batchInfo, priceInput);
+        return;
+    }
+
+    // Load from API
+    batchSelect.innerHTML = '<option value="">Loading...</option>';
+    batchSelect.disabled = true;
+
+    fetch(`/api/inventory/batches/for-product/${productId}`)
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                const batches = data.batches || [];
+                BillingState.batchCache[productId] = batches;
+                populateBatchSelect(batches, batchSelect, batchInfo, priceInput);
+            } else {
+                throw new Error('Failed to load batches');
+            }
+        })
+        .catch(err => {
+            console.error('Error loading batches:', err);
+            batchSelect.innerHTML = '<option value="">Error loading batches</option>';
+            batchInfo.innerHTML = '<span class="text-danger">Failed to load batches</span>';
+        });
+}
+
+function populateBatchSelect(batches, batchSelect, batchInfo, priceInput) {
+    // Filter available batches and sort by expiry (FIFO)
+    const availableBatches = batches
+        .filter(b => b.qty_available > 0)
+        .sort((a, b) => {
+            if (!a.expiry_date) return 1;
+            if (!b.expiry_date) return -1;
+            return new Date(a.expiry_date) - new Date(b.expiry_date);
+        });
+
+    if (!availableBatches.length) {
+        batchSelect.innerHTML = '<option value="">Out of Stock</option>';
+        batchSelect.disabled = true;
+        batchInfo.innerHTML = '<span class="text-danger">Out of stock</span>';
+        return;
+    }
+
+    batchSelect.innerHTML = availableBatches.map((b, i) => 
+        `<option value="${b.id}" data-price="${b.selling_price || b.unit_price || 0}" data-qty="${b.qty_available}" ${i === 0 ? 'selected' : ''}>
+            ${b.batch_name} - ${b.qty_available} available
+        </option>`
+    ).join('');
+    batchSelect.disabled = false;
+
+    // Display first batch info
+    const firstBatch = availableBatches[0];
+    const expiry = firstBatch.expiry_date ? 
+        new Date(firstBatch.expiry_date).toLocaleDateString() : 'No expiry';
+    const expiryClass = firstBatch.is_near_expiry ? 'text-warning' : '';
+    batchInfo.innerHTML = `<small>Avail: ${firstBatch.qty_available} | <span class="${expiryClass}">Exp: ${expiry}</span></small>`;
+
+    // Set price from batch
+    if (priceInput && (firstBatch.selling_price || firstBatch.unit_price)) {
+        priceInput.value = parseFloat(firstBatch.selling_price || firstBatch.unit_price).toFixed(2);
+    }
+
+    // Update batch info on batch change
+    batchSelect.addEventListener('change', function() {
+        const selectedOption = this.options[this.selectedIndex];
+        const qty = selectedOption.dataset.qty;
+        const price = selectedOption.dataset.price;
+        const batch = availableBatches.find(b => b.id == this.value);
+        
+        if (batch) {
+            const exp = batch.expiry_date ? new Date(batch.expiry_date).toLocaleDateString() : 'No expiry';
+            const expClass = batch.is_near_expiry ? 'text-warning' : '';
+            batchInfo.innerHTML = `<small>Avail: ${qty} | <span class="${expClass}">Exp: ${exp}</span></small>`;
+            
+            if (priceInput && price) {
+                priceInput.value = parseFloat(price).toFixed(2);
+            }
+        }
+        updateCalculations();
+    });
+
+    updateCalculations();
+}
+
+// ==========================================
+// ROW MANAGEMENT
 // ==========================================
 function addServiceRow() {
     const container = document.getElementById('servicesContainer');
     const newRow = container.children[0].cloneNode(true);
-
-    // Reset inputs
+    
     newRow.querySelectorAll('select, input').forEach(input => {
-        if (input.type === 'number') {
-            input.value = input.name.includes('quantities') ? '1' : '';
-        } else {
-            input.value = '';
-        }
-        clearError(input); // Clear any residual validation errors
+        input.value = input.name?.includes('quantities') ? '1' : '';
+        input.classList.remove('is-invalid');
     });
-
-    // Show delete button
-    const deleteBtn = newRow.querySelector('button[onclick*="removeRow"]');
-    if (deleteBtn) deleteBtn.style.display = 'block';
-
-    // Remove package benefit display
-    const benefit = newRow.querySelector('.package-benefit-badge');
-    if (benefit) benefit.remove();
-
+    
+    newRow.querySelector('.package-benefit')?.remove();
+    newRow.querySelector('.btn-danger').style.display = 'block';
+    
     container.appendChild(newRow);
-    setupValidationListeners(); // Re-setup listeners for new row elements
 }
 
 function addProductRow() {
     const container = document.getElementById('productsContainer');
     const newRow = container.children[0].cloneNode(true);
-
-    // Reset inputs
+    
     newRow.querySelectorAll('select, input').forEach(input => {
-        if (input.type === 'number') {
-            input.value = input.name.includes('quantities') ? '1' : '';
-        } else {
-            input.value = '';
-        }
-        clearError(input); // Clear any residual validation errors
+        input.value = input.name?.includes('quantities') ? '1' : '';
+        input.classList.remove('is-invalid');
     });
-
-    // Reset batch selector
+    
     const batchSelect = newRow.querySelector('.batch-select');
-    if (batchSelect) {
-        batchSelect.innerHTML = '<option value="">Select Product First</option>';
-        batchSelect.disabled = true;
-    }
-
-    // Clear batch info
-    const batchInfo = newRow.querySelector('.batch-info-display');
-    if (batchInfo) batchInfo.innerHTML = '';
-
-    // Show delete button
-    const deleteBtn = newRow.querySelector('button[onclick*="removeRow"]');
-    if (deleteBtn) deleteBtn.style.display = 'block';
-
+    batchSelect.innerHTML = '<option value="">Select Product</option>';
+    batchSelect.disabled = true;
+    newRow.querySelector('.batch-info').innerHTML = '';
+    newRow.querySelector('.btn-danger').style.display = 'block';
+    
     container.appendChild(newRow);
-    setupValidationListeners(); // Re-setup listeners for new row elements
 }
 
 function removeRow(button) {
@@ -1071,841 +1140,326 @@ function removeRow(button) {
 }
 
 // ==========================================
-// PACKAGE HANDLING
-// ==========================================
-// Load customer packages
-function loadCustomerPackages(customerId) {
-    if (!customerId) {
-        document.getElementById('customerPackages').innerHTML = '<small>Select customer to view packages</small>';
-        customerPackageData = null;
-        updateCalculations();
-        return;
-    }
-
-    const packagesDiv = document.getElementById('customerPackages');
-    packagesDiv.innerHTML = '<small><i class="fas fa-spinner fa-spin"></i> Loading packages...</small>';
-
-    fetch(`/integrated-billing/customer-packages/${customerId}`)
-        .then(response => response.json())
-        .then(data => {
-            console.log('Package data received:', data);
-            customerPackageData = data;
-
-            if (data.packages && data.packages.length > 0) {
-                let html = '<div class="p-2"><strong class="text-success"><i class="fas fa-check-circle"></i> Active Packages Found:</strong><br><br>';
-                
-                data.packages.forEach(pkg => {
-                    let packageTypeIcon = pkg.package_type === 'service_package' ? 'fa-spa' : 
-                                         pkg.package_type === 'prepaid' ? 'fa-wallet' : 
-                                         pkg.package_type === 'membership' ? 'fa-crown' : 'fa-gift';
-                    
-                    html += `<div class="mb-2 p-2" style="background: #f0f9ff; border-left: 3px solid #0891b2; border-radius: 4px;">`;
-                    html += `<strong><i class="fas ${packageTypeIcon}"></i> ${pkg.package_name}</strong><br>`;
-                    html += `<small class="text-muted">Type: ${pkg.package_type.replace('_', ' ').toUpperCase()}</small><br>`;
-                    
-                    if (pkg.package_type === 'service_package') {
-                        html += `<small class="text-success"><i class="fas fa-check"></i> ${pkg.remaining_sessions || 0} sessions remaining</small>`;
-                    } else if (pkg.package_type === 'prepaid') {
-                        html += `<small class="text-success"><i class="fas fa-check"></i> ₹${pkg.remaining_credit || 0} credit remaining</small>`;
-                    } else if (pkg.package_type === 'membership') {
-                        html += `<small class="text-info"><i class="fas fa-infinity"></i> Active membership</small>`;
-                    }
-                    
-                    html += `</div>`;
-                });
-                html += '</div>';
-                packagesDiv.innerHTML = html;
-            } else {
-                packagesDiv.innerHTML = '<small class="text-muted-custom"><i class="fas fa-info-circle"></i> No active packages</small>';
-            }
-
-            updateCalculations(); // Recalculate totals after packages are loaded
-        })
-        .catch(error => {
-            console.error('Error loading packages:', error);
-            packagesDiv.innerHTML = '<small class="text-danger"><i class="fas fa-exclamation-triangle"></i> Error loading packages</small>';
-            customerPackageData = null;
-        });
-}
-
-
-// Display customer packages (This function seems to be unused or redundant with loadCustomerPackages)
-function displayCustomerPackages(packages) {
-    let html = '<div class="alert alert-success mb-3"><i class="fas fa-check-circle me-2"></i><strong>Active Packages for Customer:</strong></div>';
-    html += '<div class="row">';
-
-    packages.forEach(function(pkg) {
-        let badgeClass = pkg.status === 'active' ? 'bg-success' : 'bg-secondary';
-        let progressPercent = 0;
-        let progressBar = '';
-
-        // Calculate progress for different package types
-        if (pkg.package_type === 'service_package' && pkg.total_sessions > 0) {
-            progressPercent = ((pkg.total_sessions - pkg.remaining_sessions) / pkg.total_sessions) * 100;
-            progressBar = `
-                <div class="progress mt-2" style="height: 8px;">
-                    <div class="progress-bar bg-success" role="progressbar" style="width: ${progressPercent}%"
-                         aria-valuenow="${progressPercent}" aria-valuemin="0" aria-valuemax="100"></div>
-                </div>
-            `;
-        } else if (pkg.package_type === 'prepaid' && pkg.credit_amount > 0) {
-            progressPercent = ((pkg.credit_amount - pkg.remaining_credit) / pkg.credit_amount) * 100;
-            progressBar = `
-                <div class="progress mt-2" style="height: 8px;">
-                    <div class="progress-bar bg-info" role="progressbar" style="width: ${progressPercent}%"
-                         aria-valuenow="${progressPercent}" aria-valuemin="0" aria-valuemax="100"></div>
-                </div>
-            `;
-        }
-
-        let packageCard = `
-            <div class="col-md-6 mb-3">
-                <div class="card border-primary shadow-sm">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-start mb-2">
-                            <h6 class="card-title mb-0">${pkg.package_name}</h6>
-                            <span class="badge ${badgeClass}">${pkg.status}</span>
-                        </div>
-                        <p class="card-text small mb-2">
-                            <strong><i class="fas fa-tag me-1"></i>Type:</strong> ${pkg.package_type.replace('_', ' ').toUpperCase()}<br>
-        `;
-
-        // Add type-specific details with icons
-        if (pkg.package_type === 'service_package') {
-            packageCard += `
-                            <strong><i class="fas fa-spa me-1"></i>Service:</strong> ${pkg.service_name || 'Any Service'}<br>
-                            <strong><i class="fas fa-calendar-check me-1"></i>Sessions:</strong>
-                            <span class="text-success fw-bold">${pkg.remaining_sessions || 0}</span> / ${pkg.total_sessions || 0} remaining
-                            ${progressBar}
-            `;
-        } else if (pkg.package_type === 'prepaid') {
-            packageCard += `
-                            <strong><i class="fas fa-wallet me-1"></i>Balance:</strong>
-                            <span class="text-success fw-bold">₹${pkg.remaining_credit || 0}</span> / ₹${pkg.credit_amount || 0} remaining
-                            ${progressBar}
-            `;
-        } else if (pkg.package_type === 'membership') {
-            let servicesList = (pkg.services || []).map(s => s.service_name).join(', ') || 'None specified';
-            packageCard += `
-                            <strong><i class="fas fa-list-check me-1"></i>Services:</strong> ${servicesList}<br>
-                            ${pkg.description ? `<strong><i class="fas fa-info-circle me-1"></i>Details:</strong> ${pkg.description}` : ''}
-            `;
-        }
-
-        packageCard += `
-                        </p>
-                        <small class="text-muted">
-                            <i class="fas fa-clock me-1"></i>Valid: ${pkg.assigned_date} to ${pkg.expires_on || 'No expiry'}
-                        </small>
-                    </div>
-                </div>
-            </div>
-        `;
-
-        html += packageCard;
-    });
-
-    html += '</div>';
-    html += '<div class="alert alert-info mt-2"><i class="fas fa-lightbulb me-2"></i><strong>Note:</strong> Package benefits will be automatically applied when you add services covered by these packages.</div>';
-
-    document.getElementById('customerPackages').innerHTML = html;
-}
-
-// ==========================================
-// BATCH HANDLING
-// ==========================================
-function loadAvailableBatches() {
-    fetch('/api/inventory/batches/for-consumption')
-        .then(response => response.json())
-        .then(data => {
-            if (data.success && data.batches) {
-                availableBatches = data.batches;
-                console.log('✅ Loaded', availableBatches.length, 'batches');
-            }
-        })
-        .catch(error => console.error('Error loading batches:', error));
-}
-
-function loadBatchesForProduct(productSelect) {
-    const row = productSelect.closest('.item-row');
-    const batchSelect = row.querySelector('.batch-select');
-    const batchInfo = row.querySelector('.batch-info-display');
-    const priceInput = row.querySelector('input[name="product_prices[]"]');
-
-    const productId = parseInt(productSelect.value);
-
-    if (!productId) {
-        batchSelect.innerHTML = '<option value="">Select Product First</option>';
-        batchSelect.disabled = true;
-        batchInfo.innerHTML = '';
-        clearError(productSelect);
-        clearError(batchSelect);
-        return;
-    }
-
-    const productBatches = availableBatches.filter(b => b.product_id === productId && b.qty_available > 0);
-
-    // Sort by expiry (FIFO)
-    productBatches.sort((a, b) => {
-        if (!a.expiry_date) return 1;
-        if (!b.expiry_date) return -1;
-        return new Date(a.expiry_date) - new Date(b.expiry_date);
-    });
-
-    // Populate batch dropdown
-    batchSelect.innerHTML = ''; // Clear previous options
-    if (productBatches.length === 0) {
-        batchSelect.innerHTML = '<option value="">No stock available</option>';
-        batchInfo.innerHTML = '<span class="text-danger">⚠️ Out of stock</span>';
-        batchSelect.disabled = true;
-        clearError(productSelect);
-        highlightError(batchSelect, 'No stock available for this product.');
-    } else {
-        productBatches.forEach((batch, index) => {
-            const option = document.createElement('option');
-            option.value = batch.id;
-            option.textContent = `${batch.batch_name} - ${batch.qty_available} available`;
-            if (index === 0) option.selected = true;
-            batchSelect.appendChild(option);
-        });
-        batchSelect.disabled = false;
-
-        // Show first batch info
-        const firstBatch = productBatches[0];
-        const expiryText = firstBatch.expiry_date ?
-            `Exp: ${new Date(firstBatch.expiry_date).toLocaleDateString()}` : 'No expiry';
-        batchInfo.innerHTML = `<strong>FIFO:</strong> ${firstBatch.batch_name}<br><strong>Avail:</strong> ${firstBatch.qty_available}<br>${expiryText}`;
-        clearError(batchSelect);
-    }
-
-
-    // Set price based on the first batch if available
-    if (priceInput && productBatches.length > 0 && productBatches[0].selling_price) {
-        priceInput.value = parseFloat(productBatches[0].selling_price).toFixed(2);
-    } else if (priceInput) {
-        priceInput.value = ''; // Clear price if no batch or selling price
-    }
-    updateCalculations();
-}
-
-// ==========================================
 // CALCULATIONS
 // ==========================================
-function handleServiceSelection(selectElement) {
-    const row = selectElement.closest('.service-row');
-    const option = selectElement.options[selectElement.selectedIndex];
-    const price = parseFloat(option.dataset.price) || 0;
-    const qtyInput = row.querySelector('input[name="service_quantities[]"]');
-    const qty = parseFloat(qtyInput.value) || 1;
-
-    // Update calculations immediately if a service is selected
+function handleServiceChange(select) {
+    select.classList.remove('is-invalid');
     updateCalculations();
-
-    // Clear errors on selection change
-    clearError(selectElement);
 }
 
 function updateCalculations() {
-    // Calculate services subtotal (GST-INCLUSIVE prices)
-    let servicesSubtotal = 0;
-    let packageDeductions = 0; // Placeholder for applying package benefits
+    let servicesTotal = 0;
+    let productsTotal = 0;
 
+    // Calculate services
     document.querySelectorAll('.service-row').forEach(row => {
-        const serviceSelect = row.querySelector('select[name="service_ids[]"]');
-        const qtyInput = row.querySelector('input[name="service_quantities[]"]');
-
-        if (serviceSelect && serviceSelect.value && qtyInput && qtyInput.value) {
-            const option = serviceSelect.options[serviceSelect.selectedIndex];
-            const price = parseFloat(option.dataset.price) || 0;
-            const qty = parseFloat(qtyInput.value) || 1;
-            servicesSubtotal += price * qty;
+        const select = row.querySelector('select[name="service_ids[]"]');
+        const qty = parseFloat(row.querySelector('input[name="service_quantities[]"]')?.value) || 0;
+        
+        if (select?.value) {
+            const price = parseFloat(select.selectedOptions[0]?.dataset.price) || 0;
+            servicesTotal += price * qty;
         }
     });
 
-    // Calculate products subtotal (GST-EXCLUSIVE prices)
-    let productsSubtotal = 0;
-
+    // Calculate products
     document.querySelectorAll('.product-row').forEach(row => {
-        const qtyInput = row.querySelector('input[name="product_quantities[]"]');
-        const priceInput = row.querySelector('input[name="product_prices[]"]');
+        const qty = parseFloat(row.querySelector('input[name="product_quantities[]"]')?.value) || 0;
+        const price = parseFloat(row.querySelector('input[name="product_prices[]"]')?.value) || 0;
+        productsTotal += qty * price;
+    });
 
-        if (qtyInput && qtyInput.value && priceInput && priceInput.value) {
-            const qty = parseFloat(qtyInput.value) || 0;
-            const price = parseFloat(priceInput.value) || 0;
-            productsSubtotal += qty * price;
+    const subtotal = servicesTotal + productsTotal;
+    
+    // Discount calculation
+    const discountType = document.querySelector('select[name="discount_type"]')?.value || 'percentage';
+    const discountValue = parseFloat(document.querySelector('input[name="discount_value"]')?.value) || 0;
+    const discount = discountType === 'percentage' ? 
+        (subtotal * discountValue / 100) : discountValue;
+    
+    const afterDiscount = Math.max(0, subtotal - discount);
+    
+    // Tax calculation
+    const cgstRate = parseFloat(document.querySelector('input[name="cgst_rate"]')?.value) || 0;
+    const sgstRate = parseFloat(document.querySelector('input[name="sgst_rate"]')?.value) || 0;
+    const cgst = (afterDiscount * cgstRate) / 100;
+    const sgst = (afterDiscount * sgstRate) / 100;
+    
+    // Additional charges
+    const additionalCharges = parseFloat(document.querySelector('input[name="additional_charges"]')?.value) || 0;
+    const tips = parseFloat(document.querySelector('input[name="tips_amount"]')?.value) || 0;
+    
+    const total = afterDiscount + cgst + sgst + additionalCharges + tips;
+
+    // Update display
+    document.getElementById('servicesSubtotal').textContent = `₹${servicesTotal.toFixed(2)}`;
+    document.getElementById('productsSubtotal').textContent = `₹${productsTotal.toFixed(2)}`;
+    document.getElementById('subtotalAmount').textContent = `₹${subtotal.toFixed(2)}`;
+    document.getElementById('discountAmount').textContent = `-₹${discount.toFixed(2)}`;
+    document.getElementById('cgstAmount').textContent = `₹${cgst.toFixed(2)}`;
+    document.getElementById('sgstAmount').textContent = `₹${sgst.toFixed(2)}`;
+    document.getElementById('additionalCharges').textContent = `₹${additionalCharges.toFixed(2)}`;
+    document.getElementById('tipsDisplay').textContent = `₹${tips.toFixed(2)}`;
+    document.getElementById('grandTotal').textContent = `₹${total.toFixed(2)}`;
+}
+
+// ==========================================
+// VALIDATION
+// ==========================================
+function validateForm() {
+    let isValid = true;
+    const errors = [];
+
+    // Customer
+    const client = document.getElementById('client_id');
+    if (!client.value) {
+        client.classList.add('is-invalid');
+        errors.push('Select a customer');
+        isValid = false;
+    }
+
+    // Services
+    let hasItems = false;
+    document.querySelectorAll('.service-row').forEach((row, i) => {
+        const service = row.querySelector('select[name="service_ids[]"]');
+        const staff = row.querySelector('select[name="staff_ids[]"]');
+        
+        if (service?.value) {
+            hasItems = true;
+            if (!staff?.value) {
+                staff.classList.add('is-invalid');
+                errors.push(`Service #${i + 1}: Staff required`);
+                isValid = false;
+            }
         }
     });
 
-    // Get GST rate
-    const gstEnabled = document.getElementById('gstEnabled')?.checked || false;
-    const gstInput = document.getElementById('gstPercentage');
-    const gstPercentage = gstEnabled ? (parseFloat(gstInput?.value) || 0) : 0;
-    const gstRate = gstPercentage / 100;
-
-    // Extract base amounts
-    // For services (GST-inclusive): base = price / (1 + gst_rate)
-    const serviceBaseAmount = gstRate > 0 ? servicesSubtotal / (1 + gstRate) : servicesSubtotal;
-    const serviceGstAmount = servicesSubtotal - serviceBaseAmount;
-
-    // For products (GST-exclusive): base = price, gst = price * gst_rate
-    const productBaseAmount = productsSubtotal;
-    const productGstAmount = productsSubtotal * gstRate;
-
-    // Total base amount
-    const totalBaseAmount = serviceBaseAmount + productBaseAmount;
-    const totalGstBeforeDiscount = serviceGstAmount + productGstAmount;
-
-    // Calculate discount on base amount only
-    const discountPercentage = parseFloat(document.querySelector('input[name="discount_percentage"]')?.value) || 0;
-    const discountAmount = (totalBaseAmount * discountPercentage) / 100;
-
-    // Net base after discount
-    const netBaseAmount = Math.max(0, totalBaseAmount - discountAmount);
-
-    // Recalculate GST proportionally after discount
-    let finalGstAmount = 0;
-    if (totalBaseAmount > 0 && gstRate > 0) {
-        const discountFactor = netBaseAmount / totalBaseAmount;
-        finalGstAmount = totalGstBeforeDiscount * discountFactor;
-    }
-
-    // Grand total = base + GST
-    const grandTotal = netBaseAmount + finalGstAmount;
-
-    // Update display - ensure all values are numbers before calling toFixed
-    document.getElementById('servicesSubtotal').textContent = `₹${(servicesSubtotal || 0).toFixed(2)}`;
-    document.getElementById('productsSubtotal').textContent = `₹${(productsSubtotal || 0).toFixed(2)}`;
-    document.getElementById('packageDeductions').textContent = `-₹${(packageDeductions || 0).toFixed(2)}`; // Placeholder
-    document.getElementById('discountAmount').textContent = `-₹${(discountAmount || 0).toFixed(2)}`;
-    document.getElementById('gstRate').textContent = (gstPercentage || 0).toFixed(0);
-    document.getElementById('gstAmount').textContent = `₹${(finalGstAmount || 0).toFixed(2)}`;
-    document.getElementById('grandTotal').textContent = `₹${(grandTotal || 0).toFixed(2)}`;
-
-    console.log('💰 Calculations updated - Grand Total:', grandTotal.toFixed(2));
-}
-
-// ==========================================
-// PREVIEW WITH VALIDATION
-// ==========================================
-function previewInvoice() {
-    // Validate form first
-    if (!validateBillingForm()) {
-        console.log('❌ Validation failed for preview');
-        return false;
-    }
-
-    // Show preview notification
-    showNotification('✅ Validation passed! Generating preview...', 'info', 3000);
-
-    // Generate preview data
-    const formData = gatherFormData();
-    
-    // Display preview modal or new window
-    displayPreviewModal(formData);
-}
-
-function displayPreviewModal(formData) {
-    // Create preview HTML
-    let previewHTML = `
-        <div class="preview-container">
-            <h3 class="text-center mb-4">Invoice Preview</h3>
-            
-            <div class="row mb-3">
-                <div class="col-6">
-                    <strong>Customer:</strong> ${formData.customerName || 'Not Selected'}
-                </div>
-                <div class="col-6 text-end">
-                    <strong>Date:</strong> ${new Date().toLocaleDateString()}
-                </div>
-            </div>
-
-            <h5 class="mt-4">Services</h5>
-            <table class="table table-sm">
-                <thead><tr><th>Service</th><th>Staff</th><th>Qty</th><th>Amount</th></tr></thead>
-                <tbody>
-    `;
-
-    formData.services.forEach(service => {
-        previewHTML += `
-            <tr>
-                <td>${service.name}</td>
-                <td>${service.staffName}</td>
-                <td>${service.quantity}</td>
-                <td>₹${service.amount.toFixed(2)}</td>
-            </tr>
-        `;
+    // Products
+    document.querySelectorAll('.product-row').forEach((row, i) => {
+        const product = row.querySelector('select[name="product_ids[]"]');
+        const batch = row.querySelector('.batch-select');
+        const staff = row.querySelector('select[name="product_staff_ids[]"]');
+        
+        if (product?.value) {
+            hasItems = true;
+            if (!batch?.value) {
+                batch.classList.add('is-invalid');
+                errors.push(`Product #${i + 1}: Batch required`);
+                isValid = false;
+            }
+            if (!staff?.value) {
+                staff.classList.add('is-invalid');
+                errors.push(`Product #${i + 1}: Staff required`);
+                isValid = false;
+            }
+        }
     });
 
-    previewHTML += `</tbody></table>`;
-
-    if (formData.products.length > 0) {
-        previewHTML += `
-            <h5 class="mt-4">Products</h5>
-            <table class="table table-sm">
-                <thead><tr><th>Product</th><th>Batch</th><th>Staff</th><th>Qty</th><th>Amount</th></tr></thead>
-                <tbody>
-        `;
-
-        formData.products.forEach(product => {
-            previewHTML += `
-                <tr>
-                    <td>${product.name}</td>
-                    <td>${product.batchName}</td>
-                    <td>${product.staffName}</td>
-                    <td>${product.quantity}</td>
-                    <td>₹${product.amount.toFixed(2)}</td>
-                </tr>
-            `;
-        });
-
-        previewHTML += `</tbody></table>`;
+    if (!hasItems) {
+        errors.push('Add at least one service or product');
+        isValid = false;
     }
 
-    previewHTML += `
-            <div class="row mt-4">
-                <div class="col-6 offset-6">
-                    <table class="table table-sm">
-                        <tr><td>Subtotal:</td><td class="text-end">₹${formData.subtotal.toFixed(2)}</td></tr>
-                        <tr><td>Discount:</td><td class="text-end text-success">-₹${formData.discount.toFixed(2)}</td></tr>
-                        <tr><td>GST (${formData.gstRate}%):</td><td class="text-end">₹${formData.gst.toFixed(2)}</td></tr>
-                        <tr class="fw-bold"><td>Total:</td><td class="text-end">₹${formData.total.toFixed(2)}</td></tr>
-                    </table>
-                </div>
-            </div>
-        </div>
-    `;
+    // Payment method
+    const payment = document.querySelector('select[name="payment_method"]');
+    if (!payment?.value) {
+        payment.classList.add('is-invalid');
+        errors.push('Payment method required');
+        isValid = false;
+    }
 
-    // Show in modal
+    if (!isValid) {
+        showNotification(errors.join('\n'), 'danger');
+        // Scroll to first error
+        document.querySelector('.is-invalid')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
+    return isValid;
+}
+
+function setupInputValidation() {
+    document.getElementById('billingForm').addEventListener('input', function(e) {
+        if (e.target.matches('select, input')) {
+            e.target.classList.remove('is-invalid');
+        }
+    });
+}
+
+// ==========================================
+// FORM SUBMISSION
+// ==========================================
+function handleFormSubmit(e) {
+    e.preventDefault();
+    
+    if (!validateForm() || BillingState.isSubmitting) {
+        return;
+    }
+
+    BillingState.isSubmitting = true;
+    const btn = document.getElementById('saveBtn');
+    btn.disabled = true;
+    btn.classList.add('btn-loading');
+
+    const formData = new FormData(e.target);
+
+    fetch('/integrated-billing/create-professional', {
+        method: 'POST',
+        body: formData
+    })
+    .then(res => {
+        if (!res.ok) {
+            return res.text().then(text => {
+                throw new Error(`Server error: ${res.status}`);
+            });
+        }
+        return res.json();
+    })
+    .then(data => {
+        if (data.success) {
+            const message = `Invoice ${data.invoice_number} created successfully!\nTotal: ₹${data.total_amount.toFixed(2)}`;
+            showNotification(message, 'success');
+            
+            // Handle print if needed
+            if (window.printAfterSave && data.invoice_id) {
+                window.open(`/integrated-billing/print-invoice/${data.invoice_id}`, '_blank');
+            }
+            
+            // Redirect to invoice detail
+            setTimeout(() => {
+                window.location.href = `/integrated-billing/invoice/${data.invoice_id}`;
+            }, 1500);
+        } else {
+            throw new Error(data.message || 'Failed to create invoice');
+        }
+    })
+    .catch(err => {
+        BillingState.isSubmitting = false;
+        btn.disabled = false;
+        btn.classList.remove('btn-loading');
+        showNotification(err.message || 'Failed to save invoice. Please try again.', 'danger');
+        console.error('Submission error:', err);
+    });
+}
+
+function saveAndPrint() {
+    if (!validateForm()) return;
+    window.printAfterSave = true;
+    document.getElementById('billingForm').dispatchEvent(new Event('submit'));
+}
+
+function previewInvoice() {
+    if (!validateForm()) return;
+    
+    // Gather form data
+    const formData = new FormData(document.getElementById('billingForm'));
+    
+    // Convert to JSON for preview endpoint
+    const previewData = {
+        client_id: parseInt(formData.get('client_id')),
+        services: [],
+        products: [],
+        cgst_rate: parseFloat(formData.get('cgst_rate') || 0),
+        sgst_rate: parseFloat(formData.get('sgst_rate') || 0),
+        discount_type: formData.get('discount_type'),
+        discount_value: parseFloat(formData.get('discount_value') || 0),
+        additional_charges: parseFloat(formData.get('additional_charges') || 0),
+        tips_amount: parseFloat(formData.get('tips_amount') || 0)
+    };
+    
+    // Collect services
+    const serviceIds = formData.getAll('service_ids[]');
+    const serviceQtys = formData.getAll('service_quantities[]');
+    serviceIds.forEach((id, i) => {
+        if (id) {
+            previewData.services.push({
+                service_id: parseInt(id),
+                quantity: parseFloat(serviceQtys[i] || 1)
+            });
+        }
+    });
+    
+    // Collect products
+    const productIds = formData.getAll('product_ids[]');
+    const productQtys = formData.getAll('product_quantities[]');
+    const productPrices = formData.getAll('product_prices[]');
+    productIds.forEach((id, i) => {
+        if (id) {
+            previewData.products.push({
+                product_id: parseInt(id),
+                quantity: parseFloat(productQtys[i] || 1),
+                unit_price: parseFloat(productPrices[i] || 0)
+            });
+        }
+    });
+    
+    // Call preview API
+    fetch('/integrated-billing/preview', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(previewData)
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success && data.preview_html) {
+            // Show preview in modal
+            showPreviewModal(data.preview_html);
+        } else {
+            throw new Error('Preview generation failed');
+        }
+    })
+    .catch(err => {
+        console.error('Preview error:', err);
+        showNotification('Preview feature is currently unavailable', 'warning');
+    });
+}
+
+function showPreviewModal(html) {
     const modal = document.createElement('div');
-    modal.className = 'modal fade';
+    modal.className = 'modal fade show';
+    modal.style.display = 'block';
+    modal.style.backgroundColor = 'rgba(0,0,0,0.5)';
     modal.innerHTML = `
-        <div class="modal-dialog modal-lg">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title">Invoice Preview</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    <button type="button" class="btn-close" onclick="this.closest('.modal').remove()"></button>
                 </div>
                 <div class="modal-body">
-                    ${previewHTML}
+                    ${html}
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-secondary" onclick="this.closest('.modal').remove()">Close</button>
                 </div>
             </div>
         </div>
     `;
-    
     document.body.appendChild(modal);
-    const bsModal = new bootstrap.Modal(modal);
-    bsModal.show();
-    
-    modal.addEventListener('hidden.bs.modal', () => {
-        modal.remove();
-    });
 }
 
 // ==========================================
-// SAVE AND PRINT WITH VALIDATION
+// UTILITIES
 // ==========================================
-function saveAndPrintInvoice() {
-    // Validate form first
-    if (!validateBillingForm()) {
-        console.log('❌ Validation failed for save & print');
-        return false;
-    }
-
-    // Show confirmation
-    if (!confirm('✅ Validation passed!\n\nProceed to save and print invoice?')) {
-        return false;
-    }
-
-    // Set a flag to print after successful save
-    window.printAfterSave = true;
-
-    // Submit the form
-    document.getElementById('billingForm').submit();
-}
-
-// ==========================================
-// GATHER FORM DATA FOR PREVIEW
-// ==========================================
-function gatherFormData() {
-    const form = document.getElementById('billingForm');
-    const clientSelect = document.getElementById('client_id');
-    const customerName = clientSelect.options[clientSelect.selectedIndex]?.text || 'Not Selected';
-
-    const data = {
-        customerName: customerName,
-        services: [],
-        products: [],
-        subtotal: 0,
-        discount: 0,
-        gst: 0,
-        gstRate: 0,
-        total: 0
-    };
-
-    // Gather services
-    document.querySelectorAll('.service-row').forEach(row => {
-        const serviceSelect = row.querySelector('select[name="service_ids[]"]');
-        const staffSelect = row.querySelector('select[name="staff_ids[]"]');
-        const qtyInput = row.querySelector('input[name="service_quantities[]"]');
-
-        if (serviceSelect && serviceSelect.value && staffSelect && staffSelect.value) {
-            const option = serviceSelect.options[serviceSelect.selectedIndex];
-            const price = parseFloat(option.dataset.price) || 0;
-            const qty = parseFloat(qtyInput.value) || 1;
-            const amount = price * qty;
-
-            data.services.push({
-                name: option.text.split(' - ')[0],
-                staffName: staffSelect.options[staffSelect.selectedIndex].text,
-                quantity: qty,
-                price: price,
-                amount: amount
-            });
-
-            data.subtotal += amount;
-        }
-    });
-
-    // Gather products
-    document.querySelectorAll('.product-row').forEach(row => {
-        const productSelect = row.querySelector('select[name="product_ids[]"]');
-        const batchSelect = row.querySelector('select[name="batch_ids[]"]');
-        const staffSelect = row.querySelector('select[name="product_staff_ids[]"]');
-        const qtyInput = row.querySelector('input[name="product_quantities[]"]');
-        const priceInput = row.querySelector('input[name="product_prices[]"]');
-
-        if (productSelect && productSelect.value && batchSelect && batchSelect.value) {
-            const price = parseFloat(priceInput.value) || 0;
-            const qty = parseFloat(qtyInput.value) || 1;
-            const amount = price * qty;
-
-            data.products.push({
-                name: productSelect.options[productSelect.selectedIndex].text,
-                batchName: batchSelect.options[batchSelect.selectedIndex].text,
-                staffName: staffSelect.options[staffSelect.selectedIndex].text,
-                quantity: qty,
-                price: price,
-                amount: amount
-            });
-
-            data.subtotal += amount;
-        }
-    });
-
-    // Calculate discount
-    const discountPercentage = parseFloat(form.querySelector('input[name="discount_percentage"]')?.value) || 0;
-    data.discount = (data.subtotal * discountPercentage) / 100;
-
-    // Calculate GST
-    const gstEnabled = document.getElementById('gstEnabled')?.checked || false;
-    const gstInput = document.getElementById('gstPercentage');
-    data.gstRate = gstEnabled ? (parseFloat(gstInput?.value) || 0) : 0;
-    
-    const subtotalAfterDiscount = data.subtotal - data.discount;
-    data.gst = (subtotalAfterDiscount * data.gstRate) / 100;
-
-    // Calculate total
-    data.total = subtotalAfterDiscount + data.gst;
-
-    return data;
-}
-
-// ==========================================
-// NOTIFICATIONS
-// ==========================================
-function showNotification(message, type = 'info', duration = 5000) {
+function showNotification(message, type = 'info') {
     const alertClass = {
-        'success': 'alert-success',
-        'error': 'alert-danger',
-        'warning': 'alert-warning',
-        'info': 'alert-info'
+        success: 'alert-success',
+        danger: 'alert-danger',
+        warning: 'alert-warning',
+        info: 'alert-info'
     }[type] || 'alert-info';
 
     const notification = document.createElement('div');
-    notification.className = `alert ${alertClass} alert-dismissible fade show`;
-    notification.style.cssText = 'position: fixed; top: 20px; right: 20px; z-index: 9999; max-width: 400px; white-space: pre-wrap;';
+    notification.className = `toast-notification alert ${alertClass}`;
     notification.innerHTML = `
-        ${message}
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        <div style="white-space: pre-line;">${message}</div>
+        <button type="button" class="btn-close" onclick="this.parentElement.remove()"></button>
     `;
 
     document.body.appendChild(notification);
 
-    setTimeout(() => {
-        notification.classList.remove('show');
-        setTimeout(() => notification.remove(), 300);
-    }, duration);
-}
-
-// ==========================================
-// EDIT CUSTOMER FORM SUBMISSION
-// ==========================================
-// Handle edit customer form submission
-function handleEditCustomerSubmit(event) {
-    event.preventDefault();
-
-    const form = event.target;
-    const submitBtn = form.querySelector('button[type="submit"]');
-
-    // Prevent double submission
-    if (submitBtn.disabled) {
-        return;
-    }
-
-    const customerId = form.dataset.customerId || window.currentCustomerId;
-
-    if (!customerId) {
-        showNotification('Error: Customer ID not found.', 'error');
-        return;
-    }
-
-    // Show loading and disable button
-    submitBtn.disabled = true;
-    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Updating...';
-
-    // Validate form action is set
-    if (!form.action || form.action.endsWith('/clients')) {
-        form.action = `/clients/update/${customerId}`;
-    }
-
-    // Submit form normally - let Flask handle it with proper redirect and flash messages
-    form.submit();
-}
-
-// ==========================================
-// COMPREHENSIVE BILLING VALIDATION
-// ==========================================
-function validateBillingForm() {
-    const form = document.getElementById('billingForm');
-    const errors = [];
-    const missingFields = []; // Stores elements and messages for scrolling/focus
-
-    // 1. Validate Customer Selection
-    const clientSelect = document.getElementById('client_id');
-    if (!clientSelect || !clientSelect.value) {
-        errors.push('Customer selection is required.');
-        missingFields.push({ element: clientSelect, message: 'Please select a customer' });
-        highlightError(clientSelect, 'Please select a customer');
-    } else {
-        clearError(clientSelect);
-    }
-
-    // 2. Validate Services
-    const serviceRows = document.querySelectorAll('.service-row');
-    let hasValidService = false;
-
-    serviceRows.forEach((row, index) => {
-        const serviceSelect = row.querySelector('select[name="service_ids[]"]');
-        const staffSelect = row.querySelector('select[name="staff_ids[]"]');
-        const qtyInput = row.querySelector('input[name="service_quantities[]"]');
-
-        // Only validate if a service is actually selected
-        if (serviceSelect && serviceSelect.value) {
-            hasValidService = true;
-
-            // Validate staff for this service
-            if (!staffSelect || !staffSelect.value) {
-                errors.push(`Service #${index + 1}: Staff assignment is required.`);
-                missingFields.push({ element: staffSelect, message: `Staff required for service #${index + 1}` });
-                highlightError(staffSelect, 'Staff is required');
-            } else {
-                clearError(staffSelect);
-            }
-
-            // Validate quantity
-            if (!qtyInput || !qtyInput.value || parseFloat(qtyInput.value) <= 0) {
-                errors.push(`Service #${index + 1}: Valid quantity is required.`);
-                missingFields.push({ element: qtyInput, message: 'Quantity must be greater than 0' });
-                highlightError(qtyInput, 'Quantity required');
-            } else {
-                clearError(qtyInput);
-            }
-        } else {
-            // If no service is selected, clear any potential errors from other fields in this row
-            clearError(staffSelect);
-            clearError(qtyInput);
-        }
-    });
-
-    // 3. Validate Products
-    const productRows = document.querySelectorAll('.product-row');
-    let hasValidProduct = false;
-
-    productRows.forEach((row, index) => {
-        const productSelect = row.querySelector('select[name="product_ids[]"]');
-        const batchSelect = row.querySelector('select[name="batch_ids[]"]');
-        const staffSelect = row.querySelector('select[name="product_staff_ids[]"]');
-        const qtyInput = row.querySelector('input[name="product_quantities[]"]');
-        const priceInput = row.querySelector('input[name="product_prices[]"]');
-
-        // Only validate if a product is actually selected
-        if (productSelect && productSelect.value) {
-            hasValidProduct = true;
-
-            // Validate batch selection
-            if (!batchSelect || !batchSelect.value) {
-                errors.push(`Product #${index + 1}: Batch selection is required.`);
-                missingFields.push({ element: batchSelect, message: 'Batch is required' });
-                highlightError(batchSelect, 'Batch required');
-            } else {
-                clearError(batchSelect);
-            }
-
-            // Validate staff for this product
-            if (!staffSelect || !staffSelect.value) {
-                errors.push(`Product #${index + 1}: Staff assignment is required.`);
-                missingFields.push({ element: staffSelect, message: `Staff required for product #${index + 1}` });
-                highlightError(staffSelect, 'Staff is required');
-            } else {
-                clearError(staffSelect);
-            }
-
-            // Validate quantity
-            if (!qtyInput || !qtyInput.value || parseFloat(qtyInput.value) <= 0) {
-                errors.push(`Product #${index + 1}: Valid quantity is required.`);
-                missingFields.push({ element: qtyInput, message: 'Quantity must be greater than 0' });
-                highlightError(qtyInput, 'Quantity required');
-            } else {
-                clearError(qtyInput);
-            }
-
-            // Validate price
-            if (!priceInput || !priceInput.value || parseFloat(priceInput.value) <= 0) {
-                errors.push(`Product #${index + 1}: Valid price is required.`);
-                missingFields.push({ element: priceInput, message: 'Price must be greater than 0' });
-                highlightError(priceInput, 'Price required');
-            } else {
-                clearError(priceInput);
-            }
-        } else {
-            // If no product is selected, clear potential errors
-            clearError(batchSelect);
-            clearError(staffSelect);
-            clearError(qtyInput);
-            clearError(priceInput);
-        }
-    });
-
-    // 4. Check if at least one service or product is added
-    if (!hasValidService && !hasValidProduct) {
-        errors.push('At least one service or product must be added.');
-        showNotification('⚠️ Please add at least one service or product to the invoice', 'warning', 5000);
-    }
-
-    // 5. Validate Payment Method
-    const paymentMethod = form.querySelector('select[name="payment_method"]');
-    if (!paymentMethod || !paymentMethod.value) {
-        errors.push('Payment method is required.');
-        missingFields.push({ element: paymentMethod, message: 'Payment method is required' });
-        highlightError(paymentMethod, 'Payment method required');
-    } else {
-        clearError(paymentMethod);
-    }
-
-    // 6. Display validation results
-    if (errors.length > 0) {
-        const errorMessage = `
-⚠️ Please fix the following issues before saving:
-
-${errors.join('\n')}
-        `.trim();
-
-        showNotification(errorMessage, 'error', 10000);
-
-        // Scroll to the first error element and focus it
-        if (missingFields.length > 0 && missingFields[0].element) {
-            missingFields[0].element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            missingFields[0].element.focus();
-        }
-
-        return false; // Indicate validation failure
-    }
-
-    return true; // Indicate validation success
-}
-
-// Visual error highlighting and feedback
-function highlightError(element, message) {
-    if (!element) return;
-
-    element.classList.add('is-invalid');
-    // Ensure custom styles don't conflict with bootstrap's .is-invalid
-    element.style.borderColor = '#dc3545';
-    element.style.boxShadow = '0 0 0 0.2rem rgba(220, 53, 69, 0.25)';
-
-    // Add or update the error message div
-    let errorDiv = element.parentElement.querySelector('.invalid-feedback');
-    if (!errorDiv) {
-        errorDiv = document.createElement('div');
-        errorDiv.className = 'invalid-feedback';
-        errorDiv.style.display = 'block'; // Make it visible
-        element.parentElement.appendChild(errorDiv);
-    }
-    errorDiv.textContent = message;
-}
-
-function clearError(element) {
-    if (!element) return;
-
-    element.classList.remove('is-invalid');
-    // Reset styles to default or their original values
-    element.style.borderColor = '';
-    element.style.boxShadow = '';
-
-    // Remove the error message div if it exists
-    const errorDiv = element.parentElement.querySelector('.invalid-feedback');
-    if (errorDiv) {
-        errorDiv.remove();
-    }
-}
-
-// Clear errors dynamically as user corrects input
-function setupValidationListeners() {
-    const form = document.getElementById('billingForm');
-    if (!form) return;
-
-    // Listen for changes on select elements
-    form.querySelectorAll('select').forEach(select => {
-        select.addEventListener('change', () => clearError(select));
-    });
-
-    // Listen for input events on number and text inputs
-    form.querySelectorAll('input[type="number"], input[type="text"], textarea').forEach(input => {
-        input.addEventListener('input', () => clearError(input));
-    });
-
-    // Special handling for dynamic rows (services and products)
-    // Use event delegation on the container
-    const servicesContainer = document.getElementById('servicesContainer');
-    if (servicesContainer) {
-        servicesContainer.addEventListener('change', (e) => {
-            if (e.target.matches('select[name="service_ids[]"], select[name="staff_ids[]"], input[name="service_quantities[]"]')) {
-                clearError(e.target);
-            }
-        });
-        servicesContainer.addEventListener('input', (e) => {
-             if (e.target.matches('input[name="service_quantities[]"]')) {
-                clearError(e.target);
-            }
-        });
-    }
-
-    const productsContainer = document.getElementById('productsContainer');
-    if (productsContainer) {
-        productsContainer.addEventListener('change', (e) => {
-            if (e.target.matches('select[name="product_ids[]"], select[name="batch_ids[]"], select[name="product_staff_ids[]"], input[name="product_quantities[]"], input[name="product_prices[]"]')) {
-                clearError(e.target);
-            }
-        });
-         productsContainer.addEventListener('input', (e) => {
-             if (e.target.matches('input[name="product_quantities[]"], input[name="product_prices[]"]')) {
-                clearError(e.target);
-            }
-        });
-    }
+    setTimeout(() => notification.remove(), 5000);
 }
 </script>
-{% endblock %}
+{% endblock %
