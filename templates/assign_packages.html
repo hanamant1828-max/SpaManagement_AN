@@ -25,8 +25,8 @@
                             <h4><i class="fas fa-box-open"></i> Assign Package & Collect Payment</h4>
                         </div>
                         <div class="card-body">
-                            
-                            <div class="form-group">
+
+                            <div class="form-group mb-3">
                                 <label for="customerId">Customer *</label>
                                 <select id="customerId" class="form-control" required>
                                     <option value="">Select Customer...</option>
@@ -112,7 +112,7 @@
                             <hr>
 
                             <h6>Payment Details</h6>
-                            
+
                             <div class="form-group">
                                 <label>Payment Method *</label>
                                 <div>
@@ -275,6 +275,26 @@
     </div></div>
 </div>
 
+<style>
+        .customer-search {
+            border: 2px solid #4CAF50;
+            border-radius: 8px;
+            padding: 10px;
+            font-size: 14px;
+        }
+
+        .customer-search:focus {
+            outline: none;
+            border-color: #45a049;
+            box-shadow: 0 0 5px rgba(76, 175, 80, 0.3);
+        }
+
+        .package-card {
+            transition: all 0.3s ease;
+            border: 1px solid #e0e0e0;
+        }
+</style>
+
 <script>
 const packages = {
     prepaid: {{ prepaid_packages | tojson }},
@@ -293,9 +313,9 @@ document.getElementById('packageType').addEventListener('change', function() {
     const packageSelect = document.getElementById('packageId');
     const packageGroup = document.getElementById('packageSelectGroup');
     const serviceGroup = document.getElementById('serviceSelectGroup');
-    
+
     packageSelect.innerHTML = '<option value="">Select Package...</option>';
-    
+
     if (type && packages[type]) {
         packages[type].forEach(pkg => {
             const option = document.createElement('option');
@@ -308,7 +328,7 @@ document.getElementById('packageType').addEventListener('change', function() {
     } else {
         packageGroup.style.display = 'none';
     }
-    
+
     serviceGroup.style.display = (type === 'service_package') ? 'block' : 'none';
     recalculateTotals();
 });
@@ -334,10 +354,10 @@ document.getElementById('customerId').addEventListener('change', validateForm);
 function recalculateTotals() {
     let subtotal = 0;
     let discount = 0;
-    
+
     if (currentPackage) {
         const packageType = document.getElementById('packageType').value;
-        
+
         if (packageType === 'prepaid') {
             subtotal = currentPackage.actual_price || 0;
         } else if (packageType === 'service_package' && currentService) {
@@ -349,11 +369,11 @@ function recalculateTotals() {
             subtotal = currentPackage.price || currentPackage.actual_price || 0;
         }
     }
-    
+
     const taxable = Math.max(subtotal - discount, 0);
     const tax = taxable * 0.18;
     const grandTotal = taxable + tax;
-    
+
     document.getElementById('displaySubtotal').textContent = `₹${subtotal.toFixed(2)}`;
     document.getElementById('displayDiscount').textContent = `₹${discount.toFixed(2)}`;
     document.getElementById('displayTax').textContent = `₹${tax.toFixed(2)}`;
@@ -366,13 +386,13 @@ function validateForm() {
     const packageType = document.getElementById('packageType').value;
     const packageId = document.getElementById('packageId').value;
     const serviceId = document.getElementById('serviceId').value;
-    
+
     let isValid = customerId && packageType && packageId;
-    
+
     if (packageType === 'service_package') {
         isValid = isValid && serviceId;
     }
-    
+
     const btn = document.getElementById('btnAssignAndPay');
     if (btn) {
         btn.disabled = !isValid;
@@ -386,10 +406,10 @@ document.getElementById('btnAssignAndPay').addEventListener('click', async funct
     const btn = this;
     btn.disabled = true;
     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
-    
+
     const statusDiv = document.getElementById('statusMessage');
     statusDiv.style.display = 'none';
-    
+
     const customerId = document.getElementById('customerId').value;
     const packageType = document.getElementById('packageType').value;
     const packageId = document.getElementById('packageId').value;
@@ -400,10 +420,10 @@ document.getElementById('btnAssignAndPay').addEventListener('click', async funct
     const paymentAmount = parseFloat(document.getElementById('paymentAmount').value);
     const paymentReference = document.getElementById('paymentReference').value;
     const generateReceipt = document.getElementById('generateReceipt').checked;
-    
+
     const grandTotal = parseFloat(document.getElementById('displayGrandTotal').textContent.replace('₹', ''));
     const discount = parseFloat(document.getElementById('displayDiscount').textContent.replace('₹', ''));
-    
+
     const payload = {
         assignment: {
             customer_id: parseInt(customerId),
@@ -431,7 +451,7 @@ document.getElementById('btnAssignAndPay').addEventListener('click', async funct
             pdf: true
         }
     };
-    
+
     try {
         const response = await fetch('/packages/api/assign-and-pay', {
             method: 'POST',
@@ -441,9 +461,9 @@ document.getElementById('btnAssignAndPay').addEventListener('click', async funct
             },
             body: JSON.stringify(payload)
         });
-        
+
         const result = await response.json();
-        
+
         if (result.success) {
             statusDiv.className = 'alert alert-success';
             statusDiv.innerHTML = `
@@ -456,11 +476,11 @@ document.getElementById('btnAssignAndPay').addEventListener('click', async funct
                 ` : ''}
             `;
             statusDiv.style.display = 'block';
-            
+
             if (result.receipt_url) {
                 window.open(result.receipt_url, '_blank');
             }
-            
+
             setTimeout(() => {
                 window.location.reload();
             }, 2000);
@@ -510,7 +530,7 @@ function hookAssignedUI(){
             fetchAssignments();
         });
     });
-    
+
     document.querySelectorAll('#statusPills .nav-link').forEach(btn=>{
         btn.addEventListener('click', ()=>{
             document.querySelectorAll('#statusPills .nav-link').forEach(b=>b.classList.remove('active'));
