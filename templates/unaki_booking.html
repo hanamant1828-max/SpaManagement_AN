@@ -1780,6 +1780,19 @@
                             </div>
                         </div>
 
+                        <!-- Customer's Existing Appointments Display -->
+                        <div id="customerExistingAppointments" class="mb-4" style="display: none;">
+                            <div class="alert alert-info" style="border-radius: 10px;">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <strong><i class="fas fa-calendar-check me-2"></i>Customer's Booked Appointments</strong>
+                                    <small id="customerAppointmentsCount" class="badge bg-primary">0</small>
+                                </div>
+                                <div id="customerAppointmentsList" style="max-height: 200px; overflow-y: auto;">
+                                    <small class="text-muted"><i class="fas fa-spinner fa-spin me-1"></i>Loading...</small>
+                                </div>
+                            </div>
+                        </div>
+
                         <!-- Appointments Section -->
                         <div class="mb-4">
                             <div
@@ -3205,6 +3218,85 @@
             }
 
             // ==========================================
+            // CUSTOMER EXISTING APPOINTMENTS
+            // ==========================================
+            
+            function loadCustomerExistingAppointments(customerId) {
+                const container = document.getElementById('customerExistingAppointments');
+                const listDiv = document.getElementById('customerAppointmentsList');
+                const countBadge = document.getElementById('customerAppointmentsCount');
+                
+                if (!customerId) {
+                    // Hide the section if no customer selected
+                    container.style.display = 'none';
+                    return;
+                }
+                
+                // Show loading state
+                container.style.display = 'block';
+                listDiv.innerHTML = '<small class="text-muted"><i class="fas fa-spinner fa-spin me-1"></i>Loading...</small>';
+                
+                // Fetch customer appointments
+                fetch(`/api/unaki/customer-appointments/${customerId}`)
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.success && data.bookings && data.bookings.length > 0) {
+                            countBadge.textContent = data.bookings.length;
+                            displayCustomerAppointments(data.bookings);
+                        } else {
+                            countBadge.textContent = '0';
+                            listDiv.innerHTML = '<small class="text-muted"><i class="fas fa-info-circle me-1"></i>No upcoming appointments</small>';
+                        }
+                    })
+                    .catch(err => {
+                        console.error('Error loading customer appointments:', err);
+                        listDiv.innerHTML = '<small class="text-danger"><i class="fas fa-exclamation-triangle me-1"></i>Error loading appointments</small>';
+                    });
+            }
+            
+            function displayCustomerAppointments(appointments) {
+                const listDiv = document.getElementById('customerAppointmentsList');
+                
+                let html = '<div class="list-group list-group-flush">';
+                appointments.forEach(apt => {
+                    const date = new Date(apt.appointment_date);
+                    const formattedDate = date.toLocaleDateString('en-US', { 
+                        month: 'short', 
+                        day: 'numeric',
+                        year: 'numeric'
+                    });
+                    
+                    const statusColor = apt.status === 'confirmed' ? 'success' : 
+                                       apt.status === 'scheduled' ? 'primary' : 'secondary';
+                    
+                    html += `
+                        <div class="list-group-item px-2 py-2" style="border: none; border-bottom: 1px solid #eee;">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div class="flex-grow-1">
+                                    <div class="fw-semibold" style="font-size: 0.9rem;">
+                                        <i class="fas fa-spa me-1" style="color: var(--primary-color);"></i>
+                                        ${apt.service_names}
+                                    </div>
+                                    <small class="text-muted">
+                                        <i class="fas fa-calendar me-1"></i>${formattedDate}
+                                        <i class="fas fa-clock ms-2 me-1"></i>${apt.start_time} - ${apt.end_time}
+                                    </small>
+                                    <br>
+                                    <small class="text-muted">
+                                        <i class="fas fa-user-nurse me-1"></i>${apt.staff_name}
+                                    </small>
+                                </div>
+                                <span class="badge bg-${statusColor}" style="font-size: 0.7rem;">${apt.status}</span>
+                            </div>
+                        </div>
+                    `;
+                });
+                html += '</div>';
+                
+                listDiv.innerHTML = html;
+            }
+
+            // ==========================================
             // REAL-TIME VALIDATION SETUP
             // ==========================================
 
@@ -3216,6 +3308,7 @@
                     clientSelect.addEventListener('change', () => {
                         validateClientSelection();
                         updateSubmitButton(); // Re-evaluate submit button state
+                        loadCustomerExistingAppointments(clientSelect.value); // Load customer's appointments
                     });
                 }
 
