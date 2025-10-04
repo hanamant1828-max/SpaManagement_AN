@@ -396,11 +396,20 @@ function validateForm() {
     const btn = document.getElementById('btnAssignAndPay');
     if (btn) {
         btn.disabled = !isValid;
+        console.log('Validation:', { customerId, packageType, packageId, serviceId, isValid });
     }
 }
 
+// Add event listeners
 document.getElementById('customerId').addEventListener('change', validateForm);
+document.getElementById('packageType').addEventListener('change', validateForm);
 document.getElementById('packageId').addEventListener('change', validateForm);
+document.getElementById('serviceId').addEventListener('change', validateForm);
+
+// Validate on page load in case values are pre-filled
+document.addEventListener('DOMContentLoaded', function() {
+    validateForm();
+});
 
 document.getElementById('btnAssignAndPay').addEventListener('click', async function() {
     const btn = this;
