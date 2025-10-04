@@ -23,13 +23,62 @@ def assign_packages_page():
     customers = Customer.query.filter_by(is_active=True).order_by(Customer.first_name).all()
     services = Service.query.filter_by(is_active=True).order_by(Service.name).all()
     
-    # Get all active packages
-    prepaid_packages = PrepaidPackage.query.filter_by(is_active=True).all()
-    service_packages = ServicePackage.query.filter_by(is_active=True).all()
-    memberships = Membership.query.filter_by(is_active=True).all()
-    student_offers = StudentOffer.query.filter_by(is_active=True).all()
-    yearly_memberships = YearlyMembership.query.filter_by(is_active=True).all()
-    kitty_parties = KittyParty.query.filter_by(is_active=True).all()
+    # Get all active packages and convert to dicts
+    prepaid_packages = [{
+        'id': p.id,
+        'name': p.name,
+        'actual_price': p.actual_price,
+        'after_value': p.after_value,
+        'benefit_percent': p.benefit_percent,
+        'validity_months': p.validity_months
+    } for p in PrepaidPackage.query.filter_by(is_active=True).all()]
+    
+    service_packages = [{
+        'id': p.id,
+        'name': p.name,
+        'service_id': p.service_id,
+        'pay_for': p.pay_for,
+        'total_services': p.total_services,
+        'benefit_percent': p.benefit_percent,
+        'validity_months': p.validity_months
+    } for p in ServicePackage.query.filter_by(is_active=True).all()]
+    
+    memberships = [{
+        'id': m.id,
+        'name': m.name,
+        'price': m.price,
+        'validity_months': m.validity_months,
+        'description': m.description
+    } for m in Membership.query.filter_by(is_active=True).all()]
+    
+    student_offers = [{
+        'id': s.id,
+        'discount_percentage': s.discount_percentage,
+        'valid_from': s.valid_from.isoformat() if s.valid_from else None,
+        'valid_to': s.valid_to.isoformat() if s.valid_to else None,
+        'valid_days': s.valid_days,
+        'conditions': s.conditions
+    } for s in StudentOffer.query.filter_by(is_active=True).all()]
+    
+    yearly_memberships = [{
+        'id': y.id,
+        'name': y.name,
+        'price': y.price,
+        'discount_percent': y.discount_percent,
+        'validity_months': y.validity_months,
+        'extra_benefits': y.extra_benefits
+    } for y in YearlyMembership.query.filter_by(is_active=True).all()]
+    
+    kitty_parties = [{
+        'id': k.id,
+        'name': k.name,
+        'price': k.price,
+        'after_value': k.after_value,
+        'min_guests': k.min_guests,
+        'valid_from': k.valid_from.isoformat() if k.valid_from else None,
+        'valid_to': k.valid_to.isoformat() if k.valid_to else None,
+        'conditions': k.conditions
+    } for k in KittyParty.query.filter_by(is_active=True).all()]
     
     return render_template('assign_packages.html',
                          customers=customers,
