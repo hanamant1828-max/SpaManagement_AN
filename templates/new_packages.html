@@ -144,13 +144,14 @@
                                             <td>{{ package.validity_months }} months</td>
                                             <td>
                                                 <div class="btn-group btn-group-sm">
-                                                    <button class="btn btn-success btn-sm" onclick="assignPackage({{ package.id }}, '{{ package.name }}', 'service')" title="Assign Package">
-                                                        <i class="fas fa-plus"></i> Assign
-                                                    </button>
-                                                    <button class="btn btn-outline-primary" onclick="editService({{ package.id }})" title="Edit Package">
+                                                    <button class="btn btn-primary btn-sm" 
+                                                            onclick="editService({{ package.id }})"
+                                                            title="Edit Package">
                                                         <i class="fas fa-edit"></i>
                                                     </button>
-                                                    <button class="btn btn-outline-danger" onclick="deleteService({{ package.id }})" title="Delete Package">
+                                                    <button class="btn btn-danger btn-sm" 
+                                                            onclick="deleteService({{ package.id }})"
+                                                            title="Delete Package">
                                                         <i class="fas fa-trash"></i>
                                                     </button>
                                                 </div>
@@ -240,7 +241,7 @@
                                                 {% endfor %}
                                                 </small>
                                             </td>
-                                            <td><span class="badge bg-success">{{ offer.discount_percentage }}%</span></td>
+                                            <td><span class="badge bg-success">{{ offer.discount_percent }}%</span></td>
                                             <td>
                                                 <small>
                                                     <strong>From:</strong> {{ offer.valid_from }}<br>
@@ -387,7 +388,7 @@
                                                     {% if party.is_active %}
                                                     <a href="{{ url_for('assign_package_page', package_type='kitty', package_id=party.id) }}" class="btn btn-success btn-sm"
                                                             title="Assign to Customer">
-                                                        <i class="fas fa-user-plus"></i>
+                                                        <i class="fas fa-user-plus"></i> Assign
                                                     </a>
                                                     {% endif %}
                                                     <button class="btn btn-outline-warning btn-sm" onclick="editKitty({{ party.id }})" title="Edit">
@@ -1982,7 +1983,7 @@ function loadCustomersForServiceAssignment() {
 
 function loadServicesForAssignment() {
     console.log('Loading services for assignment...');
-    
+
     fetch('/packages/api/services', {
         method: 'GET',
         credentials: 'same-origin', // Include session cookies for authentication
@@ -1999,14 +2000,14 @@ function loadServicesForAssignment() {
         })
         .then(data => {
             console.log('Services API response data:', data);
-            
+
             if (data.success) {
                 const serviceSelect = document.getElementById('service_assign_service_id');
                 if (!serviceSelect) {
                     console.error('Service select element not found');
                     return;
                 }
-                
+
                 serviceSelect.innerHTML = '<option value="">Choose a service...</option>';
 
                 data.services.forEach(service => {
