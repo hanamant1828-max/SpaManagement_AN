@@ -981,6 +981,9 @@ function resetCustomerAppointments() {
         '<small class="text-muted"><i class="fas fa-info-circle"></i> Select customer to view appointments</small>';
 }
 
+// Track which appointments have been added to bill
+const addedAppointmentIds = new Set();
+
 function displayCustomerAppointments(appointments) {
     const appointmentsDiv = document.getElementById('customerAppointments');
 
@@ -1014,6 +1017,7 @@ function displayCustomerAppointments(appointments) {
         const staffName = apt.staff_name || 'Staff';
         const price = apt.service_price || 0;
         const duration = apt.service_duration || 60;
+        const isAdded = addedAppointmentIds.has(apt.id);
         
         // Determine status badge
         let statusBadge = '';
@@ -1044,10 +1048,12 @@ function displayCustomerAppointments(appointments) {
                     <span style="${statusColor}">${statusBadge}</span>
                 </td>
                 <td style="padding: 0.5rem; text-align: right;">
-                    <button type="button" class="btn btn-sm btn-primary" 
-                            onclick="addAppointmentToBill(${apt.id}, '${serviceName}', ${price}, '${staffName}', ${apt.service_id || 0})"
+                    <button type="button" 
+                            id="apt-btn-${apt.id}"
+                            class="btn btn-sm ${isAdded ? 'btn-danger' : 'btn-primary'}" 
+                            onclick="toggleAppointmentInBill(${apt.id}, '${serviceName}', ${price}, '${staffName}', ${apt.service_id || 0})"
                             style="padding: 0.25rem 0.5rem; font-size: 0.75rem;">
-                        <i class="fas fa-plus"></i> Add
+                        <i class="fas fa-${isAdded ? 'minus' : 'plus'}"></i> ${isAdded ? 'Remove' : 'Add'}
                     </button>
                 </td>
             </tr>`;
@@ -1062,9 +1068,42 @@ function displayCustomerAppointments(appointments) {
 
 function resetCustomerPackages() {
     BillingState.customerPackages = null;
+    addedAppointmentIds.clear(); // Also clear added appointments tracking
     updateCalculations();
 }
 
+
+function toggleAppointmentInBill(appointmentId, serviceName, servicePrice, staffName, serviceId) {
+    const isAdded = addedAppointmentIds.has(appointmentId);
+    
+    if (isAdded) {
+        // Remove from bill
+        removeAppointmentFromBill(appointmentId);
+        addedAppointmentIds.delete(appointmentId);
+        
+        // Update button
+        const btn = document.getElementById(`apt-btn-${appointmentId}`);
+        if (btn) {
+            btn.className = 'btn btn-sm btn-primary';
+            btn.innerHTML = '<i class="fas fa-plus"></i> Add';
+        }
+        
+        showNotification(`Appointment #${appointmentId} removed from bill`, 'info');
+    } else {
+        // Add to bill
+        addAppointmentToBill(appointmentId, serviceName, servicePrice, staffName, serviceId);
+        addedAppointmentIds.add(appointmentId);
+        
+        // Update button
+        const btn = document.getElementById(`apt-btn-${appointmentId}`);
+        if (btn) {
+            btn.className = 'btn btn-sm btn-danger';
+            btn.innerHTML = '<i class="fas fa-minus"></i> Remove';
+        }
+        
+        showNotification(`Appointment #${appointmentId} added to bill`, 'success');
+    }
+}
 
 function addAppointmentToBill(appointmentId, serviceName, servicePrice, staffName, serviceId) {
     console.log(`Adding appointment ${appointmentId} to bill - Service: ${serviceName}, Staff: ${staffName}, Price: ${servicePrice}`);
@@ -1102,6 +1141,7 @@ function addAppointmentToBill(appointmentId, serviceName, servicePrice, staffNam
         if (qtyInput) qtyInput.value = 1;
         if (appointmentInput) {
             appointmentInput.value = appointmentId;
+            appointmentInput.dataset.appointmentId = appointmentId; // Track for removal
             console.log(`✅ Set appointment ID ${appointmentId} in first row`);
         }
     } else {
@@ -1131,12 +1171,43 @@ function addAppointmentToBill(appointmentId, serviceName, servicePrice, staffNam
         if (newQtyInput) newQtyInput.value = 1;
         if (newAppointmentInput) {
             newAppointmentInput.value = appointmentId;
+            newAppointmentInput.dataset.appointmentId = appointmentId; // Track for removal
             console.log(`✅ Set appointment ID ${appointmentId} in new row`);
         }
     }
 
     updateCalculations();
-    showNotification(`Service added to bill! Appointment #${appointmentId}`, 'success');
+}
+
+function removeAppointmentFromBill(appointmentId) {
+    const container = document.getElementById('servicesContainer');
+    if (!container) return;
+
+    // Find and remove the row with this appointment ID
+    const rows = container.querySelectorAll('.service-row');
+    rows.forEach(row => {
+        const appointmentInput = row.querySelector('input[name="appointment_ids[]"]');
+        if (appointmentInput && appointmentInput.dataset.appointmentId == appointmentId) {
+            // If it's the only row, just clear it instead of removing
+            if (rows.length === 1) {
+                row.querySelectorAll('select, input').forEach(input => {
+                    input.value = input.name?.includes('quantities') ? '1' : '';
+                    delete input.dataset.appointmentId;
+                });
+            } else {
+                row.remove();
+            }
+        }
+    });
+
+    updateCalculations();
+}
+
+function resetCustomerAppointments() {
+    // Clear tracking when customer changes
+    addedAppointmentIds.clear();
+    document.getElementById('customerAppointments').innerHTML = 
+        '<small class="text-muted"><i class="fas fa-info-circle"></i> Select customer to view appointments</small>';
 }
 
 function showNotification(message, type = 'info') {
