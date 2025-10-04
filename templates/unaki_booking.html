@@ -2225,10 +2225,12 @@
                 document.addEventListener("change", function (e) {
                     // Listen for changes in appointment cards
                     if (
-                        e.target.classList.contains("service-select") ||
+                        e.target &&
+                        e.target.classList &&
+                        (e.target.classList.contains("service-select") ||
                         e.target.classList.contains("start-time") ||
                         e.target.classList.contains("appointment-date") ||
-                        e.target.classList.contains("staff-select")
+                        e.target.classList.contains("staff-select"))
                     ) {
                         const appointmentCard =
                             e.target.closest(".appointment-card");
@@ -2247,10 +2249,12 @@
                 // Add listeners for blur events as well for validation
                 document.addEventListener("blur", function (e) {
                     if (
-                        e.target.classList.contains("service-select") ||
+                        e.target &&
+                        e.target.classList &&
+                        (e.target.classList.contains("service-select") ||
                         e.target.classList.contains("start-time") ||
                         e.target.classList.contains("appointment-date") ||
-                        e.target.classList.contains("staff-select")
+                        e.target.classList.contains("staff-select"))
                     ) {
                         const appointmentCard =
                             e.target.closest(".appointment-card");
@@ -2651,6 +2655,7 @@
 
                 const duration =
                     parseInt(selectedOption.dataset.duration) || 60; // Default to 60 minutes
+                const [hours, minutes] = startTime.split(':').map(Number);
                 const startDate = new Date();
                 startDate.setHours(hours, minutes, 0, 0); // Set hours, minutes, seconds, ms
 
