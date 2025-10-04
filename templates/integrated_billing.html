@@ -783,6 +783,10 @@ body {
     </form>
 </div>
 
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://kit.fontawesome.com/a076d05399.js"></script>
+
 <script>
 // ==========================================
 // GLOBAL VARIABLES
@@ -1037,21 +1041,19 @@ function removeRow(button) {
 // ==========================================
 // PACKAGE HANDLING
 // ==========================================
-function loadCustomerPackages(clientId) {
-    const packagesDiv = document.getElementById('customerPackages');
-    const totalPackagesCountSpan = document.getElementById('totalPackagesCount');
-    if (!clientId) {
-        packagesDiv.innerHTML = '<small>Select customer to view packages</small>';
-        if (totalPackagesCountSpan) totalPackagesCountSpan.textContent = '0';
+// Load customer packages
+function loadCustomerPackages(customerId) {
+    if (!customerId) {
+        document.getElementById('customerPackages').innerHTML = '<small>Select customer to view packages</small>';
         customerPackageData = null;
         updateCalculations();
         return;
     }
 
+    const packagesDiv = document.getElementById('customerPackages');
     packagesDiv.innerHTML = '<small><i class="fas fa-spinner fa-spin"></i> Loading packages...</small>';
-    if (totalPackagesCountSpan) totalPackagesCountSpan.textContent = '...';
 
-    fetch(`/integrated-billing/customer-packages/${clientId}`)
+    fetch(`/integrated-billing/customer-packages/${customerId}`)
         .then(response => response.json())
         .then(data => {
             console.log('Package data received:', data);
@@ -1061,14 +1063,11 @@ function loadCustomerPackages(clientId) {
                 let html = '<div class="alert alert-success-custom p-2"><strong>Details:</strong><br>';
                 data.packages.forEach(pkg => {
                     html += `<span class="badge badge-success-custom me-1 mb-1">${pkg.package_name}</span>`;
-                    // Detailed service names could be listed here if available in pkg data
                 });
                 html += '</div>';
                 packagesDiv.innerHTML = html;
-                if (totalPackagesCountSpan) totalPackagesCountSpan.textContent = data.packages.length;
             } else {
                 packagesDiv.innerHTML = '<small class="text-muted-custom">No active packages</small>';
-                if (totalPackagesCountSpan) totalPackagesCountSpan.textContent = '0';
             }
 
             updateCalculations();
@@ -1076,9 +1075,91 @@ function loadCustomerPackages(clientId) {
         .catch(error => {
             console.error('Error loading packages:', error);
             packagesDiv.innerHTML = '<small class="text-danger">Error loading packages</small>';
-            if (totalPackagesCountSpan) totalPackagesCountSpan.textContent = 'ERR';
             customerPackageData = null;
         });
+}
+
+
+// Display customer packages
+function displayCustomerPackages(packages) {
+    let html = '<div class="alert alert-success mb-3"><i class="fas fa-check-circle me-2"></i><strong>Active Packages for Customer:</strong></div>';
+    html += '<div class="row">';
+
+    packages.forEach(function(pkg) {
+        let badgeClass = pkg.status === 'active' ? 'bg-success' : 'bg-secondary';
+        let progressPercent = 0;
+        let progressBar = '';
+
+        // Calculate progress for different package types
+        if (pkg.package_type === 'service_package' && pkg.total_sessions > 0) {
+            progressPercent = ((pkg.total_sessions - pkg.remaining_sessions) / pkg.total_sessions) * 100;
+            progressBar = `
+                <div class="progress mt-2" style="height: 8px;">
+                    <div class="progress-bar bg-success" role="progressbar" style="width: ${progressPercent}%" 
+                         aria-valuenow="${progressPercent}" aria-valuemin="0" aria-valuemax="100"></div>
+                </div>
+            `;
+        } else if (pkg.package_type === 'prepaid' && pkg.credit_amount > 0) {
+            progressPercent = ((pkg.credit_amount - pkg.remaining_credit) / pkg.credit_amount) * 100;
+            progressBar = `
+                <div class="progress mt-2" style="height: 8px;">
+                    <div class="progress-bar bg-info" role="progressbar" style="width: ${progressPercent}%" 
+                         aria-valuenow="${progressPercent}" aria-valuemin="0" aria-valuemax="100"></div>
+                </div>
+            `;
+        }
+
+        let packageCard = `
+            <div class="col-md-6 mb-3">
+                <div class="card border-primary shadow-sm">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <h6 class="card-title mb-0">${pkg.package_name}</h6>
+                            <span class="badge ${badgeClass}">${pkg.status}</span>
+                        </div>
+                        <p class="card-text small mb-2">
+                            <strong><i class="fas fa-tag me-1"></i>Type:</strong> ${pkg.package_type.replace('_', ' ').toUpperCase()}<br>
+        `;
+
+        // Add type-specific details with icons
+        if (pkg.package_type === 'service_package') {
+            packageCard += `
+                            <strong><i class="fas fa-spa me-1"></i>Service:</strong> ${pkg.service_name || 'Any Service'}<br>
+                            <strong><i class="fas fa-calendar-check me-1"></i>Sessions:</strong> 
+                            <span class="text-success fw-bold">${pkg.remaining_sessions || 0}</span> / ${pkg.total_sessions || 0} remaining
+                            ${progressBar}
+            `;
+        } else if (pkg.package_type === 'prepaid') {
+            packageCard += `
+                            <strong><i class="fas fa-wallet me-1"></i>Balance:</strong> 
+                            <span class="text-success fw-bold">₹${pkg.remaining_credit || 0}</span> / ₹${pkg.credit_amount || 0} remaining
+                            ${progressBar}
+            `;
+        } else if (pkg.package_type === 'membership') {
+            let servicesList = (pkg.services || []).map(s => s.service_name).join(', ') || 'None specified';
+            packageCard += `
+                            <strong><i class="fas fa-list-check me-1"></i>Services:</strong> ${servicesList}<br>
+                            ${pkg.description ? `<strong><i class="fas fa-info-circle me-1"></i>Details:</strong> ${pkg.description}` : ''}
+            `;
+        }
+
+        packageCard += `
+                        </p>
+                        <small class="text-muted">
+                            <i class="fas fa-clock me-1"></i>Valid: ${pkg.assigned_date} to ${pkg.expires_on || 'No expiry'}
+                        </small>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        html += packageCard;
+    });
+
+    html += '</div>';
+    html += '<div class="alert alert-info mt-2"><i class="fas fa-lightbulb me-2"></i><strong>Note:</strong> Package benefits will be automatically applied when you add services covered by these packages.</div>';
+
+    document.getElementById('customerPackages').innerHTML = html;
 }
 
 // ==========================================
@@ -1161,7 +1242,7 @@ function handleServiceSelection(selectElement) {
 function updateCalculations() {
     // Calculate services subtotal
     let servicesSubtotal = 0;
-    let packageDeductions = 0;
+    let packageDeductions = 0; // This will be updated when package benefits are applied
 
     document.querySelectorAll('.service-row').forEach(row => {
         const serviceSelect = row.querySelector('select[name="service_ids[]"]');
@@ -1173,9 +1254,6 @@ function updateCalculations() {
             const qty = parseFloat(qtyInput.value) || 1;
 
             servicesSubtotal += price * qty;
-
-            // Check package benefits (simplified)
-            // Full implementation would check customerPackageData
         }
     });
 
@@ -1210,7 +1288,7 @@ function updateCalculations() {
     // Update display
     document.getElementById('servicesSubtotal').textContent = `₹${servicesSubtotal.toFixed(2)}`;
     document.getElementById('productsSubtotal').textContent = `₹${productsSubtotal.toFixed(2)}`;
-    document.getElementById('packageDeductions').textContent = `-₹${packageDeductions.toFixed(2)}`;
+    document.getElementById('packageDeductions').textContent = `-₹${packageDeductions.toFixed(2)}`; // Placeholder for now
     document.getElementById('discountAmount').textContent = `-₹${discountAmount.toFixed(2)}`;
     document.getElementById('gstRate').textContent = gstPercentage.toFixed(0);
     document.getElementById('gstAmount').textContent = `₹${gstAmount.toFixed(2)}`;
