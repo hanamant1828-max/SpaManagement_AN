@@ -945,14 +945,19 @@ def assign_package():
         # Handle both client_id and customer_id for compatibility
         customer_id = data.get('client_id') or data.get('customer_id')
 
-        # Validate required fields
+        # Validate required fields with detailed messages
         if not customer_id:
-            return jsonify({'success': False, 'error': 'client_id or customer_id is required'}), 400
+            return jsonify({'success': False, 'error': 'Please select a customer to assign this package'}), 400
 
-        required_fields = ['package_id', 'package_type', 'price_paid']
-        for field in required_fields:
-            if field not in data:
-                return jsonify({'success': False, 'error': f'{field} is required'}), 400
+        required_fields = {
+            'package_id': 'Please select a package',
+            'package_type': 'Package type is missing',
+            'price_paid': 'Please enter the price paid'
+        }
+
+        for field, message in required_fields.items():
+            if field not in data or not data[field]:
+                return jsonify({'success': False, 'error': message}), 400
 
         # Get customer
         customer = Customer.query.get(customer_id)
@@ -1000,7 +1005,7 @@ def assign_package():
             # Get prepaid package template
             prepaid = PrepaidPackage.query.get(data['package_id'])
             if not prepaid:
-                return jsonify({'success': False, 'error': 'Prepaid package not found'}), 400
+                return jsonify({'success': False, 'error': 'Prepaid package not found'}), 404
 
             # Calculate expiry date
             expiry_date = None
@@ -1474,7 +1479,7 @@ def assign_package_page(package_type, package_id):
     if not hasattr(current_user, 'can_access') or not current_user.can_access('packages'):
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
-    
+
     try:
         # Get package details based on type
         package_data = None
@@ -1486,19 +1491,19 @@ def assign_package_page(package_type, package_id):
             package_data = get_yearly_membership_by_id(package_id)
         elif package_type == 'kitty':
             package_data = get_kitty_party_by_id(package_id)
-        
+
         if not package_data:
             flash('Package not found', 'danger')
             return redirect(url_for('packages'))
-        
+
         # Get all customers for the dropdown
         customers = Customer.query.filter_by(is_active=True).order_by(Customer.first_name, Customer.last_name).all()
-        
+
         return render_template('packages/assign_package.html', 
                              package=package_data, 
                              package_type=package_type,
                              customers=customers)
-    
+
     except Exception as e:
         logger.error(f"Error loading assignment page: {e}")
         flash('Error loading assignment page', 'danger')

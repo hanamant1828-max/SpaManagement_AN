@@ -113,6 +113,18 @@ function openAssignSimple(packageId, packageType) {
         console.log('Set package ID:', packageId);
     }
 
+    // Auto-populate price from package data
+    if (currentPackages && currentPackages.length > 0) {
+        const packageData = currentPackages.find(pkg => pkg.id == packageId);
+        if (packageData && packageData.price) {
+            const priceInput = document.getElementById('asPricePaid') || document.getElementById('assignPricePaid');
+            if (priceInput) {
+                priceInput.value = packageData.price;
+                console.log('Auto-populated price:', packageData.price);
+            }
+        }
+    }
+
     // Reset form first
     const form = document.getElementById('assignPackageForm') || document.getElementById('assignSimpleForm');
     if (form) {
@@ -187,6 +199,36 @@ function handleCustomerSelection() {
         saveBtn.disabled = !this.value;
         console.log('Customer selected, save button enabled:', !saveBtn.disabled);
     }
+
+    // Load existing packages for this customer
+    if (this.value) {
+        fetch(`/packages/api/customer-packages?customer_id=${this.value}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.packages && data.packages.length > 0) {
+                    // Show warning about existing packages
+                    const warningDiv = document.getElementById('existingPackagesWarning') || createWarningDiv();
+                    warningDiv.innerHTML = `
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>Note:</strong> Customer has ${data.packages.length} active package(s)
+                    `;
+                    warningDiv.style.display = 'block';
+                }
+            })
+            .catch(err => console.error('Error loading customer packages:', err));
+    }
+}
+
+function createWarningDiv() {
+    const div = document.createElement('div');
+    div.id = 'existingPackagesWarning';
+    div.className = 'alert alert-warning mt-2';
+    div.style.display = 'none';
+    const form = document.querySelector('#assignPackageForm, #assignSimpleForm');
+    if (form) {
+        form.appendChild(div);
+    }
+    return div;
 }
 
 /**
@@ -284,7 +326,12 @@ function saveAssignSimple() {
     .then(result => {
         console.log('Simple assignment result:', result);
         if (result.success) {
-            showToast('Package assigned successfully!', 'success');
+            // Enhanced success message with details
+            const packageName = document.getElementById('asTemplateName')?.value || 'Package';
+            const customerSelect = document.getElementById('asCustomer');
+            const customerName = customerSelect?.options[customerSelect.selectedIndex]?.text || 'Customer';
+            
+            showToast(`✓ ${packageName} assigned to ${customerName} successfully!`, 'success');
 
             // Try to close any open assignment modal
             const modals = [

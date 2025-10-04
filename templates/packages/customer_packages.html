@@ -547,7 +547,7 @@
                                     <div class="col-md-2">
                                         <strong><i class="fas fa-rupee-sign me-2"></i>Price Paid:</strong><br>
                                         <span class="fs-5 text-success">₹<span id="detailPrice"></span></span>
-                                    </div>v>
+                                    </div>
                                     <div class="col-md-2">
                                         <strong>Status:</strong><br>
                                         <span id="detailStatus" class="badge"></span>
@@ -664,7 +664,40 @@ function printPackageDetails() {
 function downloadPackageDetails() {
     alert('PDF download functionality coming soon!');
 }
-</script>6>
+</script>
+<!-- Recent Usage Modal -->
+<div class="modal fade" id="recentUsageModal" tabindex="-1" aria-labelledby="recentUsageModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="recentUsageModalLabel">
+                    <i class="fas fa-history text-info me-2"></i>Recent Usage for Package
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Package Info -->
+                <div class="alert alert-secondary mb-4">
+                    <div class="row">
+                        <div class="col-md-5">
+                            <strong>Package Name:</strong> <span id="recentPackageName"></span>
+                        </div>
+                        <div class="col-md-3">
+                            <strong>Customer:</strong> <span id="recentCustomerName"></span>
+                        </div>
+                        <div class="col-md-2">
+                            <strong>Remaining:</strong> <span id="recentRemainingCount" class="badge bg-warning"></span>
+                        </div>
+                        <div class="col-md-2">
+                            <strong>Status:</strong> <span id="recentPackageStatus" class="badge"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Usage Table -->
+                <div class="row mb-3">
+                    <div class="col-12">
+                        <h6><i class="fas fa-clock me-2"></i>Last 5 Usages:</h6>
                         <div class="table-responsive">
                             <table class="table table-sm">
                                 <thead>
@@ -901,7 +934,14 @@ function downloadPackageDetails() {
                             <div class="input-group">
                                 <span class="input-group-text">₹</span>
                                 <input type="number" class="form-control" id="assignmentDiscount" 
-                                       name="discount" step="0.01" min="0" value="0">
+                                       name="discount" step="0.01" min="0">
+                            </div>
+                        </div>
+
+                        <div class="col-12">
+                            <div class="alert alert-info" id="expiryPreview" style="display: none;">
+                                <i class="fas fa-calendar-alt me-2"></i>
+                                <strong>Package Validity:</strong> <span id="expiryDateText"></span>
                             </div>
                         </div>
 
@@ -911,18 +951,16 @@ function downloadPackageDetails() {
                         </div>
 
                         <div class="col-12">
-                            <label for="assignmentNotes" class="form-label">Notes</label>
-                            <textarea class="form-control" id="assignmentNotes" name="notes" rows="3"></textarea>
+                            <label for="assignmentNotes" class="form-label">Notes (Optional)</label>
+                            <textarea class="form-control" id="assignmentNotes" name="notes" rows="3" 
+                                      placeholder="Add any special notes or instructions for this assignment..."></textarea>
                         </div>
-                    </div>
 
-                    <!-- Package Details Preview -->
-                    <div class="mt-4">
-                        <div class="card bg-light">
-                            <div class="card-body">
-                                <h6 class="mb-3">Package Details:</h6>
-                                <div id="selectedPackageDetails">
-                                    <!-- Package details will be shown here -->
+                        <div class="col-12">
+                            <div class="card bg-light mt-3" id="assignmentSummaryCard" style="display: none;">
+                                <div class="card-body">
+                                    <h6 class="card-title"><i class="fas fa-check-circle text-success me-2"></i>Assignment Summary</h6>
+                                    <div id="assignmentSummaryContent"></div>
                                 </div>
                             </div>
                         </div>
