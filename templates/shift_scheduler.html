@@ -38,6 +38,9 @@
         <div class="d-flex justify-content-between align-items-center mb-3">
             <h3><i class="fas fa-calendar-check me-2"></i>Schedule Management</h3>
             <div class="d-flex gap-2">
+                <button type="button" class="btn btn-warning btn-sm" onclick="openOutOfOfficeModal()">
+                    <i class="fas fa-briefcase me-1"></i>Manage Out of Office
+                </button>
                 <button type="button" class="btn btn-info btn-sm" onclick="viewDatabaseRecords()">
                     <i class="fas fa-database me-1"></i>View Database Records
                 </button>
@@ -80,6 +83,78 @@
     </div>
 </div>
 
+<!-- Out of Office Modal -->
+<div class="modal fade" id="outOfOfficeModal" tabindex="-1" aria-labelledby="outOfOfficeModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="outOfOfficeModalLabel"><i class="fas fa-briefcase me-2"></i>Manage Out of Office Entries</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h4>Current Out of Office Entries</h4>
+                    <button type="button" class="btn btn-primary btn-sm" id="addOutOfOfficeBtn">
+                        <i class="fas fa-plus me-1"></i>Add Entry
+                    </button>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover" id="outOfOfficeTable">
+                        <thead>
+                            <tr>
+                                <th>Staff Member</th>
+                                <th>Start Date</th>
+                                <th>End Date</th>
+                                <th>Reason</th>
+                                <th class="text-center">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="outOfOfficeTableBody">
+                            <!-- Out of office entries will be loaded here -->
+                        </tbody>
+                    </table>
+                    <div class="text-center py-4" id="noOutOfOfficeEntries" style="display: none;">
+                        <p class="text-muted">No out of office entries found.</p>
+                    </div>
+                </div>
+
+                <!-- Form for adding/editing Out of Office -->
+                <div id="outOfOfficeFormContainer" style="display: none;">
+                    <h5 id="outOfOfficeFormTitle">Add New Out of Office Entry</h5>
+                    <form id="outOfOfficeForm">
+                        <input type="hidden" id="oooid">
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="ooostaffId" class="form-label">Staff Member</label>
+                                <select class="form-select" id="ooostaffId" required>
+                                    <!-- Staff options will be loaded here -->
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label for="ooostartDate" class="form-label">Start Date</label>
+                                <input type="date" class="form-control" id="ooostartDate" required>
+                            </div>
+                            <div class="col-md-3">
+                                <label for="oooendDate" class="form-label">End Date</label>
+                                <input type="date" class="form-control" id="oooendDate" required>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="oooreason" class="form-label">Reason</label>
+                            <textarea class="form-control" id="oooreason" rows="3" required></textarea>
+                        </div>
+                        <div class="d-flex justify-content-end gap-2">
+                            <button type="submit" class="btn btn-primary">Save Entry</button>
+                            <button type="button" class="btn btn-secondary" id="cancelOutOfOfficeFormBtn">Cancel</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
 <!-- Loading Modal -->
 <div class="modal fade" id="loadingModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
     <div class="modal-dialog modal-dialog-centered">
@@ -114,6 +189,169 @@ $(document).ready(function() {
 
     // Load existing schedules
     loadSchedules();
+
+    // Initialize out of office modal functionality
+    $('#addOutOfOfficeBtn').on('click', function() {
+        $('#outOfOfficeFormTitle').text('Add New Out of Office Entry');
+        $('#outOfOfficeForm')[0].reset();
+        $('#oooid').val('');
+        $('#outOfOfficeFormContainer').show();
+        // Populate staff dropdown here if not already done
+        loadStaffForDropdown();
+    });
+
+    $('#cancelOutOfOfficeFormBtn').on('click', function() {
+        $('#outOfOfficeFormContainer').hide();
+        $('#outOfOfficeForm')[0].reset();
+        $('#oooid').val('');
+    });
+
+    $('#outOfOfficeForm').on('submit', function(e) {
+        e.preventDefault();
+        const oooId = $('#oooid').val();
+        const staffId = $('#ooostaffId').val();
+        const startDate = $('#ooostartDate').val();
+        const endDate = $('#oooendDate').val();
+        const reason = $('#oooreason').val();
+
+        const oooEntry = {
+            staff_id: staffId,
+            start_date: startDate,
+            end_date: endDate,
+            reason: reason
+        };
+
+        let url = '{{ url_for("shift_scheduler.manage_out_of_office") }}';
+        let method = 'POST';
+
+        if (oooId) {
+            url = '{{ url_for("shift_scheduler.manage_out_of_office", ooo_id=oooid) }}'; // Assuming route supports update by ID
+            method = 'PUT'; // Or POST depending on your backend
+            oooEntry.id = oooId;
+        }
+
+        $.ajax({
+            url: url,
+            method: method,
+            contentType: 'application/json',
+            data: JSON.stringify(oooEntry),
+            success: function(response) {
+                alert(response.message);
+                loadOutOfOfficeEntries();
+                $('#outOfOfficeFormContainer').hide();
+                $('#outOfOfficeForm')[0].reset();
+                $('#oooid').val('');
+            },
+            error: function(xhr) {
+                alert('Error: ' + xhr.responseJSON.message);
+            }
+        });
+    });
+
+    // Function to open the Out of Office Modal
+    window.openOutOfOfficeModal = function() {
+        loadOutOfOfficeEntries();
+        $('#outOfOfficeModal').modal('show');
+    };
+
+    // Function to load Out of Office entries into the table
+    window.loadOutOfOfficeEntries = function() {
+        $.ajax({
+            url: '{{ url_for("shift_scheduler.get_out_of_office_entries") }}',
+            method: 'GET',
+            success: function(entries) {
+                const $tbody = $('#outOfOfficeTableBody');
+                $tbody.empty();
+                if (entries.length === 0) {
+                    $('#noOutOfOfficeEntries').show();
+                    $('#outOfOfficeTable').hide();
+                } else {
+                    $('#noOutOfOfficeEntries').hide();
+                    $('#outOfOfficeTable').show();
+                    entries.forEach(entry => {
+                        const row = `
+                            <tr>
+                                <td>${entry.staff_name || 'N/A'}</td>
+                                <td>${entry.start_date}</td>
+                                <td>${entry.end_date}</td>
+                                <td>${entry.reason}</td>
+                                <td class="text-center">
+                                    <button class="btn btn-sm btn-primary edit-ooo-btn" data-id="${entry.id}"><i class="fas fa-edit"></i></button>
+                                    <button class="btn btn-sm btn-danger delete-ooo-btn" data-id="${entry.id}"><i class="fas fa-trash-alt"></i></button>
+                                </td>
+                            </tr>
+                        `;
+                        $tbody.append(row);
+                    });
+                }
+            },
+            error: function(xhr) {
+                console.error('Error loading out of office entries:', xhr);
+                alert('Failed to load out of office entries.');
+            }
+        });
+    };
+
+    // Function to load staff members into the dropdown
+    window.loadStaffForDropdown = function() {
+        $.ajax({
+            url: '{{ url_for("shift_scheduler.get_staff_members") }}', // Assuming you have an endpoint for this
+            method: 'GET',
+            success: function(staff) {
+                const $select = $('#ooostaffId');
+                $select.empty();
+                $select.append('<option value="">-- Select Staff Member --</option>');
+                staff.forEach(s => {
+                    $select.append(`<option value="${s.id}">${s.name}</option>`);
+                });
+            },
+            error: function(xhr) {
+                console.error('Error loading staff members:', xhr);
+                alert('Failed to load staff members.');
+            }
+        });
+    };
+
+
+    // Event delegation for edit and delete buttons
+    $('#outOfOfficeTableBody').on('click', '.edit-ooo-btn', function() {
+        const oooId = $(this).data('id');
+        $.ajax({
+            url: '{{ url_for("shift_scheduler.get_out_of_office_entry", ooo_id=' + oooId + ') }}', // Assuming route to get single entry
+            method: 'GET',
+            success: function(entry) {
+                $('#oooid').val(entry.id);
+                $('#ooostaffId').val(entry.staff_id);
+                $('#ooostartDate').val(entry.start_date);
+                $('#oooEndDate').val(entry.end_date);
+                $('#oooreason').val(entry.reason);
+                $('#outOfOfficeFormTitle').text('Edit Out of Office Entry');
+                $('#outOfOfficeFormContainer').show();
+            },
+            error: function(xhr) {
+                console.error('Error loading out of office entry for edit:', xhr);
+                alert('Failed to load entry for editing.');
+            }
+        });
+    });
+
+    $('#outOfOfficeTableBody').on('click', '.delete-ooo-btn', function() {
+        const oooId = $(this).data('id');
+        if (confirm('Are you sure you want to delete this out of office entry?')) {
+            $.ajax({
+                url: '{{ url_for("shift_scheduler.delete_out_of_office_entry", ooo_id=' + oooId + ') }}', // Assuming route for deletion
+                method: 'DELETE',
+                success: function(response) {
+                    alert(response.message);
+                    loadOutOfOfficeEntries();
+                },
+                error: function(xhr) {
+                    alert('Error deleting out of office entry: ' + xhr.responseJSON.message);
+                }
+            });
+        }
+    });
+
 });
 </script>
 {% endblock %}

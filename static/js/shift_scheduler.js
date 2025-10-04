@@ -657,6 +657,179 @@
     // Make functions available globally for the template
     window.loadSchedules = loadSchedules;
     window.viewDatabaseRecords = viewDatabaseRecords;
+    window.openOutOfOfficeModal = openOutOfOfficeModal;
+    window.resetOutOfOfficeForm = resetOutOfOfficeForm;
+    window.editOutOfOfficeEntry = editOutOfOfficeEntry;
+    window.deleteOutOfOfficeEntry = deleteOutOfOfficeEntry;
+
+    /**
+     * Open Out of Office modal and load entries
+     */
+    function openOutOfOfficeModal() {
+        resetOutOfOfficeForm();
+        loadOutOfOfficeEntries();
+        const modal = new bootstrap.Modal(document.getElementById('outOfOfficeModal'));
+        modal.show();
+    }
+
+    /**
+     * Load all out of office entries
+     */
+    function loadOutOfOfficeEntries() {
+        $.ajax({
+            url: '/shift-scheduler/api/out-of-office',
+            method: 'GET',
+            success: function(response) {
+                if (response.success) {
+                    renderOutOfOfficeTable(response.entries);
+                } else {
+                    showAlert('Error loading entries: ' + response.error, 'danger');
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('Error loading out of office entries:', error);
+                showAlert('Error loading entries. Please try again.', 'danger');
+            }
+        });
+    }
+
+    /**
+     * Render out of office entries table
+     */
+    function renderOutOfOfficeTable(entries) {
+        const tbody = $('#outOfOfficeTableBody');
+        tbody.empty();
+
+        if (entries.length === 0) {
+            tbody.append('<tr><td colspan="6" class="text-center text-muted">No entries found</td></tr>');
+            return;
+        }
+
+        entries.forEach(entry => {
+            const row = `
+                <tr>
+                    <td>${entry.staff_name}</td>
+                    <td>${formatDate(entry.date)}</td>
+                    <td>${convert24To12Hour(entry.start_time)} - ${convert24To12Hour(entry.end_time)}</td>
+                    <td>${entry.duration_minutes} min</td>
+                    <td>${entry.reason}</td>
+                    <td>
+                        <button class="btn btn-sm btn-primary" onclick="editOutOfOfficeEntry(${entry.id})">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn btn-sm btn-danger" onclick="deleteOutOfOfficeEntry(${entry.id})">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+            `;
+            tbody.append(row);
+        });
+    }
+
+    /**
+     * Reset out of office form
+     */
+    function resetOutOfOfficeForm() {
+        $('#outOfOfficeForm')[0].reset();
+        $('#outOfOfficeId').val('');
+        $('#shiftLogId').val('');
+        $('#outOfOfficeFormTitle').text('Add Out of Office Entry');
+    }
+
+    /**
+     * Edit out of office entry
+     */
+    function editOutOfOfficeEntry(id) {
+        $.ajax({
+            url: `/shift-scheduler/api/out-of-office/${id}`,
+            method: 'GET',
+            success: function(response) {
+                if (response.success) {
+                    const entry = response.entry;
+                    $('#outOfOfficeId').val(entry.id);
+                    $('#shiftLogId').val(entry.shift_log_id);
+                    $('#outStaffId').val(entry.staff_id);
+                    $('#outDate').val(entry.date);
+                    $('#outReason').val(entry.reason);
+                    $('#outStartTime').val(entry.start_time);
+                    $('#outEndTime').val(entry.end_time);
+                    $('#outOfOfficeFormTitle').text('Edit Out of Office Entry');
+                } else {
+                    showAlert('Error loading entry: ' + response.error, 'danger');
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('Error loading entry:', error);
+                showAlert('Error loading entry. Please try again.', 'danger');
+            }
+        });
+    }
+
+    /**
+     * Delete out of office entry
+     */
+    function deleteOutOfOfficeEntry(id) {
+        if (!confirm('Are you sure you want to delete this entry?')) {
+            return;
+        }
+
+        $.ajax({
+            url: `/shift-scheduler/api/out-of-office/${id}`,
+            method: 'DELETE',
+            success: function(response) {
+                if (response.success) {
+                    showAlert('Entry deleted successfully!', 'success');
+                    loadOutOfOfficeEntries();
+                } else {
+                    showAlert('Error deleting entry: ' + response.error, 'danger');
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('Error deleting entry:', error);
+                showAlert('Error deleting entry. Please try again.', 'danger');
+            }
+        });
+    }
+
+    /**
+     * Handle out of office form submission
+     */
+    $('#outOfOfficeForm').on('submit', function(e) {
+        e.preventDefault();
+
+        const entryId = $('#outOfOfficeId').val();
+        const data = {
+            staff_id: parseInt($('#outStaffId').val()),
+            date: $('#outDate').val(),
+            reason: $('#outReason').val(),
+            start_time: $('#outStartTime').val(),
+            end_time: $('#outEndTime').val()
+        };
+
+        const url = entryId ? `/shift-scheduler/api/out-of-office/${entryId}` : '/shift-scheduler/api/out-of-office';
+        const method = entryId ? 'PUT' : 'POST';
+
+        $.ajax({
+            url: url,
+            method: method,
+            contentType: 'application/json',
+            data: JSON.stringify(data),
+            success: function(response) {
+                if (response.success) {
+                    showAlert(entryId ? 'Entry updated successfully!' : 'Entry added successfully!', 'success');
+                    resetOutOfOfficeForm();
+                    loadOutOfOfficeEntries();
+                } else {
+                    showAlert('Error saving entry: ' + response.error, 'danger');
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('Error saving entry:', error);
+                showAlert('Error saving entry. Please try again.', 'danger');
+            }
+        });
+    });
 
     console.log('Shift Scheduler JavaScript fully loaded - Wireframe Implementation');
 

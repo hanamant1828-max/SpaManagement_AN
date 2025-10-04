@@ -636,4 +636,208 @@ def api_get_database_records():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+# ========================================
+# OUT OF OFFICE CRUD API ENDPOINTS
+# ========================================
+
+@shift_scheduler_bp.route('/api/out-of-office', methods=['GET'])
+@login_required
+def api_get_out_of_office_entries():
+    """Get all out of office entries"""
+    if not current_user.can_access('staff'):
+        return jsonify({'error': 'Access denied'}), 403
+
+    try:
+        # Get all shift logs with out of office data
+        entries = db.session.query(ShiftLogs, User).join(
+            ShiftManagement, ShiftLogs.shift_management_id == ShiftManagement.id
+        ).join(
+            User, ShiftManagement.staff_id == User.id
+        ).filter(
+            ShiftLogs.out_of_office_start.isnot(None),
+            ShiftLogs.out_of_office_end.isnot(None)
+        ).order_by(ShiftLogs.individual_date.desc()).all()
+
+        entry_list = []
+        for log, staff in entries:
+            # Calculate duration in minutes
+            start_minutes = log.out_of_office_start.hour * 60 + log.out_of_office_start.minute
+            end_minutes = log.out_of_office_end.hour * 60 + log.out_of_office_end.minute
+            duration = end_minutes - start_minutes
+
+            entry_list.append({
+                'id': log.id,
+                'shift_log_id': log.id,
+                'staff_id': staff.id,
+                'staff_name': f"{staff.first_name} {staff.last_name}",
+                'date': log.individual_date.strftime('%Y-%m-%d'),
+                'start_time': log.out_of_office_start.strftime('%H:%M'),
+                'end_time': log.out_of_office_end.strftime('%H:%M'),
+                'reason': log.out_of_office_reason or '',
+                'duration_minutes': duration
+            })
+
+        return jsonify({
+            'success': True,
+            'entries': entry_list
+        })
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@shift_scheduler_bp.route('/api/out-of-office/<int:entry_id>', methods=['GET'])
+@login_required
+def api_get_out_of_office_entry(entry_id):
+    """Get single out of office entry"""
+    if not current_user.can_access('staff'):
+        return jsonify({'error': 'Access denied'}), 403
+
+    try:
+        log = ShiftLogs.query.get(entry_id)
+        if not log:
+            return jsonify({'error': 'Entry not found'}), 404
+
+        shift_mgmt = ShiftManagement.query.get(log.shift_management_id)
+        
+        return jsonify({
+            'success': True,
+            'entry': {
+                'id': log.id,
+                'shift_log_id': log.id,
+                'staff_id': shift_mgmt.staff_id,
+                'date': log.individual_date.strftime('%Y-%m-%d'),
+                'start_time': log.out_of_office_start.strftime('%H:%M') if log.out_of_office_start else '',
+                'end_time': log.out_of_office_end.strftime('%H:%M') if log.out_of_office_end else '',
+                'reason': log.out_of_office_reason or ''
+            }
+        })
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@shift_scheduler_bp.route('/api/out-of-office', methods=['POST'])
+@login_required
+def api_create_out_of_office_entry():
+    """Create new out of office entry"""
+    if not current_user.can_access('staff'):
+        return jsonify({'error': 'Access denied'}), 403
+
+    try:
+        data = request.get_json()
+        staff_id = data.get('staff_id')
+        entry_date = datetime.strptime(data.get('date'), '%Y-%m-%d').date()
+        start_time = datetime.strptime(data.get('start_time'), '%H:%M').time()
+        end_time = datetime.strptime(data.get('end_time'), '%H:%M').time()
+        reason = data.get('reason', '')
+
+        # Find or create shift management for this staff
+        shift_mgmt = ShiftManagement.query.filter_by(staff_id=staff_id).first()
+        if not shift_mgmt:
+            # Create new shift management entry
+            shift_mgmt = ShiftManagement(
+                staff_id=staff_id,
+                from_date=entry_date,
+                to_date=entry_date
+            )
+            db.session.add(shift_mgmt)
+            db.session.flush()
+
+        # Check if shift log exists for this date
+        shift_log = ShiftLogs.query.filter_by(
+            shift_management_id=shift_mgmt.id,
+            individual_date=entry_date
+        ).first()
+
+        if shift_log:
+            # Update existing log
+            shift_log.out_of_office_start = start_time
+            shift_log.out_of_office_end = end_time
+            shift_log.out_of_office_reason = reason
+        else:
+            # Create new shift log with out of office data
+            shift_log = ShiftLogs(
+                shift_management_id=shift_mgmt.id,
+                individual_date=entry_date,
+                shift_start_time=datetime.strptime('09:00', '%H:%M').time(),
+                shift_end_time=datetime.strptime('17:00', '%H:%M').time(),
+                out_of_office_start=start_time,
+                out_of_office_end=end_time,
+                out_of_office_reason=reason,
+                status='scheduled'
+            )
+            db.session.add(shift_log)
+
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'message': 'Out of office entry created successfully',
+            'entry_id': shift_log.id
+        })
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+
+@shift_scheduler_bp.route('/api/out-of-office/<int:entry_id>', methods=['PUT'])
+@login_required
+def api_update_out_of_office_entry(entry_id):
+    """Update out of office entry"""
+    if not current_user.can_access('staff'):
+        return jsonify({'error': 'Access denied'}), 403
+
+    try:
+        data = request.get_json()
+        
+        shift_log = ShiftLogs.query.get(entry_id)
+        if not shift_log:
+            return jsonify({'error': 'Entry not found'}), 404
+
+        shift_log.out_of_office_start = datetime.strptime(data.get('start_time'), '%H:%M').time()
+        shift_log.out_of_office_end = datetime.strptime(data.get('end_time'), '%H:%M').time()
+        shift_log.out_of_office_reason = data.get('reason', '')
+
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'message': 'Out of office entry updated successfully'
+        })
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+
+@shift_scheduler_bp.route('/api/out-of-office/<int:entry_id>', methods=['DELETE'])
+@login_required
+def api_delete_out_of_office_entry(entry_id):
+    """Delete out of office entry"""
+    if not current_user.can_access('staff'):
+        return jsonify({'error': 'Access denied'}), 403
+
+    try:
+        shift_log = ShiftLogs.query.get(entry_id)
+        if not shift_log:
+            return jsonify({'error': 'Entry not found'}), 404
+
+        # Clear out of office fields instead of deleting the whole log
+        shift_log.out_of_office_start = None
+        shift_log.out_of_office_end = None
+        shift_log.out_of_office_reason = None
+
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'message': 'Out of office entry deleted successfully'
+        })
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
 print("Shift Scheduler views registered successfully")
