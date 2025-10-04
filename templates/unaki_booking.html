@@ -2843,18 +2843,29 @@
 
                 // Gather appointment data from each card
                 appointmentCards.forEach((card) => {
-                    const serviceId = card.querySelector('.service-select').value;
-                    const staffId = card.querySelector('.staff-select').value;
-                    const date = card.querySelector('.appointment-date').value;
-                    const startTime = card.querySelector('.start-time').value;
+                    const serviceSelect = card.querySelector('.service-select');
+                    const staffSelect = card.querySelector('.staff-select');
+                    const dateInput = card.querySelector('.appointment-date');
+                    const startTimeInput = card.querySelector('.start-time');
+                    const endTimeInput = card.querySelector('.end-time');
+
+                    const serviceId = serviceSelect.value;
+                    const serviceName = serviceSelect.options[serviceSelect.selectedIndex]?.text;
+                    const staffId = staffSelect.value;
+                    const date = dateInput.value;
+                    const startTime = startTimeInput.value;
+                    const endTime = endTimeInput.value;
 
                     // Only include appointments with all required fields filled
-                    if (serviceId && staffId && date && startTime) {
+                    if (serviceId && serviceName && staffId && date && startTime && endTime) {
                         appointmentsToBook.push({
                             service_id: serviceId,
+                            service_name: serviceName,
                             staff_id: staffId,
+                            client_name: clientName,
                             date: date,
-                            start_time: startTime
+                            start_time: startTime,
+                            end_time: endTime
                         });
                     }
                 });
@@ -2982,7 +2993,7 @@
                     }
                 }
 
-                // Validate Time
+                // Validate Start Time
                 const timeInput = card.querySelector('.start-time');
                 const timeValue = timeInput.value;
                 if (!timeValue) {
@@ -3009,6 +3020,16 @@
                     } else {
                         clearFieldError(timeInput);
                     }
+                }
+
+                // Validate End Time
+                const endTimeInput = card.querySelector('.end-time');
+                const endTimeValue = endTimeInput.value;
+                if (!endTimeValue) {
+                    errors.push(`End time is required for Appointment #${appointmentNum}`);
+                    showFieldError(endTimeInput, `End time is required for Appointment #${appointmentNum}`);
+                } else {
+                    clearFieldError(endTimeInput);
                 }
 
                 return errors;
