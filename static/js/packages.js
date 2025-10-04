@@ -302,12 +302,30 @@ function saveAssignSimple() {
         saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Assigning...';
     }
 
+    // Get payment information
+    const paymentMethod = document.getElementById('assignmentPaymentMethod')?.value || 'cash';
+    const paymentStatus = document.getElementById('assignmentPaymentStatus')?.value || 'paid';
+    const amountPaid = document.getElementById('assignmentAmountPaid')?.value;
+    const transactionRef = document.getElementById('assignmentTransactionRef')?.value || '';
+    const discount = parseFloat(document.getElementById('assignmentDiscount')?.value || 0);
+
+    // Calculate final amounts
+    const finalAmount = Math.max(0, pricePaid - discount);
+    const actualAmountPaid = paymentStatus === 'partial' ? parseFloat(amountPaid || 0) : 
+                             paymentStatus === 'paid' ? finalAmount : 0;
+
     const data = {
         customer_id: parseInt(customerId),
         package_id: parseInt(templateId),
         package_type: packageType,
         price_paid: pricePaid,
-        notes: notes
+        discount: discount,
+        notes: notes,
+        payment_method: paymentMethod,
+        payment_status: paymentStatus,
+        amount_paid: actualAmountPaid,
+        balance_due: finalAmount - actualAmountPaid,
+        transaction_ref: transactionRef
     };
 
     console.log('Sending simple assignment:', data);
@@ -582,6 +600,29 @@ function setupEventListeners() {
     const assignPackage = document.getElementById('assignPackage');
     if (assignPackage) {
         assignPackage.addEventListener('change', showPackagePreview);
+    }
+
+    // Payment status change handler
+    const paymentStatusSelect = document.getElementById('assignmentPaymentStatus');
+    if (paymentStatusSelect) {
+        paymentStatusSelect.addEventListener('change', handlePaymentStatusChange);
+    }
+
+    // Payment method change handler
+    const paymentMethodSelect = document.getElementById('assignmentPaymentMethod');
+    if (paymentMethodSelect) {
+        paymentMethodSelect.addEventListener('change', handlePaymentStatusChange);
+    }
+
+    // Price and discount change handlers
+    const priceInput = document.getElementById('assignmentPrice') || document.getElementById('assignPrice');
+    const discountInput = document.getElementById('assignmentDiscount');
+    
+    if (priceInput) {
+        priceInput.addEventListener('input', calculateFinalAmount);
+    }
+    if (discountInput) {
+        discountInput.addEventListener('input', calculateFinalAmount);
     }
 
     const usageForm = document.getElementById('recordUsageForm');
@@ -1111,12 +1152,14 @@ function validateAssignForm() {
     const form = document.getElementById('assignPackageForm');
     const saveBtn = document.getElementById('saveAssignPackage');
 
-    const customer = document.getElementById('assignCustomer').value;
-    const package = document.getElementById('assignPackage').value;
-    const price = document.getElementById('assignPrice').value;
+    const customer = document.getElementById('assignCustomer')?.value;
+    const package = document.getElementById('assignPackage')?.value;
+    const price = document.getElementById('assignPrice')?.value;
+    const paymentMethod = document.getElementById('assignmentPaymentMethod')?.value;
+    const paymentStatus = document.getElementById('assignmentPaymentStatus')?.value;
 
-    // Basic validation: customer, package, and price must be selected/filled
-    const isValid = customer && package && price && parseFloat(price) > 0;
+    // Basic validation: customer, package, price, and payment method must be selected/filled
+    const isValid = customer && package && price && parseFloat(price) > 0 && paymentMethod && paymentStatus;
 
     if (saveBtn) {
         saveBtn.disabled = !isValid;
@@ -1124,6 +1167,88 @@ function validateAssignForm() {
 
     if (form) {
         form.classList.toggle('was-validated', isValid);
+    }
+}
+
+/**
+ * Handle payment status changes and show/hide amount paid field
+ */
+function handlePaymentStatusChange() {
+    const paymentStatus = document.getElementById('assignmentPaymentStatus')?.value;
+    const amountPaidSection = document.getElementById('amountPaidSection');
+    const amountPaidInput = document.getElementById('assignmentAmountPaid');
+    const transactionRefSection = document.getElementById('transactionRefSection');
+    const paymentMethod = document.getElementById('assignmentPaymentMethod')?.value;
+
+    if (paymentStatus === 'partial') {
+        // Show amount paid field for partial payments
+        if (amountPaidSection) amountPaidSection.style.display = 'block';
+        if (amountPaidInput) amountPaidInput.required = true;
+    } else {
+        // Hide for full/pending payments
+        if (amountPaidSection) amountPaidSection.style.display = 'none';
+        if (amountPaidInput) {
+            amountPaidInput.required = false;
+            amountPaidInput.value = '';
+        }
+    }
+
+    // Show transaction reference for non-cash payments
+    if (transactionRefSection) {
+        transactionRefSection.style.display = (paymentMethod && paymentMethod !== 'cash') ? 'block' : 'none';
+    }
+
+    validateAssignForm();
+}
+
+/**
+ * Calculate final amount after discount
+ */
+function calculateFinalAmount() {
+    const priceInput = document.getElementById('assignmentPrice') || document.getElementById('assignPrice') || document.getElementById('asPricePaid');
+    const discountInput = document.getElementById('assignmentDiscount') || document.getElementById('assignDiscount');
+    
+    if (!priceInput) return;
+    
+    const price = parseFloat(priceInput.value) || 0;
+    const discount = parseFloat(discountInput?.value) || 0;
+    const finalAmount = Math.max(0, price - discount);
+    
+    // Update amount paid for full payment status
+    const paymentStatus = document.getElementById('assignmentPaymentStatus')?.value;
+    const amountPaidInput = document.getElementById('assignmentAmountPaid');
+    
+    if (paymentStatus === 'paid' && amountPaidInput) {
+        amountPaidInput.value = finalAmount.toFixed(2);
+    }
+    
+    // Update payment summary display
+    updatePaymentSummary(price, discount, finalAmount, paymentStatus, amountPaidInput?.value);
+    
+    return finalAmount;
+}
+
+/**
+ * Update payment summary card with real-time calculations
+ */
+function updatePaymentSummary(price, discount, finalAmount, paymentStatus, amountPaid) {
+    const summaryPrice = document.getElementById('summaryPrice');
+    const summaryDiscount = document.getElementById('summaryDiscount');
+    const summaryFinal = document.getElementById('summaryFinal');
+    const summaryBalance = document.getElementById('summaryBalance');
+    const summaryBalanceSection = document.getElementById('summaryBalanceSection');
+    
+    if (summaryPrice) summaryPrice.textContent = price.toFixed(2);
+    if (summaryDiscount) summaryDiscount.textContent = discount.toFixed(2);
+    if (summaryFinal) summaryFinal.textContent = finalAmount.toFixed(2);
+    
+    // Show balance for partial payments
+    if (paymentStatus === 'partial' && amountPaid) {
+        const balance = finalAmount - parseFloat(amountPaid || 0);
+        if (summaryBalance) summaryBalance.textContent = Math.max(0, balance).toFixed(2);
+        if (summaryBalanceSection) summaryBalanceSection.style.display = 'block';
+    } else {
+        if (summaryBalanceSection) summaryBalanceSection.style.display = 'none';
     }
 }
 

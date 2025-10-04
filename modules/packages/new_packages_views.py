@@ -964,6 +964,13 @@ def assign_package():
         if not customer:
             return jsonify({'success': False, 'error': 'Customer not found'}), 404
 
+        # Extract payment information
+        payment_method = data.get('payment_method', 'cash')
+        payment_status = data.get('payment_status', 'paid')
+        amount_paid = float(data.get('amount_paid', data.get('price_paid', 0)))
+        balance_due = float(data.get('balance_due', 0))
+        transaction_ref = data.get('transaction_ref', '')
+
         # Create package assignment based on type
         package_type = data['package_type']
         package_id = data['package_id'] # Use package_id from data
@@ -989,7 +996,9 @@ def assign_package():
                 price_paid=float(data.get('price_paid', membership.price)),
                 discount=float(data.get('discount', 0)),
                 status='active',
-                notes=data.get('notes', ''),
+                notes=f"Payment: {payment_method.upper()} | Status: {payment_status.upper()} | Amount Paid: ₹{amount_paid} | Balance: ₹{balance_due}" + 
+                      (f" | Ref: {transaction_ref}" if transaction_ref else "") +
+                      (f"\n{data.get('notes', '')}" if data.get('notes') else ''),
                 # Membership tracking
                 total_sessions=0,
                 used_sessions=0,
