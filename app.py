@@ -296,11 +296,12 @@ try:
 except Exception as e:
     print(f"⚠️ Prepaid views import error: {e}")
 
-try:
-    from modules.packages.student_offer_views import *
-    print("✅ Student offer views imported")
-except Exception as e:
-    print(f"⚠️ Student offer views import error: {e}")
+# Student offer views module doesn't exist yet - commented out to prevent errors
+# try:
+#     from modules.packages.student_offer_views import *
+#     print("✅ Student offer views imported")
+# except Exception as e:
+#     print(f"⚠️ Student offer views import error: {e}")
 
 # Skip other problematic imports that cause route conflicts
 print("⚠️ Skipping other staff and notifications views to avoid conflicts")

@@ -7,7 +7,7 @@ from flask import render_template, request, redirect, url_for, flash, jsonify
 from flask_login import login_required, current_user
 from app import app, db
 from datetime import datetime, timedelta
-from models import Package, Service, Customer, CustomerPackage
+from models import PrepaidPackage, ServicePackage, PackageTemplate, Service, Customer, CustomerPackage
 
 @app.route('/packages/prepaid')
 @login_required
@@ -18,8 +18,8 @@ def prepaid_packages():
         return redirect(url_for('dashboard'))
 
     # Get prepaid packages
-    credit_packages = Package.query.filter_by(package_type='prepaid_credit', is_active=True).all()
-    service_packages = Package.query.filter_by(package_type='prepaid_service', is_active=True).all()
+    credit_packages = PrepaidPackage.query.filter_by(is_active=True).all()
+    service_packages = ServicePackage.query.filter_by(is_active=True).all()
     services = Service.query.filter_by(is_active=True).all()
     customers = Customer.query.filter_by(is_active=True).all()
 
@@ -50,19 +50,15 @@ def create_quick_prepaid():
             ]
             
             for pkg_data in packages_data:
-                existing = Package.query.filter_by(name=pkg_data['name']).first()
+                existing = PrepaidPackage.query.filter_by(name=pkg_data['name']).first()
                 if not existing:
-                    package = Package(
+                    package = PrepaidPackage(
                         name=pkg_data['name'],
                         description=f"Pay ₹{pkg_data['pay']:,} and get ₹{pkg_data['get']:,} credit ({pkg_data['bonus']}% bonus)",
-                        package_type='prepaid_credit',
                         validity_days=pkg_data['validity'],
                         prepaid_amount=pkg_data['pay'],
                         credit_amount=pkg_data['get'],
                         bonus_percentage=pkg_data['bonus'],
-                        bonus_amount=pkg_data['get'] - pkg_data['pay'],
-                        total_price=pkg_data['pay'],
-                        total_sessions=0,  # Credit-based, not session-based
                         is_active=True
                     )
                     db.session.add(package)
@@ -76,12 +72,11 @@ def create_quick_prepaid():
             ]
             
             for pkg_data in packages_data:
-                existing = Package.query.filter_by(name=pkg_data['name']).first()
+                existing = ServicePackage.query.filter_by(name=pkg_data['name']).first()
                 if not existing:
-                    package = Package(
+                    package = ServicePackage(
                         name=pkg_data['name'],
                         description=f"Pay for {pkg_data['paid']} sessions, get {pkg_data['total']} total ({pkg_data['bonus']}% benefit)",
-                        package_type='prepaid_service',
                         validity_days=90,  # Default 3 months
                         paid_sessions=pkg_data['paid'],
                         free_sessions=pkg_data['free'],
@@ -129,7 +124,7 @@ def assign_prepaid_package(package_id):
         return jsonify({'success': False, 'message': 'Access denied'})
 
     try:
-        package = Package.query.get_or_404(package_id)
+        package = PackageTemplate.query.get_or_404(package_id)
         customer_id = request.form.get('customer_id')
         custom_amount = request.form.get('custom_amount')
         
