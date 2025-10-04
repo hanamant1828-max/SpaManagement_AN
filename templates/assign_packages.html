@@ -246,8 +246,16 @@ function validateForm() {
         isValid = isValid && serviceId;
     }
     
-    document.getElementById('btnAssignAndPay').disabled = !isValid;
+    const btn = document.getElementById('btnAssignAndPay');
+    if (btn) {
+        btn.disabled = !isValid;
+        console.log('Form validation:', { customerId, packageType, packageId, serviceId, isValid });
+    }
 }
+
+// Call validation on all relevant field changes
+document.getElementById('customerId').addEventListener('change', validateForm);
+document.getElementById('packageId').addEventListener('change', validateForm);
 
 document.getElementById('btnAssignAndPay').addEventListener('click', async function() {
     const btn = this;
