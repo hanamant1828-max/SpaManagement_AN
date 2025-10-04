@@ -103,8 +103,8 @@
                         <thead>
                             <tr>
                                 <th>Staff Member</th>
-                                <th>Start Date</th>
-                                <th>End Date</th>
+                                <th>Date</th>
+                                <th>Time Period</th>
                                 <th>Reason</th>
                                 <th class="text-center">Actions</th>
                             </tr>
@@ -125,27 +125,38 @@
                         <input type="hidden" id="oooid">
                         <div class="row mb-3">
                             <div class="col-md-6">
-                                <label for="ooostaffId" class="form-label">Staff Member</label>
+                                <label for="ooostaffId" class="form-label">Staff Member <span class="text-danger">*</span></label>
                                 <select class="form-select" id="ooostaffId" required>
-                                    <!-- Staff options will be loaded here -->
+                                    <option value="">Select staff member...</option>
                                 </select>
                             </div>
-                            <div class="col-md-3">
-                                <label for="ooostartDate" class="form-label">Start Date</label>
+                            <div class="col-md-6">
+                                <label for="ooostartDate" class="form-label">Date <span class="text-danger">*</span></label>
                                 <input type="date" class="form-control" id="ooostartDate" required>
                             </div>
-                            <div class="col-md-3">
-                                <label for="oooendDate" class="form-label">End Date</label>
-                                <input type="date" class="form-control" id="oooendDate" required>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="oooStartTime" class="form-label">Start Time <span class="text-danger">*</span></label>
+                                <input type="time" class="form-control" id="oooStartTime" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="oooEndTime" class="form-label">Expected Return <span class="text-danger">*</span></label>
+                                <input type="time" class="form-control" id="oooEndTime" required>
                             </div>
                         </div>
                         <div class="mb-3">
-                            <label for="oooreason" class="form-label">Reason</label>
-                            <textarea class="form-control" id="oooreason" rows="3" required></textarea>
+                            <label for="oooreason" class="form-label">Reason <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="oooreason" maxlength="200" placeholder="Client visit / Site inspection / Delivery..." required>
+                            <div class="form-text">Max 200 characters</div>
                         </div>
+                        <div class="alert alert-danger d-none" id="oooErrorAlert"></div>
+                        <div class="alert alert-success d-none" id="oooSuccessAlert"></div>
                         <div class="d-flex justify-content-end gap-2">
-                            <button type="submit" class="btn btn-primary">Save Entry</button>
                             <button type="button" class="btn btn-secondary" id="cancelOutOfOfficeFormBtn">Cancel</button>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-1"></i>Save Entry
+                            </button>
                         </div>
                     </form>
                 </div>
@@ -208,17 +219,37 @@ $(document).ready(function() {
 
     $('#outOfOfficeForm').on('submit', function(e) {
         e.preventDefault();
+        
         const oooId = $('#oooid').val();
         const staffId = $('#ooostaffId').val();
-        const startDate = $('#ooostartDate').val();
-        const endDate = $('#oooendDate').val();
+        const date = $('#ooostartDate').val();
+        const startTime = $('#oooStartTime').val();
+        const endTime = $('#oooEndTime').val();
         const reason = $('#oooreason').val();
+
+        $('#oooErrorAlert').addClass('d-none');
+        $('#oooSuccessAlert').addClass('d-none');
+
+        if (!staffId || !date || !startTime || !endTime || !reason) {
+            $('#oooErrorAlert').text('Please fill all required fields.').removeClass('d-none');
+            return;
+        }
+
+        if (reason.length > 200) {
+            $('#oooErrorAlert').text('Reason must be 200 characters or less.').removeClass('d-none');
+            return;
+        }
+
+        if (startTime >= endTime) {
+            $('#oooErrorAlert').text('Start time must be before expected return time.').removeClass('d-none');
+            return;
+        }
 
         const oooEntry = {
             staff_id: staffId,
-            date: startDate,
-            start_time: '09:00',
-            end_time: '17:00',
+            date: date,
+            start_time: startTime,
+            end_time: endTime,
             reason: reason
         };
 
@@ -237,17 +268,22 @@ $(document).ready(function() {
             data: JSON.stringify(oooEntry),
             success: function(response) {
                 if (response.success) {
-                    alert(response.message);
-                    loadOutOfOfficeEntries();
-                    $('#outOfOfficeFormContainer').hide();
-                    $('#outOfOfficeForm')[0].reset();
-                    $('#oooid').val('');
+                    $('#oooSuccessAlert').text(response.message || 'Out of office entry saved successfully!').removeClass('d-none');
+                    setTimeout(function() {
+                        loadOutOfOfficeEntries();
+                        $('#outOfOfficeFormContainer').hide();
+                        $('#outOfOfficeForm')[0].reset();
+                        $('#oooid').val('');
+                        $('#oooErrorAlert').addClass('d-none');
+                        $('#oooSuccessAlert').addClass('d-none');
+                    }, 1500);
                 } else {
-                    alert('Error: ' + (response.error || 'Unknown error'));
+                    $('#oooErrorAlert').text(response.error || 'Unknown error occurred').removeClass('d-none');
                 }
             },
             error: function(xhr) {
-                alert('Error: ' + (xhr.responseJSON && xhr.responseJSON.error ? xhr.responseJSON.error : 'Unknown error'));
+                let errorMsg = xhr.responseJSON && xhr.responseJSON.error ? xhr.responseJSON.error : 'An error occurred while saving.';
+                $('#oooErrorAlert').text(errorMsg).removeClass('d-none');
             }
         });
     });
@@ -326,7 +362,8 @@ $(document).ready(function() {
                     $('#oooid').val(entry.id);
                     $('#ooostaffId').val(entry.staff_id);
                     $('#ooostartDate').val(entry.date);
-                    $('#oooendDate').val(entry.date);
+                    $('#oooStartTime').val(entry.start_time);
+                    $('#oooEndTime').val(entry.end_time);
                     $('#oooreason').val(entry.reason);
                     $('#outOfOfficeFormTitle').text('Edit Out of Office Entry');
                     $('#outOfOfficeFormContainer').show();

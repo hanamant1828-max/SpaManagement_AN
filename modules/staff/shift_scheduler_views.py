@@ -744,7 +744,16 @@ def api_create_out_of_office_entry():
         entry_date = datetime.strptime(data.get('date'), '%Y-%m-%d').date()
         start_time = datetime.strptime(data.get('start_time'), '%H:%M').time()
         end_time = datetime.strptime(data.get('end_time'), '%H:%M').time()
-        reason = data.get('reason', '')
+        reason = data.get('reason', '').strip()
+
+        if not staff_id or not entry_date or not start_time or not end_time or not reason:
+            return jsonify({'success': False, 'error': 'All fields are required'}), 400
+
+        if len(reason) > 200:
+            return jsonify({'success': False, 'error': 'Reason must be 200 characters or less'}), 400
+
+        if start_time >= end_time:
+            return jsonify({'success': False, 'error': 'Start time must be before expected return time'}), 400
 
         # Find or create shift management for this staff
         shift_mgmt = ShiftManagement.query.filter_by(staff_id=staff_id).first()
@@ -808,11 +817,24 @@ def api_update_out_of_office_entry(entry_id):
         
         shift_log = ShiftLogs.query.get(entry_id)
         if not shift_log:
-            return jsonify({'error': 'Entry not found'}), 404
+            return jsonify({'success': False, 'error': 'Entry not found'}), 404
 
-        shift_log.out_of_office_start = datetime.strptime(data.get('start_time'), '%H:%M').time()
-        shift_log.out_of_office_end = datetime.strptime(data.get('end_time'), '%H:%M').time()
-        shift_log.out_of_office_reason = data.get('reason', '')
+        start_time = datetime.strptime(data.get('start_time'), '%H:%M').time()
+        end_time = datetime.strptime(data.get('end_time'), '%H:%M').time()
+        reason = data.get('reason', '').strip()
+
+        if not start_time or not end_time or not reason:
+            return jsonify({'success': False, 'error': 'All fields are required'}), 400
+
+        if len(reason) > 200:
+            return jsonify({'success': False, 'error': 'Reason must be 200 characters or less'}), 400
+
+        if start_time >= end_time:
+            return jsonify({'success': False, 'error': 'Start time must be before expected return time'}), 400
+
+        shift_log.out_of_office_start = start_time
+        shift_log.out_of_office_end = end_time
+        shift_log.out_of_office_reason = reason
 
         db.session.commit()
 
