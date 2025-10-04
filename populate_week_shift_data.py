@@ -21,7 +21,7 @@ def populate_week_shift_data():
 
             # Define default shift times
             default_shift_start = time(9, 0)  # 9:00 AM
-            default_shift_end = time(17, 0)   # 5:00 PM
+            default_shift_end = time(22, 0)   # 10:00 PM
             default_break_start = time(13, 0) # 1:00 PM
             default_break_end = time(14, 0)   # 2:00 PM
 
@@ -134,7 +134,7 @@ def populate_week_shift_data():
             print(f"   - Created {total_logs_created} total shift logs")
             print(f"   - Date range: {start_date} to {end_date}")
             print(f"   - Days included: Friday Oct 4 to Thursday Oct 10, 2025")
-            print(f"   - Shift time: 9:00 AM to 5:00 PM")
+            print(f"   - Shift time: 9:00 AM to 10:00 PM")
             print(f"   - Break time: 1:00 PM to 2:00 PM")
 
             # Show breakdown by day
