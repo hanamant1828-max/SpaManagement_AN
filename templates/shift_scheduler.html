@@ -216,18 +216,18 @@ $(document).ready(function() {
 
         const oooEntry = {
             staff_id: staffId,
-            start_date: startDate,
-            end_date: endDate,
+            date: startDate,
+            start_time: '09:00',
+            end_time: '17:00',
             reason: reason
         };
 
-        let url = '{{ url_for("shift_scheduler.manage_out_of_office") }}';
+        let url = '/shift-scheduler/api/out-of-office';
         let method = 'POST';
 
         if (oooId) {
-            url = '{{ url_for("shift_scheduler.manage_out_of_office", ooo_id=oooid) }}'; // Assuming route supports update by ID
-            method = 'PUT'; // Or POST depending on your backend
-            oooEntry.id = oooId;
+            url = '/shift-scheduler/api/out-of-office/' + oooId;
+            method = 'PUT';
         }
 
         $.ajax({
@@ -236,14 +236,18 @@ $(document).ready(function() {
             contentType: 'application/json',
             data: JSON.stringify(oooEntry),
             success: function(response) {
-                alert(response.message);
-                loadOutOfOfficeEntries();
-                $('#outOfOfficeFormContainer').hide();
-                $('#outOfOfficeForm')[0].reset();
-                $('#oooid').val('');
+                if (response.success) {
+                    alert(response.message);
+                    loadOutOfOfficeEntries();
+                    $('#outOfOfficeFormContainer').hide();
+                    $('#outOfOfficeForm')[0].reset();
+                    $('#oooid').val('');
+                } else {
+                    alert('Error: ' + (response.error || 'Unknown error'));
+                }
             },
             error: function(xhr) {
-                alert('Error: ' + xhr.responseJSON.message);
+                alert('Error: ' + (xhr.responseJSON && xhr.responseJSON.error ? xhr.responseJSON.error : 'Unknown error'));
             }
         });
     });
@@ -257,32 +261,38 @@ $(document).ready(function() {
     // Function to load Out of Office entries into the table
     window.loadOutOfOfficeEntries = function() {
         $.ajax({
-            url: '{{ url_for("shift_scheduler.get_out_of_office_entries") }}',
+            url: '/shift-scheduler/api/out-of-office',
             method: 'GET',
-            success: function(entries) {
+            success: function(response) {
                 const $tbody = $('#outOfOfficeTableBody');
                 $tbody.empty();
-                if (entries.length === 0) {
+                if (response.success && response.entries) {
+                    const entries = response.entries;
+                    if (entries.length === 0) {
+                        $('#noOutOfOfficeEntries').show();
+                        $('#outOfOfficeTable').hide();
+                    } else {
+                        $('#noOutOfOfficeEntries').hide();
+                        $('#outOfOfficeTable').show();
+                        entries.forEach(entry => {
+                            const row = `
+                                <tr>
+                                    <td>${entry.staff_name || 'N/A'}</td>
+                                    <td>${entry.date}</td>
+                                    <td>${entry.start_time} - ${entry.end_time}</td>
+                                    <td>${entry.reason || ''}</td>
+                                    <td class="text-center">
+                                        <button class="btn btn-sm btn-primary edit-ooo-btn" data-id="${entry.id}"><i class="fas fa-edit"></i></button>
+                                        <button class="btn btn-sm btn-danger delete-ooo-btn" data-id="${entry.id}"><i class="fas fa-trash-alt"></i></button>
+                                    </td>
+                                </tr>
+                            `;
+                            $tbody.append(row);
+                        });
+                    }
+                } else {
                     $('#noOutOfOfficeEntries').show();
                     $('#outOfOfficeTable').hide();
-                } else {
-                    $('#noOutOfOfficeEntries').hide();
-                    $('#outOfOfficeTable').show();
-                    entries.forEach(entry => {
-                        const row = `
-                            <tr>
-                                <td>${entry.staff_name || 'N/A'}</td>
-                                <td>${entry.start_date}</td>
-                                <td>${entry.end_date}</td>
-                                <td>${entry.reason}</td>
-                                <td class="text-center">
-                                    <button class="btn btn-sm btn-primary edit-ooo-btn" data-id="${entry.id}"><i class="fas fa-edit"></i></button>
-                                    <button class="btn btn-sm btn-danger delete-ooo-btn" data-id="${entry.id}"><i class="fas fa-trash-alt"></i></button>
-                                </td>
-                            </tr>
-                        `;
-                        $tbody.append(row);
-                    });
                 }
             },
             error: function(xhr) {
@@ -294,21 +304,12 @@ $(document).ready(function() {
 
     // Function to load staff members into the dropdown
     window.loadStaffForDropdown = function() {
-        $.ajax({
-            url: '{{ url_for("shift_scheduler.get_staff_members") }}', // Assuming you have an endpoint for this
-            method: 'GET',
-            success: function(staff) {
-                const $select = $('#ooostaffId');
-                $select.empty();
-                $select.append('<option value="">-- Select Staff Member --</option>');
-                staff.forEach(s => {
-                    $select.append(`<option value="${s.id}">${s.name}</option>`);
-                });
-            },
-            error: function(xhr) {
-                console.error('Error loading staff members:', xhr);
-                alert('Failed to load staff members.');
-            }
+        const staffMembers = {{ staff_members | tojson | safe }};
+        const $select = $('#ooostaffId');
+        $select.empty();
+        $select.append('<option value="">-- Select Staff Member --</option>');
+        staffMembers.forEach(staff => {
+            $select.append(`<option value="${staff.id}">${staff.first_name} ${staff.last_name}</option>`);
         });
     };
 
@@ -317,16 +318,22 @@ $(document).ready(function() {
     $('#outOfOfficeTableBody').on('click', '.edit-ooo-btn', function() {
         const oooId = $(this).data('id');
         $.ajax({
-            url: '{{ url_for("shift_scheduler.get_out_of_office_entry", ooo_id=' + oooId + ') }}', // Assuming route to get single entry
+            url: '/shift-scheduler/api/out-of-office/' + oooId,
             method: 'GET',
-            success: function(entry) {
-                $('#oooid').val(entry.id);
-                $('#ooostaffId').val(entry.staff_id);
-                $('#ooostartDate').val(entry.start_date);
-                $('#oooEndDate').val(entry.end_date);
-                $('#oooreason').val(entry.reason);
-                $('#outOfOfficeFormTitle').text('Edit Out of Office Entry');
-                $('#outOfOfficeFormContainer').show();
+            success: function(response) {
+                if (response.success && response.entry) {
+                    const entry = response.entry;
+                    $('#oooid').val(entry.id);
+                    $('#ooostaffId').val(entry.staff_id);
+                    $('#ooostartDate').val(entry.date);
+                    $('#oooendDate').val(entry.date);
+                    $('#oooreason').val(entry.reason);
+                    $('#outOfOfficeFormTitle').text('Edit Out of Office Entry');
+                    $('#outOfOfficeFormContainer').show();
+                    loadStaffForDropdown();
+                } else {
+                    alert('Failed to load entry for editing.');
+                }
             },
             error: function(xhr) {
                 console.error('Error loading out of office entry for edit:', xhr);
@@ -339,14 +346,18 @@ $(document).ready(function() {
         const oooId = $(this).data('id');
         if (confirm('Are you sure you want to delete this out of office entry?')) {
             $.ajax({
-                url: '{{ url_for("shift_scheduler.delete_out_of_office_entry", ooo_id=' + oooId + ') }}', // Assuming route for deletion
+                url: '/shift-scheduler/api/out-of-office/' + oooId,
                 method: 'DELETE',
                 success: function(response) {
-                    alert(response.message);
-                    loadOutOfOfficeEntries();
+                    if (response.success) {
+                        alert(response.message);
+                        loadOutOfOfficeEntries();
+                    } else {
+                        alert('Error: ' + (response.error || 'Unknown error'));
+                    }
                 },
                 error: function(xhr) {
-                    alert('Error deleting out of office entry: ' + xhr.responseJSON.message);
+                    alert('Error deleting out of office entry: ' + (xhr.responseJSON && xhr.responseJSON.error ? xhr.responseJSON.error : 'Unknown error'));
                 }
             });
         }
