@@ -73,35 +73,32 @@ def populate_week_shift_data():
                 staff_logs_created = 0
 
                 # Define out-of-office scenarios for variety
+                import random
+                
                 ooo_scenarios = [
                     {'start': time(10, 0), 'end': time(11, 30), 'reason': 'Client visit at downtown location'},
                     {'start': time(14, 30), 'end': time(15, 30), 'reason': 'Bank work'},
                     {'start': time(11, 0), 'end': time(12, 0), 'reason': 'Supplier meeting'},
                     {'start': time(15, 0), 'end': time(16, 30), 'reason': 'Product delivery'},
                     {'start': time(9, 30), 'end': time(10, 30), 'reason': 'Field inspection'},
+                    {'start': time(13, 30), 'end': time(14, 45), 'reason': 'Training session'},
+                    {'start': time(10, 30), 'end': time(12, 0), 'reason': 'Off-site meeting'},
+                    {'start': time(15, 30), 'end': time(16, 45), 'reason': 'Inventory audit'},
                 ]
 
                 day_index = 0
                 while current_date <= end_date:
                     # Randomly assign out-of-office for some staff on some days
-                    # For variety: staff IDs 1, 5, 10, 15, 20 get OOO on specific days
                     out_start = None
                     out_end = None
                     out_reason = None
 
-                    # Add OOO data for specific staff/day combinations
-                    if staff.id in [1, 5, 10, 15, 20]:
-                        if day_index in [0, 2, 4]:  # Monday, Wednesday, Friday
-                            scenario = ooo_scenarios[staff.id % len(ooo_scenarios)]
-                            out_start = scenario['start']
-                            out_end = scenario['end']
-                            out_reason = scenario['reason']
-                    elif staff.id in [2, 7, 12, 17]:
-                        if day_index in [1, 3]:  # Tuesday, Thursday
-                            scenario = ooo_scenarios[(staff.id + 1) % len(ooo_scenarios)]
-                            out_start = scenario['start']
-                            out_end = scenario['end']
-                            out_reason = scenario['reason']
+                    # Random 30% chance for any staff to have out-of-office on any day
+                    if random.random() < 0.3:
+                        scenario = random.choice(ooo_scenarios)
+                        out_start = scenario['start']
+                        out_end = scenario['end']
+                        out_reason = scenario['reason']
 
                     # Create logs for all days (including weekends for testing)
                     shift_log = ShiftLogs(
