@@ -2589,3 +2589,60 @@ def api_unaki_save_draft():
         if 'db' in locals():
             db.session.rollback()
         return jsonify({'error': str(e), 'success': False}), 500
+
+@app.route('/api/unaki/customer-appointments/<int:client_id>', methods=['GET'])
+@login_required
+def api_unaki_customer_appointments(client_id):
+    """API endpoint to get all appointments for a specific customer"""
+    if not current_user.can_access('bookings'):
+        return jsonify({'error': 'Access denied', 'success': False}), 403
+
+    try:
+        from models import UnakiBooking, Customer
+        from app import db
+
+        # Verify customer exists
+        customer = Customer.query.get(client_id)
+        if not customer:
+            return jsonify({'success': False, 'error': 'Customer not found', 'bookings': []}), 404
+
+        # Get appointments - try matching by client_id first
+        appointments = UnakiBooking.query.filter(
+            UnakiBooking.client_id == client_id,
+            UnakiBooking.status.in_(['scheduled', 'confirmed'])
+        ).order_by(UnakiBooking.appointment_date.desc()).all()
+
+        # If no results, try matching by phone
+        if not appointments and customer.phone:
+            appointments = UnakiBooking.query.filter(
+                UnakiBooking.client_phone == customer.phone,
+                UnakiBooking.status.in_(['scheduled', 'confirmed'])
+            ).order_by(UnakiBooking.appointment_date.desc()).all()
+
+        bookings_data = []
+        for booking in appointments:
+            bookings_data.append({
+                'id': booking.id,
+                'client_name': booking.client_name,
+                'client_phone': booking.client_phone,
+                'staff_id': booking.staff_id,
+                'staff_name': booking.staff.full_name if booking.staff else 'Unknown',
+                'service_names': booking.service_name,
+                'appointment_date': booking.appointment_date.strftime('%Y-%m-%d'),
+                'start_time': booking.start_time.strftime('%H:%M'),
+                'end_time': booking.end_time.strftime('%H:%M'),
+                'status': booking.status,
+                'payment_status': booking.payment_status,
+                'notes': booking.notes or ''
+            })
+
+        return jsonify({
+            'success': True,
+            'bookings': bookings_data
+        })
+
+    except Exception as e:
+        print(f"❌ Error fetching customer appointments: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e), 'success': False, 'bookings': []}), 500

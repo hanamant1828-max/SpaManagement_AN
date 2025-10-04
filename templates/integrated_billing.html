@@ -941,51 +941,88 @@ function initializeBillingSystem() {
 // ==========================================
 function loadCustomerPackages(customerId) {
     const packagesDiv = document.getElementById('customerPackages');
-    packagesDiv.innerHTML = '<small><i class="fas fa-spinner spinner"></i> Loading packages...</small>';
+    packagesDiv.innerHTML = '<small><i class="fas fa-spinner spinner"></i> Loading packages and appointments...</small>';
 
-    fetch(`/integrated-billing/customer-packages/${customerId}`)
-        .then(res => res.json())
-        .then(data => {
-            BillingState.customerPackages = data;
-            displayPackages(data.packages || []);
+    // Fetch both packages and appointments
+    Promise.all([
+        fetch(`/integrated-billing/customer-packages/${customerId}`).then(res => res.json()),
+        fetch(`/api/unaki/customer-appointments/${customerId}`).then(res => res.json())
+    ])
+        .then(([packagesData, appointmentsData]) => {
+            BillingState.customerPackages = packagesData;
+            displayPackagesAndAppointments(packagesData.packages || [], appointmentsData.bookings || []);
             updateCalculations();
         })
         .catch(err => {
             console.error('Error loading packages:', err);
-            packagesDiv.innerHTML = '<small class="text-danger"><i class="fas fa-exclamation-triangle"></i> Error loading packages</small>';
+            packagesDiv.innerHTML = '<small class="text-danger"><i class="fas fa-exclamation-triangle"></i> Error loading data</small>';
         });
 }
 
-function displayPackages(packages) {
+function displayPackagesAndAppointments(packages, appointments) {
     const packagesDiv = document.getElementById('customerPackages');
     
-    if (!packages.length) {
-        packagesDiv.innerHTML = '<small class="text-muted"><i class="fas fa-info-circle"></i> No active packages</small>';
+    if (!packages.length && !appointments.length) {
+        packagesDiv.innerHTML = '<small class="text-muted"><i class="fas fa-info-circle"></i> No active packages or appointments</small>';
         return;
     }
 
     let html = '';
-    packages.forEach(pkg => {
-        const icon = pkg.package_type === 'service_package' ? 'fa-spa' : 
-                     pkg.package_type === 'prepaid' ? 'fa-wallet' : 'fa-crown';
+    
+    // Display packages
+    if (packages.length > 0) {
+        html += '<div class="mb-2"><strong>Active Packages:</strong></div>';
+        packages.forEach(pkg => {
+            const icon = pkg.package_type === 'service_package' ? 'fa-spa' : 
+                         pkg.package_type === 'prepaid' ? 'fa-wallet' : 'fa-crown';
+            
+            html += `<div class="package-benefit mb-2 ms-2">
+                <strong><i class="fas ${icon}"></i> ${pkg.package_name}</strong><br>
+                <small>`;
+            
+            if (pkg.package_type === 'service_package') {
+                html += `${pkg.remaining_sessions || 0} of ${pkg.total_sessions || 0} sessions remaining`;
+            } else if (pkg.package_type === 'prepaid') {
+                html += `₹${(pkg.remaining_credit || 0).toFixed(2)} credit remaining`;
+            } else if (pkg.package_type === 'membership') {
+                const services = pkg.services?.map(s => s.service_name).join(', ') || 'All services';
+                html += `Covers: ${services}`;
+            }
+            
+            html += `</small></div>`;
+        });
+    }
+    
+    // Display appointments
+    if (appointments.length > 0) {
+        html += '<div class="mt-3 mb-2"><strong>Booked Appointments:</strong></div>';
+        // Filter for upcoming/scheduled appointments
+        const upcomingAppointments = appointments.filter(apt => 
+            apt.status === 'scheduled' || apt.status === 'confirmed'
+        ).slice(0, 5); // Show only first 5
         
-        html += `<div class="package-benefit mb-2">
-            <strong><i class="fas ${icon}"></i> ${pkg.package_name}</strong><br>
-            <small>`;
-        
-        if (pkg.package_type === 'service_package') {
-            html += `${pkg.remaining_sessions || 0} of ${pkg.total_sessions || 0} sessions remaining`;
-        } else if (pkg.package_type === 'prepaid') {
-            html += `₹${(pkg.remaining_credit || 0).toFixed(2)} credit remaining`;
-        } else if (pkg.package_type === 'membership') {
-            const services = pkg.services?.map(s => s.service_name).join(', ') || 'All services';
-            html += `Covers: ${services}`;
+        if (upcomingAppointments.length > 0) {
+            upcomingAppointments.forEach(apt => {
+                const date = new Date(apt.appointment_date);
+                const formattedDate = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                html += `<div class="package-benefit mb-1 ms-2">
+                    <small><i class="fas fa-calendar-check"></i> ${formattedDate} at ${apt.start_time} - ${apt.service_names || 'Service'}</small>
+                </div>`;
+            });
+            if (appointments.length > 5) {
+                html += `<div class="ms-2"><small class="text-muted">+${appointments.length - 5} more...</small></div>`;
+            }
+        } else {
+            html += '<div class="ms-2"><small class="text-muted">No upcoming appointments</small></div>';
         }
-        
-        html += `</small></div>`;
-    });
+    }
     
     packagesDiv.innerHTML = html;
+}
+
+function displayPackages(packages) {
+    // Keep old function for backward compatibility
+    displayPackagesAndAppointments(packages, []);
 }
 
 function resetCustomerPackages() {
