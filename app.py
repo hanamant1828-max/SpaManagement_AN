@@ -380,13 +380,28 @@ def unaki_schedule():
 
         # Get date parameter and clean it
         date_str = request.args.get('date', date.today().strftime('%Y-%m-%d')).strip()
-        target_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+        
+        # Validate date format
+        try:
+            target_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+        except ValueError:
+            return jsonify({
+                'success': False,
+                'error': 'Invalid date format',
+                'staff': [],
+                'appointments': [],
+                'breaks': []
+            }), 400
 
         # Debug: Log the date we're querying for
         print(f"🗓️  Querying Unaki bookings for date: {target_date} (from parameter: {date_str})")
 
-        # Get staff members
-        staff_members = get_staff_members()
+        # Get staff members with error handling
+        try:
+            staff_members = get_staff_members()
+        except Exception as e:
+            print(f"Error getting staff members: {e}")
+            staff_members = []
 
         # Get Unaki bookings for the target date
         unaki_bookings = UnakiBooking.query.filter_by(appointment_date=target_date).all()
@@ -653,14 +668,17 @@ def unaki_schedule():
         })
 
     except Exception as e:
+        import traceback
         print(f"Error in unaki_schedule: {e}")
+        traceback.print_exc()
         return jsonify({
             'success': False,
             'error': str(e),
+            'message': 'An error occurred while loading schedule data',
             'staff': [],
             'appointments': [],
             'breaks': []
-        })
+        }), 500
 
 @app.route('/api/unaki/load-sample-data', methods=['POST'])
 def unaki_load_sample_data():
