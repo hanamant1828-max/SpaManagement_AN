@@ -175,6 +175,44 @@
                     </div>
                 </div>
                 <div class="card-body">
+                    <ul class="nav nav-tabs mb-3" id="packageTypeTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" data-package-type="" type="button">
+                                <i class="fas fa-th-large me-1"></i>All Types
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" data-package-type="prepaid" type="button">
+                                <i class="fas fa-wallet me-1"></i>Prepaid
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" data-package-type="service_package" type="button">
+                                <i class="fas fa-spa me-1"></i>Service Package
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" data-package-type="membership" type="button">
+                                <i class="fas fa-id-card me-1"></i>Membership
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" data-package-type="student_offer" type="button">
+                                <i class="fas fa-graduation-cap me-1"></i>Student Offer
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" data-package-type="yearly" type="button">
+                                <i class="fas fa-calendar-alt me-1"></i>Yearly
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" data-package-type="kitty" type="button">
+                                <i class="fas fa-users me-1"></i>Kitty Party
+                            </button>
+                        </li>
+                    </ul>
+
                     <ul class="nav nav-pills mb-3" id="statusPills">
                         <li class="nav-item"><button class="nav-link active" data-status="">All</button></li>
                         <li class="nav-item"><button class="nav-link" data-status="active">Active</button></li>
@@ -446,7 +484,7 @@ function generateUUID() {
     });
 }
 
-const S = { loaded:false, page:1, per:20, q:'', status:'', expiring:'', sort:'expires_on:asc' };
+const S = { loaded:false, page:1, per:20, q:'', status:'', expiring:'', packageType:'', sort:'expires_on:asc' };
 
 const $ = (id) => document.getElementById(id);
 const fmtMoney = n => '₹' + (n||0).toLocaleString(undefined,{maximumFractionDigits:0});
@@ -463,11 +501,21 @@ document.addEventListener('shown.bs.tab', (e)=>{
 });
 
 function hookAssignedUI(){
+    document.querySelectorAll('#packageTypeTabs .nav-link').forEach(btn=>{
+        btn.addEventListener('click', ()=>{
+            document.querySelectorAll('#packageTypeTabs .nav-link').forEach(b=>b.classList.remove('active'));
+            btn.classList.add('active');
+            S.page=1;
+            S.packageType = btn.getAttribute('data-package-type')||'';
+            fetchAssignments();
+        });
+    });
+    
     document.querySelectorAll('#statusPills .nav-link').forEach(btn=>{
         btn.addEventListener('click', ()=>{
             document.querySelectorAll('#statusPills .nav-link').forEach(b=>b.classList.remove('active'));
             btn.classList.add('active');
-            S.page=1; S.q=''; S.expiring=''; S.status='';
+            S.page=1; S.expiring=''; S.status='';
             const st = btn.getAttribute('data-status')||'';
             const ex = btn.getAttribute('data-expiring')||'';
             if(st==='expiring') { S.expiring = ex||'30'; } else { S.status = st; }
@@ -482,7 +530,7 @@ function hookAssignedUI(){
 function fetchAssignments(){
     const p = new URLSearchParams({
         q: S.q, status: (S.status==='expiring'?'':S.status), expiring_in: S.expiring,
-        page: S.page, per_page: S.per, sort: S.sort
+        package_type: S.packageType, page: S.page, per_page: S.per, sort: S.sort
     }).toString();
     fetch(`/packages/api/assignments?${p}`)
         .then(r=>r.json())

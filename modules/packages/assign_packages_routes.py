@@ -314,6 +314,7 @@ def api_get_assignments():
         q = request.args.get('q', '').strip()
         status = request.args.get('status', '').strip()
         expiring_in = request.args.get('expiring_in', '').strip()
+        package_type = request.args.get('package_type', '').strip()
         page = int(request.args.get('page', 1))
         per_page = int(request.args.get('per_page', 20))
         sort = request.args.get('sort', 'assigned_on:desc')
@@ -321,7 +322,11 @@ def api_get_assignments():
         # Base query
         query = ServicePackageAssignment.query
         
-        # Apply filters
+        # Apply package type filter
+        if package_type:
+            query = query.filter(ServicePackageAssignment.package_type == package_type)
+        
+        # Apply status filter
         if status:
             query = query.filter(ServicePackageAssignment.status == status)
         
