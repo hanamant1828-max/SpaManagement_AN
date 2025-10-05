@@ -1079,7 +1079,7 @@ function displayCustomerPackagesTable(packages) {
                         <th style="padding: 0.5rem;">Package Name</th>
                         <th style="padding: 0.5rem;">Type</th>
                         <th style="padding: 0.5rem;">Status</th>
-                        <th style="padding: 0.5rem;">Balance</th>
+                        <th style="padding: 0.5rem;">Balance/Services</th>
                         <th style="padding: 0.5rem;">Expiry</th>
                     </tr>
                 </thead>
@@ -1102,7 +1102,7 @@ function displayCustomerPackagesTable(packages) {
                     <th style="padding: 0.5rem;">Package Name</th>
                     <th style="padding: 0.5rem;">Type</th>
                     <th style="padding: 0.5rem;">Status</th>
-                    <th style="padding: 0.5rem;">Balance</th>
+                    <th style="padding: 0.5rem;">Balance/Services</th>
                     <th style="padding: 0.5rem;">Expiry</th>
                 </tr>
             </thead>
@@ -1125,12 +1125,38 @@ function displayCustomerPackagesTable(packages) {
 
         // Display balance based on package type
         let balanceText = '';
+        let balanceDetails = '';
+        
         if (packageType === 'prepaid') {
-            balanceText = `₹${(pkg.remaining_credit || 0).toFixed(2)} / ₹${(pkg.credit_amount || 0).toFixed(2)}`;
+            const remaining = pkg.remaining_credit || 0;
+            const total = pkg.credit_amount || 0;
+            const usedPct = total > 0 ? ((total - remaining) / total * 100).toFixed(0) : 0;
+            balanceText = `₹${remaining.toFixed(2)} / ₹${total.toFixed(2)}`;
+            balanceDetails = `
+                <div class="progress mt-1" style="height: 5px;">
+                    <div class="progress-bar bg-success" style="width: ${100 - usedPct}%"></div>
+                </div>`;
         } else if (packageType === 'service_package') {
-            balanceText = `${pkg.remaining_sessions || 0} / ${pkg.total_sessions || 0} sessions`;
+            const remaining = pkg.remaining_sessions || 0;
+            const total = pkg.total_sessions || 0;
+            const usedPct = total > 0 ? ((total - remaining) / total * 100).toFixed(0) : 0;
+            balanceText = `${remaining} / ${total} sessions`;
+            balanceDetails = `
+                <div class="progress mt-1" style="height: 5px;">
+                    <div class="progress-bar bg-success" style="width: ${100 - usedPct}%"></div>
+                </div>`;
         } else if (packageType === 'membership') {
-            balanceText = 'Unlimited';
+            // For memberships, show covered services
+            if (pkg.services && pkg.services.length > 0) {
+                const serviceNames = pkg.services.map(s => s.service_name).join(', ');
+                balanceText = `<span class="badge bg-success">Unlimited</span>`;
+                balanceDetails = `<br><small class="text-muted">${serviceNames}</small>`;
+            } else {
+                balanceText = `<span class="badge bg-success">Unlimited</span>`;
+                if (pkg.description) {
+                    balanceDetails = `<br><small class="text-muted">${pkg.description}</small>`;
+                }
+            }
         }
 
         // Format expiry date
@@ -1150,11 +1176,14 @@ function displayCustomerPackagesTable(packages) {
             <tr style="border-bottom: 1px solid var(--gray-200);">
                 <td style="padding: 0.5rem;">
                     <strong>${packageName}</strong>
-                    ${pkg.service_name ? `<br><small class="text-muted">${pkg.service_name}</small>` : ''}
+                    ${pkg.service_name ? `<br><small class="text-muted">Service: ${pkg.service_name}</small>` : ''}
                 </td>
                 <td style="padding: 0.5rem;">${typeBadge}</td>
                 <td style="padding: 0.5rem;">${statusBadge}</td>
-                <td style="padding: 0.5rem;"><strong>${balanceText}</strong></td>
+                <td style="padding: 0.5rem;">
+                    <strong>${balanceText}</strong>
+                    ${balanceDetails}
+                </td>
                 <td style="padding: 0.5rem;">
                     <small>${expiryDate}</small>
                 </td>
