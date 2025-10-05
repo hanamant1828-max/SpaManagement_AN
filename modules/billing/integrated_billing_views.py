@@ -1083,9 +1083,9 @@ def create_professional_invoice():
                                     "sessions": {
                                         "total": int(assignment.total_sessions or 0),
                                         "used": int(assignment.used_sessions or 0),
-                                        "remaining": int(assignment.remaining_sessions or 0),
+                                        "remaining": int(assignment.remaining_sessions or 0)
                                     },
-                                    "status": assignment.status,
+                                    "status": assignment.status
                                 })
 
                         # Log package usage
