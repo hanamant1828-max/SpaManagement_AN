@@ -1,3 +1,4 @@
+
 """
 Check-in views and routes
 """
@@ -12,45 +13,48 @@ from .checkin_queries import (
 @app.route('/checkin')
 @login_required
 def checkin():
-    if not current_user.can_access('face_checkin_view'):
-        flash('Access denied', 'danger')
+    """Face recognition check-in page"""
+    try:
+        appointments = get_todays_appointments()
+        return render_template('checkin.html', appointments=appointments)
+    except Exception as e:
+        print(f"Checkin error: {e}")
+        flash('Error loading check-in page', 'danger')
         return redirect(url_for('dashboard'))
-    
-    appointments = get_todays_appointments()
-    
-    return render_template('checkin.html', appointments=appointments)
 
 @app.route('/checkin/appointment/<int:id>', methods=['POST'])
 @login_required
 def checkin_appointment(id):
-    if not current_user.can_access('face_checkin_view'):
-        flash('Access denied', 'danger')
-        return redirect(url_for('dashboard'))
-    
-    appointment = check_in_appointment(id)
-    if appointment:
-        flash(f'Client {appointment.client.full_name} checked in successfully!', 'success')
-    else:
-        flash('Appointment not found', 'danger')
-    
-    return redirect(url_for('checkin'))
+    """Check in an appointment"""
+    try:
+        appointment = check_in_appointment(id)
+        if appointment:
+            flash(f'Client {appointment.client.full_name} checked in successfully!', 'success')
+        else:
+            flash('Appointment not found', 'danger')
+        return redirect(url_for('checkin'))
+    except Exception as e:
+        print(f"Checkin appointment error: {e}")
+        flash('Error checking in appointment', 'danger')
+        return redirect(url_for('checkin'))
 
 @app.route('/checkin/search', methods=['POST'])
 @login_required
 def checkin_search():
-    if not current_user.can_access('face_checkin_view'):
-        flash('Access denied', 'danger')
-        return redirect(url_for('dashboard'))
-    
-    phone = request.form.get('phone')
-    if phone:
-        client = get_client_by_phone(phone)
-        if client:
-            appointments = get_client_appointments_today(client.id)
-            return render_template('checkin.html', 
-                                 appointments=appointments, 
-                                 search_client=client)
-        else:
-            flash('Client not found with this phone number', 'warning')
-    
-    return redirect(url_for('checkin'))
+    """Search for client by phone"""
+    try:
+        phone = request.form.get('phone')
+        if phone:
+            client = get_client_by_phone(phone)
+            if client:
+                appointments = get_client_appointments_today(client.id)
+                return render_template('checkin.html', 
+                                     appointments=appointments, 
+                                     search_client=client)
+            else:
+                flash('Client not found with this phone number', 'warning')
+        return redirect(url_for('checkin'))
+    except Exception as e:
+        print(f"Checkin search error: {e}")
+        flash('Error searching for client', 'danger')
+        return redirect(url_for('checkin'))

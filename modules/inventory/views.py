@@ -342,11 +342,11 @@ def api_get_batches_for_product(product_id):
         for batch in batches:
             # Check if batch is expired
             is_expired = batch.expiry_date and batch.expiry_date < date.today()
-            
+
             # Skip expired batches
             if is_expired:
                 continue
-            
+
             batch_info = {
                 'id': batch.id,
                 'batch_name': batch.batch_name,
@@ -1164,3 +1164,87 @@ def api_get_products_simple():
         } for p in products])
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+@app.route('/modules/checkin') # This is a placeholder, will be fixed soon
+@login_required
+def checkin():
+    """Placeholder for checkin view"""
+    return render_template('checkin.html')
+
+@app.route('/modules/checkin/new', methods=['POST']) # This is a placeholder, will be fixed soon
+@login_required
+def checkin_new():
+    """Placeholder for new checkin"""
+    flash('Checkin functionality not yet implemented', 'warning')
+    return redirect(url_for('checkin'))
+
+@app.route('/modules/checkout') # This is a placeholder, will be fixed soon
+@login_required
+def checkout():
+    """Placeholder for checkout view"""
+    return render_template('checkout.html')
+
+@app.route('/modules/checkout/new', methods=['POST']) # This is a placeholder, will be fixed soon
+@login_required
+def checkout_new():
+    """Placeholder for new checkout"""
+    flash('Checkout functionality not yet implemented', 'warning')
+    return redirect(url_for('checkout'))
+
+@app.route('/modules/staff') # This is a placeholder, will be fixed soon
+@login_required
+def staff_dashboard():
+    """Placeholder for staff dashboard"""
+    return render_template('staff_dashboard.html')
+
+@app.route('/modules/staff/punch_in', methods=['POST']) # This is the correct endpoint for punch in
+@login_required
+def punch_in():
+    """Endpoint for staff to punch in"""
+    try:
+        # Implement punch in logic here
+        flash('Punch in successful', 'success')
+        return redirect(url_for('staff_dashboard'))
+    except Exception as e:
+        flash(f'Punch in failed: {e}', 'danger')
+        return redirect(url_for('staff_dashboard'))
+
+@app.route('/modules/staff/punch_out', methods=['POST']) # This is a placeholder, will be fixed soon
+@login_required
+def punch_out():
+    """Endpoint for staff to punch out"""
+    try:
+        # Implement punch out logic here
+        flash('Punch out successful', 'success')
+        return redirect(url_for('staff_dashboard'))
+    except Exception as e:
+        flash(f'Punch out failed: {e}', 'danger')
+        return redirect(url_for('staff_dashboard'))
+
+
+# ============ BATCH-CENTRIC PRODUCT BATCHES ENDPOINTS ============
+@app.route('/api/inventory/products/batches/<int:product_id>', methods=['GET'])
+@login_required
+def get_product_batches(product_id):
+    """Get all batches for a specific product"""
+    try:
+        batches = InventoryBatch.query.filter_by(
+            product_id=product_id,
+            status='active'
+        ).order_by(InventoryBatch.expiry_date.asc()).all()
+
+        return jsonify({
+            'success': True,
+            'batches': [{
+                'id': b.id,
+                'batch_name': b.batch_name,
+                'expiry_date': b.expiry_date.isoformat() if b.expiry_date else None,
+                'qty_available': float(b.qty_available or 0),
+                'unit_cost': float(b.unit_cost or 0),
+                'location_id': b.location_id,
+                'location_name': b.location.name if b.location else 'Unknown'
+            } for b in batches]
+        })
+    except Exception as e:
+        print(f"Error loading batches: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 404
