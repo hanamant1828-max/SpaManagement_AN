@@ -2054,21 +2054,42 @@ function checkPackageBenefit(serviceId, servicePrice, quantity = 1) {
             }
             // --- Membership Package Logic ---
             else if (pkg.package_type === 'membership') {
-                // Check if service is covered by membership
-                const serviceCost = servicePrice * quantity;
+                // Memberships provide unlimited access ONLY to specific included services
+                const includedServices = pkg.services || [];
+                const includedServiceIds = includedServices.map(s => s.service_id);
                 
-                console.log('✅ Membership APPLIED:', {
-                    packageId: pkg.assignment_id || pkg.id,
+                console.log('🎫 Checking membership:', {
                     packageName: pkg.name,
-                    serviceCost: serviceCost.toFixed(2)
+                    includedServiceIds: includedServiceIds,
+                    requestedServiceId: serviceId,
+                    isServiceIncluded: includedServiceIds.includes(parseInt(serviceId))
                 });
+                
+                // Check if the requested service is included in the membership
+                if (includedServiceIds.includes(parseInt(serviceId))) {
+                    const serviceCost = servicePrice * quantity;
+                    
+                    console.log('✅ Membership APPLIED (unlimited access):', {
+                        packageId: pkg.assignment_id || pkg.id,
+                        packageName: pkg.name,
+                        serviceName: includedServices.find(s => s.service_id == serviceId)?.service_name || 'Unknown',
+                        serviceCost: serviceCost.toFixed(2),
+                        quantity: quantity
+                    });
 
-                totalBenefit += serviceCost;
-                appliedPackage = pkg.name;
-                appliedPackageId = pkg.assignment_id || pkg.id;
-                benefitType = 'membership';
+                    totalBenefit += serviceCost;
+                    appliedPackage = pkg.name;
+                    appliedPackageId = pkg.assignment_id || pkg.id;
+                    benefitType = 'unlimited';
 
-                break; // First matching package wins
+                    break; // First matching package wins
+                } else {
+                    console.log('⏭️ Membership skipped (service not included):', {
+                        packageName: pkg.name,
+                        requestedServiceId: serviceId,
+                        includedServices: includedServices.map(s => s.service_name)
+                    });
+                }
             }
             // Add logic for other package types if needed (e.g., memberships with free services)
         }
