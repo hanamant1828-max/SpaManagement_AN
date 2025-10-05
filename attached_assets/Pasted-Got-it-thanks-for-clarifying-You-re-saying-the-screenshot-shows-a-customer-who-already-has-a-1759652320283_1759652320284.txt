@@ -1,0 +1,103 @@
+Got it 👍 — thanks for clarifying. You’re saying the screenshot shows a customer who **already has a package**, but when billing/invoice is created, the **package benefits aren’t being applied**.
+
+Based on the billing UI you shared earlier (with package handling logic), here are the likely reasons and fixes:
+
+---
+
+## 🔎 Possible Causes
+
+1. **Mismatch in Service Linking**
+
+   * The service in the invoice row may not exactly match the service code/name stored under the package.
+   * Example: `Haircut` in invoice vs. `Hair Cut` in package → no match, so benefit not applied.
+
+2. **Expired or Exhausted Package**
+
+   * Even if a package exists, if **expiry date passed** or **sessions balance = 0**, benefits won’t trigger.
+
+3. **Logic Bug in Package Application**
+
+   * From your earlier code:
+
+     ```js
+     if (servicePrice > 0 && coveredByPackage) {
+         row.querySelector(".price").innerText = "0";
+     }
+     ```
+
+     If `coveredByPackage` is **false** due to wrong check (string vs. number, missing dataset, etc.), price won’t zero out.
+
+4. **Membership vs. Service Package Confusion**
+
+   * If the customer has a **membership** but your logic only checks for **prepaid packages**, benefits won’t apply unless both cases are handled.
+
+5. **UI Binding / Event Trigger Issue**
+
+   * If event listeners for applying package benefits (`onchange`, `onclick`) are not firing after rows are cloned, the package check never runs.
+
+---
+
+## 🛠 How to Debug
+
+1. **Console Log Check**
+
+   * Add a log when applying package:
+
+     ```js
+     console.log("Checking package for service:", serviceName, "Covered:", coveredByPackage);
+     ```
+   * If it always logs `false`, mapping issue.
+
+2. **Verify Data from API**
+
+   * When loading customer packages, check the response:
+
+     ```js
+     console.log("Customer packages:", customer.packages);
+     ```
+   * Make sure the package actually includes the service in the screenshot.
+
+3. **Check Row Dataset**
+
+   * Each service row should carry a `data-service-id` or similar.
+   * Ensure it matches the package’s service ID.
+
+4. **Force Re-apply on Service Change**
+
+   * After adding/removing a service row, call:
+
+     ```js
+     applyPackageBenefits();
+     ```
+   * Sometimes benefits only apply on page load, not after editing.
+
+---
+
+## ✅ Suggested Fix
+
+* When validating a bill row, ensure **service comparison is ID-based**, not name-based:
+
+  ```js
+  const coveredByPackage = customer.packages.some(p => p.serviceId === row.dataset.serviceId && p.remaining > 0);
+  ```
+* Handle memberships separately:
+
+  ```js
+  if (p.type === "membership") {
+      // apply discount logic
+  } else if (p.type === "prepaid") {
+      // apply zero-price logic
+  }
+  ```
+* Always refresh package benefits after any change:
+
+  ```js
+  recalcBill();
+  applyPackageBenefits();
+  ```
+
+---
+
+👉 If you’d like, you can share the **exact part of the code where packages are applied** (or I can re-check the code you shared earlier) — then I’ll show you the corrected snippet to make sure package benefits always apply when a customer has them.
+
+Would you like me to **fix the function that applies package benefits** for you?

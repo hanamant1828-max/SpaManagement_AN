@@ -1689,42 +1689,88 @@ function updateCalculations() {
 }
 
 function checkPackageBenefit(serviceId, servicePrice, quantity) {
-    // Return 0 if no customer packages loaded
+    console.log('🔍 checkPackageBenefit called:', { serviceId, servicePrice, quantity });
+    
     if (!BillingState.customerPackages || !BillingState.customerPackages.packages) {
+        console.log('ℹ️ No customer packages available');
         return 0;
     }
 
     let totalBenefit = 0;
+    let benefitApplied = false;
 
-    // Check each package for this service
-    for (const pkg of BillingState.customerPackages.packages) {
-        if (pkg.package_type === 'membership') {
-            // Check if membership covers this service
+    BillingState.customerPackages.packages.forEach(pkg => {
+        console.log('📦 Checking package:', {
+            id: pkg.id,
+            type: pkg.package_type,
+            name: pkg.package_name,
+            serviceId: pkg.service_id,
+            remaining: pkg.sessions?.remaining || pkg.credit?.remaining
+        });
+
+        if (pkg.package_type === 'service_package') {
+            const remainingSessions = pkg.sessions?.remaining || 0;
+            
+            if (pkg.service_id === serviceId && remainingSessions > 0) {
+                const sessionsToCover = Math.min(quantity, remainingSessions);
+                const pricePerSession = servicePrice / quantity;
+                const benefitAmount = sessionsToCover * pricePerSession;
+                
+                totalBenefit += benefitAmount;
+                benefitApplied = true;
+                
+                console.log('✅ Prepaid package applied:', {
+                    serviceId,
+                    packageName: pkg.package_name,
+                    sessionsCovered: sessionsToCover,
+                    benefitAmount: benefitAmount.toFixed(2),
+                    remainingSessions: remainingSessions
+                });
+            }
+        } else if (pkg.package_type === 'membership') {
             const coveredServices = pkg.services || [];
             const isCovered = coveredServices.some(s => s.service_id === serviceId);
 
             if (isCovered) {
-                // Membership covers full price
-                return servicePrice;
-            }
-        } else if (pkg.package_type === 'service_package') {
-            // Use exact field names from backend: sessions.remaining
-            const remainingSessions = pkg.sessions?.remaining || 0;
-            // Check if service package has remaining sessions for this service
-            if (pkg.service_id === serviceId && remainingSessions > 0) {
-                // Calculate how many sessions can be covered
-                const sessionsToCover = Math.min(quantity, remainingSessions);
-                const pricePerSession = servicePrice / quantity;
-                totalBenefit += sessionsToCover * pricePerSession;
+                const discountRate = pkg.discount_percentage ? (pkg.discount_percentage / 100) : 0.2;
+                const benefitAmount = servicePrice * discountRate;
+                
+                totalBenefit += benefitAmount;
+                benefitApplied = true;
+                
+                console.log('✅ Membership discount applied:', {
+                    serviceId,
+                    packageName: pkg.package_name,
+                    discountRate: (discountRate * 100).toFixed(0) + '%',
+                    originalPrice: servicePrice.toFixed(2),
+                    benefitAmount: benefitAmount.toFixed(2),
+                    finalPrice: (servicePrice - benefitAmount).toFixed(2)
+                });
             }
         } else if (pkg.package_type === 'prepaid') {
-            // Use exact field names from backend: credit.remaining
             const remainingCredit = pkg.credit?.remaining || 0;
-            const deduction = Math.min(servicePrice, remainingCredit);
-            totalBenefit += deduction;
+            
+            if (remainingCredit > 0) {
+                const benefitAmount = Math.min(servicePrice, remainingCredit);
+                
+                totalBenefit += benefitAmount;
+                benefitApplied = true;
+                
+                console.log('✅ Prepaid credit applied:', {
+                    serviceId,
+                    packageName: pkg.package_name,
+                    creditUsed: benefitAmount.toFixed(2),
+                    remainingCredit: remainingCredit.toFixed(2)
+                });
+            }
         }
+    });
+
+    if (!benefitApplied) {
+        console.log('ℹ️ No package benefit applied for serviceId:', serviceId);
     }
 
+    console.log('💰 Total benefit calculated:', totalBenefit.toFixed(2));
     return totalBenefit;
 }
 
