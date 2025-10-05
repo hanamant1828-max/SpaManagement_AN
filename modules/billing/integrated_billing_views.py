@@ -372,23 +372,35 @@ def integrated_billing(customer_id=None):
                     package_name = assignment.package_type.replace('_', ' ').title() + ' Package'
                     app.logger.warning(f"No package name found for assignment {assignment.id} (type: {assignment.package_type}, ref_id: {assignment.package_reference_id}), using fallback: {package_name}")
 
-                # Get service name with proper fallback - ALWAYS include for service packages
+                # Get service name with proper fallback - CRITICAL FIX
                 service_name = None
-                if tracker.service:
-                    service_name = tracker.service.name
-                elif assignment.service:
-                    service_name = assignment.service.name
-                elif assignment.service_id:
-                    # Try to fetch service if we have an ID but no relationship
+                
+                # Priority 1: Get from tracker's service relationship
+                if tracker.service_id:
+                    service_obj = Service.query.get(tracker.service_id)
+                    if service_obj:
+                        service_name = service_obj.name
+                        app.logger.info(f"✅ Service name from tracker.service_id: {service_name}")
+                
+                # Priority 2: Get from assignment's service relationship
+                if not service_name and assignment.service_id:
                     service_obj = Service.query.get(assignment.service_id)
                     if service_obj:
                         service_name = service_obj.name
-
-                # For service packages, service name should NEVER be None
+                        app.logger.info(f"✅ Service name from assignment.service_id: {service_name}")
+                
+                # Priority 3: Get from package template if it's a ServicePackage
+                if not service_name and assignment.package_type == 'service_package' and package_template:
+                    if hasattr(package_template, 'service_id') and package_template.service_id:
+                        service_obj = Service.query.get(package_template.service_id)
+                        if service_obj:
+                            service_name = service_obj.name
+                            app.logger.info(f"✅ Service name from package_template.service_id: {service_name}")
+                
+                # Log warning if service package has no service name
                 if assignment.package_type == 'service_package' and not service_name:
-                    service_name = 'Service Package'
-                elif not service_name:
-                    service_name = None  # For prepaid/memberships, None is acceptable
+                    app.logger.warning(f"⚠️ Service package assignment {assignment.id} has no service name - tracker.service_id={tracker.service_id}, assignment.service_id={assignment.service_id}")
+                    service_name = 'Unknown Service'  # Fallback for service packages
 
 
                 # Build package info with correct field names for template
@@ -1270,11 +1282,23 @@ def get_customer_packages(customer_id):
                 pkg_type = "service_package" if r.total_sessions else "prepaid" if r.credit_amount is not None else "membership"
                 package_name = pkg_type.replace('_', ' ').title() + ' Package'
 
+            # CRITICAL FIX: Get service name from database
+            service_name = None
+            if r.service_id:
+                service_obj = Service.query.get(r.service_id)
+                if service_obj:
+                    service_name = service_obj.name
+                    app.logger.info(f"✅ API: Service name for assignment {r.id}: {service_name}")
+            
+            # Fallback to service_name field if it exists
+            if not service_name and hasattr(r, 'service_name') and r.service_name:
+                service_name = r.service_name
+
             package_data = {
                 "id": r.id,
                 "package_type": "service_package" if r.total_sessions else "prepaid" if r.credit_amount is not None else "membership",
                 "name": package_name,  # Now guaranteed to have a value
-                "service_name": getattr(r, "service_name", None),
+                "service_name": service_name,  # Now fetched from Service table
                 "status": r.status,
                 "assigned_on": r.assigned_on.isoformat() if r.assigned_on else None,
                 "expires_on": r.expires_on.isoformat() if r.expires_on else None,
