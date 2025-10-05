@@ -1701,15 +1701,16 @@ function checkPackageBenefit(serviceId, servicePrice, quantity) {
 
     BillingState.customerPackages.packages.forEach(pkg => {
         console.log('📦 Checking package:', {
-            id: pkg.id,
+            id: pkg.assignment_id || pkg.id,
             type: pkg.package_type,
             name: pkg.package_name,
             serviceId: pkg.service_id,
-            remaining: pkg.sessions?.remaining || pkg.credit?.remaining
+            remainingSessions: pkg.remaining_sessions,
+            remainingCredit: pkg.remaining_credit
         });
 
         if (pkg.package_type === 'service_package') {
-            const remainingSessions = pkg.sessions?.remaining || 0;
+            const remainingSessions = pkg.remaining_sessions || 0;
             
             if (pkg.service_id === serviceId && remainingSessions > 0) {
                 const sessionsToCover = Math.min(quantity, remainingSessions);
@@ -1724,7 +1725,8 @@ function checkPackageBenefit(serviceId, servicePrice, quantity) {
                     packageName: pkg.package_name,
                     sessionsCovered: sessionsToCover,
                     benefitAmount: benefitAmount.toFixed(2),
-                    remainingSessions: remainingSessions
+                    remainingSessions: remainingSessions,
+                    remainingAfter: remainingSessions - sessionsToCover
                 });
             }
         } else if (pkg.package_type === 'membership') {
@@ -1748,7 +1750,7 @@ function checkPackageBenefit(serviceId, servicePrice, quantity) {
                 });
             }
         } else if (pkg.package_type === 'prepaid') {
-            const remainingCredit = pkg.credit?.remaining || 0;
+            const remainingCredit = pkg.remaining_credit || 0;
             
             if (remainingCredit > 0) {
                 const benefitAmount = Math.min(servicePrice, remainingCredit);
