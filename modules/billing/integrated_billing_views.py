@@ -327,7 +327,7 @@ def integrated_billing(customer_id=None):
                             apt['service_duration'] = matching_service.duration
 
             # Get active packages with CORRECT remaining count
-            from models import ServicePackageAssignment, ServicePackage
+            from models import ServicePackageAssignment, ServicePackage, PrepaidPackage, Membership
             
             # Get all active service package assignments for this customer
             package_assignments = ServicePackageAssignment.query.filter_by(
@@ -337,21 +337,52 @@ def integrated_billing(customer_id=None):
             
             customer_active_packages = []
             for assignment in package_assignments:
-                # Get the package template
-                package_template = ServicePackage.query.get(assignment.package_reference_id)
+                # Get the package template based on package type
+                package_template = assignment.get_package_template()
                 
+                # Determine package name
+                if package_template:
+                    package_name = package_template.name
+                else:
+                    package_name = f"{assignment.package_type.replace('_', ' ').title()} Package"
+                
+                # Build package info based on type
                 package_info = {
                     'assignment_id': assignment.id,
-                    'package_type': 'service_package',
-                    'package_name': package_template.name if package_template else 'Unknown Package',
-                    'service_id': assignment.service_id,
-                    'service_name': assignment.service.name if assignment.service else 'Any Service',
-                    'total_sessions': assignment.total_sessions or 0,
-                    'used_sessions': assignment.used_sessions or 0,
-                    'remaining_sessions': assignment.remaining_sessions or 0,
+                    'package_type': assignment.package_type,
+                    'package_name': package_name,
                     'status': assignment.status,
                     'expires_on': assignment.expires_on.strftime('%b %d, %Y') if assignment.expires_on else None
                 }
+                
+                # Add type-specific fields
+                if assignment.package_type == 'service_package':
+                    package_info.update({
+                        'service_id': assignment.service_id,
+                        'service_name': assignment.service.name if assignment.service else 'Any Service',
+                        'total_sessions': assignment.total_sessions or 0,
+                        'used_sessions': assignment.used_sessions or 0,
+                        'remaining_sessions': assignment.remaining_sessions or 0
+                    })
+                elif assignment.package_type == 'prepaid':
+                    package_info.update({
+                        'service_id': None,
+                        'service_name': 'All Services',
+                        'total_sessions': None,
+                        'used_sessions': None,
+                        'remaining_sessions': None,
+                        'credit_amount': float(assignment.credit_amount or 0),
+                        'remaining_credit': float(assignment.remaining_credit or 0)
+                    })
+                elif assignment.package_type == 'membership':
+                    package_info.update({
+                        'service_id': None,
+                        'service_name': 'Membership Services',
+                        'total_sessions': None,
+                        'used_sessions': None,
+                        'remaining_sessions': None
+                    })
+                
                 customer_active_packages.append(package_info)
 
             # Convert Service objects to dictionaries for JSON serialization

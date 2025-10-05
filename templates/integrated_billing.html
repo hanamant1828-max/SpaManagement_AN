@@ -1055,7 +1055,7 @@ function refreshCustomerPackages(customerId, updatedPackages) {
         // Update the display with fresh data
         console.log('Refreshing package display after invoice creation', updatedPackages);
     }
-    
+
     // Fetch fresh packages from server (fallback or additional verification)
     fetch(`/integrated-billing/customer-packages/${customerId}`, { cache: 'no-store' })
         .then(r => r.json())
@@ -1076,11 +1076,11 @@ function displayCustomerPackagesTable(packages) {
             <table class="table table-sm table-hover mb-0" style="font-size: 0.875rem;">
                 <thead style="background: var(--gray-50); position: sticky; top: 0;">
                     <tr>
-                        <th>PACKAGE NAME</th>
-                        <th>TYPE</th>
-                        <th>STATUS</th>
-                        <th>BALANCE</th>
-                        <th>EXPIRY</th>
+                        <th style="padding: 0.5rem;">Package Name</th>
+                        <th style="padding: 0.5rem;">Type</th>
+                        <th style="padding: 0.5rem;">Status</th>
+                        <th style="padding: 0.5rem;">Balance</th>
+                        <th style="padding: 0.5rem;">Expiry</th>
                     </tr>
                 </thead>
                 <tbody>
