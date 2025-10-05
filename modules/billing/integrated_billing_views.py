@@ -331,18 +331,19 @@ def integrated_billing(customer_id=None):
             customer_active_packages = customer_packages_summary.get('packages', [])
 
             # Convert Service objects to dictionaries for JSON serialization
-            customer_services = [
-                {
-                    'id': service.id,
-                    'name': service.name,
-                    'description': service.description,
-                    'price': float(service.price),
-                    'duration': service.duration,
-                    'category': service.category,
-                    'is_active': service.is_active
-                }
-                for service in customer_services_objects
-            ]
+            if 'customer_services_objects' in locals():
+                customer_services = [
+                    {
+                        'id': service.id,
+                        'name': service.name,
+                        'description': service.description,
+                        'price': float(service.price),
+                        'duration': service.duration,
+                        'category': service.category,
+                        'is_active': service.is_active
+                    }
+                    for service in customer_services_objects
+                ]
             else:
                 customer_services = []
 
