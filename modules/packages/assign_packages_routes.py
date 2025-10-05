@@ -178,6 +178,15 @@ def api_assign_and_pay():
         if assignment_data.get('expires_on'):
             expires_on = datetime.fromisoformat(assignment_data['expires_on'].replace('Z', '+00:00'))
         
+        # Determine status based on payment
+        payment_amount = float(payment_data.get('amount', 0))
+        assignment_status = 'active'  # Default to active if payment is being collected
+        
+        if not payment_data.get('collect'):
+            assignment_status = 'pending'
+        elif payment_amount < (grand_total - 0.01):  # Allow 1 paisa tolerance for floating-point
+            assignment_status = 'pending'  # Partial payment
+        
         assignment = ServicePackageAssignment(
             customer_id=customer.id,
             package_type=package_type,
@@ -187,7 +196,7 @@ def api_assign_and_pay():
             expires_on=expires_on,
             price_paid=grand_total,
             discount=discount,
-            status='active' if payment_data.get('amount', 0) >= grand_total else 'pending',
+            status=assignment_status,
             notes=assignment_data.get('notes', '')
         )
         
