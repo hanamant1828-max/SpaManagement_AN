@@ -1935,6 +1935,11 @@ def get_customer_packages(client_id):
                     })
                 elif assignment.package_type == 'service_package':
                     # ServicePackageAssignment has these fields directly
+                    app.logger.info(f"🔍 Service Package Assignment {assignment.id}:")
+                    app.logger.info(f"   - service_id: {assignment.service_id}")
+                    app.logger.info(f"   - service: {assignment.service}")
+                    app.logger.info(f"   - remaining_sessions: {assignment.remaining_sessions}")
+                    
                     package_info.update({
                         'service_id': assignment.service_id,
                         'service_name': assignment.service.name if assignment.service else 'Any Service',
@@ -1942,6 +1947,8 @@ def get_customer_packages(client_id):
                         'used_sessions': assignment.used_sessions or 0,
                         'remaining_sessions': assignment.remaining_sessions or 0
                     })
+                    
+                    app.logger.info(f"   - package_info after update: {package_info}")
                 elif assignment.package_type == 'membership':
                     # Get membership services
                     membership_services = []
