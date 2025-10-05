@@ -316,6 +316,55 @@ def api_create_batch():
 
         data = request.get_json()
 
+        # Validate required fields (simplified)
+        required_fields = ['batch_name', 'mfg_date', 'expiry_date']
+        for field in required_fields:
+            if not data.get(field):
+                return jsonify({'error': f'{field} is required'}), 400
+
+        # Check if batch name is globally unique
+        existing_batch = InventoryBatch.query.filter_by(
+            batch_name=data['batch_name']
+        ).first()
+
+        if existing_batch:
+            return jsonify({'error': 'Batch name must be unique'}), 400
+
+        # Parse dates
+        mfg_date = datetime.strptime(data['mfg_date'], '%Y-%m-%d').date()
+        expiry_date = datetime.strptime(data['expiry_date'], '%Y-%m-%d').date()
+
+        # Validate dates
+        if expiry_date <= mfg_date:
+            return jsonify({'error': 'Expiry date must be later than manufacturing date'}), 400
+
+        # Create batch (no product/location required)
+        batch = InventoryBatch(
+            batch_name=data['batch_name'],
+            mfg_date=mfg_date,
+            expiry_date=expiry_date,
+            unit_cost=float(data.get('unit_cost', 0)),
+            selling_price=float(data.get('selling_price', 0)) if data.get('selling_price') else None,
+            qty_available=0,  # Start with 0, stock added via adjustments
+            status='active'
+        )
+
+        # Set created_date if provided
+        if data.get('created_date'):
+            batch.created_date = datetime.strptime(data['created_date'], '%Y-%m-%d').date()
+
+        db.session.add(batch)
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'message': 'Batch created successfully',
+            'batch_id': batch.id
+        })
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/api/inventory/batches/for-product/<int:product_id>')
 @login_required
@@ -374,57 +423,6 @@ def api_get_batches_for_product(product_id):
             'error': str(e),
             'batches': []
         }), 500
-
-
-        # Validate required fields (simplified)
-        required_fields = ['batch_name', 'mfg_date', 'expiry_date']
-        for field in required_fields:
-            if not data.get(field):
-                return jsonify({'error': f'{field} is required'}), 400
-
-        # Check if batch name is globally unique
-        existing_batch = InventoryBatch.query.filter_by(
-            batch_name=data['batch_name']
-        ).first()
-
-        if existing_batch:
-            return jsonify({'error': 'Batch name must be unique'}), 400
-
-        # Parse dates
-        mfg_date = datetime.strptime(data['mfg_date'], '%Y-%m-%d').date()
-        expiry_date = datetime.strptime(data['expiry_date'], '%Y-%m-%d').date()
-
-        # Validate dates
-        if expiry_date <= mfg_date:
-            return jsonify({'error': 'Expiry date must be later than manufacturing date'}), 400
-
-        # Create batch (no product/location required)
-        batch = InventoryBatch(
-            batch_name=data['batch_name'],
-            mfg_date=mfg_date,
-            expiry_date=expiry_date,
-            unit_cost=float(data.get('unit_cost', 0)),
-            selling_price=float(data.get('selling_price', 0)) if data.get('selling_price') else None,
-            qty_available=0,  # Start with 0, stock added via adjustments
-            status='active'
-        )
-
-        # Set created_date if provided
-        if data.get('created_date'):
-            batch.created_date = datetime.strptime(data['created_date'], '%Y-%m-%d').date()
-
-        db.session.add(batch)
-        db.session.commit()
-
-        return jsonify({
-            'success': True,
-            'message': 'Batch created successfully',
-            'batch_id': batch.id
-        })
-
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({'error': str(e)}), 500
 
 @app.route('/api/inventory/adjustments', methods=['POST'])
 @login_required
