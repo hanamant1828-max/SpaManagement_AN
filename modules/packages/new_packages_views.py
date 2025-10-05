@@ -87,30 +87,6 @@ def packages():
                          services=services,
                          stats=stats)
 
-@app.route('/customer-packages')
-@login_required
-def customer_packages():
-    """Customer packages assignment and management page"""
-    if not hasattr(current_user, 'can_access') or not current_user.can_access('packages'):
-        flash('Access denied', 'danger')
-        return redirect(url_for('dashboard'))
-
-    # Get customers for assignment
-    from models import Customer, Service
-    customers = Customer.query.filter_by(is_active=True).order_by(Customer.first_name, Customer.last_name).all()
-
-    # Get services for dropdowns
-    services = Service.query.filter_by(is_active=True).order_by(Service.name).all()
-
-    # Get staff for usage recording
-    from models import User
-    staff = User.query.filter_by(is_active=True).order_by(User.first_name, User.last_name).all()
-
-    return render_template('packages/customer_packages.html',
-                         customers=customers,
-                         services=services,
-                         staff=staff)
-
 # ========================================
 # PREPAID PACKAGES ENDPOINTS
 # ========================================
@@ -1066,7 +1042,7 @@ def assign_package():
             # Get service package template
             service_pkg = ServicePackage.query.get(data['package_id'])
             if not service_pkg:
-                return jsonify({'success': False, 'error': 'Service package not found'}), 400
+                return jsonify({'success': False, 'error': 'Service package not found'}), 404
 
             # Service ID is required for service packages
             if not data.get('service_id'):
