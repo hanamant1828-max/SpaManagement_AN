@@ -959,20 +959,29 @@ const BillingState = {
 // ==========================================
 // INITIALIZATION
 // ==========================================
+// Initialize application when DOM is loaded
 document.addEventListener('DOMContentLoaded', function() {
+    debugger; // 🔴 BREAKPOINT: DOM loaded
     initializeBillingSystem();
     updateCalculations();
 
     {% if selected_customer %}
+    debugger; // 🔴 BREAKPOINT: Pre-selected customer detected
+    console.log('Pre-selected customer ID:', {{ selected_customer.id }});
     loadCustomerPackages({{ selected_customer.id }});
     loadCustomerAppointments({{ selected_customer.id }});
     {% endif %}
 });
 
 function initializeBillingSystem() {
+    debugger; // 🔴 BREAKPOINT: Initializing billing system
     // Customer selector
     const clientSelect = document.getElementById('client_id');
     clientSelect?.addEventListener('change', function() {
+        debugger; // 🔴 BREAKPOINT: Customer selection changed
+        console.log('Customer selected:', this.value);
+        console.log('Selected option text:', this.options[this.selectedIndex]?.text);
+
         if (this.value) {
             loadCustomerPackages(this.value);
             loadCustomerAppointments(this.value);
@@ -1126,7 +1135,7 @@ function displayCustomerPackagesTable(packages) {
         // Display balance based on package type
         let balanceText = '';
         let balanceDetails = '';
-        
+
         if (packageType === 'prepaid') {
             const remaining = pkg.remaining_credit || 0;
             const total = pkg.credit_amount || 0;
@@ -1160,7 +1169,8 @@ function displayCustomerPackagesTable(packages) {
         }
 
         // Format expiry date
-        const expiryDate = pkg.expires_on ? new Date(pkg.expires_on).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'No expiry';
+        const expiryDate = pkg.expires_on ? 
+            new Date(pkg.expires_on).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'No expiry';
 
         // Type badge
         let typeBadge = '';
