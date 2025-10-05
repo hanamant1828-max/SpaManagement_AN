@@ -1210,17 +1210,10 @@ function displayCustomerPackagesTable(packages) {
                     <div class="progress-bar bg-success" style="width: ${100 - usedPct}%"></div>
                 </div>`;
         } else if (packageType === 'membership') {
-            // For memberships, show covered services
-            if (pkg.services && pkg.services.length > 0) {
-                const serviceNames = pkg.services.map(s => s.service_name).join(', ');
-                balanceText = `<span class="badge bg-success">Unlimited</span>`;
-                balanceDetails = `<br><small class="text-muted">${serviceNames}</small>`;
-            } else {
-                balanceText = `<span class="badge bg-success">Unlimited</span>`;
-                if (pkg.description) {
-                    balanceDetails = `<br><small class="text-muted">${pkg.description}</small>`;
-                }
-            }
+            // For memberships, show unlimited badge and usage count
+            const usageCount = pkg.usage_count || 0;
+            balanceText = `<span style="background: #d1fae5; color: #065f46; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.75rem;">Unlimited</span>`;
+            balanceDetails = `<small class="text-muted">✓ Used ${usageCount} times</small>`;
         }
 
         // Format expiry date - check both valid_to and expires_on

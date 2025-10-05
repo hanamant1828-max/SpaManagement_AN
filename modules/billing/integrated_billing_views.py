@@ -1489,9 +1489,10 @@ def get_customer_packages(customer_id):
                 }
                 app.logger.info(f"⚠️ Using ServicePackageAssignment credit for assignment {r.id}: {package_data['credit']}")
             
-            # Add membership services if applicable
+            # Add membership services and usage tracking if applicable
             if actual_package_type == 'membership':
                 try:
+                    from models import PackageUsageHistory
                     package_template = r.get_package_template()
                     if package_template and hasattr(package_template, 'membership_services'):
                         membership_services = []
@@ -1502,9 +1503,20 @@ def get_customer_packages(customer_id):
                             })
                         package_data['services'] = membership_services
                         app.logger.info(f"✅ Added {len(membership_services)} services to membership package {r.id}")
+                    
+                    # Count total membership usage (unlimited sessions used)
+                    if benefit_tracker:
+                        total_usage = PackageUsageHistory.query.filter(
+                            PackageUsageHistory.package_benefit_id == benefit_tracker.id,
+                            PackageUsageHistory.benefit_type == 'unlimited',
+                            PackageUsageHistory.transaction_type == 'use'
+                        ).count()
+                        package_data['usage_count'] = total_usage
+                        app.logger.info(f"✅ Membership usage count: {total_usage} sessions")
                 except Exception as e:
                     app.logger.error(f"Error loading membership services for assignment {r.id}: {e}")
                     package_data['services'] = []
+                    package_data['usage_count'] = 0
 
             packages_list.append(package_data)
 
