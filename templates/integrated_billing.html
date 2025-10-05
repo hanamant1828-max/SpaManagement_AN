@@ -607,9 +607,48 @@ textarea.form-control {
                             <div class="form-group">
                                 <label class="form-label">Active Packages</label>
                                 <div id="customerPackagesTable" style="max-height: 250px; overflow-y: auto; border: 1px solid var(--gray-300); border-radius: var(--radius); background: white;">
-                                    <div style="padding: var(--spacing-md); text-align: center; color: var(--gray-500);">
-                                        <small><i class="fas fa-gift me-1"></i>Select customer to view active packages</small>
-                                    </div>
+                                    <table class="table table-sm table-hover mb-0" style="font-size: 0.875rem;">
+                                        <thead style="background: var(--gray-50); position: sticky; top: 0;">
+                                            <tr>
+                                                <th>PACKAGE NAME</th>
+                                                <th>TYPE</th>
+                                                <th>STATUS</th>
+                                                <th>BALANCE</th>
+                                                <th>EXPIRY</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="activePackagesTableBody">
+                                            {% if customer_active_packages %}
+                                                {% for package in customer_active_packages %}
+                                                <tr>
+                                                    <td><strong>{{ package.name }}</strong><br><small class="text-muted">{{ package.service_name or 'Multiple Services' }}</small></td>
+                                                    <td><span class="badge bg-{{ 'warning' if package.benefit_type == 'free' else 'info' }}">{{ package.benefit_type|title }}</span></td>
+                                                    <td><span class="badge bg-{{ 'success' if package.is_active else 'secondary' }}">{{ 'Active' if package.is_active else 'Inactive' }}</span></td>
+                                                    <td>
+                                                        {% if package.benefit_type in ['free', 'discount'] %}
+                                                            <strong>{{ package.remaining_count }}/{{ package.total_allocated }} sessions</strong>
+                                                            <div class="progress mt-1" style="height: 5px;">
+                                                                <div class="progress-bar bg-success" style="width: {{ package.usage_percentage }}%"></div>
+                                                            </div>
+                                                        {% elif package.benefit_type == 'prepaid' %}
+                                                            <strong>₹{{ "%.2f"|format(package.balance_remaining) }}</strong> / ₹{{ "%.2f"|format(package.balance_total) }}
+                                                        {% elif package.benefit_type == 'unlimited' %}
+                                                            <span class="badge bg-success">Unlimited</span>
+                                                        {% endif %}
+                                                    </td>
+                                                    <td>{{ package.valid_to }}</td>
+                                                </tr>
+                                                {% endfor %}
+                                            {% else %}
+                                            <tr>
+                                                <td colspan="5" class="text-center text-muted">
+                                                    <i class="fas fa-box-open fa-2x mb-2"></i>
+                                                    <p class="mb-0">No active packages</p>
+                                                </td>
+                                            </tr>
+                                            {% endif %}
+                                        </tbody>
+                                    </table>
                                 </div>
                             </div>
                         </div>
@@ -1015,11 +1054,25 @@ function displayCustomerPackagesTable(packages) {
 
     if (!packages || packages.length === 0) {
         packagesDiv.innerHTML = `
-            <div style="padding: var(--spacing-xl); text-align: center; color: var(--gray-500);">
-                <i class="fas fa-box-open fa-2x mb-2" style="opacity: 0.5;"></i>
-                <p class="mb-0"><strong>No Active Packages Found</strong></p>
-                <small>This customer has no active packages</small>
-            </div>`;
+            <table class="table table-sm table-hover mb-0" style="font-size: 0.875rem;">
+                <thead style="background: var(--gray-50); position: sticky; top: 0;">
+                    <tr>
+                        <th>PACKAGE NAME</th>
+                        <th>TYPE</th>
+                        <th>STATUS</th>
+                        <th>BALANCE</th>
+                        <th>EXPIRY</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td colspan="5" class="text-center text-muted">
+                            <i class="fas fa-box-open fa-2x mb-2"></i>
+                            <p class="mb-0">No active packages</p>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>`;
         return;
     }
 
@@ -1095,6 +1148,7 @@ function displayCustomerPackagesTable(packages) {
 
     packagesDiv.innerHTML = html;
 }
+
 
 function resetCustomerAppointments() {
     // Clear tracking when customer changes
@@ -1266,7 +1320,7 @@ function addAppointmentToBill(appointmentId, serviceName, serviceId, staffId, se
             appointmentInput.dataset.appointmentId = appointmentId;
             console.log(`✅ Set appointment ID ${appointmentId} in first row`);
         }
-        
+
         // Mark as added
         addedAppointmentIds.add(appointmentId);
     } else {
@@ -1294,13 +1348,13 @@ function addAppointmentToBill(appointmentId, serviceName, serviceId, staffId, se
             newAppointmentInput.dataset.appointmentId = appointmentId;
             console.log(`✅ Set appointment ID ${appointmentId} in new row`);
         }
-        
+
         // Mark as added
         addedAppointmentIds.add(appointmentId);
     }
 
     updateCalculations();
-    
+
     // Refresh appointments display to show "Added" button
     const clientId = document.getElementById('client_id').value;
     if (clientId) {

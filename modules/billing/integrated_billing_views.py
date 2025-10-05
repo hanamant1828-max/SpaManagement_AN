@@ -301,16 +301,16 @@ def integrated_billing(customer_id=None):
             unaki_service_names = list(set([apt.get('service_name') for apt in customer_appointments if apt.get('service_name')]))
             if unaki_service_names:
                 customer_services_objects = Service.query.filter(Service.name.in_(unaki_service_names)).all()
-                
+
                 # Create a mapping of service names to service objects
                 service_name_map = {service.name: service for service in customer_services_objects}
-                
+
                 # Update appointments with correct service_id from matching service name
                 for apt in customer_appointments:
                     if apt.get('service_name'):
                         # Try exact match first
                         matching_service = service_name_map.get(apt['service_name'])
-                        
+
                         # If no exact match, try partial match (service name might include price/duration)
                         if not matching_service:
                             service_base_name = apt['service_name'].split('(')[0].strip()
@@ -318,26 +318,31 @@ def integrated_billing(customer_id=None):
                                 if service.name in apt['service_name'] or apt['service_name'].startswith(service.name):
                                     matching_service = service
                                     break
-                        
+
                         # Update appointment with service_id and price
                         if matching_service:
                             apt['service_id'] = matching_service.id
                             apt['service_price'] = float(matching_service.price)
                             apt['service_duration'] = matching_service.duration
-                
-                # Convert Service objects to dictionaries for JSON serialization
-                customer_services = [
-                    {
-                        'id': service.id,
-                        'name': service.name,
-                        'description': service.description,
-                        'price': float(service.price),
-                        'duration': service.duration,
-                        'category': service.category,
-                        'is_active': service.is_active
-                    }
-                    for service in customer_services_objects
-                ]
+
+            # Get active packages with CORRECT remaining count
+            from modules.packages.package_billing_service import PackageBillingService
+            customer_packages_summary = PackageBillingService.get_customer_package_summary(customer_id)
+            customer_active_packages = customer_packages_summary.get('packages', [])
+
+            # Convert Service objects to dictionaries for JSON serialization
+            customer_services = [
+                {
+                    'id': service.id,
+                    'name': service.name,
+                    'description': service.description,
+                    'price': float(service.price),
+                    'duration': service.duration,
+                    'category': service.category,
+                    'is_active': service.is_active
+                }
+                for service in customer_services_objects
+            ]
             else:
                 customer_services = []
 
@@ -355,6 +360,7 @@ def integrated_billing(customer_id=None):
                          selected_customer=selected_customer,
                          customer_appointments=customer_appointments,
                          customer_services=customer_services,
+                         customer_active_packages=customer_active_packages, # Pass customer packages
                          preselected_client_id=customer_id,
                          preselected_client_name=client_name,
                          preselected_client_phone=client_phone,
@@ -581,7 +587,7 @@ def get_customer_appointments(customer_id):
                     Service.name == appointment.service_name,
                     Service.is_active == True
                 ).first()
-                
+
                 # If no exact match, try partial match (service name might include price/duration)
                 if not matching_service:
                     service_base_name = appointment.service_name.split('(')[0].strip()
@@ -792,10 +798,10 @@ def create_professional_invoice():
         if total_base_amount > 0 and total_gst_rate > 0:
             # Discount factor to apply proportionally
             discount_factor = net_base_amount / total_base_amount
-            
+
             # Apply discount factor to service GST
             final_service_gst = service_gst_amount * discount_factor
-            
+
             # For inventory, recalculate GST on discounted base
             inventory_discount = discount_amount * (inventory_base_amount / total_base_amount) if total_base_amount > 0 else 0
             inventory_net_base = max(0, inventory_base_amount - inventory_discount)
@@ -823,7 +829,7 @@ def create_professional_invoice():
         net_subtotal = net_base_amount
         additional_charges = float(request.form.get('additional_charges', 0))
         tips_amount = float(request.form.get('tips_amount', 0))
-        
+
         # Final total: base amount + tax + charges + tips
         total_amount = net_base_amount + total_tax + additional_charges + tips_amount
 
