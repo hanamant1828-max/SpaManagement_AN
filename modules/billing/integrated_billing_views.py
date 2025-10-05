@@ -327,16 +327,21 @@ def integrated_billing(customer_id=None):
                             apt['service_duration'] = matching_service.duration
 
             # Get active packages with CORRECT remaining count
-            from models import ServicePackageAssignment, ServicePackage, PrepaidPackage, Membership
+            from models import ServicePackageAssignment, ServicePackage, PrepaidPackage, Membership, PackageBenefitTracker
             
-            # Get all active service package assignments for this customer
-            package_assignments = ServicePackageAssignment.query.filter_by(
+            # Get all active benefit trackers for this customer (this is what billing uses)
+            benefit_trackers = PackageBenefitTracker.query.filter_by(
                 customer_id=customer_id,
-                status='active'
+                is_active=True
             ).all()
             
             customer_active_packages = []
-            for assignment in package_assignments:
+            for tracker in benefit_trackers:
+                # Get the assignment to get package template
+                assignment = tracker.package_assignment
+                if not assignment:
+                    continue
+                    
                 # Get the package template based on package type
                 package_template = assignment.get_package_template()
                 
@@ -344,43 +349,50 @@ def integrated_billing(customer_id=None):
                 if package_template:
                     package_name = package_template.name
                 else:
-                    package_name = f"{assignment.package_type.replace('_', ' ').title()} Package"
+                    package_name = f"{assignment.package_type.replace('_', ' ').title()}"
                 
-                # Build package info based on type
+                # Build package info with correct field names for template
                 package_info = {
                     'assignment_id': assignment.id,
                     'package_type': assignment.package_type,
-                    'package_name': package_name,
-                    'status': assignment.status,
-                    'expires_on': assignment.expires_on.strftime('%b %d, %Y') if assignment.expires_on else None
+                    'name': package_name,  # Changed from 'package_name' to 'name'
+                    'benefit_type': tracker.benefit_type,  # Added benefit_type from tracker
+                    'is_active': tracker.is_active,  # Added is_active
+                    'service_name': tracker.service.name if tracker.service else 'All Services',
+                    'expires_on': tracker.valid_to.strftime('%b %d, %Y') if tracker.valid_to else None
                 }
                 
-                # Add type-specific fields
-                if assignment.package_type == 'service_package':
+                # Add type-specific fields matching template expectations
+                if tracker.benefit_type in ['free', 'discount']:
+                    # Service-based packages
+                    total = tracker.total_allocated or 0
+                    used = tracker.used_count or 0
+                    remaining = tracker.remaining_count or 0
+                    usage_pct = round((used / total * 100), 1) if total > 0 else 0
+                    
                     package_info.update({
-                        'service_id': assignment.service_id,
-                        'service_name': assignment.service.name if assignment.service else 'Any Service',
-                        'total_sessions': assignment.total_sessions or 0,
-                        'used_sessions': assignment.used_sessions or 0,
-                        'remaining_sessions': assignment.remaining_sessions or 0
+                        'total_allocated': total,
+                        'used_count': used,
+                        'remaining_count': remaining,
+                        'usage_percentage': usage_pct
                     })
-                elif assignment.package_type == 'prepaid':
+                    
+                    if tracker.benefit_type == 'discount':
+                        package_info['discount_percentage'] = tracker.discount_percentage or 0
+                        
+                elif tracker.benefit_type == 'prepaid':
+                    # Prepaid credit packages
                     package_info.update({
-                        'service_id': None,
-                        'service_name': 'All Services',
-                        'total_sessions': None,
-                        'used_sessions': None,
-                        'remaining_sessions': None,
-                        'credit_amount': float(assignment.credit_amount or 0),
-                        'remaining_credit': float(assignment.remaining_credit or 0)
+                        'balance_total': float(tracker.balance_total or 0),
+                        'balance_used': float(tracker.balance_used or 0),
+                        'balance_remaining': float(tracker.balance_remaining or 0),
+                        'usage_percentage': round((tracker.balance_used / tracker.balance_total * 100), 1) if tracker.balance_total > 0 else 0
                     })
-                elif assignment.package_type == 'membership':
+                    
+                elif tracker.benefit_type == 'unlimited':
+                    # Unlimited/membership packages
                     package_info.update({
-                        'service_id': None,
-                        'service_name': 'Membership Services',
-                        'total_sessions': None,
-                        'used_sessions': None,
-                        'remaining_sessions': None
+                        'access_type': 'unlimited'
                     })
                 
                 customer_active_packages.append(package_info)
