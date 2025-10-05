@@ -1282,13 +1282,17 @@ def get_customer_packages(customer_id):
                 pkg_type = "service_package" if r.total_sessions else "prepaid" if r.credit_amount is not None else "membership"
                 package_name = pkg_type.replace('_', ' ').title() + ' Package'
 
-            # CRITICAL FIX: Get service name from database
+            # CRITICAL FIX: Get service_id and service_name from database
+            service_id = r.service_id
             service_name = None
-            if r.service_id:
-                service_obj = Service.query.get(r.service_id)
+            
+            if service_id:
+                service_obj = Service.query.get(service_id)
                 if service_obj:
                     service_name = service_obj.name
-                    app.logger.info(f"✅ API: Service name for assignment {r.id}: {service_name}")
+                    app.logger.info(f"✅ API: Service ID={service_id}, Name={service_name} for assignment {r.id}")
+                else:
+                    app.logger.warning(f"⚠️ Service ID {service_id} not found in database for assignment {r.id}")
 
             # Fallback to service_name field if it exists
             if not service_name and hasattr(r, 'service_name') and r.service_name:
@@ -1299,8 +1303,8 @@ def get_customer_packages(customer_id):
                 "assignment_id": r.id,  # Add assignment_id for reference
                 "package_type": "service_package" if r.total_sessions else "prepaid" if r.credit_amount is not None else "membership",
                 "name": package_name,
-                "service_name": service_name,  # Now fetched from Service table
-                "service_id": r.service_id,  # CRITICAL: Add service_id for matching
+                "service_name": service_name,  # Fetched from Service table
+                "service_id": service_id,  # CRITICAL: Integer service_id for matching
                 "status": r.status,
                 "assigned_on": r.assigned_on.isoformat() if r.assigned_on else None,
                 "expires_on": r.expires_on.isoformat() if r.expires_on else None,

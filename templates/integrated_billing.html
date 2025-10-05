@@ -961,12 +961,10 @@ const BillingState = {
 // ==========================================
 // Initialize application when DOM is loaded
 document.addEventListener('DOMContentLoaded', function() {
-    debugger; // 🔴 BREAKPOINT: DOM loaded
     initializeBillingSystem();
     updateCalculations();
 
     {% if selected_customer %}
-    debugger; // 🔴 BREAKPOINT: Pre-selected customer detected
     console.log('Pre-selected customer ID:', {{ selected_customer.id }});
     loadCustomerPackages({{ selected_customer.id }});
     loadCustomerAppointments({{ selected_customer.id }});
@@ -974,11 +972,9 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function initializeBillingSystem() {
-    debugger; // 🔴 BREAKPOINT: Initializing billing system
     // Customer selector
     const clientSelect = document.getElementById('client_id');
     clientSelect?.addEventListener('change', function() {
-        debugger; // 🔴 BREAKPOINT: Customer selection changed
         console.log('Customer selected:', this.value);
         console.log('Selected option text:', this.options[this.selectedIndex]?.text);
 
@@ -1003,17 +999,15 @@ function initializeBillingSystem() {
 // CUSTOMER & PACKAGES
 // ==========================================
 function loadCustomerPackages(customerId) {
-    debugger; // 🔴 BREAKPOINT 10: Loading packages for customer
     console.log('🔄 Loading packages for customer:', customerId);
-    
+
     // Fetch packages only
     fetch(`/integrated-billing/customer-packages/${customerId}`)
         .then(res => res.json())
         .then(packagesData => {
-            debugger; // 🔴 BREAKPOINT 11: Packages loaded - inspect data structure
             console.log('📦 Packages loaded:', packagesData);
             BillingState.customerPackages = packagesData;
-            
+
             // Log detailed package info
             if (packagesData.packages && packagesData.packages.length > 0) {
                 console.log('📋 Package details:');
@@ -1028,11 +1022,10 @@ function loadCustomerPackages(customerId) {
                     });
                 });
             }
-            
+
             updateCalculations();
         })
         .catch(err => {
-            debugger; // 🔴 BREAKPOINT 12: Error loading packages
             console.error('Error loading packages:', err);
         });
 }
@@ -1160,8 +1153,8 @@ function displayCustomerPackagesTable(packages) {
 
         if (packageType === 'prepaid') {
             // Use exact field names from backend: credit.remaining and credit.total
-            const remaining = pkg.credit?.remaining || 0; 
-            const total = pkg.credit?.total || 0; 
+            const remaining = pkg.balance_remaining || 0; 
+            const total = pkg.balance_total || 0; 
             const usedPct = total > 0 ? ((total - remaining) / total * 100).toFixed(0) : 0;
             balanceText = `₹${remaining.toFixed(2)} / ₹${total.toFixed(2)}`;
             balanceDetails = `
@@ -1170,8 +1163,8 @@ function displayCustomerPackagesTable(packages) {
                 </div>`;
         } else if (packageType === 'service_package') {
             // Use exact field names from backend: sessions.remaining and sessions.total
-            const remaining = pkg.sessions?.remaining || 0;
-            const total = pkg.sessions?.total || 0;
+            const remaining = pkg.remaining_count || 0;
+            const total = pkg.total_allocated || 0;
             const usedPct = total > 0 ? ((total - remaining) / total * 100).toFixed(0) : 0;
             balanceText = `${remaining} / ${total} sessions`;
             balanceDetails = `
@@ -1193,8 +1186,8 @@ function displayCustomerPackagesTable(packages) {
         }
 
         // Format expiry date
-        const expiryDate = pkg.expires_on ? 
-            new Date(pkg.expires_on).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'No expiry';
+        const expiryDate = pkg.valid_to ? 
+            new Date(pkg.valid_to).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'No expiry';
 
         // Type badge
         let typeBadge = '';
@@ -1711,68 +1704,55 @@ function updateCalculations() {
 }
 
 function checkPackageBenefit(serviceId, servicePrice, quantity) {
-    debugger; // 🔴 BREAKPOINT 1: Entry point - check if function is called
     console.log('🔍 checkPackageBenefit called:', { serviceId, servicePrice, quantity });
-    
+
     if (!BillingState.customerPackages || !BillingState.customerPackages.packages) {
-        debugger; // 🔴 BREAKPOINT 2: No packages state - check why packages are missing
         console.log('ℹ️ No customer packages available');
-        console.log('BillingState.customerPackages:', BillingState.customerPackages);
         return 0;
     }
 
     let totalBenefit = 0;
     let benefitApplied = false;
 
-    debugger; // 🔴 BREAKPOINT 3: Before package loop - inspect packages array
     console.log('📦 Total packages to check:', BillingState.customerPackages.packages.length);
-    console.log('📦 Packages array:', BillingState.customerPackages.packages);
 
     BillingState.customerPackages.packages.forEach(pkg => {
-        debugger; // 🔴 BREAKPOINT 4: Inside package loop - check each package
         console.log('📦 Checking package:', {
             id: pkg.assignment_id || pkg.id,
             type: pkg.package_type,
-            name: pkg.package_name || pkg.name,
+            name: pkg.name,
             serviceId: pkg.service_id,
             serviceName: pkg.service_name,
-            remainingSessions: pkg.remaining_sessions || pkg.sessions?.remaining,
-            remainingCredit: pkg.remaining_credit || pkg.credit?.remaining,
+            remainingSessions: pkg.remaining_count || pkg.sessions?.remaining,
+            remainingCredit: pkg.balance_remaining || pkg.credit?.remaining,
             selectedServiceId: serviceId
         });
 
         if (pkg.package_type === 'service_package') {
-            debugger; // 🔴 BREAKPOINT 5: Service package found - check matching logic
-            const remainingSessions = pkg.remaining_sessions || pkg.sessions?.remaining || 0;
-            
-            // CRITICAL FIX: Get service_id with correct priority
-            // 1. Check pkg.service_id (from API response)
-            // 2. Check sessions object for nested service_id
-            // 3. Check services array
-            const packageServiceId = pkg.service_id || 
-                                    (pkg.sessions && pkg.sessions.service_id) || 
-                                    (pkg.services && pkg.services.length > 0 ? pkg.services[0].service_id : null);
-            
+            // CRITICAL FIX: Use remaining_count (from backend) instead of sessions.remaining
+            const remainingSessions = pkg.remaining_count || 0;
+
+            // CRITICAL FIX: service_id is the direct field from backend
+            const packageServiceId = pkg.service_id;
+
             console.log('🔍 Service package match check:', {
-                packageId: pkg.id || pkg.assignment_id,
-                packageName: pkg.name,
+                packageId: pkg.assignment_id,
                 packageServiceId: packageServiceId,
                 selectedServiceId: serviceId,
-                matches: parseInt(packageServiceId) === parseInt(serviceId),
+                matches: packageServiceId == serviceId,
                 remainingSessions: remainingSessions,
-                rawPackageObject: pkg
+                serviceName: pkg.service_name
             });
-            
-            // Convert both to integers for comparison to avoid type mismatch
-            if (parseInt(packageServiceId) === parseInt(serviceId) && remainingSessions > 0) {
-                debugger; // 🔴 BREAKPOINT 6: Match found! - check benefit calculation
+
+            // CRITICAL FIX: Match by service_id (both should be integers)
+            if (packageServiceId == serviceId && remainingSessions > 0) {
                 const sessionsToCover = Math.min(quantity, remainingSessions);
                 const pricePerSession = servicePrice / quantity;
                 const benefitAmount = sessionsToCover * pricePerSession;
-                
+
                 totalBenefit += benefitAmount;
                 benefitApplied = true;
-                
+
                 console.log('✅ Service package benefit applied:', {
                     serviceId,
                     packageName: pkg.name,
@@ -1782,16 +1762,10 @@ function checkPackageBenefit(serviceId, servicePrice, quantity) {
                     remainingAfter: remainingSessions - sessionsToCover
                 });
             } else {
-                debugger; // 🔴 BREAKPOINT 7: No match - why?
                 console.log('❌ Service package NOT applied - reason:', {
-                    packageServiceIdRaw: packageServiceId,
-                    packageServiceIdInt: parseInt(packageServiceId),
-                    selectedServiceIdRaw: serviceId,
-                    selectedServiceIdInt: parseInt(serviceId),
-                    typesMatch: typeof packageServiceId === typeof serviceId,
-                    valuesMatch: packageServiceId == serviceId,
-                    strictMatch: packageServiceId === serviceId,
-                    hasRemainingSessions: remainingSessions > 0,
+                    serviceIdMatch: packageServiceId == serviceId,
+                    packageServiceId: packageServiceId,
+                    selectedServiceId: serviceId,
                     remainingSessions: remainingSessions
                 });
             }
@@ -1800,15 +1774,15 @@ function checkPackageBenefit(serviceId, servicePrice, quantity) {
             const isCovered = coveredServices.some(s => s.service_id === serviceId);
 
             if (isCovered) {
-                const discountRate = pkg.discount_percentage ? (pkg.discount_percentage / 100) : 0.2;
+                const discountRate = pkg.discount_percentage ? (pkg.discount_percentage / 100) : 0.2; // Default 20% discount
                 const benefitAmount = servicePrice * discountRate;
-                
+
                 totalBenefit += benefitAmount;
                 benefitApplied = true;
-                
+
                 console.log('✅ Membership discount applied:', {
                     serviceId,
-                    packageName: pkg.package_name,
+                    packageName: pkg.name,
                     discountRate: (discountRate * 100).toFixed(0) + '%',
                     originalPrice: servicePrice.toFixed(2),
                     benefitAmount: benefitAmount.toFixed(2),
@@ -1816,17 +1790,17 @@ function checkPackageBenefit(serviceId, servicePrice, quantity) {
                 });
             }
         } else if (pkg.package_type === 'prepaid') {
-            const remainingCredit = pkg.remaining_credit || 0;
-            
+            const remainingCredit = pkg.balance_remaining || 0;
+
             if (remainingCredit > 0) {
                 const benefitAmount = Math.min(servicePrice, remainingCredit);
-                
+
                 totalBenefit += benefitAmount;
                 benefitApplied = true;
-                
+
                 console.log('✅ Prepaid credit applied:', {
                     serviceId,
-                    packageName: pkg.package_name,
+                    packageName: pkg.name,
                     creditUsed: benefitAmount.toFixed(2),
                     remainingCredit: remainingCredit.toFixed(2)
                 });
@@ -1835,16 +1809,14 @@ function checkPackageBenefit(serviceId, servicePrice, quantity) {
     });
 
     if (!benefitApplied) {
-        debugger; // 🔴 BREAKPOINT 8: No benefit applied - inspect why
         console.log('ℹ️ No package benefit applied for serviceId:', serviceId);
         console.log('📋 All packages checked:', BillingState.customerPackages.packages.map(p => ({
             type: p.package_type,
             service_id: p.service_id,
             service_name: p.service_name,
-            remaining: p.remaining_sessions || p.sessions?.remaining
+            remaining: p.remaining_count || p.sessions?.remaining
         })));
     } else {
-        debugger; // 🔴 BREAKPOINT 9: Benefit applied successfully
         console.log('✅ Benefit successfully applied:', totalBenefit.toFixed(2));
     }
 
