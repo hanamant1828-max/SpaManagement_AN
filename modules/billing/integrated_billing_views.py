@@ -1436,8 +1436,29 @@ def get_customer_packages(customer_id):
                 "expires_on": r.expires_on.isoformat() if r.expires_on else None,
             }
 
+            # CRITICAL FIX: Check PackageBenefitTracker first for accurate session data
+            benefit_tracker = None
+            if hasattr(r, 'package_benefits') and r.package_benefits:
+                # Get the active benefit tracker for this assignment
+                for bt in r.package_benefits:
+                    if bt.is_active:
+                        benefit_tracker = bt
+                        break
+                # If no active tracker, get the most recent one
+                if not benefit_tracker and r.package_benefits:
+                    benefit_tracker = r.package_benefits[0]
+            
             # Add sessions data if applicable
-            if r.total_sessions is not None:
+            if benefit_tracker and benefit_tracker.benefit_type in ['free', 'discount']:
+                # Use PackageBenefitTracker data (more accurate)
+                package_data["sessions"] = {
+                    "total": int(benefit_tracker.total_allocated or 0),
+                    "used": int(benefit_tracker.used_count or 0),
+                    "remaining": int(benefit_tracker.remaining_count or 0)
+                }
+                app.logger.info(f"✅ Using PackageBenefitTracker for assignment {r.id}: {package_data['sessions']}")
+            elif r.total_sessions is not None:
+                # Fallback to ServicePackageAssignment data
                 package_data["sessions"] = {
                     "total": int(r.total_sessions or 0),
                     "used": int(r.used_sessions or 0),
@@ -1445,13 +1466,23 @@ def get_customer_packages(customer_id):
                                       if r.remaining_sessions is not None
                                       else (r.total_sessions or 0) - (r.used_sessions or 0)) or 0),
                 }
+                app.logger.info(f"⚠️ Using ServicePackageAssignment for assignment {r.id}: {package_data['sessions']}")
 
             # Add credit data if applicable
-            if r.credit_amount is not None:
+            if benefit_tracker and benefit_tracker.benefit_type == 'prepaid':
+                # Use PackageBenefitTracker for prepaid credit
+                package_data["credit"] = {
+                    "total": float(benefit_tracker.balance_total or 0.0),
+                    "remaining": float(benefit_tracker.balance_remaining or 0.0),
+                }
+                app.logger.info(f"✅ Using PackageBenefitTracker credit for assignment {r.id}: {package_data['credit']}")
+            elif r.credit_amount is not None:
+                # Fallback to ServicePackageAssignment credit data
                 package_data["credit"] = {
                     "total": float(r.credit_amount or 0.0),
                     "remaining": float(r.remaining_credit or 0.0),
                 }
+                app.logger.info(f"⚠️ Using ServicePackageAssignment credit for assignment {r.id}: {package_data['credit']}")
 
             packages_list.append(package_data)
 

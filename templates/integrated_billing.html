@@ -1190,9 +1190,9 @@ function displayCustomerPackagesTable(packages) {
         let balanceDetails = '';
 
         if (packageType === 'prepaid') {
-            // Use exact field names from backend: credit.remaining and credit.total
-            const remaining = pkg.balance_remaining || 0;
-            const total = pkg.balance_total || 0;
+            // FIXED: Use correct field names from API response
+            const remaining = pkg.credit?.remaining || 0;
+            const total = pkg.credit?.total || 0;
             const usedPct = total > 0 ? ((total - remaining) / total * 100).toFixed(0) : 0;
             balanceText = `₹${remaining.toFixed(2)} / ₹${total.toFixed(2)}`;
             balanceDetails = `
@@ -1200,9 +1200,9 @@ function displayCustomerPackagesTable(packages) {
                     <div class="progress-bar bg-success" style="width: ${100 - usedPct}%"></div>
                 </div>`;
         } else if (packageType === 'service_package') {
-            // Use exact field names from backend: sessions.remaining and sessions.total
-            const remaining = pkg.remaining_count || 0;
-            const total = pkg.total_allocated || 0;
+            // FIXED: Use correct field names from API response (sessions.remaining and sessions.total)
+            const remaining = pkg.sessions?.remaining || 0;
+            const total = pkg.sessions?.total || 0;
             const usedPct = total > 0 ? ((total - remaining) / total * 100).toFixed(0) : 0;
             balanceText = `${remaining} / ${total} sessions`;
             balanceDetails = `
@@ -1223,9 +1223,9 @@ function displayCustomerPackagesTable(packages) {
             }
         }
 
-        // Format expiry date
-        const expiryDate = pkg.valid_to ?
-            new Date(pkg.valid_to).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'No expiry';
+        // Format expiry date - check both valid_to and expires_on
+        const expiryDate = (pkg.valid_to || pkg.expires_on) ?
+            new Date(pkg.valid_to || pkg.expires_on).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'No expiry';
 
         // Type badge
         let typeBadge = '';
@@ -1954,21 +1954,21 @@ function checkPackageBenefit(serviceId, servicePrice, quantity = 1) {
         // Client-side quick check for immediate UI feedback
         // The backend will validate this when creating the invoice
         for (const pkg of customerPackages) {
-            // Skip packages that are inactive or already fully used
-            if (pkg.status !== 'active' || pkg.is_active === false) {
-                 console.log('⏭️ Package skipped (inactive):', pkg.name);
+            // Skip packages that are explicitly inactive or expired
+            if (pkg.status === 'expired' || pkg.status === 'completed' || pkg.is_active === false) {
+                 console.log('⏭️ Package skipped (expired/completed):', pkg.name);
                  continue;
             }
             
-            // Check if package has remaining benefits
-            if (pkg.benefit_type === 'free' || pkg.benefit_type === 'discount') {
-                const remaining = pkg.remaining_count || 0;
+            // Check if package has remaining benefits based on package_type
+            if (pkg.package_type === 'service_package') {
+                const remaining = pkg.sessions?.remaining || 0;
                 if (remaining <= 0) {
                     console.log('⏭️ Package skipped (no sessions):', pkg.name);
                     continue;
                 }
-            } else if (pkg.benefit_type === 'prepaid') {
-                const remaining = pkg.balance_remaining || 0;
+            } else if (pkg.package_type === 'prepaid') {
+                const remaining = pkg.credit?.remaining || 0;
                 if (remaining <= 0) {
                     console.log('⏭️ Package skipped (no credit):', pkg.name);
                     continue;
@@ -1987,8 +1987,8 @@ function checkPackageBenefit(serviceId, servicePrice, quantity = 1) {
             // });
 
             // --- Service Package / Free Session Logic ---
-            if (pkg.benefit_type === 'free' && pkg.service_id === serviceId) {
-                const remaining = pkg.remaining_count || 0;
+            if (pkg.package_type === 'service_package' && pkg.service_id == serviceId) {
+                const remaining = pkg.sessions?.remaining || 0;
 
                 if (remaining > 0) {
                     console.log('✅ Service package APPLIED:', {
@@ -2005,7 +2005,7 @@ function checkPackageBenefit(serviceId, servicePrice, quantity = 1) {
 
                     totalBenefit += benefitAmount;
                     appliedPackage = pkg.name;
-                    appliedPackageId = pkg.assignment_id;
+                    appliedPackageId = pkg.assignment_id || pkg.id;
                     benefitType = 'free';
 
                     console.log('   Benefit Details:', {
@@ -2024,8 +2024,8 @@ function checkPackageBenefit(serviceId, servicePrice, quantity = 1) {
                 }
             }
             // --- Prepaid / Credit Package Logic ---
-            else if (pkg.benefit_type === 'prepaid') {
-                const remaining = pkg.balance_remaining || 0;
+            else if (pkg.package_type === 'prepaid') {
+                const remaining = pkg.credit?.remaining || 0;
                 const serviceCost = servicePrice * quantity;
 
                 if (remaining > 0 && serviceCost > 0) {
@@ -2040,7 +2040,7 @@ function checkPackageBenefit(serviceId, servicePrice, quantity = 1) {
 
                     totalBenefit += creditToUse;
                     appliedPackage = pkg.name;
-                    appliedPackageId = pkg.assignment_id;
+                    appliedPackageId = pkg.assignment_id || pkg.id;
                     benefitType = 'prepaid';
 
                     break; // First matching package wins
@@ -2051,45 +2051,23 @@ function checkPackageBenefit(serviceId, servicePrice, quantity = 1) {
                     });
                 }
             }
-            // --- Unlimited / Membership Logic ---
-            else if (pkg.benefit_type === 'unlimited') {
-                // Check if service is covered by unlimited membership
+            // --- Membership Package Logic ---
+            else if (pkg.package_type === 'membership') {
+                // Check if service is covered by membership
                 const serviceCost = servicePrice * quantity;
                 
-                console.log('✅ Unlimited membership APPLIED:', {
-                    packageId: pkg.assignment_id,
+                console.log('✅ Membership APPLIED:', {
+                    packageId: pkg.assignment_id || pkg.id,
                     packageName: pkg.name,
                     serviceCost: serviceCost.toFixed(2)
                 });
 
                 totalBenefit += serviceCost;
                 appliedPackage = pkg.name;
-                appliedPackageId = pkg.assignment_id;
-                benefitType = 'unlimited';
+                appliedPackageId = pkg.assignment_id || pkg.id;
+                benefitType = 'membership';
 
                 break; // First matching package wins
-            }
-            // --- Discount Package Logic ---
-            else if (pkg.benefit_type === 'discount') {
-                const discountPct = pkg.discount_percentage || 0;
-                const serviceCost = servicePrice * quantity;
-                const discountAmount = serviceCost * (discountPct / 100);
-
-                if (discountPct > 0) {
-                    console.log('✅ Discount package APPLIED:', {
-                        packageId: pkg.assignment_id,
-                        packageName: pkg.name,
-                        discountPct: discountPct + '%',
-                        discountAmount: discountAmount.toFixed(2)
-                    });
-
-                    totalBenefit += discountAmount;
-                    appliedPackage = pkg.name;
-                    appliedPackageId = pkg.assignment_id;
-                    benefitType = 'discount';
-
-                    break; // First matching package wins
-                }
             }
             // Add logic for other package types if needed (e.g., memberships with free services)
         }
