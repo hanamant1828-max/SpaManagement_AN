@@ -7,6 +7,7 @@ from app import app, db
 from models import Customer
 from forms import CustomerForm, AdvancedCustomerForm
 from .clients_queries import *
+from sqlalchemy import or_, func
 
 @app.route('/customers')
 @app.route('/clients')  # Keep for backward compatibility
@@ -212,7 +213,7 @@ def update_client_route(id):
 
         # Add missing advanced form fields
         customer_data['emergency_contact'] = (form.emergency_contact.data or '').strip()
-        customer_data['emergency_phone'] = (form.emergency_phone.data or '').strip()  
+        customer_data['emergency_phone'] = (form.emergency_phone.data or '').strip()
         customer_data['medical_conditions'] = (form.medical_conditions.data or '').strip()
 
         try:
@@ -242,7 +243,7 @@ def delete_client_route(id):
     try:
         # Import Customer model directly to avoid import issues
         from models import Customer
-        
+
         client = get_customer_by_id(id)
         client_name = f"{client.first_name} {client.last_name}" if client else "Customer"
 
@@ -448,3 +449,112 @@ def api_get_customers_with_faces():
 
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+
+def delete_customer(customer_id):
+    """Soft delete a customer"""
+    from models import Customer
+    try:
+        customer = Customer.query.get(customer_id)
+        if customer:
+            customer.is_active = False
+            db.session.commit()
+            return True
+        return False
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error deleting customer {customer_id}: {e}")
+        return False
+
+@app.route('/api/customer/search/<string:name>')
+@login_required
+def api_get_customer_by_name(name):
+    """API endpoint to get customer data by name"""
+    try:
+        customer = Customer.query.filter(
+            or_(
+                Customer.first_name.ilike(f'%{name}%'),
+                Customer.last_name.ilike(f'%{name}%'),
+                func.concat(Customer.first_name, ' ', Customer.last_name).ilike(f'%{name}%')
+            ),
+            Customer.is_active == True
+        ).first()
+
+        if not customer:
+            return jsonify({
+                'success': False,
+                'message': f'Customer "{name}" not found'
+            }), 404
+
+        # Get customer's packages
+        from models import ServicePackageAssignment
+        packages = ServicePackageAssignment.query.filter_by(
+            customer_id=customer.id,
+            status='active'
+        ).all()
+
+        # Get customer's appointments
+        from models import Appointment # Import Appointment here to avoid circular dependency
+        appointments = Appointment.query.filter_by(
+            client_id=customer.id
+        ).order_by(Appointment.appointment_date.desc()).limit(10).all()
+
+        customer_data = {
+            'id': customer.id,
+            'first_name': customer.first_name,
+            'last_name': customer.last_name,
+            'full_name': customer.full_name,
+            'email': customer.email,
+            'phone': customer.phone,
+            'date_of_birth': customer.date_of_birth.isoformat() if customer.date_of_birth else None,
+            'gender': customer.gender,
+            'address': customer.address,
+            'total_visits': customer.total_visits or 0,
+            'total_spent': float(customer.total_spent or 0),
+            'last_visit': customer.last_visit.isoformat() if customer.last_visit else None,
+            'loyalty_points': customer.loyalty_points or 0,
+            'is_vip': customer.is_vip,
+            'status': customer.status,
+            'created_at': customer.created_at.isoformat() if customer.created_at else None,
+            'packages': [
+                {
+                    'id': pkg.id,
+                    'package_type': pkg.package_type,
+                    'total_sessions': pkg.total_sessions,
+                    'used_sessions': pkg.used_sessions,
+                    'remaining_sessions': pkg.remaining_sessions,
+                    'credit_amount': float(pkg.credit_amount or 0),
+                    'remaining_credit': float(pkg.remaining_credit or 0),
+                    'assigned_on': pkg.assigned_on.isoformat() if pkg.assigned_on else None,
+                    'expires_on': pkg.expires_on.isoformat() if pkg.expires_on else None,
+                    'status': pkg.status
+                } for pkg in packages
+            ],
+            'recent_appointments': [
+                {
+                    'id': apt.id,
+                    'appointment_date': apt.appointment_date.isoformat() if apt.appointment_date else None,
+                    'service_name': apt.service.name if apt.service else None,
+                    'staff_name': apt.staff.full_name if apt.staff else None,
+                    'status': apt.status,
+                    'amount': float(apt.amount or 0)
+                } for apt in appointments
+            ]
+        }
+
+        return jsonify({
+            'success': True,
+            'customer': customer_data
+        })
+
+    except Exception as e:
+        app.logger.error(f"Error fetching customer data: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': str(e)
+        }), 500
+
+def get_customer_appointments(customer_id):
+    """Get appointments for a customer"""
+    from models import Appointment # Import Appointment here to avoid circular dependency
+    return Appointment.query.filter_by(client_id=customer_id).order_by(Appointment.appointment_date.desc()).all()
