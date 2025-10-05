@@ -1118,7 +1118,7 @@ function displayCustomerPackagesTable(packages) {
             <tbody>`;
 
     packages.forEach(pkg => {
-        const packageName = pkg.package_name || 'Unknown Package';
+        const packageName = pkg.name || 'Unknown Package';
         const packageType = pkg.package_type || 'N/A';
         const status = pkg.status || 'active';
 
