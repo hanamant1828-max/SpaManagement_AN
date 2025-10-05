@@ -16,10 +16,6 @@ port = int(os.environ.get("PORT", 5000))
 
 # Import app at module level for gunicorn/WSGI compatibility
 from app import app
-from modules.clients import clients_views
-from modules.bookings import bookings_views
-from modules.billing import billing_views, integrated_billing_views
-from modules.checkin import checkin_views
 
 def main():
     """Main application entry point with crash guards"""

@@ -381,8 +381,19 @@ except Exception as e:
 # except Exception as e:
 #     print(f"⚠️ Student offer views import error: {e}")
 
-# Skip other problematic imports that cause route conflicts
-print("⚠️ Skipping other staff and notifications views to avoid conflicts")
+# Import staff views
+try:
+    from modules.staff.staff_views import *
+    print("✅ Staff views imported")
+except Exception as e:
+    print(f"⚠️ Staff views import error: {e}")
+
+# Import notifications views
+try:
+    from modules.notifications.notifications_views import *
+    print("✅ Notifications views imported")
+except Exception as e:
+    print(f"⚠️ Notifications views import error: {e}")
 
 # Routes are imported via module views, avoiding import conflicts
 

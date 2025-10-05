@@ -1,24 +1,6 @@
 """
 Main modules package - imports all module views
 """
-
-# Import all module views to register routes
-from .auth import auth_views
-from .dashboard import dashboard_views
-from .bookings import bookings_views
-from .clients import clients_views
-from .staff import staff_views
-from .inventory import views as inventory_views
-from .services import services_views
-
-# Import remaining modules
-from .billing import billing_views
-from .expenses import expenses_views
-from .settings import settings_views
-from .reports import reports_views
-from .packages import packages_views
-from .checkin import checkin_views
-from .notifications import notifications_views
 # from .notifications import notifications_views
 # from .packages import packages_views
 # from .reviews import reviews_views
