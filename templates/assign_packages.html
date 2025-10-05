@@ -28,7 +28,11 @@
 
                             <div class="form-group mb-3">
                                 <label for="customerId">Customer *</label>
-                                <select id="customerId" class="form-control" required>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="fas fa-search"></i></span>
+                                    <input type="text" id="customerSearch" class="form-control" placeholder="Search by name or phone...">
+                                </div>
+                                <select id="customerId" class="form-control mt-2" required>
                                     <option value="">Select Customer...</option>
                                     {% for customer in customers %}
                                     <option value="{{ customer.id }}" data-phone="{{ customer.phone }}" data-email="{{ customer.email }}">
@@ -354,6 +358,37 @@ document.getElementById('serviceId').addEventListener('change', function() {
 });
 
 document.getElementById('customerId').addEventListener('change', validateForm);
+
+// Customer search functionality
+document.getElementById('customerSearch').addEventListener('input', function() {
+    const searchValue = this.value.toLowerCase().trim();
+    const customerSelect = document.getElementById('customerId');
+    const options = customerSelect.querySelectorAll('option');
+
+    options.forEach(option => {
+        if (option.value === '') {
+            option.style.display = 'block';
+            return;
+        }
+
+        const phone = option.getAttribute('data-phone') || '';
+        const name = option.textContent.toLowerCase();
+
+        if (phone.includes(searchValue) || name.includes(searchValue)) {
+            option.style.display = 'block';
+        } else {
+            option.style.display = 'none';
+        }
+    });
+
+    // Auto-select if only one match
+    const visibleOptions = Array.from(options).filter(opt => opt.value !== '' && opt.style.display !== 'none');
+    if (visibleOptions.length === 1) {
+        customerSelect.value = visibleOptions[0].value;
+        validateForm();
+    }
+});
+
 
 function recalculateTotals() {
     let subtotal = 0;
@@ -730,7 +765,7 @@ function handlePaymentStatusChange() {
     const paymentStatus = paymentStatusElement.value;
 
     if (paymentStatus === 'paid' || paymentStatus === 'pending') {
-        const totalPayable = summaryTotalElement 
+        const totalPayable = summaryTotalElement
             ? parseFloat(summaryTotalElement.textContent.replace('₹', '')) || 0
             : 0;
         amountPaidInput.value = totalPayable.toFixed(2);
