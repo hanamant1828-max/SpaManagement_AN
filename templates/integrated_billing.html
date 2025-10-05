@@ -1863,7 +1863,8 @@ function updateCalculations() {
     let discountAmount = 0;
 
     // Discount applies after package benefits
-    const taxableAmountBeforeDiscount = Math.max(0, subtotal - packageDeductions);
+    // Note: Package benefits are already applied to itemTotal, so subtotal already reflects the reduced prices
+    const taxableAmountBeforeDiscount = Math.max(0, subtotal);
 
     if (discountType === 'percentage') {
         discountAmount = (taxableAmountBeforeDiscount * discountValue) / 100;
