@@ -228,7 +228,7 @@ class PackageBillingService:
                               customer_id: int, service_id: int, invoice_id: int,
                               invoice_item_id: int, idempotency_key: str,
                               service_date: datetime, staff_override: bool) -> Dict:
-        """Apply benefit based on package type with concurrency control"""
+        """Apply benefit based on package type with concurrency control - SWITCH/CASE ROUTING"""
 
         # Lock the package record for update (concurrency control)
         locked_package = db.session.query(PackageBenefitTracker).filter_by(
@@ -253,38 +253,76 @@ class PackageBillingService:
                 'message': 'Package benefits exhausted'
             }
 
-        benefit_type = locked_package.benefit_type
-
-        if benefit_type == 'unlimited':
-            return cls._apply_unlimited_benefit(
+        # Get package type from assignment for routing (SWITCH/CASE LOGIC)
+        package_type = locked_package.package_assignment.package_type if locked_package.package_assignment else None
+        
+        # SWITCH/CASE: Route to appropriate package type method
+        if package_type == 'service_package':
+            return cls._apply_service_package_benefit(
                 locked_package, service_price, customer_id, service_id,
                 invoice_id, invoice_item_id, idempotency_key, service_date, staff_override
             )
-
-        elif benefit_type == 'free':
-            return cls._apply_free_benefit(
+        
+        elif package_type == 'prepaid':
+            return cls._apply_prepaid_package_benefit(
                 locked_package, service_price, customer_id, service_id,
                 invoice_id, invoice_item_id, idempotency_key, service_date, staff_override
             )
-
-        elif benefit_type == 'discount':
-            return cls._apply_discount_benefit(
+        
+        elif package_type == 'membership':
+            return cls._apply_membership_package_benefit(
                 locked_package, service_price, customer_id, service_id,
                 invoice_id, invoice_item_id, idempotency_key, service_date, staff_override
             )
-
-        elif benefit_type == 'prepaid':
-            return cls._apply_prepaid_benefit(
+        
+        elif package_type == 'student_offer':
+            return cls._apply_student_offer_package_benefit(
                 locked_package, service_price, customer_id, service_id,
                 invoice_id, invoice_item_id, idempotency_key, service_date, staff_override
             )
-
+        
+        elif package_type == 'yearly_membership':
+            return cls._apply_yearly_membership_package_benefit(
+                locked_package, service_price, customer_id, service_id,
+                invoice_id, invoice_item_id, idempotency_key, service_date, staff_override
+            )
+        
+        elif package_type == 'kitty_party':
+            return cls._apply_kitty_party_package_benefit(
+                locked_package, service_price, customer_id, service_id,
+                invoice_id, invoice_item_id, idempotency_key, service_date, staff_override
+            )
+        
         else:
-            return {
-                'success': False,
-                'applied': False,
-                'message': f'Unknown benefit type: {benefit_type}'
-            }
+            # Fallback to benefit_type routing for backward compatibility
+            benefit_type = locked_package.benefit_type
+            
+            if benefit_type == 'unlimited':
+                return cls._apply_unlimited_benefit(
+                    locked_package, service_price, customer_id, service_id,
+                    invoice_id, invoice_item_id, idempotency_key, service_date, staff_override
+                )
+            elif benefit_type == 'free':
+                return cls._apply_free_benefit(
+                    locked_package, service_price, customer_id, service_id,
+                    invoice_id, invoice_item_id, idempotency_key, service_date, staff_override
+                )
+            elif benefit_type == 'discount':
+                return cls._apply_discount_benefit(
+                    locked_package, service_price, customer_id, service_id,
+                    invoice_id, invoice_item_id, idempotency_key, service_date, staff_override
+                )
+            elif benefit_type == 'prepaid':
+                return cls._apply_prepaid_benefit(
+                    locked_package, service_price, customer_id, service_id,
+                    invoice_id, invoice_item_id, idempotency_key, service_date, staff_override
+                )
+            else:
+                return {
+                    'success': False,
+                    'applied': False,
+                    'message': f'Unknown package type: {package_type} or benefit type: {benefit_type}'
+                }
 
     @classmethod
     def _apply_unlimited_benefit(cls, package: PackageBenefitTracker, service_price: float,
@@ -688,6 +726,96 @@ class PackageBillingService:
             db.session.rollback()
             logger.error(f"Error reversing package usage: {str(e)}")
             return {'success': False, 'message': f'Error reversing usage: {str(e)}'}
+
+    @classmethod
+    def _apply_service_package_benefit(cls, package: PackageBenefitTracker, service_price: float,
+                                      customer_id: int, service_id: int, invoice_id: int,
+                                      invoice_item_id: int, idempotency_key: str,
+                                      service_date: datetime, staff_override: bool) -> Dict:
+        """Apply SERVICE PACKAGE benefit - tracks sessions and applies free sessions"""
+        logger.info(f"SERVICE PACKAGE: Applying benefit for package {package.id}")
+        
+        # Service packages use free sessions benefit
+        return cls._apply_free_benefit(
+            package, service_price, customer_id, service_id,
+            invoice_id, invoice_item_id, idempotency_key, service_date, staff_override
+        )
+    
+    @classmethod
+    def _apply_prepaid_package_benefit(cls, package: PackageBenefitTracker, service_price: float,
+                                      customer_id: int, service_id: int, invoice_id: int,
+                                      invoice_item_id: int, idempotency_key: str,
+                                      service_date: datetime, staff_override: bool) -> Dict:
+        """Apply PREPAID PACKAGE benefit - deducts from credit balance"""
+        logger.info(f"PREPAID PACKAGE: Applying benefit for package {package.id}")
+        
+        # Prepaid packages use balance deduction
+        return cls._apply_prepaid_benefit(
+            package, service_price, customer_id, service_id,
+            invoice_id, invoice_item_id, idempotency_key, service_date, staff_override
+        )
+    
+    @classmethod
+    def _apply_membership_package_benefit(cls, package: PackageBenefitTracker, service_price: float,
+                                         customer_id: int, service_id: int, invoice_id: int,
+                                         invoice_item_id: int, idempotency_key: str,
+                                         service_date: datetime, staff_override: bool) -> Dict:
+        """Apply MEMBERSHIP PACKAGE benefit - provides unlimited access to included services"""
+        logger.info(f"MEMBERSHIP PACKAGE: Applying benefit for package {package.id}")
+        
+        # Memberships use unlimited benefit
+        return cls._apply_unlimited_benefit(
+            package, service_price, customer_id, service_id,
+            invoice_id, invoice_item_id, idempotency_key, service_date, staff_override
+        )
+    
+    @classmethod
+    def _apply_student_offer_package_benefit(cls, package: PackageBenefitTracker, service_price: float,
+                                            customer_id: int, service_id: int, invoice_id: int,
+                                            invoice_item_id: int, idempotency_key: str,
+                                            service_date: datetime, staff_override: bool) -> Dict:
+        """Apply STUDENT OFFER PACKAGE benefit - applies discount percentage"""
+        logger.info(f"STUDENT OFFER PACKAGE: Applying benefit for package {package.id}")
+        
+        # Student offers use discount benefit
+        return cls._apply_discount_benefit(
+            package, service_price, customer_id, service_id,
+            invoice_id, invoice_item_id, idempotency_key, service_date, staff_override
+        )
+    
+    @classmethod
+    def _apply_yearly_membership_package_benefit(cls, package: PackageBenefitTracker, service_price: float,
+                                                customer_id: int, service_id: int, invoice_id: int,
+                                                invoice_item_id: int, idempotency_key: str,
+                                                service_date: datetime, staff_override: bool) -> Dict:
+        """Apply YEARLY MEMBERSHIP PACKAGE benefit - provides unlimited access for a year"""
+        logger.info(f"YEARLY MEMBERSHIP PACKAGE: Applying benefit for package {package.id}")
+        
+        # Yearly memberships use unlimited benefit
+        return cls._apply_unlimited_benefit(
+            package, service_price, customer_id, service_id,
+            invoice_id, invoice_item_id, idempotency_key, service_date, staff_override
+        )
+    
+    @classmethod
+    def _apply_kitty_party_package_benefit(cls, package: PackageBenefitTracker, service_price: float,
+                                          customer_id: int, service_id: int, invoice_id: int,
+                                          invoice_item_id: int, idempotency_key: str,
+                                          service_date: datetime, staff_override: bool) -> Dict:
+        """Apply KITTY PARTY PACKAGE benefit - special group package with session tracking"""
+        logger.info(f"KITTY PARTY PACKAGE: Applying benefit for package {package.id}")
+        
+        # Kitty party packages can use either free sessions or discount based on configuration
+        if package.benefit_type == 'free':
+            return cls._apply_free_benefit(
+                package, service_price, customer_id, service_id,
+                invoice_id, invoice_item_id, idempotency_key, service_date, staff_override
+            )
+        else:
+            return cls._apply_discount_benefit(
+                package, service_price, customer_id, service_id,
+                invoice_id, invoice_item_id, idempotency_key, service_date, staff_override
+            )
 
     @classmethod
     def get_customer_package_summary(cls, customer_id: int) -> Dict:
