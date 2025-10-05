@@ -1645,13 +1645,14 @@ def get_customer_packages(client_id):
         if not customer:
             return jsonify({'success': False, 'error': 'Customer not found', 'packages': []}), 404
 
-        # Get all active package assignments for this customer
-        assignments = ServicePackageAssignment.query.filter_by(
-            customer_id=client_id,
-            status='active'
+        # Get all active and pending package assignments for this customer
+        # Include 'pending' status because packages may have partial payments
+        assignments = ServicePackageAssignment.query.filter(
+            ServicePackageAssignment.customer_id == client_id,
+            ServicePackageAssignment.status.in_(['active', 'pending'])
         ).all()
 
-        app.logger.info(f"🔍 Found {len(assignments)} active package assignments for customer {client_id}")
+        app.logger.info(f"🔍 Found {len(assignments)} active/pending package assignments for customer {client_id}")
         for a in assignments:
             app.logger.info(f"   - Assignment {a.id}: {a.package_type} (ref_id: {a.package_reference_id})")
 
