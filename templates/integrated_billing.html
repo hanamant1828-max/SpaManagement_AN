@@ -1010,8 +1010,8 @@ function loadCustomerPackages(customerId) {
     fetch(`/integrated-billing/customer-packages/${customerId}`)
         .then(res => res.json())
         .then(packagesData => {
-            console.log('📦 Raw API Response:', JSON.stringify(packagesData, null, 2));
-            console.log('📦 Packages array:', packagesData.packages);
+            debugger; // 🔴 BREAKPOINT 11: Packages loaded - inspect data structure
+            console.log('📦 Packages loaded:', packagesData);
             BillingState.customerPackages = packagesData;
             
             // Log detailed package info
