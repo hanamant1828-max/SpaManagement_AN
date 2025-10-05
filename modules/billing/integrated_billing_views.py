@@ -1367,50 +1367,50 @@ def create_professional_invoice():
                         staff.last_service_performed = current_date
                         staff_updated_count += 1
 
-            # Update staff metrics for product sales
-            for item_data in inventory_data:
-                if item_data.get('staff_id'):
-                    staff = User.query.get(item_data['staff_id'])
+                # Update staff metrics for product sales
+                for item_data in inventory_data:
+                    if item_data.get('staff_id'):
+                        staff = User.query.get(item_data['staff_id'])
 
-                    if staff:
-                        product_amount = item_data['unit_price'] * item_data['quantity']
+                        if staff:
+                            product_amount = item_data['unit_price'] * item_data['quantity']
 
-                        # Update staff performance metrics for product sales
-                        staff.total_revenue_generated = (staff.total_revenue_generated or 0.0) + product_amount
-                        staff.total_clients_served = (staff.total_clients_served or 0) + 1
-                        staff.total_sales = (staff.total_sales or 0.0) + product_amount
-                        staff.last_service_performed = current_date
-                        staff_updated_count += 1
+                            # Update staff performance metrics for product sales
+                            staff.total_revenue_generated = (staff.total_revenue_generated or 0.0) + product_amount
+                            staff.total_clients_served = (staff.total_clients_served or 0) + 1
+                            staff.total_sales = (staff.total_sales or 0.0) + product_amount
+                            staff.last_service_performed = current_date
+                            staff_updated_count += 1
 
-            # === CRITICAL UPDATE 3: Client Visit & Spending History ===
-            customer.last_visit = current_date
-            customer.total_visits = (customer.total_visits or 0) + 1
-            customer.total_spent = (customer.total_spent or 0.0) + total_amount
+                # === CRITICAL UPDATE 3: Client Visit & Spending History ===
+                customer.last_visit = current_date
+                customer.total_visits = (customer.total_visits or 0) + 1
+                customer.total_spent = (customer.total_spent or 0.0) + total_amount
 
-            # Commit all changes
-            db.session.commit()
+                # Commit all changes
+                db.session.commit()
 
-            # Return detailed response data
-            response_data = {
-                'success': True,
-                'message': f'Invoice {invoice_number} created successfully. {completed_appointments} appointments marked as completed. {package_deductions_applied} package benefits applied.',
-                'invoice_id': invoice.id,
-                'invoice_number': invoice_number,
-                'total_amount': float(total_amount),
-                'cgst_amount': float(cgst_amount),
-                'sgst_amount': float(sgst_amount),
-                'igst_amount': float(igst_amount),
-                'tax_amount': float(total_tax),
-                'service_items_created': service_items_created,
-                'inventory_items_created': inventory_items_created,
-                'stock_reduced': stock_reduced_count,
-                'package_deductions_applied': package_deductions_applied,
-                'appointments_completed': completed_appointments,
-                'client_updated': True,
-                'updated_packages': updated_packages  # Include updated package info for UI refresh
-            }
-            app.logger.info(f"✅ Invoice {invoice_number} created successfully - returning response")
-            return jsonify(response_data)
+                # Return detailed response data
+                response_data = {
+                    'success': True,
+                    'message': f'Invoice {invoice_number} created successfully. {completed_appointments} appointments marked as completed. {package_deductions_applied} package benefits applied.',
+                    'invoice_id': invoice.id,
+                    'invoice_number': invoice_number,
+                    'total_amount': float(total_amount),
+                    'cgst_amount': float(cgst_amount),
+                    'sgst_amount': float(sgst_amount),
+                    'igst_amount': float(igst_amount),
+                    'tax_amount': float(total_tax),
+                    'service_items_created': service_items_created,
+                    'inventory_items_created': inventory_items_created,
+                    'stock_reduced': stock_reduced_count,
+                    'package_deductions_applied': package_deductions_applied,
+                    'appointments_completed': completed_appointments,
+                    'client_updated': True,
+                    'updated_packages': updated_packages  # Include updated package info for UI refresh
+                }
+                app.logger.info(f"✅ Invoice {invoice_number} created successfully - returning response")
+                return jsonify(response_data)
 
         except Exception as e:
             db.session.rollback()
