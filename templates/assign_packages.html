@@ -693,39 +693,28 @@ window.AP_openUsage = (assignmentId)=>{
 };
 
 function updatePaymentSummary() {
-    const pricePaid = parseFloat(document.getElementById('asPricePaid').value) || 0;
-    const discount = parseFloat(document.getElementById('asDiscount').value) || 0;
-    const amountPaidInput = document.getElementById('asAmountPaid');
-    const amountPaidSection = document.getElementById('asAmountPaidSection');
-    const paymentStatus = document.getElementById('asPaymentStatus').value;
+    const packageType = document.getElementById('assign_package_type')?.value;
+    const packageSelect = packageType ? document.getElementById(`assign_${packageType}_id`) : null;
+    const discountInput = document.getElementById('assign_discount');
+    const pricePaidInput = document.getElementById('assign_price_paid');
+    const paymentMethodSelect = document.getElementById('assign_payment_method');
 
-    const summaryPrice = document.getElementById('summaryPrice');
-    const summaryDiscount = document.getElementById('summaryDiscount');
-    const summaryTotal = document.getElementById('summaryTotal');
-
-    summaryPrice.textContent = `₹${pricePaid.toFixed(2)}`;
-    summaryDiscount.textContent = `- ₹${discount.toFixed(2)}`;
-
-    let totalPayable = pricePaid - discount;
-    if (totalPayable < 0) totalPayable = 0;
-
-    summaryTotal.textContent = `₹${totalPayable.toFixed(2)}`;
-
-    // Update amount paid input based on payment status
-    if (paymentStatus === 'paid' || paymentStatus === 'pending') {
-        amountPaidInput.value = totalPayable.toFixed(2);
-        amountPaidInput.readOnly = true;
-        amountPaidSection.style.display = 'block';
-    } else if (paymentStatus === 'partial') {
-        amountPaidInput.readOnly = false;
-        amountPaidInput.value = parseFloat(amountPaidInput.value) || 0; // Keep existing value or reset to 0
-        amountPaidSection.style.display = 'block';
-    } else {
-        amountPaidSection.style.display = 'none';
+    // Add null checks for all required elements
+    if (!packageSelect || !discountInput || !pricePaidInput || !paymentMethodSelect) {
+        console.log('Payment summary update skipped - missing required elements');
+        return;
     }
 
-    // Recalculate totals for the main form if needed (though this function focuses on summary)
-    recalculateTotals();
+    const selectedOption = packageSelect.selectedOptions[0];
+    if (!selectedOption) {
+        return;
+    }
+
+    const packagePrice = parseFloat(selectedOption.dataset.price || 0);
+    const discount = parseFloat(discountInput.value || 0);
+    const finalPrice = Math.max(0, packagePrice - discount);
+
+    pricePaidInput.value = finalPrice.toFixed(2);
 }
 
 function handlePaymentStatusChange() {
