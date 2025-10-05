@@ -204,17 +204,19 @@ def api_assign_and_pay():
                 app.logger.error(f"Service package {package.id} has 0 total_sessions - this is invalid!")
                 return jsonify({'success': False, 'error': f'Service package "{package.name}" has no sessions configured. Please configure the package first.'}), 400
             
+            # Initialize session tracking - ALWAYS start with 0 used sessions
             assignment.total_sessions = int(total_sessions)
-            assignment.remaining_sessions = int(total_sessions)
-            assignment.used_sessions = 0
+            assignment.used_sessions = 0  # Always start at 0 for new assignments
+            assignment.remaining_sessions = int(total_sessions)  # All sessions available initially
             
             # Initialize credit fields to 0 for service packages
             assignment.credit_amount = 0
             assignment.remaining_credit = 0
             assignment.used_credit = 0
             
-            # Log for debugging
+            # Log for debugging with detailed session info
             app.logger.info(f"✅ Service Package assigned: {total_sessions} total sessions for package {package.name} (ID: {package.id})")
+            app.logger.info(f"   Session breakdown - Total: {assignment.total_sessions}, Used: {assignment.used_sessions}, Remaining: {assignment.remaining_sessions}")
             
         elif package_type == 'prepaid':
             # Get credit amount from PrepaidPackage model
