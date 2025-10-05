@@ -10,7 +10,7 @@ run = ["gunicorn", "--bind", "0.0.0.0:5000", "--reuse-port", "main:app"]
 build = ["echo", "No build needed - Flask app ready to deploy"]
 
 [workflows]
-runButton = "Project"
+runButton = "Start Spa Management System"
 
 [[workflows.workflow]]
 name = "Start Flask App"
