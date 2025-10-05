@@ -951,10 +951,15 @@ textarea.form-control {
 // STATE MANAGEMENT
 // ==========================================
 const BillingState = {
-    customerPackages: null,
+    customerPackages: null, // Renamed from customerPackages to BillingState.customerPackages
     batchCache: {},
     isSubmitting: false
 };
+
+// Global variables for cart items
+let selectedServices = [];
+let selectedProducts = [];
+let taxRate = 9; // Default tax rate
 
 // ==========================================
 // INITIALIZATION
@@ -962,11 +967,12 @@ const BillingState = {
 // Initialize application when DOM is loaded
 document.addEventListener('DOMContentLoaded', function() {
     initializeBillingSystem();
-    updateCalculations();
+    updateCalculations(); // Initial calculation to set display to 0.00
 
     {% if selected_customer %}
     console.log('Pre-selected customer ID:', {{ selected_customer.id }});
-    loadCustomerPackages({{ selected_customer.id }});
+    // Ensure to use the correct function name and pass ID as string or number based on API
+    loadCustomerPackages({{ selected_customer.id }}); 
     loadCustomerAppointments({{ selected_customer.id }});
     {% endif %}
 });
@@ -979,7 +985,7 @@ function initializeBillingSystem() {
         console.log('Selected option text:', this.options[this.selectedIndex]?.text);
 
         if (this.value) {
-            loadCustomerPackages(this.value);
+            loadCustomerPackages(this.value); // Pass value directly
             loadCustomerAppointments(this.value);
         } else {
             resetCustomerPackages();
@@ -991,44 +997,71 @@ function initializeBillingSystem() {
     const form = document.getElementById('billingForm');
     form?.addEventListener('submit', handleFormSubmit);
 
-    // Input validation
+    // Input validation setup
     setupInputValidation();
+
+    // Initialize cart rendering if data is pre-loaded
+    // (Assuming selectedServices and selectedProducts might be populated from backend for edits)
+    if (selectedServices.length > 0) renderServiceCart();
+    if (selectedProducts.length > 0) renderProductCart();
 }
 
 // ==========================================
 // CUSTOMER & PACKAGES
 // ==========================================
-function loadCustomerPackages(customerId) {
+
+// Updated function to fetch and store packages in BillingState
+async function loadCustomerPackages(customerId) {
     console.log('🔄 Loading packages for customer:', customerId);
+    console.log('📍 Customer ID type:', typeof customerId);
+    console.log('📍 Customer ID value:', customerId);
 
-    // Fetch packages only
-    fetch(`/integrated-billing/customer-packages/${customerId}`)
-        .then(res => res.json())
-        .then(packagesData => {
-            console.log('📦 Packages loaded:', packagesData);
-            BillingState.customerPackages = packagesData;
+    try {
+        const url = `/integrated-billing/customer-packages/${customerId}`;
+        console.log('🌐 Fetching from URL:', url);
 
-            // Log detailed package info
-            if (packagesData.packages && packagesData.packages.length > 0) {
-                console.log('📋 Package details:');
-                packagesData.packages.forEach((pkg, index) => {
-                    console.log(`  Package ${index + 1}:`, {
-                        name: pkg.name,
-                        type: pkg.package_type,
-                        service_id: pkg.service_id,
-                        service_name: pkg.service_name,
-                        sessions: pkg.sessions,
-                        credit: pkg.credit
-                    });
+        const response = await fetch(url);
+        console.log('📡 Response status:', response.status);
+        console.log('📡 Response headers:', Object.fromEntries(response.headers.entries()));
+
+        const data = await response.json();
+        console.log('📦 Packages loaded:', data);
+        console.log('📦 Raw response:', JSON.stringify(data, null, 2));
+
+        if (data.success && data.packages) {
+            BillingState.customerPackages = data.packages; // Store in BillingState
+            console.log('✅ Successfully loaded', BillingState.customerPackages.length, 'packages');
+            console.log('📋 Package details:');
+            BillingState.customerPackages.forEach((pkg, index) => {
+                console.log(`  Package ${index + 1}:`, {
+                    name: pkg.name,
+                    type: pkg.package_type,
+                    service_id: pkg.service_id,
+                    service_name: pkg.service_name,
+                    sessions: pkg.sessions,
+                    credit: pkg.credit,
+                    status: pkg.status,
+                    expires_on: pkg.expires_on
                 });
-            }
-
-            updateCalculations();
-        })
-        .catch(err => {
-            console.error('Error loading packages:', err);
-        });
+            });
+        } else {
+            BillingState.customerPackages = [];
+            console.log('⚠️ No packages returned or request failed');
+            console.log('⚠️ Success flag:', data.success);
+            console.log('⚠️ Packages data:', data.packages);
+        }
+    } catch (error) {
+        console.error('❌ Error loading packages:', error);
+        console.error('❌ Error stack:', error.stack);
+        BillingState.customerPackages = [];
+    } finally {
+        // Always update calculations after loading packages, even if empty or error
+        updateCalculations();
+        // Also refresh the display table
+        displayCustomerPackagesTable(BillingState.customerPackages || []);
+    }
 }
+
 
 function loadCustomerAppointments(customerId) {
     const appointmentsDiv = document.getElementById('customerAppointments');
@@ -1083,7 +1116,7 @@ function refreshCustomerPackages(customerId, updatedPackages) {
     // Fetch fresh packages from server (fallback or additional verification)
     fetch(`/integrated-billing/customer-packages/${customerId}`, { cache: 'no-store' })
         .then(r => r.json())
-        .then(j => { 
+        .then(j => {
             if (j.success) {
                 displayCustomerPackagesTable(j.packages);
                 console.log('Package balances refreshed successfully');
@@ -1153,8 +1186,8 @@ function displayCustomerPackagesTable(packages) {
 
         if (packageType === 'prepaid') {
             // Use exact field names from backend: credit.remaining and credit.total
-            const remaining = pkg.balance_remaining || 0; 
-            const total = pkg.balance_total || 0; 
+            const remaining = pkg.balance_remaining || 0;
+            const total = pkg.balance_total || 0;
             const usedPct = total > 0 ? ((total - remaining) / total * 100).toFixed(0) : 0;
             balanceText = `₹${remaining.toFixed(2)} / ₹${total.toFixed(2)}`;
             balanceDetails = `
@@ -1186,7 +1219,7 @@ function displayCustomerPackagesTable(packages) {
         }
 
         // Format expiry date
-        const expiryDate = pkg.valid_to ? 
+        const expiryDate = pkg.valid_to ?
             new Date(pkg.valid_to).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'No expiry';
 
         // Type badge
@@ -1237,11 +1270,11 @@ function displayCustomerPackagesTable(packages) {
 function resetCustomerAppointments() {
     // Clear tracking when customer changes
     addedAppointmentIds.clear();
-    document.getElementById('customerAppointments').innerHTML = 
+    document.getElementById('customerAppointments').innerHTML =
         '<div style="padding: var(--spacing-md); text-align: center; color: var(--gray-500);"><small><i class="fas fa-info-circle"></i> Select customer to view appointments</small></div>';
 
     // Also reset packages table
-    document.getElementById('customerPackagesTable').innerHTML = 
+    document.getElementById('customerPackagesTable').innerHTML =
         '<div style="padding: var(--spacing-md); text-align: center; color: var(--gray-500);"><small><i class="fas fa-gift"></i> Select customer to view active packages</small></div>';
 }
 
@@ -1284,7 +1317,7 @@ function displayCustomerAppointments(appointments) {
         const dateStr = aptDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
         const timeStr = apt.start_time || aptDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
 
-        const statusBadge = apt.status === 'completed' ? 
+        const statusBadge = apt.status === 'completed' ?
             '<span class="badge bg-success" style="font-size: 0.7rem;">Done</span>' :
             apt.status === 'confirmed' ?
             '<span class="badge bg-info" style="font-size: 0.7rem;">Confirmed</span>' :
@@ -1297,7 +1330,7 @@ function displayCustomerAppointments(appointments) {
         const staffName = (apt.staff_name || 'Not assigned').replace(/'/g, "\\'").replace(/"/g, '\\"');
 
         html += `
-            <tr style="border-bottom: 1px solid var(--gray-200); ${isAdded ? 'background: #f0fdf4;' : ''}">
+            <tr style="border-bottom: 1px solid var(--gray-200); ${isAdded ? 'background: #f0f4f0;' : ''}">
                 <td style="padding: 8px;">
                     <div style="font-weight: 600; color: var(--gray-900);">${apt.service_name || 'Service not specified'}</div>
                     <small style="color: var(--gray-500);">${apt.service_duration ? apt.service_duration + ' min' : ''} ${statusBadge}</small>
@@ -1312,8 +1345,8 @@ function displayCustomerAppointments(appointments) {
                     <strong style="color: var(--primary);">₹${(apt.service_price || 0).toFixed(2)}</strong>
                 </td>
                 <td style="padding: 8px;">
-                    <button type="button" 
-                            class="btn btn-sm ${isAdded ? 'btn-success' : 'btn-primary'} w-100" 
+                    <button type="button"
+                            class="btn btn-sm ${isAdded ? 'btn-success' : 'btn-primary'} w-100"
                             onclick="addAppointmentToBill(${apt.id}, '${serviceName}', ${apt.service_id || 'null'}, ${apt.staff_id || 'null'}, ${apt.service_price || 0}, ${apt.service_duration || 60})"
                             ${isAdded ? 'disabled' : ''}
                             style="font-size: 0.75rem; padding: 4px 8px;">
@@ -1332,43 +1365,12 @@ function displayCustomerAppointments(appointments) {
 }
 
 function resetCustomerPackages() {
-    BillingState.customerPackages = null;
+    BillingState.customerPackages = null; // Clear from state
     addedAppointmentIds.clear(); // Also clear added appointments tracking
     updateCalculations();
+    displayCustomerPackagesTable([]); // Clear the display table
 }
 
-
-function toggleAppointmentInBill(appointmentId, serviceName, servicePrice, staffName, serviceId) {
-    const isAdded = addedAppointmentIds.has(appointmentId);
-
-    if (isAdded) {
-        // Remove from bill
-        removeAppointmentFromBill(appointmentId);
-        addedAppointmentIds.delete(appointmentId);
-
-        // Update button
-        const btn = document.getElementById(`apt-btn-${appointmentId}`);
-        if (btn) {
-            btn.className = 'btn btn-sm btn-primary';
-            btn.innerHTML = '<i class="fas fa-plus"></i> Add';
-        }
-
-        showNotification(`Appointment #${appointmentId} removed from bill`, 'info');
-    } else {
-        // Add to bill
-        addAppointmentToBill(appointmentId, serviceName, servicePrice, staffName, serviceId);
-        addedAppointmentIds.add(appointmentId);
-
-        // Update button
-        const btn = document.getElementById(`apt-btn-${appointmentId}`);
-        if (btn) {
-            btn.className = 'btn btn-sm btn-danger';
-            btn.innerHTML = '<i class="fas fa-minus"></i> Remove';
-        }
-
-        showNotification(`Appointment #${appointmentId} added to bill`, 'success');
-    }
-}
 
 function addAppointmentToBill(appointmentId, serviceName, serviceId, staffId, servicePrice, serviceDuration) {
     console.log(`Adding appointment ${appointmentId} to bill - Service: ${serviceName}, ServiceID: ${serviceId}, StaffID: ${staffId}, Price: ${servicePrice}`);
@@ -1379,67 +1381,54 @@ function addAppointmentToBill(appointmentId, serviceName, serviceId, staffId, se
         return;
     }
 
-    const firstRow = container.children[0];
-    const serviceSelect = firstRow.querySelector('select[name="service_ids[]"]');
-    const staffSelect = firstRow.querySelector('select[name="staff_ids[]"]');
-    const qtyInput = firstRow.querySelector('input[name="service_quantities[]"]');
-    const appointmentInput = firstRow.querySelector('input[name="appointment_ids[]"]');
-
-    const isFirstRowEmpty = !serviceSelect.value;
-
-    if (isFirstRowEmpty) {
-        // Use first row if empty
-        if (serviceId && serviceSelect) {
-            serviceSelect.value = serviceId;
-            handleServiceChange(serviceSelect);
+    // Try to find an existing row for this appointment or add a new one
+    let targetRow = null;
+    const existingRows = container.querySelectorAll('.service-row');
+    for (const row of existingRows) {
+        const appointmentInput = row.querySelector('input[name="appointment_ids[]"]');
+        if (appointmentInput && appointmentInput.dataset.appointmentId == appointmentId) {
+            targetRow = row;
+            break;
         }
-
-        if (staffId && staffSelect) {
-            staffSelect.value = staffId;
-        }
-
-        if (qtyInput) qtyInput.value = 1;
-        if (appointmentInput) {
-            appointmentInput.value = appointmentId;
-            appointmentInput.dataset.appointmentId = appointmentId;
-            console.log(`✅ Set appointment ID ${appointmentId} in first row`);
-        }
-
-        // Mark as added
-        addedAppointmentIds.add(appointmentId);
-    } else {
-        // Add new row
-        addServiceRow();
-
-        const newRow = container.children[container.children.length - 1];
-        const newServiceSelect = newRow.querySelector('select[name="service_ids[]"]');
-        const newStaffSelect = newRow.querySelector('select[name="staff_ids[]"]');
-        const newQtyInput = newRow.querySelector('input[name="service_quantities[]"]');
-        const newAppointmentInput = newRow.querySelector('input[name="appointment_ids[]"]');
-
-        if (serviceId && newServiceSelect) {
-            newServiceSelect.value = serviceId;
-            handleServiceChange(newServiceSelect);
-        }
-
-        if (staffId && newStaffSelect) {
-            newStaffSelect.value = staffId;
-        }
-
-        if (newQtyInput) newQtyInput.value = 1;
-        if (newAppointmentInput) {
-            newAppointmentInput.value = appointmentId;
-            newAppointmentInput.dataset.appointmentId = appointmentId;
-            console.log(`✅ Set appointment ID ${appointmentId} in new row`);
-        }
-
-        // Mark as added
-        addedAppointmentIds.add(appointmentId);
     }
+
+    if (!targetRow) {
+        // If no existing row, add a new one
+        addServiceRow(); // This adds a new row at the end
+        targetRow = container.lastElementChild; // Get the newly added row
+    }
+
+    // Populate the target row
+    const serviceSelect = targetRow.querySelector('select[name="service_ids[]"]');
+    const staffSelect = targetRow.querySelector('select[name="staff_ids[]"]');
+    const qtyInput = targetRow.querySelector('input[name="service_quantities[]"]');
+    const appointmentInput = targetRow.querySelector('input[name="appointment_ids[]"]');
+
+    // Set values from appointment data
+    if (serviceId !== 'null' && serviceSelect) { // Check if serviceId is not null
+        serviceSelect.value = serviceId;
+        handleServiceChange(serviceSelect); // This should update price if service is selected
+    }
+
+    if (staffId !== 'null' && staffSelect) { // Check if staffId is not null
+        staffSelect.value = staffId;
+    }
+
+    if (qtyInput) qtyInput.value = 1; // Default quantity to 1 for appointment
+
+    if (appointmentInput) {
+        appointmentInput.value = appointmentId;
+        appointmentInput.dataset.appointmentId = appointmentId; // Store ID for tracking
+        console.log(`✅ Set appointment ID ${appointmentId} in row`);
+    }
+
+    // Mark as added
+    addedAppointmentIds.add(appointmentId);
+    console.log('Tracking added appointment ID:', appointmentId);
 
     updateCalculations();
 
-    // Refresh appointments display to show "Added" button
+    // Refresh appointments display to show "Added" button state
     const clientId = document.getElementById('client_id').value;
     if (clientId) {
         loadCustomerAppointments(clientId);
@@ -1452,22 +1441,47 @@ function removeAppointmentFromBill(appointmentId) {
 
     // Find and remove the row with this appointment ID
     const rows = container.querySelectorAll('.service-row');
-    rows.forEach(row => {
+    let rowToRemove = null;
+    for (const row of rows) {
         const appointmentInput = row.querySelector('input[name="appointment_ids[]"]');
         if (appointmentInput && appointmentInput.dataset.appointmentId == appointmentId) {
-            // If it's the only row, just clear it instead of removing
-            if (rows.length === 1) {
-                row.querySelectorAll('select, input').forEach(input => {
-                    input.value = input.name?.includes('quantities') ? '1' : '';
-                    delete input.dataset.appointmentId;
-                });
-            } else {
-                row.remove();
-            }
+            rowToRemove = row;
+            break;
         }
-    });
+    }
+
+    if (rowToRemove) {
+        // If it's the only row and it contains this appointment, clear it instead of removing
+        if (rows.length === 1 && rowToRemove.querySelector('input[name="appointment_ids[]"]')?.dataset.appointmentId == appointmentId) {
+            // Clear inputs but keep the row structure
+            rowToRemove.querySelectorAll('select, input').forEach(input => {
+                input.value = ''; // Clear all values
+                if (input.name?.includes('appointment_ids[]')) {
+                    delete input.dataset.appointmentId; // Remove tracking attribute
+                }
+            });
+            // Also reset quantity to 1 if it exists
+            const qtyInput = rowToRemove.querySelector('input[name="service_quantities[]"]');
+            if (qtyInput) qtyInput.value = 1;
+
+            console.log(`Cleared inputs in existing row for appointment ID ${appointmentId}`);
+        } else {
+            rowToRemove.remove(); // Remove the entire row
+            console.log(`Removed row associated with appointment ID ${appointmentId}`);
+        }
+    }
+
+    // Remove from tracking set
+    addedAppointmentIds.delete(appointmentId);
+    console.log('Removed appointment ID from tracking:', appointmentId);
 
     updateCalculations();
+
+    // Refresh appointments display to show "Add" button state
+    const clientId = document.getElementById('client_id').value;
+    if (clientId) {
+        loadCustomerAppointments(clientId);
+    }
 }
 
 // ==========================================
@@ -1480,36 +1494,49 @@ function loadBatches(productSelect) {
     const priceInput = row.querySelector('input[name="product_prices[]"]');
     const productId = parseInt(productSelect.value);
 
+    console.log('🔄 loadBatches called for product:', productId);
+
     if (!productId) {
         batchSelect.innerHTML = '<option value="">Select Product</option>';
         batchSelect.disabled = true;
         batchInfo.innerHTML = '';
+        if (priceInput) priceInput.value = '';
+        updateCalculations(); // Recalculate in case product was deselected
         return;
     }
 
     // Check cache first
     if (BillingState.batchCache[productId]) {
+        console.log('🗄️ Cache hit for product ID:', productId);
         populateBatchSelect(BillingState.batchCache[productId], batchSelect, batchInfo, priceInput);
         return;
     }
 
     // Load from API
+    console.log('🗄️ Cache miss for product ID:', productId, 'Fetching batches...');
     batchSelect.innerHTML = '<option value="">Loading...</option>';
     batchSelect.disabled = true;
+    if (priceInput) priceInput.value = '';
 
     fetch(`/api/inventory/batches/for-product/${productId}`)
-        .then(res => res.json())
+        .then(res => {
+            console.log('📡 Batch API response status:', res.status);
+            if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+            return res.json();
+        })
         .then(data => {
-            if (data.success) {
+            console.log('📦 Batch API response data:', data);
+            if (data.success && data.batches) {
                 const batches = data.batches || [];
-                BillingState.batchCache[productId] = batches;
+                BillingState.batchCache[productId] = batches; // Cache the result
                 populateBatchSelect(batches, batchSelect, batchInfo, priceInput);
             } else {
-                throw new Error('Failed to load batches');
+                throw new Error(data.message || 'Failed to load batches from API');
             }
         })
         .catch(err => {
-            console.error('Error loading batches:', err);
+            console.error('❌ Error loading batches:', err);
+            console.error('❌ Error stack:', err.stack);
             batchSelect.innerHTML = '<option value="">Error loading batches</option>';
             batchInfo.innerHTML = '<span class="text-danger">Failed to load batches</span>';
         });
@@ -1520,19 +1547,29 @@ function populateBatchSelect(batches, batchSelect, batchInfo, priceInput) {
     const availableBatches = batches
         .filter(b => b.qty_available > 0)
         .sort((a, b) => {
-            if (!a.expiry_date) return 1;
-            if (!b.expiry_date) return -1;
-            return new Date(a.expiry_date) - new Date(b.expiry_date);
+            // Prioritize batches with expiry dates, sort by date
+            if (a.expiry_date && b.expiry_date) {
+                return new Date(a.expiry_date) - new Date(b.expiry_date);
+            } else if (a.expiry_date) {
+                return -1; // a has expiry, b doesn't, so a comes first
+            } else if (b.expiry_date) {
+                return 1; // b has expiry, a doesn't, so b comes first
+            }
+            return 0; // Both have no expiry, order doesn't matter
         });
+
+    console.log('🔢 Available batches after filtering and sorting:', availableBatches);
 
     if (!availableBatches.length) {
         batchSelect.innerHTML = '<option value="">Out of Stock</option>';
         batchSelect.disabled = true;
         batchInfo.innerHTML = '<span class="text-danger">Out of stock</span>';
+        if (priceInput) priceInput.value = '';
+        updateCalculations(); // Recalculate
         return;
     }
 
-    batchSelect.innerHTML = availableBatches.map((b, i) => 
+    batchSelect.innerHTML = availableBatches.map((b, i) =>
         `<option value="${b.id}" data-price="${b.selling_price || b.unit_price || 0}" data-qty="${b.qty_available}" ${i === 0 ? 'selected' : ''}>
             ${b.batch_name} - ${b.qty_available} available
         </option>`
@@ -1541,7 +1578,7 @@ function populateBatchSelect(batches, batchSelect, batchInfo, priceInput) {
 
     // Display first batch info
     const firstBatch = availableBatches[0];
-    const expiry = firstBatch.expiry_date ? 
+    const expiry = firstBatch.expiry_date ?
         new Date(firstBatch.expiry_date).toLocaleDateString() : 'No expiry';
     const expiryClass = firstBatch.is_near_expiry ? 'text-warning' : '';
     batchInfo.innerHTML = `<small>Avail: ${firstBatch.qty_available} | <span class="${expiryClass}">Exp: ${expiry}</span></small>`;
@@ -1549,26 +1586,35 @@ function populateBatchSelect(batches, batchSelect, batchInfo, priceInput) {
     // Set price from batch
     if (priceInput && (firstBatch.selling_price || firstBatch.unit_price)) {
         priceInput.value = parseFloat(firstBatch.selling_price || firstBatch.unit_price).toFixed(2);
+    } else if (priceInput) {
+        priceInput.value = '0.00'; // Default to 0 if no price found
     }
 
-    // Update batch info on batch change
-    batchSelect.addEventListener('change', function() {
-        const selectedOption = this.options[this.selectedIndex];
-        const qty = selectedOption.dataset.qty;
-        const price = selectedOption.dataset.price;
-        const batch = availableBatches.find(b => b.id == this.value);
+    // Add event listener for batch change (only if not already added to prevent duplicates)
+    if (!batchSelect.dataset.changeListenerAdded) {
+        batchSelect.addEventListener('change', function() {
+            const selectedOption = this.options[this.selectedIndex];
+            const qty = selectedOption.dataset.qty;
+            const price = selectedOption.dataset.price;
+            const batch = availableBatches.find(b => b.id == this.value);
 
-        if (batch) {
-            const exp = batch.expiry_date ? new Date(batch.expiry_date).toLocaleDateString() : 'No expiry';
-            const expClass = batch.is_near_expiry ? 'text-warning' : '';
-            batchInfo.innerHTML = `<small>Avail: ${qty} | <span class="${expClass}">Exp: ${exp}</span></small>`;
+            console.log('▶️ Batch selection changed:', { value: this.value, price, qty });
 
-            if (priceInput && price) {
-                priceInput.value = parseFloat(price).toFixed(2);
+            if (batch) {
+                const exp = batch.expiry_date ? new Date(batch.expiry_date).toLocaleDateString() : 'No expiry';
+                const expClass = batch.is_near_expiry ? 'text-warning' : '';
+                batchInfo.innerHTML = `<small>Avail: ${qty} | <span class="${expClass}">Exp: ${exp}</span></small>`;
+
+                if (priceInput && price) {
+                    priceInput.value = parseFloat(price).toFixed(2);
+                } else if (priceInput) {
+                    priceInput.value = '0.00'; // Default if price is missing
+                }
             }
-        }
-        updateCalculations();
-    });
+            updateCalculations();
+        });
+        batchSelect.dataset.changeListenerAdded = 'true'; // Mark as added
+    }
 
     updateCalculations();
 }
@@ -1577,331 +1623,576 @@ function populateBatchSelect(batches, batchSelect, batchInfo, priceInput) {
 // ROW MANAGEMENT
 // ==========================================
 function addServiceRow() {
+    console.log('➕ addServiceRow called');
     const container = document.getElementById('servicesContainer');
-    const newRow = container.children[0].cloneNode(true);
+    const firstRow = container.querySelector('.service-row'); // Get the template row
 
+    if (!firstRow) {
+        console.error('Template service row not found!');
+        return;
+    }
+
+    const newRow = firstRow.cloneNode(true); // Clone the template row
+
+    // Clear values in the new row, except for quantity which should default to 1
     newRow.querySelectorAll('select, input').forEach(input => {
-        input.value = input.name?.includes('quantities') ? '1' : '';
-        input.classList.remove('is-invalid');
+        input.value = ''; // Clear all select and input values
+        input.classList.remove('is-invalid'); // Remove validation classes
+
+        // Reset quantity input to default value
+        if (input.type === 'number' && input.name.includes('quantities')) {
+            input.value = '1';
+        }
+        // Remove appointment tracking data if present
+        if (input.name.includes('appointment_ids[]')) {
+            delete input.dataset.appointmentId;
+        }
     });
 
-    newRow.querySelector('.package-benefit')?.remove();
-    newRow.querySelector('.btn-danger').style.display = 'block';
+    // Ensure remove button is visible on new rows
+    const removeButton = newRow.querySelector('.btn-danger');
+    if (removeButton) removeButton.style.display = 'block';
 
-    container.appendChild(newRow);
+    container.appendChild(newRow); // Append the new row
+    console.log('✅ New service row added');
 }
 
 function addProductRow() {
+    console.log('➕ addProductRow called');
     const container = document.getElementById('productsContainer');
-    const newRow = container.children[0].cloneNode(true);
+    const firstRow = container.querySelector('.product-row'); // Get the template row
 
+    if (!firstRow) {
+        console.error('Template product row not found!');
+        return;
+    }
+
+    const newRow = firstRow.cloneNode(true); // Clone the template row
+
+    // Clear values in the new row
     newRow.querySelectorAll('select, input').forEach(input => {
-        input.value = input.name?.includes('quantities') ? '1' : '';
+        input.value = '';
         input.classList.remove('is-invalid');
+
+        if (input.type === 'number' && input.name.includes('quantities')) {
+            input.value = '1';
+        }
     });
 
+    // Reset batch select to default state
     const batchSelect = newRow.querySelector('.batch-select');
     batchSelect.innerHTML = '<option value="">Select Product</option>';
     batchSelect.disabled = true;
     newRow.querySelector('.batch-info').innerHTML = '';
-    newRow.querySelector('.btn-danger').style.display = 'block';
+    if (newRow.querySelector('input[name="product_prices[]"]')) {
+        newRow.querySelector('input[name="product_prices[]"]').value = '';
+    }
+
+    // Ensure remove button is visible
+    const removeButton = newRow.querySelector('.btn-danger');
+    if (removeButton) removeButton.style.display = 'block';
 
     container.appendChild(newRow);
+    console.log('✅ New product row added');
 }
 
 function removeRow(button) {
-    button.closest('.item-row').remove();
-    updateCalculations();
+    console.log('🗑️ removeRow called for button:', button);
+    const row = button.closest('.item-row');
+    if (row) {
+        row.remove();
+        console.log('✅ Row removed');
+        updateCalculations(); // Recalculate totals after removing a row
+    } else {
+        console.error('Could not find closest .item-row to remove');
+    }
 }
 
 // ==========================================
 // CALCULATIONS
 // ==========================================
 function handleServiceChange(select) {
-    select.classList.remove('is-invalid');
-    updateCalculations();
+    console.log('▶️ handleServiceChange triggered for select:', select);
+    const selectedOption = select.options[select.selectedIndex];
+    const price = selectedOption.dataset.price;
+    const row = select.closest('.item-row');
+    const priceInput = row.querySelector('input[name="service_prices[]"]'); // Assuming you might have this input
+
+    select.classList.remove('is-invalid'); // Remove validation class
+
+    // Update price input if it exists and price is available
+    if (priceInput && price !== undefined) {
+        priceInput.value = parseFloat(price).toFixed(2);
+        console.log(`⬆️ Updated price for service: ${price}`);
+    } else if (priceInput) {
+        priceInput.value = ''; // Clear if no price
+    }
+
+    updateCalculations(); // Recalculate totals when service changes
 }
 
 function updateCalculations() {
-    let servicesTotal = 0;
-    let productsTotal = 0;
+    console.log('💰 updateCalculations called');
+
+    let servicesSubtotal = 0;
+    let productsSubtotal = 0;
     let packageDeductions = 0;
 
-    // Calculate services and check package benefits
-    document.querySelectorAll('.service-row').forEach(row => {
-        const select = row.querySelector('select[name="service_ids[]"]');
-        const qty = parseFloat(row.querySelector('input[name="service_quantities[]"]')?.value) || 0;
+    // --- Calculate Services Subtotal ---
+    console.log('🔄 Calculating services subtotal...');
+    document.querySelectorAll('.service-row').forEach((row, index) => {
+        const serviceSelect = row.querySelector('select[name="service_ids[]"]');
+        const qtyInput = row.querySelector('input[name="service_quantities[]"]');
+        const appointmentIdInput = row.querySelector('input[name="appointment_ids[]"]');
+        const priceInput = row.querySelector('input[name="service_prices[]"]'); // Assuming a hidden price input
 
-        if (select?.value) {
-            const price = parseFloat(select.selectedOptions[0]?.dataset.price) || 0;
-            const serviceTotal = price * qty;
-            servicesTotal += serviceTotal;
+        const serviceId = serviceSelect?.value;
+        const quantity = parseFloat(qtyInput?.value) || 0;
+        let price = parseFloat(serviceSelect.selectedOptions[0]?.dataset.price) || 0; // Get price from dataset initially
 
-            // Check if this service is covered by customer packages
-            const serviceId = parseInt(select.value);
-            const packageBenefit = checkPackageBenefit(serviceId, serviceTotal, qty);
+        // If a price input exists, use its value as it might be updated by package benefits
+        if (priceInput && priceInput.value) {
+             price = parseFloat(priceInput.value);
+        }
 
-            if (packageBenefit > 0) {
-                packageDeductions += packageBenefit;
+        // Check if it's an appointment row (has appointment ID) and if the service is already billed via appointment
+        const isAppointmentRow = appointmentIdInput && appointmentIdInput.value;
+        let effectivePrice = price; // Start with the base price
 
-                // Show package benefit indicator on the row
-                let benefitDiv = row.querySelector('.package-benefit');
-                if (!benefitDiv) {
-                    benefitDiv = document.createElement('div');
-                    benefitDiv.className = 'package-benefit';
-                    row.appendChild(benefitDiv);
+        if (serviceId && quantity > 0) {
+            // Check for package benefits only if it's not an appointment row or if the service is not tied to an appointment
+            // If it's an appointment row, the price should be fixed from the appointment data.
+            if (!isAppointmentRow) {
+                const benefit = checkPackageBenefit(serviceId, price, quantity);
+                console.log('🎁 Package benefit for service row:', { serviceId, price, quantity, benefit });
+
+                if (benefit.discount > 0) {
+                    const benefitAmount = Math.min(benefit.discount, price * quantity); // Ensure discount doesn't exceed item total
+                    packageDeductions += benefitAmount;
+
+                    // Adjust effective price and update priceInput if it exists
+                    effectivePrice = Math.max(0, price - benefitAmount / quantity); // Calculate price after benefit per unit
+                    if (priceInput) {
+                        priceInput.value = effectivePrice.toFixed(2);
+                        console.log(`⬆️ Updated priceInput in row due to package benefit: ${priceInput.value}`);
+                    }
+
+                    // Show package benefit indicator on the row
+                    let benefitDiv = row.querySelector('.package-benefit');
+                    if (!benefitDiv) {
+                        benefitDiv = document.createElement('div');
+                        benefitDiv.className = 'package-benefit';
+                        row.appendChild(benefitDiv);
+                    }
+                    benefitDiv.innerHTML = `<i class="fas fa-gift"></i> Package Benefit: -₹${benefitAmount.toFixed(2)}`;
+                } else {
+                    // Remove benefit indicator if no benefit
+                    row.querySelector('.package-benefit')?.remove();
                 }
-                benefitDiv.innerHTML = `<i class="fas fa-gift"></i> Package Benefit: -₹${packageBenefit.toFixed(2)}`;
             } else {
-                // Remove benefit indicator if no benefit
-                row.querySelector('.package-benefit')?.remove();
+                 // For appointment rows, ensure price is from appointment, not service selection
+                const appointmentPrice = parseFloat(appointmentIdInput.dataset.servicePrice);
+                if (!isNaN(appointmentPrice)) {
+                    effectivePrice = appointmentPrice;
+                    if (priceInput) priceInput.value = effectivePrice.toFixed(2);
+                    console.log(`Appointment row detected. Using appointment price: ${effectivePrice.toFixed(2)}`);
+                }
             }
+
+            const itemTotal = effectivePrice * quantity;
+            servicesSubtotal += itemTotal;
+            console.log('➕ Service row added to subtotal:', { serviceId, quantity, effectivePrice, itemTotal });
+        } else if (serviceSelect) {
+            serviceSelect.classList.add('is-invalid'); // Mark if service is selected but no valid data
+            row.querySelector('.package-benefit')?.remove(); // Remove benefit if service is deselected
         }
     });
 
-    // Calculate products
-    document.querySelectorAll('.product-row').forEach(row => {
-        const qty = parseFloat(row.querySelector('input[name="product_quantities[]"]')?.value) || 0;
-        const price = parseFloat(row.querySelector('input[name="product_prices[]"]')?.value) || 0;
-        productsTotal += qty * price;
+    // --- Calculate Products Subtotal ---
+    console.log('🔄 Calculating products subtotal...');
+    document.querySelectorAll('.product-row').forEach((row, index) => {
+        const qtyInput = row.querySelector('input[name="product_quantities[]"]');
+        const priceInput = row.querySelector('input[name="product_prices[]"]');
+        const quantity = parseFloat(qtyInput?.value) || 0;
+        const price = parseFloat(priceInput?.value) || 0;
+
+        if (quantity > 0 && price > 0) {
+            const itemTotal = price * quantity;
+            productsSubtotal += itemTotal;
+            console.log('➕ Product row added to subtotal:', { quantity, price, itemTotal });
+        } else if (qtyInput && priceInput && (quantity <= 0 || price <= 0)) {
+             console.log('⚠️ Product row skipped due to zero quantity or price:', { quantity, price });
+        }
     });
 
-    const subtotal = servicesTotal + productsTotal;
+    const subtotal = servicesSubtotal + productsSubtotal;
 
-    // Discount calculation
+    // --- Discount Calculation ---
     const discountType = document.querySelector('select[name="discount_type"]')?.value || 'percentage';
     const discountValue = parseFloat(document.querySelector('input[name="discount_value"]')?.value) || 0;
-    const discount = discountType === 'percentage' ? 
-        (subtotal * discountValue / 100) : discountValue;
+    let discountAmount = 0;
 
-    // Apply package deductions first
-    const afterPackages = Math.max(0, subtotal - packageDeductions);
-    const afterDiscount = Math.max(0, afterPackages - discount);
+    if (discountType === 'percentage') {
+        discountAmount = (subtotal * discountValue) / 100;
+    } else { // 'amount'
+        discountAmount = discountValue;
+    }
+    discountAmount = Math.max(0, discountAmount); // Ensure discount is not negative
 
-    // Tax calculation
+    // --- Calculate Taxable Amount ---
+    // Apply package deductions first, then discount
+    const taxableAmountBeforeTax = Math.max(0, subtotal - packageDeductions - discountAmount);
+
+    // --- Tax Calculation ---
     const cgstRate = parseFloat(document.querySelector('input[name="cgst_rate"]')?.value) || 0;
     const sgstRate = parseFloat(document.querySelector('input[name="sgst_rate"]')?.value) || 0;
-    const cgst = (afterDiscount * cgstRate) / 100;
-    const sgst = (afterDiscount * sgstRate) / 100;
+    const cgst = (taxableAmountBeforeTax * cgstRate) / 100;
+    const sgst = (taxableAmountBeforeTax * sgstRate) / 100;
 
-    // Additional charges
+    // --- Additional Charges & Tips ---
     const additionalCharges = parseFloat(document.querySelector('input[name="additional_charges"]')?.value) || 0;
     const tips = parseFloat(document.querySelector('input[name="tips_amount"]')?.value) || 0;
 
-    const total = afterDiscount + cgst + sgst + additionalCharges + tips;
+    // --- Grand Total ---
+    const grandTotal = taxableAmountBeforeTax + cgst + sgst + additionalCharges + tips;
 
-    // Update display
-    document.getElementById('servicesSubtotal').textContent = `₹${servicesTotal.toFixed(2)}`;
-    document.getElementById('productsSubtotal').textContent = `₹${productsTotal.toFixed(2)}`;
+    // --- Update Display ---
+    document.getElementById('servicesSubtotal').textContent = `₹${servicesSubtotal.toFixed(2)}`;
+    document.getElementById('productsSubtotal').textContent = `₹${productsSubtotal.toFixed(2)}`;
     document.getElementById('subtotalAmount').textContent = `₹${subtotal.toFixed(2)}`;
     document.getElementById('packageDeductions').textContent = `-₹${packageDeductions.toFixed(2)}`;
-    document.getElementById('discountAmount').textContent = `-₹${discount.toFixed(2)}`;
+    document.getElementById('discountAmount').textContent = `-₹${discountAmount.toFixed(2)}`;
     document.getElementById('cgstAmount').textContent = `₹${cgst.toFixed(2)}`;
     document.getElementById('sgstAmount').textContent = `₹${sgst.toFixed(2)}`;
     document.getElementById('additionalCharges').textContent = `₹${additionalCharges.toFixed(2)}`;
     document.getElementById('tipsDisplay').textContent = `₹${tips.toFixed(2)}`;
-    document.getElementById('grandTotal').textContent = `₹${total.toFixed(2)}`;
+    document.getElementById('grandTotal').textContent = `₹${grandTotal.toFixed(2)}`;
+
+    console.log('📊 Totals Updated:', {
+        servicesSubtotal: servicesSubtotal.toFixed(2),
+        productsSubtotal: productsSubtotal.toFixed(2),
+        subtotal: subtotal.toFixed(2),
+        packageDeductions: packageDeductions.toFixed(2),
+        discountAmount: discountAmount.toFixed(2),
+        taxableAmountBeforeTax: taxableAmountBeforeTax.toFixed(2),
+        cgst: cgst.toFixed(2),
+        sgst: sgst.toFixed(2),
+        additionalCharges: additionalCharges.toFixed(2),
+        tips: tips.toFixed(2),
+        grandTotal: grandTotal.toFixed(2)
+    });
+    console.log('✅ Calculations complete');
 }
 
-function checkPackageBenefit(serviceId, servicePrice, quantity) {
-    console.log('🔍 checkPackageBenefit called:', { serviceId, servicePrice, quantity });
-
-    if (!BillingState.customerPackages || !BillingState.customerPackages.packages) {
-        console.log('ℹ️ No customer packages available');
-        return 0;
-    }
-
-    let totalBenefit = 0;
-    let benefitApplied = false;
-
-    console.log('📦 Total packages to check:', BillingState.customerPackages.packages.length);
-
-    BillingState.customerPackages.packages.forEach(pkg => {
-        console.log('📦 Checking package:', {
-            id: pkg.assignment_id || pkg.id,
-            type: pkg.package_type,
-            name: pkg.name,
-            serviceId: pkg.service_id,
-            serviceName: pkg.service_name,
-            remainingSessions: pkg.remaining_count || pkg.sessions?.remaining,
-            remainingCredit: pkg.balance_remaining || pkg.credit?.remaining,
-            selectedServiceId: serviceId
+// Function to check package benefits for a given service
+// IMPORTANT: This function now uses BillingState.customerPackages
+function checkPackageBenefit(serviceId, servicePrice, quantity = 1) {
+        console.log('🔍 checkPackageBenefit called:', { serviceId, servicePrice, quantity });
+        console.log('📊 Input validation:', {
+            serviceIdType: typeof serviceId,
+            servicePriceType: typeof servicePrice,
+            quantityType: typeof quantity,
+            serviceIdValue: serviceId,
+            servicePriceValue: servicePrice,
+            quantityValue: quantity
         });
 
-        if (pkg.package_type === 'service_package') {
-            // CRITICAL FIX: Use remaining_count (from backend) instead of sessions.remaining
-            const remainingSessions = pkg.remaining_count || 0;
+        // Use BillingState.customerPackages
+        const customerPackages = BillingState.customerPackages;
 
-            // CRITICAL FIX: service_id is the direct field from backend
-            const packageServiceId = pkg.service_id;
+        if (!customerPackages || customerPackages.length === 0) {
+            console.log('ℹ️ No packages available for customer');
+            console.log('📦 customerPackages state:', customerPackages);
+            return { discount: 0, packageUsed: null };
+        }
 
-            console.log('🔍 Service package match check:', {
-                packageId: pkg.assignment_id,
-                packageServiceId: packageServiceId,
-                selectedServiceId: serviceId,
-                matches: packageServiceId == serviceId,
-                remainingSessions: remainingSessions,
-                serviceName: pkg.service_name
+        console.log('📦 Total packages to check:', customerPackages.length);
+        console.log('📦 All packages:', JSON.stringify(customerPackages, null, 2));
+
+        let totalDiscount = 0;
+        let packageUsed = null;
+
+        for (const pkg of customerPackages) {
+            console.log('📦 Checking package:', {
+                id: pkg.id,
+                type: pkg.package_type,
+                name: pkg.name,
+                serviceId: pkg.service_id,
+                serviceName: pkg.service_name,
+                // Accessing nested properties safely
+                remainingSessions: pkg.sessions?.remaining || 0,
+                remainingCredit: pkg.credit?.remaining || 0,
+                selectedServiceId: serviceId
             });
 
-            // CRITICAL FIX: Match by service_id (both should be integers)
-            if (packageServiceId == serviceId && remainingSessions > 0) {
-                const sessionsToCover = Math.min(quantity, remainingSessions);
-                const pricePerSession = servicePrice / quantity;
-                const benefitAmount = sessionsToCover * pricePerSession;
-
-                totalBenefit += benefitAmount;
-                benefitApplied = true;
-
-                console.log('✅ Service package benefit applied:', {
-                    serviceId,
-                    packageName: pkg.name,
-                    sessionsCovered: sessionsToCover,
-                    benefitAmount: benefitAmount.toFixed(2),
-                    remainingSessions: remainingSessions,
-                    remainingAfter: remainingSessions - sessionsToCover
-                });
-            } else {
-                console.log('❌ Service package NOT applied - reason:', {
-                    serviceIdMatch: packageServiceId == serviceId,
-                    packageServiceId: packageServiceId,
+            if (pkg.package_type === 'service_package' && pkg.service_id == serviceId) {
+                console.log('🔍 Service package match check:', {
+                    packageId: pkg.id,
+                    packageServiceId: pkg.service_id,
                     selectedServiceId: serviceId,
-                    remainingSessions: remainingSessions
+                    matches: pkg.service_id == serviceId,
+                    // Use safe access for nested properties
+                    remainingSessions: pkg.sessions?.remaining || 0,
+                    serviceName: pkg.service_name,
+                    serviceIdComparison: `${pkg.service_id} == ${serviceId}`,
+                    typeMatch: typeof pkg.service_id === typeof serviceId
                 });
-            }
-        } else if (pkg.package_type === 'membership') {
-            const coveredServices = pkg.services || [];
-            const isCovered = coveredServices.some(s => s.service_id === serviceId);
 
-            if (isCovered) {
-                const discountRate = pkg.discount_percentage ? (pkg.discount_percentage / 100) : 0.2; // Default 20% discount
-                const benefitAmount = servicePrice * discountRate;
-
-                totalBenefit += benefitAmount;
-                benefitApplied = true;
-
-                console.log('✅ Membership discount applied:', {
-                    serviceId,
-                    packageName: pkg.name,
-                    discountRate: (discountRate * 100).toFixed(0) + '%',
-                    originalPrice: servicePrice.toFixed(2),
-                    benefitAmount: benefitAmount.toFixed(2),
-                    finalPrice: (servicePrice - benefitAmount).toFixed(2)
+                // Use safe access for remaining sessions
+                const remaining = pkg.sessions?.remaining || 0;
+                console.log('🔢 Session calculation:', {
+                    remaining,
+                    quantity,
+                    willApply: remaining > 0,
+                    sessionsToUse: Math.min(quantity, remaining)
                 });
-            }
-        } else if (pkg.package_type === 'prepaid') {
-            const remainingCredit = pkg.balance_remaining || 0;
 
-            if (remainingCredit > 0) {
-                const benefitAmount = Math.min(servicePrice, remainingCredit);
+                if (remaining > 0) {
+                    const sessionsToUse = Math.min(quantity, remaining);
+                    const discount = sessionsToUse * servicePrice;
+                    console.log('✅ Service package applied:', {
+                        packageId: pkg.id,
+                        packageName: pkg.name,
+                        sessionsUsed: sessionsToUse,
+                        discount: discount,
+                        remainingAfter: remaining - sessionsToUse,
+                        calculation: `${sessionsToUse} * ${servicePrice} = ${discount}`
+                    });
+                    totalDiscount += discount;
+                    packageUsed = { ...pkg, sessionsUsed: sessionsToUse };
+                } else {
+                    console.log('❌ Service package NOT applied - reason:', {
+                        serviceIdMatch: pkg.service_id == serviceId,
+                        packageServiceId: pkg.service_id,
+                        selectedServiceId: serviceId,
+                        remainingSessions: remaining,
+                        reason: remaining <= 0 ? 'No remaining sessions' : 'Service ID mismatch'
+                    });
+                }
+            } else if (pkg.package_type === 'prepaid') {
+                // Use safe access for remaining credit
+                const remaining = pkg.credit?.remaining || 0;
+                console.log('💳 Prepaid package check:', {
+                    packageId: pkg.id,
+                    remainingCredit: remaining,
+                    servicePrice,
+                    quantity,
+                    totalCost: servicePrice * quantity,
+                    willApply: remaining > 0
+                });
 
-                totalBenefit += benefitAmount;
-                benefitApplied = true;
-
-                console.log('✅ Prepaid credit applied:', {
-                    serviceId,
-                    packageName: pkg.name,
-                    creditUsed: benefitAmount.toFixed(2),
-                    remainingCredit: remainingCredit.toFixed(2)
+                if (remaining > 0) {
+                    const creditToUse = Math.min(servicePrice * quantity, remaining);
+                    console.log('✅ Prepaid credit applied:', {
+                        packageId: pkg.id,
+                        packageName: pkg.name,
+                        creditUsed: creditToUse,
+                        remainingAfter: remaining - creditToUse,
+                        calculation: `min(${servicePrice * quantity}, ${remaining}) = ${creditToUse}`
+                    });
+                    totalDiscount += creditToUse;
+                    packageUsed = { ...pkg, creditUsed: creditToUse };
+                }
+            } else {
+                console.log('⏭️ Package skipped:', {
+                    packageType: pkg.package_type,
+                    reason: pkg.package_type === 'service_package'
+                        ? `Service mismatch (${pkg.service_id} != ${serviceId})`
+                        : 'Not a service or prepaid package'
                 });
             }
         }
-    });
 
-    if (!benefitApplied) {
-        console.log('ℹ️ No package benefit applied for serviceId:', serviceId);
-        console.log('📋 All packages checked:', BillingState.customerPackages.packages.map(p => ({
+        if (totalDiscount === 0) {
+            console.log('ℹ️ No package benefit applied for serviceId:', serviceId);
+            console.log('🔍 Summary of why no benefits:', {
+                totalPackages: customerPackages.length,
+                servicePackages: customerPackages.filter(p => p.package_type === 'service_package').length,
+                prepaidPackages: customerPackages.filter(p => p.package_type === 'prepaid').length,
+                matchingServicePackages: customerPackages.filter(p =>
+                    p.package_type === 'service_package' && p.service_id == serviceId
+                ).length
+            });
+        }
+
+        console.log('📋 All packages checked:', customerPackages.map(p => ({
             type: p.package_type,
             service_id: p.service_id,
             service_name: p.service_name,
-            remaining: p.remaining_count || p.sessions?.remaining
+            // Use safe access for remaining
+            remaining: p.sessions?.remaining || p.credit?.remaining || 0
         })));
-    } else {
-        console.log('✅ Benefit successfully applied:', totalBenefit.toFixed(2));
+
+        console.log('💰 Total benefit calculated:', totalDiscount.toFixed(2));
+        console.log('📦 Package used:', packageUsed ? packageUsed.name : 'None');
+
+        return { discount: totalDiscount, packageUsed };
     }
 
-    console.log('💰 Total benefit calculated:', totalBenefit.toFixed(2));
-    return totalBenefit;
-}
 
 // ==========================================
 // VALIDATION
 // ==========================================
 function validateForm() {
+    console.log('🔬 validateForm called');
     let isValid = true;
     const errors = [];
 
-    // Customer
+    // Customer validation
     const client = document.getElementById('client_id');
     if (!client.value) {
         client.classList.add('is-invalid');
         errors.push('Select a customer');
         isValid = false;
+        console.log('❌ Validation failed: Customer not selected');
+    } else {
+        client.classList.remove('is-invalid');
     }
 
-    // Services
-    let hasItems = false;
-    document.querySelectorAll('.service-row').forEach((row, i) => {
-        const service = row.querySelector('select[name="service_ids[]"]');
-        const staff = row.querySelector('select[name="staff_ids[]"]');
+    let hasItems = false; // Track if any services or products are added
 
-        if (service?.value) {
-            hasItems = true;
-            if (!staff?.value) {
-                staff.classList.add('is-invalid');
+    // Service validation
+    const serviceRows = document.querySelectorAll('.service-row');
+    console.log(`Checking ${serviceRows.length} service rows...`);
+    serviceRows.forEach((row, i) => {
+        const serviceSelect = row.querySelector('select[name="service_ids[]"]');
+        const staffSelect = row.querySelector('select[name="staff_ids[]"]');
+        const qtyInput = row.querySelector('input[name="service_quantities[]"]');
+        const appointmentIdInput = row.querySelector('input[name="appointment_ids[]"]');
+
+        if (serviceSelect?.value) {
+            hasItems = true; // At least one item is added
+            if (!staffSelect?.value) {
+                staffSelect.classList.add('is-invalid');
                 errors.push(`Service #${i + 1}: Staff required`);
                 isValid = false;
+                console.log(`❌ Validation failed: Staff required for Service #${i + 1}`);
+            } else {
+                staffSelect.classList.remove('is-invalid');
             }
+
+             // Validate quantity if it's not an appointment row (appointments have fixed quantity)
+            if (!appointmentIdInput.value) {
+                const qty = parseFloat(qtyInput?.value);
+                if (isNaN(qty) || qty <= 0) {
+                     qtyInput.classList.add('is-invalid');
+                     errors.push(`Service #${i + 1}: Valid quantity required`);
+                     isValid = false;
+                     console.log(`❌ Validation failed: Invalid quantity for Service #${i + 1}`);
+                } else {
+                    qtyInput.classList.remove('is-invalid');
+                }
+            } else {
+                // For appointment rows, quantity is usually 1 and fixed
+                qtyInput.classList.remove('is-invalid');
+            }
+        } else {
+            // If serviceSelect is empty, clear related fields' invalid status
+            staffSelect.classList.remove('is-invalid');
+            qtyInput.classList.remove('is-invalid');
         }
     });
 
-    // Products
-    document.querySelectorAll('.product-row').forEach((row, i) => {
-        const product = row.querySelector('select[name="product_ids[]"]');
-        const batch = row.querySelector('.batch-select');
-        const staff = row.querySelector('select[name="product_staff_ids[]"]');
+    // Product validation
+    const productRows = document.querySelectorAll('.product-row');
+    console.log(`Checking ${productRows.length} product rows...`);
+    productRows.forEach((row, i) => {
+        const productSelect = row.querySelector('select[name="product_ids[]"]');
+        const batchSelect = row.querySelector('.batch-select');
+        const staffSelect = row.querySelector('select[name="product_staff_ids[]"]');
+        const qtyInput = row.querySelector('input[name="product_quantities[]"]');
+        const priceInput = row.querySelector('input[name="product_prices[]"]');
 
-        if (product?.value) {
-            hasItems = true;
-            if (!batch?.value) {
-                batch.classList.add('is-invalid');
+        if (productSelect?.value) {
+            hasItems = true; // At least one item is added
+            if (!batchSelect?.value) {
+                batchSelect.classList.add('is-invalid');
                 errors.push(`Product #${i + 1}: Batch required`);
                 isValid = false;
+                console.log(`❌ Validation failed: Batch required for Product #${i + 1}`);
+            } else {
+                batchSelect.classList.remove('is-invalid');
             }
-            if (!staff?.value) {
-                staff.classList.add('is-invalid');
+            if (!staffSelect?.value) {
+                staffSelect.classList.add('is-invalid');
                 errors.push(`Product #${i + 1}: Staff required`);
                 isValid = false;
+                console.log(`❌ Validation failed: Staff required for Product #${i + 1}`);
+            } else {
+                staffSelect.classList.remove('is-invalid');
             }
+            const qty = parseFloat(qtyInput?.value);
+            if (isNaN(qty) || qty <= 0) {
+                 qtyInput.classList.add('is-invalid');
+                 errors.push(`Product #${i + 1}: Valid quantity required`);
+                 isValid = false;
+                 console.log(`❌ Validation failed: Invalid quantity for Product #${i + 1}`);
+            } else {
+                qtyInput.classList.remove('is-invalid');
+            }
+             const price = parseFloat(priceInput?.value);
+            if (isNaN(price) || price < 0) { // Price can be 0, but not negative
+                 priceInput.classList.add('is-invalid');
+                 errors.push(`Product #${i + 1}: Valid price required`);
+                 isValid = false;
+                 console.log(`❌ Validation failed: Invalid price for Product #${i + 1}`);
+            } else {
+                priceInput.classList.remove('is-invalid');
+            }
+        } else {
+            // Clear invalid status if product is deselected
+            batchSelect.classList.remove('is-invalid');
+            staffSelect.classList.remove('is-invalid');
+            qtyInput.classList.remove('is-invalid');
+            priceInput.classList.remove('is-invalid');
         }
     });
 
+    // Check if any items were added
     if (!hasItems) {
         errors.push('Add at least one service or product');
         isValid = false;
+        console.log('❌ Validation failed: No services or products added');
     }
 
-    // Payment method
+    // Payment method validation
     const payment = document.querySelector('select[name="payment_method"]');
     if (!payment?.value) {
         payment.classList.add('is-invalid');
         errors.push('Payment method required');
         isValid = false;
+        console.log('❌ Validation failed: Payment method not selected');
+    } else {
+        payment.classList.remove('is-invalid');
     }
 
+    // If there are errors, display them and stop submission
     if (!isValid) {
+        console.log('❗ Form validation failed with errors:', errors);
         showNotification(errors.join('\n'), 'danger');
-        // Scroll to first error
-        document.querySelector('.is-invalid')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        // Scroll to the first invalid field
+        const firstErrorElement = document.querySelector('.is-invalid');
+        if (firstErrorElement) {
+            firstErrorElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    } else {
+        console.log('✅ Form validation passed');
     }
 
     return isValid;
 }
 
 function setupInputValidation() {
+    console.log('⚙️ Setting up input validation listeners');
     document.getElementById('billingForm').addEventListener('input', function(e) {
-        if (e.target.matches('select, input')) {
+        // Remove 'is-invalid' class when user starts typing/changing input
+        if (e.target.matches('select, input, textarea')) {
             e.target.classList.remove('is-invalid');
+            // Also clear associated feedback if it exists
+            const feedbackElement = e.target.nextElementSibling;
+            if (feedbackElement && feedbackElement.classList.contains('invalid-feedback')) {
+                feedbackElement.style.display = 'none';
+            }
         }
     });
 }
@@ -1911,8 +2202,15 @@ function setupInputValidation() {
 // ==========================================
 function handleFormSubmit(e) {
     e.preventDefault();
+    console.log('🚀 Form submit event triggered');
 
-    if (!validateForm() || BillingState.isSubmitting) {
+    if (!validateForm()) {
+        console.log('🚫 Form submission aborted due to validation errors.');
+        return;
+    }
+
+    if (BillingState.isSubmitting) {
+        console.log('⏳ Submission already in progress. Aborting duplicate submission.');
         return;
     }
 
@@ -1920,6 +2218,7 @@ function handleFormSubmit(e) {
     const btn = document.getElementById('saveBtn');
     btn.disabled = true;
     btn.classList.add('btn-loading');
+    console.log('⚙️ Submission initiated. Button disabled and loading state activated.');
 
     const formData = new FormData(e.target);
 
@@ -1928,14 +2227,18 @@ function handleFormSubmit(e) {
         body: formData
     })
     .then(res => {
+        console.log('📈 Server response received. Status:', res.status);
         if (!res.ok) {
+            // Attempt to get error message from response body
             return res.text().then(text => {
-                throw new Error(`Server error: ${res.status}`);
+                console.error('Server returned error:', text);
+                throw new Error(`Server error: ${res.status} - ${text || 'Unknown error'}`);
             });
         }
         return res.json();
     })
     .then(data => {
+        console.log('✅ Server successfully processed request. Response data:', data);
         if (data.success) {
             // Build success message for toast
             let toastMessage = `✅ Bill Saved Successfully!\n\n`;
@@ -1956,55 +2259,72 @@ function handleFormSubmit(e) {
             }
 
             // Show success toast
-            showNotification(toastMessage, 'success', 8000);
+            showNotification(toastMessage, 'success', 8000); // Display for 8 seconds
 
             // Refresh package display if packages were updated
             if (data.updated_packages && data.updated_packages.length > 0) {
                 const customerId = document.getElementById('client_id').value;
                 if (customerId) {
+                    console.log('🔄 Refreshing customer package display...');
                     refreshCustomerPackages(customerId, data.updated_packages);
                 }
             }
 
-            // Handle print if needed
+            // Handle print if needed (window.printAfterSave is set by saveAndPrint)
             if (window.printAfterSave && data.invoice_id) {
+                console.log(`🖨️ Opening print window for invoice ID: ${data.invoice_id}`);
                 window.open(`/integrated-billing/print-invoice/${data.invoice_id}`, '_blank');
+                window.printAfterSave = false; // Reset flag
             }
 
-            // Redirect to invoice detail
+            // Redirect to invoice detail page after a short delay
             setTimeout(() => {
+                console.log(`🚀 Redirecting to invoice detail page: /integrated-billing/invoice/${data.invoice_id}`);
                 window.location.href = `/integrated-billing/invoice/${data.invoice_id}`;
-            }, 2000);
+            }, 2500); // Delay for toast message visibility
+
         } else {
+            // Handle case where success is false but response is OK
             throw new Error(data.message || 'Failed to create invoice');
         }
     })
     .catch(err => {
-        BillingState.isSubmitting = false;
-        btn.disabled = false;
-        btn.classList.remove('btn-loading');
+        console.error('❌ Form submission failed:', err);
+        console.error('❌ Error stack:', err.stack);
+
+        BillingState.isSubmitting = false; // Reset submission flag
+        btn.disabled = false; // Re-enable button
+        btn.classList.remove('btn-loading'); // Remove loading state
 
         // Show error toast
-        const errorMessage = err.message || 'Failed to save invoice. Please try again.';
-        showNotification(`❌ Error: ${errorMessage}`, 'error', 6000);
-
-        console.error('Submission error:', err);
+        const errorMessage = err.message || 'Failed to save invoice. Please check your entries and try again.';
+        showNotification(`❌ Error: ${errorMessage}`, 'danger', 6000); // Display for 6 seconds
     });
 }
 
 function saveAndPrint() {
-    if (!validateForm()) return;
-    window.printAfterSave = true;
-    document.getElementById('billingForm').dispatchEvent(new Event('submit'));
+    console.log('🚀 saveAndPrint called');
+    if (!validateForm()) {
+        console.log('🚫 Validation failed, cannot save and print.');
+        return;
+    }
+    window.printAfterSave = true; // Set flag to trigger printing after successful save
+    console.log('🚩 `window.printAfterSave` flag set to true.');
+    document.getElementById('billingForm').dispatchEvent(new Event('submit')); // Trigger form submission
 }
 
 function previewInvoice() {
-    if (!validateForm()) return;
+    console.log('🚀 previewInvoice called');
+    if (!validateForm()) {
+        console.log('🚫 Validation failed, cannot generate preview.');
+        return;
+    }
 
-    // Gather form data
-    const formData = new FormData(document.getElementById('billingForm'));
+    // Gather form data for preview
+    const form = document.getElementById('billingForm');
+    const formData = new FormData(form);
 
-    // Convert to JSON for preview endpoint
+    // Convert form data to a more structured JSON object for the preview API
     const previewData = {
         client_id: parseInt(formData.get('client_id')),
         services: [],
@@ -2014,17 +2334,26 @@ function previewInvoice() {
         discount_type: formData.get('discount_type'),
         discount_value: parseFloat(formData.get('discount_value') || 0),
         additional_charges: parseFloat(formData.get('additional_charges') || 0),
-        tips_amount: parseFloat(formData.get('tips_amount') || 0)
+        tips_amount: parseFloat(formData.get('tips_amount') || 0),
+        payment_method: formData.get('payment_method'),
+        notes: formData.get('notes') || ''
     };
 
     // Collect services
     const serviceIds = formData.getAll('service_ids[]');
     const serviceQtys = formData.getAll('service_quantities[]');
+    const servicePrices = formData.getAll('service_prices[]'); // Assuming prices are available
+    const serviceStaffIds = formData.getAll('staff_ids[]');
+    const serviceApptIds = formData.getAll('appointment_ids[]');
+
     serviceIds.forEach((id, i) => {
         if (id) {
             previewData.services.push({
                 service_id: parseInt(id),
-                quantity: parseFloat(serviceQtys[i] || 1)
+                quantity: parseFloat(serviceQtys[i] || 1),
+                price: parseFloat(servicePrices[i] || document.querySelector(`select[name="service_ids[]"][value="${id}"]`)?.dataset.price || 0), // Fallback to dataset price
+                staff_id: serviceStaffIds[i] || null,
+                appointment_id: serviceApptIds[i] ? parseInt(serviceApptIds[i]) : null
             });
         }
     });
@@ -2033,15 +2362,22 @@ function previewInvoice() {
     const productIds = formData.getAll('product_ids[]');
     const productQtys = formData.getAll('product_quantities[]');
     const productPrices = formData.getAll('product_prices[]');
+    const productStaffIds = formData.getAll('product_staff_ids[]');
+    const productBatchIds = formData.getAll('batch_ids[]'); // Batch IDs might be useful for preview
+
     productIds.forEach((id, i) => {
         if (id) {
             previewData.products.push({
                 product_id: parseInt(id),
                 quantity: parseFloat(productQtys[i] || 1),
-                unit_price: parseFloat(productPrices[i] || 0)
+                unit_price: parseFloat(productPrices[i] || 0), // Use the price entered by user or from batch
+                staff_id: productStaffIds[i] || null,
+                batch_id: productBatchIds[i] || null
             });
         }
     });
+
+    console.log('📤 Sending preview data:', previewData);
 
     // Call preview API
     fetch('/integrated-billing/preview', {
@@ -2051,26 +2387,33 @@ function previewInvoice() {
         },
         body: JSON.stringify(previewData)
     })
-    .then(res => res.json())
+    .then(res => {
+        console.log('📈 Preview API response status:', res.status);
+        if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+        return res.json();
+    })
     .then(data => {
+        console.log('✅ Preview API response data:', data);
         if (data.success && data.preview_html) {
             // Show preview in modal
             showPreviewModal(data.preview_html);
         } else {
-            throw new Error('Preview generation failed');
+            throw new Error(data.message || 'Preview generation failed');
         }
     })
     .catch(err => {
-        console.error('Preview error:', err);
-        showNotification('Preview feature is currently unavailable', 'warning');
+        console.error('❌ Preview generation failed:', err);
+        showNotification('Preview feature is currently unavailable. Please try again later.', 'warning');
     });
 }
 
 function showPreviewModal(html) {
+    console.log('🖼️ Displaying preview modal');
     const modal = document.createElement('div');
-    modal.className = 'modal fade show';
+    modal.className = 'modal fade show'; // Bootstrap classes for modal
     modal.style.display = 'block';
-    modal.style.backgroundColor = 'rgba(0,0,0,0.5)';
+    modal.style.backgroundColor = 'rgba(0,0,0,0.5)'; // Semi-transparent background
+    modal.setAttribute('tabindex', '-1'); // For accessibility
     modal.innerHTML = `
         <div class="modal-dialog modal-lg modal-dialog-centered">
             <div class="modal-content">
@@ -2078,7 +2421,7 @@ function showPreviewModal(html) {
                     <h5 class="modal-title">Invoice Preview</h5>
                     <button type="button" class="btn-close" onclick="this.closest('.modal').remove()"></button>
                 </div>
-                <div class="modal-body">
+                <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
                     ${html}
                 </div>
                 <div class="modal-footer">
@@ -2093,7 +2436,8 @@ function showPreviewModal(html) {
 // ==========================================
 // UTILITIES
 // ==========================================
-function showNotification(message, type = 'info') {
+function showNotification(message, type = 'info', duration = 5000) {
+    console.log(`🔔 Showing notification: [${type}] ${message}`);
     const alertClass = {
         success: 'alert-success',
         danger: 'alert-danger',
@@ -2110,7 +2454,11 @@ function showNotification(message, type = 'info') {
 
     document.body.appendChild(notification);
 
-    setTimeout(() => notification.remove(), 5000);
+    setTimeout(() => {
+        if (notification.parentNode) {
+            notification.remove();
+        }
+    }, duration);
 }
 </script>
 {% endblock %}
