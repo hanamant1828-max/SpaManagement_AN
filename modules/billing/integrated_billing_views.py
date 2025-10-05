@@ -7,8 +7,12 @@ from flask_login import login_required, current_user
 from app import app, db
 from datetime import datetime
 import json
-from models import Customer, Service, Appointment, User
 from sqlalchemy import and_
+
+# Import core models first
+from models import Customer, Service, Appointment, User
+
+# Try to import inventory models with fallback
 try:
     from modules.inventory.models import InventoryProduct, InventoryBatch
 except ImportError:
