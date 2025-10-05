@@ -285,21 +285,29 @@ def api_assign_and_pay():
             paid_sessions = getattr(package, 'pay_for', 0)
             free_sessions = total_sessions - paid_sessions if total_sessions > paid_sessions else 0
             
+            # CRITICAL: Ensure total_allocated is set correctly
+            if total_sessions == 0:
+                app.logger.error(f"Service package {package.name} has 0 total sessions - this is invalid!")
+                return jsonify({
+                    'success': False,
+                    'error': f'Service package "{package.name}" has no sessions configured. Please configure the package first.'
+                }), 400
+            
             benefit_tracker = PackageBenefitTracker(
                 customer_id=customer.id,
                 package_assignment_id=assignment.id,
                 service_id=assignment_data.get('service_id'),
                 benefit_type='free',
-                total_allocated=total_sessions,
+                total_allocated=total_sessions,  # This is the TOTAL sessions customer can use
                 used_count=0,
-                remaining_count=total_sessions,
+                remaining_count=total_sessions,  # Initially, all sessions are available
                 valid_from=datetime.utcnow(),
                 valid_to=expires_on or (datetime.utcnow() + timedelta(days=365)),
                 is_active=True
             )
             
-            # Log for debugging
-            app.logger.info(f"Benefit tracker created: {total_sessions} sessions ({paid_sessions} paid + {free_sessions} free)")
+            # Log for debugging with detailed session info
+            app.logger.info(f"✅ Benefit tracker created: TOTAL={total_sessions} sessions, REMAINING={total_sessions}, USED=0 (Package had {paid_sessions} paid + {free_sessions} free)")
         
         elif package_type == 'membership':
             # Membership - unlimited access

@@ -389,10 +389,16 @@ def integrated_billing(customer_id=None):
                 
                 # Add type-specific fields matching template expectations
                 if tracker.benefit_type in ['free', 'discount']:
-                    # Service-based packages
+                    # Service-based packages - ensure we're getting the RIGHT data
                     total = tracker.total_allocated or 0
                     used = tracker.used_count or 0
                     remaining = tracker.remaining_count or 0
+                    
+                    # Double-check: if remaining is calculated, ensure it's correct
+                    if total > 0 and remaining == 0 and used == 0:
+                        # Fresh package - remaining should equal total
+                        remaining = total
+                    
                     usage_pct = round((used / total * 100), 1) if total > 0 else 0
                     
                     package_info.update({
@@ -401,6 +407,8 @@ def integrated_billing(customer_id=None):
                         'remaining_count': remaining,
                         'usage_percentage': usage_pct
                     })
+                    
+                    app.logger.info(f"Service package {package_name}: Total={total}, Used={used}, Remaining={remaining}")
                     
                     if tracker.benefit_type == 'discount':
                         package_info['discount_percentage'] = tracker.discount_percentage or 0
