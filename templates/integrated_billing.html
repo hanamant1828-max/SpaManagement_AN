@@ -1745,14 +1745,19 @@ function checkPackageBenefit(serviceId, servicePrice, quantity) {
             debugger; // 🔴 BREAKPOINT 5: Service package found - check matching logic
             const remainingSessions = pkg.remaining_sessions || pkg.sessions?.remaining || 0;
             
+            // Get the correct service_id from package - could be in different places
+            const packageServiceId = pkg.service_id || (pkg.services && pkg.services.length > 0 ? pkg.services[0].service_id : null);
+            
             console.log('🔍 Service package match check:', {
-                packageServiceId: pkg.service_id,
+                packageId: pkg.id || pkg.assignment_id,
+                packageServiceId: packageServiceId,
                 selectedServiceId: serviceId,
-                matches: pkg.service_id === serviceId,
-                remainingSessions: remainingSessions
+                matches: packageServiceId == serviceId,  // Use == for type coercion
+                remainingSessions: remainingSessions,
+                fullPackageObject: pkg
             });
             
-            if (pkg.service_id === serviceId && remainingSessions > 0) {
+            if (packageServiceId == serviceId && remainingSessions > 0) {
                 debugger; // 🔴 BREAKPOINT 6: Match found! - check benefit calculation
                 const sessionsToCover = Math.min(quantity, remainingSessions);
                 const pricePerSession = servicePrice / quantity;
