@@ -1007,7 +1007,16 @@ function loadCustomerPackages(customerId) {
     fetch(`/integrated-billing/customer-packages/${customerId}`)
         .then(res => res.json())
         .then(packagesData => {
+            console.log('📦 Customer packages loaded:', packagesData);
             BillingState.customerPackages = packagesData;
+            
+            // Debug: log each package's service_id
+            if (packagesData.packages) {
+                packagesData.packages.forEach(pkg => {
+                    console.log(`   Package: ${pkg.name}, service_id: ${pkg.service_id}, service_name: ${pkg.service_name}`);
+                });
+            }
+            
             updateCalculations();
         })
         .catch(err => {
@@ -1691,40 +1700,52 @@ function updateCalculations() {
 function checkPackageBenefit(serviceId, servicePrice, quantity) {
     // Return 0 if no customer packages loaded
     if (!BillingState.customerPackages || !BillingState.customerPackages.packages) {
+        console.log('⚠️ No customer packages loaded');
         return 0;
     }
 
     let totalBenefit = 0;
 
+    console.log(`🔍 Checking package benefit for service ${serviceId}, price ${servicePrice}, qty ${quantity}`);
+
     // Check each package for this service
     for (const pkg of BillingState.customerPackages.packages) {
+        console.log(`📦 Checking package: ${pkg.name}, type: ${pkg.package_type}, service_id: ${pkg.service_id}`);
+
         if (pkg.package_type === 'membership') {
             // Check if membership covers this service
             const coveredServices = pkg.services || [];
             const isCovered = coveredServices.some(s => s.service_id === serviceId);
 
             if (isCovered) {
+                console.log(`✅ Membership covers service! Full price deduction: ${servicePrice}`);
                 // Membership covers full price
                 return servicePrice;
             }
         } else if (pkg.package_type === 'service_package') {
             // Use exact field names from backend: sessions.remaining
             const remainingSessions = pkg.sessions?.remaining || 0;
-            // Check if service package has remaining sessions for this service
+            console.log(`   Remaining sessions: ${remainingSessions}, Package service_id: ${pkg.service_id}`);
+            
+            // CRITICAL FIX: Check both service_id match AND remaining sessions
             if (pkg.service_id === serviceId && remainingSessions > 0) {
                 // Calculate how many sessions can be covered
                 const sessionsToCover = Math.min(quantity, remainingSessions);
                 const pricePerSession = servicePrice / quantity;
-                totalBenefit += sessionsToCover * pricePerSession;
+                const benefitAmount = sessionsToCover * pricePerSession;
+                totalBenefit += benefitAmount;
+                console.log(`✅ Service package match! Sessions to cover: ${sessionsToCover}, benefit: ${benefitAmount}`);
             }
         } else if (pkg.package_type === 'prepaid') {
             // Use exact field names from backend: credit.remaining
             const remainingCredit = pkg.credit?.remaining || 0;
             const deduction = Math.min(servicePrice, remainingCredit);
             totalBenefit += deduction;
+            console.log(`✅ Prepaid package match! Deduction: ${deduction}`);
         }
     }
 
+    console.log(`📊 Total package benefit calculated: ${totalBenefit}`);
     return totalBenefit;
 }
 
