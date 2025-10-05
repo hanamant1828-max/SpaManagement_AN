@@ -346,14 +346,27 @@ def integrated_billing(customer_id=None):
                 # Get the package template based on package type
                 package_template = assignment.get_package_template()
                 
-                # Determine package name with better fallback handling
-                if package_template and hasattr(package_template, 'name'):
-                    package_name = package_template.name
-                else:
-                    # Fallback: use package type as display name
-                    package_name = assignment.package_type.replace('_', ' ').title()
-                    if not package_template:
-                        app.logger.warning(f"No package template found for assignment {assignment.id} (type: {assignment.package_type}, ref_id: {assignment.package_reference_id})")
+                # Determine package name with comprehensive fallback handling
+                package_name = None
+                
+                # Try to get name from package template
+                if package_template:
+                    if hasattr(package_template, 'name') and package_template.name:
+                        package_name = package_template.name
+                    elif hasattr(package_template, 'package_name') and package_template.package_name:
+                        package_name = package_template.package_name
+                
+                # If still no name, try assignment fields
+                if not package_name:
+                    if hasattr(assignment, 'package_name') and assignment.package_name:
+                        package_name = assignment.package_name
+                    elif hasattr(assignment, 'name') and assignment.name:
+                        package_name = assignment.name
+                
+                # Final fallback: generate name from package type
+                if not package_name:
+                    package_name = assignment.package_type.replace('_', ' ').title() + ' Package'
+                    app.logger.warning(f"No package name found for assignment {assignment.id} (type: {assignment.package_type}, ref_id: {assignment.package_reference_id}), using fallback: {package_name}")
                 
                 # Get service name with proper fallback
                 if tracker.service:
@@ -1203,31 +1216,72 @@ def get_customer_packages(customer_id):
                 .order_by(ServicePackageAssignment.expires_on.asc())
                 .all())
         
-        payload = {"success": True, "packages": [{
-            "id": r.id,
-            "package_type": "service_package" if r.total_sessions else "prepaid" if r.credit_amount is not None else "membership",
-            "name": getattr(r, "package_name", None) or getattr(r, "package_display_name", ""),
-            "service_name": getattr(r, "service_name", None),
-            "status": r.status,
-            "assigned_on": r.assigned_on.isoformat() if r.assigned_on else None,
-            "expires_on": r.expires_on.isoformat() if r.expires_on else None,
-            "sessions": {
-                "total": int(r.total_sessions or 0),
-                "used": int(r.used_sessions or 0),
-                "remaining": int((r.remaining_sessions
-                                  if r.remaining_sessions is not None
-                                  else (r.total_sessions or 0) - (r.used_sessions or 0)) or 0),
-            } if r.total_sessions is not None else None,
-            "credit": {
-                "total": float(r.credit_amount or 0.0),
-                "remaining": float(r.remaining_credit or 0.0),
-            } if r.credit_amount is not None else None,
-        } for r in rows]}
+        packages_list = []
+        for r in rows:
+            # Get package name with comprehensive fallback logic
+            package_name = None
+            
+            # Try multiple fields in order of preference
+            if hasattr(r, 'package_name') and r.package_name:
+                package_name = r.package_name
+            elif hasattr(r, 'package_display_name') and r.package_display_name:
+                package_name = r.package_display_name
+            elif hasattr(r, 'name') and r.name:
+                package_name = r.name
+            
+            # If still no name, try to get from package template
+            if not package_name:
+                try:
+                    package_template = r.get_package_template()
+                    if package_template:
+                        if hasattr(package_template, 'name') and package_template.name:
+                            package_name = package_template.name
+                        elif hasattr(package_template, 'package_name') and package_template.package_name:
+                            package_name = package_template.package_name
+                except:
+                    pass
+            
+            # Final fallback: generate from package type
+            if not package_name:
+                pkg_type = "service_package" if r.total_sessions else "prepaid" if r.credit_amount is not None else "membership"
+                package_name = pkg_type.replace('_', ' ').title() + ' Package'
+            
+            package_data = {
+                "id": r.id,
+                "package_type": "service_package" if r.total_sessions else "prepaid" if r.credit_amount is not None else "membership",
+                "name": package_name,  # Now guaranteed to have a value
+                "service_name": getattr(r, "service_name", None),
+                "status": r.status,
+                "assigned_on": r.assigned_on.isoformat() if r.assigned_on else None,
+                "expires_on": r.expires_on.isoformat() if r.expires_on else None,
+            }
+            
+            # Add sessions data if applicable
+            if r.total_sessions is not None:
+                package_data["sessions"] = {
+                    "total": int(r.total_sessions or 0),
+                    "used": int(r.used_sessions or 0),
+                    "remaining": int((r.remaining_sessions
+                                      if r.remaining_sessions is not None
+                                      else (r.total_sessions or 0) - (r.used_sessions or 0)) or 0),
+                }
+            
+            # Add credit data if applicable
+            if r.credit_amount is not None:
+                package_data["credit"] = {
+                    "total": float(r.credit_amount or 0.0),
+                    "remaining": float(r.remaining_credit or 0.0),
+                }
+            
+            packages_list.append(package_data)
+        
+        payload = {"success": True, "packages": packages_list}
 
         resp = jsonify(payload)
         resp.headers["Cache-Control"] = "no-store"
         return resp
     except Exception as e:
+        app.logger.error(f"Error in get_customer_packages: {str(e)}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
