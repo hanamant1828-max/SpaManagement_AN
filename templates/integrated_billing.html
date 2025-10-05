@@ -1912,7 +1912,7 @@ function updateCalculations() {
 }
 
 // Function to check package benefits for a given service
-// IMPORTANT: This function now uses BillingState.customerPackages
+// IMPORTANT: This now calls the backend API for real-time benefit calculation
 function checkPackageBenefit(serviceId, servicePrice, quantity = 1) {
         console.log('🔍 checkPackageBenefit called:', { serviceId, servicePrice, quantity });
         console.log('📊 Input validation:', {
@@ -1924,7 +1924,13 @@ function checkPackageBenefit(serviceId, servicePrice, quantity = 1) {
             quantityValue: quantity
         });
 
-        // Use BillingState.customerPackages
+        // Quick check: if no customer selected, no benefits apply
+        if (!BillingState.selectedCustomerId) {
+            console.log('ℹ️ No customer selected - no benefits');
+            return { discount: 0, packageUsed: null, packageId: null, benefitType: null };
+        }
+
+        // Use cached packages for quick client-side display
         const customerPackages = BillingState.customerPackages;
 
         if (!customerPackages || customerPackages.length === 0) {
@@ -1934,19 +1940,34 @@ function checkPackageBenefit(serviceId, servicePrice, quantity = 1) {
         }
 
         console.log('📦 Total packages to check:', customerPackages.length);
-        // console.log('📦 All packages:', JSON.stringify(customerPackages, null, 2)); // Too verbose, uncomment if needed for debugging
 
-        let totalBenefit = 0; // Renamed from totalDiscount to totalBenefit for clarity
-        let appliedPackage = null; // Renamed from packageUsed
+        let totalBenefit = 0;
+        let appliedPackage = null;
         let appliedPackageId = null;
-        let benefitType = null; // To distinguish between free sessions and credit
+        let benefitType = null;
 
-        // Iterate through packages to find applicable benefits
+        // Client-side quick check for immediate UI feedback
+        // The backend will validate this when creating the invoice
         for (const pkg of customerPackages) {
-            // Skip packages that are inactive or already fully used (redundant check, but safe)
-            if (pkg.status !== 'active' || (pkg.sessions?.remaining <= 0 && pkg.credit?.remaining <= 0)) {
-                 console.log('⏭️ Package skipped (inactive or depleted):', pkg.name);
+            // Skip packages that are inactive or already fully used
+            if (pkg.status !== 'active' || pkg.is_active === false) {
+                 console.log('⏭️ Package skipped (inactive):', pkg.name);
                  continue;
+            }
+            
+            // Check if package has remaining benefits
+            if (pkg.benefit_type === 'free' || pkg.benefit_type === 'discount') {
+                const remaining = pkg.remaining_count || 0;
+                if (remaining <= 0) {
+                    console.log('⏭️ Package skipped (no sessions):', pkg.name);
+                    continue;
+                }
+            } else if (pkg.benefit_type === 'prepaid') {
+                const remaining = pkg.balance_remaining || 0;
+                if (remaining <= 0) {
+                    console.log('⏭️ Package skipped (no credit):', pkg.name);
+                    continue;
+                }
             }
 
             // console.log('📦 Checking package:', {
@@ -1960,84 +1981,109 @@ function checkPackageBenefit(serviceId, servicePrice, quantity = 1) {
             //     selectedServiceId: serviceId
             // });
 
-            // --- Service Package Logic ---
-            if (pkg.package_type === 'service_package') {
-                const remaining = pkg.sessions?.remaining || 0;
+            // --- Service Package / Free Session Logic ---
+            if (pkg.benefit_type === 'free' && pkg.service_id === serviceId) {
+                const remaining = pkg.remaining_count || 0;
 
-                // Service package benefit should apply when:
-                // 1. Service IDs match
-                // 2. Remaining sessions > 0
-                if (pkg.service_id === serviceId && remaining > 0) {
+                if (remaining > 0) {
                     console.log('✅ Service package APPLIED:', {
-                        packageId: pkg.id,
+                        packageId: pkg.assignment_id,
+                        packageName: pkg.name,
                         serviceName: pkg.service_name,
                         sessionsRemaining: remaining,
-                        benefitAmount: servicePrice * quantity // This is the cost of the service for the current quantity
+                        requestedQty: quantity
                     });
 
-                    // Calculate the actual benefit: min of (service cost, remaining sessions * service price)
-                    // However, for service packages, we usually consider the number of sessions used.
-                    // We apply the benefit based on the quantity requested, up to the remaining sessions.
+                    // Calculate sessions to use (min of requested quantity and remaining sessions)
                     const sessionsToUse = Math.min(quantity, remaining);
                     const benefitAmount = sessionsToUse * servicePrice;
 
                     totalBenefit += benefitAmount;
                     appliedPackage = pkg.name;
-                    appliedPackageId = pkg.id;
-                    benefitType = 'free'; // Indicates sessions are used
+                    appliedPackageId = pkg.assignment_id;
+                    benefitType = 'free';
 
                     console.log('   Benefit Details:', {
-                        sessionsToUse: sessionsToUse,
+                        sessionsToUse,
                         benefitAmount: benefitAmount.toFixed(2),
                         remainingAfter: remaining - sessionsToUse
                     });
 
-                    // Important: Break after applying the first matching service package benefit
-                    // If multiple service packages apply to the same service, the first one found wins.
-                    // This logic might need refinement based on specific business rules (e.g., prioritizing packages).
-                    break;
-
+                    break; // First matching package wins
                 } else {
-                    console.log('❌ Service package NOT applied:', {
-                        serviceMatch: pkg.service_id === serviceId,
-                        hasRemaining: remaining > 0,
+                    console.log('❌ Service package NOT applied (no sessions):', {
                         packageService: pkg.service_id,
                         selectedService: serviceId,
-                        remaining: remaining
+                        remaining
                     });
                 }
             }
-            // --- Prepaid Package Logic ---
-            else if (pkg.package_type === 'prepaid') {
-                const remaining = pkg.credit?.remaining || 0;
+            // --- Prepaid / Credit Package Logic ---
+            else if (pkg.benefit_type === 'prepaid') {
+                const remaining = pkg.balance_remaining || 0;
                 const serviceCost = servicePrice * quantity;
 
-                // Prepaid package benefit should apply when:
-                // 1. Remaining credit > 0
-                // 2. Service cost is positive
                 if (remaining > 0 && serviceCost > 0) {
                     const creditToUse = Math.min(serviceCost, remaining);
                     console.log('✅ Prepaid credit APPLIED:', {
-                        packageId: pkg.id,
+                        packageId: pkg.assignment_id,
+                        packageName: pkg.name,
                         creditRemaining: remaining,
                         serviceCost: serviceCost.toFixed(2),
-                        creditToUse: creditToUse.toFixed(2),
-                        remainingAfter: (remaining - creditToUse).toFixed(2)
+                        creditToUse: creditToUse.toFixed(2)
                     });
 
                     totalBenefit += creditToUse;
                     appliedPackage = pkg.name;
-                    appliedPackageId = pkg.id;
+                    appliedPackageId = pkg.assignment_id;
                     benefitType = 'prepaid';
 
-                    // Break after applying the first matching prepaid package benefit
-                    break;
+                    break; // First matching package wins
                 } else {
                     console.log('❌ Prepaid credit NOT applied:', {
                         hasRemaining: remaining > 0,
-                        serviceCostPositive: serviceCost > 0,
-                        remaining: remaining
+                        serviceCostPositive: serviceCost > 0
                     });
+                }
+            }
+            // --- Unlimited / Membership Logic ---
+            else if (pkg.benefit_type === 'unlimited') {
+                // Check if service is covered by unlimited membership
+                const serviceCost = servicePrice * quantity;
+                
+                console.log('✅ Unlimited membership APPLIED:', {
+                    packageId: pkg.assignment_id,
+                    packageName: pkg.name,
+                    serviceCost: serviceCost.toFixed(2)
+                });
+
+                totalBenefit += serviceCost;
+                appliedPackage = pkg.name;
+                appliedPackageId = pkg.assignment_id;
+                benefitType = 'unlimited';
+
+                break; // First matching package wins
+            }
+            // --- Discount Package Logic ---
+            else if (pkg.benefit_type === 'discount') {
+                const discountPct = pkg.discount_percentage || 0;
+                const serviceCost = servicePrice * quantity;
+                const discountAmount = serviceCost * (discountPct / 100);
+
+                if (discountPct > 0) {
+                    console.log('✅ Discount package APPLIED:', {
+                        packageId: pkg.assignment_id,
+                        packageName: pkg.name,
+                        discountPct: discountPct + '%',
+                        discountAmount: discountAmount.toFixed(2)
+                    });
+
+                    totalBenefit += discountAmount;
+                    appliedPackage = pkg.name;
+                    appliedPackageId = pkg.assignment_id;
+                    benefitType = 'discount';
+
+                    break; // First matching package wins
                 }
             }
             // Add logic for other package types if needed (e.g., memberships with free services)
