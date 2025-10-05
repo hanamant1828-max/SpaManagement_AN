@@ -378,6 +378,9 @@ class PackageBillingService:
             # Auto-deactivate if exhausted
             if package.remaining_count == 0:
                 package.is_active = False
+            
+            # CRITICAL: Sync with ServicePackageAssignment
+            cls._sync_assignment_with_tracker(package)
 
         # Create usage record only if sessions were actually used
         if sessions_to_cover > 0:
@@ -454,6 +457,9 @@ class PackageBillingService:
         # Auto-deactivate if exhausted
         if package.remaining_count == 0:
             package.is_active = False
+        
+        # CRITICAL: Sync with ServicePackageAssignment
+        cls._sync_assignment_with_tracker(package)
 
         # Create usage record
         usage = PackageUsageHistory(
@@ -515,6 +521,9 @@ class PackageBillingService:
         # Auto-deactivate if exhausted
         if package.balance_remaining == 0:
             package.is_active = False
+        
+        # CRITICAL: Sync with ServicePackageAssignment
+        cls._sync_assignment_with_tracker(package)
 
         # Create usage record
         usage = PackageUsageHistory(
@@ -558,6 +567,50 @@ class PackageBillingService:
             'usage_id': usage.id,
             'message': f'Prepaid {coverage_type} coverage: ₹{deduction_amount}. Balance: ₹{package.balance_remaining}'
         }
+
+    @classmethod
+    def _sync_assignment_with_tracker(cls, tracker: PackageBenefitTracker):
+        """
+        CRITICAL: Sync ServicePackageAssignment with PackageBenefitTracker
+        This ensures data consistency between the two tracking systems
+        """
+        try:
+            assignment = tracker.package_assignment
+            if not assignment:
+                logger.warning(f"PackageBenefitTracker {tracker.id} has no assignment - cannot sync")
+                return
+            
+            # Sync session-based packages
+            if tracker.benefit_type in ['free', 'discount']:
+                assignment.total_sessions = tracker.total_allocated or 0
+                assignment.used_sessions = tracker.used_count or 0
+                assignment.remaining_sessions = tracker.remaining_count or 0
+                
+                # Update status if package is exhausted
+                if tracker.remaining_count <= 0 and assignment.status == 'active':
+                    assignment.status = 'completed'
+            
+            # Sync prepaid packages
+            elif tracker.benefit_type == 'prepaid':
+                assignment.credit_amount = tracker.balance_total or 0
+                assignment.used_credit = tracker.balance_used or 0
+                assignment.remaining_credit = tracker.balance_remaining or 0
+                
+                # Update status if credit is exhausted
+                if tracker.balance_remaining <= 0 and assignment.status == 'active':
+                    assignment.status = 'completed'
+            
+            # Check expiry
+            if assignment.expires_on and assignment.expires_on < datetime.now():
+                if assignment.status == 'active':
+                    assignment.status = 'expired'
+                if tracker.is_active:
+                    tracker.is_active = False
+            
+            logger.info(f"✅ Synced assignment {assignment.id} with tracker {tracker.id}")
+            
+        except Exception as e:
+            logger.error(f"Error syncing assignment with tracker: {str(e)}")
 
     @classmethod
     def _get_package_name(cls, package: PackageBenefitTracker) -> str:

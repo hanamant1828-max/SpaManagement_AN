@@ -780,6 +780,132 @@ def get_customer_appointments(customer_id):
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
+@app.route('/integrated-billing/check-package-benefits', methods=['POST'])
+@login_required
+def check_package_benefits():
+    """
+    Check which package benefits will apply to services BEFORE invoice creation
+    Returns detailed package application info for frontend display
+    """
+    try:
+        data = request.get_json()
+        customer_id = data.get('customer_id')
+        services = data.get('services', [])  # [{service_id, quantity}, ...]
+        
+        if not customer_id:
+            return jsonify({'success': False, 'error': 'Customer ID required'}), 400
+        
+        if not services:
+            return jsonify({'success': False, 'error': 'No services provided'}), 400
+        
+        from modules.packages.package_billing_service import PackageBillingService
+        from models import Service, PackageBenefitTracker
+        
+        results = []
+        
+        for service_item in services:
+            service_id = service_item.get('service_id')
+            quantity = service_item.get('quantity', 1)
+            
+            if not service_id:
+                continue
+            
+            service = Service.query.get(service_id)
+            if not service:
+                continue
+            
+            # Find applicable packages for this service
+            applicable_packages = PackageBillingService.find_applicable_packages(
+                customer_id=customer_id,
+                service_id=service_id
+            )
+            
+            service_price = float(service.price) * quantity
+            
+            if applicable_packages:
+                # Get the highest priority package
+                best_package = applicable_packages[0]
+                tracker = best_package
+                assignment = tracker.package_assignment if tracker else None
+                
+                # Calculate what will be applied
+                benefit_info = {
+                    'service_id': service_id,
+                    'service_name': service.name,
+                    'original_price': service_price,
+                    'quantity': quantity,
+                    'has_benefit': True,
+                    'benefit_type': tracker.benefit_type,
+                    'package_name': assignment.package_name if hasattr(assignment, 'package_name') else 'Package',
+                    'package_assignment_id': assignment.id if assignment else None
+                }
+                
+                # Calculate benefit based on type
+                if tracker.benefit_type == 'unlimited':
+                    benefit_info['final_price'] = 0.0
+                    benefit_info['deduction'] = service_price
+                    benefit_info['message'] = 'Free (Unlimited Membership)'
+                    
+                elif tracker.benefit_type == 'free':
+                    sessions_available = tracker.remaining_count or 0
+                    sessions_to_use = min(quantity, sessions_available)
+                    
+                    if sessions_to_use > 0:
+                        price_per_session = service_price / quantity
+                        deduction = price_per_session * sessions_to_use
+                        benefit_info['final_price'] = service_price - deduction
+                        benefit_info['deduction'] = deduction
+                        benefit_info['sessions_used'] = sessions_to_use
+                        benefit_info['sessions_remaining_after'] = sessions_available - sessions_to_use
+                        benefit_info['message'] = f'{sessions_to_use} free session(s) applied. {sessions_available - sessions_to_use} remaining after.'
+                    else:
+                        benefit_info['has_benefit'] = False
+                        benefit_info['final_price'] = service_price
+                        benefit_info['deduction'] = 0
+                        benefit_info['message'] = 'No sessions remaining'
+                        
+                elif tracker.benefit_type == 'discount':
+                    discount_pct = tracker.discount_percentage or 0
+                    deduction = service_price * (discount_pct / 100)
+                    benefit_info['final_price'] = service_price - deduction
+                    benefit_info['deduction'] = deduction
+                    benefit_info['discount_percentage'] = discount_pct
+                    benefit_info['message'] = f'{discount_pct}% discount applied'
+                    
+                elif tracker.benefit_type == 'prepaid':
+                    credit_available = tracker.balance_remaining or 0
+                    deduction = min(service_price, credit_available)
+                    benefit_info['final_price'] = service_price - deduction
+                    benefit_info['deduction'] = deduction
+                    benefit_info['credit_remaining_after'] = credit_available - deduction
+                    benefit_info['message'] = f'₹{deduction:.2f} prepaid credit applied. ₹{credit_available - deduction:.2f} remaining after.'
+                
+                results.append(benefit_info)
+            else:
+                # No package applies
+                results.append({
+                    'service_id': service_id,
+                    'service_name': service.name,
+                    'original_price': service_price,
+                    'final_price': service_price,
+                    'quantity': quantity,
+                    'has_benefit': False,
+                    'deduction': 0,
+                    'message': 'No package benefit available'
+                })
+        
+        return jsonify({
+            'success': True,
+            'benefits': results
+        })
+        
+    except Exception as e:
+        app.logger.error(f"Error checking package benefits: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 @app.route('/integrated-billing/create-professional', methods=['POST'])
 @login_required
 def create_professional_invoice():
