@@ -316,6 +316,66 @@ def api_create_batch():
 
         data = request.get_json()
 
+
+@app.route('/api/inventory/batches/for-product/<int:product_id>')
+@login_required
+def api_get_batches_for_product(product_id):
+    """Get batches for a specific product ordered by FIFO (expiry date)"""
+    try:
+        from datetime import date
+        from sqlalchemy.orm import joinedload
+
+        # Get active batches for the product with stock, ordered by expiry (FIFO)
+        batches = InventoryBatch.query.options(
+            joinedload(InventoryBatch.product),
+            joinedload(InventoryBatch.location)
+        ).filter(
+            InventoryBatch.product_id == product_id,
+            InventoryBatch.status == 'active',
+            InventoryBatch.qty_available > 0
+        ).order_by(
+            InventoryBatch.expiry_date.asc().nullslast(),
+            InventoryBatch.batch_name
+        ).all()
+
+        batch_data = []
+        for batch in batches:
+            # Check if batch is expired
+            is_expired = batch.expiry_date and batch.expiry_date < date.today()
+            
+            # Skip expired batches
+            if is_expired:
+                continue
+            
+            batch_info = {
+                'id': batch.id,
+                'batch_name': batch.batch_name,
+                'product_id': batch.product_id,
+                'location_id': batch.location_id,
+                'location_name': batch.location.name if batch.location else 'Unassigned',
+                'qty_available': float(batch.qty_available or 0),
+                'unit_cost': float(batch.unit_cost or 0),
+                'selling_price': float(batch.selling_price or 0) if batch.selling_price else float(batch.unit_cost or 0),
+                'expiry_date': batch.expiry_date.isoformat() if batch.expiry_date else None,
+                'days_to_expiry': batch.days_to_expiry,
+                'is_expired': False,
+                'status': batch.status
+            }
+            batch_data.append(batch_info)
+
+        return jsonify({
+            'success': True,
+            'batches': batch_data
+        })
+    except Exception as e:
+        print(f"Error in api_get_batches_for_product: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'batches': []
+        }), 500
+
+
         # Validate required fields (simplified)
         required_fields = ['batch_name', 'mfg_date', 'expiry_date']
         for field in required_fields:
