@@ -202,6 +202,7 @@ def integrated_billing(customer_id=None):
     # Handle customer-specific billing data
     customer_appointments = []
     customer_services = []  # This will be a list of dictionaries, not Service objects
+    customer_active_packages = []  # Initialize packages list
     selected_customer = None
     if customer_id:
         selected_customer = Customer.query.get(customer_id)
