@@ -718,23 +718,32 @@ function updatePaymentSummary() {
 }
 
 function handlePaymentStatusChange() {
-    const paymentStatus = document.getElementById('asPaymentStatus').value;
+    const paymentStatusElement = document.getElementById('asPaymentStatus');
     const amountPaidInput = document.getElementById('asAmountPaid');
     const amountPaidSection = document.getElementById('asAmountPaidSection');
+    const summaryTotalElement = document.getElementById('summaryTotal');
+
+    if (!paymentStatusElement || !amountPaidInput || !amountPaidSection) {
+        return;
+    }
+
+    const paymentStatus = paymentStatusElement.value;
 
     if (paymentStatus === 'paid' || paymentStatus === 'pending') {
-        const totalPayable = parseFloat(document.getElementById('summaryTotal').textContent.replace('₹', '')) || 0;
+        const totalPayable = summaryTotalElement 
+            ? parseFloat(summaryTotalElement.textContent.replace('₹', '')) || 0
+            : 0;
         amountPaidInput.value = totalPayable.toFixed(2);
         amountPaidInput.readOnly = true;
         amountPaidSection.style.display = 'block';
     } else if (paymentStatus === 'partial') {
         amountPaidInput.readOnly = false;
-        amountPaidInput.value = parseFloat(amountPaidInput.value) || 0; // Preserve current input or set default
+        amountPaidInput.value = parseFloat(amountPaidInput.value) || 0;
         amountPaidSection.style.display = 'block';
     } else {
         amountPaidSection.style.display = 'none';
     }
-    updatePaymentSummary(); // Ensure summary is updated with new amount logic
+    updatePaymentSummary();
 }
 
 // Initial call to set the summary on page load
