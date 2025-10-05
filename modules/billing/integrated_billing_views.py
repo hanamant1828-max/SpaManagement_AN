@@ -340,25 +340,37 @@ def integrated_billing(customer_id=None):
                 # Get the assignment to get package template
                 assignment = tracker.package_assignment
                 if not assignment:
+                    app.logger.warning(f"PackageBenefitTracker {tracker.id} has no assignment - skipping")
                     continue
                     
                 # Get the package template based on package type
                 package_template = assignment.get_package_template()
                 
-                # Determine package name
-                if package_template:
+                # Determine package name with better fallback handling
+                if package_template and hasattr(package_template, 'name'):
                     package_name = package_template.name
                 else:
-                    package_name = f"{assignment.package_type.replace('_', ' ').title()}"
+                    # Fallback: use package type as display name
+                    package_name = assignment.package_type.replace('_', ' ').title()
+                    if not package_template:
+                        app.logger.warning(f"No package template found for assignment {assignment.id} (type: {assignment.package_type}, ref_id: {assignment.package_reference_id})")
+                
+                # Get service name with proper fallback
+                if tracker.service:
+                    service_name = tracker.service.name
+                elif assignment.service:
+                    service_name = assignment.service.name
+                else:
+                    service_name = 'All Services'
                 
                 # Build package info with correct field names for template
                 package_info = {
                     'assignment_id': assignment.id,
                     'package_type': assignment.package_type,
-                    'name': package_name,  # Changed from 'package_name' to 'name'
-                    'benefit_type': tracker.benefit_type,  # Added benefit_type from tracker
-                    'is_active': tracker.is_active,  # Added is_active
-                    'service_name': tracker.service.name if tracker.service else 'All Services',
+                    'name': package_name,
+                    'benefit_type': tracker.benefit_type,
+                    'is_active': tracker.is_active,
+                    'service_name': service_name,
                     'expires_on': tracker.valid_to.strftime('%b %d, %Y') if tracker.valid_to else None
                 }
                 
@@ -396,6 +408,14 @@ def integrated_billing(customer_id=None):
                     })
                 
                 customer_active_packages.append(package_info)
+            
+            # Log package data for debugging
+            if customer_active_packages:
+                app.logger.info(f"Customer {customer_id} has {len(customer_active_packages)} active packages:")
+                for pkg in customer_active_packages:
+                    app.logger.info(f"  - {pkg['name']} ({pkg['benefit_type']}) - Service: {pkg['service_name']}")
+            else:
+                app.logger.info(f"Customer {customer_id} has no active packages")
 
             # Convert Service objects to dictionaries for JSON serialization
             if 'customer_services_objects' in locals():
