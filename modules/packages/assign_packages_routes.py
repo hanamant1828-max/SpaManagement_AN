@@ -146,7 +146,17 @@ def api_assign_and_pay():
         package = get_package_by_type(package_type, package_id)
         
         if not package:
-            return jsonify({'success': False, 'error': 'Package not found'}), 404
+            app.logger.error(f"Package not found: type={package_type}, id={package_id}")
+            return jsonify({'success': False, 'error': f'Package not found: {package_type} with ID {package_id}'}), 404
+        
+        # Log package details for debugging
+        app.logger.info(f"📦 Retrieved package: {package.name} (type={package_type}, id={package_id})")
+        if package_type == 'service_package':
+            app.logger.info(f"   - Total services: {getattr(package, 'total_services', 'NOT SET')}")
+            app.logger.info(f"   - Pay for: {getattr(package, 'pay_for', 'NOT SET')}")
+        elif package_type == 'prepaid':
+            app.logger.info(f"   - After value: {getattr(package, 'after_value', 'NOT SET')}")
+            app.logger.info(f"   - Actual price: {getattr(package, 'actual_price', 'NOT SET')}")
         
         # Calculate pricing
         subtotal = float(assignment_data.get('price_paid', 0))
@@ -181,7 +191,7 @@ def api_assign_and_pay():
             notes=assignment_data.get('notes', '')
         )
         
-        # Set package-specific fields
+        # Set package-specific fields with proper initialization
         if package_type == 'service_package':
             # Get total sessions from ServicePackage model
             total_sessions = getattr(package, 'total_services', 0)
@@ -189,12 +199,22 @@ def api_assign_and_pay():
                 # Fallback: try total_sessions attribute
                 total_sessions = getattr(package, 'total_sessions', 0)
             
-            assignment.total_sessions = total_sessions
-            assignment.remaining_sessions = total_sessions
+            # Ensure we have a valid number
+            if total_sessions == 0:
+                app.logger.error(f"Service package {package.id} has 0 total_sessions - this is invalid!")
+                return jsonify({'success': False, 'error': f'Service package "{package.name}" has no sessions configured. Please configure the package first.'}), 400
+            
+            assignment.total_sessions = int(total_sessions)
+            assignment.remaining_sessions = int(total_sessions)
             assignment.used_sessions = 0
             
+            # Initialize credit fields to 0 for service packages
+            assignment.credit_amount = 0
+            assignment.remaining_credit = 0
+            assignment.used_credit = 0
+            
             # Log for debugging
-            app.logger.info(f"Service Package assigned: {total_sessions} total sessions for package {package.name}")
+            app.logger.info(f"✅ Service Package assigned: {total_sessions} total sessions for package {package.name} (ID: {package.id})")
             
         elif package_type == 'prepaid':
             # Get credit amount from PrepaidPackage model
@@ -203,12 +223,30 @@ def api_assign_and_pay():
                 # Fallback: try credit_amount attribute
                 credit_amount = getattr(package, 'credit_amount', 0)
             
-            assignment.credit_amount = credit_amount
-            assignment.remaining_credit = credit_amount
+            # Ensure we have a valid amount
+            if credit_amount == 0:
+                app.logger.error(f"Prepaid package {package.id} has 0 credit - this is invalid!")
+                return jsonify({'success': False, 'error': f'Prepaid package "{package.name}" has no credit configured. Please configure the package first.'}), 400
+            
+            assignment.credit_amount = float(credit_amount)
+            assignment.remaining_credit = float(credit_amount)
             assignment.used_credit = 0
             
+            # Initialize session fields to 0 for prepaid packages
+            assignment.total_sessions = 0
+            assignment.remaining_sessions = 0
+            assignment.used_sessions = 0
+            
             # Log for debugging
-            app.logger.info(f"Prepaid Package assigned: ₹{credit_amount} credit for package {package.name}")
+            app.logger.info(f"✅ Prepaid Package assigned: ₹{credit_amount} credit for package {package.name} (ID: {package.id})")
+        else:
+            # For other package types (membership, student_offer, etc.), initialize all fields to 0
+            assignment.total_sessions = 0
+            assignment.remaining_sessions = 0
+            assignment.used_sessions = 0
+            assignment.credit_amount = 0
+            assignment.remaining_credit = 0
+            assignment.used_credit = 0
         
         db.session.add(assignment)
         db.session.flush()  # Get assignment ID
