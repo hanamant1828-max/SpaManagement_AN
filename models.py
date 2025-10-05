@@ -687,9 +687,9 @@ class ServicePackageAssignment(db.Model):
             return Membership.query.get(self.package_reference_id)
         elif self.package_type == 'student_offer':
             return StudentOffer.query.get(self.package_reference_id)
-        elif self.package_type == 'yearly_membership':
+        elif self.package_type in ('yearly_membership', 'yearly'):
             return YearlyMembership.query.get(self.package_reference_id)
-        elif self.package_type == 'kitty_party':
+        elif self.package_type in ('kitty_party', 'kitty'):
             return KittyParty.query.get(self.package_reference_id)
         return None
 
