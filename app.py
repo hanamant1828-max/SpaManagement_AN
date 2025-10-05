@@ -1654,6 +1654,100 @@ def unaki_get_bookings():
             'bookings': []
         })
 
+@app.route('/api/unaki/book', methods=['POST'])
+def unaki_create_booking():
+    """Create a new Unaki booking"""
+    try:
+        from models import UnakiBooking, User, Service, Customer
+        from datetime import datetime, time
+
+        data = request.get_json()
+        
+        if not data:
+            return jsonify({
+                'success': False,
+                'error': 'No data provided'
+            }), 400
+
+        client_id = data.get('client_id')
+        client_name = data.get('client_name')
+        client_phone = data.get('client_phone')
+        client_email = data.get('client_email')
+        staff_id = data.get('staff_id')
+        service_id = data.get('service_id')
+        service_name = data.get('service_name')
+        appointment_date_str = data.get('appointment_date')
+        start_time_str = data.get('start_time')
+        end_time_str = data.get('end_time')
+        service_duration = data.get('service_duration', 60)
+        service_price = data.get('service_price', 0.0)
+        notes = data.get('notes', '')
+
+        if not all([client_name, staff_id, service_name, appointment_date_str, start_time_str, end_time_str]):
+            return jsonify({
+                'success': False,
+                'error': 'Missing required fields: client_name, staff_id, service_name, appointment_date, start_time, end_time'
+            }), 400
+
+        staff = User.query.get(staff_id)
+        if not staff:
+            return jsonify({
+                'success': False,
+                'error': f'Staff member with ID {staff_id} not found'
+            }), 404
+
+        appointment_date = datetime.strptime(appointment_date_str, '%Y-%m-%d').date()
+        start_time = datetime.strptime(start_time_str, '%H:%M').time()
+        end_time = datetime.strptime(end_time_str, '%H:%M').time()
+
+        new_booking = UnakiBooking(
+            client_id=client_id,
+            client_name=client_name,
+            client_phone=client_phone or '',
+            client_email=client_email or '',
+            staff_id=staff_id,
+            staff_name=f"{staff.first_name} {staff.last_name}",
+            service_id=service_id,
+            service_name=service_name,
+            service_duration=int(service_duration),
+            service_price=float(service_price),
+            appointment_date=appointment_date,
+            start_time=start_time,
+            end_time=end_time,
+            status='scheduled',
+            notes=notes,
+            booking_source='unaki_system',
+            booking_method=data.get('booking_method', 'manual'),
+            payment_status='pending',
+            created_at=datetime.utcnow()
+        )
+
+        db.session.add(new_booking)
+        db.session.commit()
+
+        print(f"✅ Created booking: {new_booking.id} - {client_name} with {staff.first_name} for {service_name}")
+
+        return jsonify({
+            'success': True,
+            'booking': new_booking.to_dict(),
+            'message': 'Booking created successfully'
+        })
+
+    except ValueError as e:
+        return jsonify({
+            'success': False,
+            'error': f'Invalid date/time format: {str(e)}'
+        }), 400
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error in unaki_create_booking: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
 @app.route('/api/unaki/bookings/<int:booking_id>')
 def unaki_get_booking(booking_id):
     """Get specific Unaki booking by ID"""
