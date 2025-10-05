@@ -327,9 +327,32 @@ def integrated_billing(customer_id=None):
                             apt['service_duration'] = matching_service.duration
 
             # Get active packages with CORRECT remaining count
-            from modules.packages.package_billing_service import PackageBillingService
-            customer_packages_summary = PackageBillingService.get_customer_package_summary(customer_id)
-            customer_active_packages = customer_packages_summary.get('packages', [])
+            from models import ServicePackageAssignment, ServicePackage
+            
+            # Get all active service package assignments for this customer
+            package_assignments = ServicePackageAssignment.query.filter_by(
+                customer_id=customer_id,
+                status='active'
+            ).all()
+            
+            customer_active_packages = []
+            for assignment in package_assignments:
+                # Get the package template
+                package_template = ServicePackage.query.get(assignment.package_reference_id)
+                
+                package_info = {
+                    'assignment_id': assignment.id,
+                    'package_type': 'service_package',
+                    'package_name': package_template.name if package_template else 'Unknown Package',
+                    'service_id': assignment.service_id,
+                    'service_name': assignment.service.name if assignment.service else 'Any Service',
+                    'total_sessions': assignment.total_sessions or 0,
+                    'used_sessions': assignment.used_sessions or 0,
+                    'remaining_sessions': assignment.remaining_sessions or 0,
+                    'status': assignment.status,
+                    'expires_on': assignment.expires_on.strftime('%b %d, %Y') if assignment.expires_on else None
+                }
+                customer_active_packages.append(package_info)
 
             # Convert Service objects to dictionaries for JSON serialization
             if 'customer_services_objects' in locals():
