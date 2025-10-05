@@ -183,15 +183,32 @@ def api_assign_and_pay():
         
         # Set package-specific fields
         if package_type == 'service_package':
-            total_sessions = getattr(package, 'total_sessions', 0)
+            # Get total sessions from ServicePackage model
+            total_sessions = getattr(package, 'total_services', 0)
+            if total_sessions == 0:
+                # Fallback: try total_sessions attribute
+                total_sessions = getattr(package, 'total_sessions', 0)
+            
             assignment.total_sessions = total_sessions
             assignment.remaining_sessions = total_sessions
             assignment.used_sessions = 0
+            
+            # Log for debugging
+            app.logger.info(f"Service Package assigned: {total_sessions} total sessions for package {package.name}")
+            
         elif package_type == 'prepaid':
+            # Get credit amount from PrepaidPackage model
             credit_amount = getattr(package, 'after_value', 0)
+            if credit_amount == 0:
+                # Fallback: try credit_amount attribute
+                credit_amount = getattr(package, 'credit_amount', 0)
+            
             assignment.credit_amount = credit_amount
             assignment.remaining_credit = credit_amount
             assignment.used_credit = 0
+            
+            # Log for debugging
+            app.logger.info(f"Prepaid Package assigned: ₹{credit_amount} credit for package {package.name}")
         
         db.session.add(assignment)
         db.session.flush()  # Get assignment ID
@@ -219,7 +236,15 @@ def api_assign_and_pay():
         
         elif package_type == 'service_package':
             # Service package - track free sessions
-            total_sessions = getattr(package, 'total_sessions', 0)
+            total_sessions = getattr(package, 'total_services', 0)
+            if total_sessions == 0:
+                # Fallback: try total_sessions attribute
+                total_sessions = getattr(package, 'total_sessions', 0)
+            
+            # Calculate free sessions (benefit)
+            paid_sessions = getattr(package, 'pay_for', 0)
+            free_sessions = total_sessions - paid_sessions if total_sessions > paid_sessions else 0
+            
             benefit_tracker = PackageBenefitTracker(
                 customer_id=customer.id,
                 package_assignment_id=assignment.id,
@@ -232,6 +257,9 @@ def api_assign_and_pay():
                 valid_to=expires_on or (datetime.utcnow() + timedelta(days=365)),
                 is_active=True
             )
+            
+            # Log for debugging
+            app.logger.info(f"Benefit tracker created: {total_sessions} sessions ({paid_sessions} paid + {free_sessions} free)")
         
         elif package_type == 'membership':
             # Membership - unlimited access
@@ -487,14 +515,14 @@ def api_get_assignments():
                 'savings_to_date': float(savings),
                 'last_used_at': last_usage.usage_date.isoformat() if last_usage else None,
                 'sessions': {
-                    'total': assignment.total_sessions,
-                    'used': assignment.used_sessions,
-                    'remaining': assignment.remaining_sessions
+                    'total': assignment.total_sessions or 0,
+                    'used': assignment.used_sessions or 0,
+                    'remaining': assignment.remaining_sessions or assignment.total_sessions or 0
                 } if assignment.package_type == 'service_package' else None,
                 'credit': {
-                    'total': float(assignment.credit_amount) if assignment.credit_amount else 0,
-                    'used': float(assignment.used_credit) if assignment.used_credit else 0,
-                    'remaining': float(assignment.remaining_credit) if assignment.remaining_credit else 0
+                    'total': float(assignment.credit_amount or 0),
+                    'used': float(assignment.used_credit or 0),
+                    'remaining': float(assignment.remaining_credit or assignment.credit_amount or 0)
                 } if assignment.package_type == 'prepaid' else None
             }
             items.append(item)

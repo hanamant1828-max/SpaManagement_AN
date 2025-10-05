@@ -597,13 +597,21 @@ function renderRows(items){
 
         let balanceHtml = '';
         if(x.package.type==='service_package' && x.sessions){
-            const pct = Math.min(100, Math.round((x.sessions.used / Math.max(1,x.sessions.total))*100));
+            const total = x.sessions.total || 0;
+            const used = x.sessions.used || 0;
+            const remaining = x.sessions.remaining || total;
+            const pct = total > 0 ? Math.min(100, Math.round((used / total)*100)) : 0;
             balanceHtml = `
-                <div class="small">${x.sessions.used}/${x.sessions.total} used</div>
-                <div class="progress" style="height:6px;"><div class="progress-bar" style="width:${pct}%"></div></div>
-                <div class="small text-muted">${x.sessions.remaining} left</div>`;
+                <div class="small"><strong>${used}/${total}</strong> used</div>
+                <div class="progress" style="height:6px;"><div class="progress-bar bg-success" style="width:${pct}%"></div></div>
+                <div class="small text-muted">${remaining} remaining</div>`;
         } else if(x.package.type==='prepaid' && x.credit){
-            balanceHtml = `<div class="small">${fmtMoney(x.credit.remaining)} / ${fmtMoney(x.credit.total)}</div>`;
+            const total = x.credit.total || 0;
+            const used = x.credit.used || 0;
+            const remaining = x.credit.remaining || total;
+            balanceHtml = `
+                <div class="small"><strong>${fmtMoney(remaining)}</strong> / ${fmtMoney(total)}</div>
+                <div class="small text-success">Used: ${fmtMoney(used)}</div>`;
         } else {
             balanceHtml = `<span class="text-muted">Unlimited</span>`;
         }
