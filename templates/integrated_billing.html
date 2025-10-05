@@ -951,7 +951,8 @@ textarea.form-control {
 // STATE MANAGEMENT
 // ==========================================
 const BillingState = {
-    customerPackages: null, // Renamed from customerPackages to BillingState.customerPackages
+    selectedCustomerId: null, // Customer ID for tracking selected customer
+    customerPackages: null, // Active packages for the selected customer
     batchCache: {},
     isSubmitting: false
 };
@@ -1015,6 +1016,10 @@ async function loadCustomerPackages(customerId) {
     console.log('🔄 Loading packages for customer:', customerId);
     console.log('📍 Customer ID type:', typeof customerId);
     console.log('📍 Customer ID value:', customerId);
+
+    // CRITICAL: Store the selected customer ID in BillingState
+    BillingState.selectedCustomerId = parseInt(customerId);
+    console.log('✅ Set BillingState.selectedCustomerId:', BillingState.selectedCustomerId);
 
     try {
         const url = `/integrated-billing/customer-packages/${customerId}`;
