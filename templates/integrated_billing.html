@@ -1132,13 +1132,14 @@ function displayCustomerPackagesTable(packages) {
             statusBadge = '<span style="background: #e5e7eb; color: #374151; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.75rem;">Completed</span>';
         }
 
-        // Display balance based on package type
+        // Display balance based on package type - USE EXACT FIELD NAMES FROM BACKEND
         let balanceText = '';
         let balanceDetails = '';
 
         if (packageType === 'prepaid') {
-            const remaining = pkg.remaining_credit || 0;
-            const total = pkg.credit_amount || 0;
+            // Use exact field names from backend: credit.remaining and credit.total
+            const remaining = pkg.credit?.remaining || 0; 
+            const total = pkg.credit?.total || 0; 
             const usedPct = total > 0 ? ((total - remaining) / total * 100).toFixed(0) : 0;
             balanceText = `₹${remaining.toFixed(2)} / ₹${total.toFixed(2)}`;
             balanceDetails = `
@@ -1146,8 +1147,9 @@ function displayCustomerPackagesTable(packages) {
                     <div class="progress-bar bg-success" style="width: ${100 - usedPct}%"></div>
                 </div>`;
         } else if (packageType === 'service_package') {
-            const remaining = pkg.remaining_sessions || 0;
-            const total = pkg.total_sessions || 0;
+            // Use exact field names from backend: sessions.remaining and sessions.total
+            const remaining = pkg.sessions?.remaining || 0;
+            const total = pkg.sessions?.total || 0;
             const usedPct = total > 0 ? ((total - remaining) / total * 100).toFixed(0) : 0;
             balanceText = `${remaining} / ${total} sessions`;
             balanceDetails = `
@@ -1697,16 +1699,19 @@ function checkPackageBenefit(serviceId, servicePrice, quantity) {
                 return servicePrice;
             }
         } else if (pkg.package_type === 'service_package') {
+            // Use exact field names from backend: sessions.remaining
+            const remainingSessions = pkg.sessions?.remaining || 0;
             // Check if service package has remaining sessions for this service
-            if (pkg.service_id === serviceId && pkg.remaining_sessions > 0) {
+            if (pkg.service_id === serviceId && remainingSessions > 0) {
                 // Calculate how many sessions can be covered
-                const sessionsToCover = Math.min(quantity, pkg.remaining_sessions);
+                const sessionsToCover = Math.min(quantity, remainingSessions);
                 const pricePerSession = servicePrice / quantity;
                 totalBenefit += sessionsToCover * pricePerSession;
             }
         } else if (pkg.package_type === 'prepaid') {
-            // Prepaid can cover any service up to remaining credit
-            const deduction = Math.min(servicePrice, pkg.remaining_credit || 0);
+            // Use exact field names from backend: credit.remaining
+            const remainingCredit = pkg.credit?.remaining || 0;
+            const deduction = Math.min(servicePrice, remainingCredit);
             totalBenefit += deduction;
         }
     }
