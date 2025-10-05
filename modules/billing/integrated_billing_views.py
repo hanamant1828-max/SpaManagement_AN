@@ -374,21 +374,21 @@ def integrated_billing(customer_id=None):
 
                 # Get service name with proper fallback - CRITICAL FIX
                 service_name = None
-
+                
                 # Priority 1: Get from tracker's service relationship
                 if tracker.service_id:
                     service_obj = Service.query.get(tracker.service_id)
                     if service_obj:
                         service_name = service_obj.name
                         app.logger.info(f"✅ Service name from tracker.service_id: {service_name}")
-
+                
                 # Priority 2: Get from assignment's service relationship
                 if not service_name and assignment.service_id:
                     service_obj = Service.query.get(assignment.service_id)
                     if service_obj:
                         service_name = service_obj.name
                         app.logger.info(f"✅ Service name from assignment.service_id: {service_name}")
-
+                
                 # Priority 3: Get from package template if it's a ServicePackage
                 if not service_name and assignment.package_type == 'service_package' and package_template:
                     if hasattr(package_template, 'service_id') and package_template.service_id:
@@ -396,7 +396,7 @@ def integrated_billing(customer_id=None):
                         if service_obj:
                             service_name = service_obj.name
                             app.logger.info(f"✅ Service name from package_template.service_id: {service_name}")
-
+                
                 # Log warning if service package has no service name
                 if assignment.package_type == 'service_package' and not service_name:
                     app.logger.warning(f"⚠️ Service package assignment {assignment.id} has no service name - tracker.service_id={tracker.service_id}, assignment.service_id={assignment.service_id}")
@@ -411,7 +411,7 @@ def integrated_billing(customer_id=None):
                     'benefit_type': tracker.benefit_type,
                     'is_active': tracker.is_active,
                     'service_name': service_name if assignment.package_type == 'service_package' else None,  # Only show for service packages
-                    'service_id': tracker.service_id or assignment.service_id,  # CRITICAL: Use tracker.service_id first, then assignment
+                    'service_id': assignment.service_id,  # Include service_id for reference
                     'expires_on': tracker.valid_to.strftime('%b %d, %Y') if tracker.valid_to else None
                 }
 
@@ -1239,6 +1239,646 @@ def create_professional_invoice():
         db.session.rollback()
         return jsonify({'success': False, 'message': f'Error creating professional invoice: {str(e)}'})
 
+
+@app.route('/integrated-billing/customer-packages/<int:customer_id>', methods=['GET'])
+@login_required
+def get_customer_packages(customer_id):
+    """Get fresh customer package data (no cache) for UI refresh"""
+    try:
+        from models import ServicePackageAssignment
+
+        rows = (ServicePackageAssignment.query
+                .filter_by(customer_id=customer_id)
+                .order_by(ServicePackageAssignment.expires_on.asc())
+                .all())
+
+        packages_list = []
+        for r in rows:
+            # Get package name with comprehensive fallback logic
+            package_name = None
+
+            # Try multiple fields in order of preference
+            if hasattr(r, 'package_name') and r.package_name:
+                package_name = r.package_name
+            elif hasattr(r, 'package_display_name') and r.package_display_name:
+                package_name = r.package_display_name
+            elif hasattr(r, 'name') and r.name:
+                package_name = r.name
+
+            # If still no name, try to get from package template
+            if not package_name:
+                try:
+                    package_template = r.get_package_template()
+                    if package_template:
+                        if hasattr(package_template, 'name') and package_template.name:
+                            package_name = package_template.name
+                        elif hasattr(package_template, 'package_name') and package_template.package_name:
+                            package_name = package_template.package_name
+                except:
+                    pass
+
+            # Final fallback: generate from package type
+            if not package_name:
+                pkg_type = "service_package" if r.total_sessions else "prepaid" if r.credit_amount is not None else "membership"
+                package_name = pkg_type.replace('_', ' ').title() + ' Package'
+
+            # CRITICAL FIX: Get service name from database
+            service_name = None
+            if r.service_id:
+                service_obj = Service.query.get(r.service_id)
+                if service_obj:
+                    service_name = service_obj.name
+                    app.logger.info(f"✅ API: Service name for assignment {r.id}: {service_name}")
+            
+            # Fallback to service_name field if it exists
+            if not service_name and hasattr(r, 'service_name') and r.service_name:
+                service_name = r.service_name
+
+            package_data = {
+                "id": r.id,
+                "package_type": "service_package" if r.total_sessions else "prepaid" if r.credit_amount is not None else "membership",
+                "name": package_name,  # Now guaranteed to have a value
+                "service_name": service_name,  # Now fetched from Service table
+                "status": r.status,
+                "assigned_on": r.assigned_on.isoformat() if r.assigned_on else None,
+                "expires_on": r.expires_on.isoformat() if r.expires_on else None,
+            }
+
+            # Add sessions data if applicable
+            if r.total_sessions is not None:
+                package_data["sessions"] = {
+                    "total": int(r.total_sessions or 0),
+                    "used": int(r.used_sessions or 0),
+                    "remaining": int((r.remaining_sessions
+                                      if r.remaining_sessions is not None
+                                      else (r.total_sessions or 0) - (r.used_sessions or 0)) or 0),
+                }
+
+            # Add credit data if applicable
+            if r.credit_amount is not None:
+                package_data["credit"] = {
+                    "total": float(r.credit_amount or 0.0),
+                    "remaining": float(r.remaining_credit or 0.0),
+                }
+
+            packages_list.append(package_data)
+
+        payload = {"success": True, "packages": packages_list}
+
+        resp = jsonify(payload)
+        resp.headers["Cache-Control"] = "no-store"
+        return resp
+    except Exception as e:
+        app.logger.error(f"Error in get_customer_packages: {str(e)}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/integrated-billing/preview', methods=['POST'])
+@login_required
+def preview_invoice():
+    """Generate invoice preview without saving"""
+    if not current_user.is_active:
+        return jsonify({'error': 'Access denied'}), 403
+
+    try:
+        from models import Service, Customer
+        from modules.inventory.models import InventoryProduct, InventoryBatch
+        import datetime
+
+        data = request.get_json()
+
+        # Get customer
+        client_id = data.get('client_id')
+        if not client_id:
+            return jsonify({'success': False, 'message': 'Client is required'})
+
+        customer = Customer.query.get(client_id)
+        if not customer:
+            return jsonify({'success': False, 'message': 'Customer not found'})
+
+        # Parse services and products
+        services_data = data.get('services', [])
+        inventory_data = data.get('products', [])
+
+        # Calculate totals
+        services_subtotal = 0
+        service_items = []
+        for service_data in services_data:
+            service = Service.query.get(service_data['service_id'])
+            if service:
+                amount = service.price * service_data['quantity']
+                services_subtotal += amount
+                service_items.append({
+                    'name': service.name,
+                    'quantity': service_data['quantity'],
+                    'price': service.price,
+                    'amount': amount
+                })
+
+        inventory_subtotal = 0
+        inventory_items = []
+        for item_data in inventory_data:
+            product = InventoryProduct.query.get(item_data['product_id'])
+            if product:
+                amount = item_data['unit_price'] * item_data['quantity']
+                inventory_subtotal += amount
+                inventory_items.append({
+                    'name': product.name,
+                    'quantity': item_data['quantity'],
+                    'price': item_data['unit_price'],
+                    'amount': amount
+                })
+
+        gross_subtotal = services_subtotal + inventory_subtotal
+        discount_type = data.get('discount_type', 'amount')
+        discount_value = float(data.get('discount_value', 0))
+
+        if discount_type == 'percentage':
+            discount_amount = (gross_subtotal * discount_value) / 100
+        else:
+            discount_amount = discount_value
+
+        gst_enabled = data.get('gst_enabled', False)
+        gst_percentage = float(data.get('gst_percentage', 0)) if gst_enabled else 0
+
+        net_subtotal = gross_subtotal - discount_amount
+        tax_amount = (net_subtotal * gst_percentage) / 100
+        additional_charges = float(data.get('additional_charges', 0))
+        tips_amount = float(data.get('tips_amount', 0))
+        total_amount = net_subtotal + tax_amount + additional_charges + tips_amount
+
+        # Generate preview HTML
+        preview_html = f"""
+        <div class="invoice-preview">
+            <div class="text-center mb-4">
+                <h3>INVOICE PREVIEW</h3>
+                <p class="text-muted">This is a preview only - not saved</p>
+            </div>
+
+            <div class="row mb-4">
+                <div class="col-6">
+                    <strong>Customer:</strong><br>
+                    {customer.full_name}<br>
+                    {customer.phone or ''}<br>
+                    {customer.email or ''}
+                </div>
+                <div class="col-6 text-end">
+                    <strong>Date:</strong> {datetime.datetime.now().strftime('%d-%m-%Y')}<br>
+                    <strong>Status:</strong> <span class="badge bg-warning">Preview</span>
+                </div>
+            </div>
+
+            <table class="table table-bordered">
+                <thead class="table-light">
+                    <tr>
+                        <th>Item</th>
+                        <th class="text-center">Qty</th>
+                        <th class="text-end">Price</th>
+                        <th class="text-end">Amount</th>
+                    </tr>
+                </thead>
+                <tbody>
+        """
+
+        # Add service items
+        if service_items:
+            for item in service_items:
+                preview_html += f"""
+                    <tr>
+                        <td>{item['name']} <small class="text-muted">(Service)</small></td>
+                        <td class="text-center">{item['quantity']}</td>
+                        <td class="text-end">₹{item['price']:.2f}</td>
+                        <td class="text-end">₹{item['amount']:.2f}</td>
+                    </tr>
+                """
+
+        # Add inventory items
+        if inventory_items:
+            for item in inventory_items:
+                preview_html += f"""
+                    <tr>
+                        <td>{item['name']} <small class="text-muted">(Product)</small></td>
+                        <td class="text-center">{item['quantity']}</td>
+                        <td class="text-end">₹{item['price']:.2f}</td>
+                        <td class="text-end">₹{item['amount']:.2f}</td>
+                    </tr>
+                """
+
+        # Add totals
+        preview_html += f"""
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <td colspan="3" class="text-end"><strong>Subtotal:</strong></td>
+                        <td class="text-end">₹{gross_subtotal:.2f}</td>
+                    </tr>
+        """
+
+        if discount_amount > 0:
+            preview_html += f"""
+                    <tr>
+                        <td colspan="3" class="text-end"><strong>Discount ({discount_type}):</strong></td>
+                        <td class="text-end text-success">-₹{discount_amount:.2f}</td>
+                    </tr>
+            """
+
+        if tax_amount > 0:
+            preview_html += f"""
+                    <tr>
+                        <td colspan="3" class="text-end"><strong>GST ({gst_percentage}%):</strong></td>
+                        <td class="text-end">₹{tax_amount:.2f}</td>
+                    </tr>
+            """
+        if additional_charges > 0:
+            preview_html += f"""
+                    <tr>
+                        <td colspan="3" class="text-end"><strong>Additional Charges:</strong></td>
+                        <td class="text-end">₹{additional_charges:.2f}</td>
+                    </tr>
+            """
+        if tips_amount > 0:
+            preview_html += f"""
+                    <tr>
+                        <td colspan="3" class="text-end"><strong>Tips:</strong></td>
+                        <td class="text-end">₹{tips_amount:.2f}</td>
+                    </tr>
+            """
+
+        preview_html += f"""
+                    <tr class="table-primary">
+                        <td colspan="3" class="text-end"><strong>Total Amount:</strong></td>
+                        <td class="text-end"><strong>₹{total_amount:.2f}</strong></td>
+                    </tr>
+                </tfoot>
+            </table>
+
+            <div class="alert alert-info mt-3">
+                <i class="fas fa-info-circle me-2"></i>
+                This is a preview only. Click "Save" or "Save & Print" to create the actual invoice.
+            </div>
+        </div>
+        """
+
+        return jsonify({
+            'success': True,
+            'preview_html': preview_html
+        })
+
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'Error generating preview: {str(e)}'})
+
+
+@app.route('/integrated-billing/create', methods=['POST'])
+@login_required
+def create_integrated_invoice():
+    """Create new integrated invoice with batch-wise inventory integration"""
+    # Allow all authenticated users to create invoices
+    if not current_user.is_active:
+        return jsonify({'success': False, 'message': 'Access denied'}), 403
+
+    try:
+        from models import Service, EnhancedInvoice, InvoiceItem, User
+        from modules.inventory.models import InventoryBatch, InventoryProduct
+        from modules.inventory.queries import create_consumption_record
+        import datetime
+
+        # Parse form data
+        client_id = request.form.get('client_id')
+        if not client_id:
+            return jsonify({'success': False, 'message': 'Client is required'})
+
+        customer = Customer.query.get(client_id)
+        if not customer:
+            return jsonify({'success': False, 'message': 'Customer not found'})
+
+        # Parse services data
+        services_data = []
+        service_ids = request.form.getlist('service_ids[]')
+        service_quantities = request.form.getlist('service_quantities[]')
+        appointment_ids = request.form.getlist('appointment_ids[]')
+        staff_ids = request.form.getlist('staff_ids[]')
+
+        for i, service_id in enumerate(service_ids):
+            if service_id and str(service_id).strip():
+                # Validate staff assignment
+                staff_id = staff_ids[i] if i < len(staff_ids) and staff_ids[i] and str(staff_ids[i]).strip() else None
+                if not staff_id:
+                    app.logger.warning(f'Staff not assigned for service index {i}')
+                    return jsonify({
+                        'success': False,
+                        'message': f'Staff member is required for service #{i+1}. Please assign staff to all services.'
+                    }), 400
+
+                # Verify service exists
+                service = Service.query.get(int(service_id))
+                if not service:
+                    return jsonify({
+                        'success': False,
+                        'message': f'Service #{i+1} not found in database. Please refresh and try again.'
+                    }), 404
+
+                # Verify staff exists
+                staff = User.query.get(int(staff_id))
+                if not staff:
+                    return jsonify({
+                        'success': False,
+                        'message': f'Selected staff member for service #{i+1} not found. Please refresh and try again.'
+                    }), 404
+
+                services_data.append({
+                    'service_id': int(service_id),
+                    'quantity': float(service_quantities[i]) if i < len(service_quantities) else 1,
+                    'appointment_id': int(appointment_ids[i]) if i < len(appointment_ids) and appointment_ids[i] else None,
+                    'staff_id': int(staff_id)
+                })
+
+        # Parse batch-wise inventory data
+        inventory_data = []
+        product_ids = request.form.getlist('product_ids[]')
+        product_staff_ids = request.form.getlist('product_staff_ids[]')
+        batch_ids = request.form.getlist('batch_ids[]')
+        product_quantities = request.form.getlist('product_quantities[]')
+        product_prices = request.form.getlist('product_prices[]')
+
+        for i, product_id in enumerate(product_ids):
+            if product_id and i < len(batch_ids) and batch_ids[i]:
+                # Validate staff assignment for products
+                if i >= len(product_staff_ids) or not product_staff_ids[i]:
+                    return jsonify({
+                        'success': False,
+                        'message': f'Staff member is required for product #{i+1}. Please assign staff to all products.'
+                    }), 400
+
+                inventory_data.append({
+                    'product_id': int(product_id),
+                    'batch_id': int(batch_ids[i]),
+                    'quantity': float(product_quantities[i]) if i < len(product_quantities) else 1,
+                    'unit_price': float(product_prices[i]) if i < len(product_prices) and product_prices[i] else 0,
+                    'staff_id': int(product_staff_ids[i])
+                })
+
+        # Validate stock availability and prices for all inventory items
+        for item in inventory_data:
+            batch = InventoryBatch.query.get(item['batch_id'])
+            if not batch:
+                return jsonify({'success': False, 'message': f'Batch not found for product ID {item["product_id"]}'})
+
+            if batch.is_expired:
+                return jsonify({'success': False, 'message': f'Cannot use expired batch: {batch.batch_name}'})
+
+            if float(batch.qty_available) < item['quantity']:
+                return jsonify({
+                    'success': False,
+                    'message': f'Insufficient stock in batch {batch.batch_name}. Available: {batch.qty_available}, Required: {item["quantity"]}'
+                })
+
+            # Server-side price validation - prevent price manipulation
+            if batch.selling_price:
+                actual_price = float(batch.selling_price)
+                submitted_price = item['unit_price']
+
+                # Allow up to 50% discount, but prevent price inflation or excessive discounts
+                min_allowed_price = actual_price * 0.5  # 50% discount max
+                max_allowed_price = actual_price * 1.1   # 10% markup max for rounding
+
+                if submitted_price < min_allowed_price or submitted_price > max_allowed_price:
+                    # Log suspicious price manipulation attempt
+                    app.logger.warning(f"Price manipulation attempt detected: User {current_user.id} tried to set price {submitted_price} for batch {batch.batch_name} (actual: {actual_price})")
+                    return jsonify({
+                        'success': False,
+                        'message': f'Invalid price for {batch.product.name} (Batch: {batch.batch_name}). Expected: ${actual_price:.2f}, Submitted: ${submitted_price:.2f}'
+                    })
+            else:
+                # If no selling price set, require manual approval for non-zero prices
+                if item['unit_price'] > 0:
+                    return jsonify({
+                        'success': False,
+                        'message': f'Product {batch.product.name} has no selling price configured. Please set selling price first.'
+                    })
+
+        # Validate service prices to prevent manipulation
+        for service_data in services_data:
+            service = Service.query.get(service_data['service_id'])
+            if not service:
+                return jsonify({'success': False, 'message': f'Service not found: {service_data["service_id"]}'})
+
+            # For services, we don't accept client price input - always use actual service price
+            # This prevents any service price manipulation
+            # Note: If custom service pricing is needed in the future, implement proper authorization checks
+
+        # Calculate totals first (before any database operations)
+        services_subtotal = 0
+        inventory_subtotal = 0
+
+        # Calculate services subtotal
+        for service_data in services_data:
+            service = Service.query.get(service_data['service_id'])
+            if service:
+                services_subtotal += service.price * service_data['quantity']
+
+        # Calculate inventory subtotal
+        for item in inventory_data:
+            inventory_subtotal += item['unit_price'] * item['quantity']
+
+        gross_subtotal = services_subtotal + inventory_subtotal
+
+        # Apply tax and discounts
+        tax_rate = float(request.form.get('tax_rate', 0.18))
+        discount_amount = float(request.form.get('discount_amount', 0))
+        tips_amount = float(request.form.get('tips_amount', 0))
+
+        net_subtotal = gross_subtotal - discount_amount
+        # Fix: tax_rate is already a decimal (e.g., 0.18 for 18%), no need to divide by 100
+        tax_amount = net_subtotal * tax_rate
+        total_amount = net_subtotal + tax_amount + tips_amount
+
+        # Generate atomic invoice number and create invoice
+        try:
+                # Get latest invoice to generate sequential number
+                latest_invoice = db.session.query(EnhancedInvoice).order_by(EnhancedInvoice.id.desc()).first()
+
+                if latest_invoice and latest_invoice.invoice_number.startswith(f"INV-{datetime.datetime.now().strftime('%Y%m%d')}"):
+                    # Extract sequence number from existing invoice number
+                    try:
+                        last_sequence = int(latest_invoice.invoice_number.split('-')[-1])
+                        invoice_sequence = last_sequence + 1
+                    except (ValueError, IndexError):
+                        invoice_sequence = 1
+                else:
+                    # First invoice of the day
+                    invoice_sequence = 1
+
+                invoice_number = f"INV-{datetime.datetime.now().strftime('%Y%m%d')}-{invoice_sequence:04d}"
+
+                # Create enhanced invoice
+                invoice = EnhancedInvoice()
+                invoice.invoice_number = invoice_number
+                invoice.client_id = int(client_id)
+                invoice.invoice_date = datetime.datetime.utcnow()
+                invoice.services_subtotal = services_subtotal
+                invoice.inventory_subtotal = inventory_subtotal
+                invoice.gross_subtotal = gross_subtotal
+                invoice.net_subtotal = net_subtotal
+                invoice.tax_amount = tax_amount
+                invoice.discount_amount = discount_amount
+                invoice.tips_amount = tips_amount
+                invoice.total_amount = total_amount
+                invoice.balance_due = total_amount
+                invoice.payment_status = 'paid' # Assuming payment is taken at time of billing
+                invoice.notes = request.form.get('notes', '')
+                invoice.payment_method = request.form.get('payment_method', 'cash') # Store payment method
+
+                db.session.add(invoice)
+                db.session.flush()  # Get invoice ID
+
+                # Create invoice items for services and mark Unaki appointments as completed
+                service_items_created = 0
+                completed_appointments = 0
+
+                for service_data in services_data:
+                    service = Service.query.get(service_data['service_id'])
+                    if service:
+                        item = InvoiceItem(
+                            invoice_id=invoice.id,
+                            item_type='service',
+                            item_id=service.id,
+                            appointment_id=service_data.get('appointment_id'),
+                            item_name=service.name,
+                            description=service.description or '',
+                            quantity=service_data['quantity'],
+                            unit_price=service.price,
+                            original_amount=service.price * service_data['quantity'],
+                            final_amount=service.price * service_data['quantity'],
+                            staff_id=service_data.get('staff_id')
+                        )
+                        db.session.add(item)
+                        service_items_created += 1
+
+                        # Mark Unaki appointment as completed and paid if appointment_id exists
+                        if service_data.get('appointment_id'):
+                            from models import UnakiBooking
+                            from datetime import datetime as dt
+                            unaki_appointment = UnakiBooking.query.get(service_data['appointment_id'])
+                            if unaki_appointment:
+                                unaki_appointment.status = 'completed'
+                                unaki_appointment.payment_status = 'paid'
+                                unaki_appointment.completed_at = dt.now()
+                                unaki_appointment.amount_charged = service.price * service_data['quantity']
+                                unaki_appointment.payment_method = request.form.get('payment_method', 'cash')
+                                db.session.add(unaki_appointment)
+                                completed_appointments += 1
+                                app.logger.info(f"✅ Marked Unaki appointment {service_data['appointment_id']} as completed and paid")
+
+                # Create invoice items for inventory and reduce stock atomically
+                inventory_items_created = 0
+                stock_reduced_count = 0
+                stock_operations = []  # Track all operations for potential rollback
+
+                for item_data in inventory_data:
+                    batch = InventoryBatch.query.get(item_data['batch_id'])
+                    product = InventoryProduct.query.get(item_data['product_id'])
+
+                    if not batch or not product:
+                        raise Exception(f"Batch or product not found for item {item_data}")
+
+                    # Create invoice item
+                    item = InvoiceItem(
+                        invoice_id=invoice.id,
+                        item_type='inventory',
+                        item_id=product.id,
+                        product_id=product.id,
+                        batch_id=batch.id,
+                        item_name=product.name,
+                        description=f"Batch: {batch.batch_name}",
+                        batch_name=batch.batch_name,
+                        quantity=item_data['quantity'],
+                        unit_price=item_data['unit_price'],
+                        original_amount=item_data['unit_price'] * item_data['quantity'],
+                        final_amount=item_data['unit_price'] * item_data['quantity'],
+                        staff_id=item_data.get('staff_id')
+                    )
+                    db.session.add(item)
+                    inventory_items_created += 1
+
+                    # Reduce stock from batch via consumption record
+                    create_consumption_record(
+                        batch_id=batch.id,
+                        quantity=item_data['quantity'],
+                        issued_to=f"Invoice {invoice_number} - {customer.full_name}",
+                        reference=invoice_number,
+                        notes=f"Sold via billing system - Invoice {invoice_number}",
+                        user_id=current_user.id
+                    )
+                    stock_reduced_count += 1
+                    stock_operations.append({
+                        'batch_id': batch.id,
+                        'quantity': item_data['quantity'],
+                        'batch_name': batch.batch_name
+                    })
+
+                # Update staff performance metrics
+                staff_updated_count = 0
+                current_date = datetime.datetime.utcnow().date()
+
+                for service_data in services_data:
+                    if service_data.get('staff_id'):
+                        service = Service.query.get(service_data['service_id'])
+                        staff = User.query.get(service_data['staff_id'])
+
+                        if service and staff:
+                            service_amount = service.price * service_data['quantity']
+                            staff.total_revenue_generated = (staff.total_revenue_generated or 0.0) + service_amount
+                            staff.total_clients_served = (staff.total_clients_served or 0) + 1
+                            staff.total_sales = (staff.total_sales or 0.0) + service_amount
+                            staff.last_service_performed = current_date
+                            staff_updated_count += 1
+
+                for item_data in inventory_data:
+                    if item_data.get('staff_id'):
+                        staff = User.query.get(item_data['staff_id'])
+
+                        if staff:
+                            product_amount = item_data['unit_price'] * item_data['quantity']
+                            staff.total_revenue_generated = (staff.total_revenue_generated or 0.0) + product_amount
+                            staff.total_clients_served = (staff.total_clients_served or 0) + 1
+                            staff.total_sales = (staff.total_sales or 0.0) + product_amount
+                            staff.last_service_performed = current_date
+                            staff_updated_count += 1
+
+                # Update customer metrics
+                customer.last_visit = current_date
+                customer.total_visits = (customer.total_visits or 0) + 1
+                customer.total_spent = (customer.total_spent or 0.0) + total_amount
+
+                # If we reach here, all operations succeeded
+                # Commit the entire transaction
+                db.session.commit()
+
+                return jsonify({
+                    'success': True,
+                    'message': f'Invoice {invoice_number} created successfully. {completed_appointments} appointments marked as completed.',
+                    'invoice_id': invoice.id,
+                    'invoice_number': invoice_number,
+                    'total_amount': float(total_amount),
+                    'service_items_created': service_items_created,
+                    'inventory_items_created': inventory_items_created,
+                    'stock_reduced': stock_reduced_count,
+                    'deductions_applied': 0,  # Future enhancement for package deductions
+                    'appointments_completed': completed_appointments
+                })
+
+        except Exception as e:
+            # CRITICAL: Ensure complete rollback on any failure
+            db.session.rollback()
+            app.logger.error(f"Invoice creation failed for user {current_user.id}: {str(e)}")
+            return jsonify({
+                'success': False,
+                'message': f'Transaction failed: {str(e)}. All changes have been rolled back.'
+            })
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': f'Error creating invoice: {str(e)}'})
 
 @app.route('/integrated-billing/customer-packages/<int:client_id>')
 @login_required
