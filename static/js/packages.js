@@ -164,6 +164,12 @@ function openAssignSimple(packageId, packageType) {
     // Show modal and set up event listener using Bootstrap modal events
     const modalInstance = new bootstrap.Modal(modal);
     
+    // Initialize payment summary when modal opens
+    modal.addEventListener('show.bs.modal', function() {
+        // Reset payment summary
+        updatePaymentSummary();
+    });
+    
     // Set up event listener when modal is fully shown (reliable timing)
     modal.addEventListener('shown.bs.modal', function() {
         const saveBtn = document.getElementById('asSave') || document.getElementById('confirmAssignBtn');
@@ -347,12 +353,49 @@ function saveAssignSimple() {
     .then(result => {
         console.log('Simple assignment result:', result);
         if (result.success) {
-            // Enhanced success message with details
+            // Enhanced success message with receipt details
             const packageName = document.getElementById('asTemplateName')?.value || 'Package';
             const customerSelect = document.getElementById('asCustomer');
             const customerName = customerSelect?.options[customerSelect.selectedIndex]?.text || 'Customer';
+            const paymentMethod = document.getElementById('asPaymentMethod')?.value || 'cash';
+            const totalAmount = parseFloat(document.getElementById('asPricePaid')?.value) || 0;
+            const discount = parseFloat(document.getElementById('asDiscount')?.value) || 0;
+            const finalAmount = totalAmount - discount;
             
-            showToast(`✓ ${packageName} assigned to ${customerName} successfully!`, 'success');
+            // Show detailed success message
+            const successMessage = `
+                <div class="text-center">
+                    <i class="fas fa-check-circle text-success fa-3x mb-3"></i>
+                    <h5>Package Assigned Successfully!</h5>
+                    <hr>
+                    <p><strong>Customer:</strong> ${customerName}</p>
+                    <p><strong>Package:</strong> ${packageName}</p>
+                    <p><strong>Amount:</strong> ₹${finalAmount.toFixed(2)}</p>
+                    <p><strong>Payment:</strong> ${paymentMethod.toUpperCase()}</p>
+                    ${result.receipt_number ? `<p><strong>Receipt:</strong> ${result.receipt_number}</p>` : ''}
+                </div>
+            `;
+            
+            // Show in a modal for better visibility
+            const successModal = `
+                <div class="modal fade" id="successModal" tabindex="-1">
+                    <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-content">
+                            <div class="modal-body">
+                                ${successMessage}
+                            </div>
+                            <div class="modal-footer">
+                                ${result.receipt_url ? `<a href="${result.receipt_url}" class="btn btn-outline-primary" target="_blank"><i class="fas fa-receipt me-2"></i>View Receipt</a>` : ''}
+                                <button type="button" class="btn btn-success" onclick="location.reload()">OK</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.body.insertAdjacentHTML('beforeend', successModal);
+            const modal = new bootstrap.Modal(document.getElementById('successModal'));
+            modal.show();
 
             // Try to close any open assignment modal
             const modals = [
@@ -580,6 +623,92 @@ async function initializePackages() {
     } catch (error) {
         console.error('Error initializing packages:', error);
         showToast('Error loading packages system', 'error');
+    }
+}
+
+/**
+ * Update payment summary card in real-time
+ */
+function updatePaymentSummary() {
+    const priceInput = document.getElementById('asPricePaid');
+    const discountInput = document.getElementById('asDiscount');
+    const paymentStatus = document.getElementById('asPaymentStatus')?.value;
+    const amountPaidInput = document.getElementById('asAmountPaid');
+    
+    if (!priceInput) return;
+    
+    const price = parseFloat(priceInput.value) || 0;
+    const discount = parseFloat(discountInput?.value) || 0;
+    const totalPayable = Math.max(0, price - discount);
+    
+    // Update summary display
+    const summaryPrice = document.getElementById('summaryPrice');
+    const summaryDiscount = document.getElementById('summaryDiscount');
+    const summaryTotal = document.getElementById('summaryTotal');
+    
+    if (summaryPrice) summaryPrice.textContent = `₹${price.toFixed(2)}`;
+    if (summaryDiscount) summaryDiscount.textContent = `- ₹${discount.toFixed(2)}`;
+    if (summaryTotal) summaryTotal.textContent = `₹${totalPayable.toFixed(2)}`;
+    
+    // Auto-fill amount paid for full payment
+    if (paymentStatus === 'paid' && amountPaidInput) {
+        amountPaidInput.value = totalPayable.toFixed(2);
+    }
+    
+    // Validate assign button
+    validateAssignButton();
+}
+
+/**
+ * Handle payment status change
+ */
+function handlePaymentStatusChange() {
+    const paymentStatus = document.getElementById('asPaymentStatus')?.value;
+    const amountPaidSection = document.getElementById('asAmountPaidSection');
+    const amountPaidInput = document.getElementById('asAmountPaid');
+    
+    if (paymentStatus === 'partial') {
+        if (amountPaidSection) amountPaidSection.style.display = 'block';
+        if (amountPaidInput) amountPaidInput.required = true;
+    } else {
+        if (amountPaidSection) amountPaidSection.style.display = 'none';
+        if (amountPaidInput) {
+            amountPaidInput.required = false;
+            amountPaidInput.value = '';
+        }
+    }
+    
+    updatePaymentSummary();
+}
+
+/**
+ * Validate assign button state
+ */
+function validateAssignButton() {
+    const customer = document.getElementById('asCustomer')?.value;
+    const price = parseFloat(document.getElementById('asPricePaid')?.value) || 0;
+    const paymentMethod = document.getElementById('asPaymentMethod')?.value;
+    const paymentStatus = document.getElementById('asPaymentStatus')?.value;
+    const amountPaid = parseFloat(document.getElementById('asAmountPaid')?.value) || 0;
+    
+    const saveBtn = document.getElementById('confirmAssignBtn') || document.getElementById('asSave');
+    
+    if (!saveBtn) return;
+    
+    let isValid = customer && price > 0 && paymentMethod && paymentStatus;
+    
+    // Validate partial payment amount
+    if (paymentStatus === 'partial') {
+        isValid = isValid && amountPaid > 0;
+    }
+    
+    saveBtn.disabled = !isValid;
+    
+    // Update button text based on status
+    if (isValid) {
+        saveBtn.innerHTML = '<i class="fas fa-check me-2"></i>Assign Package & Collect Payment';
+    } else {
+        saveBtn.innerHTML = '<i class="fas fa-check me-2"></i>Complete All Fields';
     }
 }
 

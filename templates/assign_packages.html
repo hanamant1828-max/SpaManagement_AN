@@ -691,5 +691,67 @@ window.AP_openUsage = (assignmentId)=>{
         })
         .catch(()=>alert('Error loading usage'));
 };
+
+function updatePaymentSummary() {
+    const pricePaid = parseFloat(document.getElementById('asPricePaid').value) || 0;
+    const discount = parseFloat(document.getElementById('asDiscount').value) || 0;
+    const amountPaidInput = document.getElementById('asAmountPaid');
+    const amountPaidSection = document.getElementById('asAmountPaidSection');
+    const paymentStatus = document.getElementById('asPaymentStatus').value;
+
+    const summaryPrice = document.getElementById('summaryPrice');
+    const summaryDiscount = document.getElementById('summaryDiscount');
+    const summaryTotal = document.getElementById('summaryTotal');
+
+    summaryPrice.textContent = `₹${pricePaid.toFixed(2)}`;
+    summaryDiscount.textContent = `- ₹${discount.toFixed(2)}`;
+
+    let totalPayable = pricePaid - discount;
+    if (totalPayable < 0) totalPayable = 0;
+
+    summaryTotal.textContent = `₹${totalPayable.toFixed(2)}`;
+
+    // Update amount paid input based on payment status
+    if (paymentStatus === 'paid' || paymentStatus === 'pending') {
+        amountPaidInput.value = totalPayable.toFixed(2);
+        amountPaidInput.readOnly = true;
+        amountPaidSection.style.display = 'block';
+    } else if (paymentStatus === 'partial') {
+        amountPaidInput.readOnly = false;
+        amountPaidInput.value = parseFloat(amountPaidInput.value) || 0; // Keep existing value or reset to 0
+        amountPaidSection.style.display = 'block';
+    } else {
+        amountPaidSection.style.display = 'none';
+    }
+
+    // Recalculate totals for the main form if needed (though this function focuses on summary)
+    recalculateTotals();
+}
+
+function handlePaymentStatusChange() {
+    const paymentStatus = document.getElementById('asPaymentStatus').value;
+    const amountPaidInput = document.getElementById('asAmountPaid');
+    const amountPaidSection = document.getElementById('asAmountPaidSection');
+
+    if (paymentStatus === 'paid' || paymentStatus === 'pending') {
+        const totalPayable = parseFloat(document.getElementById('summaryTotal').textContent.replace('₹', '')) || 0;
+        amountPaidInput.value = totalPayable.toFixed(2);
+        amountPaidInput.readOnly = true;
+        amountPaidSection.style.display = 'block';
+    } else if (paymentStatus === 'partial') {
+        amountPaidInput.readOnly = false;
+        amountPaidInput.value = parseFloat(amountPaidInput.value) || 0; // Preserve current input or set default
+        amountPaidSection.style.display = 'block';
+    } else {
+        amountPaidSection.style.display = 'none';
+    }
+    updatePaymentSummary(); // Ensure summary is updated with new amount logic
+}
+
+// Initial call to set the summary on page load
+document.addEventListener('DOMContentLoaded', () => {
+    updatePaymentSummary();
+    handlePaymentStatusChange(); // Also handle initial payment status display
+});
 </script>
 {% endblock %}
