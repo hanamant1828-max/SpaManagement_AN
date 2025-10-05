@@ -380,7 +380,6 @@ def integrated_billing(customer_id=None):
                     service_name = assignment.service.name
                 elif assignment.service_id:
                     # Try to fetch service if we have an ID but no relationship
-                    from models import Service
                     service_obj = Service.query.get(assignment.service_id)
                     if service_obj:
                         service_name = service_obj.name
