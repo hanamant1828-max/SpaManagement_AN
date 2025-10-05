@@ -1296,6 +1296,39 @@ def create_professional_invoice():
                         batch_id=batch.id,
                         item_name=product.name,
                         description=f"Batch: {batch.batch_name}",
+                        quantity=item_data['quantity'],
+                        unit_price=item_data['unit_price'],
+                        original_amount=item_data['unit_price'] * item_data['quantity'],
+                        final_amount=item_data['unit_price'] * item_data['quantity'],
+                        staff_id=item_data.get('staff_id')
+                    )
+                    db.session.add(item)
+                    inventory_items_created += 1
+
+                    # Reduce stock
+                    batch.qty_available = float(batch.qty_available) - item_data['quantity']
+                    stock_reduced_count += 1
+
+            db.session.commit()
+
+            return jsonify({
+                'success': True,
+                'message': 'Invoice created successfully',
+                'invoice_id': invoice.id,
+                'invoice_number': invoice.invoice_number,
+                'service_items_created': service_items_created,
+                'inventory_items_created': inventory_items_created,
+                'completed_appointments': completed_appointments,
+                'package_deductions_applied': package_deductions_applied,
+                'updated_packages': updated_packages
+            })
+
+        except Exception as e:
+            db.session.rollback()
+            app.logger.error(f"Error creating invoice: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            return jsonify({'success': False, 'message': f'Error creating invoice: {str(e)}'}), 500
                         batch_name=batch.batch_name,
                         quantity=item_data['quantity'],
                         unit_price=item_data['unit_price'],
