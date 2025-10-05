@@ -374,21 +374,21 @@ def integrated_billing(customer_id=None):
 
                 # Get service name with proper fallback - CRITICAL FIX
                 service_name = None
-                
+
                 # Priority 1: Get from tracker's service relationship
                 if tracker.service_id:
                     service_obj = Service.query.get(tracker.service_id)
                     if service_obj:
                         service_name = service_obj.name
                         app.logger.info(f"✅ Service name from tracker.service_id: {service_name}")
-                
+
                 # Priority 2: Get from assignment's service relationship
                 if not service_name and assignment.service_id:
                     service_obj = Service.query.get(assignment.service_id)
                     if service_obj:
                         service_name = service_obj.name
                         app.logger.info(f"✅ Service name from assignment.service_id: {service_name}")
-                
+
                 # Priority 3: Get from package template if it's a ServicePackage
                 if not service_name and assignment.package_type == 'service_package' and package_template:
                     if hasattr(package_template, 'service_id') and package_template.service_id:
@@ -396,7 +396,7 @@ def integrated_billing(customer_id=None):
                         if service_obj:
                             service_name = service_obj.name
                             app.logger.info(f"✅ Service name from package_template.service_id: {service_name}")
-                
+
                 # Log warning if service package has no service name
                 if assignment.package_type == 'service_package' and not service_name:
                     app.logger.warning(f"⚠️ Service package assignment {assignment.id} has no service name - tracker.service_id={tracker.service_id}, assignment.service_id={assignment.service_id}")
@@ -1289,16 +1289,18 @@ def get_customer_packages(customer_id):
                 if service_obj:
                     service_name = service_obj.name
                     app.logger.info(f"✅ API: Service name for assignment {r.id}: {service_name}")
-            
+
             # Fallback to service_name field if it exists
             if not service_name and hasattr(r, 'service_name') and r.service_name:
                 service_name = r.service_name
 
             package_data = {
                 "id": r.id,
+                "assignment_id": r.id,  # Add assignment_id for reference
                 "package_type": "service_package" if r.total_sessions else "prepaid" if r.credit_amount is not None else "membership",
-                "name": package_name,  # Now guaranteed to have a value
+                "name": package_name,
                 "service_name": service_name,  # Now fetched from Service table
+                "service_id": r.service_id,  # CRITICAL: Add service_id for matching
                 "status": r.status,
                 "assigned_on": r.assigned_on.isoformat() if r.assigned_on else None,
                 "expires_on": r.expires_on.isoformat() if r.expires_on else None,
@@ -1632,7 +1634,7 @@ def create_integrated_invoice():
                     'message': f'Insufficient stock in batch {batch.batch_name}. Available: {batch.qty_available}, Required: {item["quantity"]}'
                 })
 
-            # Server-side price validation - prevent price manipulation
+            # Price validation - prevent price manipulation
             if batch.selling_price:
                 actual_price = float(batch.selling_price)
                 submitted_price = item['unit_price']
@@ -1642,14 +1644,12 @@ def create_integrated_invoice():
                 max_allowed_price = actual_price * 1.1   # 10% markup max for rounding
 
                 if submitted_price < min_allowed_price or submitted_price > max_allowed_price:
-                    # Log suspicious price manipulation attempt
                     app.logger.warning(f"Price manipulation attempt detected: User {current_user.id} tried to set price {submitted_price} for batch {batch.batch_name} (actual: {actual_price})")
                     return jsonify({
                         'success': False,
                         'message': f'Invalid price for {batch.product.name} (Batch: {batch.batch_name}). Expected: ${actual_price:.2f}, Submitted: ${submitted_price:.2f}'
                     })
             else:
-                # If no selling price set, require manual approval for non-zero prices
                 if item['unit_price'] > 0:
                     return jsonify({
                         'success': False,
@@ -1661,10 +1661,6 @@ def create_integrated_invoice():
             service = Service.query.get(service_data['service_id'])
             if not service:
                 return jsonify({'success': False, 'message': f'Service not found: {service_data["service_id"]}'})
-
-            # For services, we don't accept client price input - always use actual service price
-            # This prevents any service price manipulation
-            # Note: If custom service pricing is needed in the future, implement proper authorization checks
 
         # Calculate totals first (before any database operations)
         services_subtotal = 0
@@ -1688,7 +1684,6 @@ def create_integrated_invoice():
         tips_amount = float(request.form.get('tips_amount', 0))
 
         net_subtotal = gross_subtotal - discount_amount
-        # Fix: tax_rate is already a decimal (e.g., 0.18 for 18%), no need to divide by 100
         tax_amount = net_subtotal * tax_rate
         total_amount = net_subtotal + tax_amount + tips_amount
 
@@ -1889,8 +1884,7 @@ def get_customer_packages(client_id):
         return jsonify({'success': False, 'error': 'Access denied', 'packages': []}), 403
 
     try:
-        from models import (ServicePackageAssignment, Service, PrepaidPackage,
-                          ServicePackage, Membership, Customer)
+        from models import ServicePackageAssignment, Service, PrepaidPackage, Membership, Customer
         from datetime import datetime, date
 
         # Get customer for context
@@ -1939,7 +1933,7 @@ def get_customer_packages(client_id):
                     app.logger.info(f"   - service_id: {assignment.service_id}")
                     app.logger.info(f"   - service: {assignment.service}")
                     app.logger.info(f"   - remaining_sessions: {assignment.remaining_sessions}")
-                    
+
                     package_info.update({
                         'service_id': assignment.service_id,
                         'service_name': assignment.service.name if assignment.service else 'Any Service',
@@ -1947,7 +1941,7 @@ def get_customer_packages(client_id):
                         'used_sessions': assignment.used_sessions or 0,
                         'remaining_sessions': assignment.remaining_sessions or 0
                     })
-                    
+
                     app.logger.info(f"   - package_info after update: {package_info}")
                 elif assignment.package_type == 'membership':
                     # Get membership services

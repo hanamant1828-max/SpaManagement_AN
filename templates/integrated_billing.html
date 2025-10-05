@@ -1745,19 +1745,26 @@ function checkPackageBenefit(serviceId, servicePrice, quantity) {
             debugger; // 🔴 BREAKPOINT 5: Service package found - check matching logic
             const remainingSessions = pkg.remaining_sessions || pkg.sessions?.remaining || 0;
             
-            // Get the correct service_id from package - could be in different places
-            const packageServiceId = pkg.service_id || (pkg.services && pkg.services.length > 0 ? pkg.services[0].service_id : null);
+            // CRITICAL FIX: Get service_id with correct priority
+            // 1. Check pkg.service_id (from API response)
+            // 2. Check sessions object for nested service_id
+            // 3. Check services array
+            const packageServiceId = pkg.service_id || 
+                                    (pkg.sessions && pkg.sessions.service_id) || 
+                                    (pkg.services && pkg.services.length > 0 ? pkg.services[0].service_id : null);
             
             console.log('🔍 Service package match check:', {
                 packageId: pkg.id || pkg.assignment_id,
+                packageName: pkg.name,
                 packageServiceId: packageServiceId,
                 selectedServiceId: serviceId,
-                matches: packageServiceId == serviceId,  // Use == for type coercion
+                matches: parseInt(packageServiceId) === parseInt(serviceId),
                 remainingSessions: remainingSessions,
-                fullPackageObject: pkg
+                rawPackageObject: pkg
             });
             
-            if (packageServiceId == serviceId && remainingSessions > 0) {
+            // Convert both to integers for comparison to avoid type mismatch
+            if (parseInt(packageServiceId) === parseInt(serviceId) && remainingSessions > 0) {
                 debugger; // 🔴 BREAKPOINT 6: Match found! - check benefit calculation
                 const sessionsToCover = Math.min(quantity, remainingSessions);
                 const pricePerSession = servicePrice / quantity;
@@ -1768,7 +1775,7 @@ function checkPackageBenefit(serviceId, servicePrice, quantity) {
                 
                 console.log('✅ Service package benefit applied:', {
                     serviceId,
-                    packageName: pkg.package_name || pkg.name,
+                    packageName: pkg.name,
                     sessionsCovered: sessionsToCover,
                     benefitAmount: benefitAmount.toFixed(2),
                     remainingSessions: remainingSessions,
@@ -1777,9 +1784,13 @@ function checkPackageBenefit(serviceId, servicePrice, quantity) {
             } else {
                 debugger; // 🔴 BREAKPOINT 7: No match - why?
                 console.log('❌ Service package NOT applied - reason:', {
-                    serviceIdMatch: pkg.service_id === serviceId,
-                    packageServiceId: pkg.service_id,
-                    selectedServiceId: serviceId,
+                    packageServiceIdRaw: packageServiceId,
+                    packageServiceIdInt: parseInt(packageServiceId),
+                    selectedServiceIdRaw: serviceId,
+                    selectedServiceIdInt: parseInt(serviceId),
+                    typesMatch: typeof packageServiceId === typeof serviceId,
+                    valuesMatch: packageServiceId == serviceId,
+                    strictMatch: packageServiceId === serviceId,
                     hasRemainingSessions: remainingSessions > 0,
                     remainingSessions: remainingSessions
                 });
