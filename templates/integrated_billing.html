@@ -1184,11 +1184,20 @@ function displayCustomerPackagesTable(packages) {
             typeBadge = '<span style="background: #e9d5ff; color: #6b21a8; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.75rem;">Membership</span>';
         }
 
+        // Format service name display
+        let serviceNameDisplay = '';
+        if (pkg.service_name && pkg.service_name !== 'null' && pkg.service_name !== 'Any Service') {
+            serviceNameDisplay = `<br><small class="text-muted"><i class="fas fa-spa"></i> ${pkg.service_name}</small>`;
+        } else if (packageType === 'membership' && pkg.services && pkg.services.length > 0) {
+            const serviceNames = pkg.services.map(s => s.service_name).join(', ');
+            serviceNameDisplay = `<br><small class="text-muted"><i class="fas fa-spa"></i> ${serviceNames}</small>`;
+        }
+
         html += `
             <tr style="border-bottom: 1px solid var(--gray-200);">
                 <td style="padding: 0.5rem;">
                     <strong>${packageName}</strong>
-                    ${pkg.service_name ? `<br><small class="text-muted">Service: ${pkg.service_name}</small>` : ''}
+                    ${serviceNameDisplay}
                 </td>
                 <td style="padding: 0.5rem;">${typeBadge}</td>
                 <td style="padding: 0.5rem;">${statusBadge}</td>

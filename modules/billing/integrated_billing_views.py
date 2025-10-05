@@ -328,13 +328,13 @@ def integrated_billing(customer_id=None):
 
             # Get active packages with CORRECT remaining count
             from models import ServicePackageAssignment, ServicePackage, PrepaidPackage, Membership, PackageBenefitTracker
-            
+
             # Get all active benefit trackers for this customer (this is what billing uses)
             benefit_trackers = PackageBenefitTracker.query.filter_by(
                 customer_id=customer_id,
                 is_active=True
             ).all()
-            
+
             customer_active_packages = []
             for tracker in benefit_trackers:
                 # Get the assignment to get package template
@@ -342,40 +342,52 @@ def integrated_billing(customer_id=None):
                 if not assignment:
                     app.logger.warning(f"PackageBenefitTracker {tracker.id} has no assignment - skipping")
                     continue
-                    
+
                 # Get the package template based on package type
                 package_template = assignment.get_package_template()
-                
+
                 # Determine package name with comprehensive fallback handling
                 package_name = None
-                
+
                 # Try to get name from package template
                 if package_template:
                     if hasattr(package_template, 'name') and package_template.name:
                         package_name = package_template.name
                     elif hasattr(package_template, 'package_name') and package_template.package_name:
                         package_name = package_template.package_name
-                
+
                 # If still no name, try assignment fields
                 if not package_name:
                     if hasattr(assignment, 'package_name') and assignment.package_name:
                         package_name = assignment.package_name
                     elif hasattr(assignment, 'name') and assignment.name:
                         package_name = assignment.name
-                
+
                 # Final fallback: generate name from package type
                 if not package_name:
                     package_name = assignment.package_type.replace('_', ' ').title() + ' Package'
                     app.logger.warning(f"No package name found for assignment {assignment.id} (type: {assignment.package_type}, ref_id: {assignment.package_reference_id}), using fallback: {package_name}")
-                
-                # Get service name with proper fallback
+
+                # Get service name with proper fallback - ALWAYS include for service packages
+                service_name = None
                 if tracker.service:
                     service_name = tracker.service.name
                 elif assignment.service:
                     service_name = assignment.service.name
-                else:
-                    service_name = 'All Services'
-                
+                elif assignment.service_id:
+                    # Try to fetch service if we have an ID but no relationship
+                    from models import Service
+                    service_obj = Service.query.get(assignment.service_id)
+                    if service_obj:
+                        service_name = service_obj.name
+
+                # For service packages, service name should NEVER be None
+                if assignment.package_type == 'service_package' and not service_name:
+                    service_name = 'Service Package'
+                elif not service_name:
+                    service_name = None  # For prepaid/memberships, None is acceptable
+
+
                 # Build package info with correct field names for template
                 package_info = {
                     'assignment_id': assignment.id,
@@ -384,35 +396,36 @@ def integrated_billing(customer_id=None):
                     'benefit_type': tracker.benefit_type,
                     'is_active': tracker.is_active,
                     'service_name': service_name,
+                    'service_id': assignment.service_id,  # Include service_id for reference
                     'expires_on': tracker.valid_to.strftime('%b %d, %Y') if tracker.valid_to else None
                 }
-                
+
                 # Add type-specific fields matching template expectations
                 if tracker.benefit_type in ['free', 'discount']:
                     # Service-based packages - ensure we're getting the RIGHT data
                     total = tracker.total_allocated or 0
                     used = tracker.used_count or 0
                     remaining = tracker.remaining_count or 0
-                    
+
                     # Double-check: if remaining is calculated, ensure it's correct
                     if total > 0 and remaining == 0 and used == 0:
                         # Fresh package - remaining should equal total
                         remaining = total
-                    
+
                     usage_pct = round((used / total * 100), 1) if total > 0 else 0
-                    
+
                     package_info.update({
                         'total_allocated': total,
                         'used_count': used,
                         'remaining_count': remaining,
                         'usage_percentage': usage_pct
                     })
-                    
+
                     app.logger.info(f"Service package {package_name}: Total={total}, Used={used}, Remaining={remaining}")
-                    
+
                     if tracker.benefit_type == 'discount':
                         package_info['discount_percentage'] = tracker.discount_percentage or 0
-                        
+
                 elif tracker.benefit_type == 'prepaid':
                     # Prepaid credit packages
                     package_info.update({
@@ -421,15 +434,15 @@ def integrated_billing(customer_id=None):
                         'balance_remaining': float(tracker.balance_remaining or 0),
                         'usage_percentage': round((tracker.balance_used / tracker.balance_total * 100), 1) if tracker.balance_total > 0 else 0
                     })
-                    
+
                 elif tracker.benefit_type == 'unlimited':
                     # Unlimited/membership packages
                     package_info.update({
                         'access_type': 'unlimited'
                     })
-                
+
                 customer_active_packages.append(package_info)
-            
+
             # Log package data for debugging
             if customer_active_packages:
                 app.logger.info(f"Customer {customer_id} has {len(customer_active_packages)} active packages:")
@@ -1218,17 +1231,17 @@ def get_customer_packages(customer_id):
     """Get fresh customer package data (no cache) for UI refresh"""
     try:
         from models import ServicePackageAssignment
-        
+
         rows = (ServicePackageAssignment.query
                 .filter_by(customer_id=customer_id)
                 .order_by(ServicePackageAssignment.expires_on.asc())
                 .all())
-        
+
         packages_list = []
         for r in rows:
             # Get package name with comprehensive fallback logic
             package_name = None
-            
+
             # Try multiple fields in order of preference
             if hasattr(r, 'package_name') and r.package_name:
                 package_name = r.package_name
@@ -1236,7 +1249,7 @@ def get_customer_packages(customer_id):
                 package_name = r.package_display_name
             elif hasattr(r, 'name') and r.name:
                 package_name = r.name
-            
+
             # If still no name, try to get from package template
             if not package_name:
                 try:
@@ -1248,12 +1261,12 @@ def get_customer_packages(customer_id):
                             package_name = package_template.package_name
                 except:
                     pass
-            
+
             # Final fallback: generate from package type
             if not package_name:
                 pkg_type = "service_package" if r.total_sessions else "prepaid" if r.credit_amount is not None else "membership"
                 package_name = pkg_type.replace('_', ' ').title() + ' Package'
-            
+
             package_data = {
                 "id": r.id,
                 "package_type": "service_package" if r.total_sessions else "prepaid" if r.credit_amount is not None else "membership",
@@ -1263,7 +1276,7 @@ def get_customer_packages(customer_id):
                 "assigned_on": r.assigned_on.isoformat() if r.assigned_on else None,
                 "expires_on": r.expires_on.isoformat() if r.expires_on else None,
             }
-            
+
             # Add sessions data if applicable
             if r.total_sessions is not None:
                 package_data["sessions"] = {
@@ -1273,16 +1286,16 @@ def get_customer_packages(customer_id):
                                       if r.remaining_sessions is not None
                                       else (r.total_sessions or 0) - (r.used_sessions or 0)) or 0),
                 }
-            
+
             # Add credit data if applicable
             if r.credit_amount is not None:
                 package_data["credit"] = {
                     "total": float(r.credit_amount or 0.0),
                     "remaining": float(r.remaining_credit or 0.0),
                 }
-            
+
             packages_list.append(package_data)
-        
+
         payload = {"success": True, "packages": packages_list}
 
         resp = jsonify(payload)
@@ -1849,8 +1862,8 @@ def get_customer_packages(client_id):
         return jsonify({'success': False, 'error': 'Access denied', 'packages': []}), 403
 
     try:
-        from models import (ServicePackageAssignment, Service, PrepaidPackage,
-                          ServicePackage, Membership, Customer)
+        from models import ServicePackageAssignment, Service, PrepaidPackage,
+                          ServicePackage, Membership, Customer
         from datetime import datetime, date
 
         # Get customer for context
