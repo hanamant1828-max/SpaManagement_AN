@@ -1137,8 +1137,9 @@ function displayCustomerPackagesTable(packages) {
         let balanceDetails = '';
 
         if (packageType === 'prepaid') {
-            const remaining = pkg.remaining_credit || 0;
-            const total = pkg.credit_amount || 0;
+            // Corrected access for prepaid credit
+            const remaining = pkg.credit?.remaining || 0; 
+            const total = pkg.credit?.total || 0; 
             const usedPct = total > 0 ? ((total - remaining) / total * 100).toFixed(0) : 0;
             balanceText = `₹${remaining.toFixed(2)} / ₹${total.toFixed(2)}`;
             balanceDetails = `
@@ -1706,7 +1707,7 @@ function checkPackageBenefit(serviceId, servicePrice, quantity) {
             }
         } else if (pkg.package_type === 'prepaid') {
             // Prepaid can cover any service up to remaining credit
-            const deduction = Math.min(servicePrice, pkg.remaining_credit || 0);
+            const deduction = Math.min(servicePrice, pkg.credit?.remaining || 0); // Corrected access
             totalBenefit += deduction;
         }
     }
