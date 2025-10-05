@@ -398,7 +398,7 @@ def integrated_billing(customer_id=None):
                     'name': package_name,
                     'benefit_type': tracker.benefit_type,
                     'is_active': tracker.is_active,
-                    'service_name': service_name,
+                    'service_name': service_name if assignment.package_type == 'service_package' else None,  # Only show for service packages
                     'service_id': assignment.service_id,  # Include service_id for reference
                     'expires_on': tracker.valid_to.strftime('%b %d, %Y') if tracker.valid_to else None
                 }
