@@ -606,6 +606,28 @@ textarea.form-control {
                         <div class="col-md-12 mt-3">
                             <div class="form-group">
                                 <label class="form-label">Active Packages</label>
+                                
+                                <div class="btn-group mb-2" role="group" aria-label="Package type filters" style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+                                    <button type="button" class="btn btn-sm btn-outline-primary active" onclick="filterPackagesByType('all')" data-package-filter="all">
+                                        <i class="fas fa-box"></i> All Types
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-outline-success" onclick="filterPackagesByType('prepaid')" data-package-filter="prepaid">
+                                        <i class="fas fa-wallet"></i> Prepaid
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-outline-info" onclick="filterPackagesByType('service_package')" data-package-filter="service_package">
+                                        <i class="fas fa-spa"></i> Service Package
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-outline-warning" onclick="filterPackagesByType('membership')" data-package-filter="membership">
+                                        <i class="fas fa-crown"></i> Membership
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="filterPackagesByType('student_offer')" data-package-filter="student_offer">
+                                        <i class="fas fa-graduation-cap"></i> Student Offer
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-outline-dark" onclick="filterPackagesByType('yearly_membership')" data-package-filter="yearly_membership">
+                                        <i class="fas fa-calendar-alt"></i> Yearly
+                                    </button>
+                                </div>
+                                
                                 <div id="customerPackagesTable" style="max-height: 250px; overflow-y: auto; border: 1px solid var(--gray-300); border-radius: var(--radius); background: white;">
                                     <table class="table table-sm table-hover mb-0" style="font-size: 0.875rem;">
                                         <thead style="background: var(--gray-50); position: sticky; top: 0;">
