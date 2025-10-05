@@ -1424,10 +1424,15 @@ def get_customer_packages(customer_id):
             if not service_name and hasattr(r, 'service_name') and r.service_name:
                 service_name = r.service_name
 
+            # Use the actual package_type from the database
+            actual_package_type = r.package_type if hasattr(r, 'package_type') and r.package_type else (
+                "service_package" if r.total_sessions else "prepaid" if r.credit_amount is not None else "membership"
+            )
+            
             package_data = {
                 "id": r.id,
                 "assignment_id": r.id,  # Add assignment_id for reference
-                "package_type": "service_package" if r.total_sessions else "prepaid" if r.credit_amount is not None else "membership",
+                "package_type": actual_package_type,
                 "name": package_name,
                 "service_name": service_name,  # Fetched from Service table
                 "service_id": service_id,  # CRITICAL: Integer service_id for matching
@@ -1483,6 +1488,23 @@ def get_customer_packages(customer_id):
                     "remaining": float(r.remaining_credit or 0.0),
                 }
                 app.logger.info(f"⚠️ Using ServicePackageAssignment credit for assignment {r.id}: {package_data['credit']}")
+            
+            # Add membership services if applicable
+            if actual_package_type == 'membership':
+                try:
+                    package_template = r.get_package_template()
+                    if package_template and hasattr(package_template, 'membership_services'):
+                        membership_services = []
+                        for ms in package_template.membership_services:
+                            membership_services.append({
+                                'service_id': ms.service_id,
+                                'service_name': ms.service.name if ms.service else 'Unknown'
+                            })
+                        package_data['services'] = membership_services
+                        app.logger.info(f"✅ Added {len(membership_services)} services to membership package {r.id}")
+                except Exception as e:
+                    app.logger.error(f"Error loading membership services for assignment {r.id}: {e}")
+                    package_data['services'] = []
 
             packages_list.append(package_data)
 
