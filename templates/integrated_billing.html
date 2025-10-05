@@ -972,7 +972,7 @@ document.addEventListener('DOMContentLoaded', function() {
     {% if selected_customer %}
     console.log('Pre-selected customer ID:', {{ selected_customer.id }});
     // Ensure to use the correct function name and pass ID as string or number based on API
-    loadCustomerPackages({{ selected_customer.id }}); 
+    loadCustomerPackages({{ selected_customer.id }});
     loadCustomerAppointments({{ selected_customer.id }});
     {% endif %}
 });
@@ -1419,6 +1419,8 @@ function addAppointmentToBill(appointmentId, serviceName, serviceId, staffId, se
     if (appointmentInput) {
         appointmentInput.value = appointmentId;
         appointmentInput.dataset.appointmentId = appointmentId; // Store ID for tracking
+        appointmentInput.dataset.servicePrice = servicePrice; // Store price for accurate calculation
+        appointmentInput.dataset.serviceDuration = serviceDuration; // Store duration
         console.log(`✅ Set appointment ID ${appointmentId} in row`);
     }
 
@@ -1458,6 +1460,8 @@ function removeAppointmentFromBill(appointmentId) {
                 input.value = ''; // Clear all values
                 if (input.name?.includes('appointment_ids[]')) {
                     delete input.dataset.appointmentId; // Remove tracking attribute
+                    delete input.dataset.servicePrice;
+                    delete input.dataset.serviceDuration;
                 }
             });
             // Also reset quantity to 1 if it exists
@@ -1646,6 +1650,8 @@ function addServiceRow() {
         // Remove appointment tracking data if present
         if (input.name.includes('appointment_ids[]')) {
             delete input.dataset.appointmentId;
+            delete input.dataset.servicePrice;
+            delete input.dataset.serviceDuration;
         }
     });
 
@@ -1748,63 +1754,82 @@ function updateCalculations() {
 
         const serviceId = serviceSelect?.value;
         const quantity = parseFloat(qtyInput?.value) || 0;
-        let price = parseFloat(serviceSelect.selectedOptions[0]?.dataset.price) || 0; // Get price from dataset initially
+        let basePrice = parseFloat(serviceSelect.selectedOptions[0]?.dataset.price) || 0; // Get base price from dataset initially
 
-        // If a price input exists, use its value as it might be updated by package benefits
+        // If a price input exists, use its value as it might be updated by package benefits or explicitly set
         if (priceInput && priceInput.value) {
-             price = parseFloat(priceInput.value);
+             basePrice = parseFloat(priceInput.value);
         }
 
-        // Check if it's an appointment row (has appointment ID) and if the service is already billed via appointment
+        let effectivePrice = basePrice; // Start with the base price
+        let itemTotal = 0;
+        let benefitApplied = { discount: 0, packageUsed: null };
+
+        // Check if it's an appointment row
         const isAppointmentRow = appointmentIdInput && appointmentIdInput.value;
-        let effectivePrice = price; // Start with the base price
+        if (isAppointmentRow) {
+            const appointmentPrice = parseFloat(appointmentIdInput.dataset.servicePrice);
+            const appointmentDuration = parseFloat(appointmentIdInput.dataset.serviceDuration);
 
-        if (serviceId && quantity > 0) {
-            // Check for package benefits only if it's not an appointment row or if the service is not tied to an appointment
-            // If it's an appointment row, the price should be fixed from the appointment data.
-            if (!isAppointmentRow) {
-                const benefit = checkPackageBenefit(serviceId, price, quantity);
-                console.log('🎁 Package benefit for service row:', { serviceId, price, quantity, benefit });
-
-                if (benefit.discount > 0) {
-                    const benefitAmount = Math.min(benefit.discount, price * quantity); // Ensure discount doesn't exceed item total
-                    packageDeductions += benefitAmount;
-
-                    // Adjust effective price and update priceInput if it exists
-                    effectivePrice = Math.max(0, price - benefitAmount / quantity); // Calculate price after benefit per unit
-                    if (priceInput) {
-                        priceInput.value = effectivePrice.toFixed(2);
-                        console.log(`⬆️ Updated priceInput in row due to package benefit: ${priceInput.value}`);
-                    }
-
-                    // Show package benefit indicator on the row
-                    let benefitDiv = row.querySelector('.package-benefit');
-                    if (!benefitDiv) {
-                        benefitDiv = document.createElement('div');
-                        benefitDiv.className = 'package-benefit';
-                        row.appendChild(benefitDiv);
-                    }
-                    benefitDiv.innerHTML = `<i class="fas fa-gift"></i> Package Benefit: -₹${benefitAmount.toFixed(2)}`;
-                } else {
-                    // Remove benefit indicator if no benefit
-                    row.querySelector('.package-benefit')?.remove();
-                }
+            if (!isNaN(appointmentPrice)) {
+                effectivePrice = appointmentPrice; // Use the price from the appointment
+                // Quantity for appointments is usually 1, but we use it for calculation
+                itemTotal = effectivePrice * quantity;
+                console.log('➕ Appointment row item total:', { quantity, effectivePrice, itemTotal });
             } else {
-                 // For appointment rows, ensure price is from appointment, not service selection
-                const appointmentPrice = parseFloat(appointmentIdInput.dataset.servicePrice);
-                if (!isNaN(appointmentPrice)) {
-                    effectivePrice = appointmentPrice;
-                    if (priceInput) priceInput.value = effectivePrice.toFixed(2);
-                    console.log(`Appointment row detected. Using appointment price: ${effectivePrice.toFixed(2)}`);
-                }
+                console.warn('⚠️ Appointment row detected but price is missing.');
+                itemTotal = 0; // Cannot calculate if price is missing
             }
+            // Package benefits typically don't apply to services already covered by an appointment
+            benefitApplied = { discount: 0, packageUsed: null };
+            row.querySelector('.package-benefit')?.remove(); // Remove any previous benefit indicator
+        } else if (serviceId && quantity > 0) {
+            // Apply package benefits only if it's NOT an appointment row
+            benefitApplied = checkPackageBenefit(serviceId, basePrice, quantity);
+            console.log('🎁 Package benefit for service row:', { serviceId, basePrice, quantity, benefitApplied });
 
-            const itemTotal = effectivePrice * quantity;
+            if (benefitApplied.discount > 0) {
+                const discountAmount = Math.min(benefitApplied.discount, basePrice * quantity); // Ensure discount doesn't exceed item total
+                packageDeductions += discountAmount;
+
+                // Calculate effective price after benefit per unit
+                effectivePrice = Math.max(0, basePrice - discountAmount / quantity);
+                itemTotal = effectivePrice * quantity; // Item total after applying benefit
+
+                if (priceInput) {
+                    priceInput.value = effectivePrice.toFixed(2);
+                    console.log(`⬆️ Updated priceInput in row due to package benefit: ${priceInput.value}`);
+                }
+
+                // Show package benefit indicator on the row
+                let benefitDiv = row.querySelector('.package-benefit');
+                if (!benefitDiv) {
+                    benefitDiv = document.createElement('div');
+                    benefitDiv.className = 'package-benefit';
+                    row.appendChild(benefitDiv);
+                }
+                benefitDiv.innerHTML = `<i class="fas fa-gift"></i> Package Benefit (${benefitApplied.packageUsed}): -₹${discountAmount.toFixed(2)}`;
+            } else {
+                // No benefit applied, ensure price input is updated with base price if it exists
+                if (priceInput) {
+                    priceInput.value = basePrice.toFixed(2);
+                }
+                row.querySelector('.package-benefit')?.remove(); // Remove benefit indicator if no benefit
+                itemTotal = basePrice * quantity; // Item total is just base price * quantity
+            }
+            console.log('➕ Service row added to subtotal:', { serviceId, quantity, basePrice, effectivePrice, itemTotal, benefitApplied });
+        } else if (serviceSelect && !serviceId) {
+            // If serviceSelect is empty, clear related fields and remove benefit
+            row.querySelector('.package-benefit')?.remove();
+            if (priceInput) priceInput.value = ''; // Clear price input if service is deselected
+        }
+
+        // Only add to subtotal if it's a valid item and not an appointment row that couldn't be priced
+        if (serviceId && quantity > 0 && !isNaN(itemTotal) && itemTotal >= 0) {
+             servicesSubtotal += itemTotal;
+        } else if (isAppointmentRow && !isNaN(itemTotal) && itemTotal >= 0) {
+            // Add to subtotal even if it's an appointment row, as long as it's calculable
             servicesSubtotal += itemTotal;
-            console.log('➕ Service row added to subtotal:', { serviceId, quantity, effectivePrice, itemTotal });
-        } else if (serviceSelect) {
-            serviceSelect.classList.add('is-invalid'); // Mark if service is selected but no valid data
-            row.querySelector('.package-benefit')?.remove(); // Remove benefit if service is deselected
         }
     });
 
@@ -1814,7 +1839,7 @@ function updateCalculations() {
         const qtyInput = row.querySelector('input[name="product_quantities[]"]');
         const priceInput = row.querySelector('input[name="product_prices[]"]');
         const quantity = parseFloat(qtyInput?.value) || 0;
-        const price = parseFloat(priceInput?.value) || 0;
+        const price = parseFloat(priceInput?.value) || 0; // Price entered by user or from batch
 
         if (quantity > 0 && price > 0) {
             const itemTotal = price * quantity;
@@ -1832,29 +1857,31 @@ function updateCalculations() {
     const discountValue = parseFloat(document.querySelector('input[name="discount_value"]')?.value) || 0;
     let discountAmount = 0;
 
+    // Discount applies after package benefits
+    const taxableAmountBeforeDiscount = Math.max(0, subtotal - packageDeductions);
+
     if (discountType === 'percentage') {
-        discountAmount = (subtotal * discountValue) / 100;
+        discountAmount = (taxableAmountBeforeDiscount * discountValue) / 100;
     } else { // 'amount'
         discountAmount = discountValue;
     }
     discountAmount = Math.max(0, discountAmount); // Ensure discount is not negative
 
     // --- Calculate Taxable Amount ---
-    // Apply package deductions first, then discount
-    const taxableAmountBeforeTax = Math.max(0, subtotal - packageDeductions - discountAmount);
+    const taxableAmountAfterTax = Math.max(0, taxableAmountBeforeDiscount - discountAmount);
 
     // --- Tax Calculation ---
     const cgstRate = parseFloat(document.querySelector('input[name="cgst_rate"]')?.value) || 0;
     const sgstRate = parseFloat(document.querySelector('input[name="sgst_rate"]')?.value) || 0;
-    const cgst = (taxableAmountBeforeTax * cgstRate) / 100;
-    const sgst = (taxableAmountBeforeTax * sgstRate) / 100;
+    const cgst = (taxableAmountAfterTax * cgstRate) / 100;
+    const sgst = (taxableAmountAfterTax * sgstRate) / 100;
 
     // --- Additional Charges & Tips ---
     const additionalCharges = parseFloat(document.querySelector('input[name="additional_charges"]')?.value) || 0;
     const tips = parseFloat(document.querySelector('input[name="tips_amount"]')?.value) || 0;
 
     // --- Grand Total ---
-    const grandTotal = taxableAmountBeforeTax + cgst + sgst + additionalCharges + tips;
+    const grandTotal = taxableAmountAfterTax + cgst + sgst + additionalCharges + tips;
 
     // --- Update Display ---
     document.getElementById('servicesSubtotal').textContent = `₹${servicesSubtotal.toFixed(2)}`;
@@ -1874,7 +1901,7 @@ function updateCalculations() {
         subtotal: subtotal.toFixed(2),
         packageDeductions: packageDeductions.toFixed(2),
         discountAmount: discountAmount.toFixed(2),
-        taxableAmountBeforeTax: taxableAmountBeforeTax.toFixed(2),
+        taxableAmountAfterTax: taxableAmountAfterTax.toFixed(2),
         cgst: cgst.toFixed(2),
         sgst: sgst.toFixed(2),
         additionalCharges: additionalCharges.toFixed(2),
@@ -1903,130 +1930,142 @@ function checkPackageBenefit(serviceId, servicePrice, quantity = 1) {
         if (!customerPackages || customerPackages.length === 0) {
             console.log('ℹ️ No packages available for customer');
             console.log('📦 customerPackages state:', customerPackages);
-            return { discount: 0, packageUsed: null };
+            return { discount: 0, packageUsed: null, packageId: null, benefitType: null };
         }
 
         console.log('📦 Total packages to check:', customerPackages.length);
-        console.log('📦 All packages:', JSON.stringify(customerPackages, null, 2));
+        // console.log('📦 All packages:', JSON.stringify(customerPackages, null, 2)); // Too verbose, uncomment if needed for debugging
 
-        let totalDiscount = 0;
-        let packageUsed = null;
+        let totalBenefit = 0; // Renamed from totalDiscount to totalBenefit for clarity
+        let appliedPackage = null; // Renamed from packageUsed
+        let appliedPackageId = null;
+        let benefitType = null; // To distinguish between free sessions and credit
 
+        // Iterate through packages to find applicable benefits
         for (const pkg of customerPackages) {
-            console.log('📦 Checking package:', {
-                id: pkg.id,
-                type: pkg.package_type,
-                name: pkg.name,
-                serviceId: pkg.service_id,
-                serviceName: pkg.service_name,
-                // Accessing nested properties safely
-                remainingSessions: pkg.sessions?.remaining || 0,
-                remainingCredit: pkg.credit?.remaining || 0,
-                selectedServiceId: serviceId
-            });
-
-            if (pkg.package_type === 'service_package' && pkg.service_id == serviceId) {
-                console.log('🔍 Service package match check:', {
-                    packageId: pkg.id,
-                    packageServiceId: pkg.service_id,
-                    selectedServiceId: serviceId,
-                    matches: pkg.service_id == serviceId,
-                    // Use safe access for nested properties
-                    remainingSessions: pkg.sessions?.remaining || 0,
-                    serviceName: pkg.service_name,
-                    serviceIdComparison: `${pkg.service_id} == ${serviceId}`,
-                    typeMatch: typeof pkg.service_id === typeof serviceId
-                });
-
-                // Use safe access for remaining sessions
-                const remaining = pkg.sessions?.remaining || 0;
-                console.log('🔢 Session calculation:', {
-                    remaining,
-                    quantity,
-                    willApply: remaining > 0,
-                    sessionsToUse: Math.min(quantity, remaining)
-                });
-
-                if (remaining > 0) {
-                    const sessionsToUse = Math.min(quantity, remaining);
-                    const discount = sessionsToUse * servicePrice;
-                    console.log('✅ Service package applied:', {
-                        packageId: pkg.id,
-                        packageName: pkg.name,
-                        sessionsUsed: sessionsToUse,
-                        discount: discount,
-                        remainingAfter: remaining - sessionsToUse,
-                        calculation: `${sessionsToUse} * ${servicePrice} = ${discount}`
-                    });
-                    totalDiscount += discount;
-                    packageUsed = { ...pkg, sessionsUsed: sessionsToUse };
-                } else {
-                    console.log('❌ Service package NOT applied - reason:', {
-                        serviceIdMatch: pkg.service_id == serviceId,
-                        packageServiceId: pkg.service_id,
-                        selectedServiceId: serviceId,
-                        remainingSessions: remaining,
-                        reason: remaining <= 0 ? 'No remaining sessions' : 'Service ID mismatch'
-                    });
-                }
-            } else if (pkg.package_type === 'prepaid') {
-                // Use safe access for remaining credit
-                const remaining = pkg.credit?.remaining || 0;
-                console.log('💳 Prepaid package check:', {
-                    packageId: pkg.id,
-                    remainingCredit: remaining,
-                    servicePrice,
-                    quantity,
-                    totalCost: servicePrice * quantity,
-                    willApply: remaining > 0
-                });
-
-                if (remaining > 0) {
-                    const creditToUse = Math.min(servicePrice * quantity, remaining);
-                    console.log('✅ Prepaid credit applied:', {
-                        packageId: pkg.id,
-                        packageName: pkg.name,
-                        creditUsed: creditToUse,
-                        remainingAfter: remaining - creditToUse,
-                        calculation: `min(${servicePrice * quantity}, ${remaining}) = ${creditToUse}`
-                    });
-                    totalDiscount += creditToUse;
-                    packageUsed = { ...pkg, creditUsed: creditToUse };
-                }
-            } else {
-                console.log('⏭️ Package skipped:', {
-                    packageType: pkg.package_type,
-                    reason: pkg.package_type === 'service_package'
-                        ? `Service mismatch (${pkg.service_id} != ${serviceId})`
-                        : 'Not a service or prepaid package'
-                });
+            // Skip packages that are inactive or already fully used (redundant check, but safe)
+            if (pkg.status !== 'active' || (pkg.sessions?.remaining <= 0 && pkg.credit?.remaining <= 0)) {
+                 console.log('⏭️ Package skipped (inactive or depleted):', pkg.name);
+                 continue;
             }
+
+            // console.log('📦 Checking package:', {
+            //     id: pkg.id,
+            //     type: pkg.package_type,
+            //     name: pkg.name,
+            //     serviceId: pkg.service_id,
+            //     serviceName: pkg.service_name,
+            //     remainingSessions: pkg.sessions?.remaining,
+            //     remainingCredit: pkg.credit?.remaining,
+            //     selectedServiceId: serviceId
+            // });
+
+            // --- Service Package Logic ---
+            if (pkg.package_type === 'service_package') {
+                const remaining = pkg.sessions?.remaining || 0;
+
+                // Service package benefit should apply when:
+                // 1. Service IDs match
+                // 2. Remaining sessions > 0
+                if (pkg.service_id === serviceId && remaining > 0) {
+                    console.log('✅ Service package APPLIED:', {
+                        packageId: pkg.id,
+                        serviceName: pkg.service_name,
+                        sessionsRemaining: remaining,
+                        benefitAmount: servicePrice * quantity // This is the cost of the service for the current quantity
+                    });
+
+                    // Calculate the actual benefit: min of (service cost, remaining sessions * service price)
+                    // However, for service packages, we usually consider the number of sessions used.
+                    // We apply the benefit based on the quantity requested, up to the remaining sessions.
+                    const sessionsToUse = Math.min(quantity, remaining);
+                    const benefitAmount = sessionsToUse * servicePrice;
+
+                    totalBenefit += benefitAmount;
+                    appliedPackage = pkg.name;
+                    appliedPackageId = pkg.id;
+                    benefitType = 'free'; // Indicates sessions are used
+
+                    console.log('   Benefit Details:', {
+                        sessionsToUse: sessionsToUse,
+                        benefitAmount: benefitAmount.toFixed(2),
+                        remainingAfter: remaining - sessionsToUse
+                    });
+
+                    // Important: Break after applying the first matching service package benefit
+                    // If multiple service packages apply to the same service, the first one found wins.
+                    // This logic might need refinement based on specific business rules (e.g., prioritizing packages).
+                    break;
+
+                } else {
+                    console.log('❌ Service package NOT applied:', {
+                        serviceMatch: pkg.service_id === serviceId,
+                        hasRemaining: remaining > 0,
+                        packageService: pkg.service_id,
+                        selectedService: serviceId,
+                        remaining: remaining
+                    });
+                }
+            }
+            // --- Prepaid Package Logic ---
+            else if (pkg.package_type === 'prepaid') {
+                const remaining = pkg.credit?.remaining || 0;
+                const serviceCost = servicePrice * quantity;
+
+                // Prepaid package benefit should apply when:
+                // 1. Remaining credit > 0
+                // 2. Service cost is positive
+                if (remaining > 0 && serviceCost > 0) {
+                    const creditToUse = Math.min(serviceCost, remaining);
+                    console.log('✅ Prepaid credit APPLIED:', {
+                        packageId: pkg.id,
+                        creditRemaining: remaining,
+                        serviceCost: serviceCost.toFixed(2),
+                        creditToUse: creditToUse.toFixed(2),
+                        remainingAfter: (remaining - creditToUse).toFixed(2)
+                    });
+
+                    totalBenefit += creditToUse;
+                    appliedPackage = pkg.name;
+                    appliedPackageId = pkg.id;
+                    benefitType = 'prepaid';
+
+                    // Break after applying the first matching prepaid package benefit
+                    break;
+                } else {
+                    console.log('❌ Prepaid credit NOT applied:', {
+                        hasRemaining: remaining > 0,
+                        serviceCostPositive: serviceCost > 0,
+                        remaining: remaining
+                    });
+                }
+            }
+            // Add logic for other package types if needed (e.g., memberships with free services)
         }
 
-        if (totalDiscount === 0) {
+        if (totalBenefit === 0) {
             console.log('ℹ️ No package benefit applied for serviceId:', serviceId);
-            console.log('🔍 Summary of why no benefits:', {
-                totalPackages: customerPackages.length,
-                servicePackages: customerPackages.filter(p => p.package_type === 'service_package').length,
-                prepaidPackages: customerPackages.filter(p => p.package_type === 'prepaid').length,
-                matchingServicePackages: customerPackages.filter(p =>
-                    p.package_type === 'service_package' && p.service_id == serviceId
-                ).length
-            });
+            // console.log('🔍 Summary of why no benefits:', { // Too verbose, uncomment if needed
+            //     totalPackages: customerPackages.length,
+            //     servicePackages: customerPackages.filter(p => p.package_type === 'service_package').length,
+            //     prepaidPackages: customerPackages.filter(p => p.package_type === 'prepaid').length,
+            //     matchingServicePackages: customerPackages.filter(p =>
+            //         p.package_type === 'service_package' && p.service_id == serviceId
+            //     ).length
+            // });
         }
 
-        console.log('📋 All packages checked:', customerPackages.map(p => ({
-            type: p.package_type,
-            service_id: p.service_id,
-            service_name: p.service_name,
-            // Use safe access for remaining
-            remaining: p.sessions?.remaining || p.credit?.remaining || 0
-        })));
+        // console.log('📋 All packages checked:', customerPackages.map(p => ({ // Too verbose, uncomment if needed
+        //     type: p.package_type,
+        //     service_id: p.service_id,
+        //     service_name: p.service_name,
+        //     remaining: p.sessions?.remaining || p.credit?.remaining || 0
+        // })));
 
-        console.log('💰 Total benefit calculated:', totalDiscount.toFixed(2));
-        console.log('📦 Package used:', packageUsed ? packageUsed.name : 'None');
+        console.log('💰 Total benefit calculated:', totalBenefit.toFixed(2));
+        console.log('📦 Package applied:', appliedPackage ? `${appliedPackage} (${benefitType})` : 'None');
 
-        return { discount: totalDiscount, packageUsed };
+        return { discount: totalBenefit, packageUsed: appliedPackage, packageId: appliedPackageId, benefitType: benefitType };
     }
 
 
@@ -2351,7 +2390,8 @@ function previewInvoice() {
             previewData.services.push({
                 service_id: parseInt(id),
                 quantity: parseFloat(serviceQtys[i] || 1),
-                price: parseFloat(servicePrices[i] || document.querySelector(`select[name="service_ids[]"][value="${id}"]`)?.dataset.price || 0), // Fallback to dataset price
+                // Use price from input field if available, otherwise fallback to dataset price
+                price: parseFloat(servicePrices[i] || document.querySelector(`select[name="service_ids[]"][value="${id}"]`)?.dataset.price || 0),
                 staff_id: serviceStaffIds[i] || null,
                 appointment_id: serviceApptIds[i] ? parseInt(serviceApptIds[i]) : null
             });
