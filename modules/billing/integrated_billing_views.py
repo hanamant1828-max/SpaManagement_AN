@@ -1862,8 +1862,8 @@ def get_customer_packages(client_id):
         return jsonify({'success': False, 'error': 'Access denied', 'packages': []}), 403
 
     try:
-        from models import ServicePackageAssignment, Service, PrepaidPackage,
-                          ServicePackage, Membership, Customer
+        from models import (ServicePackageAssignment, Service, PrepaidPackage,
+                          ServicePackage, Membership, Customer)
         from datetime import datetime, date
 
         # Get customer for context
