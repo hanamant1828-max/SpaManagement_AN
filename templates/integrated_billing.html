@@ -1154,6 +1154,10 @@ function displayCustomerAppointments(appointments) {
 
         const isAdded = addedAppointmentIds.has(apt.id);
 
+        // Safely escape service and staff names
+        const serviceName = (apt.service_name || 'Service not specified').replace(/'/g, "\\'").replace(/"/g, '\\"');
+        const staffName = (apt.staff_name || 'Not assigned').replace(/'/g, "\\'").replace(/"/g, '\\"');
+
         html += `
             <tr style="border-bottom: 1px solid var(--gray-200); ${isAdded ? 'background: #f0fdf4;' : ''}">
                 <td style="padding: 8px;">
@@ -1172,7 +1176,7 @@ function displayCustomerAppointments(appointments) {
                 <td style="padding: 8px;">
                     <button type="button" 
                             class="btn btn-sm ${isAdded ? 'btn-success' : 'btn-primary'} w-100" 
-                            onclick="addAppointmentToBill(${apt.id}, '${(apt.service_name || '').replace(/'/g, "\\'")}', '${(apt.staff_name || '').replace(/'/g, "\\'")}', ${apt.service_id || 'null'}, ${apt.staff_id || 'null'}, ${apt.service_price || 0}, ${apt.service_duration || 60})"
+                            onclick="addAppointmentToBill(${apt.id}, '${serviceName}', ${apt.service_id || 'null'}, ${apt.staff_id || 'null'}, ${apt.service_price || 0}, ${apt.service_duration || 60})"
                             ${isAdded ? 'disabled' : ''}
                             style="font-size: 0.75rem; padding: 4px 8px;">
                         ${isAdded ? '<i class="fas fa-check"></i> Added' : '<i class="fas fa-plus"></i> Add'}
@@ -1228,8 +1232,8 @@ function toggleAppointmentInBill(appointmentId, serviceName, servicePrice, staff
     }
 }
 
-function addAppointmentToBill(appointmentId, serviceName, servicePrice, staffName, serviceId) {
-    console.log(`Adding appointment ${appointmentId} to bill - Service: ${serviceName}, Staff: ${staffName}, Price: ${servicePrice}`);
+function addAppointmentToBill(appointmentId, serviceName, serviceId, staffId, servicePrice, serviceDuration) {
+    console.log(`Adding appointment ${appointmentId} to bill - Service: ${serviceName}, ServiceID: ${serviceId}, StaffID: ${staffId}, Price: ${servicePrice}`);
 
     const container = document.getElementById('servicesContainer');
     if (!container) {
@@ -1243,7 +1247,7 @@ function addAppointmentToBill(appointmentId, serviceName, servicePrice, staffNam
     const qtyInput = firstRow.querySelector('input[name="service_quantities[]"]');
     const appointmentInput = firstRow.querySelector('input[name="appointment_ids[]"]');
 
-    const isFirstRowEmpty = !serviceSelect.value && !qtyInput.value;
+    const isFirstRowEmpty = !serviceSelect.value;
 
     if (isFirstRowEmpty) {
         // Use first row if empty
@@ -1252,21 +1256,19 @@ function addAppointmentToBill(appointmentId, serviceName, servicePrice, staffNam
             handleServiceChange(serviceSelect);
         }
 
-        if (staffName && staffSelect) {
-            const staffOption = Array.from(staffSelect.options).find(opt => 
-                opt.text.toLowerCase().includes(staffName.toLowerCase())
-            );
-            if (staffOption) {
-                staffSelect.value = staffOption.value;
-            }
+        if (staffId && staffSelect) {
+            staffSelect.value = staffId;
         }
 
         if (qtyInput) qtyInput.value = 1;
         if (appointmentInput) {
             appointmentInput.value = appointmentId;
-            appointmentInput.dataset.appointmentId = appointmentId; // Track for removal
+            appointmentInput.dataset.appointmentId = appointmentId;
             console.log(`✅ Set appointment ID ${appointmentId} in first row`);
         }
+        
+        // Mark as added
+        addedAppointmentIds.add(appointmentId);
     } else {
         // Add new row
         addServiceRow();
@@ -1282,24 +1284,28 @@ function addAppointmentToBill(appointmentId, serviceName, servicePrice, staffNam
             handleServiceChange(newServiceSelect);
         }
 
-        if (staffName && newStaffSelect) {
-            const staffOption = Array.from(newStaffSelect.options).find(opt => 
-                opt.text.toLowerCase().includes(staffName.toLowerCase())
-            );
-            if (staffOption) {
-                newStaffSelect.value = staffOption.value;
-            }
+        if (staffId && newStaffSelect) {
+            newStaffSelect.value = staffId;
         }
 
         if (newQtyInput) newQtyInput.value = 1;
         if (newAppointmentInput) {
             newAppointmentInput.value = appointmentId;
-            newAppointmentInput.dataset.appointmentId = appointmentId; // Track for removal
+            newAppointmentInput.dataset.appointmentId = appointmentId;
             console.log(`✅ Set appointment ID ${appointmentId} in new row`);
         }
+        
+        // Mark as added
+        addedAppointmentIds.add(appointmentId);
     }
 
     updateCalculations();
+    
+    // Refresh appointments display to show "Added" button
+    const clientId = document.getElementById('client_id').value;
+    if (clientId) {
+        loadCustomerAppointments(clientId);
+    }
 }
 
 function removeAppointmentFromBill(appointmentId) {
