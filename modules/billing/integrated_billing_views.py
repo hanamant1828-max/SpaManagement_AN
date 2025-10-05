@@ -654,7 +654,7 @@ def create_professional_invoice():
         return jsonify({'success': False, 'message': 'Access denied'}), 403
 
     try:
-        from models import Service, EnhancedInvoice, InvoiceItem, User
+        from models import Service, EnhancedInvoice, InvoiceItem, User, ServicePackageAssignment
         from modules.inventory.models import InventoryBatch, InventoryProduct
         from modules.inventory.queries import create_consumption_record
         import datetime
@@ -909,6 +909,7 @@ def create_professional_invoice():
             service_items_created = 0
             completed_appointments = 0
             package_deductions_applied = 0
+            updated_packages = []  # Track updated package info for UI refresh
 
             # Import package billing service
             from modules.packages.package_billing_service import PackageBillingService
@@ -951,6 +952,21 @@ def create_professional_invoice():
                         item.final_amount = package_result.get('final_price', item.final_amount)
                         item.is_package_deduction = True
                         package_deductions_applied += 1
+
+                        # Capture updated package info for UI refresh
+                        if package_result.get('assignment_id'):
+                            assignment = ServicePackageAssignment.query.get(package_result.get('assignment_id'))
+                            if assignment:
+                                updated_packages.append({
+                                    "assignment_id": assignment.id,
+                                    "package_type": "service_package",
+                                    "sessions": {
+                                        "total": int(assignment.total_sessions or 0),
+                                        "used": int(assignment.used_sessions or 0),
+                                        "remaining": int(assignment.remaining_sessions or 0),
+                                    },
+                                    "status": assignment.status,
+                                })
 
                         # Log package usage
                         app.logger.info(f"✅ Package benefit applied: {package_result.get('message')}")
@@ -1070,7 +1086,8 @@ def create_professional_invoice():
                 'stock_reduced': stock_reduced_count,
                 'package_deductions_applied': package_deductions_applied,
                 'appointments_completed': completed_appointments,
-                'client_updated': True
+                'client_updated': True,
+                'updated_packages': updated_packages  # Include updated package info for UI refresh
             }
             app.logger.info(f"✅ Invoice {invoice_number} created successfully - returning response")
             return jsonify(response_data)
@@ -1086,6 +1103,46 @@ def create_professional_invoice():
     except Exception as e:
         db.session.rollback()
         return jsonify({'success': False, 'message': f'Error creating professional invoice: {str(e)}'})
+
+
+@app.route('/integrated-billing/customer-packages/<int:customer_id>', methods=['GET'])
+@login_required
+def get_customer_packages(customer_id):
+    """Get fresh customer package data (no cache) for UI refresh"""
+    try:
+        from models import ServicePackageAssignment
+        
+        rows = (ServicePackageAssignment.query
+                .filter_by(customer_id=customer_id)
+                .order_by(ServicePackageAssignment.expires_on.asc())
+                .all())
+        
+        payload = {"success": True, "packages": [{
+            "id": r.id,
+            "package_type": "service_package" if r.total_sessions else "prepaid" if r.credit_amount is not None else "membership",
+            "name": getattr(r, "package_name", None) or getattr(r, "package_display_name", ""),
+            "service_name": getattr(r, "service_name", None),
+            "status": r.status,
+            "assigned_on": r.assigned_on.isoformat() if r.assigned_on else None,
+            "expires_on": r.expires_on.isoformat() if r.expires_on else None,
+            "sessions": {
+                "total": int(r.total_sessions or 0),
+                "used": int(r.used_sessions or 0),
+                "remaining": int((r.remaining_sessions
+                                  if r.remaining_sessions is not None
+                                  else (r.total_sessions or 0) - (r.used_sessions or 0)) or 0),
+            } if r.total_sessions is not None else None,
+            "credit": {
+                "total": float(r.credit_amount or 0.0),
+                "remaining": float(r.remaining_credit or 0.0),
+            } if r.credit_amount is not None else None,
+        } for r in rows]}
+
+        resp = jsonify(payload)
+        resp.headers["Cache-Control"] = "no-store"
+        return resp
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 
 @app.route('/integrated-billing/preview', methods=['POST'])

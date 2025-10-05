@@ -1,0 +1,143 @@
+nice — that JSON means the bill went through and a package session was deducted:
+
+* invoice: **INV-20251005-0003**
+* package deductions applied: **1**
+* total incl. tax: **₹65.00** (CGST/SGST ~₹4.96 each)
+
+If the **Active Packages** panel still shows **4/4** instead of dropping (e.g., 3/4), paste this **prompt** to Replit Assistance to wire the auto-refresh + verify the backend counters.
+
+---
+
+## PROMPT FOR REPLIT ASSISTANCE
+
+**Goal:** After invoice success, immediately refresh the customer’s package balances in the UI and verify DB state reflects the deduction.
+
+### 1) Return updated package counts with the invoice
+
+In `package_billing_service.py` (or the billing handler that builds the invoice response), ensure we already append this structure for each affected assignment:
+
+```python
+# after updating assignment.used_sessions / remaining_sessions
+updated_packages.append({
+    "assignment_id": assignment.id,
+    "package_type": "service_package",
+    "sessions": {
+        "total": int(assignment.total_sessions or 0),
+        "used": int(assignment.used_sessions or 0),
+        "remaining": int(assignment.remaining_sessions or 0),
+    },
+    "status": assignment.status,
+})
+```
+
+and include it in the response:
+
+```python
+result["updated_packages"] = updated_packages
+```
+
+### 2) Expose a “fresh packages” API (no cache)
+
+In `integrated_billing_views.py` add/ensure:
+
+```python
+@app.get("/integrated-billing/customer-packages/<int:customer_id>")
+def get_customer_packages(customer_id):
+    rows = (ServicePackageAssignment.query
+            .filter_by(customer_id=customer_id)
+            .order_by(ServicePackageAssignment.expires_on.asc())
+            .all())
+    payload = {"success": True, "packages": [{
+        "id": r.id,
+        "package_type": "service_package" if r.total_sessions else "prepaid" if r.credit_amount is not None else "membership",
+        "name": getattr(r, "package_name", None) or getattr(r, "package_display_name", ""),
+        "service_name": getattr(r, "service_name", None),
+        "status": r.status,
+        "assigned_on": r.assigned_on.isoformat() if r.assigned_on else None,
+        "expires_on": r.expires_on.isoformat() if r.expires_on else None,
+        "sessions": {
+            "total": int(r.total_sessions or 0),
+            "used": int(r.used_sessions or 0),
+            "remaining": int((r.remaining_sessions
+                              if r.remaining_sessions is not None
+                              else (r.total_sessions or 0) - (r.used_sessions or 0)) or 0),
+        } if r.total_sessions is not None else None,
+        "credit": {
+            "total": float(r.credit_amount or 0.0),
+            "remaining": float(r.remaining_credit or 0.0),
+        } if r.credit_amount is not None else None,
+    } for r in rows]}
+
+    resp = jsonify(payload)
+    resp.headers["Cache-Control"] = "no-store"
+    return resp
+```
+
+### 3) Update the UI after invoice success
+
+In `static/js/integrated_billing.js`, after you handle the invoice POST:
+
+```javascript
+function handleInvoiceSuccess(res, customerId) {
+  // existing toasts/alerts…
+
+  if (res.updated_packages && res.updated_packages.length) {
+    // Live patch rows so user sees counts drop immediately
+    res.updated_packages.forEach(up => {
+      if (up.package_type === 'service_package') {
+        const row = document.querySelector(`[data-assignment-id="${up.assignment_id}"]`);
+        if (row) {
+          const counter = row.querySelector('[data-role="session-counter"]');
+          const bar = row.querySelector('.progress-bar');
+          const chip = row.querySelector('[data-role="status-chip"]');
+          if (counter) counter.textContent = `${up.sessions.remaining}/${up.sessions.total} sessions`;
+          if (bar) bar.style.width = `${Math.min(100, Math.round((up.sessions.used / Math.max(1, up.sessions.total)) * 100))}%`;
+          if (chip && up.status === 'completed') { chip.className = 'badge bg-primary'; chip.textContent = 'completed'; }
+        }
+      }
+    });
+  } else {
+    // Fallback: fetch fresh packages
+    refreshCustomerPackages(customerId);
+  }
+}
+
+function refreshCustomerPackages(customerId) {
+  fetch(`/integrated-billing/customer-packages/${customerId}`, { cache: 'no-store' })
+    .then(r => r.json())
+    .then(j => { if (j.success) renderActivePackages(j.packages); });
+}
+```
+
+Make sure the package rows use these hooks:
+
+```html
+<tr data-assignment-id="{{ assignment.id }}">
+  <td>
+    <strong>{{ assignment.package_name }}</strong>
+    <div class="small text-muted">{{ assignment.service_name or '' }}</div>
+  </td>
+  <td>
+    <span data-role="session-counter">
+      {{ assignment.remaining_sessions }}/{{ assignment.total_sessions }} sessions
+    </span>
+    <div class="progress mt-1" style="height:6px;">
+      <div class="progress-bar" style="width: {{ (assignment.used_sessions * 100 // max(1, assignment.total_sessions)) }}%;"></div>
+    </div>
+  </td>
+  <td>
+    <span data-role="status-chip" class="badge {{ 'bg-success' if assignment.status=='active' else 'bg-primary' if assignment.status=='completed' else 'bg-secondary' }}">
+      {{ assignment.status }}
+    </span>
+  </td>
+</tr>
+```
+
+### 4) Quick verification
+
+* Call `GET /integrated-billing/customer-packages/<customerId>` and confirm `sessions.used` incremented and `sessions.remaining` decreased.
+* The **Active Packages** panel should now change from **4/4 → 3/4** immediately after creating **INV-20251005-0003**.
+
+---
+
+If you want, I can also add a tiny “Usage History” drawer under each package row that lists each invoice where a session was consumed.

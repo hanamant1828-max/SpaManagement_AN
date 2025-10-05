@@ -1049,6 +1049,25 @@ function loadCustomerPackagesDisplay(customerId) {
         });
 }
 
+function refreshCustomerPackages(customerId, updatedPackages) {
+    // Immediately update UI with the updated packages or fetch fresh data
+    if (updatedPackages && updatedPackages.length > 0) {
+        // Update the display with fresh data
+        console.log('Refreshing package display after invoice creation', updatedPackages);
+    }
+    
+    // Fetch fresh packages from server (fallback or additional verification)
+    fetch(`/integrated-billing/customer-packages/${customerId}`, { cache: 'no-store' })
+        .then(r => r.json())
+        .then(j => { 
+            if (j.success) {
+                displayCustomerPackagesTable(j.packages);
+                console.log('Package balances refreshed successfully');
+            }
+        })
+        .catch(err => console.error('Error refreshing packages:', err));
+}
+
 function displayCustomerPackagesTable(packages) {
     const packagesDiv = document.getElementById('customerPackagesTable');
 
@@ -1789,6 +1808,14 @@ function handleFormSubmit(e) {
 
             // Show success toast
             showNotification(toastMessage, 'success', 8000);
+
+            // Refresh package display if packages were updated
+            if (data.updated_packages && data.updated_packages.length > 0) {
+                const customerId = document.getElementById('client_id').value;
+                if (customerId) {
+                    refreshCustomerPackages(customerId, data.updated_packages);
+                }
+            }
 
             // Handle print if needed
             if (window.printAfterSave && data.invoice_id) {
