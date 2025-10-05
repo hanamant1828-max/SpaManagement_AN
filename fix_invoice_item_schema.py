@@ -1,7 +1,7 @@
 
 #!/usr/bin/env python3
 """
-Fix InvoiceItem table schema by adding missing batch_name column
+Fix InvoiceItem table schema by adding missing columns
 """
 
 from app import app, db
@@ -9,7 +9,7 @@ from sqlalchemy import text, inspect
 import sys
 
 def fix_invoice_item_schema():
-    """Add missing batch_name column to invoice_item table"""
+    """Add missing columns to invoice_item table"""
     
     with app.app_context():
         try:
@@ -26,12 +26,12 @@ def fix_invoice_item_schema():
             existing_columns = [col['name'] for col in inspector.get_columns('invoice_item')]
             print(f"📊 Existing columns in invoice_item: {existing_columns}")
             
-            # Required columns with their definitions
+            # Required columns with SQLite-compatible definitions (no foreign key constraints in ALTER)
             required_columns = {
-                'product_id': 'INTEGER REFERENCES inventory_products(id)',
-                'batch_id': 'INTEGER REFERENCES inventory_batches(id)',
+                'product_id': 'INTEGER',
+                'batch_id': 'INTEGER',
                 'batch_name': 'VARCHAR(100)',
-                'staff_id': 'INTEGER REFERENCES user(id)',
+                'staff_id': 'INTEGER',
                 'staff_name': 'VARCHAR(100)'
             }
             
@@ -39,7 +39,7 @@ def fix_invoice_item_schema():
             for column_name, column_def in required_columns.items():
                 if column_name not in existing_columns:
                     try:
-                        sql = f"ALTER TABLE invoice_item ADD COLUMN {column_name} {column_def};"
+                        sql = f"ALTER TABLE invoice_item ADD COLUMN {column_name} {column_def}"
                         print(f"🔧 Adding column: {column_name}")
                         db.session.execute(text(sql))
                         db.session.commit()
