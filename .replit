@@ -1,4 +1,4 @@
-modules = ["web", "python-3.11", "nodejs-20", "postgresql-16"]
+modules = ["web", "python-3.11", "nodejs-20", "postgresql-16", "python3"]
 
 [nix]
 channel = "stable-25_05"
@@ -10,7 +10,7 @@ run = ["gunicorn", "--bind", "0.0.0.0:5000", "--reuse-port", "main:app"]
 build = ["echo", "No build needed - Flask app ready to deploy"]
 
 [workflows]
-runButton = "Start Spa Management System"
+runButton = "Project"
 
 [[workflows.workflow]]
 name = "Start Flask App"
@@ -145,15 +145,15 @@ author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "workflow.run"
-args = "Start application"
+args = "Server"
 
 [[workflows.workflow]]
-name = "Start application"
+name = "Server"
 author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "gunicorn --bind 0.0.0.0:5000 --reuse-port --reload main:app"
+args = "python main.py"
 waitForPort = 5000
 
 [workflows.workflow.metadata]
@@ -164,7 +164,7 @@ localPort = 5000
 externalPort = 80
 
 [[ports]]
-localPort = 35505
+localPort = 38895
 externalPort = 3000
 
 [agent]
