@@ -1165,49 +1165,9 @@ def api_get_products_simple():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@app.route('/modules/checkin') # This is a placeholder, will be fixed soon
-@login_required
-def checkin():
-    """Placeholder for checkin view"""
-    return render_template('checkin.html')
 
-@app.route('/modules/checkin/new', methods=['POST']) # This is a placeholder, will be fixed soon
-@login_required
-def checkin_new():
-    """Placeholder for new checkin"""
-    flash('Checkin functionality not yet implemented', 'warning')
-    return redirect(url_for('checkin'))
 
-@app.route('/modules/checkout') # This is a placeholder, will be fixed soon
-@login_required
-def checkout():
-    """Placeholder for checkout view"""
-    return render_template('checkout.html')
 
-@app.route('/modules/checkout/new', methods=['POST']) # This is a placeholder, will be fixed soon
-@login_required
-def checkout_new():
-    """Placeholder for new checkout"""
-    flash('Checkout functionality not yet implemented', 'warning')
-    return redirect(url_for('checkout'))
-
-@app.route('/modules/staff') # This is a placeholder, will be fixed soon
-@login_required
-def staff_dashboard():
-    """Placeholder for staff dashboard"""
-    return render_template('staff_dashboard.html')
-
-@app.route('/modules/staff/punch_in', methods=['POST']) # This is the correct endpoint for punch in
-@login_required
-def punch_in():
-    """Endpoint for staff to punch in"""
-    try:
-        # Implement punch in logic here
-        flash('Punch in successful', 'success')
-        return redirect(url_for('staff_dashboard'))
-    except Exception as e:
-        flash(f'Punch in failed: {e}', 'danger')
-        return redirect(url_for('staff_dashboard'))
 
 @app.route('/modules/staff/punch_out', methods=['POST']) # This is a placeholder, will be fixed soon
 @login_required
