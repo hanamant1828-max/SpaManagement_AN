@@ -509,9 +509,19 @@ class ServicePackage(db.Model):
     package_name = db.Column(db.String(100))  # Alternative name field
     description = db.Column(db.Text)
     service_id = db.Column(db.Integer, db.ForeignKey('service.id'))
+    
+    # Package structure fields
+    pay_for = db.Column(db.Integer, default=0)  # Number of sessions customer pays for
+    total_services = db.Column(db.Integer, default=0)  # Total sessions customer gets
+    free_services = db.Column(db.Integer, default=0)  # Calculated: total - pay_for
+    benefit_percent = db.Column(db.Float, default=0)  # Benefit percentage
+    
+    # Legacy fields for compatibility
     sessions = db.Column(db.Integer, nullable=False, default=1)
     price = db.Column(db.Float, nullable=False)
     validity_days = db.Column(db.Integer)
+    validity_months = db.Column(db.Integer, default=12)
+    
     is_active = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
