@@ -306,8 +306,9 @@ class UnakiBookingTester:
             self.log_test("Conflict check API", True, 
                          f"API responded successfully. Conflicts: {has_conflicts}")
         else:
+            error_msg = response.json().get('error', 'Unknown error') if response.status_code == 400 else f"HTTP {response.status_code}"
             self.log_test("Conflict check API", False, 
-                         f"Status: {response.status_code}")
+                         f"Status: {response.status_code}, Error: {error_msg}")
     
     def test_booking_sources(self):
         """Test 9: Different booking sources"""
@@ -360,13 +361,38 @@ class UnakiBookingTester:
             return
         
         booking_id = self.created_bookings[0]
+        
+        # First, get the current booking details
+        get_response = self.session.get(
+            f"{self.base_url}/api/unaki/bookings/{booking_id}"
+        )
+        
+        if get_response.status_code != 200:
+            self.log_test("Appointment status updates", False, 
+                         "Could not retrieve booking details for update test")
+            return
+        
+        booking_data = get_response.json().get('booking', {})
+        today = date.today()
+        
         statuses = ['scheduled', 'confirmed', 'in_progress', 'completed']
         success_count = 0
         
         for status in statuses:
+            # Include all required fields for update
+            update_data = {
+                'staff_id': booking_data.get('staff_id', 1),
+                'service_name': booking_data.get('service_name', 'Test Service'),
+                'appointment_date': booking_data.get('appointment_date', today.strftime('%Y-%m-%d')),
+                'start_time': booking_data.get('start_time', '10:00'),
+                'end_time': booking_data.get('end_time', '11:00'),
+                'status': status,
+                'notes': booking_data.get('notes', '')
+            }
+            
             response = self.session.put(
                 f"{self.base_url}/api/unaki/bookings/{booking_id}",
-                json={'status': status},
+                json=update_data,
                 headers={'Content-Type': 'application/json'}
             )
             
@@ -394,9 +420,27 @@ class UnakiBookingTester:
         
         booking_id = self.created_bookings[-1]
         
+        # First, get the current booking details
+        get_response = self.session.get(
+            f"{self.base_url}/api/unaki/bookings/{booking_id}"
+        )
+        
+        if get_response.status_code != 200:
+            self.log_test("Update booking", False, 
+                         "Could not retrieve booking details for update test")
+            return
+        
+        booking_data = get_response.json().get('booking', {})
+        today = date.today()
+        
+        # Include all required fields plus the updates
         update_data = {
+            'staff_id': booking_data.get('staff_id', 1),
             'client_name': 'Updated Client Name',
             'service_name': 'Updated Service',
+            'appointment_date': booking_data.get('appointment_date', today.strftime('%Y-%m-%d')),
+            'start_time': booking_data.get('start_time', '10:00'),
+            'end_time': booking_data.get('end_time', '11:00'),
             'notes': 'This booking was updated during testing'
         }
         
@@ -415,8 +459,9 @@ class UnakiBookingTester:
                 self.log_test("Update booking", False, 
                              f"Error: {data.get('error')}")
         else:
+            error_msg = response.json().get('error', 'Unknown error') if response.status_code == 400 else f"HTTP {response.status_code}"
             self.log_test("Update booking", False, 
-                         f"Status: {response.status_code}")
+                         f"Status: {response.status_code}, Error: {error_msg}")
     
     def test_get_booking_details(self):
         """Test getting booking details"""
@@ -436,12 +481,18 @@ class UnakiBookingTester:
         
         if response.status_code == 200:
             data = response.json()
-            if data.get('id') == booking_id:
-                self.log_test("Get booking details", True, 
-                             f"Retrieved booking {booking_id} successfully")
+            # Handle nested response structure
+            if data.get('success') and data.get('booking'):
+                booking = data.get('booking')
+                if booking.get('id') == booking_id:
+                    self.log_test("Get booking details", True, 
+                                 f"Retrieved booking {booking_id} successfully")
+                else:
+                    self.log_test("Get booking details", False, 
+                                 f"Booking ID mismatch: expected {booking_id}, got {booking.get('id')}")
             else:
                 self.log_test("Get booking details", False, 
-                             "Booking data mismatch")
+                             "Invalid response structure - missing 'success' or 'booking' field")
         else:
             self.log_test("Get booking details", False, 
                          f"Status: {response.status_code}")
