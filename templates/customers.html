@@ -483,11 +483,13 @@
                         </form>
                     </div>
                     <div class="col-md-4 text-center mt-3 mt-md-0">
+                        {% if current_user.has_permission('clients_create') %}
                         <button type="button" class="btn btn-lg btn-primary px-4 py-3" 
                                 data-bs-toggle="modal" data-bs-target="#addCustomerModal"
                                 style="border-radius: 25px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none;">
                             <i class="fas fa-user-plus me-2"></i>Add New Customer
                         </button>
+                        {% endif %}
                     </div>
                 </div>
             </div>
@@ -586,6 +588,7 @@
                                                         title="Book Appointment">
                                                     <i class="fas fa-calendar-plus"></i>
                                                 </button>
+                                                {% if current_user.has_permission('clients_edit') %}
                                                 <button class="btn btn-action btn-outline-warning" 
                                                         data-bs-toggle="modal" 
                                                         data-bs-target="#editCustomerModal" 
@@ -593,11 +596,14 @@
                                                         title="Edit Customer">
                                                     <i class="fas fa-edit"></i>
                                                 </button>
+                                                {% endif %}
+                                                {% if current_user.has_permission('clients_delete') %}
                                                 <button class="btn btn-action btn-outline-danger" 
                                                         onclick="deleteCustomer({{ customer.id if customer.id else 'null' }}, '{{ (customer.first_name ~ ' ' ~ customer.last_name)|replace("'", "\\'") }}')"
                                                         title="Delete Customer">
                                                     <i class="fas fa-trash"></i>
                                                 </button>
+                                                {% endif %}
                                             </div>
                                         </td>
                                     </tr>
@@ -622,7 +628,7 @@
                                     Start building your customer base by adding your first customer.
                                 {% endif %}
                             </p>
-                            {% if not search_query %}
+                            {% if not search_query and current_user.has_permission('clients_create') %}
                             <button type="button" class="btn btn-primary btn-lg mt-3" 
                                     data-bs-toggle="modal" data-bs-target="#addCustomerModal">
                                 <i class="fas fa-user-plus me-2"></i>Add Your First Customer
