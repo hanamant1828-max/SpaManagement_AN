@@ -90,9 +90,9 @@
                             </label>
                             <select class="form-select" id="customer_id" name="customer_id">
                                 <option value="">Choose a customer...</option>
-                                {% for appointment in upcoming_appointments %}
-                                <option value="{{ appointment.client.id }}" data-phone="{{ appointment.client.phone }}">
-                                    {{ appointment.client.full_name }} - {{ appointment.client.phone }}
+                                {% for customer in all_customers %}
+                                <option value="{{ customer.id }}" data-phone="{{ customer.phone }}">
+                                    {{ customer.full_name }} - {{ customer.phone }}
                                 </option>
                                 {% endfor %}
                             </select>
@@ -104,11 +104,11 @@
                                 <i class="fas fa-users me-2"></i>Select Customers *
                             </label>
                             <div style="max-height: 200px; overflow-y: auto; border: 1px solid #dee2e6; border-radius: 0.375rem; padding: 10px;">
-                                {% for appointment in upcoming_appointments %}
+                                {% for customer in all_customers %}
                                 <div class="form-check">
-                                    <input class="form-check-input customer-checkbox" type="checkbox" name="customer_ids[]" value="{{ appointment.client.id }}" id="customer_{{ appointment.client.id }}">
-                                    <label class="form-check-label" for="customer_{{ appointment.client.id }}">
-                                        {{ appointment.client.full_name }} - {{ appointment.client.phone }}
+                                    <input class="form-check-input customer-checkbox" type="checkbox" name="customer_ids[]" value="{{ customer.id }}" id="customer_{{ customer.id }}">
+                                    <label class="form-check-label" for="customer_{{ customer.id }}">
+                                        {{ customer.full_name }} - {{ customer.phone }}
                                     </label>
                                 </div>
                                 {% endfor %}

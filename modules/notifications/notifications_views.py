@@ -16,12 +16,33 @@ def notifications():
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
     
+    from modules.clients.clients_queries import get_all_customers
+    from models import Appointment
+    from datetime import datetime, timedelta
+    
     recent_communications = get_recent_communications()
     pending_notifications = get_pending_notifications()
     
+    # Get all active customers for the message sending feature
+    all_customers = get_all_customers()
+    
+    # Get upcoming appointments for reminders
+    tomorrow = datetime.now() + timedelta(days=1)
+    upcoming_appointments = Appointment.query.filter(
+        Appointment.appointment_date >= datetime.now(),
+        Appointment.appointment_date <= tomorrow,
+        Appointment.status.in_(['scheduled', 'confirmed'])
+    ).all()
+    
+    # Get expiring packages (placeholder for now)
+    expiring_packages = []
+    
     return render_template('notifications.html', 
                          recent_communications=recent_communications,
-                         pending_notifications=pending_notifications)
+                         pending_notifications=pending_notifications,
+                         all_customers=all_customers,
+                         upcoming_appointments=upcoming_appointments,
+                         expiring_packages=expiring_packages)
 
 @app.route('/notifications/send-reminders', methods=['POST'])
 @login_required
