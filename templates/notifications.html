@@ -73,9 +73,11 @@
                                     <td>{{ appointment.appointment_date.strftime('%Y-%m-%d %I:%M %p') }}</td>
                                     <td>{{ appointment.client.phone }}</td>
                                     <td>
-                                        <button class="btn btn-sm btn-success">
-                                            <i class="fab fa-whatsapp me-1"></i>Send Reminder
-                                        </button>
+                                        <form method="POST" action="{{ url_for('send_single_whatsapp_reminder', appointment_id=appointment.id) }}" style="display:inline;">
+                                            <button type="submit" class="btn btn-sm btn-success">
+                                                <i class="fab fa-whatsapp me-1"></i>Send Reminder
+                                            </button>
+                                        </form>
                                     </td>
                                 </tr>
                                 {% endfor %}

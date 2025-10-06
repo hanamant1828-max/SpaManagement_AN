@@ -5,6 +5,40 @@ from datetime import datetime, date, timedelta
 from sqlalchemy import func, and_, or_
 from app import db
 from models import Communication, Customer, Appointment
+import os
+
+# WhatsApp configuration
+TWILIO_ACCOUNT_SID = os.environ.get('TWILIO_ACCOUNT_SID')
+TWILIO_AUTH_TOKEN = os.environ.get('TWILIO_AUTH_TOKEN')
+TWILIO_WHATSAPP_NUMBER = os.environ.get('TWILIO_WHATSAPP_NUMBER', 'whatsapp:+14155238886')
+BUSINESS_WHATSAPP_NUMBER = '+918746084638'
+
+def send_whatsapp_message(to_number, message_body):
+    """Send WhatsApp message using Twilio"""
+    try:
+        from twilio.rest import Client
+        
+        if not TWILIO_ACCOUNT_SID or not TWILIO_AUTH_TOKEN:
+            print("Twilio credentials not configured")
+            return False
+        
+        client = Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
+        
+        # Format phone number for WhatsApp
+        if not to_number.startswith('whatsapp:'):
+            to_number = f'whatsapp:{to_number}'
+        
+        message = client.messages.create(
+            from_=TWILIO_WHATSAPP_NUMBER,
+            body=message_body,
+            to=to_number
+        )
+        
+        print(f"WhatsApp message sent: {message.sid}")
+        return True
+    except Exception as e:
+        print(f"Error sending WhatsApp message: {e}")
+        return False
 
 def get_recent_communications():
     """Get recent communications/notifications"""
