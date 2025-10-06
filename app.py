@@ -349,6 +349,14 @@ try:
 except Exception as e:
     print(f"⚠️ Integrated billing views import error: {e}")
 
+# Import packages blueprint first
+try:
+    from modules.packages.routes import packages_bp
+    app.register_blueprint(packages_bp)
+    print("✅ Packages blueprint registered")
+except Exception as e:
+    print(f"⚠️ Packages blueprint import error: {e}")
+
 # Import packages views
 try:
     from modules.packages.new_packages_views import *
