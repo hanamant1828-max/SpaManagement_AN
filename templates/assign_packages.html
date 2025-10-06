@@ -424,6 +424,40 @@ document.getElementById('customerSearch').addEventListener('input', function() {
 // PRICE CALCULATION
 // ============================================================================
 
+/**
+ * Get package price based on package type and data structure
+ * Different package types store price in different fields
+ */
+function getPackagePrice(packageType, packageData) {
+    if (!packageData) return 0;
+
+    switch(packageType) {
+        case 'prepaid':
+            // Prepaid: actual_price or price or after_value
+            return parseFloat(packageData.actual_price || packageData.price || packageData.after_value || 0);
+            
+        case 'membership':
+            // Membership: price or actual_price or amount
+            return parseFloat(packageData.price || packageData.actual_price || packageData.amount || 0);
+            
+        case 'student_offer':
+            // Student offer: price or actual_price
+            return parseFloat(packageData.price || packageData.actual_price || 0);
+            
+        case 'yearly':
+            // Yearly membership: price or actual_price or annual_fee
+            return parseFloat(packageData.price || packageData.actual_price || packageData.annual_fee || 0);
+            
+        case 'kitty':
+            // Kitty party: price or actual_price or package_price
+            return parseFloat(packageData.price || packageData.actual_price || packageData.package_price || 0);
+            
+        default:
+            // Generic fallback: try common field names
+            return parseFloat(packageData.price || packageData.actual_price || packageData.amount || 0);
+    }
+}
+
 function recalculateTotals() {
     let subtotal = 0;
     let discount = 0;
@@ -432,34 +466,24 @@ function recalculateTotals() {
         const packageType = document.getElementById('packageType').value;
 
         // Calculate based on package type
-        switch(packageType) {
-            case 'prepaid':
-                // Prepaid packages use price field
-                subtotal = parseFloat(currentPackage.price || currentPackage.actual_price || 0);
-                break;
-                
-            case 'service_package':
-                // Service packages: (pay_for × service price) + (free × service price as discount)
-                if (currentService) {
-                    const payFor = parseInt(currentPackage.pay_for || 0);
-                    const free = parseInt(currentPackage.free_services || 0);
-                    const servicePrice = parseFloat(currentService.price || 0);
-                    subtotal = payFor * servicePrice;
-                    discount = free * servicePrice;
-                }
-                break;
-                
-            case 'student_offer':
-            case 'membership':
-            case 'yearly':
-            case 'kitty':
-                // Other package types use price or actual_price
-                subtotal = parseFloat(currentPackage.price || currentPackage.actual_price || 0);
-                break;
-                
-            default:
-                subtotal = parseFloat(currentPackage.price || currentPackage.actual_price || 0);
+        if (packageType === 'service_package') {
+            // Service packages: calculate from sessions × service price
+            if (currentService) {
+                const payFor = parseInt(currentPackage.pay_for || 0);
+                const free = parseInt(currentPackage.free_services || 0);
+                const servicePrice = parseFloat(currentService.price || 0);
+                subtotal = payFor * servicePrice;
+                discount = free * servicePrice;
+            }
+        } else {
+            // All other package types: use helper function
+            subtotal = getPackagePrice(packageType, currentPackage);
         }
+    }
+
+    // Prevent 0 price when package is selected (validation)
+    if (currentPackage && subtotal === 0) {
+        console.warn('Warning: Package selected but price is 0. Package data:', currentPackage);
     }
 
     // Calculate tax and totals
