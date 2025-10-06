@@ -1199,6 +1199,8 @@ def create_professional_invoice():
                     # === CRITICAL: APPLY PACKAGE BENEFIT ===
                     # First check for yearly membership discount
                     yearly_discount_applied = False
+                    package_result = {'success': False, 'applied': False, 'message': 'No package benefit checked'}
+                    
                     yearly_membership_assignment = ServicePackageAssignment.query.filter(
                         ServicePackageAssignment.customer_id == int(client_id),
                         ServicePackageAssignment.package_type == 'yearly_membership',
@@ -1213,14 +1215,15 @@ def create_professional_invoice():
                         
                         if yearly_membership and yearly_membership.discount_percent > 0:
                             # Apply percentage discount
-                            discount_amount = (service.price * service_data['quantity']) * (yearly_membership.discount_percent / 100)
+                            service_amount = service.price * service_data['quantity']
+                            discount_amount = service_amount * (yearly_membership.discount_percent / 100)
                             item.deduction_amount = discount_amount
-                            item.final_amount = (service.price * service_data['quantity']) - discount_amount
+                            item.final_amount = service_amount - discount_amount
                             item.is_package_deduction = True
                             yearly_discount_applied = True
                             package_deductions_applied += 1
                             
-                            app.logger.info(f"✅ Yearly membership {yearly_membership.discount_percent}% discount applied: ₹{discount_amount}")
+                            app.logger.info(f"✅ Yearly membership '{yearly_membership.name}' {yearly_membership.discount_percent}% discount applied: ₹{discount_amount:.2f} on ₹{service_amount:.2f}")
                     
                     # If no yearly membership discount, try other package benefits
                     if not yearly_discount_applied:
