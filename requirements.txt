@@ -37,3 +37,8 @@ requests
 sqlalchemy
 werkzeug
 wtforms
+email_validator
+flask
+flask-sqlalchemy
+gunicorn
+psycopg2-binary
