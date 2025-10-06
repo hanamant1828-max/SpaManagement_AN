@@ -235,3 +235,147 @@ def mark_notification_sent_route(id):
         flash('Notification not found', 'danger')
     
     return redirect(url_for('notifications'))
+
+@app.route('/notifications/report')
+@login_required
+def notifications_report():
+    """WhatsApp messaging report with statistics"""
+    if not current_user.can_access('notifications'):
+        flash('Access denied', 'danger')
+        return redirect(url_for('dashboard'))
+    
+    from datetime import datetime, timedelta
+    from sqlalchemy import func
+    
+    # Get date filters
+    start_date = request.args.get('start_date', (datetime.now() - timedelta(days=30)).strftime('%Y-%m-%d'))
+    end_date = request.args.get('end_date', datetime.now().strftime('%Y-%m-%d'))
+    status_filter = request.args.get('status', '')
+    
+    # Build query
+    query = Communication.query.filter(
+        Communication.type == 'whatsapp',
+        Communication.created_at >= datetime.strptime(start_date, '%Y-%m-%d'),
+        Communication.created_at <= datetime.strptime(end_date + ' 23:59:59', '%Y-%m-%d %H:%M:%S')
+    )
+    
+    if status_filter:
+        query = query.filter(Communication.status == status_filter)
+    
+    messages = query.order_by(Communication.created_at.desc()).all()
+    
+    # Calculate statistics
+    total_messages = len(messages)
+    sent_count = sum(1 for m in messages if m.status == 'sent')
+    failed_count = sum(1 for m in messages if m.status == 'failed')
+    success_rate = round((sent_count / total_messages * 100) if total_messages > 0 else 0, 1)
+    
+    return render_template('notifications_report.html',
+                         messages=messages,
+                         total_messages=total_messages,
+                         sent_count=sent_count,
+                         failed_count=failed_count,
+                         success_rate=success_rate,
+                         start_date=start_date,
+                         end_date=end_date,
+                         status_filter=status_filter)
+
+@app.route('/api/notifications/message/<int:message_id>')
+@login_required
+def get_message_detail(message_id):
+    """Get message details API"""
+    if not current_user.can_access('notifications'):
+        return jsonify({'error': 'Access denied'}), 403
+    
+    message = Communication.query.get_or_404(message_id)
+    
+    return jsonify({
+        'id': message.id,
+        'client_name': message.client.full_name if message.client else 'N/A',
+        'phone': message.client.phone if message.client else 'N/A',
+        'type': message.type,
+        'subject': message.subject,
+        'message': message.message,
+        'status': message.status,
+        'created_at': message.created_at.strftime('%Y-%m-%d %I:%M %p') if message.created_at else None,
+        'sent_at': message.sent_at.strftime('%Y-%m-%d %I:%M %p') if message.sent_at else None,
+        'sent_by': message.creator.full_name if message.creator else 'System'
+    })
+
+@app.route('/api/notifications/retry/<int:message_id>', methods=['POST'])
+@login_required
+def retry_message(message_id):
+    """Retry sending a failed message"""
+    if not current_user.can_access('notifications'):
+        return jsonify({'error': 'Access denied'}), 403
+    
+    from .notifications_queries import send_whatsapp_message
+    
+    message = Communication.query.get_or_404(message_id)
+    
+    if message.client and message.client.phone:
+        success = send_whatsapp_message(message.client.phone, message.message)
+        
+        if success:
+            message.status = 'sent'
+            message.sent_at = datetime.utcnow()
+            from app import db
+            db.session.commit()
+            return jsonify({'success': True, 'message': 'Message sent successfully'})
+        else:
+            return jsonify({'success': False, 'error': 'Failed to send message'})
+    
+    return jsonify({'success': False, 'error': 'No phone number available'})
+
+@app.route('/notifications/report/export')
+@login_required
+def export_notifications_report():
+    """Export messaging report as CSV"""
+    if not current_user.can_access('notifications'):
+        flash('Access denied', 'danger')
+        return redirect(url_for('dashboard'))
+    
+    from datetime import datetime
+    import csv
+    from io import StringIO
+    from flask import make_response
+    
+    # Get filters
+    start_date = request.args.get('start_date', (datetime.now() - timedelta(days=30)).strftime('%Y-%m-%d'))
+    end_date = request.args.get('end_date', datetime.now().strftime('%Y-%m-%d'))
+    status_filter = request.args.get('status', '')
+    
+    # Build query
+    query = Communication.query.filter(
+        Communication.type == 'whatsapp',
+        Communication.created_at >= datetime.strptime(start_date, '%Y-%m-%d'),
+        Communication.created_at <= datetime.strptime(end_date + ' 23:59:59', '%Y-%m-%d %H:%M:%S')
+    )
+    
+    if status_filter:
+        query = query.filter(Communication.status == status_filter)
+    
+    messages = query.order_by(Communication.created_at.desc()).all()
+    
+    # Create CSV
+    si = StringIO()
+    writer = csv.writer(si)
+    writer.writerow(['Date/Time', 'Client', 'Phone', 'Type', 'Subject', 'Status', 'Sent By', 'Message'])
+    
+    for msg in messages:
+        writer.writerow([
+            msg.created_at.strftime('%Y-%m-%d %I:%M %p') if msg.created_at else 'N/A',
+            msg.client.full_name if msg.client else 'N/A',
+            msg.client.phone if msg.client else 'N/A',
+            msg.type,
+            msg.subject or 'N/A',
+            msg.status,
+            msg.creator.full_name if msg.creator else 'System',
+            msg.message or ''
+        ])
+    
+    output = make_response(si.getvalue())
+    output.headers["Content-Disposition"] = f"attachment; filename=whatsapp_report_{start_date}_to_{end_date}.csv"
+    output.headers["Content-type"] = "text/csv"
+    
+    return output
