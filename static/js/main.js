@@ -147,26 +147,37 @@ function initializeFaceCapture() {
         return; // Not on a relevant page, skip initialization
     }
 
-    console.log('On relevant page for face capture, setting up tab listeners...');
+    console.log('Setting up face capture tab listener...');
 
     // Set up event listeners for tab switching - only initialize when Face Recognition tab is shown
     document.addEventListener('shown.bs.tab', function(event) {
         const targetTab = event.target.getAttribute('data-bs-target') || event.target.getAttribute('href');
         
         if (targetTab === '#face-capture') {
-            console.log('Face capture tab activated, checking for elements...');
+            console.log('Face capture tab activated');
             
             // Small delay to ensure DOM is ready
             setTimeout(() => {
-                const hasFaceElements = document.getElementById('faceVideo') ||
-                                       document.getElementById('staffFaceVideo') ||
-                                       document.getElementById('face-capture');
+                const faceVideo = document.getElementById('faceVideo');
+                const faceCanvas = document.getElementById('faceCanvas');
+                const startBtn = document.getElementById('startFaceCamera');
                 
-                if (hasFaceElements) {
-                    console.log('Face capture elements found, setting up camera buttons...');
-                    setupCameraButtons();
+                if (faceVideo && faceCanvas && startBtn) {
+                    console.log('✅ Face capture elements found, initializing...');
+                    
+                    // Set up the start camera button click handler
+                    startBtn.onclick = function() {
+                        console.log('Start face camera button clicked');
+                        startFaceCameraForTab();
+                    };
+                    
+                    console.log('✅ Face capture initialized successfully');
                 } else {
-                    console.log('Face capture tab active but elements not found yet');
+                    console.warn('❌ Face capture elements not found:', {
+                        faceVideo: !!faceVideo,
+                        faceCanvas: !!faceCanvas,
+                        startBtn: !!startBtn
+                    });
                 }
             }, 100);
         }
@@ -180,62 +191,9 @@ let faceStream = null;
 // currentStaffId moved to specific modules to avoid conflicts
 
 function setupCameraButtons() {
-    console.log('Checking for camera buttons...');
-    
-    // Only run on pages that actually have camera buttons
-    const hasAnyCameraButton = document.getElementById('startCameraBtn') ||
-                               document.getElementById('startRecognitionBtn') ||
-                               document.getElementById('startFaceCamera');
-    
-    if (!hasAnyCameraButton) {
-        console.log('No camera buttons found, skipping setup');
-        return; // No camera buttons found, skip setup
-    }
-
-    console.log('Camera buttons found, setting up event listeners...');
-
-    // Wait for DOM to be ready
-    setTimeout(() => {
-        // Setup face management camera buttons
-        const startCameraBtn = document.getElementById('startCameraBtn');
-        const startRecognitionBtn = document.getElementById('startRecognitionBtn');
-        const startFaceCameraBtn = document.getElementById('startFaceCamera');
-
-        if (startCameraBtn) {
-            console.log('Setting up startCameraBtn');
-            startCameraBtn.addEventListener('click', function() {
-                console.log('Start camera button clicked');
-                if (typeof startFaceCameraForTab === 'function') {
-                    startFaceCameraForTab();
-                } else if (typeof startFaceCamera === 'function') {
-                    startFaceCamera('faceVideo', 'faceCaptureArea');
-                } else {
-                    console.error('No face camera function available');
-                }
-            });
-        }
-
-        if (startRecognitionBtn) {
-            console.log('Setting up startRecognitionBtn');
-            startRecognitionBtn.addEventListener('click', function() {
-                if (typeof startFaceCamera === 'function') {
-                    startFaceCamera('recognitionVideo', 'recognitionCaptureArea');
-                }
-            });
-        }
-
-        if (startFaceCameraBtn) {
-            console.log('Setting up startFaceCameraBtn');
-            startFaceCameraBtn.addEventListener('click', function() {
-                console.log('Start face camera button clicked');
-                if (typeof startFaceCameraForTab === 'function') {
-                    startFaceCameraForTab();
-                }
-            });
-        }
-        
-        console.log('Camera button setup complete');
-    }, 200);
+    // This function is now handled by initializeFaceCapture
+    // Keeping it here for backward compatibility but it does nothing
+    console.log('setupCameraButtons called - handled by initializeFaceCapture');
 }
 
 // New function specifically for the face management tab
@@ -421,18 +379,12 @@ function resetFaceInterface() {
 async function startFaceCamera(videoId, areaId) {
     console.log('Starting face camera:', videoId);
 
-    // Guard: only proceed if we're on a page that has these elements
-    if (!document.getElementById(videoId)) {
-        console.warn('Video element not found - skipping camera initialization');
-        return;
-    }
-
     try {
         const video = document.getElementById(videoId);
         const area = document.getElementById(areaId);
 
         if (!video) {
-            console.warn('Video element not available');
+            console.warn('Video element not found:', videoId);
             return;
         }
 
