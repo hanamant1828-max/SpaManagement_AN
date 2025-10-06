@@ -901,9 +901,12 @@ def unaki_schedule():
                 }
                 staff_data.append(staff_info)
 
-        # Format Unaki bookings data
+        # Format Unaki bookings data with proper IST time handling
         appointments_data = []
         for booking in unaki_bookings:
+            # Ensure end_time is properly formatted
+            end_time_str = booking.end_time.strftime('%H:%M') if booking.end_time else None
+            
             appointment_info = {
                 'id': booking.id,
                 'staffId': booking.staff_id,
@@ -911,11 +914,11 @@ def unaki_schedule():
                 'clientPhone': booking.client_phone or '',
                 'service': booking.service_name,
                 'startTime': booking.start_time.strftime('%H:%M'),
-                'endTime': booking.end_time.strftime('%H:%M'),
+                'endTime': end_time_str,
                 'duration': booking.service_duration,
                 'status': booking.status,
                 'notes': booking.notes or '',
-                'amount': booking.service_price,
+                'amount': float(booking.service_price) if booking.service_price else 0.0,
                 'payment_status': booking.payment_status,
                 'booking_source': booking.booking_source
             }
@@ -974,9 +977,15 @@ def unaki_schedule():
         if not appointments_data:
             print("🔍 No appointments found for this date")
 
+        # Get current IST time for frontend
+        ist_now = get_ist_now()
+        
         return jsonify({
             'success': True,
             'date': date_str,
+            'timezone': 'Asia/Kolkata',
+            'current_ist_time': ist_now.strftime('%H:%M'),
+            'current_ist_datetime': ist_now.isoformat(),
             'staff': staff_data,
             'appointments': appointments_data,
             'breaks': breaks_data

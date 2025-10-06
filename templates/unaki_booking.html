@@ -2532,12 +2532,19 @@
                         if (!data.success) {
                             throw new Error(data.error || 'Failed to load schedule');
                         }
-                        console.log('📅 Schedule data received:', data);
-                        console.log('👥 Staff count:', data.staff ? data.staff.length : 0);
-                        if (data.staff && data.staff.length > 0) {
-                            console.log('📊 First staff member:', data.staff[0]);
-                        }
-                        renderShiftOverlays(data.staff);
+                        console.log('✅ Schedule loaded:', data);
+
+                        // Store schedule data globally for IST time access
+                        window.scheduleData = {
+                            current_ist_time: data.current_ist_time,
+                            current_ist_datetime: data.current_ist_datetime,
+                            timezone: data.timezone || 'Asia/Kolkata'
+                        };
+
+                        console.log(`🌏 Using IST timezone: ${window.scheduleData.timezone}, Current time: ${window.scheduleData.current_ist_time}`);
+
+                        // Render staff shifts with breaks and overlays
+                        renderStaffShifts(data.staff);
                     })
                     .catch((error) => {
                         console.error('Error loading shift schedule:', error);
@@ -2562,7 +2569,7 @@
             }
 
             // Render shift overlays (breaks, OOO, off-duty)
-            function renderShiftOverlays(staffData) {
+            function renderStaffShifts(staffData) {
                 console.log('🎨 Rendering shift overlays for', staffData ? staffData.length : 0, 'staff members');
 
                 // Remove existing overlays
@@ -2757,50 +2764,65 @@
 
                 // Render appointments
                 console.log('📍 Rendering appointments:', appointments.length);
-                appointments.forEach(apt => {
-                    console.log(`  Rendering appointment for staff ${apt.staffId}: ${apt.clientName} (${apt.startTime} - ${apt.endTime})`);
+                appointments.forEach(appointment => { // Changed loop variable name to avoid conflict with outer scope
+                    console.log(`  Rendering appointment for staff ${appointment.staffId}: ${appointment.clientName} (${appointment.startTime} - ${appointment.endTime})`);
 
-                    const staffRow = document.querySelector(`.timeline-row[data-staff-id="${apt.staffId}"]`);
+                    const staffRow = document.querySelector(`.timeline-row[data-staff-id="${appointment.staffId}"]`);
                     if (!staffRow) {
-                        console.warn(`❌ No row found for staff ${apt.staffId}`);
+                        console.warn(`❌ No row found for staff ${appointment.staffId}`);
                         return;
                     }
 
-                    const startMinutes = timeToMinutes(apt.startTime);
-                    const endMinutes = timeToMinutes(apt.endTime);
+                    // Check if endTime exists and is valid - handle IST times properly
+                    const endTimeStr = appointment.endTime;
+                    if (!endTimeStr || endTimeStr === 'undefined' || endTimeStr === 'None') {
+                        console.error(`  ⚠️ Invalid end time for appointment ${appointment.id}:`, endTimeStr);
+                        // Calculate end time from start time and duration as fallback
+                        const startParts = appointment.startTime.split(':');
+                        const startMinutes = parseInt(startParts[0]) * 60 + parseInt(startParts[1]);
+                        const endMinutes = startMinutes + (appointment.duration || 60);
+                        const endHour = Math.floor(endMinutes / 60);
+                        const endMin = endMinutes % 60;
+                        appointment.endTime = `${String(endHour).padStart(2, '0')}:${String(endMin).padStart(2, '0')}`;
+                        console.log(`  🔧 Calculated end time from duration: ${appointment.endTime}`);
+                    }
+
+
+                    const startMinutes = timeToMinutes(appointment.startTime);
+                    const endMinutes = timeToMinutes(appointment.endTime);
                     const duration = endMinutes - startMinutes;
 
                     // Calculate position (6:00 AM = 0px)
                     const left = (startMinutes - 360) * pixelsPerMinute; // 360 = 6:00 AM in minutes
                     const width = duration * pixelsPerMinute;
 
-                    console.log(`  Position: left=${left}px, width=${width}px (${apt.startTime} - ${apt.endTime}, ${duration}min)`);
+                    console.log(`  Position: left=${left}px, width=${width}px (${appointment.startTime} - ${appointment.endTime}, ${duration}min)`);
 
                     // Create appointment block
                     const appointmentBlock = document.createElement('div');
-                    appointmentBlock.className = `appointment-block ${apt.serviceClass}`;
+                    appointmentBlock.className = `appointment-block ${appointment.serviceClass}`;
                     appointmentBlock.style.left = `${left}px`;
                     appointmentBlock.style.width = `${width}px`;
-                    appointmentBlock.dataset.appointmentId = apt.id;
-                    appointmentBlock.dataset.staffId = apt.staffId;
+                    appointmentBlock.dataset.appointmentId = appointment.id;
+                    appointmentBlock.dataset.staffId = appointment.staffId;
                     appointmentBlock.draggable = true;
 
                     appointmentBlock.innerHTML = `
                         <div class="appointment-header">
-                            <div class="appointment-client">${apt.clientName}</div>
+                            <div class="appointment-client">${appointment.clientName}</div>
                             <div class="appointment-status"></div>
                         </div>
-                        <div class="appointment-service">${apt.service}</div>
+                        <div class="appointment-service">${appointment.service}</div>
                         <div class="appointment-footer">
                             <div class="appointment-time">
-                                <i class="fas fa-clock"></i> ${apt.startTime} - ${apt.endTime}
+                                <i class="fas fa-clock"></i> ${appointment.startTime} - ${appointment.endTime}
                             </div>
                             <div class="appointment-duration">${duration}min</div>
                         </div>
                     `;
 
                     staffRow.appendChild(appointmentBlock);
-                    console.log(`  ✅ Appointment rendered for ${apt.clientName}`);
+                    console.log(`  ✅ Appointment rendered for ${appointment.clientName}`);
                 });
 
                 console.log('📍 Finished rendering appointments');
@@ -4118,7 +4140,7 @@
             // Update the current time line indicator using server-provided IST time
             function updateCurrentTimeLineWithServerTime(serverTimeStr) {
                 const [hours, minutes] = serverTimeStr.split(':').map(Number);
-                
+
                 console.log(`🕐 Server IST time: ${hours}:${String(minutes).padStart(2, '0')}`);
 
                 // Only show if within business hours (9 AM - 10 PM)
@@ -4154,46 +4176,58 @@
 
             // Update the current time line indicator on the schedule (fallback using client-side calculation)
             function updateCurrentTimeLine() {
-                // Get current time in IST (UTC+5:30)
-                const now = new Date();
-                const utcTime = now.getTime() + (now.getTimezoneOffset() * 60000);
-                const istTime = new Date(utcTime + (5.5 * 60 * 60 * 1000));
+                const currentTimeLine = document.getElementById('currentTimeLine');
+                const currentTimeLabel = document.getElementById('currentTimeLabel');
 
-                const hours = istTime.getHours();
-                const minutes = istTime.getMinutes();
+                // Use server-provided IST time from schedule data
+                if (!window.scheduleData || !window.scheduleData.current_ist_time) {
+                    console.log('⚠️ No server IST time available, using client fallback');
+                    const now = new Date();
+                    const hours = now.getHours();
+                    const minutes = now.getMinutes();
 
-                console.log(`🕐 Current IST time (client calc): ${hours}:${String(minutes).padStart(2, '0')}`);
-
-                // Only show if within business hours (9 AM - 10 PM)
-                if (hours >= 9 && hours < 22) {
-                    const currentTimeLine = document.getElementById('currentTimeLine');
-                    const currentTimeLabel = document.getElementById('currentTimeLabel');
-
-                    if (currentTimeLine && currentTimeLabel) {
-                        // Calculate position from 9 AM
-                        const minutesSince9AM = (hours - 9) * 60 + minutes;
-                        const position = minutesSince9AM * pixelsPerMinute;
-
-                        console.log(`📍 Time line position: ${position}px (${minutesSince9AM} minutes since 9 AM)`);
-
-                        currentTimeLine.style.left = position + 'px';
-                        currentTimeLine.style.display = 'block';
-
-                        // Update label with IST time
-                        const hour12 = hours % 12 || 12;
-                        const ampm = hours >= 12 ? 'PM' : 'AM';
-                        const timeStr = `${hour12}:${String(minutes).padStart(2, '0')} ${ampm}`;
-                        currentTimeLabel.textContent = `Now (IST): ${timeStr}`;
-                    }
-                } else {
-                    // Hide outside business hours
-                    const currentTimeLine = document.getElementById('currentTimeLine');
-                    if (currentTimeLine) {
+                    if (hours < 9 || hours >= 22) {
                         currentTimeLine.style.display = 'none';
-                        console.log(`⏰ Outside business hours (${hours}:${String(minutes).padStart(2, '0')}), hiding time line`);
+                        return;
                     }
+
+                    const currentTimeMinutes = hours * 60 + minutes;
+                    const startMinutes = 9 * 60;
+                    const pixelsFromStart = ((currentTimeMinutes - startMinutes) / 60) * 140;
+
+                    currentTimeLine.style.left = pixelsFromStart + 'px';
+                    currentTimeLine.style.display = 'block';
+                    currentTimeLabel.textContent = `${hours}:${String(minutes).padStart(2, '0')}`;
+                    return;
                 }
+
+                // Parse server IST time
+                const [hours, minutes] = window.scheduleData.current_ist_time.split(':').map(Number);
+                const currentTimeMinutes = hours * 60 + minutes;
+
+                console.log(`🕐 Current IST time (server): ${hours}:${minutes}`);
+
+                // Business hours: 9 AM to 10 PM
+                if (hours < 9 || hours >= 22) {
+                    console.log(`⏰ Outside business hours (${hours}:${minutes}), hiding time line`);
+                    currentTimeLine.style.display = 'none';
+                    return;
+                }
+
+                // Calculate position from 9 AM
+                const startMinutes = 9 * 60;
+                const pixelsFromStart = ((currentTimeMinutes - startMinutes) / 60) * 140;
+
+                currentTimeLine.style.left = pixelsFromStart + 'px';
+                currentTimeLine.style.display = 'block';
+
+                // Update label with IST time
+                const hour12 = hours % 12 || 12;
+                const ampm = hours >= 12 ? 'PM' : 'AM';
+                const timeStr = `${hour12}:${String(minutes).padStart(2, '0')} ${ampm}`;
+                currentTimeLabel.textContent = `Now (IST): ${timeStr}`;
             }
+
 
             // Helper function to format time for display (e.g., from "09:00" to "9:00 AM")
             function formatTime(timeStr) {
@@ -4360,8 +4394,8 @@
                     console.log('📊 Response data:', data);
 
                     if (data.success) {
-                        renderShiftOverlays(data.staff); // Render shifts for the loaded staff
-                        
+                        renderStaffShifts(data.staff); // Render shifts for the loaded staff
+
                         // Update current time line with server-provided IST time
                         if (data.current_ist_time) {
                             console.log('🕐 Server IST time:', data.current_ist_time);
