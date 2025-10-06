@@ -1291,6 +1291,10 @@
                     >
                         <i class="fas fa-chevron-right"></i>
                     </button>
+                    <div style="margin-left: 16px; padding: 8px 12px; background: white; border-radius: 10px; border: 1px solid var(--border-color); font-size: 13px; color: #6b7280;">
+                        <i class="fas fa-clock me-2"></i>
+                        <span id="currentTimeDisplay">Loading...</span>
+                    </div>
                 </div>
 
                 <div style="display: flex; align-items: center; gap: 16px">
@@ -2324,6 +2328,8 @@
                 loadShiftSchedule(); // Load shift data with breaks and OOO
                 updateCurrentTimeLine();
                 setInterval(updateCurrentTimeLine, 60000);
+                updateCurrentTimeDisplay(); // Update time display immediately
+                setInterval(updateCurrentTimeDisplay, 1000); // Update every second
                 setupTooltips();
                 setupEventListeners();
                 setupScrollSync(); // Setup scroll synchronization
@@ -2742,6 +2748,29 @@
                 document.getElementById("totalBookings").textContent = total;
                 document.getElementById("completedBookings").textContent =
                     completed;
+            }
+
+            // Update current time display in IST
+            function updateCurrentTimeDisplay() {
+                const now = new Date();
+                
+                // Convert to IST (UTC+5:30)
+                const istOffset = 5.5 * 60 * 60 * 1000; // IST offset in milliseconds
+                const istTime = new Date(now.getTime() + istOffset + (now.getTimezoneOffset() * 60 * 1000));
+                
+                // Format time as HH:MM:SS AM/PM IST
+                const hours = istTime.getHours();
+                const minutes = istTime.getMinutes().toString().padStart(2, '0');
+                const seconds = istTime.getSeconds().toString().padStart(2, '0');
+                const ampm = hours >= 12 ? 'PM' : 'AM';
+                const displayHours = hours % 12 || 12;
+                
+                const timeString = `${displayHours}:${minutes}:${seconds} ${ampm} IST`;
+                
+                const timeDisplay = document.getElementById('currentTimeDisplay');
+                if (timeDisplay) {
+                    timeDisplay.textContent = timeString;
+                }
             }
 
             // Render all bookings onto the timeline grid
