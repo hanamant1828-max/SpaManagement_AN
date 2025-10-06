@@ -3920,16 +3920,28 @@
 
             // Navigate to a different date
             function navigateDate(days) {
-                const date = new Date(currentDate);
-                date.setDate(date.getDate() + days);
-                const newDate = date.toISOString().split("T")[0];
-                window.location.href = `{{ url_for('unaki_booking') }}?date=${newDate}`;
+                // Get current date in IST (UTC+5:30)
+                const now = new Date();
+                const utcTime = now.getTime() + (now.getTimezoneOffset() * 60000);
+                const istTime = new Date(utcTime + (5.5 * 60 * 60 * 1000));
+                const currentDate = new Date(istTime); // Use IST date for navigation
+                currentDate.setDate(currentDate.getDate() + days);
+                const newDateStr = currentDate.toISOString().split('T')[0];
+
+                console.log(`📅 Navigating ${days > 0 ? 'forward' : 'backward'} to: ${newDateStr}`);
+                window.location.href = `/unaki-booking?date=${newDateStr}`;
             }
 
             // Navigate back to the current date
             function navigateToToday() {
-                const today = new Date().toISOString().split("T")[0];
-                window.location.href = `{{ url_for('unaki_booking') }}?date=${today}`;
+                // Get current date in IST (UTC+5:30)
+                const now = new Date();
+                const utcTime = now.getTime() + (now.getTimezoneOffset() * 60000);
+                const istTime = new Date(utcTime + (5.5 * 60 * 60 * 1000));
+                const today = istTime.toISOString().split('T')[0];
+
+                console.log(`📅 Navigating to today: ${today}`);
+                window.location.href = `/unaki-booking?date=${today}`;
             }
 
             // Refresh the schedule view by reloading bookings
