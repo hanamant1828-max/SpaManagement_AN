@@ -1076,7 +1076,8 @@ class InvoiceItem(db.Model):
     is_extra_charge = db.Column(db.Boolean, default=False)
 
     # Staff tracking - who performed the service/sold the product (no FK constraint)
-    staff_id = db.Column(db.Integer, nullable=True)
+    # Explicitly specify that this is NOT a foreign key - just storing the ID value
+    staff_id = db.Column(db.Integer, nullable=True, info={'foreign_key': False})
     staff_name = db.Column(db.String(200), nullable=True)
 
 
