@@ -1191,11 +1191,16 @@ def create_professional_invoice():
 
         # Create professional invoice with proper transaction handling
         try:
-            # Generate professional invoice number
+            # Generate professional invoice number with retry logic to prevent duplicates
             current_date = datetime.datetime.now()
-            latest_invoice = db.session.query(EnhancedInvoice).order_by(EnhancedInvoice.id.desc()).first()
+            date_prefix = current_date.strftime('%Y%m%d')
+            
+            # Find the highest sequence number for today
+            latest_invoice = db.session.query(EnhancedInvoice).filter(
+                EnhancedInvoice.invoice_number.like(f"INV-{date_prefix}-%")
+            ).order_by(EnhancedInvoice.invoice_number.desc()).first()
 
-            if latest_invoice and latest_invoice.invoice_number.startswith(f"INV-{current_date.strftime('%Y%m%d')}"):
+            if latest_invoice:
                 try:
                     last_sequence = int(latest_invoice.invoice_number.split('-')[-1])
                     invoice_sequence = last_sequence + 1
@@ -1204,7 +1209,18 @@ def create_professional_invoice():
             else:
                 invoice_sequence = 1
 
-            invoice_number = f"INV-{current_date.strftime('%Y%m%d')}-{invoice_sequence:04d}"
+            # Ensure uniqueness by checking if invoice number exists
+            max_attempts = 100
+            for attempt in range(max_attempts):
+                invoice_number = f"INV-{date_prefix}-{invoice_sequence:04d}"
+                existing = db.session.query(EnhancedInvoice).filter_by(invoice_number=invoice_number).first()
+                if not existing:
+                    break
+                invoice_sequence += 1
+            else:
+                # Fallback to timestamp-based number if we exhaust attempts
+                import time
+                invoice_number = f"INV-{date_prefix}-{int(time.time() * 1000) % 100000:05d}"
 
             # Create enhanced invoice
             invoice = EnhancedInvoice()
