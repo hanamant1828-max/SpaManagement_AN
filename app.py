@@ -8,6 +8,7 @@ from sqlalchemy import event, func
 from werkzeug.middleware.proxy_fix import ProxyFix
 from flask_login import LoginManager, login_required, current_user
 from datetime import datetime, date, timedelta, time
+from utils import format_currency
 # Department will be imported inside functions to avoid circular imports
 
 
