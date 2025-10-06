@@ -1426,6 +1426,9 @@ def create_professional_invoice():
 
             db.session.commit()
 
+            # Check if this is a save-and-print request
+            is_print_request = request.form.get('print_after_save') == 'true'
+            
             return jsonify({
                 'success': True,
                 'message': 'Invoice created successfully',
@@ -1435,7 +1438,8 @@ def create_professional_invoice():
                 'inventory_items_created': inventory_items_created,
                 'completed_appointments': completed_appointments,
                 'package_deductions_applied': package_deductions_applied,
-                'updated_packages': updated_packages
+                'updated_packages': updated_packages,
+                'print_invoice': is_print_request
             })
 
         except Exception as e:
