@@ -992,6 +992,18 @@ def api_create_staff():
             # TODO: Flag account for mandatory password change on first login
 
         try:
+            # Generate unique staff code BEFORE creating user
+            existing_codes = set([u.staff_code for u in User.query.filter(User.staff_code.isnot(None)).all()])
+            
+            # Find next available staff code
+            code_num = 1
+            staff_code = f"STF{str(code_num).zfill(3)}"
+            while staff_code in existing_codes:
+                code_num += 1
+                staff_code = f"STF{str(code_num).zfill(3)}"
+            
+            print(f"Generated unique staff code: {staff_code}")
+            
             staff_data = {
                 'username': str(data['username']).strip(),
                 'first_name': str(data['first_name']).strip().title(),
@@ -1003,6 +1015,7 @@ def api_create_staff():
                 'role_id': int(data['role_id']) if data.get('role_id') and str(data.get('role_id')).strip() not in ['', '0'] else None,
                 'department_id': int(data['department_id']) if data.get('department_id') and str(data.get('department_id')).strip() not in ['', '0'] else None,
                 'designation': str(data.get('designation', 'Staff Member')).strip() or 'Staff Member',
+                'staff_code': staff_code,  # Include staff code in initial creation
                 'commission_rate': safe_float(data.get('commission_rate'), 0.0, 0.0, 100.0),
                 'hourly_rate': safe_float(data.get('hourly_rate'), 0.0, 0.0, 1000.0),
                 'gender': str(data.get('gender', 'other')).strip() or 'other',
@@ -1021,16 +1034,10 @@ def api_create_staff():
             print(f"Error processing staff data: {data_error}")
             return jsonify({'error': f'Data processing error: {str(data_error)}'}), 400
 
-        # Create staff member
+        # Create staff member (atomic operation - includes staff_code)
         print(f"Attempting to create staff with data: {staff_data}")
         new_staff = create_staff(staff_data)
-        print(f"Staff created successfully: {new_staff.id}")
-
-        # Generate staff code if not provided
-        if not new_staff.staff_code:
-            new_staff.staff_code = f"STF{str(new_staff.id).zfill(3)}"
-            db.session.commit()
-            print(f"Generated staff code: {new_staff.staff_code}")
+        print(f"Staff created successfully: {new_staff.id} with code: {new_staff.staff_code}")
 
         return jsonify({
             'success': True,
@@ -1049,7 +1056,19 @@ def api_create_staff():
         print(f"Error type: {type(e)}")
         import traceback
         print(f"Full traceback: {traceback.format_exc()}")
-        return jsonify({'error': f'Server error: {str(e)}'}), 500
+        
+        # Provide user-friendly error messages
+        error_message = str(e)
+        if 'UNIQUE constraint failed: user.username' in error_message:
+            error_message = 'Username already exists. Please choose a different username.'
+        elif 'UNIQUE constraint failed: user.staff_code' in error_message:
+            error_message = 'Staff code conflict. Please try again.'
+        elif 'UNIQUE constraint failed: user.email' in error_message:
+            error_message = 'Email already exists. Please use a different email.'
+        else:
+            error_message = f'Server error: {str(e)}'
+            
+        return jsonify({'error': error_message}), 500
 
 @app.route('/api/staff/<int:staff_id>', methods=['PUT'])
 def api_update_staff(staff_id):
