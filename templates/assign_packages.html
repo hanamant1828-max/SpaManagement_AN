@@ -513,9 +513,8 @@ function validateForm() {
     // Base validation: must have customer and package type
     let isValid = customerId && packageType;
 
-    // Package type specific validation
-    if (packageType && packageType !== 'student_offer') {
-        // Most package types need a specific package selected
+    // Package type specific validation - student offers need package ID too
+    if (packageType) {
         isValid = isValid && packageId;
     }
 

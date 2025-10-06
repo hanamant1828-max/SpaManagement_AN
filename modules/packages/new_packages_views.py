@@ -273,7 +273,7 @@ def api_get_memberships():
             'price': m.price,
             'validity_months': m.validity_months,
             'services_included': m.services_included,
-            'selected_services': [{'id': ms.service.id, 'name': ms.service.name, 'price': ms.service.price}
+            'selected_services': [{'id': ms.service.id, 'name': ms.service.name, 'price': float(ms.service.price) if ms.service.price else 0.0}
                                 for ms in m.membership_services] if hasattr(m, 'membership_services') else [],
             'is_active': m.is_active,
             'created_at': m.created_at.isoformat()
@@ -381,22 +381,18 @@ def edit_student_offer():
 def api_get_student_offers():
     """Get all student offers"""
     try:
-        offers = get_all_student_offers()
-        return jsonify([{
-            'id': o.id,
-            'name': o.name or f"Student Discount {o.discount_percentage}%",
-            'price': float(o.price) if o.price else 0.0,
-            'actual_price': float(o.price) if o.price else 0.0,  # Compatibility field
-            'discount_percentage': o.discount_percentage,
-            'valid_from': o.valid_from.isoformat(),
-            'valid_to': o.valid_to.isoformat(),
-            'valid_days': o.valid_days,
-            'conditions': o.conditions,
-            'services': [{'id': sos.service.id, 'name': sos.service.name, 'price': float(sos.service.price) if sos.service.price else 0.0}
-                        for sos in o.student_offer_services],
-            'is_active': o.is_active,
-            'created_at': o.created_at.isoformat()
-        } for o in offers])
+        student_offers = [{
+            'id': s.id,
+            'name': s.name if s.name else f"{s.discount_percentage}% Student Discount",
+            'price': float(s.price) if s.price is not None else 0.0,
+            'actual_price': float(s.price) if s.price is not None else 0.0,  # Compatibility field
+            'discount_percentage': s.discount_percentage,
+            'valid_from': s.valid_from.isoformat() if s.valid_from else None,
+            'valid_to': s.valid_to.isoformat() if s.valid_to else None,
+            'valid_days': s.valid_days,
+            'conditions': s.conditions
+        } for s in StudentOffer.query.filter_by(is_active=True).all()]
+        return jsonify(student_offers)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -420,7 +416,7 @@ def create_student_offer():
         # Validate price is provided and valid
         if 'price' not in data or data.get('price') == '' or data.get('price') is None:
             return jsonify({'success': False, 'error': 'Package price is required'}), 400
-        
+
         try:
             price = float(data['price'])
             if price < 0:
@@ -489,7 +485,7 @@ def api_get_student_offer(offer_id):
 
         # Get the price - student offers MUST have a price field
         offer_price = float(offer.price) if offer.price is not None else 0.0
-        
+
         # Log for debugging
         logging.info(f"Student offer {offer_id} price: {offer_price}")
 
