@@ -386,12 +386,13 @@ def api_get_student_offers():
             'id': o.id,
             'name': o.name or f"Student Discount {o.discount_percentage}%",
             'price': float(o.price) if o.price else 0.0,
+            'actual_price': float(o.price) if o.price else 0.0,  # Compatibility field
             'discount_percentage': o.discount_percentage,
             'valid_from': o.valid_from.isoformat(),
             'valid_to': o.valid_to.isoformat(),
             'valid_days': o.valid_days,
             'conditions': o.conditions,
-            'services': [{'id': sos.service.id, 'name': sos.service.name, 'price': sos.service.price}
+            'services': [{'id': sos.service.id, 'name': sos.service.name, 'price': float(sos.service.price) if sos.service.price else 0.0}
                         for sos in o.student_offer_services],
             'is_active': o.is_active,
             'created_at': o.created_at.isoformat()
@@ -470,7 +471,7 @@ def api_get_student_offer(offer_id):
         if not offer:
             return jsonify({'success': False, 'error': 'Student offer not found'}), 404
 
-        # Get the price - student offers should have a price field
+        # Get the price - student offers MUST have a price field
         offer_price = float(offer.price) if hasattr(offer, 'price') and offer.price is not None else 0.0
         
         # If price is 0, calculate from services and discount
@@ -485,8 +486,10 @@ def api_get_student_offer(offer_id):
             'offer': {
                 'id': offer.id,
                 'name': offer.name or f"Student Discount {offer.discount_percentage}%",
-                'price': offer_price,
-                'actual_price': offer_price,  # Add for compatibility
+                'price': offer_price,  # Primary price field
+                'actual_price': offer_price,  # Compatibility with prepaid
+                'package_price': offer_price,  # Compatibility with kitty party
+                'amount': offer_price,  # Compatibility with membership
                 'discount_percentage': float(offer.discount_percentage) if offer.discount_percentage else 0.0,
                 'valid_from': offer.valid_from.isoformat() if offer.valid_from else None,
                 'valid_to': offer.valid_to.isoformat() if offer.valid_to else None,
