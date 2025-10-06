@@ -488,14 +488,10 @@ def api_get_student_offer(offer_id):
             return jsonify({'success': False, 'error': 'Student offer not found'}), 404
 
         # Get the price - student offers MUST have a price field
-        offer_price = float(offer.price) if hasattr(offer, 'price') and offer.price is not None else 0.0
+        offer_price = float(offer.price) if offer.price is not None else 0.0
         
-        # If price is 0, calculate from services and discount
-        if offer_price == 0.0 and offer.student_offer_services:
-            total_service_price = sum(float(sos.service.price) if sos.service.price else 0.0 
-                                     for sos in offer.student_offer_services)
-            discount_pct = float(offer.discount_percentage) if offer.discount_percentage else 0.0
-            offer_price = total_service_price * (1 - discount_pct / 100)
+        # Log for debugging
+        logging.info(f"Student offer {offer_id} price: {offer_price}")
 
         return jsonify({
             'success': True,
