@@ -518,10 +518,8 @@ except Exception as e:
 # except Exception as e:
 #     print(f"⚠️ Student offer views import error: {e}")
 
-# Import staff views and register blueprint
+# Import staff views (routes use @app.route directly)
 try:
-    from modules.staff.staff_views import staff_bp
-    app.register_blueprint(staff_bp)
     from modules.staff.staff_views import *
     print("✅ Staff views imported")
 except Exception as e:

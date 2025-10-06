@@ -1167,10 +1167,10 @@ def api_get_products_simple():
 
 
 
-@app.route('/modules/staff/punch_out', methods=['POST']) # This is a placeholder, will be fixed soon
+@app.route('/modules/staff/inventory_punch_out', methods=['POST'])
 @login_required
-def punch_out():
-    """Endpoint for staff to punch out"""
+def inventory_punch_out():
+    """Endpoint for inventory staff punch out (placeholder)"""
     try:
         # Implement punch out logic here
         flash('Punch out successful', 'success')

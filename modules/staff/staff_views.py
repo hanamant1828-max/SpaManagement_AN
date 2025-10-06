@@ -45,6 +45,7 @@ def api_health():
     })
 
 @staff_bp.route('/')
+@app.route('/staff')
 @login_required
 def staff():
     if not current_user.can_access('staff'):
