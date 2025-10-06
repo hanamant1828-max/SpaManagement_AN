@@ -87,7 +87,6 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <form method="POST" action="{{ url_for('add_role') }}">
-                {{ form.hidden_tag() if form is defined else '' }}
                 <div class="modal-body">
                     <div class="mb-3">
                         <label class="form-label">Role Name *</label>
@@ -141,27 +140,25 @@ function editRole(roleId) {
 }
 
 function managePermissions(roleId) {
-    const modal = new bootstrap.Modal(document.getElementById('permissionsModal'));
+    var modal = new bootstrap.Modal(document.getElementById('permissionsModal'));
     
     // Load permissions for this role
-    fetch(`/api/role/${roleId}/permissions`)
-        .then(response => response.json())
-        .then(data => {
-            let html = '<div class="row">';
+    fetch('/api/role/' + roleId + '/permissions')
+        .then(function(response) { return response.json(); })
+        .then(function(data) {
+            var html = '<div class="row">';
             {% for permission in permissions %}
-            html += `
-                <div class="col-md-6 mb-2">
-                    <div class="form-check">
-                        <input class="form-check-input" type="checkbox" 
-                               id="perm_{{ permission.id }}" 
-                               value="{{ permission.name }}"
-                               onchange="updatePermission(${roleId}, '{{ permission.name }}', this.checked)">
-                        <label class="form-check-label" for="perm_{{ permission.id }}">
-                            {{ permission.display_name }}
-                        </label>
-                    </div>
-                </div>
-            `;
+            html += '<div class="col-md-6 mb-2">' +
+                '<div class="form-check">' +
+                '<input class="form-check-input" type="checkbox" ' +
+                'id="perm_{{ permission.id }}" ' +
+                'value="{{ permission.name }}" ' +
+                'onchange="updatePermission(' + roleId + ', \'{{ permission.name }}\', this.checked)">' +
+                '<label class="form-check-label" for="perm_{{ permission.id }}">' +
+                '{{ permission.display_name }}' +
+                '</label>' +
+                '</div>' +
+                '</div>';
             {% endfor %}
             html += '</div>';
             
@@ -169,11 +166,16 @@ function managePermissions(roleId) {
             
             // Check current permissions
             if (data.permissions) {
-                data.permissions.forEach(perm => {
-                    const checkbox = document.querySelector(`input[value="${perm}"]`);
+                data.permissions.forEach(function(perm) {
+                    var checkbox = document.querySelector('input[value="' + perm + '"]');
                     if (checkbox) checkbox.checked = true;
                 });
             }
+        })
+        .catch(function(error) {
+            console.error('Error loading permissions:', error);
+            document.getElementById('permissionsContent').innerHTML = 
+                '<div class="alert alert-danger">Failed to load permissions</div>';
         });
     
     modal.show();
