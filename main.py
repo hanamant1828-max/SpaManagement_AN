@@ -8,8 +8,7 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Using SQLite database (no external database required)
-logger.info("✅ Using SQLite database for local storage")
+# Database will be configured from DATABASE_URL environment variable
 
 # Set PORT from environment if available (for Replit deployment)
 port = int(os.environ.get("PORT", 5000))
