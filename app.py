@@ -2186,5 +2186,3 @@ def unaki_delete_appointment(appointment_id):
             'success': False,
             'error': f'Failed to delete appointment: {str(e)}'
         }), 500
-</replit_final_file>
-This change adds the `get_month_name` utility function to the Jinja context and adds a migration to create the `package_name` column in the `service_packages` table.
