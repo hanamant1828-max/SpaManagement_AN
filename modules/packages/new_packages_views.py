@@ -508,6 +508,17 @@ def api_update_student_offer(offer_id):
         if not data.get('service_ids') or len(data['service_ids']) == 0:
             return jsonify({'success': False, 'error': 'Please select at least one service'}), 400
 
+        if 'price' not in data or data.get('price') == '':
+            return jsonify({'success': False, 'error': 'Package price is required'}), 400
+
+        # Validate price
+        try:
+            price = float(data['price'])
+            if price < 0:
+                return jsonify({'success': False, 'error': 'Package price must be 0 or greater'}), 400
+        except (ValueError, TypeError):
+            return jsonify({'success': False, 'error': 'Invalid price format'}), 400
+
         if not data.get('discount_percentage'):
             return jsonify({'success': False, 'error': 'Discount percentage is required'}), 400
 

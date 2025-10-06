@@ -224,6 +224,7 @@
                                         <tr>
                                             <th>Offer Name</th>
                                             <th>Services</th>
+                                            <th>Price</th>
                                             <th>Discount %</th>
                                             <th>Validity Date</th>
                                             <th>Valid Days</th>
@@ -241,7 +242,8 @@
                                                 {% endfor %}
                                                 </small>
                                             </td>
-                                            <td><span class="badge bg-success">{{ offer.discount_percent }}%</span></td>
+                                            <td><strong>₹{{ "{:,.2f}".format(offer.price or 0) }}</strong></td>
+                                            <td><span class="badge bg-success">{{ offer.discount_percentage }}%</span></td>
                                             <td>
                                                 <small>
                                                     <strong>From:</strong> {{ offer.valid_from }}<br>

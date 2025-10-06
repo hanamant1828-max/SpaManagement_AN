@@ -66,10 +66,12 @@ function loadStudentPackages() {
 
             data.forEach(offer => {
                 const serviceNames = offer.services ? offer.services.map(s => s.name).join(', ') : 'No services';
+                const price = offer.price ? `₹${parseFloat(offer.price).toFixed(2)}` : '₹0.00';
                 const row = `
                     <tr>
                         <td><strong>${offer.name || 'Student Offer'}</strong></td>
                         <td><small>${serviceNames}</small></td>
+                        <td><strong>${price}</strong></td>
                         <td><span class="badge bg-success">${offer.discount_percentage}%</span></td>
                         <td>
                             <small>

@@ -759,15 +759,23 @@ def api_create_student_offer():
         data = request.get_json()
         
         # Validate required fields
-        required_fields = ['service_ids', 'discount_percentage', 'valid_from', 'valid_to']
+        required_fields = ['service_ids', 'price', 'discount_percentage', 'valid_from', 'valid_to']
         for field in required_fields:
-            if field not in data or not data[field]:
+            if field not in data or data[field] == '' or data[field] is None:
                 return jsonify({'success': False, 'error': f'{field} is required'}), 400
         
         # Validate service_ids
         service_ids = data.get('service_ids', [])
         if not isinstance(service_ids, list) or len(service_ids) == 0:
             return jsonify({'success': False, 'error': 'At least one service must be selected'}), 400
+        
+        # Validate price
+        try:
+            price = float(data['price'])
+            if price < 0:
+                return jsonify({'success': False, 'error': 'Package price must be 0 or greater'}), 400
+        except (ValueError, TypeError):
+            return jsonify({'success': False, 'error': 'Invalid price format'}), 400
         
         # Validate discount percentage
         try:
@@ -793,6 +801,7 @@ def api_create_student_offer():
         from modules.packages.new_packages_queries import create_student_offer
         
         offer_data = {
+            'price': price,
             'discount_percentage': discount,
             'valid_from': data['valid_from'],
             'valid_to': data['valid_to'],
