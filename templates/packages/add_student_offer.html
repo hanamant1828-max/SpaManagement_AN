@@ -673,6 +673,7 @@
             // Build data object
             const data = {
                 service_ids: selectedServices,
+                price: parseFloat(document.getElementById('packagePrice').value),
                 discount_percentage: parseFloat(document.getElementById('discountPercentage').value),
                 valid_from: document.getElementById('validFrom').value,
                 valid_to: document.getElementById('validTo').value,
