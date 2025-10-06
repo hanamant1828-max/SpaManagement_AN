@@ -667,9 +667,9 @@ def save_face_image():
 @app.route('/add_staff', methods=['POST'])
 @login_required
 def create_staff_route():
-    if not current_user.can_access('staff'):
-        flash('Access denied', 'danger')
-        return redirect(url_for('dashboard'))
+    if not current_user.has_permission('staff_create'):
+        flash('You do not have permission to create staff members', 'danger')
+        return redirect(url_for('staff'))
 
     form = AdvancedUserForm()
     roles = get_active_roles()
@@ -702,8 +702,8 @@ def create_staff_route():
 @app.route('/staff/update/<int:id>', methods=['POST'])
 @login_required
 def update_staff_route(id):
-    if not current_user.can_access('staff'):
-        flash('Access denied', 'danger')
+    if not current_user.has_permission('staff_edit'):
+        flash('You do not have permission to edit staff members', 'danger')
         return redirect(url_for('staff'))
 
     staff_member = get_staff_by_id(id)
@@ -742,8 +742,8 @@ def update_staff_route(id):
 @app.route('/staff/delete/<int:id>', methods=['POST'])
 @login_required
 def delete_staff_route(id):
-    if not current_user.can_access('staff'):
-        flash('Access denied', 'danger')
+    if not current_user.has_permission('staff_delete'):
+        flash('You do not have permission to delete staff members', 'danger')
         return redirect(url_for('staff'))
 
     if delete_staff(id):

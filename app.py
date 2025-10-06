@@ -275,6 +275,14 @@ def utility_processor():
         }
         return status_map.get(str(status).lower(), 'secondary')
 
+    def check_permission(module, action):
+        """Template helper to check permissions"""
+        from flask_login import current_user
+        if not current_user or not current_user.is_authenticated:
+            return False
+        permission_name = f"{module}_{action}"
+        return current_user.has_permission(permission_name)
+
     return dict(
         utils=dict(
             get_month_name=get_month_name,
@@ -283,7 +291,8 @@ def utility_processor():
             format_currency=format_currency,
             calculate_age=calculate_age,
             get_status_badge_class=get_status_badge_class
-        )
+        ),
+        check_permission=check_permission
     )
 
 # Add ping route for health check

@@ -203,6 +203,73 @@ class User(UserMixin, db.Model):
             return self.dynamic_role.name == role
         return self.role == role
 
+    def has_permission(self, permission_name):
+        """Check if user has a specific permission"""
+        if not self.is_active:
+            return False
+
+        # Super admin has all permissions
+        if self.has_role('admin') or self.has_role('super_admin') or self.role == 'admin':
+            return True
+
+        # Check dynamic role system
+        if self.role_id:
+            try:
+                user_role = Role.query.get(self.role_id)
+                if user_role and user_role.is_active:
+                    for role_permission in user_role.permissions:
+                        if role_permission.permission.is_active and role_permission.permission.name == permission_name:
+                            return True
+            except:
+                pass  # Fall back to legacy system
+
+        # Fallback to legacy role system with basic permission mapping
+        # These match the permissions defined in init_roles_permissions.py
+        legacy_permission_map = {
+            'manager': [
+                'dashboard_view', 
+                'clients_view', 'clients_create', 'clients_edit',
+                'staff_view', 'staff_create', 'staff_edit',
+                'services_view', 'services_create', 'services_edit',
+                'packages_view', 'packages_create', 'packages_edit',
+                'appointments_view', 'appointments_create', 'appointments_edit',
+                'billing_view', 'billing_create', 'billing_edit',
+                'reports_view', 'reports_export',
+                'expenses_view',
+                'inventory_view'
+            ],
+            'staff': [
+                'dashboard_view', 
+                'clients_view',
+                'services_view',
+                'appointments_view',
+                'billing_view'
+            ],
+            'therapist': [
+                'dashboard_view', 
+                'clients_view',
+                'services_view',
+                'appointments_view',
+                'billing_view'
+            ],
+            'receptionist': [
+                'dashboard_view', 
+                'clients_view', 'clients_create', 'clients_edit',
+                'services_view',
+                'appointments_view', 'appointments_create', 'appointments_edit',
+                'billing_view', 'billing_create'
+            ],
+            'accountant': [
+                'dashboard_view',
+                'billing_view', 'billing_create', 'billing_edit',
+                'expenses_view', 'expenses_create', 'expenses_edit',
+                'reports_view', 'reports_export'
+            ]
+        }
+
+        role_permissions = legacy_permission_map.get(self.role, [])
+        return permission_name in role_permissions
+
     def can_access(self, resource):
         """Check if user can access a specific resource based on role permissions"""
         if not self.is_active:
@@ -227,7 +294,8 @@ class User(UserMixin, db.Model):
             'reports': ['reports_view'],
             'appointments': ['appointments_view', 'appointments_create', 'appointments_edit'],
             'expenses': ['expenses_view', 'expenses_create', 'expenses_edit'],
-            'settings': ['settings_view', 'settings_edit']
+            'settings': ['settings_view', 'settings_edit'],
+            'bookings': ['appointments_view', 'appointments_create', 'appointments_edit']
         }
 
         # Get required permissions for resource
@@ -255,9 +323,9 @@ class User(UserMixin, db.Model):
         role_access_map = {
             'admin': True,  # Admin can access everything
             'manager': resource in ['dashboard', 'inventory', 'staff', 'clients',
-                                   'services', 'packages', 'reports', 'appointments', 'expenses'],
-            'staff': resource in ['dashboard', 'clients', 'appointments', 'services'],
-            'receptionist': resource in ['dashboard', 'clients', 'appointments']
+                                   'services', 'packages', 'reports', 'appointments', 'expenses', 'bookings'],
+            'staff': resource in ['dashboard', 'clients', 'appointments', 'services', 'bookings'],
+            'receptionist': resource in ['dashboard', 'clients', 'appointments', 'bookings']
         }
 
         return role_access_map.get(self.role, False)

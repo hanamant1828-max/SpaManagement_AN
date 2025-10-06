@@ -81,7 +81,8 @@ def init_roles_and_permissions():
                 'description': 'Manage operations, staff, and clients',
                 'permissions': [
                     'dashboard_view', 'clients_view', 'clients_create', 'clients_edit',
-                    'staff_view', 'services_view', 'services_create', 'services_edit',
+                    'staff_view', 'staff_create', 'staff_edit',
+                    'services_view', 'services_create', 'services_edit',
                     'packages_view', 'packages_create', 'packages_edit',
                     'appointments_view', 'appointments_create', 'appointments_edit',
                     'billing_view', 'billing_create', 'billing_edit',
@@ -142,7 +143,34 @@ def init_roles_and_permissions():
                 
                 print(f"  ✅ Created role: {role_data['name']} with {len(role_data['permissions'])} permissions")
             else:
-                print(f"  ⏭️  Role already exists: {role_data['name']}")
+                # Update existing role with any missing permissions
+                print(f"  🔄 Updating existing role: {role_data['name']}")
+                role = existing_role
+                
+                # Get current permissions for this role
+                current_permissions = {rp.permission.name for rp in role.permissions if rp.permission}
+                
+                # Add missing permissions
+                added_count = 0
+                for perm_name in role_data['permissions']:
+                    if perm_name not in current_permissions:
+                        permission = Permission.query.filter_by(name=perm_name).first()
+                        if permission:
+                            # Check if this permission is already assigned to avoid duplicates
+                            existing_assignment = RolePermission.query.filter_by(
+                                role_id=role.id, 
+                                permission_id=permission.id
+                            ).first()
+                            if not existing_assignment:
+                                role_perm = RolePermission(role_id=role.id, permission_id=permission.id)
+                                db.session.add(role_perm)
+                                added_count += 1
+                                print(f"    ➕ Added permission: {perm_name}")
+                
+                if added_count > 0:
+                    print(f"  ✅ Updated role: {role_data['name']} with {added_count} new permissions")
+                else:
+                    print(f"  ✅ Role {role_data['name']} is up to date")
         
         db.session.commit()
         

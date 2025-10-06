@@ -171,3 +171,24 @@ def format_duration(minutes):
     if mins == 0:
         return f"{hours}h"
     return f"{hours}h {mins}m"
+
+def check_permission(user, module, action):
+    """
+    Check if user has permission for a specific action on a module
+    
+    Args:
+        user: The current user object
+        module: The module name (e.g., 'clients', 'staff', 'services')
+        action: The action type ('view', 'create', 'edit', 'delete')
+    
+    Returns:
+        bool: True if user has permission, False otherwise
+    """
+    if not user or not user.is_active:
+        return False
+    
+    # Construct permission name
+    permission_name = f"{module}_{action}"
+    
+    # Use the user's has_permission method
+    return user.has_permission(permission_name)

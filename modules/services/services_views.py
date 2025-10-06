@@ -91,8 +91,8 @@ def services():
 @login_required
 def create_service_route():
     """Create new service"""
-    if not current_user.can_access('services'):
-        flash('Access denied', 'danger')
+    if not current_user.has_permission('services_create'):
+        flash('You do not have permission to create services', 'danger')
         return redirect(url_for('services'))
     
     try:
@@ -168,8 +168,8 @@ def create_service_route():
 @login_required
 def edit_service(service_id):
     """Edit service"""
-    if not current_user.can_access('services'):
-        return jsonify({'success': False, 'message': 'Access denied'})
+    if not current_user.has_permission('services_edit'):
+        return jsonify({'success': False, 'message': 'You do not have permission to edit services'})
     
     service = get_service_by_id(service_id)
     if not service:
@@ -216,8 +216,8 @@ def edit_service(service_id):
 @login_required
 def delete_service_route(service_id):
     """Delete service"""
-    if not current_user.can_access('services'):
-        return jsonify({'success': False, 'message': 'Access denied'})
+    if not current_user.has_permission('services_delete'):
+        return jsonify({'success': False, 'message': 'You do not have permission to delete services'})
     
     try:
         print(f"Attempting to delete service ID: {service_id}")

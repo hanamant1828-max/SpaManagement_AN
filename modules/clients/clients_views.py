@@ -39,9 +39,9 @@ def customers():
 @app.route('/add_client', methods=['POST'])  # Keep for backward compatibility
 @login_required
 def create_customer_route():
-    if not current_user.can_access('clients'):
-        flash('Access denied', 'danger')
-        return redirect(url_for('dashboard'))
+    if not current_user.has_permission('clients_create'):
+        flash('You do not have permission to create clients', 'danger')
+        return redirect(url_for('customers'))
 
     try:
         # Get form data manually to handle CSRF issues
@@ -146,10 +146,9 @@ def edit_client_route(id):
 @app.route('/clients/update/<int:id>', methods=['POST'])
 @login_required
 def update_client_route(id):
-    if not current_user.can_access('clients'):
-        # Access denied
-        flash('Access denied', 'danger')
-        return redirect(url_for('dashboard'))
+    if not current_user.has_permission('clients_edit'):
+        flash('You do not have permission to edit clients', 'danger')
+        return redirect(url_for('customers'))
 
     client = get_customer_by_id(id)
     if not client:
@@ -236,9 +235,9 @@ def update_client_route(id):
 @app.route('/clients/delete/<int:id>', methods=['POST'])
 @login_required
 def delete_client_route(id):
-    if not current_user.can_access('clients'):
-        flash('Access denied', 'danger')
-        return redirect(url_for('dashboard'))
+    if not current_user.has_permission('clients_delete'):
+        flash('You do not have permission to delete clients', 'danger')
+        return redirect(url_for('customers'))
 
     try:
         # Import Customer model directly to avoid import issues
@@ -260,8 +259,8 @@ def delete_client_route(id):
 @login_required
 def delete_customer_api(id):
     """API endpoint to delete a customer with proper JSON responses"""
-    if not current_user.can_access('clients'):
-        return jsonify({'success': False, 'message': 'Access denied'}), 403
+    if not current_user.has_permission('clients_delete'):
+        return jsonify({'success': False, 'message': 'You do not have permission to delete clients'}), 403
 
     try:
         # Import Customer model with late import to avoid circular dependencies
