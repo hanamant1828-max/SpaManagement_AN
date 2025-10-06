@@ -830,6 +830,29 @@ def add_category():
 @login_required
 def role_management():
     """Role management page"""
+    if not current_user.has_role('admin'):
+        flash('Access denied - Admin only', 'danger')
+        return redirect(url_for('dashboard'))
+    
+    from models import Role, Permission, RolePermission
+    
+    # Get all roles and permissions
+    roles = Role.query.all()
+    permissions = Permission.query.all()
+    
+    # Build role-permission mapping
+    role_permissions = {}
+    for role in roles:
+        role_permissions[role.id] = [rp.permission.name for rp in role.role_permissions]
+    
+    return render_template('role_management.html',
+                         roles=roles,
+                         permissions=permissions,
+                         role_permissions=role_permissions)
+
+@app.route('/role_management')
+def role_management():
+    """Role management page"""
     if not current_user.can_access('settings'):
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
