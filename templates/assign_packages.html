@@ -401,18 +401,14 @@ function recalculateTotals() {
             subtotal = currentPackage.actual_price || 0;
         } else if (packageType === 'service_package' && currentService) {
             const payFor = currentPackage.pay_for || 0;
-            const free = currentPackage.free_sessions || 0;
+            const free = currentPackage.free_services || 0;
             subtotal = payFor * currentService.price;
             discount = free * currentService.price;
         } else if (packageType === 'student_offer') {
-            // Student offers have a price of 0 in the `packages` data,
-            // but the actual price might be stored elsewhere or handled by backend.
-            // For now, we assume they are free or handled by backend logic.
-            // If a specific price needs to be displayed, it would need to be fetched or calculated.
-            subtotal = 0; // Student offers are typically free or heavily discounted.
-            discount = 0; // No explicit discount to show here.
-        }
-        else {
+            // Student offers should have a price field
+            subtotal = currentPackage.price || currentPackage.actual_price || 0;
+            console.log('Student offer subtotal:', subtotal);
+        } else {
             subtotal = currentPackage.price || currentPackage.actual_price || 0;
         }
     }
