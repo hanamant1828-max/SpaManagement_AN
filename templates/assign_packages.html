@@ -749,33 +749,24 @@ window.AP_openUsage = (assignmentId)=>{
         .catch(()=>alert('Error loading usage'));
 };
 
-function updatePaymentSummary() {
-    const packageType = document.getElementById('packageType').value; // Corrected ID
-    const packageSelect = document.getElementById('packageId'); // Corrected ID
-    const discountInput = document.getElementById('assign_discount'); // Assuming this ID is correct from context
-    const pricePaidInput = document.getElementById('assign_price_paid'); // Assuming this ID is correct from context
-    const paymentMethodSelect = document.getElementById('assign_payment_method'); // Assuming this ID is correct from context
+function updatePaymentSummary(packagePrice = 0, discount = 0, netPrice = 0) {
+    const taxable = Math.max(packagePrice - discount, 0);
+    const tax = taxable * 0.18;
+    const grandTotal = taxable + tax;
 
-    // Add null checks for all required elements
-    if (!packageSelect || !discountInput || !pricePaidInput || !paymentMethodSelect) {
-        console.log('Payment summary update skipped - missing required elements');
-        return;
-    }
+    const displaySubtotal = document.getElementById('displaySubtotal');
+    const displayNetPrice = document.getElementById('displayNetPrice');
+    const displayTax = document.getElementById('displayTax');
+    const displayDiscount = document.getElementById('displayDiscount');
+    const displayGrandTotal = document.getElementById('displayGrandTotal');
+    const paymentAmountInput = document.getElementById('paymentAmount');
 
-    const selectedOption = packageSelect.selectedOptions[0];
-    let packagePrice = 0;
-
-    if (packageType === 'student_offer') {
-        packagePrice = 0; // Student offers are typically free or handled differently
-    } else if (selectedOption) {
-        packagePrice = parseFloat(selectedOption.dataset.price || 0);
-    }
-
-
-    const discount = parseFloat(discountInput.value || 0);
-    const finalPrice = Math.max(0, packagePrice - discount);
-
-    pricePaidInput.value = finalPrice.toFixed(2);
+    if (displaySubtotal) displaySubtotal.textContent = `₹${grandTotal.toFixed(2)}`;
+    if (displayNetPrice) displayNetPrice.textContent = `₹${taxable.toFixed(2)}`;
+    if (displayTax) displayTax.textContent = `₹${tax.toFixed(2)}`;
+    if (displayDiscount) displayDiscount.textContent = `₹${discount.toFixed(2)}`;
+    if (displayGrandTotal) displayGrandTotal.textContent = `₹${grandTotal.toFixed(2)}`;
+    if (paymentAmountInput) paymentAmountInput.value = grandTotal.toFixed(2);
 }
 
 function handlePaymentStatusChange() {
@@ -810,8 +801,68 @@ function handlePaymentStatusChange() {
 // Initial call to set the summary on page load
 document.addEventListener('DOMContentLoaded', () => {
     validateForm(); // Ensure form is validated on load
-    updatePaymentSummary();
+    // updatePaymentSummary(); // Initial call removed, as recalculateTotals handles it on package type change
     handlePaymentStatusChange(); // Also handle initial payment status display
 });
+
+// Load package details when package is selected
+document.getElementById('packageId').addEventListener('change', async function() {
+    const packageId = this.value;
+    const packageTypeSelect = document.getElementById('packageType');
+    const packageType = packageTypeSelect.value;
+
+    if (!packageId || !packageType) {
+        // Reset pricing if no package selected
+        updatePaymentSummary(0, 0, 0);
+        return;
+    }
+
+    try {
+        // Fetch package details based on type
+        let packageData = null;
+
+        if (packageType === 'prepaid') {
+            const response = await fetch(`/api/prepaid-packages/${packageId}`);
+            const data = await response.json();
+            packageData = data;
+        } else if (packageType === 'service_package') {
+            const response = await fetch(`/api/service-packages/${packageId}`);
+            const data = await response.json();
+            packageData = data;
+        } else if (packageType === 'membership') {
+            const response = await fetch(`/api/memberships/${packageId}`);
+            const data = await response.json();
+            packageData = data;
+        } else if (packageType === 'student_offer') {
+            const response = await fetch(`/api/student-offers/${packageId}`);
+            const data = await response.json();
+            if (data.success && data.offer) {
+                packageData = data.offer;
+            }
+        } else if (packageType === 'yearly' || packageType === 'yearly_membership') {
+            const response = await fetch(`/api/yearly-memberships/${packageId}`);
+            const data = await response.json();
+            packageData = data;
+        } else if (packageType === 'kitty' || packageType === 'kitty_party') {
+            const response = await fetch(`/api/kitty-parties/${packageId}`);
+            const data = await response.json();
+            packageData = data;
+        }
+
+        if (packageData) {
+            const price = packageData.price || packageData.actual_price || 0;
+            // The recalculateTotals function already handles the display and calculation logic.
+            // We just need to ensure currentPackage is updated with the fetched data.
+            currentPackage = packageData;
+            recalculateTotals(); // Call recalculateTotals to update the display
+        }
+    } catch (error) {
+        console.error('Error loading package details:', error);
+        // Optionally reset display or show error message to user
+        currentPackage = null;
+        recalculateTotals();
+    }
+});
+
 </script>
 {% endblock %}

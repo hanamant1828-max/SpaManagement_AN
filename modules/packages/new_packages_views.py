@@ -470,18 +470,21 @@ def api_get_student_offer(offer_id):
         if not offer:
             return jsonify({'success': False, 'error': 'Student offer not found'}), 404
 
+        # Ensure price is properly formatted
+        offer_price = float(offer.price) if hasattr(offer, 'price') and offer.price else 0.0
+
         return jsonify({
             'success': True,
             'offer': {
                 'id': offer.id,
-                'name': offer.name,
-                'price': float(offer.price) if offer.price else 0.0,
-                'discount_percentage': offer.discount_percentage,
+                'name': offer.name or f"Student Discount {offer.discount_percentage}%",
+                'price': offer_price,
+                'discount_percentage': float(offer.discount_percentage) if offer.discount_percentage else 0.0,
                 'valid_from': offer.valid_from.isoformat() if offer.valid_from else None,
                 'valid_to': offer.valid_to.isoformat() if offer.valid_to else None,
                 'valid_days': offer.valid_days,
                 'conditions': offer.conditions,
-                'services': [{'id': sos.service.id, 'name': sos.service.name, 'price': sos.service.price}
+                'services': [{'id': sos.service.id, 'name': sos.service.name, 'price': float(sos.service.price) if sos.service.price else 0.0}
                             for sos in offer.student_offer_services],
                 'is_active': offer.is_active
             }
