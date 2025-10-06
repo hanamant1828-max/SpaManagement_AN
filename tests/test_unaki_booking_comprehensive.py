@@ -289,7 +289,7 @@ class UnakiBookingTester:
         
         conflict_data = {
             'staff_id': 1,
-            'appointment_date': today.strftime('%Y-%m-%d'),
+            'date': today.strftime('%Y-%m-%d'),
             'start_time': '10:00',
             'end_time': '11:00'
         }
