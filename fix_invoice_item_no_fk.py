@@ -1,19 +1,19 @@
 
 #!/usr/bin/env python3
 """
-Fix invoice_item table to remove foreign key constraint on staff_id
+Fix invoice_item table to remove ALL foreign key constraints including staff_id
 """
 from app import app, db
 from sqlalchemy import text, inspect
 
 def fix_invoice_item_staff_fk():
-    """Remove foreign key constraint from invoice_item.staff_id"""
+    """Remove all foreign key constraints from invoice_item table"""
     
     with app.app_context():
         try:
             inspector = inspect(db.engine)
             
-            print("🔧 Fixing invoice_item table - removing staff_id FK constraint...")
+            print("🔧 Fixing invoice_item table - removing ALL FK constraints...")
             
             # Check if table exists
             if 'invoice_item' not in inspector.get_table_names():
@@ -25,12 +25,17 @@ def fix_invoice_item_staff_fk():
             backup_data = db.session.execute(text("SELECT * FROM invoice_item")).fetchall()
             print(f"   Backed up {len(backup_data)} rows")
             
+            # Get column info to preserve structure
+            columns = inspector.get_columns('invoice_item')
+            print(f"📋 Found {len(columns)} columns")
+            
             # Drop the table
             print("🗑️  Dropping invoice_item table...")
             db.session.execute(text("DROP TABLE IF EXISTS invoice_item"))
+            db.session.commit()
             
-            # Recreate table WITHOUT foreign key on staff_id
-            print("🔨 Creating new invoice_item table without staff_id FK...")
+            # Recreate table WITHOUT any foreign keys
+            print("🔨 Creating new invoice_item table without FK constraints...")
             db.session.execute(text("""
                 CREATE TABLE invoice_item (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -52,13 +57,10 @@ def fix_invoice_item_staff_fk():
                     is_subscription_deduction BOOLEAN DEFAULT 0,
                     is_extra_charge BOOLEAN DEFAULT 0,
                     staff_id INTEGER,
-                    staff_name VARCHAR(200),
-                    FOREIGN KEY (invoice_id) REFERENCES enhanced_invoice(id) ON DELETE CASCADE,
-                    FOREIGN KEY (appointment_id) REFERENCES appointment(id) ON DELETE SET NULL,
-                    FOREIGN KEY (product_id) REFERENCES inventory_products(id) ON DELETE SET NULL,
-                    FOREIGN KEY (batch_id) REFERENCES inventory_batches(id) ON DELETE SET NULL
+                    staff_name VARCHAR(200)
                 )
             """))
+            db.session.commit()
             
             # Restore data
             if backup_data:
@@ -69,9 +71,9 @@ def fix_invoice_item_staff_fk():
                         text(f"INSERT INTO invoice_item VALUES ({placeholders})"),
                         list(row)
                     )
+                db.session.commit()
             
-            db.session.commit()
-            print("✅ invoice_item table fixed successfully - staff_id is now a plain integer column!")
+            print("✅ invoice_item table fixed successfully - NO foreign keys!")
             return True
             
         except Exception as e:
