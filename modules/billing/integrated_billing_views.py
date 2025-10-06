@@ -791,114 +791,194 @@ def check_package_benefits():
         data = request.get_json()
         customer_id = data.get('customer_id')
         services = data.get('services', [])  # [{service_id, quantity}, ...]
-        
+
         if not customer_id:
             return jsonify({'success': False, 'error': 'Customer ID required'}), 400
-        
+
         if not services:
             return jsonify({'success': False, 'error': 'No services provided'}), 400
-        
+
         from modules.packages.package_billing_service import PackageBillingService
-        from models import Service, PackageBenefitTracker
-        
+        from models import Service, PackageBenefitTracker, ServicePackageAssignment
+
         results = []
-        
+
         for service_item in services:
             service_id = service_item.get('service_id')
             quantity = service_item.get('quantity', 1)
-            
+
             if not service_id:
                 continue
-            
+
             service = Service.query.get(service_id)
             if not service:
                 continue
-            
-            # Find applicable packages for this service
-            applicable_packages = PackageBillingService.find_applicable_packages(
-                customer_id=customer_id,
-                service_id=service_id
-            )
-            
-            service_price = float(service.price) * quantity
-            
-            if applicable_packages:
-                # Get the highest priority package
-                best_package = applicable_packages[0]
-                tracker = best_package
-                assignment = tracker.package_assignment if tracker else None
-                
-                # Calculate what will be applied
-                benefit_info = {
-                    'service_id': service_id,
-                    'service_name': service.name,
-                    'original_price': service_price,
-                    'quantity': quantity,
-                    'has_benefit': True,
-                    'benefit_type': tracker.benefit_type,
-                    'package_name': assignment.package_name if hasattr(assignment, 'package_name') else 'Package',
-                    'package_assignment_id': assignment.id if assignment else None
-                }
-                
-                # Calculate benefit based on type
-                if tracker.benefit_type == 'unlimited':
-                    benefit_info['final_price'] = 0.0
-                    benefit_info['deduction'] = service_price
-                    benefit_info['message'] = 'Free (Unlimited Membership)'
-                    
-                elif tracker.benefit_type == 'free':
-                    sessions_available = tracker.remaining_count or 0
-                    sessions_to_use = min(quantity, sessions_available)
-                    
-                    if sessions_to_use > 0:
-                        price_per_session = service_price / quantity
-                        deduction = price_per_session * sessions_to_use
-                        benefit_info['final_price'] = service_price - deduction
+
+            service_item_price = float(service.price) * quantity
+            service_item_final_price = service_item_price # Initialize with original price
+
+            package_discount_applied = False
+            package_result = {'success': False, 'applied': False, 'message': 'No package benefit checked'}
+            package_deductions_applied = 0 # Counter for any package deduction
+
+            # --- Check for Yearly Membership Discount FIRST ---
+            yearly_membership_assignment = ServicePackageAssignment.query.filter(
+                ServicePackageAssignment.customer_id == int(customer_id),
+                ServicePackageAssignment.package_type == 'yearly_membership',
+                ServicePackageAssignment.status == 'active'
+            ).first()
+
+            if yearly_membership_assignment:
+                # Get the yearly membership template
+                from models import YearlyMembership
+                yearly_membership = YearlyMembership.query.get(yearly_membership_assignment.package_reference_id)
+
+                if yearly_membership and yearly_membership.discount_percent:
+                    # Apply yearly membership discount
+                    discount_amount = (service_item_price * yearly_membership.discount_percent) / 100
+                    service_item_final_price = service_item_price - discount_amount
+
+                    app.logger.info(f"✅ YEARLY MEMBERSHIP: Applied {yearly_membership.discount_percent}% discount = ₹{discount_amount:.2f}")
+
+                    package_result = {
+                        'success': True,
+                        'applied': True,
+                        'message': f'Yearly membership: {yearly_membership.discount_percent}% discount',
+                        'package_type': 'yearly_membership',
+                        'package_id': yearly_membership_assignment.id,
+                        'discount_amount': discount_amount
+                    }
+                    package_discount_applied = True
+                    package_deductions_applied += 1
+
+            # Only check other packages if no discount was applied yet
+            if not package_discount_applied:
+                # Find applicable packages for this service
+                applicable_packages = PackageBillingService.find_applicable_packages(
+                    customer_id=customer_id,
+                    service_id=service_id
+                )
+
+                if applicable_packages:
+                    # Get the highest priority package
+                    best_package = applicable_packages[0]
+                    tracker = best_package
+                    assignment = tracker.package_assignment if tracker else None
+
+                    # Calculate what will be applied
+                    benefit_info = {
+                        'service_id': service_id,
+                        'service_name': service.name,
+                        'original_price': service_item_price,
+                        'quantity': quantity,
+                        'has_benefit': True,
+                        'benefit_type': tracker.benefit_type,
+                        'package_name': assignment.package_name if hasattr(assignment, 'package_name') else 'Package',
+                        'package_assignment_id': assignment.id if assignment else None
+                    }
+
+                    # Calculate benefit based on type
+                    if tracker.benefit_type == 'unlimited':
+                        benefit_info['final_price'] = 0.0
+                        benefit_info['deduction'] = service_item_price
+                        benefit_info['message'] = 'Free (Unlimited Membership)'
+                        package_result = {
+                            'success': True,
+                            'applied': True,
+                            'message': benefit_info['message'],
+                            'package_type': assignment.package_type if assignment else 'unknown',
+                            'package_id': assignment.id if assignment else None,
+                            'deduction_amount': benefit_info['deduction']
+                        }
+                        package_discount_applied = True # Treat unlimited as a full discount
+                        package_deductions_applied += 1
+
+                    elif tracker.benefit_type == 'free':
+                        sessions_available = tracker.remaining_count or 0
+                        sessions_to_use = min(quantity, sessions_available)
+
+                        if sessions_to_use > 0:
+                            price_per_session = service_item_price / quantity
+                            deduction = price_per_session * sessions_to_use
+                            service_item_final_price = service_item_price - deduction # Apply deduction
+                            benefit_info['final_price'] = service_item_final_price
+                            benefit_info['deduction'] = deduction
+                            benefit_info['sessions_used'] = sessions_to_use
+                            benefit_info['sessions_remaining_after'] = sessions_available - sessions_to_use
+                            benefit_info['message'] = f'{sessions_to_use} free session(s) applied. {sessions_available - sessions_to_use} remaining after.'
+                            package_result = {
+                                'success': True,
+                                'applied': True,
+                                'message': benefit_info['message'],
+                                'package_type': assignment.package_type if assignment else 'unknown',
+                                'package_id': assignment.id if assignment else None,
+                                'deduction_amount': benefit_info['deduction']
+                            }
+                            package_deductions_applied += 1
+                        else:
+                            benefit_info['has_benefit'] = False
+                            benefit_info['final_price'] = service_item_price
+                            benefit_info['deduction'] = 0
+                            benefit_info['message'] = 'No sessions remaining'
+                            package_result['message'] = benefit_info['message'] # Update message
+
+                    elif tracker.benefit_type == 'discount':
+                        discount_pct = tracker.discount_percentage or 0
+                        deduction = service_item_price * (discount_pct / 100)
+                        service_item_final_price = service_item_price - deduction # Apply deduction
+                        benefit_info['final_price'] = service_item_final_price
                         benefit_info['deduction'] = deduction
-                        benefit_info['sessions_used'] = sessions_to_use
-                        benefit_info['sessions_remaining_after'] = sessions_available - sessions_to_use
-                        benefit_info['message'] = f'{sessions_to_use} free session(s) applied. {sessions_available - sessions_to_use} remaining after.'
-                    else:
-                        benefit_info['has_benefit'] = False
-                        benefit_info['final_price'] = service_price
-                        benefit_info['deduction'] = 0
-                        benefit_info['message'] = 'No sessions remaining'
-                        
-                elif tracker.benefit_type == 'discount':
-                    discount_pct = tracker.discount_percentage or 0
-                    deduction = service_price * (discount_pct / 100)
-                    benefit_info['final_price'] = service_price - deduction
-                    benefit_info['deduction'] = deduction
-                    benefit_info['discount_percentage'] = discount_pct
-                    benefit_info['message'] = f'{discount_pct}% discount applied'
-                    
-                elif tracker.benefit_type == 'prepaid':
-                    credit_available = tracker.balance_remaining or 0
-                    deduction = min(service_price, credit_available)
-                    benefit_info['final_price'] = service_price - deduction
-                    benefit_info['deduction'] = deduction
-                    benefit_info['credit_remaining_after'] = credit_available - deduction
-                    benefit_info['message'] = f'₹{deduction:.2f} prepaid credit applied. ₹{credit_available - deduction:.2f} remaining after.'
-                
-                results.append(benefit_info)
+                        benefit_info['discount_percentage'] = discount_pct
+                        benefit_info['message'] = f'{discount_pct}% discount applied'
+                        package_result = {
+                            'success': True,
+                            'applied': True,
+                            'message': benefit_info['message'],
+                            'package_type': assignment.package_type if assignment else 'unknown',
+                            'package_id': assignment.id if assignment else None,
+                            'deduction_amount': benefit_info['deduction']
+                        }
+                        package_deductions_applied += 1
+
+                    elif tracker.benefit_type == 'prepaid':
+                        credit_available = tracker.balance_remaining or 0
+                        deduction = min(service_item_price, credit_available)
+                        service_item_final_price = service_item_price - deduction # Apply deduction
+                        benefit_info['final_price'] = service_item_final_price
+                        benefit_info['deduction'] = deduction
+                        benefit_info['credit_remaining_after'] = credit_available - deduction
+                        benefit_info['message'] = f'₹{deduction:.2f} prepaid credit applied. ₹{credit_available - deduction:.2f} remaining after.'
+                        package_result = {
+                            'success': True,
+                            'applied': True,
+                            'message': benefit_info['message'],
+                            'package_type': assignment.package_type if assignment else 'unknown',
+                            'package_id': assignment.id if assignment else None,
+                            'deduction_amount': benefit_info['deduction']
+                        }
+                        package_deductions_applied += 1
+
+                    results.append(benefit_info)
             else:
                 # No package applies
                 results.append({
                     'service_id': service_id,
                     'service_name': service.name,
-                    'original_price': service_price,
-                    'final_price': service_price,
+                    'original_price': service_item_price,
+                    'final_price': service_item_price,
                     'quantity': quantity,
                     'has_benefit': False,
                     'deduction': 0,
                     'message': 'No package benefit available'
                 })
-        
+                package_result['message'] = 'No package benefit available' # Update message
+
         return jsonify({
             'success': True,
-            'benefits': results
+            'benefits': results,
+            'package_deductions_applied': package_deductions_applied # Return count of deductions
         })
-        
+
     except Exception as e:
         app.logger.error(f"Error checking package benefits: {str(e)}")
         import traceback
@@ -1198,9 +1278,9 @@ def create_professional_invoice():
 
                     # === CRITICAL: APPLY PACKAGE BENEFIT ===
                     # Initialize package deduction tracking
-                    yearly_discount_applied = False
+                    package_discount_applied = False
                     package_result = {'success': False, 'applied': False, 'message': 'No package benefit checked'}
-                    
+
                     # First check for yearly membership discount
                     yearly_membership_assignment = ServicePackageAssignment.query.filter(
                         ServicePackageAssignment.customer_id == int(client_id),
@@ -1208,12 +1288,12 @@ def create_professional_invoice():
                         ServicePackageAssignment.status == 'active',
                         ServicePackageAssignment.expires_on >= current_date
                     ).first()
-                    
+
                     if yearly_membership_assignment:
                         # Get yearly membership details
                         from models import YearlyMembership
                         yearly_membership = YearlyMembership.query.get(yearly_membership_assignment.package_reference_id)
-                        
+
                         if yearly_membership and yearly_membership.discount_percent > 0:
                             # Apply percentage discount
                             service_amount = service.price * service_data['quantity']
@@ -1221,13 +1301,13 @@ def create_professional_invoice():
                             item.deduction_amount = discount_amount
                             item.final_amount = service_amount - discount_amount
                             item.is_package_deduction = True
-                            yearly_discount_applied = True
+                            package_discount_applied = True
                             package_deductions_applied += 1
-                            
+
                             app.logger.info(f"✅ Yearly membership '{yearly_membership.name}' {yearly_membership.discount_percent}% discount applied: ₹{discount_amount:.2f} on ₹{service_amount:.2f}")
-                    
+
                     # If no yearly membership discount, try other package benefits
-                    if not yearly_discount_applied:
+                    if not package_discount_applied:
                         package_result = PackageBillingService.apply_package_benefit(
                             customer_id=int(client_id),
                             service_id=service.id,
@@ -1241,7 +1321,7 @@ def create_professional_invoice():
                         if package_result.get('success') and package_result.get('applied'):
                             # Update invoice item with package deduction
                             item.deduction_amount = package_result.get('deduction_amount', 0)
-                            item.final_amount = package_result.get('final_price', item.final_amount)
+                            item.final_amount = service.price * service_data['quantity'] - item.deduction_amount # Recalculate final amount
                             item.is_package_deduction = True
                             package_deductions_applied += 1
 
@@ -1301,6 +1381,7 @@ def create_professional_invoice():
                         batch_id=batch.id,
                         item_name=product.name,
                         description=f"Batch: {batch.batch_name}",
+                        batch_name=batch.batch_name,
                         quantity=item_data['quantity'],
                         unit_price=item_data['unit_price'],
                         original_amount=item_data['unit_price'] * item_data['quantity'],
@@ -1338,7 +1419,7 @@ def create_professional_invoice():
     except Exception as e:
         db.session.rollback()
         app.logger.error(f"Professional invoice creation failed: {str(e)}")
-        return jsonify({'success': False, 'message': f'Error creating professional invoice: {str(e)}'}), 500
+        return jsonify({'success': False, 'message': f'Error creating professional invoice: {str(e)}'})
 
 
 @app.route('/integrated-billing/customer-packages/<int:customer_id>', methods=['GET'])
@@ -1386,7 +1467,7 @@ def get_customer_packages(customer_id):
             # CRITICAL FIX: Get service_id and service_name from database
             service_id = r.service_id
             service_name = None
-            
+
             if service_id:
                 service_obj = Service.query.get(service_id)
                 if service_obj:
@@ -1403,7 +1484,7 @@ def get_customer_packages(customer_id):
             actual_package_type = r.package_type if hasattr(r, 'package_type') and r.package_type else (
                 "service_package" if r.total_sessions else "prepaid" if r.credit_amount is not None else "membership"
             )
-            
+
             package_data = {
                 "id": r.id,
                 "assignment_id": r.id,  # Add assignment_id for reference
@@ -1427,7 +1508,7 @@ def get_customer_packages(customer_id):
                 # If no active tracker, get the most recent one
                 if not benefit_tracker and r.package_benefits:
                     benefit_tracker = r.package_benefits[0]
-            
+
             # Add sessions data if applicable
             if benefit_tracker and benefit_tracker.benefit_type in ['free', 'discount']:
                 # Use PackageBenefitTracker data (more accurate)
@@ -1463,7 +1544,7 @@ def get_customer_packages(customer_id):
                     "remaining": float(r.remaining_credit or 0.0),
                 }
                 app.logger.info(f"⚠️ Using ServicePackageAssignment credit for assignment {r.id}: {package_data['credit']}")
-            
+
             # Add membership services and usage tracking if applicable
             if actual_package_type == 'membership':
                 try:
@@ -1478,7 +1559,7 @@ def get_customer_packages(customer_id):
                             })
                         package_data['services'] = membership_services
                         app.logger.info(f"✅ Added {len(membership_services)} services to membership package {r.id}")
-                    
+
                     # Count total membership usage (unlimited sessions used)
                     if benefit_tracker:
                         total_usage = PackageUsageHistory.query.filter(
@@ -1502,7 +1583,14 @@ def get_customer_packages(customer_id):
         return resp
     except Exception as e:
         app.logger.error(f"Error in get_customer_packages: {str(e)}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+        import traceback
+        app.logger.error(traceback.format_exc())
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'packages': [],
+            'total': 0
+        }), 500
 
 
 @app.route('/integrated-billing/preview', methods=['POST'])

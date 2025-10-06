@@ -1974,6 +1974,38 @@ function checkPackageBenefit(serviceId, servicePrice, quantity = 1) {
                 }
             }
 
+            // Check each package for applicable benefits
+            for (const pkg of customerPackages) {
+                console.log(`🔍 Checking package: ${pkg.name} (type: ${pkg.package_type})`);
+
+                // STUDENT OFFER - applies discount percentage to specific services
+                if (pkg.package_type === 'student_offer' || pkg.package_type === 'student') {
+                    // Check if this service is included in the student offer
+                    // Student offers apply to all services unless restricted
+                    if (pkg.discount_percentage && pkg.discount_percentage > 0) {
+                        const discountAmount = (servicePrice * pkg.discount_percentage) / 100;
+                        totalBenefit += discountAmount;
+                        appliedPackage = `${pkg.name} (student_discount)`;
+                        benefitType = 'student_discount';
+                        console.log(`✅ Student offer discount applied: ${pkg.name}, ${pkg.discount_percentage}% off = ₹${discountAmount.toFixed(2)}`);
+                        break; // Use first applicable package
+                    }
+                }
+
+                // YEARLY MEMBERSHIP - applies discount percentage to all services
+                if (pkg.package_type === 'yearly' || pkg.package_type === 'yearly_membership') {
+                    // Check if package has discount_percentage
+                    if (pkg.discount_percentage && pkg.discount_percentage > 0) {
+                        const discountAmount = (servicePrice * pkg.discount_percentage) / 100;
+                        totalBenefit += discountAmount;
+                        appliedPackage = `${pkg.name} (yearly_discount)`;
+                        benefitType = 'yearly_discount';
+                        console.log(`✅ Yearly membership discount applied: ${pkg.name}, ${pkg.discount_percentage}% off = ₹${discountAmount.toFixed(2)}`);
+                        break; // Use first applicable package
+                    }
+                }
+            }
+
             // --- PRIORITY 1: Yearly membership - applies percentage discount to ALL services ---
             if (pkg.package_type === 'yearly') {
                 // Extract discount percentage from package name (e.g., "Gold Membership - 20% Discount")
