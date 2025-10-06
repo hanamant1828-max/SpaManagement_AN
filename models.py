@@ -2,6 +2,7 @@ from app import db
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, date, timedelta
+import pytz
 import json
 
 # Inventory models are imported separately to avoid circular imports
@@ -369,7 +370,7 @@ class ShiftLogs(db.Model):
     out_of_office_reason = db.Column(db.String(200), nullable=True)  # e.g., "Field work", "Client visit", "Bank work"
 
     status = db.Column(db.Enum('scheduled', 'absent', 'holiday', 'completed', name='shift_status'), default='scheduled')
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(pytz.timezone('Asia/Kolkata')).replace(tzinfo=None))
 
     def get_break_time_display(self):
         """Get formatted break time display"""
@@ -1192,9 +1193,9 @@ class UnakiBooking(db.Model):
     payment_status = db.Column(db.String(20), default='pending')  # pending, paid, partial, cancelled
     payment_method = db.Column(db.String(20))  # cash, card, upi, online
 
-    # Timestamps
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    # Timestamps (stored as naive datetime in IST)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(pytz.timezone('Asia/Kolkata')).replace(tzinfo=None))
+    updated_at = db.Column(db.DateTime, default=lambda: datetime.now(pytz.timezone('Asia/Kolkata')).replace(tzinfo=None), onupdate=lambda: datetime.now(pytz.timezone('Asia/Kolkata')).replace(tzinfo=None))
     confirmed_at = db.Column(db.DateTime)
     completed_at = db.Column(db.DateTime)
 

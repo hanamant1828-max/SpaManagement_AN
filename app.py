@@ -8,8 +8,51 @@ from sqlalchemy import event, func
 from werkzeug.middleware.proxy_fix import ProxyFix
 from flask_login import LoginManager, login_required, current_user
 from datetime import datetime, date, timedelta, time
+import pytz
 from utils import format_currency
 # Department will be imported inside functions to avoid circular imports
+
+# IST Timezone Configuration
+# NOTE: All datetimes in the database are stored as NAIVE datetimes in IST timezone
+# This avoids SQLAlchemy timezone errors while maintaining IST consistency
+IST = pytz.timezone('Asia/Kolkata')
+
+def get_ist_now():
+    """Get current datetime in IST timezone (aware)"""
+    return datetime.now(IST)
+
+def convert_to_ist(dt):
+    """Convert a datetime object to IST timezone
+    
+    WARNING: This function assumes naive datetimes are in UTC.
+    Since our database stores naive IST datetimes, do NOT use this 
+    on database timestamps - they are already in IST!
+    """
+    if dt is None:
+        return None
+    
+    # If datetime is naive (no timezone), assume it's UTC
+    if dt.tzinfo is None:
+        dt = pytz.utc.localize(dt)
+    
+    # Convert to IST
+    return dt.astimezone(IST)
+
+def get_ist_date_today():
+    """Get today's date in IST timezone"""
+    return get_ist_now().date()
+
+def ist_time_to_string(time_obj):
+    """Convert time object to IST time string"""
+    if time_obj is None:
+        return None
+    return time_obj.strftime('%H:%M')
+
+def naive_ist_to_string(dt, format_str='%H:%M'):
+    """Convert naive IST datetime to string (assumes datetime is already in IST)"""
+    if dt is None:
+        return None
+    return dt.strftime(format_str)
 
 
 def compute_sqlite_uri():
@@ -1442,7 +1485,7 @@ def unaki_create_appointment():
             except Exception as ce:
                 print(f"Warning: Could not create customer record: {ce}")
 
-        # Create UnakiBooking entry
+        # Create UnakiBooking entry (timestamps will use IST from model defaults)
         unaki_booking = UnakiBooking(
             client_id=customer.id if customer else None,
             client_name=str(client_name).strip(),
@@ -1463,7 +1506,7 @@ def unaki_create_appointment():
             booking_method='form_booking',
             amount_charged=service_price,
             payment_status='pending',
-            created_at=datetime.utcnow()
+            confirmed_at=get_ist_now().replace(tzinfo=None)  # Store as naive IST datetime
         )
 
         db.session.add(unaki_booking)

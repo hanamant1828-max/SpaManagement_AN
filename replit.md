@@ -12,7 +12,17 @@ This is a comprehensive **Spa & Salon Management System** built with Flask and P
 - Implement proper error handling and logging
 
 ## Recent Changes (October 6, 2025)
-### Shift Scheduler & Unaki Booking System Bug Fixes ✅ (Latest)
+### IST Timezone Implementation for Unaki Booking System ✅ (Latest)
+- **Timezone Utilities**: Added comprehensive IST timezone utilities (get_ist_now(), IST timezone) using pytz library
+- **Database Storage**: All UnakiBooking and ShiftLogs timestamps now stored as naive datetimes in IST timezone
+- **API IST Support**: Schedule API now returns current_ist_time and timezone='Asia/Kolkata' to frontend
+- **Frontend Integration**: Frontend uses server-provided IST time for current time indicator instead of client-side calculation
+- **Booking Timestamps**: New bookings created with IST timestamps (created_at, updated_at, confirmed_at)
+- **Documentation**: Added clear comments documenting that database stores naive IST datetimes (not UTC)
+- **Testing**: All timezone tests pass with no ValueError exceptions, IST times display correctly
+- **Production Ready**: IST timezone support fully implemented and tested for Unaki booking system
+
+### Shift Scheduler & Unaki Booking System Bug Fixes ✅
 - **Duplicate Staff Records Resolution**: Created intelligent cleanup script using staff_code as primary identifier, preventing wrongful deactivation of legitimate staff with same names
 - **UnakiBooking API Enhancements**: Added DELETE and PATCH endpoints with proper validation and error handling
 - **Status Enum Implementation**: Added status enum to UnakiBooking model (scheduled, confirmed, in_progress, completed, cancelled, no_show) for better data integrity

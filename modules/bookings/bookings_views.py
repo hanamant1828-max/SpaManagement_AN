@@ -2393,8 +2393,14 @@ def edit_appointment(appointment_id):
 def unaki_schedule_api(date_str):
     """API endpoint to get schedule data for Unaki booking system"""
     try:
+        from app import get_ist_now, IST
+        
         # Parse the date
         target_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+        
+        # Get current IST time for frontend
+        ist_now = get_ist_now()
+        current_ist_time = ist_now.strftime('%H:%M')
 
         # Get staff members
         staff_members = get_staff_members()
@@ -2462,6 +2468,8 @@ def unaki_schedule_api(date_str):
         return jsonify({
             'success': True,
             'date': date_str,
+            'current_ist_time': current_ist_time,
+            'timezone': 'Asia/Kolkata',
             'staff': staff_data,
             'appointments': appointments_data,
             'breaks': breaks_data

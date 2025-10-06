@@ -4115,7 +4115,44 @@
             // TIME AND DATE FUNCTIONS
             // ==========================================
 
-            // Update the current time line indicator on the schedule
+            // Update the current time line indicator using server-provided IST time
+            function updateCurrentTimeLineWithServerTime(serverTimeStr) {
+                const [hours, minutes] = serverTimeStr.split(':').map(Number);
+                
+                console.log(`🕐 Server IST time: ${hours}:${String(minutes).padStart(2, '0')}`);
+
+                // Only show if within business hours (9 AM - 10 PM)
+                if (hours >= 9 && hours < 22) {
+                    const currentTimeLine = document.getElementById('currentTimeLine');
+                    const currentTimeLabel = document.getElementById('currentTimeLabel');
+
+                    if (currentTimeLine && currentTimeLabel) {
+                        // Calculate position from 9 AM
+                        const minutesSince9AM = (hours - 9) * 60 + minutes;
+                        const position = minutesSince9AM * pixelsPerMinute;
+
+                        console.log(`📍 Time line position: ${position}px (${minutesSince9AM} minutes since 9 AM)`);
+
+                        currentTimeLine.style.left = position + 'px';
+                        currentTimeLine.style.display = 'block';
+
+                        // Update label with IST time
+                        const hour12 = hours % 12 || 12;
+                        const ampm = hours >= 12 ? 'PM' : 'AM';
+                        const timeStr = `${hour12}:${String(minutes).padStart(2, '0')} ${ampm}`;
+                        currentTimeLabel.textContent = `Now (IST): ${timeStr}`;
+                    }
+                } else {
+                    // Hide outside business hours
+                    const currentTimeLine = document.getElementById('currentTimeLine');
+                    if (currentTimeLine) {
+                        currentTimeLine.style.display = 'none';
+                        console.log(`⏰ Outside business hours (${hours}:${String(minutes).padStart(2, '0')}), hiding time line`);
+                    }
+                }
+            }
+
+            // Update the current time line indicator on the schedule (fallback using client-side calculation)
             function updateCurrentTimeLine() {
                 // Get current time in IST (UTC+5:30)
                 const now = new Date();
@@ -4125,7 +4162,7 @@
                 const hours = istTime.getHours();
                 const minutes = istTime.getMinutes();
 
-                console.log(`🕐 Current IST time: ${hours}:${String(minutes).padStart(2, '0')}`);
+                console.log(`🕐 Current IST time (client calc): ${hours}:${String(minutes).padStart(2, '0')}`);
 
                 // Only show if within business hours (9 AM - 10 PM)
                 if (hours >= 9 && hours < 22) {
@@ -4324,6 +4361,14 @@
 
                     if (data.success) {
                         renderShiftOverlays(data.staff); // Render shifts for the loaded staff
+                        
+                        // Update current time line with server-provided IST time
+                        if (data.current_ist_time) {
+                            console.log('🕐 Server IST time:', data.current_ist_time);
+                            updateCurrentTimeLineWithServerTime(data.current_ist_time);
+                        } else {
+                            updateCurrentTimeLine(); // Fallback to client calculation
+                        }
                         // Assuming bookings are loaded separately by loadBookings() or a similar function
                     } else {
                         throw new Error(data.error || 'Failed to load schedule data');

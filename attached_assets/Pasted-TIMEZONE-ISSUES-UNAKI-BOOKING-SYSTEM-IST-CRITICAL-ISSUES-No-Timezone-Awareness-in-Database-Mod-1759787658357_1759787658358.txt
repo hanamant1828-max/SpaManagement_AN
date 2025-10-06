@@ -1,0 +1,62 @@
+TIMEZONE ISSUES - UNAKI BOOKING SYSTEM (IST)
+CRITICAL ISSUES
+No Timezone Awareness in Database Models
+
+UnakiBooking.appointment_date is a naive Date column (no timezone)
+UnakiBooking.start_time and end_time are naive Time columns (no timezone)
+UnakiBooking.created_at, updated_at, confirmed_at, completed_at use datetime.utcnow() instead of IST
+All datetime operations assume server timezone (UTC), not IST
+Missing IST Conversion in Backend
+
+/api/unaki/schedule endpoint returns UTC times without IST conversion
+Current time indicator calculation uses server time, not IST
+Break times and shift times displayed in UTC instead of IST
+ShiftLogs model stores times without timezone context
+Frontend-Backend Time Mismatch
+
+JavaScript in unaki_booking.html uses hardcoded IST (Asia/Kolkata)
+Backend returns UTC times
+Time comparisons fail due to timezone differences
+Current time line shows wrong position (UTC time instead of IST)
+Timezone Utility Functions Defined But NOT USED
+
+get_ist_now() defined in app.py but never called in booking logic
+convert_to_ist() defined but not applied to any datetime operations
+get_ist_date_today() exists but date.today() used instead throughout code
+Shift Scheduler Integration Issues
+
+ShiftLogs.shift_start_time and shift_end_time are naive Time objects
+No timezone conversion when comparing shift times with booking times
+Break time calculations ignore timezone
+MEDIUM PRIORITY ISSUES
+Appointment Timestamps Missing Timezone
+
+All created_at, updated_at fields use datetime.utcnow() without timezone info
+Should use datetime.now(IST) for Indian timezone
+No Timezone Validation
+
+No checks to ensure times are in IST
+Cross-timezone booking conflicts not handled
+No validation that appointment times match staff shift times in same timezone
+API Response Time Format
+
+/api/unaki/schedule returns times as strings without timezone indicator
+Frontend assumes IST but has no guarantee backend sent IST times
+Current Time Indicator Wrong
+
+JavaScript calculates current time in IST but compares against UTC slot times
+Time line appears at wrong position on timeline grid
+Time Display Inconsistencies
+
+12-hour format used in frontend
+24-hour format stored in backend
+No consistent timezone label (IST/UTC) shown to users
+FILES REQUIRING FIXES
+app.py - Apply timezone utilities to all datetime operations
+models.py - Add timezone awareness to UnakiBooking, ShiftLogs models
+modules/bookings/bookings_views.py - Convert all times to IST in API responses
+templates/unaki_booking.html - Ensure frontend expects and displays IST correctly
+ROOT CAUSE
+The pytz library and IST timezone utilities (get_ist_now(), convert_to_ist(), IST = pytz.timezone('Asia/Kolkata')) were added to app.py but the actual booking logic in endpoints and models never uses them. The system stores and retrieves all times as naive objects, causing the frontend (which expects IST) to display incorrect times.
+
+Copy this list and give it to the Replit Agent to fix all timezone issues systematically.
