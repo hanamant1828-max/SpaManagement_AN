@@ -70,7 +70,7 @@ def get_inventory_report():
     """Get inventory report"""
     inventory_data = Inventory.query.filter_by(is_active=True).all()
     
-    low_stock = [item for item in inventory_data if item.current_stock <= item.min_stock_level]
+    low_stock = [item for item in inventory_data if getattr(item, 'quantity_in_stock', 0) <= getattr(item, 'min_stock_level', 0)]
     expiring_soon = [item for item in inventory_data if item.expiry_date and item.expiry_date <= date.today() + timedelta(days=30)]
     
     return {

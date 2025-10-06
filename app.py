@@ -124,6 +124,11 @@ def run_automatic_migrations():
                 cursor.execute("ALTER TABLE service_packages ADD COLUMN package_name VARCHAR(255)")
                 migrations_applied = True
 
+            if 'description' not in service_package_columns:
+                print("  → Adding column: service_packages.description")
+                cursor.execute("ALTER TABLE service_packages ADD COLUMN description TEXT")
+                migrations_applied = True
+
         if migrations_applied:
             conn.commit()
             print("  ✅ Database schema updated successfully")
