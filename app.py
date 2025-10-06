@@ -248,12 +248,41 @@ def utility_processor():
         text = str(text)
         return text[:length] + '...' if len(text) > length else text
 
+    def calculate_age(date_of_birth):
+        """Calculate age from date of birth"""
+        if not date_of_birth:
+            return 'N/A'
+        try:
+            from datetime import date
+            today = date.today()
+            age = today.year - date_of_birth.year - ((today.month, today.day) < (date_of_birth.month, date_of_birth.day))
+            return age
+        except:
+            return 'N/A'
+
+    def get_status_badge_class(status):
+        """Get Bootstrap badge class for status"""
+        status_map = {
+            'new_customer': 'primary',
+            'regular_customer': 'info',
+            'loyal_customer': 'success',
+            'inactive_customer': 'warning',
+            'inactive': 'secondary',
+            'active': 'success',
+            'pending': 'warning',
+            'completed': 'success',
+            'cancelled': 'danger'
+        }
+        return status_map.get(str(status).lower(), 'secondary')
+
     return dict(
         utils=dict(
             get_month_name=get_month_name,
             format_date=format_date,
             truncate_text=truncate_text,
-            format_currency=format_currency
+            format_currency=format_currency,
+            calculate_age=calculate_age,
+            get_status_badge_class=get_status_badge_class
         )
     )
 
