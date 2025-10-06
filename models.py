@@ -1179,7 +1179,7 @@ class UnakiBooking(db.Model):
     end_time = db.Column(db.Time, nullable=False)
 
     # Status and Notes
-    status = db.Column(db.String(20), default='scheduled')  # scheduled, confirmed, in_progress, completed, cancelled, no_show
+    status = db.Column(db.Enum('scheduled', 'confirmed', 'in_progress', 'completed', 'cancelled', 'no_show', name='unaki_booking_status'), default='scheduled', nullable=False)
     notes = db.Column(db.Text)
     internal_notes = db.Column(db.Text)  # Staff-only notes
 

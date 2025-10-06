@@ -215,6 +215,32 @@ def save_daily_schedule():
             out_end = datetime.strptime(day['outOfOfficeEnd'], '%H:%M').time() if day.get('outOfOfficeEnd') else None
             out_reason = day.get('outOfOfficeReason', '')
 
+            if start_time and end_time and start_time >= end_time:
+                return jsonify({
+                    'success': False,
+                    'error': f'Invalid shift times for {day_date}: shift end time must be after start time'
+                }), 400
+
+            if break_start and break_end:
+                if break_start >= break_end:
+                    return jsonify({
+                        'success': False,
+                        'error': f'Invalid break times for {day_date}: break end time must be after start time'
+                    }), 400
+                
+                if start_time and end_time:
+                    if break_start < start_time or break_end > end_time:
+                        return jsonify({
+                            'success': False,
+                            'error': f'Invalid break times for {day_date}: break must be within shift hours ({start_time.strftime("%H:%M")} - {end_time.strftime("%H:%M")})'
+                        }), 400
+
+            if out_start and out_end and out_start >= out_end:
+                return jsonify({
+                    'success': False,
+                    'error': f'Invalid out-of-office times for {day_date}: end time must be after start time'
+                }), 400
+
             shift_log = ShiftLogs(
                 shift_management_id=shift_management.id,
                 individual_date=day_date,
@@ -566,6 +592,32 @@ def update_daily_schedule(schedule_id):
             out_start = datetime.strptime(day['outOfOfficeStart'], '%H:%M').time() if day.get('outOfOfficeStart') else None
             out_end = datetime.strptime(day['outOfOfficeEnd'], '%H:%M').time() if day.get('outOfOfficeEnd') else None
             out_reason = day.get('outOfOfficeReason', '')
+
+            if start_time and end_time and start_time >= end_time:
+                return jsonify({
+                    'success': False,
+                    'error': f'Invalid shift times for {day_date}: shift end time must be after start time'
+                }), 400
+
+            if break_start and break_end:
+                if break_start >= break_end:
+                    return jsonify({
+                        'success': False,
+                        'error': f'Invalid break times for {day_date}: break end time must be after start time'
+                    }), 400
+                
+                if start_time and end_time:
+                    if break_start < start_time or break_end > end_time:
+                        return jsonify({
+                            'success': False,
+                            'error': f'Invalid break times for {day_date}: break must be within shift hours ({start_time.strftime("%H:%M")} - {end_time.strftime("%H:%M")})'
+                        }), 400
+
+            if out_start and out_end and out_start >= out_end:
+                return jsonify({
+                    'success': False,
+                    'error': f'Invalid out-of-office times for {day_date}: end time must be after start time'
+                }), 400
 
             shift_log = ShiftLogs(
                 shift_management_id=shift_management.id,

@@ -1424,6 +1424,105 @@ def api_unaki_update_booking(booking_id):
         return jsonify({'error': str(e), 'success': False}), 500
 
 
+@app.route('/api/unaki/bookings/<int:booking_id>', methods=['DELETE'])
+@login_required
+def api_unaki_delete_booking(booking_id):
+    """API endpoint to delete an existing Unaki booking"""
+    if not current_user.can_access('bookings'):
+        return jsonify({'error': 'Access denied', 'success': False}), 403
+
+    try:
+        from models import UnakiBooking
+        from app import db
+
+        booking = UnakiBooking.query.get(booking_id)
+        if not booking:
+            return jsonify({'error': 'Booking not found', 'success': False}), 404
+
+        client_name = booking.client_name
+        service_name = booking.service_name
+        
+        db.session.delete(booking)
+        db.session.commit()
+
+        print(f"✅ Booking {booking_id} deleted successfully")
+
+        return jsonify({
+            'success': True,
+            'message': f'Appointment for {client_name} ({service_name}) deleted successfully'
+        })
+
+    except Exception as e:
+        print(f"❌ Error deleting Unaki booking: {e}")
+        import traceback
+        traceback.print_exc()
+        if 'db' in locals():
+            db.session.rollback()
+        return jsonify({'error': str(e), 'success': False}), 500
+
+
+@app.route('/api/unaki/bookings/<int:booking_id>', methods=['PATCH'])
+@login_required
+def api_unaki_patch_booking(booking_id):
+    """API endpoint to partially update an existing Unaki booking (status, notes, etc.)"""
+    if not current_user.can_access('bookings'):
+        return jsonify({'error': 'Access denied', 'success': False}), 403
+
+    try:
+        from models import UnakiBooking
+        from app import db
+
+        booking = UnakiBooking.query.get(booking_id)
+        if not booking:
+            return jsonify({'error': 'Booking not found', 'success': False}), 404
+
+        data = request.get_json()
+        print(f"📝 Partially updating booking {booking_id} with data: {data}")
+
+        if 'status' in data:
+            valid_statuses = ['scheduled', 'confirmed', 'in_progress', 'completed', 'cancelled', 'no_show']
+            if data['status'] in valid_statuses:
+                booking.status = data['status']
+            else:
+                return jsonify({
+                    'error': f'Invalid status. Must be one of: {", ".join(valid_statuses)}',
+                    'success': False
+                }), 400
+
+        if 'notes' in data:
+            booking.notes = data['notes']
+
+        if 'payment_status' in data:
+            booking.payment_status = data['payment_status']
+
+        if 'service_price' in data:
+            try:
+                booking.service_price = float(data['service_price'])
+            except (ValueError, TypeError):
+                return jsonify({
+                    'error': 'Invalid service price format',
+                    'success': False
+                }), 400
+
+        db.session.commit()
+
+        print(f"✅ Booking {booking_id} partially updated successfully")
+
+        return jsonify({
+            'success': True,
+            'message': 'Appointment updated successfully',
+            'booking': booking.to_dict()
+        })
+
+    except Exception as e:
+        print(f"❌ Error partially updating Unaki booking: {e}")
+        import traceback
+        traceback.print_exc()
+        if 'db' in locals():
+            db.session.rollback()
+        return jsonify({'error': str(e), 'success': False}), 500
+
+
 @app.route('/api/unaki/bookings/<int:booking_id>')
 @login_required
 def api_get_unaki_booking(booking_id):
@@ -2303,14 +2402,29 @@ def unaki_schedule_api(date_str):
 
         for staff in staff_members:
             schedule = get_staff_schedule_for_date(staff.id, target_date)
-            staff_info = {
-                'id': staff.id,
-                'name': staff.full_name or staff.username,
-                'specialty': getattr(staff, 'specialization', staff.role if hasattr(staff, 'role') else 'General'),
-                'shift_start': schedule['shift_start_time'].strftime('%H:%M') if schedule and schedule['shift_start_time'] else '09:00',
-                'shift_end': schedule['shift_end_time'].strftime('%H:%M') if schedule and schedule['shift_end_time'] else '17:00',
-                'is_working': schedule['is_working_day'] if schedule else True
-            }
+            is_working = schedule['is_working_day'] if schedule else True
+            
+            if schedule and not is_working:
+                staff_info = {
+                    'id': staff.id,
+                    'name': staff.full_name or staff.username,
+                    'specialty': getattr(staff, 'specialization', staff.role if hasattr(staff, 'role') else 'General'),
+                    'shift_start': None,
+                    'shift_end': None,
+                    'is_working': False,
+                    'day_status': 'off',
+                    'off_reason': 'Day Off'
+                }
+            else:
+                staff_info = {
+                    'id': staff.id,
+                    'name': staff.full_name or staff.username,
+                    'specialty': getattr(staff, 'specialization', staff.role if hasattr(staff, 'role') else 'General'),
+                    'shift_start': schedule['shift_start_time'].strftime('%H:%M') if schedule and schedule['shift_start_time'] else '09:00',
+                    'shift_end': schedule['shift_end_time'].strftime('%H:%M') if schedule and schedule['shift_end_time'] else '17:00',
+                    'is_working': True,
+                    'day_status': 'working'
+                }
             staff_data.append(staff_info)
 
         # Get appointments for the date
