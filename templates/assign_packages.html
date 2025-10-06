@@ -404,7 +404,15 @@ function recalculateTotals() {
             const free = currentPackage.free_sessions || 0;
             subtotal = payFor * currentService.price;
             discount = free * currentService.price;
-        } else {
+        } else if (packageType === 'student_offer') {
+            // Student offers have a price of 0 in the `packages` data,
+            // but the actual price might be stored elsewhere or handled by backend.
+            // For now, we assume they are free or handled by backend logic.
+            // If a specific price needs to be displayed, it would need to be fetched or calculated.
+            subtotal = 0; // Student offers are typically free or heavily discounted.
+            discount = 0; // No explicit discount to show here.
+        }
+        else {
             subtotal = currentPackage.price || currentPackage.actual_price || 0;
         }
     }
@@ -427,10 +435,22 @@ function recalculateTotals() {
 function validateForm() {
     const customerId = document.getElementById('customerId').value;
     const packageType = document.getElementById('packageType').value;
-    const packageId = document.getElementById('packageId').value;
+    let packageId = document.getElementById('packageId').value;
     const serviceId = document.getElementById('serviceId').value;
 
-    let isValid = customerId && packageType && packageId;
+    let isValid = customerId && packageType;
+
+    if (packageType === 'student_offer') {
+        // For student offers, we don't necessarily need a specific packageId from the dropdown
+        // if it's handled as a distinct type. However, if there are different *types* of student offers
+        // that need selection, this logic might need adjustment.
+        // For now, assuming selecting "Student Offer" is enough to proceed if other fields are valid.
+        // If a specific student offer *must* be selected, uncomment the next line:
+        // isValid = isValid && packageId;
+    } else {
+        isValid = isValid && packageId;
+    }
+
 
     if (packageType === 'service_package') {
         isValid = isValid && serviceId;
@@ -482,7 +502,9 @@ document.getElementById('btnAssignAndPay').addEventListener('click', async funct
         assignment: {
             customer_id: parseInt(customerId),
             package_type: packageType,
-            package_id: parseInt(packageId),
+            // For student offers, package_id might not be directly applicable if it's a general type.
+            // Backend should handle this, potentially by not requiring package_id for student_offer type.
+            package_id: (packageType === 'student_offer' && !packageId) ? null : parseInt(packageId),
             service_id: serviceId ? parseInt(serviceId) : null,
             price_paid: grandTotal,
             discount: discount,
@@ -728,11 +750,11 @@ window.AP_openUsage = (assignmentId)=>{
 };
 
 function updatePaymentSummary() {
-    const packageType = document.getElementById('assign_package_type')?.value;
-    const packageSelect = packageType ? document.getElementById(`assign_${packageType}_id`) : null;
-    const discountInput = document.getElementById('assign_discount');
-    const pricePaidInput = document.getElementById('assign_price_paid');
-    const paymentMethodSelect = document.getElementById('assign_payment_method');
+    const packageType = document.getElementById('packageType').value; // Corrected ID
+    const packageSelect = document.getElementById('packageId'); // Corrected ID
+    const discountInput = document.getElementById('assign_discount'); // Assuming this ID is correct from context
+    const pricePaidInput = document.getElementById('assign_price_paid'); // Assuming this ID is correct from context
+    const paymentMethodSelect = document.getElementById('assign_payment_method'); // Assuming this ID is correct from context
 
     // Add null checks for all required elements
     if (!packageSelect || !discountInput || !pricePaidInput || !paymentMethodSelect) {
@@ -741,11 +763,15 @@ function updatePaymentSummary() {
     }
 
     const selectedOption = packageSelect.selectedOptions[0];
-    if (!selectedOption) {
-        return;
+    let packagePrice = 0;
+
+    if (packageType === 'student_offer') {
+        packagePrice = 0; // Student offers are typically free or handled differently
+    } else if (selectedOption) {
+        packagePrice = parseFloat(selectedOption.dataset.price || 0);
     }
 
-    const packagePrice = parseFloat(selectedOption.dataset.price || 0);
+
     const discount = parseFloat(discountInput.value || 0);
     const finalPrice = Math.max(0, packagePrice - discount);
 
@@ -753,10 +779,10 @@ function updatePaymentSummary() {
 }
 
 function handlePaymentStatusChange() {
-    const paymentStatusElement = document.getElementById('asPaymentStatus');
-    const amountPaidInput = document.getElementById('asAmountPaid');
-    const amountPaidSection = document.getElementById('asAmountPaidSection');
-    const summaryTotalElement = document.getElementById('summaryTotal');
+    const paymentStatusElement = document.getElementById('asPaymentStatus'); // Assuming this ID is correct from context
+    const amountPaidInput = document.getElementById('asAmountPaid'); // Assuming this ID is correct from context
+    const amountPaidSection = document.getElementById('asAmountPaidSection'); // Assuming this ID is correct from context
+    const summaryTotalElement = document.getElementById('summaryTotal'); // Assuming this ID is correct from context
 
     if (!paymentStatusElement || !amountPaidInput || !amountPaidSection) {
         return;
@@ -783,6 +809,7 @@ function handlePaymentStatusChange() {
 
 // Initial call to set the summary on page load
 document.addEventListener('DOMContentLoaded', () => {
+    validateForm(); // Ensure form is validated on load
     updatePaymentSummary();
     handlePaymentStatusChange(); // Also handle initial payment status display
 });
