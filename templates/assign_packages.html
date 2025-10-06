@@ -431,31 +431,45 @@ document.getElementById('customerSearch').addEventListener('input', function() {
 function getPackagePrice(packageType, packageData) {
     if (!packageData) return 0;
 
+    let price = 0;
+    
     switch(packageType) {
         case 'prepaid':
             // Prepaid: actual_price or price or after_value
-            return parseFloat(packageData.actual_price || packageData.price || packageData.after_value || 0);
+            price = parseFloat(packageData.actual_price || packageData.price || packageData.after_value || 0);
+            break;
 
         case 'membership':
             // Membership: price or actual_price or amount
-            return parseFloat(packageData.price || packageData.actual_price || packageData.amount || 0);
+            price = parseFloat(packageData.price || packageData.actual_price || packageData.amount || 0);
+            break;
 
         case 'student_offer':
-            // Student offer: price or actual_price
-            return parseFloat(packageData.price || packageData.actual_price || 0);
+            // Student offer: price or actual_price (must have price field)
+            price = parseFloat(packageData.price || packageData.actual_price || 0);
+            console.log('Student offer price:', price, 'from data:', packageData);
+            break;
 
         case 'yearly':
             // Yearly membership: price or actual_price or annual_fee
-            return parseFloat(packageData.price || packageData.actual_price || packageData.annual_fee || 0);
+            price = parseFloat(packageData.price || packageData.actual_price || packageData.annual_fee || 0);
+            break;
 
         case 'kitty':
             // Kitty party: price or actual_price or package_price
-            return parseFloat(packageData.price || packageData.actual_price || packageData.package_price || 0);
+            price = parseFloat(packageData.price || packageData.actual_price || packageData.package_price || 0);
+            break;
 
         default:
             // Generic fallback: try common field names
-            return parseFloat(packageData.price || packageData.actual_price || packageData.amount || 0);
+            price = parseFloat(packageData.price || packageData.actual_price || packageData.amount || 0);
     }
+    
+    if (price === 0 && packageData) {
+        console.warn(`Warning: Package price is 0 for type ${packageType}. Package data:`, packageData);
+    }
+    
+    return price;
 }
 
 function recalculateTotals() {

@@ -381,19 +381,21 @@ def edit_student_offer():
 def api_get_student_offers():
     """Get all student offers"""
     try:
+        from models import StudentOffer
         student_offers = [{
             'id': s.id,
             'name': s.name if s.name else f"{s.discount_percentage}% Student Discount",
             'price': float(s.price) if s.price is not None else 0.0,
             'actual_price': float(s.price) if s.price is not None else 0.0,  # Compatibility field
-            'discount_percentage': s.discount_percentage,
+            'discount_percentage': float(s.discount_percentage) if s.discount_percentage else 0.0,
             'valid_from': s.valid_from.isoformat() if s.valid_from else None,
             'valid_to': s.valid_to.isoformat() if s.valid_to else None,
-            'valid_days': s.valid_days,
-            'conditions': s.conditions
+            'valid_days': s.valid_days or 'Mon-Sun',
+            'conditions': s.conditions or 'Valid with Student ID'
         } for s in StudentOffer.query.filter_by(is_active=True).all()]
         return jsonify(student_offers)
     except Exception as e:
+        logging.error(f"Error fetching student offers: {e}")
         return jsonify({'error': str(e)}), 500
 
 # NOTE: Student offer creation endpoint moved to modules/packages/routes.py
