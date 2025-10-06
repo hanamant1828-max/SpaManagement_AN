@@ -10,7 +10,11 @@ import json
 from sqlalchemy import and_
 
 # Import core models first
-from models import Customer, Service, Appointment, User
+from models import (
+    Customer, Service, Appointment, User, 
+    EnhancedInvoice, InvoiceItem, InvoicePayment,
+    ServicePackageAssignment
+)
 
 # Try to import inventory models with fallback
 try:
