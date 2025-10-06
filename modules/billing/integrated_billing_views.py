@@ -1234,33 +1234,33 @@ def create_professional_invoice():
                         )
 
                     if package_result.get('success') and package_result.get('applied'):
-                            # Update invoice item with package deduction
-                            item.deduction_amount = package_result.get('deduction_amount', 0)
-                            item.final_amount = package_result.get('final_price', item.final_amount)
-                            item.is_package_deduction = True
-                            package_deductions_applied += 1
+                        # Update invoice item with package deduction
+                        item.deduction_amount = package_result.get('deduction_amount', 0)
+                        item.final_amount = package_result.get('final_price', item.final_amount)
+                        item.is_package_deduction = True
+                        package_deductions_applied += 1
 
-                            # Capture updated package info for UI refresh
-                            if package_result.get('assignment_id'):
-                                assignment = ServicePackageAssignment.query.get(package_result.get('assignment_id'))
-                                if assignment:
-                                    updated_packages.append({
-                                        "assignment_id": assignment.id,
-                                        "package_type": "service_package",
-                                        "sessions": {
-                                            "total": int(assignment.total_sessions or 0),
-                                            "used": int(assignment.used_sessions or 0),
-                                            "remaining": int(assignment.remaining_sessions or 0)
-                                        },
-                                        "status": assignment.status
-                                    })
+                        # Capture updated package info for UI refresh
+                        if package_result.get('assignment_id'):
+                            assignment = ServicePackageAssignment.query.get(package_result.get('assignment_id'))
+                            if assignment:
+                                updated_packages.append({
+                                    "assignment_id": assignment.id,
+                                    "package_type": "service_package",
+                                    "sessions": {
+                                        "total": int(assignment.total_sessions or 0),
+                                        "used": int(assignment.used_sessions or 0),
+                                        "remaining": int(assignment.remaining_sessions or 0)
+                                    },
+                                    "status": assignment.status
+                                })
 
-                            # Log package usage
-                            app.logger.info(f"✅ Package benefit applied: {package_result.get('message')}")
-                        elif package_result.get('success') and not package_result.get('applied'):
-                            app.logger.info(f"ℹ️ No package benefit: {package_result.get('message')}")
-                        else:
-                            app.logger.warning(f"⚠️ Package deduction error: {package_result.get('message')}")
+                        # Log package usage
+                        app.logger.info(f"✅ Package benefit applied: {package_result.get('message')}")
+                    elif package_result.get('success') and not package_result.get('applied'):
+                        app.logger.info(f"ℹ️ No package benefit: {package_result.get('message')}")
+                    else:
+                        app.logger.warning(f"⚠️ Package deduction error: {package_result.get('message')}")
 
                     # Mark Unaki appointment as completed and paid if appointment_id exists
                     if service_data.get('appointment_id'):
@@ -1329,100 +1329,11 @@ def create_professional_invoice():
             import traceback
             traceback.print_exc()
             return jsonify({'success': False, 'message': f'Error creating invoice: {str(e)}'}), 500
-                        batch_name=batch.batch_name,
-                        quantity=item_data['quantity'],
-                        unit_price=item_data['unit_price'],
-                        original_amount=item_data['unit_price'] * item_data['quantity'],
-                        final_amount=item_data['unit_price'] * item_data['quantity'],
-                        staff_id=item_data.get('staff_id')
-                    )
-                    db.session.add(item)
-                    inventory_items_created += 1
-
-                    # Reduce stock
-                    create_consumption_record(
-                        batch_id=batch.id,
-                        quantity=item_data['quantity'],
-                        issued_to=f"Invoice {invoice_number} - {customer.full_name}",
-                        reference=invoice_number,
-                        notes=f"Professional invoice sale - {invoice_number}",
-                        user_id=current_user.id
-                    )
-                    stock_reduced_count += 1
-
-            # === CRITICAL UPDATE 2: Staff Performance Tracking ===
-            staff_updated_count = 0
-            for service_data in services_data:
-                if service_data.get('staff_id'):
-                    service = Service.query.get(service_data['service_id'])
-                    staff = User.query.get(service_data['staff_id'])
-
-                    if service and staff:
-                        service_amount = service.price * service_data['quantity']
-
-                        # Update staff performance metrics - track total revenue generated
-                        staff.total_revenue_generated = (staff.total_revenue_generated or 0.0) + service_amount
-                        staff.total_clients_served = (staff.total_clients_served or 0) + 1
-                        staff.total_sales = (staff.total_sales or 0.0) + service_amount
-                        staff.last_service_performed = current_date
-                        staff_updated_count += 1
-
-                # Update staff metrics for product sales
-                for item_data in inventory_data:
-                    if item_data.get('staff_id'):
-                        staff = User.query.get(item_data['staff_id'])
-
-                        if staff:
-                            product_amount = item_data['unit_price'] * item_data['quantity']
-
-                            # Update staff performance metrics for product sales
-                            staff.total_revenue_generated = (staff.total_revenue_generated or 0.0) + product_amount
-                            staff.total_clients_served = (staff.total_clients_served or 0) + 1
-                            staff.total_sales = (staff.total_sales or 0.0) + product_amount
-                            staff.last_service_performed = current_date
-                            staff_updated_count += 1
-
-                # === CRITICAL UPDATE 3: Client Visit & Spending History ===
-                customer.last_visit = current_date
-                customer.total_visits = (customer.total_visits or 0) + 1
-                customer.total_spent = (customer.total_spent or 0.0) + total_amount
-
-                # Commit all changes
-                db.session.commit()
-
-                # Return detailed response data
-                response_data = {
-                    'success': True,
-                    'message': f'Invoice {invoice_number} created successfully. {completed_appointments} appointments marked as completed. {package_deductions_applied} package benefits applied.',
-                    'invoice_id': invoice.id,
-                    'invoice_number': invoice_number,
-                    'total_amount': float(total_amount),
-                    'cgst_amount': float(cgst_amount),
-                    'sgst_amount': float(sgst_amount),
-                    'igst_amount': float(igst_amount),
-                    'tax_amount': float(total_tax),
-                    'service_items_created': service_items_created,
-                    'inventory_items_created': inventory_items_created,
-                    'stock_reduced': stock_reduced_count,
-                    'package_deductions_applied': package_deductions_applied,
-                    'appointments_completed': completed_appointments,
-                    'client_updated': True,
-                    'updated_packages': updated_packages  # Include updated package info for UI refresh
-                }
-                app.logger.info(f"✅ Invoice {invoice_number} created successfully - returning response")
-                return jsonify(response_data)
-
-        except Exception as e:
-            db.session.rollback()
-            app.logger.error(f"Professional invoice creation failed for user {current_user.id}: {str(e)}")
-            return jsonify({
-                'success': False,
-                'message': f'Transaction failed: {str(e)}. All changes have been rolled back.'
-            })
 
     except Exception as e:
         db.session.rollback()
-        return jsonify({'success': False, 'message': f'Error creating professional invoice: {str(e)}'})
+        app.logger.error(f"Professional invoice creation failed: {str(e)}")
+        return jsonify({'success': False, 'message': f'Error creating professional invoice: {str(e)}'}), 500
 
 
 @app.route('/integrated-billing/customer-packages/<int:customer_id>', methods=['GET'])
