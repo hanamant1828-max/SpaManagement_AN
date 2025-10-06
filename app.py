@@ -63,34 +63,44 @@ def run_automatic_migrations():
         conn = sqlite3.connect(db_path)
         cursor = conn.cursor()
         
-        # Check if shift_logs table exists
-        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='shift_logs'")
-        if not cursor.fetchone():
-            print("  → shift_logs table doesn't exist yet, skipping migration")
-            conn.close()
-            return
-        
-        # Get current columns in shift_logs table
-        cursor.execute("PRAGMA table_info(shift_logs)")
-        columns = [row[1] for row in cursor.fetchall()]
-        
-        # Check and add missing columns for out_of_office tracking
         migrations_applied = False
         
-        if 'out_of_office_start' not in columns:
-            print("  → Adding column: out_of_office_start")
-            cursor.execute("ALTER TABLE shift_logs ADD COLUMN out_of_office_start TIME")
-            migrations_applied = True
+        # Migration 1: shift_logs table
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='shift_logs'")
+        if cursor.fetchone():
+            cursor.execute("PRAGMA table_info(shift_logs)")
+            shift_columns = [row[1] for row in cursor.fetchall()]
             
-        if 'out_of_office_end' not in columns:
-            print("  → Adding column: out_of_office_end")
-            cursor.execute("ALTER TABLE shift_logs ADD COLUMN out_of_office_end TIME")
-            migrations_applied = True
+            if 'out_of_office_start' not in shift_columns:
+                print("  → Adding column: shift_logs.out_of_office_start")
+                cursor.execute("ALTER TABLE shift_logs ADD COLUMN out_of_office_start TIME")
+                migrations_applied = True
+                
+            if 'out_of_office_end' not in shift_columns:
+                print("  → Adding column: shift_logs.out_of_office_end")
+                cursor.execute("ALTER TABLE shift_logs ADD COLUMN out_of_office_end TIME")
+                migrations_applied = True
+                
+            if 'out_of_office_reason' not in shift_columns:
+                print("  → Adding column: shift_logs.out_of_office_reason")
+                cursor.execute("ALTER TABLE shift_logs ADD COLUMN out_of_office_reason VARCHAR(200)")
+                migrations_applied = True
+        
+        # Migration 2: student_offers table
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='student_offers'")
+        if cursor.fetchone():
+            cursor.execute("PRAGMA table_info(student_offers)")
+            student_columns = [row[1] for row in cursor.fetchall()]
             
-        if 'out_of_office_reason' not in columns:
-            print("  → Adding column: out_of_office_reason")
-            cursor.execute("ALTER TABLE shift_logs ADD COLUMN out_of_office_reason VARCHAR(200)")
-            migrations_applied = True
+            if 'name' not in student_columns:
+                print("  → Adding column: student_offers.name")
+                cursor.execute("ALTER TABLE student_offers ADD COLUMN name VARCHAR(200)")
+                migrations_applied = True
+                
+            if 'discount_percentage' not in student_columns:
+                print("  → Adding column: student_offers.discount_percentage")
+                cursor.execute("ALTER TABLE student_offers ADD COLUMN discount_percentage FLOAT")
+                migrations_applied = True
         
         if migrations_applied:
             conn.commit()
