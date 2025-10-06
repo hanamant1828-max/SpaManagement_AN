@@ -1076,12 +1076,13 @@ class InvoiceItem(db.Model):
     is_extra_charge = db.Column(db.Boolean, default=False)
 
     # Staff tracking - who performed the service/sold the product
-    staff_id = db.Column(db.Integer, db.ForeignKey('user.id', ondelete='SET NULL'), nullable=True)
+    staff_id = db.Column(db.Integer, nullable=True)  # Remove FK constraint temporarily
     staff_name = db.Column(db.String(200), nullable=True)
 
     # Relationships
     # Note: appointment_id can reference either Appointment or UnakiBooking, so no relationship defined
-    assigned_staff = db.relationship('User', backref='invoice_service_items', foreign_keys=[staff_id])
+    # Remove relationship to avoid FK issues
+    # assigned_staff = db.relationship('User', backref='invoice_service_items', foreign_keys=[staff_id])
 
 
 # Unaki Booking System Models
