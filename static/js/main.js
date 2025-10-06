@@ -86,6 +86,15 @@ function initializeApp() {
     if (SpaApp.settings.autoRefresh) {
         startAutoRefresh();
     }
+
+    // Only initialize face capture on relevant pages
+    const isFacePage = window.location.pathname.includes('/staff') || 
+                       window.location.pathname.includes('/customers') ||
+                       window.location.pathname.includes('/face');
+    
+    if (isFacePage) {
+        initializeFaceCapture();
+    }
 }
 
 // Global event listeners
@@ -96,11 +105,6 @@ function setupGlobalEventListeners() {
 
     // Auto-hide mobile sidebar when clicking navigation links
     setupMobileSidebarAutoHide();
-
-    // Initialize face capture functionality only on pages that need it
-    if (window.location.pathname.includes('/staff') || window.location.pathname.includes('/face')) {
-        initializeFaceCapture();
-    }
 
     // Handle form submissions
     document.addEventListener('submit', handleFormSubmit);
@@ -133,6 +137,15 @@ function setupGlobalEventListeners() {
 
 // Face Capture Functionality - only initialize when needed
 function initializeFaceCapture() {
+    // Only initialize if we're on a page that has face capture elements
+    const hasFaceElements = document.getElementById('faceVideo') ||
+                           document.getElementById('staffFaceVideo') ||
+                           document.getElementById('face-capture');
+    
+    if (!hasFaceElements) {
+        return; // Not on a face capture page, skip initialization
+    }
+
     console.log('Initializing face capture functionality...');
 
     // Initialize camera buttons when page loads
@@ -155,9 +168,11 @@ let faceStream = null;
 
 function setupCameraButtons() {
     // Only run on pages that actually have camera buttons
-    if (!document.getElementById('startCameraBtn') &&
-        !document.getElementById('startRecognitionBtn') &&
-        !document.getElementById('startFaceCamera')) {
+    const hasAnyCameraButton = document.getElementById('startCameraBtn') ||
+                               document.getElementById('startRecognitionBtn') ||
+                               document.getElementById('startFaceCamera');
+    
+    if (!hasAnyCameraButton) {
         return; // No camera buttons found, skip setup
     }
 
@@ -212,8 +227,7 @@ async function startFaceCameraForTab() {
         const startBtn = document.getElementById('startFaceCamera');
 
         if (!video) {
-            console.error('Face video element not found');
-            alert('Camera element not found');
+            console.warn('Face video element not found - skipping camera initialization');
             return;
         }
 
@@ -384,13 +398,18 @@ function resetFaceInterface() {
 async function startFaceCamera(videoId, areaId) {
     console.log('Starting face camera:', videoId);
 
+    // Guard: only proceed if we're on a page that has these elements
+    if (!document.getElementById(videoId)) {
+        console.warn('Video element not found - skipping camera initialization');
+        return;
+    }
+
     try {
         const video = document.getElementById(videoId);
         const area = document.getElementById(areaId);
 
         if (!video) {
-            console.error('Video element not found:', videoId);
-            alert('Camera element not found');
+            console.warn('Video element not available');
             return;
         }
 
