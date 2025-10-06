@@ -3252,7 +3252,14 @@
             // Helper function to add validation error styling
             function addValidationError(input, message) {
                 input.classList.add('is-invalid');
-                const errorDiv = document.createElement('div');
+                input.classList.remove('is-valid');
+                // Remove any existing error div
+                let errorDiv = input.parentElement.querySelector('.invalid-feedback');
+                if (errorDiv) {
+                    errorDiv.remove();
+                }
+                // Create and append the new error div
+                errorDiv = document.createElement('div');
                 errorDiv.className = 'invalid-feedback';
                 errorDiv.textContent = message;
                 input.parentElement.appendChild(errorDiv);
@@ -3326,18 +3333,22 @@
                         const dateInput = row.querySelector('input[name="date"]');
                         const startTimeInput = row.querySelector('input[name="start_time"]');
                         const endTimeInput = row.querySelector('input[name="end_time"]');
+                        const notesTextarea = document.getElementById('multiNotes');
 
                         appointments.push({
-                            service_id: serviceSelect.value,
-                            service_name: serviceSelect.options[serviceSelect.selectedIndex].text,
+                            client_name: clientDropdown.options[clientDropdown.selectedIndex].text.split(' - ')[0], // Extract client name
+                            client_phone: clientDropdown.value, // Assuming value is client ID, need phone from data attribute
+                            client_email: clientDropdown.selectedOptions[0].dataset.email || '', // Get email from data attribute
                             staff_id: staffSelect.value,
                             staff_name: staffSelect.options[staffSelect.selectedIndex].text,
-                            client_id: clientDropdown.value,
-                            client_name: clientDropdown.options[clientDropdown.selectedIndex].text,
-                            date: dateInput.value,
+                            service_id: serviceSelect.value,
+                            service_name: serviceSelect.options[serviceSelect.selectedIndex].text.split(' (')[0], // Extract service name
+                            service_duration: parseInt(serviceSelect.selectedOptions[0].dataset.duration) || 60,
+                            service_price: parseFloat(serviceSelect.selectedOptions[0].dataset.price) || 0,
+                            appointment_date: dateInput.value,
                             start_time: startTimeInput.value,
                             end_time: endTimeInput.value,
-                            notes: document.getElementById('multiNotes')?.value || ''
+                            notes: notesTextarea.value
                         });
                     }
                 });
@@ -3376,12 +3387,26 @@
                 for (let i = 0; i < appointments.length; i++) {
                     const appointment = appointments[i];
                     try {
-                        const response = await fetch('/api/unaki/book', {
+                        // Fix individual appointment API call to use correct field names
+                        const response = await fetch('/api/unaki/book-appointment', {
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/json',
                             },
-                            body: JSON.stringify(appointment)
+                            body: JSON.stringify({
+                                client_name: appointment.client_name,
+                                client_phone: clientDropdown.selectedOptions[0].dataset.phone || '', // Correctly get phone number
+                                client_email: appointment.client_email,
+                                staff_id: parseInt(appointment.staff_id), // Ensure staff_id is an integer
+                                service_id: parseInt(appointment.service_id), // Ensure service_id is an integer
+                                service_name: appointment.service_name,
+                                service_duration: appointment.service_duration,
+                                service_price: appointment.service_price,
+                                appointment_date: appointment.appointment_date,
+                                start_time: appointment.start_time,
+                                end_time: appointment.end_time,
+                                notes: appointment.notes
+                            })
                         });
 
                         const result = await response.json();
@@ -3389,17 +3414,20 @@
                         if (result.success) {
                             successCount++;
                         } else {
-                            errorMessages.push(`• Appointment ${i + 1} (${appointment.service_name}): ${result.error || 'Booking failed'}`);
+                            // Extracting error from result, assuming it's a string or has an 'error' property
+                            const errorMessage = result.error || result.message || 'Unknown error';
+                            errorMessages.push(`• Appointment ${i + 1} (${appointment.service_name}): ${errorMessage}`);
                         }
                     } catch (error) {
-                        errorMessages.push(`• Appointment ${i + 1} (${appointment.service_name}): Network error`);
+                        console.error(`Network or server error booking appointment ${i + 1}:`, error);
+                        errorMessages.push(`• Appointment ${i + 1} (${appointment.service_name}): Network or server error`);
                     }
                 }
 
                 // Re-enable button
                 if (bookButton) {
                     bookButton.disabled = false;
-                    bookButton.innerHTML = '<i class="fas fa-calendar-check me-2"></i>Book All Appointments';
+                    bookButton.innerHTML = '<i class="fas fa-check-circle me-2"></i>Book All Appointments';
                 }
 
                 // Show results
@@ -3449,7 +3477,7 @@
                 const serviceSelect = card.querySelector('.service-select');
                 if (!serviceSelect.value) {
                     errors.push(`Service is required for Appointment #${appointmentNum}`);
-                    showFieldError(serviceSelect, `Service is required for Appointment #${appointmentNum}`);
+                    addValidationError(serviceSelect, `Service is required for Appointment #${appointmentNum}`);
                 } else {
                     clearFieldError(serviceSelect);
                 }
@@ -3458,7 +3486,7 @@
                 const staffSelect = card.querySelector('.staff-select');
                 if (!staffSelect.value) {
                     errors.push(`Staff member is required for Appointment #${appointmentNum}`);
-                    showFieldError(staffSelect, `Staff member is required for Appointment #${appointmentNum}`);
+                    addValidationError(staffSelect, `Staff member is required for Appointment #${appointmentNum}`);
                 } else {
                     clearFieldError(staffSelect);
                 }
@@ -3468,7 +3496,7 @@
                 const dateValue = dateInput.value;
                 if (!dateValue) {
                     errors.push(`Date is required for Appointment #${appointmentNum}`);
-                    showFieldError(dateInput, `Date is required for Appointment #${appointmentNum}`);
+                    addValidationError(dateInput, `Date is required for Appointment #${appointmentNum}`);
                 } else {
                     const selectedDate = new Date(dateValue);
                     const today = new Date();
@@ -3476,7 +3504,7 @@
 
                     if (selectedDate < today) {
                         errors.push('Cannot book appointments in the past');
-                        showFieldError(dateInput, 'Cannot book appointments in the past');
+                        addValidationError(dateInput, 'Cannot book appointments in the past');
                     } else {
                         clearFieldError(dateInput);
                     }
@@ -3487,13 +3515,13 @@
                 const timeValue = timeInput.value;
                 if (!timeValue) {
                     errors.push(`Start time is required for Appointment #${appointmentNum}`);
-                    showFieldError(timeInput, `Start time is required for Appointment #${appointmentNum}`);
+                    addValidationError(timeInput, `Start time is required for Appointment #${appointmentNum}`);
                 } else {
                     // Check business hours (09:00 - 21:00)
                     const [hours, minutes] = timeValue.split(':').map(Number);
                     if (hours < 9 || hours >= 21) {
                         errors.push('Time must be between 9:00 AM and 9:00 PM');
-                        showFieldError(timeInput, 'Time must be between 9:00 AM and 9:00 PM');
+                        addValidationError(timeInput, 'Time must be between 9:00 AM and 9:00 PM');
                     } else if (dateValue === new Date().toISOString().split('T')[0]) {
                         // If date is today, check if time is in future
                         const now = new Date();
@@ -3502,7 +3530,7 @@
 
                         if (selectedTime <= now) {
                             errors.push('Cannot book appointments in the past');
-                            showFieldError(timeInput, 'Cannot book appointments in the past');
+                            addValidationError(timeInput, 'Cannot book appointments in the past');
                         } else {
                             clearFieldError(timeInput);
                         }
@@ -3516,7 +3544,7 @@
                 const endTimeValue = endTimeInput.value;
                 if (!endTimeValue) {
                     errors.push(`End time is required for Appointment #${appointmentNum}`);
-                    showFieldError(endTimeInput, `End time is required for Appointment #${appointmentNum}`);
+                    addValidationError(endTimeInput, `End time is required for Appointment #${appointmentNum}`);
                 } else {
                     clearFieldError(endTimeInput);
                 }
@@ -3802,6 +3830,7 @@
                             validateAppointmentCard(card, index);
                             calculateEndTime(index); // Recalculate end time on service change
                             checkConflicts(index); // Re-check conflicts
+                            updateSummary();
                             updateSubmitButton();
                         });
                     }

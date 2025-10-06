@@ -1238,42 +1238,34 @@ def unaki_create_appointment():
         print(f"Received booking data: {data}")
 
         # Handle both old and new field names for flexibility
-        staff_id = data.get('staffId') or data.get('staff_id')
-        client_name = data.get('clientName') or data.get('client_name')
-        service_type = data.get('serviceType') or data.get('service') or data.get('service_name')
-        start_time = data.get('startTime') or data.get('start_time')
-        end_time = data.get('endTime') or data.get('end_time')
-        appointment_date_str = data.get('date') or data.get('appointmentDate') or data.get('appointment_date')
+        staff_id = data.get('staff_id') or data.get('staffId')
+        client_name = data.get('client_name') or data.get('clientName')
+        service_type = data.get('service_name') or data.get('serviceType') or data.get('service')
+        start_time = data.get('start_time') or data.get('startTime')
+        end_time = data.get('end_time') or data.get('endTime')
+        appointment_date_str = data.get('appointment_date') or data.get('date') or data.get('appointmentDate')
 
-        # Validate required fields with flexible field names
+        # Validate required fields and collect missing ones
+        missing_fields = []
+        
         if not staff_id:
-            return jsonify({
-                'success': False,
-                'error': 'Staff member is required. Please select a staff member.'
-            }), 400
-
+            missing_fields.append('staff_id')
         if not client_name or not str(client_name).strip():
-            return jsonify({
-                'success': False,
-                'error': 'Client name is required. Please enter the client name.'
-            }), 400
-
+            missing_fields.append('client_name')
         if not service_type or not str(service_type).strip():
-            return jsonify({
-                'success': False,
-                'error': 'Service type is required. Please select a service.'
-            }), 400
-
+            missing_fields.append('service_name')
+        if not appointment_date_str:
+            missing_fields.append('appointment_date')
         if not start_time:
-            return jsonify({
-                'success': False,
-                'error': 'Start time is required. Please select a start time.'
-            }), 400
-
+            missing_fields.append('start_time')
         if not end_time:
+            missing_fields.append('end_time')
+        
+        if missing_fields:
             return jsonify({
                 'success': False,
-                'error': 'End time is required. Please select an end time.'
+                'error': f'Missing required fields: {", ".join(missing_fields)}',
+                'received_data': {k: v for k, v in data.items() if k not in ['service_id', 'client_id']}
             }), 400
 
         # Parse date and times with better error handling
