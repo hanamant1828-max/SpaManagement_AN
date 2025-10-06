@@ -117,6 +117,89 @@ def send_single_whatsapp_reminder(appointment_id):
     
     return redirect(url_for('notifications'))
 
+@app.route('/notifications/send-whatsapp', methods=['POST'])
+@login_required
+def send_whatsapp_message():
+    """Send WhatsApp message to selected recipients"""
+    if not current_user.can_access('notifications'):
+        flash('Access denied', 'danger')
+        return redirect(url_for('dashboard'))
+    
+    from .notifications_queries import send_whatsapp_message as send_msg
+    from models import Customer
+    
+    recipient_type = request.form.get('recipient_type')
+    message = request.form.get('message')
+    
+    if not message:
+        flash('Message is required', 'danger')
+        return redirect(url_for('notifications'))
+    
+    sent_count = 0
+    failed_count = 0
+    
+    if recipient_type == 'single':
+        customer_id = request.form.get('customer_id')
+        if customer_id:
+            customer = Customer.query.get(customer_id)
+            if customer and customer.phone:
+                success = send_msg(customer.phone, message)
+                
+                # Log the communication
+                notification_data = {
+                    'client_id': customer.id,
+                    'type': 'whatsapp',
+                    'subject': 'Custom Message',
+                    'message': message,
+                    'status': 'sent' if success else 'failed',
+                    'created_by': current_user.id
+                }
+                create_notification(notification_data)
+                
+                if success:
+                    sent_count += 1
+                else:
+                    failed_count += 1
+    
+    elif recipient_type == 'multiple':
+        customer_ids = request.form.getlist('customer_ids[]')
+        for customer_id in customer_ids:
+            customer = Customer.query.get(customer_id)
+            if customer and customer.phone:
+                success = send_msg(customer.phone, message)
+                
+                # Log the communication
+                notification_data = {
+                    'client_id': customer.id,
+                    'type': 'whatsapp',
+                    'subject': 'Bulk Message',
+                    'message': message,
+                    'status': 'sent' if success else 'failed',
+                    'created_by': current_user.id
+                }
+                create_notification(notification_data)
+                
+                if success:
+                    sent_count += 1
+                else:
+                    failed_count += 1
+    
+    elif recipient_type == 'custom':
+        custom_phone = request.form.get('custom_phone')
+        if custom_phone:
+            success = send_msg(custom_phone, message)
+            if success:
+                sent_count += 1
+            else:
+                failed_count += 1
+    
+    if sent_count > 0:
+        flash(f'Successfully sent {sent_count} message(s)', 'success')
+    if failed_count > 0:
+        flash(f'Failed to send {failed_count} message(s)', 'warning')
+    
+    return redirect(url_for('notifications'))
+
 @app.route('/notifications/mark-sent/<int:id>', methods=['POST'])
 @login_required
 def mark_notification_sent_route(id):

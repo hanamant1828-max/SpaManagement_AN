@@ -45,6 +45,42 @@ def get_recent_communications():
     return Communication.query.order_by(Communication.created_at.desc()).limit(50).all()
 
 def get_pending_notifications():
+    """Get pending notifications"""
+    return Communication.query.filter_by(status='pending').all()
+
+def create_notification(data):
+    """Create a new notification record"""
+    notification = Communication(
+        client_id=data.get('client_id'),
+        type=data.get('type'),
+        subject=data.get('subject'),
+        message=data.get('message'),
+        status=data.get('status', 'pending'),
+        created_by=data.get('created_by')
+    )
+    db.session.add(notification)
+    db.session.commit()
+    return notification
+
+def mark_notification_sent(notification_id):
+    """Mark notification as sent"""
+    notification = Communication.query.get(notification_id)
+    if notification:
+        notification.status = 'sent'
+        db.session.commit()
+    return notification
+
+def get_clients_for_reminders():
+    """Get appointments that need reminders"""
+    tomorrow = date.today() + timedelta(days=1)
+    return Appointment.query.filter(
+        and_(
+            func.date(Appointment.appointment_date) == tomorrow,
+            Appointment.status == 'confirmed'
+        )
+    ).all()
+
+def get_pending_notifications():
     """Get pending notifications to send"""
     return Communication.query.filter_by(status='pending').order_by(Communication.created_at).all()
 

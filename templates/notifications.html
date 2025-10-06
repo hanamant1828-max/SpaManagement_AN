@@ -1,3 +1,4 @@
+
 {% extends "base.html" %}
 
 {% block title %}WhatsApp Notifications{% endblock %}
@@ -8,8 +9,8 @@
         <div class="col-12">
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h1><i class="fas fa-bell me-2"></i>WhatsApp Notifications</h1>
-                <button type="button" class="btn btn-primary">
-                    <i class="fab fa-whatsapp me-2"></i>Send Bulk Messages
+                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#sendMessageModal">
+                    <i class="fab fa-whatsapp me-2"></i>Send WhatsApp Message
                 </button>
             </div>
         </div>
@@ -41,6 +42,137 @@
                         <i class="fas fa-exclamation-triangle fa-2x"></i>
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Send Message Modal -->
+    <div class="modal fade" id="sendMessageModal" tabindex="-1" aria-labelledby="sendMessageModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title" id="sendMessageModalLabel">
+                        <i class="fab fa-whatsapp me-2"></i>Send WhatsApp Message
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form method="POST" action="{{ url_for('send_whatsapp_message') }}" id="whatsappMessageForm">
+                    <div class="modal-body">
+                        <!-- Recipient Selection -->
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">
+                                <i class="fas fa-users me-2"></i>Select Recipients
+                            </label>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="recipient_type" id="singleRecipient" value="single" checked onchange="toggleRecipientType()">
+                                <label class="form-check-label" for="singleRecipient">
+                                    Single Customer
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="recipient_type" id="multipleRecipients" value="multiple" onchange="toggleRecipientType()">
+                                <label class="form-check-label" for="multipleRecipients">
+                                    Multiple Customers
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="recipient_type" id="customNumber" value="custom" onchange="toggleRecipientType()">
+                                <label class="form-check-label" for="customNumber">
+                                    Custom Phone Number
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Single Customer Selection -->
+                        <div class="mb-3" id="singleCustomerSection">
+                            <label for="customer_id" class="form-label">
+                                <i class="fas fa-user me-2"></i>Select Customer *
+                            </label>
+                            <select class="form-select" id="customer_id" name="customer_id">
+                                <option value="">Choose a customer...</option>
+                                {% for appointment in upcoming_appointments %}
+                                <option value="{{ appointment.client.id }}" data-phone="{{ appointment.client.phone }}">
+                                    {{ appointment.client.full_name }} - {{ appointment.client.phone }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <!-- Multiple Customers Selection -->
+                        <div class="mb-3" id="multipleCustomersSection" style="display: none;">
+                            <label class="form-label">
+                                <i class="fas fa-users me-2"></i>Select Customers *
+                            </label>
+                            <div style="max-height: 200px; overflow-y: auto; border: 1px solid #dee2e6; border-radius: 0.375rem; padding: 10px;">
+                                {% for appointment in upcoming_appointments %}
+                                <div class="form-check">
+                                    <input class="form-check-input customer-checkbox" type="checkbox" name="customer_ids[]" value="{{ appointment.client.id }}" id="customer_{{ appointment.client.id }}">
+                                    <label class="form-check-label" for="customer_{{ appointment.client.id }}">
+                                        {{ appointment.client.full_name }} - {{ appointment.client.phone }}
+                                    </label>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            <div class="mt-2">
+                                <button type="button" class="btn btn-sm btn-outline-primary" onclick="selectAllCustomers()">Select All</button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="deselectAllCustomers()">Deselect All</button>
+                            </div>
+                        </div>
+
+                        <!-- Custom Phone Number -->
+                        <div class="mb-3" id="customPhoneSection" style="display: none;">
+                            <label for="custom_phone" class="form-label">
+                                <i class="fas fa-phone me-2"></i>Phone Number *
+                            </label>
+                            <input type="tel" class="form-control" id="custom_phone" name="custom_phone" placeholder="+918746084638">
+                            <small class="text-muted">Include country code (e.g., +91 for India)</small>
+                        </div>
+
+                        <!-- Message Templates -->
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">
+                                <i class="fas fa-file-alt me-2"></i>Message Template (Optional)
+                            </label>
+                            <select class="form-select" id="messageTemplate" onchange="loadTemplate()">
+                                <option value="">Choose a template...</option>
+                                <option value="appointment_reminder">Appointment Reminder</option>
+                                <option value="package_expiry">Package Expiry Alert</option>
+                                <option value="promotion">Promotional Message</option>
+                                <option value="thank_you">Thank You Message</option>
+                                <option value="custom">Custom Message</option>
+                            </select>
+                        </div>
+
+                        <!-- Message Input -->
+                        <div class="mb-3">
+                            <label for="message" class="form-label fw-bold">
+                                <i class="fas fa-comment-dots me-2"></i>Message *
+                            </label>
+                            <textarea class="form-control" id="message" name="message" rows="6" required placeholder="Type your message here..."></textarea>
+                            <div class="mt-2">
+                                <small class="text-muted">Characters: <span id="charCount">0</span></small>
+                            </div>
+                        </div>
+
+                        <!-- Preview -->
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">
+                                <i class="fas fa-eye me-2"></i>Preview
+                            </label>
+                            <div class="border rounded p-3 bg-light" id="messagePreview" style="min-height: 80px; white-space: pre-wrap;">
+                                Your message will appear here...
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                            <i class="fas fa-times me-2"></i>Cancel
+                        </button>
+                        <button type="submit" class="btn btn-success">
+                            <i class="fab fa-whatsapp me-2"></i>Send Message
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
@@ -147,4 +279,80 @@
         </div>
     </div>
 </div>
+
+<script>
+// Message templates
+const templates = {
+    appointment_reminder: "Hi {name}, this is a reminder that you have an appointment on {date} at {time} for {service}. See you soon!",
+    package_expiry: "Hi {name}, your package '{package}' is expiring on {expiry_date}. You have {sessions} sessions remaining. Please book soon!",
+    promotion: "Hi {name}, special offer just for you! Get 20% off on all spa services this week. Book now!",
+    thank_you: "Hi {name}, thank you for choosing our spa! We hope you enjoyed your {service}. Looking forward to seeing you again!",
+    custom: ""
+};
+
+function toggleRecipientType() {
+    const type = document.querySelector('input[name="recipient_type"]:checked').value;
+    
+    document.getElementById('singleCustomerSection').style.display = type === 'single' ? 'block' : 'none';
+    document.getElementById('multipleCustomersSection').style.display = type === 'multiple' ? 'block' : 'none';
+    document.getElementById('customPhoneSection').style.display = type === 'custom' ? 'block' : 'none';
+}
+
+function loadTemplate() {
+    const template = document.getElementById('messageTemplate').value;
+    const messageField = document.getElementById('message');
+    
+    if (template && templates[template]) {
+        messageField.value = templates[template];
+        updatePreview();
+    }
+}
+
+function updatePreview() {
+    const message = document.getElementById('message').value;
+    document.getElementById('messagePreview').textContent = message || 'Your message will appear here...';
+    document.getElementById('charCount').textContent = message.length;
+}
+
+function selectAllCustomers() {
+    document.querySelectorAll('.customer-checkbox').forEach(cb => cb.checked = true);
+}
+
+function deselectAllCustomers() {
+    document.querySelectorAll('.customer-checkbox').forEach(cb => cb.checked = false);
+}
+
+// Update preview as user types
+document.getElementById('message').addEventListener('input', updatePreview);
+
+// Form validation
+document.getElementById('whatsappMessageForm').addEventListener('submit', function(e) {
+    const type = document.querySelector('input[name="recipient_type"]:checked').value;
+    const message = document.getElementById('message').value;
+    
+    if (!message.trim()) {
+        e.preventDefault();
+        alert('Please enter a message');
+        return;
+    }
+    
+    if (type === 'single' && !document.getElementById('customer_id').value) {
+        e.preventDefault();
+        alert('Please select a customer');
+        return;
+    }
+    
+    if (type === 'multiple' && !document.querySelectorAll('.customer-checkbox:checked').length) {
+        e.preventDefault();
+        alert('Please select at least one customer');
+        return;
+    }
+    
+    if (type === 'custom' && !document.getElementById('custom_phone').value) {
+        e.preventDefault();
+        alert('Please enter a phone number');
+        return;
+    }
+});
+</script>
 {% endblock %}
