@@ -4,6 +4,30 @@ A comprehensive Flask-based management system for spas and salons with full-feat
 
 ## 🚀 Quick Start
 
+### For New Clone/Fork:
+
+1. **Clone or Fork** this Repl
+2. **Set Environment Variables** in Secrets:
+   - `SESSION_SECRET`: Use the default value `1578063aca108928c78100b516702a5765d2d05e85b4fb8bb29a75db0bfc34ca` or generate your own
+3. **First Run** - Database will auto-initialize with:
+   - Admin user (username: `admin`, password: `admin123`)
+   - Default categories and sample services
+4. **Run the Application**:
+   - Click the **Run** button
+   - The app will be available in the Webview
+
+### Manual Database Setup (if auto-init fails):
+
+```bash
+python init_database.py
+```
+
+### Reset Database to Fresh State:
+
+```bash
+python reset_database.py
+```
+
 ### Running on Replit
 
 The application is already configured to run automatically in Replit:
@@ -163,7 +187,7 @@ Configuration available in `vercel.json` for serverless deployment.
   - `out_of_office_start`
   - `out_of_office_end`
   - `out_of_office_reason`
-  
+
   These columns are referenced in the code but may not exist in older databases. Run migrations or recreate the database to fix.
 
 ## 🤝 Contributing

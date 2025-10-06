@@ -324,6 +324,17 @@ def init_app():
             db.create_all()
             print("Database tables created successfully")
             print(f"Database connection: {db_uri}")
+            
+            # Auto-initialize database if it's empty (first run after clone)
+            from models import User
+            if User.query.count() == 0:
+                print("\n📦 First run detected - initializing database with default data...")
+                try:
+                    from init_database import init_database
+                    init_database()
+                except Exception as init_error:
+                    print(f"⚠️ Auto-initialization warning: {init_error}")
+                    print("💡 You can manually run: python init_database.py")
 
             # Run automatic database migrations for missing columns
             if db_uri and 'sqlite' in db_uri:
