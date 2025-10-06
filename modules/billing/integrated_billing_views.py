@@ -391,6 +391,23 @@ def integrated_billing(customer_id=None):
                 if tracker.benefit_type == 'discount' or assignment.package_type == 'student_offer':
                     package_info['discount_percentage'] = float(tracker.discount_percentage or 0)
 
+                    # For student offers, get discount and applicable services from template
+                    if assignment.package_type == 'student_offer':
+                        try:
+                            from models import StudentOffer
+                            student_offer = StudentOffer.query.get(assignment.package_reference_id)
+                            if student_offer:
+                                if student_offer.discount_percent:
+                                    package_info['discount_percentage'] = float(student_offer.discount_percent)
+                                # Get list of service IDs this offer applies to
+                                if hasattr(student_offer, 'student_offer_services'):
+                                    applicable_service_ids = [sos.service_id for sos in student_offer.student_offer_services]
+                                    package_info['applicable_service_ids'] = applicable_service_ids
+                                    app.logger.info(f"✅ Student offer {package_info['name']} applies to services: {applicable_service_ids}")
+                        except Exception as e:
+                            app.logger.error(f"Error getting student offer details: {e}")
+
+
                 # Add type-specific fields matching template expectations
                 if tracker.benefit_type in ['free', 'discount']:
                     # Service-based packages - ensure we're getting the RIGHT data

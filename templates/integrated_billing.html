@@ -1333,7 +1333,7 @@ function displayCustomerAppointments(appointments) {
         const staffName = (apt.staff_name || 'Not assigned').replace(/'/g, "\\'").replace(/"/g, '\\"');
 
         html += `
-            <tr style="border-bottom: 1px solid var(--gray-200); ${isAdded ? 'background: #f0f4f0;' : ''}">
+            <tr style="border-bottom: 1px solid var(--gray-200); ${isAdded ? 'background: #f0f0f0;' : ''}">
                 <td style="padding: 8px;">
                     <div style="font-weight: 600; color: var(--gray-900);">${apt.service_name || 'Service not specified'}</div>
                     <small style="color: var(--gray-500);">${apt.service_duration ? apt.service_duration + ' min' : ''} ${statusBadge}</small>
@@ -1979,20 +1979,22 @@ function checkPackageBenefit(serviceId, servicePrice, quantity = 1) {
                 console.log(`🔍 Checking package: ${pkg.name} (type: ${pkg.package_type})`);
 
                 // STUDENT OFFER - applies discount percentage to specific services
-                if (pkg.package_type === 'student_offer' || pkg.package_type === 'student') {
-                    // Check if this service is included in the student offer
-                    // Student offers apply to all services unless restricted
-                    const discountPercent = pkg.discount_percentage || 0;
-                    if (discountPercent > 0) {
-                        const discountAmount = (servicePrice * discountPercent) / 100;
-                        totalBenefit += discountAmount;
-                        appliedPackage = `${pkg.name} (${discountPercent}% discount)`;
+                if (pkg.package_type === 'student_offer' && pkg.discount_percentage > 0) {
+                    // Student offers only apply to specific services that were selected when creating the offer
+                    const applicableServiceIds = pkg.applicable_service_ids || [];
+                    const serviceIdInt = parseInt(serviceId);
+                    const appliesToThisService = applicableServiceIds.length === 0 || applicableServiceIds.includes(serviceIdInt);
+
+                    if (appliesToThisService) {
+                        const totalServiceCost = servicePrice * quantity;
+                        totalBenefit = (totalServiceCost * pkg.discount_percentage) / 100;
+                        appliedPackage = pkg.name;
                         appliedPackageId = pkg.assignment_id;
                         benefitType = 'student_discount';
-                        console.log(`✅ Student offer discount applied: ${pkg.name}, ${discountPercent}% off = ₹${discountAmount.toFixed(2)}`);
-                        break; // Use first applicable package
+                        console.log(`✅ Student offer discount applied: ${pkg.name}, ${pkg.discount_percentage}% off = ₹${totalBenefit.toFixed(2)} (service ${serviceId} is in applicable list: ${applicableServiceIds})`);
+                        break; // Use first matching student offer
                     } else {
-                        console.warn(`⚠️ Student offer package ${pkg.name} has no discount_percentage:`, pkg);
+                        console.log(`⏭️ Student offer ${pkg.name} skipped - service ${serviceId} not in applicable list: ${applicableServiceIds}`);
                     }
                 }
 
@@ -2002,7 +2004,7 @@ function checkPackageBenefit(serviceId, servicePrice, quantity = 1) {
                     if (pkg.discount_percentage && pkg.discount_percentage > 0) {
                         const discountAmount = (servicePrice * pkg.discount_percentage) / 100;
                         totalBenefit += discountAmount;
-                        appliedPackage = `${pkg.name} (yearly_discount)`;
+                        appliedPackage = pkg.name;
                         benefitType = 'yearly_discount';
                         console.log(`✅ Yearly membership discount applied: ${pkg.name}, ${pkg.discount_percentage}% off = ₹${discountAmount.toFixed(2)}`);
                         break; // Use first applicable package
