@@ -532,6 +532,13 @@ try:
 except Exception as e:
     print(f"⚠️ Notifications views import error: {e}")
 
+# Import user management views
+try:
+    from modules.user_management.user_management_views import *
+    print("✅ User management views imported")
+except Exception as e:
+    print(f"⚠️ User management views import error: {e}")
+
 # Routes are imported via module views, avoiding import conflicts
 
 # Unaki Booking API endpoints

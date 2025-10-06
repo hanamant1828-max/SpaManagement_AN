@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Permissions{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-3">
+        <div class="col-12">
+            <h2 class="float-left">
+                <i class="fas fa-key"></i> Manage Permissions
+            </h2>
+            <a href="{{ url_for('create_permission') }}" class="btn btn-info float-right">
+                <i class="fas fa-plus"></i> Create New Permission
+            </a>
+            <div class="clearfix"></div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            {% for module, perms in permissions_by_module.items() %}
+            <div class="card mb-3">
+                <div class="card-header">
+                    <h4><i class="fas fa-folder"></i> {{ module|title }} Module</h4>
+                </div>
+                <div class="card-body">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Name</th>
+                                <th>Display Name</th>
+                                <th>Description</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for perm in perms %}
+                            <tr>
+                                <td>{{ perm.id }}</td>
+                                <td><code>{{ perm.name }}</code></td>
+                                <td><strong>{{ perm.display_name }}</strong></td>
+                                <td>{{ perm.description or 'N/A' }}</td>
+                                <td>
+                                    <span class="badge badge-{{ 'success' if perm.is_active else 'secondary' }}">
+                                        {{ 'Active' if perm.is_active else 'Inactive' }}
+                                    </span>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}

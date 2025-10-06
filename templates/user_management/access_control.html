@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+
+{% block title %}Access Control{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-3">
+        <div class="col-12">
+            <h2>
+                <i class="fas fa-shield-alt"></i> Access Control Matrix
+            </h2>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle"></i>
+                This matrix shows which users can access which modules based on their assigned roles and permissions.
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h4>User Access Matrix</h4>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-bordered">
+                            <thead>
+                                <tr>
+                                    <th>User</th>
+                                    <th>Role</th>
+                                    {% for module in permissions_by_module.keys() %}
+                                    <th class="text-center">{{ module|title }}</th>
+                                    {% endfor %}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for user in users %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ user.full_name }}</strong>
+                                        <br><small class="text-muted">@{{ user.username }}</small>
+                                    </td>
+                                    <td>
+                                        {% if user.role_id and user.dynamic_role %}
+                                            <span class="badge badge-primary">{{ user.dynamic_role.display_name }}</span>
+                                        {% else %}
+                                            <span class="badge badge-secondary">{{ user.role|title }}</span>
+                                        {% endif %}
+                                    </td>
+                                    {% for module in permissions_by_module.keys() %}
+                                    <td class="text-center">
+                                        {% if user.can_access(module) %}
+                                            <i class="fas fa-check text-success"></i>
+                                        {% else %}
+                                            <i class="fas fa-times text-danger"></i>
+                                        {% endif %}
+                                    </td>
+                                    {% endfor %}
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Role Details</h5>
+                </div>
+                <div class="card-body">
+                    {% for role in roles %}
+                    <div class="mb-3">
+                        <h6><strong>{{ role.display_name }}</strong></h6>
+                        <p class="text-muted">{{ role.description }}</p>
+                        <p>
+                            <strong>Permissions:</strong>
+                            <span class="badge badge-info">{{ role.permissions|length }}</span>
+                        </p>
+                        <div class="small">
+                            {% for rp in role.permissions %}
+                                <span class="badge badge-light">{{ rp.permission.display_name }}</span>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <hr>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Access Legend</h5>
+                </div>
+                <div class="card-body">
+                    <p><i class="fas fa-check text-success"></i> = Has Access</p>
+                    <p><i class="fas fa-times text-danger"></i> = No Access</p>
+                    <hr>
+                    <h6>Module Descriptions:</h6>
+                    <ul class="list-unstyled">
+                        <li><strong>Dashboard:</strong> View system dashboard and overview</li>
+                        <li><strong>Clients:</strong> Manage customer information</li>
+                        <li><strong>Staff:</strong> Manage staff members</li>
+                        <li><strong>Services:</strong> Manage services offered</li>
+                        <li><strong>Packages:</strong> Manage service packages</li>
+                        <li><strong>Appointments:</strong> Schedule and manage appointments</li>
+                        <li><strong>Billing:</strong> Process payments and invoices</li>
+                        <li><strong>Reports:</strong> View analytics and reports</li>
+                        <li><strong>Expenses:</strong> Track business expenses</li>
+                        <li><strong>Inventory:</strong> Manage inventory items</li>
+                        <li><strong>Settings:</strong> Configure system settings</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
