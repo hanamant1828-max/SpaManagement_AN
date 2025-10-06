@@ -304,6 +304,11 @@
 </style>
 
 <script>
+// ============================================================================
+// ASSIGN & COLLECT PAYMENT - JavaScript
+// ============================================================================
+
+// Package data from backend
 const packages = {
     prepaid: {{ prepaid_packages | tojson }},
     service_package: {{ service_packages | tojson }},
@@ -313,20 +318,29 @@ const packages = {
     kitty: {{ kitty_parties | tojson }}
 };
 
+// State variables
 let currentPackage = null;
 let currentService = null;
 
+// ============================================================================
+// PACKAGE SELECTION HANDLERS
+// ============================================================================
+
+// Handle package type change
 document.getElementById('packageType').addEventListener('change', function() {
     const type = this.value;
     const packageSelect = document.getElementById('packageId');
     const packageGroup = document.getElementById('packageSelectGroup');
     const serviceGroup = document.getElementById('serviceSelectGroup');
 
+    // Reset dropdown
     packageSelect.innerHTML = '<option value="">Select Package...</option>';
     
+    // Clear current selections
     currentPackage = null;
     currentService = null;
 
+    // Populate package dropdown based on type
     if (type && packages[type]) {
         packages[type].forEach(pkg => {
             const option = document.createElement('option');
@@ -340,17 +354,27 @@ document.getElementById('packageType').addEventListener('change', function() {
         packageGroup.style.display = 'none';
     }
 
+    // Show/hide service dropdown for service packages
     serviceGroup.style.display = (type === 'service_package') ? 'block' : 'none';
-    recalculateTotals();
-});
-
-document.getElementById('packageId').addEventListener('change', function() {
-    const option = this.options[this.selectedIndex];
-    currentPackage = option.dataset.package ? JSON.parse(option.dataset.package) : null;
+    
+    // Recalculate pricing
     recalculateTotals();
     validateForm();
 });
 
+// Handle package selection
+document.getElementById('packageId').addEventListener('change', function() {
+    const option = this.options[this.selectedIndex];
+    if (option.dataset.package) {
+        currentPackage = JSON.parse(option.dataset.package);
+    } else {
+        currentPackage = null;
+    }
+    recalculateTotals();
+    validateForm();
+});
+
+// Handle service selection (for service packages)
 document.getElementById('serviceId').addEventListener('change', function() {
     const option = this.options[this.selectedIndex];
     currentService = option.value ? {
@@ -360,9 +384,13 @@ document.getElementById('serviceId').addEventListener('change', function() {
     recalculateTotals();
 });
 
+// Handle customer selection
 document.getElementById('customerId').addEventListener('change', validateForm);
 
-// Customer search functionality
+// ============================================================================
+// CUSTOMER SEARCH
+// ============================================================================
+
 document.getElementById('customerSearch').addEventListener('input', function() {
     const searchValue = this.value.toLowerCase().trim();
     const customerSelect = document.getElementById('customerId');
@@ -392,6 +420,9 @@ document.getElementById('customerSearch').addEventListener('input', function() {
     }
 });
 
+// ============================================================================
+// PRICE CALCULATION
+// ============================================================================
 
 function recalculateTotals() {
     let subtotal = 0;
@@ -399,78 +430,87 @@ function recalculateTotals() {
 
     if (currentPackage) {
         const packageType = document.getElementById('packageType').value;
-        console.log('Recalculating for package type:', packageType, 'Package data:', currentPackage);
 
-        if (packageType === 'prepaid') {
-            subtotal = currentPackage.price || currentPackage.actual_price || 0;
-            console.log('Prepaid package subtotal:', subtotal);
-        } else if (packageType === 'service_package' && currentService) {
-            const payFor = currentPackage.pay_for || 0;
-            const free = currentPackage.free_services || 0;
-            subtotal = payFor * currentService.price;
-            discount = free * currentService.price;
-        } else if (packageType === 'student_offer') {
-            // Student offers should have a price field
-            subtotal = currentPackage.price || currentPackage.actual_price || 0;
-            console.log('Student offer subtotal:', subtotal);
-        } else {
-            subtotal = currentPackage.price || currentPackage.actual_price || 0;
+        // Calculate based on package type
+        switch(packageType) {
+            case 'prepaid':
+                // Prepaid packages use price field
+                subtotal = parseFloat(currentPackage.price || currentPackage.actual_price || 0);
+                break;
+                
+            case 'service_package':
+                // Service packages: (pay_for × service price) + (free × service price as discount)
+                if (currentService) {
+                    const payFor = parseInt(currentPackage.pay_for || 0);
+                    const free = parseInt(currentPackage.free_services || 0);
+                    const servicePrice = parseFloat(currentService.price || 0);
+                    subtotal = payFor * servicePrice;
+                    discount = free * servicePrice;
+                }
+                break;
+                
+            case 'student_offer':
+            case 'membership':
+            case 'yearly':
+            case 'kitty':
+                // Other package types use price or actual_price
+                subtotal = parseFloat(currentPackage.price || currentPackage.actual_price || 0);
+                break;
+                
+            default:
+                subtotal = parseFloat(currentPackage.price || currentPackage.actual_price || 0);
         }
     }
 
+    // Calculate tax and totals
     const taxable = Math.max(subtotal - discount, 0);
-    const tax = taxable * 0.18;
-    const grandTotal = taxable + tax;
+    const gstAmount = taxable * 0.18;
+    const grandTotal = taxable + gstAmount;
 
-    const netPrice = taxable; // Net price is the subtotal after discount but before tax
-    const gstAmount = tax;
-
-    document.getElementById('displaySubtotal').textContent = `₹${grandTotal.toFixed(2)}`; // Displaying total incl GST here as per the user's example
-    document.getElementById('displayNetPrice').textContent = `₹${netPrice.toFixed(2)}`;
+    // Update display
+    document.getElementById('displaySubtotal').textContent = `₹${grandTotal.toFixed(2)}`;
+    document.getElementById('displayNetPrice').textContent = `₹${taxable.toFixed(2)}`;
     document.getElementById('displayTax').textContent = `₹${gstAmount.toFixed(2)}`;
     document.getElementById('displayDiscount').textContent = `₹${discount.toFixed(2)}`;
     document.getElementById('displayGrandTotal').textContent = `₹${grandTotal.toFixed(2)}`;
     document.getElementById('paymentAmount').value = grandTotal.toFixed(2);
 }
 
+// ============================================================================
+// FORM VALIDATION
+// ============================================================================
+
 function validateForm() {
     const customerId = document.getElementById('customerId').value;
     const packageType = document.getElementById('packageType').value;
-    let packageId = document.getElementById('packageId').value;
+    const packageId = document.getElementById('packageId').value;
     const serviceId = document.getElementById('serviceId').value;
 
+    // Base validation: must have customer and package type
     let isValid = customerId && packageType;
 
-    if (packageType === 'student_offer') {
-        // For student offers, we don't necessarily need a specific packageId from the dropdown
-        // if it's handled as a distinct type. However, if there are different *types* of student offers
-        // that need selection, this logic might need adjustment.
-        // For now, assuming selecting "Student Offer" is enough to proceed if other fields are valid.
-        // If a specific student offer *must* be selected, uncomment the next line:
-        // isValid = isValid && packageId;
-    } else {
+    // Package type specific validation
+    if (packageType && packageType !== 'student_offer') {
+        // Most package types need a specific package selected
         isValid = isValid && packageId;
     }
 
-
+    // Service packages need a service selected
     if (packageType === 'service_package') {
         isValid = isValid && serviceId;
     }
 
+    // Enable/disable submit button
     const btn = document.getElementById('btnAssignAndPay');
     if (btn) {
         btn.disabled = !isValid;
-        console.log('Validation:', { customerId, packageType, packageId, serviceId, isValid });
     }
 }
 
-// Add event listeners
-document.getElementById('customerId').addEventListener('change', validateForm);
-document.getElementById('packageType').addEventListener('change', validateForm);
-document.getElementById('packageId').addEventListener('change', validateForm);
-document.getElementById('serviceId').addEventListener('change', validateForm);
+// ============================================================================
+// INITIALIZATION
+// ============================================================================
 
-// Validate on page load in case values are pre-filled
 document.addEventListener('DOMContentLoaded', function() {
     validateForm();
 });
@@ -799,71 +839,6 @@ function handlePaymentStatusChange() {
     updatePaymentSummary();
 }
 
-// Initial call to set the summary on page load
-document.addEventListener('DOMContentLoaded', () => {
-    validateForm(); // Ensure form is validated on load
-    // updatePaymentSummary(); // Initial call removed, as recalculateTotals handles it on package type change
-    handlePaymentStatusChange(); // Also handle initial payment status display
-});
-
-// Load package details when package is selected
-document.getElementById('packageId').addEventListener('change', async function() {
-    const packageId = this.value;
-    const packageTypeSelect = document.getElementById('packageType');
-    const packageType = packageTypeSelect.value;
-
-    if (!packageId || !packageType) {
-        // Reset pricing if no package selected
-        updatePaymentSummary(0, 0, 0);
-        return;
-    }
-
-    try {
-        // Fetch package details based on type
-        let packageData = null;
-
-        if (packageType === 'prepaid') {
-            const response = await fetch(`/api/prepaid-packages/${packageId}`);
-            const data = await response.json();
-            packageData = data;
-        } else if (packageType === 'service_package') {
-            const response = await fetch(`/api/service-packages/${packageId}`);
-            const data = await response.json();
-            packageData = data;
-        } else if (packageType === 'membership') {
-            const response = await fetch(`/api/memberships/${packageId}`);
-            const data = await response.json();
-            packageData = data;
-        } else if (packageType === 'student_offer') {
-            const response = await fetch(`/api/student-offers/${packageId}`);
-            const data = await response.json();
-            if (data.success && data.offer) {
-                packageData = data.offer;
-            }
-        } else if (packageType === 'yearly' || packageType === 'yearly_membership') {
-            const response = await fetch(`/api/yearly-memberships/${packageId}`);
-            const data = await response.json();
-            packageData = data;
-        } else if (packageType === 'kitty' || packageType === 'kitty_party') {
-            const response = await fetch(`/api/kitty-parties/${packageId}`);
-            const data = await response.json();
-            packageData = data;
-        }
-
-        if (packageData) {
-            const price = packageData.price || packageData.actual_price || 0;
-            // The recalculateTotals function already handles the display and calculation logic.
-            // We just need to ensure currentPackage is updated with the fetched data.
-            currentPackage = packageData;
-            recalculateTotals(); // Call recalculateTotals to update the display
-        }
-    } catch (error) {
-        console.error('Error loading package details:', error);
-        // Optionally reset display or show error message to user
-        currentPackage = null;
-        recalculateTotals();
-    }
-});
 
 </script>
 {% endblock %}
