@@ -397,13 +397,29 @@ def integrated_billing(customer_id=None):
                             from models import StudentOffer
                             student_offer = StudentOffer.query.get(assignment.package_reference_id)
                             if student_offer:
-                                if student_offer.discount_percent:
-                                    package_info['discount_percentage'] = float(student_offer.discount_percent)
-                                # Get list of service IDs this offer applies to
+                                if student_offer.discount_percentage:
+                                    package_info['discount_percentage'] = float(student_offer.discount_percentage)
+                                
+                                # Get list of service IDs and names this offer applies to
                                 if hasattr(student_offer, 'student_offer_services'):
                                     applicable_service_ids = [sos.service_id for sos in student_offer.student_offer_services]
                                     package_info['applicable_service_ids'] = applicable_service_ids
-                                    app.logger.info(f"✅ Student offer {package_info['name']} applies to services: {applicable_service_ids}")
+                                    
+                                    # Get service names for display
+                                    applicable_services = []
+                                    for sos in student_offer.student_offer_services:
+                                        if sos.service:
+                                            applicable_services.append(sos.service.name)
+                                    package_info['applicable_service_names'] = ', '.join(applicable_services) if applicable_services else 'All Services'
+                                
+                                # Add student offer specific fields
+                                package_info['valid_from'] = student_offer.valid_from.strftime('%b %d, %Y') if student_offer.valid_from else None
+                                package_info['valid_to'] = student_offer.valid_to.strftime('%b %d, %Y') if student_offer.valid_to else None
+                                package_info['valid_days'] = student_offer.valid_days or 'All Days'
+                                package_info['conditions'] = student_offer.conditions or 'Standard terms apply'
+                                package_info['package_price'] = float(student_offer.price) if student_offer.price else 0
+                                
+                                app.logger.info(f"✅ Student offer {package_info['name']}: {package_info['discount_percentage']}% off, valid {package_info['valid_days']}, applies to: {package_info.get('applicable_service_names', 'N/A')}")
                         except Exception as e:
                             app.logger.error(f"Error getting student offer details: {e}")
 

@@ -330,6 +330,30 @@ textarea.form-control {
     border-left: 3px solid var(--success);
 }
 
+.student-offer-badge {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border-radius: var(--radius-sm);
+    font-size: 0.75rem;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    box-shadow: 0 2px 4px rgba(102, 126, 234, 0.3);
+}
+
+.package-benefit.student-discount {
+    background: linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%);
+    color: #4338ca;
+    border-left: 3px solid #6366f1;
+}
+
+.package-benefit.student-discount::before {
+    content: '🎓 ';
+    margin-right: 0.25rem;
+}
+
 .batch-info {
     background: var(--gray-100);
     border-left: 3px solid var(--info);
@@ -620,12 +644,45 @@ textarea.form-control {
                                         <tbody id="activePackagesTableBody">
                                             {% if customer_active_packages %}
                                                 {% for package in customer_active_packages %}
-                                                <tr>
-                                                    <td><strong>{{ package.name }}</strong><br><small class="text-muted">{{ package.service_name or 'Multiple Services' }}</small></td>
-                                                    <td><span class="badge bg-{{ 'warning' if package.benefit_type == 'free' else 'info' }}">{{ package.benefit_type|title }}</span></td>
+                                                <tr data-package-type="{{ package.package_type }}" 
+                                                    data-package-id="{{ package.assignment_id }}"
+                                                    data-discount="{{ package.discount_percentage|default(0) }}"
+                                                    data-applicable-services="{{ package.applicable_service_ids|tojson if package.applicable_service_ids else '[]' }}"
+                                                    data-valid-from="{{ package.valid_from|default('') }}"
+                                                    data-valid-to="{{ package.valid_to|default('') }}"
+                                                    data-valid-days="{{ package.valid_days|default('') }}">
+                                                    <td>
+                                                        <strong>{{ package.name }}</strong>
+                                                        {% if package.package_type == 'student_offer' %}
+                                                            <br><small class="text-primary"><i class="fas fa-graduation-cap me-1"></i>{{ package.applicable_service_names|default('All Services') }}</small>
+                                                            <br><small class="text-success"><i class="fas fa-tag me-1"></i>{{ package.discount_percentage }}% Discount</small>
+                                                            {% if package.valid_days %}
+                                                            <br><small class="text-info"><i class="fas fa-calendar-check me-1"></i>Valid: {{ package.valid_days }}</small>
+                                                            {% endif %}
+                                                        {% else %}
+                                                            <br><small class="text-muted">{{ package.service_name or 'Multiple Services' }}</small>
+                                                        {% endif %}
+                                                    </td>
+                                                    <td>
+                                                        {% if package.package_type == 'student_offer' %}
+                                                            <span class="badge bg-gradient" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                                                                <i class="fas fa-graduation-cap me-1"></i>Student Offer
+                                                            </span>
+                                                        {% else %}
+                                                            <span class="badge bg-{{ 'warning' if package.benefit_type == 'free' else 'info' }}">{{ package.benefit_type|title }}</span>
+                                                        {% endif %}
+                                                    </td>
                                                     <td><span class="badge bg-{{ 'success' if package.is_active else 'secondary' }}">{{ 'Active' if package.is_active else 'Inactive' }}</span></td>
                                                     <td>
-                                                        {% if package.benefit_type in ['free', 'discount'] %}
+                                                        {% if package.package_type == 'student_offer' %}
+                                                            <div class="d-flex align-items-center">
+                                                                <i class="fas fa-percentage text-success me-2"></i>
+                                                                <span class="fw-bold text-success">{{ package.discount_percentage }}% OFF</span>
+                                                            </div>
+                                                            {% if package.package_price %}
+                                                            <small class="text-muted">Package: ₹{{ "%.2f"|format(package.package_price) }}</small>
+                                                            {% endif %}
+                                                        {% elif package.benefit_type in ['free', 'discount'] %}
                                                             <strong>{{ package.remaining_count }}/{{ package.total_allocated }} sessions</strong>
                                                             <div class="progress mt-1" style="height: 5px;">
                                                                 <div class="progress-bar bg-success" style="width: {{ package.usage_percentage }}%"></div>
@@ -636,7 +693,19 @@ textarea.form-control {
                                                             <span class="badge bg-success">Unlimited</span>
                                                         {% endif %}
                                                     </td>
-                                                    <td>{{ package.valid_to }}</td>
+                                                    <td>
+                                                        {% if package.package_type == 'student_offer' and package.valid_to %}
+                                                            <small>{{ package.valid_from }} to<br>{{ package.valid_to }}</small>
+                                                            {% if package.conditions %}
+                                                            <br><button type="button" class="btn btn-sm btn-outline-info mt-1" 
+                                                                    onclick="showStudentOfferDetails('{{ package.name }}', '{{ package.discount_percentage }}', '{{ package.applicable_service_names }}', '{{ package.valid_from }}', '{{ package.valid_to }}', '{{ package.valid_days }}', '{{ package.conditions }}')">
+                                                                <i class="fas fa-info-circle"></i> Details
+                                                            </button>
+                                                            {% endif %}
+                                                        {% else %}
+                                                            {{ package.valid_to }}
+                                                        {% endif %}
+                                                    </td>
                                                 </tr>
                                                 {% endfor %}
                                             {% else %}
@@ -1811,7 +1880,15 @@ function updateCalculations() {
                     benefitDiv.className = 'package-benefit';
                     row.appendChild(benefitDiv);
                 }
-                benefitDiv.innerHTML = `<i class="fas fa-gift"></i> Package Benefit (${benefitApplied.packageUsed || benefitApplied.benefitType}): -₹${discountAmount.toFixed(2)}`;
+                
+                // Apply special styling for student offers
+                if (benefitApplied.benefitType === 'student_discount') {
+                    benefitDiv.className = 'package-benefit student-discount';
+                    benefitDiv.innerHTML = `<i class="fas fa-graduation-cap"></i> Student Discount (${benefitApplied.packageUsed}): -₹${discountAmount.toFixed(2)}`;
+                } else {
+                    benefitDiv.className = 'package-benefit';
+                    benefitDiv.innerHTML = `<i class="fas fa-gift"></i> Package Benefit (${benefitApplied.packageUsed || benefitApplied.benefitType}): -₹${discountAmount.toFixed(2)}`;
+                }
             } else {
                 // No benefit applied, ensure price input is updated with base price if it exists
                 if (priceInput) {
@@ -1980,6 +2057,16 @@ function checkPackageBenefit(serviceId, servicePrice, quantity = 1) {
 
                 // STUDENT OFFER - applies discount percentage to specific services
                 if (pkg.package_type === 'student_offer' && pkg.discount_percentage > 0) {
+                    // Validate student offer dates and valid days
+                    const validFrom = pkg.valid_from || '';
+                    const validTo = pkg.valid_to || '';
+                    const validDays = pkg.valid_days || '';
+                    
+                    if (!isStudentOfferValid(validFrom, validTo, validDays)) {
+                        console.log(`⏭️ Student offer ${pkg.name} is not valid today (expired or wrong day)`);
+                        continue; // Skip this offer
+                    }
+                    
                     // Student offers only apply to specific services that were selected when creating the offer
                     const applicableServiceIds = pkg.applicable_service_ids || [];
                     const serviceIdInt = parseInt(serviceId);
@@ -1992,7 +2079,7 @@ function checkPackageBenefit(serviceId, servicePrice, quantity = 1) {
                         appliedPackageId = pkg.assignment_id;
                         benefitType = 'student_discount';
                         console.log(`✅ Student offer discount applied: ${pkg.name}, ${pkg.discount_percentage}% off = ₹${totalBenefit.toFixed(2)} (service ${serviceId} is in applicable list: ${applicableServiceIds})`);
-                        break; // Use first matching student offer
+                        break; // Use first matching valid student offer
                     } else {
                         console.log(`⏭️ Student offer ${pkg.name} skipped - service ${serviceId} not in applicable list: ${applicableServiceIds}`);
                     }
@@ -2548,6 +2635,106 @@ function showPreviewModal(html) {
         </div>
     `;
     document.body.appendChild(modal);
+}
+
+// ==========================================
+// STUDENT OFFER UTILITIES
+// ==========================================
+function showStudentOfferDetails(name, discount, services, validFrom, validTo, validDays, conditions) {
+    const modal = document.createElement('div');
+    modal.className = 'modal fade show';
+    modal.style.display = 'block';
+    modal.style.backgroundColor = 'rgba(0,0,0,0.5)';
+    modal.setAttribute('tabindex', '-1');
+    modal.innerHTML = `
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                    <h5 class="modal-title"><i class="fas fa-graduation-cap me-2"></i>${name}</h5>
+                    <button type="button" class="btn-close btn-close-white" onclick="this.closest('.modal').remove()"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <h6 class="text-muted mb-2"><i class="fas fa-tag me-2"></i>Discount</h6>
+                        <div class="alert alert-success mb-3">
+                            <h4 class="mb-0"><strong>${discount}% OFF</strong></h4>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <h6 class="text-muted mb-2"><i class="fas fa-spa me-2"></i>Applicable Services</h6>
+                        <p class="mb-0">${services}</p>
+                    </div>
+                    <div class="mb-3">
+                        <h6 class="text-muted mb-2"><i class="fas fa-calendar me-2"></i>Validity Period</h6>
+                        <p class="mb-0"><strong>${validFrom}</strong> to <strong>${validTo}</strong></p>
+                    </div>
+                    <div class="mb-3">
+                        <h6 class="text-muted mb-2"><i class="fas fa-calendar-check me-2"></i>Valid Days</h6>
+                        <p class="mb-0">${validDays}</p>
+                    </div>
+                    <div class="mb-0">
+                        <h6 class="text-muted mb-2"><i class="fas fa-info-circle me-2"></i>Terms & Conditions</h6>
+                        <p class="mb-0 text-muted small">${conditions}</p>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="this.closest('.modal').remove()">Close</button>
+                </div>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+}
+
+function isStudentOfferValid(validFrom, validTo, validDays) {
+    // Check date validity
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    if (validFrom) {
+        const fromDate = new Date(validFrom);
+        fromDate.setHours(0, 0, 0, 0);
+        if (today < fromDate) {
+            console.log(`❌ Student offer not yet valid. Starts: ${validFrom}`);
+            return false;
+        }
+    }
+    
+    if (validTo) {
+        const toDate = new Date(validTo);
+        toDate.setHours(23, 59, 59, 999);
+        if (today > toDate) {
+            console.log(`❌ Student offer expired. Ended: ${validTo}`);
+            return false;
+        }
+    }
+    
+    // Check valid days
+    if (validDays && validDays !== 'All Days' && validDays !== '') {
+        const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+        const todayDay = daysOfWeek[today.getDay()];
+        
+        // Parse valid days (e.g., "Mon-Fri", "Weekends Only", "Mon,Wed,Fri")
+        let isValidDay = false;
+        
+        if (validDays === 'Mon-Fri') {
+            isValidDay = today.getDay() >= 1 && today.getDay() <= 5;
+        } else if (validDays === 'Mon-Sat') {
+            isValidDay = today.getDay() >= 1 && today.getDay() <= 6;
+        } else if (validDays === 'Weekends Only') {
+            isValidDay = today.getDay() === 0 || today.getDay() === 6;
+        } else if (validDays.includes(todayDay)) {
+            isValidDay = true;
+        }
+        
+        if (!isValidDay) {
+            console.log(`❌ Student offer not valid today (${todayDay}). Valid days: ${validDays}`);
+            return false;
+        }
+    }
+    
+    console.log(`✅ Student offer is valid for today`);
+    return true;
 }
 
 // ==========================================
