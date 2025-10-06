@@ -134,6 +134,21 @@ def run_automatic_migrations():
                 cursor.execute("ALTER TABLE service_packages ADD COLUMN free_services INTEGER DEFAULT 0")
                 migrations_applied = True
 
+            if 'sessions' not in service_package_columns:
+                print("  → Adding column: service_packages.sessions")
+                cursor.execute("ALTER TABLE service_packages ADD COLUMN sessions INTEGER DEFAULT 1")
+                migrations_applied = True
+
+            if 'price' not in service_package_columns:
+                print("  → Adding column: service_packages.price")
+                cursor.execute("ALTER TABLE service_packages ADD COLUMN price FLOAT DEFAULT 0")
+                migrations_applied = True
+
+            if 'validity_days' not in service_package_columns:
+                print("  → Adding column: service_packages.validity_days")
+                cursor.execute("ALTER TABLE service_packages ADD COLUMN validity_days INTEGER")
+                migrations_applied = True
+
         if migrations_applied:
             conn.commit()
             print("  ✅ Database schema updated successfully")
