@@ -13,18 +13,28 @@ from datetime import datetime, date, timedelta, time
 
 def compute_sqlite_uri():
     """Compute SQLite database URI for the current instance"""
+    import shutil
+    
     # Create base directory for databases
     base_dir = os.path.join(os.getcwd(), 'hanamantdatabase')
     os.makedirs(base_dir, exist_ok=True)
 
     # Determine instance identifier
-    instance = os.environ.get('SPA_DB_INSTANCE') or os.environ.get('REPL_SLUG') or 'default'
+    instance = os.environ.get('SPA_DB_INSTANCE') or os.environ.get('REPL_SLUG') or 'workspace'
 
     # Sanitize instance name to prevent path traversal
     instance = re.sub(r'[^A-Za-z0-9_-]', '_', instance)
 
     # Create absolute path to database file
     db_path = os.path.abspath(os.path.join(base_dir, f'{instance}.db'))
+    
+    # Auto-restore from default.db if workspace.db doesn't exist
+    if instance == 'workspace' and not os.path.exists(db_path):
+        default_db = os.path.join(base_dir, 'default.db')
+        if os.path.exists(default_db):
+            print(f"📦 First run detected - restoring from default.db")
+            shutil.copy2(default_db, db_path)
+            print(f"✅ Database restored to {db_path}")
 
     # Return SQLite URI with absolute path
     return f'sqlite:///{db_path}'
