@@ -3518,7 +3518,7 @@
                     errors.push(`Date is required for Appointment #${appointmentNum}`);
                     addValidationError(dateInput, `Date is required for Appointment #${appointmentNum}`);
                 } else {
-                    const selectedDate = new Date(dateValue + 'T00:00:00');
+                    const selectedDate = new Date(dateInput.value);
                     const today = new Date();
                     today.setHours(0, 0, 0, 0);
                     selectedDate.setHours(0, 0, 0, 0);
