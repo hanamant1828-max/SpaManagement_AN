@@ -4,6 +4,58 @@
 import os
 import sys
 from app import app, db
+from werkzeug.security import generate_password_hash
+
+def create_default_data():
+    """Create default data without importing routes"""
+    from models import User, Role, Department
+    
+    # Create default roles
+    roles_data = [
+        {'name': 'admin', 'display_name': 'Administrator'},
+        {'name': 'manager', 'display_name': 'Manager'},
+        {'name': 'staff', 'display_name': 'Staff'},
+        {'name': 'receptionist', 'display_name': 'Receptionist'}
+    ]
+    
+    for role_data in roles_data:
+        if not Role.query.filter_by(name=role_data['name']).first():
+            role = Role(**role_data, is_active=True)
+            db.session.add(role)
+    
+    db.session.commit()
+    
+    # Create default departments
+    departments_data = [
+        {'name': 'management', 'display_name': 'Management'},
+        {'name': 'reception', 'display_name': 'Reception'},
+        {'name': 'spa_therapy', 'display_name': 'Spa & Therapy'},
+        {'name': 'beauty', 'display_name': 'Beauty Services'}
+    ]
+    
+    for dept_data in departments_data:
+        if not Department.query.filter_by(name=dept_data['name']).first():
+            dept = Department(**dept_data, is_active=True)
+            db.session.add(dept)
+    
+    db.session.commit()
+    
+    # Create default admin user
+    if not User.query.filter_by(username='admin').first():
+        admin_role = Role.query.filter_by(name='admin').first()
+        admin = User(
+            username='admin',
+            email='admin@spa.com',
+            first_name='Admin',
+            last_name='User',
+            password_hash=generate_password_hash('admin123'),
+            role='admin',
+            role_id=admin_role.id if admin_role else None,
+            is_active=True
+        )
+        db.session.add(admin)
+        db.session.commit()
+        print("✅ Default admin user created (username: admin, password: admin123)")
 
 def reset_database():
     """Reset the SQLite database to a fresh state"""
@@ -29,7 +81,6 @@ def reset_database():
             
             # Create default data
             print("Creating default admin user and basic data...")
-            from routes import create_default_data
             create_default_data()
             print("✅ Default data created successfully!")
             
