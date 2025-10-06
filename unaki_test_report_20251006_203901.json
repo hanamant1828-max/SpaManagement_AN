@@ -1,0 +1,105 @@
+{
+  "summary": {
+    "total": 14,
+    "passed": 10,
+    "failed": 4,
+    "pass_rate": 71.42857142857143
+  },
+  "results": [
+    {
+      "test": "Authentication",
+      "passed": true,
+      "message": "Successfully logged in",
+      "timestamp": "2025-10-06T20:39:01.497192"
+    },
+    {
+      "test": "Main page loads with data",
+      "passed": true,
+      "message": "Staff, services, and clients data present",
+      "timestamp": "2025-10-06T20:39:01.520965"
+    },
+    {
+      "test": "Create standard appointment",
+      "passed": true,
+      "message": "Appointment ID: 6",
+      "timestamp": "2025-10-06T20:39:01.543869"
+    },
+    {
+      "test": "Create quick booking",
+      "passed": true,
+      "message": "Appointment ID: 7",
+      "timestamp": "2025-10-06T20:39:01.556285"
+    },
+    {
+      "test": "Consecutive bookings",
+      "passed": true,
+      "message": "Both back-to-back appointments created successfully",
+      "timestamp": "2025-10-06T20:39:01.575461"
+    },
+    {
+      "test": "Overlap conflict detection",
+      "passed": true,
+      "message": "Correctly rejected: Time conflict! Original Client already has an appointment from 10:00 AM to 11:00 AM",
+      "timestamp": "2025-10-06T20:39:01.596377"
+    },
+    {
+      "test": "Conflict check API",
+      "passed": false,
+      "message": "Status: 400",
+      "timestamp": "2025-10-06T20:39:01.606282"
+    },
+    {
+      "test": "All booking sources",
+      "passed": true,
+      "message": "All 4 booking sources work correctly",
+      "timestamp": "2025-10-06T20:39:01.642632"
+    },
+    {
+      "test": "Get booking details",
+      "passed": false,
+      "message": "Booking data mismatch",
+      "timestamp": "2025-10-06T20:39:01.647538"
+    },
+    {
+      "test": "Appointment status updates",
+      "passed": false,
+      "message": "Only 0/4 status updates worked",
+      "timestamp": "2025-10-06T20:39:01.670584"
+    },
+    {
+      "test": "Update booking",
+      "passed": false,
+      "message": "Status: 400",
+      "timestamp": "2025-10-06T20:39:01.675843"
+    },
+    {
+      "test": "Validation - missing fields",
+      "passed": true,
+      "message": "Correctly rejected: Missing required fields: staff_id, service_name, appointment_date, start_time, end_time",
+      "timestamp": "2025-10-06T20:39:01.680582"
+    },
+    {
+      "test": "Validation - invalid date format",
+      "passed": true,
+      "message": "Correctly rejected invalid date",
+      "timestamp": "2025-10-06T20:39:01.685352"
+    },
+    {
+      "test": "Validation - non-existent staff",
+      "passed": true,
+      "message": "Correctly rejected non-existent staff",
+      "timestamp": "2025-10-06T20:39:01.690235"
+    }
+  ],
+  "created_bookings": [
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14
+  ]
+}
