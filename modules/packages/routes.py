@@ -22,9 +22,11 @@ packages_bp = Blueprint("packages", __name__, url_prefix="/packages")
 @login_required
 def index():
     """Main customer packages page"""
-    if hasattr(current_user, 'can_access') and not current_user.can_access('packages'):
-        flash('Access denied', 'danger')
-        return redirect(url_for('dashboard'))
+    # Check access permissions (admins always have access)
+    if hasattr(current_user, 'role') and current_user.role not in ['admin', 'super_admin', 'manager']:
+        if hasattr(current_user, 'can_access') and not current_user.can_access('packages'):
+            flash('Access denied', 'danger')
+            return redirect(url_for('dashboard'))
 
     return render_template("packages/customer_packages.html")
 
