@@ -8,6 +8,7 @@ def init_roles_and_permissions():
         
         permissions_data = [
             {'name': 'dashboard_view', 'display_name': 'View Dashboard', 'module': 'dashboard', 'description': 'Access to view dashboard'},
+            {'name': 'user_management_access', 'display_name': 'User Management Access', 'module': 'user_management', 'description': 'Full access to user management system'},
             
             {'name': 'clients_view', 'display_name': 'View Clients', 'module': 'clients', 'description': 'View client list and details'},
             {'name': 'clients_create', 'display_name': 'Create Clients', 'module': 'clients', 'description': 'Add new clients'},

@@ -12,10 +12,24 @@ def admin_required(f):
         if not current_user.is_authenticated:
             flash('Please log in to access this page.', 'warning')
             return redirect(url_for('login'))
-        if not current_user.has_role('admin') and current_user.role != 'admin':
-            flash('Access denied. Admin privileges required.', 'danger')
-            return redirect(url_for('dashboard'))
-        return f(*args, **kwargs)
+        
+        if (current_user.has_role('admin') or 
+            current_user.has_role('super_admin') or 
+            current_user.role == 'admin'):
+            return f(*args, **kwargs)
+        
+        if current_user.role_id:
+            try:
+                user_role = Role.query.get(current_user.role_id)
+                if user_role:
+                    for role_perm in user_role.permissions:
+                        if role_perm.permission.name == 'user_management_access':
+                            return f(*args, **kwargs)
+            except:
+                pass
+        
+        flash('Access denied. Admin privileges required.', 'danger')
+        return redirect(url_for('dashboard'))
     return decorated_function
 
 @app.route('/user-management')
