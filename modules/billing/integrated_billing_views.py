@@ -1218,6 +1218,7 @@ def create_professional_invoice():
                             item.final_amount = (service.price * service_data['quantity']) - discount_amount
                             item.is_package_deduction = True
                             yearly_discount_applied = True
+                            package_deductions_applied += 1
                             
                             app.logger.info(f"✅ Yearly membership {yearly_membership.discount_percent}% discount applied: ₹{discount_amount}")
                     
@@ -1233,34 +1234,34 @@ def create_professional_invoice():
                             requested_quantity=int(service_data['quantity'])
                         )
 
-                    if package_result.get('success') and package_result.get('applied'):
-                        # Update invoice item with package deduction
-                        item.deduction_amount = package_result.get('deduction_amount', 0)
-                        item.final_amount = package_result.get('final_price', item.final_amount)
-                        item.is_package_deduction = True
-                        package_deductions_applied += 1
+                        if package_result.get('success') and package_result.get('applied'):
+                            # Update invoice item with package deduction
+                            item.deduction_amount = package_result.get('deduction_amount', 0)
+                            item.final_amount = package_result.get('final_price', item.final_amount)
+                            item.is_package_deduction = True
+                            package_deductions_applied += 1
 
-                        # Capture updated package info for UI refresh
-                        if package_result.get('assignment_id'):
-                            assignment = ServicePackageAssignment.query.get(package_result.get('assignment_id'))
-                            if assignment:
-                                updated_packages.append({
-                                    "assignment_id": assignment.id,
-                                    "package_type": "service_package",
-                                    "sessions": {
-                                        "total": int(assignment.total_sessions or 0),
-                                        "used": int(assignment.used_sessions or 0),
-                                        "remaining": int(assignment.remaining_sessions or 0)
-                                    },
-                                    "status": assignment.status
-                                })
+                            # Capture updated package info for UI refresh
+                            if package_result.get('assignment_id'):
+                                assignment = ServicePackageAssignment.query.get(package_result.get('assignment_id'))
+                                if assignment:
+                                    updated_packages.append({
+                                        "assignment_id": assignment.id,
+                                        "package_type": "service_package",
+                                        "sessions": {
+                                            "total": int(assignment.total_sessions or 0),
+                                            "used": int(assignment.used_sessions or 0),
+                                            "remaining": int(assignment.remaining_sessions or 0)
+                                        },
+                                        "status": assignment.status
+                                    })
 
-                        # Log package usage
-                        app.logger.info(f"✅ Package benefit applied: {package_result.get('message')}")
-                    elif package_result.get('success') and not package_result.get('applied'):
-                        app.logger.info(f"ℹ️ No package benefit: {package_result.get('message')}")
-                    else:
-                        app.logger.warning(f"⚠️ Package deduction error: {package_result.get('message')}")
+                            # Log package usage
+                            app.logger.info(f"✅ Package benefit applied: {package_result.get('message')}")
+                        elif package_result.get('success') and not package_result.get('applied'):
+                            app.logger.info(f"ℹ️ No package benefit: {package_result.get('message')}")
+                        else:
+                            app.logger.warning(f"⚠️ Package deduction error: {package_result.get('message', 'Unknown error')}")
 
                     # Mark Unaki appointment as completed and paid if appointment_id exists
                     if service_data.get('appointment_id'):

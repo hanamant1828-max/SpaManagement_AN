@@ -160,9 +160,5 @@ waitForPort = 5000
 localPort = 5000
 externalPort = 80
 
-[[ports]]
-localPort = 41139
-externalPort = 3001
-
 [agent]
 expertMode = true
