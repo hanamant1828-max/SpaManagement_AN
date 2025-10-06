@@ -15,7 +15,13 @@ from werkzeug.security import generate_password_hash
 
 def get_all_staff():
     """Get all active staff members with comprehensive data"""
-    return User.query.filter_by(is_active=True).order_by(User.first_name).all()
+    return User.query.filter(
+        db.or_(
+            User.role.in_(['staff', 'manager', 'admin', 'cashier']),
+            User.role_id.isnot(None)
+        ),
+        User.is_active == True
+    ).order_by(User.first_name).all()
 
 def get_comprehensive_staff():
     """Get all staff with comprehensive information including relationships"""
@@ -318,27 +324,33 @@ def get_staff_performance_data(staff_id):
         }
 
 def get_comprehensive_staff():
-    """Get all staff with comprehensive details"""
+    """Get all staff with comprehensive details - includes ALL users with staff-related roles"""
     try:
         # Force fresh query from database
         db.session.expire_all()
         
+        # Get all users that should be considered staff (by legacy role field OR role_id)
         staff_members = User.query.options(
+            db.joinedload(User.user_role),
             db.joinedload(User.staff_department),
             db.joinedload(User.staff_services)
         ).filter(
-            User.role.in_(['staff', 'manager', 'admin']),
+            db.or_(
+                User.role.in_(['staff', 'manager', 'admin', 'cashier']),
+                User.role_id.isnot(None)  # Include anyone with a dynamic role assigned
+            ),
             User.is_active == True
         ).order_by(User.first_name).all()
 
-        # Only update fields that are truly missing, avoid conflicts
+        # Auto-populate missing staff fields for users created via User Management
         existing_codes = set([u.staff_code for u in User.query.filter(User.staff_code.isnot(None)).all()])
         
         for member in staff_members:
             try:
                 updated = False
+                
+                # Generate staff code if missing
                 if not member.staff_code:
-                    # Generate unique staff code
                     code_num = len(existing_codes) + 1
                     potential_code = f"STF{str(code_num).zfill(3)}"
                     while potential_code in existing_codes:
@@ -348,28 +360,33 @@ def get_comprehensive_staff():
                     member.staff_code = potential_code
                     existing_codes.add(potential_code)
                     updated = True
-                    
+                
+                # Set designation based on role if missing
                 if not member.designation:
-                    member.designation = member.role.title()
+                    if member.role_id and member.user_role:
+                        member.designation = member.user_role.display_name
+                    else:
+                        member.designation = member.role.title()
                     updated = True
-                    
+                
+                # Set joining date if missing
                 if not member.date_of_joining:
                     member.date_of_joining = member.created_at.date() if member.created_at else date.today()
                     updated = True
                 
                 if updated:
-                    db.session.flush()  # Flush individual changes
+                    db.session.flush()
             except Exception as member_error:
                 print(f"Error updating member {member.id}: {member_error}")
                 continue
 
         try:
             db.session.commit()
+            print(f"✅ Retrieved {len(staff_members)} staff members (auto-populated missing fields)")
         except Exception as commit_error:
             print(f"Error committing staff updates: {commit_error}")
             db.session.rollback()
             
-        print(f"Retrieved {len(staff_members)} staff members from database")
         return staff_members
     except Exception as e:
         print(f"Error getting comprehensive staff: {e}")
