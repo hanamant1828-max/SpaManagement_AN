@@ -4105,32 +4105,44 @@
 
             // Update the current time line indicator on the schedule
             function updateCurrentTimeLine() {
+                // Get current time in IST (UTC+5:30)
                 const now = new Date();
-                const currentHour = now.getHours();
-                const currentMinute = now.getMinutes();
+                const utcTime = now.getTime() + (now.getTimezoneOffset() * 60000);
+                const istTime = new Date(utcTime + (5.5 * 60 * 60 * 1000));
 
-                // Only display the time line if it's within business hours (9 AM to 10 PM)
-                if (currentHour >= 9 && currentHour < 22) {
-                    const timeLine = document.getElementById("currentTimeLine");
-                    const timeLabel =
-                        document.getElementById("currentTimeLabel");
+                const hours = istTime.getHours();
+                const minutes = istTime.getMinutes();
 
-                    const hoursSince9AM = currentHour - 9;
-                    const minuteOffset = currentMinute / 60;
-                    const leftPosition = (hoursSince9AM + minuteOffset) * 140; // Position based on time
+                console.log(`🕐 Current IST time: ${hours}:${String(minutes).padStart(2, '0')}`);
 
-                    const timeStr = now.toLocaleTimeString("en-US", {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                        hour12: true, // Use 12-hour format
-                    });
+                // Only show if within business hours (9 AM - 10 PM)
+                if (hours >= 9 && hours < 22) {
+                    const currentTimeLine = document.getElementById('currentTimeLine');
+                    const currentTimeLabel = document.getElementById('currentTimeLabel');
 
-                    timeLabel.textContent = timeStr; // Update time label
-                    timeLine.style.left = leftPosition + "px"; // Set horizontal position
-                    timeLine.style.display = "block"; // Make the time line visible
+                    if (currentTimeLine && currentTimeLabel) {
+                        // Calculate position from 9 AM
+                        const minutesSince9AM = (hours - 9) * 60 + minutes;
+                        const position = minutesSince9AM * pixelsPerMinute;
+
+                        console.log(`📍 Time line position: ${position}px (${minutesSince9AM} minutes since 9 AM)`);
+
+                        currentTimeLine.style.left = position + 'px';
+                        currentTimeLine.style.display = 'block';
+
+                        // Update label with IST time
+                        const hour12 = hours % 12 || 12;
+                        const ampm = hours >= 12 ? 'PM' : 'AM';
+                        const timeStr = `${hour12}:${String(minutes).padStart(2, '0')} ${ampm}`;
+                        currentTimeLabel.textContent = `Now (IST): ${timeStr}`;
+                    }
                 } else {
-                    // Hide time line if outside business hours
-                    document.getElementById("currentTimeLine").style.display = "none";
+                    // Hide outside business hours
+                    const currentTimeLine = document.getElementById('currentTimeLine');
+                    if (currentTimeLine) {
+                        currentTimeLine.style.display = 'none';
+                        console.log(`⏰ Outside business hours (${hours}:${String(minutes).padStart(2, '0')}), hiding time line`);
+                    }
                 }
             }
 
