@@ -387,6 +387,10 @@ def integrated_billing(customer_id=None):
                     'expires_on': tracker.valid_to.strftime('%b %d, %Y') if tracker.valid_to else None
                 }
 
+                # Add discount_percentage for student offers and discount packages
+                if tracker.benefit_type == 'discount' or assignment.package_type == 'student_offer':
+                    package_info['discount_percentage'] = float(tracker.discount_percentage or 0)
+
                 # Add type-specific fields matching template expectations
                 if tracker.benefit_type in ['free', 'discount']:
                     # Service-based packages - ensure we're getting the RIGHT data

@@ -1982,13 +1982,17 @@ function checkPackageBenefit(serviceId, servicePrice, quantity = 1) {
                 if (pkg.package_type === 'student_offer' || pkg.package_type === 'student') {
                     // Check if this service is included in the student offer
                     // Student offers apply to all services unless restricted
-                    if (pkg.discount_percentage && pkg.discount_percentage > 0) {
-                        const discountAmount = (servicePrice * pkg.discount_percentage) / 100;
+                    const discountPercent = pkg.discount_percentage || 0;
+                    if (discountPercent > 0) {
+                        const discountAmount = (servicePrice * discountPercent) / 100;
                         totalBenefit += discountAmount;
-                        appliedPackage = `${pkg.name} (student_discount)`;
+                        appliedPackage = `${pkg.name} (${discountPercent}% discount)`;
+                        appliedPackageId = pkg.assignment_id;
                         benefitType = 'student_discount';
-                        console.log(`✅ Student offer discount applied: ${pkg.name}, ${pkg.discount_percentage}% off = ₹${discountAmount.toFixed(2)}`);
+                        console.log(`✅ Student offer discount applied: ${pkg.name}, ${discountPercent}% off = ₹${discountAmount.toFixed(2)}`);
                         break; // Use first applicable package
+                    } else {
+                        console.warn(`⚠️ Student offer package ${pkg.name} has no discount_percentage:`, pkg);
                     }
                 }
 
