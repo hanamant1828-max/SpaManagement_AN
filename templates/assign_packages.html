@@ -359,7 +359,7 @@ document.getElementById('packageType').addEventListener('change', function() {
 
     // Recalculate pricing
     recalculateTotals();
-    validateForm();
+    validateAssignForm();
 });
 
 // Handle package selection
@@ -371,7 +371,7 @@ document.getElementById('packageId').addEventListener('change', function() {
         currentPackage = null;
     }
     recalculateTotals();
-    validateForm();
+    validateAssignForm();
 });
 
 // Handle service selection (for service packages)
@@ -385,7 +385,7 @@ document.getElementById('serviceId').addEventListener('change', function() {
 });
 
 // Handle customer selection
-document.getElementById('customerId').addEventListener('change', validateForm);
+document.getElementById('customerId').addEventListener('change', validateAssignForm);
 
 // ============================================================================
 // CUSTOMER SEARCH
@@ -416,7 +416,7 @@ document.getElementById('customerSearch').addEventListener('input', function() {
     const visibleOptions = Array.from(options).filter(opt => opt.value !== '' && opt.style.display !== 'none');
     if (visibleOptions.length === 1) {
         customerSelect.value = visibleOptions[0].value;
-        validateForm();
+        validateAssignForm();
     }
 });
 
@@ -518,7 +518,7 @@ function recalculateTotals() {
 // FORM VALIDATION
 // ============================================================================
 
-function validateForm() {
+function validateAssignForm() {
     const customerId = document.getElementById('customerId').value;
     const packageType = document.getElementById('packageType').value;
     const packageId = document.getElementById('packageId').value;
@@ -549,7 +549,7 @@ function validateForm() {
 // ============================================================================
 
 document.addEventListener('DOMContentLoaded', function() {
-    validateForm();
+    validateAssignForm();
 });
 
 document.getElementById('btnAssignAndPay').addEventListener('click', async function() {
