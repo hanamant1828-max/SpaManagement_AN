@@ -42,6 +42,9 @@ def expenses():
     form = ExpenseForm()
     form.category_id.choices = [(c.id, c.display_name) for c in categories]
     
+    # Calculate total expenses for template
+    total_expenses = sum(expense.amount for expense in expenses_list) if expenses_list else 0
+    
     # Add current month and year for template filters
     from datetime import datetime
     current_date = datetime.now()
@@ -51,8 +54,10 @@ def expenses():
                          categories=categories,
                          stats=stats,
                          form=form,
+                         total_expenses=total_expenses,
                          current_month=current_date.month,
-                         current_year=current_date.year)
+                         current_year=current_date.year,
+                         datetime=datetime)
 
 @app.route('/expenses/create', methods=['POST'])
 @login_required
