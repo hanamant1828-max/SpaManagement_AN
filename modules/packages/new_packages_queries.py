@@ -238,7 +238,11 @@ def create_student_offer(data):
     from models import StudentOffer, StudentOfferService
     from app import db
 
+    # Generate a name if not provided
+    offer_name = data.get('name') or data.get('offer_name') or f"Student Discount {data['discount_percentage']}%"
+    
     offer = StudentOffer(
+        name=offer_name,
         discount_percentage=float(data['discount_percentage']),
         valid_from=datetime.strptime(data['valid_from'], '%Y-%m-%d').date(),
         valid_to=datetime.strptime(data['valid_to'], '%Y-%m-%d').date(),
@@ -273,6 +277,8 @@ def update_student_offer(offer_id, data):
 
     offer = StudentOffer.query.get_or_404(offer_id)
 
+    # Update name if provided, otherwise generate one
+    offer.name = data.get('name') or data.get('offer_name') or f"Student Discount {data['discount_percentage']}%"
     offer.discount_percentage = float(data['discount_percentage'])
     offer.valid_from = datetime.strptime(data['valid_from'], '%Y-%m-%d').date()
     offer.valid_to = datetime.strptime(data['valid_to'], '%Y-%m-%d').date()

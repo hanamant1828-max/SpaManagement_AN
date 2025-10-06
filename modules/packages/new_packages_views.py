@@ -382,6 +382,7 @@ def api_get_student_offers():
         offers = get_all_student_offers()
         return jsonify([{
             'id': o.id,
+            'name': o.name or f"Student Discount {o.discount_percentage}%",
             'discount_percentage': o.discount_percentage,
             'valid_from': o.valid_from.isoformat(),
             'valid_to': o.valid_to.isoformat(),
