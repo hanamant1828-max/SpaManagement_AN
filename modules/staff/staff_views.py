@@ -787,6 +787,9 @@ def api_get_all_staff():
         staff_list = get_comprehensive_staff()
         roles = get_active_roles()
         departments = get_active_departments()
+        
+        print(f"API: Found {len(roles)} roles")
+        print(f"API: Found {len(departments)} departments")
 
         # Convert staff to JSON-serializable format
         staff_data = []
@@ -824,8 +827,22 @@ def api_get_all_staff():
                 'notes_bio': staff.notes_bio
             })
 
-        roles_data = [{'id': r.id, 'name': r.name, 'display_name': r.display_name} for r in roles]
-        departments_data = [{'id': d.id, 'name': d.name, 'display_name': d.display_name} for d in departments]
+        # Ensure roles and departments are properly converted
+        roles_data = []
+        for r in roles:
+            roles_data.append({
+                'id': r.id, 
+                'name': r.name, 
+                'display_name': r.display_name
+            })
+        
+        departments_data = []
+        for d in departments:
+            departments_data.append({
+                'id': d.id, 
+                'name': d.name, 
+                'display_name': d.display_name
+            })
 
         print(f"API Response - Roles: {len(roles_data)}, Departments: {len(departments_data)}")
         if departments_data:
