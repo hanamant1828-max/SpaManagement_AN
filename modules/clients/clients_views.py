@@ -422,7 +422,11 @@ def api_save_face():
 def api_get_customers_with_faces():
     """API endpoint to get customers with face data"""
     if not current_user.can_access('clients'):
-        return jsonify({'error': 'Access denied'}), 403
+        return jsonify({
+            'success': False,
+            'error': 'Access denied',
+            'customers': []
+        }), 403
 
     try:
         # Fetch customers who have face_image_url and are active
@@ -437,18 +441,24 @@ def api_get_customers_with_faces():
                 'id': customer.id,
                 'full_name': customer.full_name,
                 'phone': customer.phone,
-                'email': customer.email,
+                'email': customer.email or '',
                 'face_image_url': customer.face_image_url,
                 'face_registration_date': customer.created_at.isoformat() if customer.created_at else None
             })
 
         return jsonify({
             'success': True,
-            'customers': customer_data
+            'customers': customer_data,
+            'count': len(customer_data)
         })
 
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        app.logger.error(f"Error fetching customers with faces: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': 'Failed to load face data',
+            'customers': []
+        }), 500
 
 
 def delete_customer(customer_id):

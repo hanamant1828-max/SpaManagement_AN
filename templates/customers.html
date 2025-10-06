@@ -1005,6 +1005,14 @@
         function selectCustomerForFace(customerId) {
             console.log('Customer selected for face capture:', customerId);
             currentCustomerId = customerId;
+            
+            // Initialize video and canvas elements if not already done
+            if (!faceVideo) {
+                faceVideo = document.getElementById('faceVideo');
+            }
+            if (!faceCanvas) {
+                faceCanvas = document.getElementById('faceCanvas');
+            }
 
             if (!customerId) {
                 const selectedInfo = document.getElementById('selectedFaceClientInfo');
@@ -1356,21 +1364,37 @@
         }
 
 
-        // Customer select population function (if needed, otherwise this can be removed or refactored)
+        // Customer select population function
         function populateCustomerSelect() {
             const selectElement = document.getElementById('faceClientSelect');
-            const customers = JSON.parse('{{ customers|tojson|safe }}'); // Assuming customers are available in Jinja context
+            
+            if (!selectElement) {
+                console.warn('Face client select element not found');
+                return;
+            }
 
-            if (selectElement && customers) {
-                selectElement.innerHTML = '<option value="">Select a customer...</option>'; // Reset options
-                customers.forEach(customer => {
-                    const option = document.createElement('option');
-                    option.value = customer.id;
-                    option.textContent = `${customer.full_name} - ${customer.phone}`;
-                    option.dataset.name = customer.full_name;
-                    option.dataset.phone = customer.phone;
-                    selectElement.appendChild(option);
-                });
+            try {
+                const customersJson = '{{ customers|tojson|safe }}';
+                const customers = JSON.parse(customersJson);
+
+                if (customers && customers.length > 0) {
+                    selectElement.innerHTML = '<option value="">Select a customer...</option>';
+                    customers.forEach(customer => {
+                        const option = document.createElement('option');
+                        option.value = customer.id;
+                        const fullName = customer.full_name || `${customer.first_name} ${customer.last_name}`;
+                        option.textContent = `${fullName} - ${customer.phone}`;
+                        option.dataset.name = fullName;
+                        option.dataset.phone = customer.phone;
+                        selectElement.appendChild(option);
+                    });
+                    console.log(`Populated ${customers.length} customers in face select`);
+                } else {
+                    selectElement.innerHTML = '<option value="">No customers available</option>';
+                }
+            } catch (error) {
+                console.error('Error populating customer select:', error);
+                selectElement.innerHTML = '<option value="">Error loading customers</option>';
             }
         }
 
@@ -1393,11 +1417,27 @@
             console.log('Loading face data table...');
 
             const tableContainer = document.getElementById('faceTableContainer');
-            if (!tableContainer) return;
+            if (!tableContainer) {
+                console.error('Face table container not found');
+                return;
+            }
+
+            // Show loading state
+            tableContainer.innerHTML = `
+                <div class="text-center py-4">
+                    <i class="fas fa-spinner fa-spin fa-2x text-primary mb-3"></i>
+                    <p class="text-muted">Loading face data...</p>
+                </div>
+            `;
 
             // Try to load actual face data from server
             fetch('/api/customers_with_faces')
-                .then(response => response.json())
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Failed to fetch face data');
+                    }
+                    return response.json();
+                })
                 .then(data => {
                     if (data.success && data.customers && data.customers.length > 0) {
                         // Display customers with face data
@@ -1570,6 +1610,9 @@
         document.addEventListener('DOMContentLoaded', function() {
             console.log('Customers page DOM loaded - ensuring data visibility');
             
+            // Populate customer select for face capture
+            populateCustomerSelect();
+            
             // Force immediate data visibility
             setTimeout(function() {
                 ensureCustomerDataVisibility();
@@ -1613,10 +1656,21 @@
 
         // Separate face capture initialization to prevent interference
         function initializeFaceCaptureFeatures() {
-            setupFaceCapture();
-            initializeCameraButtons();
+            console.log('🎥 Initializing face capture features...');
+            
+            // Populate customer dropdown first
             populateCustomerSelect();
+            
+            // Set up event listeners
+            setupFaceCapture();
+            
+            // Verify all elements exist
             verifyFaceCaptureElements();
+            
+            // Load existing face data
+            loadFaceDataTable();
+            
+            console.log('✅ Face capture features initialized');
         }
 
         // Open customer profile modal
@@ -1954,18 +2008,30 @@
                 faceClientSelect.addEventListener('change', (e) => {
                     selectCustomerForFace(e.target.value);
                 });
+                console.log('✓ Face client select listener attached');
+            } else {
+                console.warn('✗ Face client select not found');
             }
 
             if (startCameraBtn) {
                 startCameraBtn.addEventListener('click', startFaceCamera);
+                console.log('✓ Start camera button listener attached');
+            } else {
+                console.warn('✗ Start camera button not found');
             }
 
             if (captureFacePhotoBtn) {
                 captureFacePhotoBtn.addEventListener('click', captureFacePhoto);
+                console.log('✓ Capture photo button listener attached');
+            } else {
+                console.warn('✗ Capture photo button not found');
             }
 
             if (saveFaceDataBtn) {
                 saveFaceDataBtn.addEventListener('click', saveFaceData);
+                console.log('✓ Save face data button listener attached');
+            } else {
+                console.warn('✗ Save face data button not found');
             }
         }
 
