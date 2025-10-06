@@ -305,9 +305,11 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="col-md-4">
-                            <label for="expenseTime" class="form-label">Time <span class="text-danger">*</span></label>
-                            <input type="time" class="form-control" id="expenseTime" name="time" value="" required>
+                        <div class="col-md-3">
+                            <div class="mb-3">
+                                <label for="expense_time" class="form-label">Time *</label>
+                                <input type="time" class="form-control" id="expense_time" name="expense_time" required>
+                            </div>
                         </div>
                     </div>
 
@@ -477,8 +479,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Set current time when modal opens
     document.getElementById('addExpenseModal').addEventListener('show.bs.modal', function () {
-        const timeInput = document.getElementById('expenseTime');
-        if (!timeInput.value) {
+        const timeInput = document.getElementById('expense_time');
+        if (timeInput && !timeInput.value) {
             const now = new Date();
             const hours = String(now.getHours()).padStart(2, '0');
             const minutes = String(now.getMinutes()).padStart(2, '0');

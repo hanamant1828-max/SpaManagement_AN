@@ -91,11 +91,14 @@ def create_expense_route():
         time_str = request.form.get('expense_time')
         if time_str:
             try:
-                from datetime import time
+                from datetime import time as time_class
                 hour, minute = map(int, time_str.split(':'))
-                expense_time = time(hour, minute)
-            except (ValueError, AttributeError):
-                expense_time = None
+                expense_time = time_class(hour, minute)
+            except (ValueError, AttributeError, TypeError):
+                # If time parsing fails, set to current time
+                from datetime import datetime
+                now = datetime.now()
+                expense_time = time_class(now.hour, now.minute)
 
         expense_data = {
             'amount': amount,
