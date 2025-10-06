@@ -150,7 +150,8 @@ def create_comprehensive_staff():
         services = Service.query.filter_by(is_active=True).all()
 
         form = ComprehensiveStaffForm()
-        form.role_id.choices = [(0, 'Select Role')] + [(r.id, r.display_name) for r in roles]
+        # Only include "staff" as an option and set it as default
+        form.role_id.choices = [(0, 'Select Role')] + [(r.id, r.display_name) for r in roles if r.name == 'staff']
         form.department_id.choices = [(0, 'Select Department')] + [(d.id, d.display_name) for d in departments]
         form.assigned_services.choices = [(s.id, s.name) for s in services]
 
@@ -179,7 +180,7 @@ def create_comprehensive_staff():
             email=data.get('email'),
             phone=data.get('phone'),
             password_hash=hashed_password,
-            role_id=int(data['role_id']) if data.get('role_id') and str(data.get('role_id')).strip() not in ['', '0'] else None,
+            role_id=None,  # Default to None, as role is explicitly 'staff'
             department_id=int(data['department_id']) if data.get('department_id') and str(data.get('department_id')).strip() not in ['', '0'] else None,
             designation=data.get('designation'),
             commission_rate=float(data.get('commission_rate', 0)) if data.get('commission_rate') else None,
@@ -192,6 +193,7 @@ def create_comprehensive_staff():
             staff_code=data.get('staff_code'),
             verification_status=data.get('verification_status', False),
             enable_face_checkin=data.get('enable_face_checkin', False),
+            role='staff' # Explicitly set role to 'staff'
         )
 
         db.session.add(staff)
@@ -230,7 +232,7 @@ def create_comprehensive_staff():
         departments = Department.query.filter_by(is_active=True).all()
         services = Service.query.filter_by(is_active=True).all()
         form = ComprehensiveStaffForm(data=data) # Populate form with submitted data
-        form.role_id.choices = [(0, 'Select Role')] + [(r.id, r.display_name) for r in roles]
+        form.role_id.choices = [(0, 'Select Role')] + [(r.id, r.display_name) for r in roles if r.name == 'staff']
         form.department_id.choices = [(0, 'Select Department')] + [(d.id, d.display_name) for d in departments]
         form.assigned_services.choices = [(s.id, s.name) for s in services]
 
@@ -257,7 +259,38 @@ def edit_comprehensive_staff(staff_id):
     departments = Department.query.filter_by(is_active=True).all()
     services = Service.query.filter_by(is_active=True).all()
 
-    form.role_id.choices = [(0, 'Select Role')] + [(r.id, r.display_name) for r in roles]
+    # For editing, ensure 'staff' role is always an option, but allow others if not 'staff'
+    role_choices = []
+    staff_role_found = False
+    for r in roles:
+        if r.name == 'staff':
+            role_choices.append((r.id, r.display_name))
+            staff_role_found = True
+        elif staff_member.role_id != r.id: # Do not offer other roles if current staff is not of 'staff' role
+            if staff_member.role_id is None or staff_member.role_id != r.id:
+                if staff_member.role != 'staff':
+                    role_choices.append((r.id, r.display_name))
+
+    if not staff_role_found:
+        role_choices.insert(0, (0, 'No Role Assigned')) # Fallback if 'staff' role doesn't exist
+
+    # If the current staff member's role is not 'staff', and 'staff' role exists, add it back to choices
+    if staff_member.role != 'staff' and staff_role_found:
+        # Check if staff role is already in choices
+        if not any(r_id == next(r.id for r in roles if r.name == 'staff') for r_id, _ in role_choices):
+            staff_role_id = next(r.id for r in roles if r.name == 'staff')
+            staff_role_display = next(r.display_name for r in roles if r.name == 'staff')
+            role_choices.append((staff_role_id, staff_role_display))
+
+    # Ensure 'staff' is the default if the current staff member has the 'staff' role
+    default_role_id = staff_member.role_id if staff_member.role == 'staff' else 0
+    if staff_member.role == 'staff' and not any(r_id == default_role_id for r_id, _ in role_choices):
+        default_role_id = next(r.id for r in roles if r.name == 'staff') if staff_role_found else 0
+
+    form.role_id.choices = [(0, 'Select Role')] + role_choices
+    form.role_id.default = default_role_id if default_role_id else 0
+
+
     form.department_id.choices = [(0, 'Select Department')] + [(d.id, d.display_name) for d in departments]
     form.assigned_services.choices = [(s.id, s.name) for s in services]
 
@@ -285,7 +318,18 @@ def edit_comprehensive_staff(staff_id):
             staff_member.verification_status = form.verification_status.data
 
             staff_member.enable_face_checkin = form.enable_face_checkin.data
-            staff_member.role_id = form.role_id.data if form.role_id.data != 0 else None
+            # If the selected role is 'staff', ensure role_id is None
+            selected_role_id = form.role_id.data
+            selected_role = Role.query.get(selected_role_id) if selected_role_id and selected_role_id != 0 else None
+            
+            if selected_role and selected_role.name == 'staff':
+                staff_member.role_id = None
+                staff_member.role = 'staff' # Ensure the role string is also 'staff'
+            else:
+                staff_member.role_id = selected_role_id if selected_role_id != 0 else None
+                if selected_role:
+                    staff_member.role = selected_role.name # Update role string based on selected ID
+            
             staff_member.department_id = form.department_id.data if form.department_id.data != 0 else None
             staff_member.is_active = form.is_active.data
 
@@ -472,7 +516,8 @@ def export_staff():
         return redirect(url_for('dashboard'))
 
     try:
-        staff_list = User.query.filter_by(is_active=True).all()
+        # Only get staff with role 'staff'
+        staff_list = User.query.filter_by(role='staff', is_active=True).all()
 
         output = io.StringIO()
         writer = csv.writer(output)
@@ -628,7 +673,11 @@ def create_staff_route():
 
     form = AdvancedUserForm()
     roles = get_active_roles()
-    form.role.choices = [(r.name, r.display_name) for r in roles]
+    form.role.choices = [(r.name, r.display_name) for r in roles if r.name == 'staff']
+    # Set default to 'staff' if it exists
+    if form.role.choices:
+        form.role.default = 'staff'
+        form.process()
 
     if form.validate_on_submit():
         staff_data = {
@@ -637,7 +686,7 @@ def create_staff_route():
             'last_name': form.last_name.data,
             'email': form.email.data,
             'phone': form.phone.data,
-            'role': form.role.data,
+            'role': 'staff', # Always set to staff
 
             'password_hash': generate_password_hash('TempPass123!'),  # Temporary password - must be changed on first login
             'is_active': True
@@ -664,7 +713,8 @@ def update_staff_route(id):
 
     form = AdvancedUserForm()
     roles = get_active_roles()
-    form.role.choices = [(r.name, r.display_name) for r in roles]
+    # For the legacy form, ensure 'staff' is the only role option
+    form.role.choices = [(r.name, r.display_name) for r in roles if r.name == 'staff']
 
     if form.validate_on_submit():
         staff_data = {
@@ -673,7 +723,7 @@ def update_staff_route(id):
             'last_name': form.last_name.data,
             'email': form.email.data,
             'phone': form.phone.data,
-            'role': form.role.data,
+            'role': 'staff', # Ensure role is always staff
             'commission_rate': form.commission_rate.data,
             'hourly_rate': form.hourly_rate.data
         }
@@ -784,10 +834,11 @@ def api_get_all_staff():
         return jsonify({'error': 'Access denied'}), 403
 
     try:
-        staff_list = get_comprehensive_staff()
-        roles = get_active_roles()
-        departments = get_active_departments()
-        
+        # Filter to only include staff with role 'staff'
+        staff_list = User.query.filter_by(role='staff').all()
+        roles = Role.query.filter_by(is_active=True, name='staff').all() # Only fetch 'staff' role
+        departments = Department.query.filter_by(is_active=True).all()
+
         print(f"API: Found {len(roles)} roles")
         print(f"API: Found {len(departments)} departments")
 
@@ -810,7 +861,7 @@ def api_get_all_staff():
                 'designation': staff.designation,
                 'staff_code': staff.staff_code,
                 'employee_id': staff.employee_id,
-                
+
                 'is_active': staff.is_active,
                 'gender': staff.gender,
                 'date_of_birth': staff.date_of_birth.isoformat() if staff.date_of_birth else None,
@@ -835,7 +886,7 @@ def api_get_all_staff():
                 'name': r.name, 
                 'display_name': r.display_name
             })
-        
+
         departments_data = []
         for d in departments:
             departments_data.append({
@@ -873,6 +924,10 @@ def api_get_staff(staff_id):
         staff = User.query.get(staff_id)
         if not staff:
             return jsonify({'error': 'Staff member not found'}), 404
+        
+        # Ensure we only return staff with the 'staff' role
+        if staff.role != 'staff':
+            return jsonify({'error': 'Staff member not found or does not have the staff role'}), 404
 
         staff_data = {
             'id': staff.id,
@@ -994,16 +1049,16 @@ def api_create_staff():
         try:
             # Generate unique staff code BEFORE creating user
             existing_codes = set([u.staff_code for u in User.query.filter(User.staff_code.isnot(None)).all()])
-            
+
             # Find next available staff code
             code_num = 1
             staff_code = f"STF{str(code_num).zfill(3)}"
             while staff_code in existing_codes:
                 code_num += 1
                 staff_code = f"STF{str(code_num).zfill(3)}"
-            
+
             print(f"Generated unique staff code: {staff_code}")
-            
+
             staff_data = {
                 'username': str(data['username']).strip(),
                 'first_name': str(data['first_name']).strip().title(),
@@ -1011,8 +1066,8 @@ def api_create_staff():
                 'email': email,  # Already validated above, empty string if not provided
                 'password_hash': generate_password_hash(password),
                 'phone': str(data.get('phone', '')).strip() or None,
-                'role': str(data.get('role', 'staff')).strip(),
-                'role_id': int(data['role_id']) if data.get('role_id') and str(data.get('role_id')).strip() not in ['', '0'] else None,
+                'role': 'staff',  # Always set to staff
+                'role_id': None,  # Don't use dynamic roles for staff
                 'department_id': int(data['department_id']) if data.get('department_id') and str(data.get('department_id')).strip() not in ['', '0'] else None,
                 'designation': str(data.get('designation', 'Staff Member')).strip() or 'Staff Member',
                 'staff_code': staff_code,  # Include staff code in initial creation
@@ -1056,7 +1111,7 @@ def api_create_staff():
         print(f"Error type: {type(e)}")
         import traceback
         print(f"Full traceback: {traceback.format_exc()}")
-        
+
         # Provide user-friendly error messages
         error_message = str(e)
         if 'UNIQUE constraint failed: user.username' in error_message:
@@ -1067,7 +1122,7 @@ def api_create_staff():
             error_message = 'Email already exists. Please use a different email.'
         else:
             error_message = f'Server error: {str(e)}'
-            
+
         return jsonify({'error': error_message}), 500
 
 @app.route('/api/staff/<int:staff_id>', methods=['PUT'])
@@ -1080,6 +1135,15 @@ def api_update_staff(staff_id):
         staff = get_staff_by_id(staff_id)
         if not staff:
             return jsonify({'error': 'Staff member not found'}), 404
+        
+        # Prevent modification of roles if the staff member's role is 'staff'
+        if staff.role == 'staff':
+            # Allow modification of other fields but not role/role_id
+            pass
+        else:
+            # If the staff member is not 'staff', you might want to restrict updates or handle differently.
+            # For now, we'll proceed but be mindful of role changes.
+            pass
 
         data = request.get_json()
         if not data:
@@ -1121,12 +1185,24 @@ def api_update_staff(staff_id):
                     staff.hourly_rate = 0.0
 
             # Role and department IDs with safe conversion
-            if 'role_id' in data and data['role_id']:
-                try:
-                    role_id = int(data['role_id'])
-                    staff.role_id = role_id if role_id > 0 else None
-                except (ValueError, TypeError):
-                    pass  # Keep existing value
+            # If the current staff's role is 'staff', we prevent changing role_id or role
+            if staff.role == 'staff':
+                # Do not allow changing role_id or role for 'staff' members
+                pass 
+            else:
+                if 'role_id' in data and data['role_id']:
+                    try:
+                        role_id = int(data['role_id'])
+                        staff.role_id = role_id if role_id > 0 else None
+                        # Update role string based on role_id
+                        if staff.role_id:
+                            role = Role.query.get(staff.role_id)
+                            if role:
+                                staff.role = role.name
+                        else:
+                            staff.role = None # If role_id is 0 or invalid, set role to None
+                    except (ValueError, TypeError):
+                        pass  # Keep existing value
 
             if 'department_id' in data and data['department_id']:
                 try:
@@ -1200,6 +1276,10 @@ def api_delete_staff(staff_id):
         staff = get_staff_by_id(staff_id)
         if not staff:
             return jsonify({'error': 'Staff member not found'}), 404
+        
+        # Ensure we only delete staff with the 'staff' role
+        if staff.role != 'staff':
+            return jsonify({'error': 'Cannot delete staff member with a role other than "staff"'}), 403
 
         staff_name = f"{staff.first_name} {staff.last_name}"
 

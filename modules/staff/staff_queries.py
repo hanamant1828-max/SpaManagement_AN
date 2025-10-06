@@ -54,7 +54,7 @@ def get_staff_by_id(staff_id):
             if not staff_member.date_of_joining:
                 staff_member.date_of_joining = staff_member.created_at.date() if staff_member.created_at else date.today()
                 updated = True
-            
+
             if updated:
                 db.session.commit()
         return staff_member
@@ -324,31 +324,28 @@ def get_staff_performance_data(staff_id):
         }
 
 def get_comprehensive_staff():
-    """Get all staff with comprehensive details - includes ALL users with staff-related roles"""
+    """Get all staff with comprehensive details - only users with role='staff'"""
     try:
         # Force fresh query from database
         db.session.expire_all()
-        
-        # Get all users that should be considered staff (by legacy role field OR role_id)
+
+        # Get only users with role='staff'
         staff_members = User.query.options(
             db.joinedload(User.dynamic_role),
             db.joinedload(User.staff_department),
             db.joinedload(User.staff_services)
         ).filter(
-            db.or_(
-                User.role.in_(['staff', 'manager', 'admin', 'cashier']),
-                User.role_id.isnot(None)  # Include anyone with a dynamic role assigned
-            ),
+            User.role == 'staff',
             User.is_active == True
         ).order_by(User.first_name).all()
 
         # Auto-populate missing staff fields for users created via User Management
         existing_codes = set([u.staff_code for u in User.query.filter(User.staff_code.isnot(None)).all()])
-        
+
         for member in staff_members:
             try:
                 updated = False
-                
+
                 # Generate staff code if missing
                 if not member.staff_code:
                     code_num = len(existing_codes) + 1
@@ -356,11 +353,11 @@ def get_comprehensive_staff():
                     while potential_code in existing_codes:
                         code_num += 1
                         potential_code = f"STF{str(code_num).zfill(3)}"
-                    
+
                     member.staff_code = potential_code
                     existing_codes.add(potential_code)
                     updated = True
-                
+
                 # Set designation based on role if missing
                 if not member.designation:
                     if member.role_id and member.user_role:
@@ -368,12 +365,12 @@ def get_comprehensive_staff():
                     else:
                         member.designation = member.role.title()
                     updated = True
-                
+
                 # Set joining date if missing
                 if not member.date_of_joining:
                     member.date_of_joining = member.created_at.date() if member.created_at else date.today()
                     updated = True
-                
+
                 if updated:
                     db.session.flush()
             except Exception as member_error:
@@ -386,7 +383,7 @@ def get_comprehensive_staff():
         except Exception as commit_error:
             print(f"Error committing staff updates: {commit_error}")
             db.session.rollback()
-            
+
         return staff_members
     except Exception as e:
         print(f"Error getting comprehensive staff: {e}")
@@ -491,7 +488,7 @@ def create_comprehensive_staff(form_data):
     """Create new staff member with comprehensive details"""
     try:
         from werkzeug.security import generate_password_hash
-        
+
         # Generate staff code if not provided
         staff_code = form_data.get('staff_code')
         if not staff_code:
