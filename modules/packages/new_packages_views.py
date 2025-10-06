@@ -398,6 +398,63 @@ def api_get_student_offers():
 # NOTE: Student offer creation endpoint moved to modules/packages/routes.py
 # to avoid routing conflicts with the main packages blueprint
 
+@app.route('/packages/student-offers/create', methods=['POST'])
+@login_required
+def create_student_offer():
+    """Create a new student offer package"""
+    try:
+        data = request.get_json()
+
+        # Validate required fields
+        if not data.get('service_ids') or not isinstance(data['service_ids'], list):
+            return jsonify({'success': False, 'error': 'At least one service must be selected'}), 400
+
+        if not data.get('discount_percentage'):
+            return jsonify({'success': False, 'error': 'Discount percentage is required'}), 400
+
+        # Import models
+        from models import StudentOffer, StudentOfferService, Service
+        from datetime import datetime
+
+        # Create student offer
+        student_offer = StudentOffer(
+            discount_percent=float(data['discount_percentage']),
+            valid_from=datetime.strptime(data['valid_from'], '%Y-%m-%d').date() if data.get('valid_from') else None,
+            valid_to=datetime.strptime(data['valid_to'], '%Y-%m-%d').date() if data.get('valid_to') else None,
+            valid_days=data.get('valid_days', 'Mon-Sun'),
+            conditions=data.get('conditions', ''),
+            is_active=data.get('is_active', True)
+        )
+
+        db.session.add(student_offer)
+        db.session.flush()
+
+        # Add services to the offer
+        for service_id in data['service_ids']:
+            service = Service.query.get(service_id)
+            if service:
+                offer_service = StudentOfferService(
+                    student_offer_id=student_offer.id,
+                    service_id=service_id
+                )
+                db.session.add(offer_service)
+
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'message': 'Student offer created successfully',
+            'offer_id': student_offer.id
+        })
+
+    except Exception as e:
+        db.session.rollback()
+        app.logger.error(f"Error creating student offer: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 @app.route('/api/student-offers/<int:offer_id>', methods=['GET'])
 @login_required
 def api_get_student_offer(offer_id):
@@ -990,7 +1047,7 @@ def assign_package():
                 price_paid=float(data.get('price_paid', membership.price)),
                 discount=float(data.get('discount', 0)),
                 status='active',
-                notes=f"Payment: {payment_method.upper()} | Status: {payment_status.upper()} | Amount Paid: ₹{amount_paid} | Balance: ₹{balance_due}" + 
+                notes=f"Payment: {payment_method.upper()} | Status: {payment_status.upper()} | Amount Paid: ₹{amount_paid} | Balance: ₹{balance_due}" +
                       (f" | Ref: {transaction_ref}" if transaction_ref else "") +
                       (f"\n{data.get('notes', '')}" if data.get('notes') else ''),
                 # Membership tracking
@@ -1502,8 +1559,8 @@ def assign_package_page(package_type, package_id):
         # Get all customers for the dropdown
         customers = Customer.query.filter_by(is_active=True).order_by(Customer.first_name, Customer.last_name).all()
 
-        return render_template('packages/assign_package.html', 
-                             package=package_data, 
+        return render_template('packages/assign_package.html',
+                             package=package_data,
                              package_type=package_type,
                              customers=customers)
 

@@ -501,46 +501,27 @@ class PrepaidPackage(db.Model):
         return self.after_value - self.actual_price
 
 class ServicePackage(db.Model):
-    """Service packages - Pay for X services, get Y total"""
-    __tablename__ = "service_packages"
+    """Service package model - represents bundled service packages"""
+    __tablename__ = 'service_packages'
 
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
-    service_id = db.Column(db.Integer, db.ForeignKey('service.id'), nullable=True)  # Nullable for template creation
-    pay_for = db.Column(db.Integer, nullable=False)
-    total_services = db.Column(db.Integer, nullable=False)
-    benefit_percent = db.Column(db.Float, nullable=False)
-    validity_months = db.Column(db.Integer, nullable=True)
-    choose_on_assign = db.Column(db.Boolean, default=True)  # Flag for service selection during assignment
+    package_name = db.Column(db.String(100))  # Alternative name field
+    description = db.Column(db.Text)
+    service_id = db.Column(db.Integer, db.ForeignKey('service.id'))
+    sessions = db.Column(db.Integer, nullable=False, default=1)
+    price = db.Column(db.Float, nullable=False)
+    validity_days = db.Column(db.Integer)
     is_active = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-    # Relationships
+    # Relationship
     service = db.relationship('Service', backref='service_packages')
 
-    @property
-    def free_services(self):
-        return self.total_services - self.pay_for
-
-class Membership(db.Model):
-    """Membership packages"""
-    __tablename__ = "memberships"
-
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100), nullable=False)
-    price = db.Column(db.Float, nullable=False)
-    validity_months = db.Column(db.Integer, nullable=False)  # Usually 12
-    services_included = db.Column(db.Text, nullable=True)  # Keep for backward compatibility
-    description = db.Column(db.Text, nullable=True)  # Description field for membership details
-    is_active = db.Column(db.Boolean, default=True, nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-
-    # Relationships
-    membership_services = db.relationship('MembershipService', backref='membership', lazy=True, cascade='all, delete-orphan')
 
 class StudentOffer(db.Model):
-    """Student discount offers"""
-    __tablename__ = "student_offers"
+    """Student offer model - discount packages for students"""
+    __tablename__ = 'student_offers'
 
     id = db.Column(db.Integer, primary_key=True)
     discount_percentage = db.Column(db.Float, nullable=False)  # 1-100
@@ -568,6 +549,22 @@ class StudentOfferService(db.Model):
     service = db.relationship('Service', backref='student_offer_services')
 
     __table_args__ = (db.UniqueConstraint('offer_id', 'service_id'),)
+
+class Membership(db.Model):
+    """Membership packages"""
+    __tablename__ = "memberships"
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    price = db.Column(db.Float, nullable=False)
+    validity_months = db.Column(db.Integer, nullable=False)  # Usually 12
+    services_included = db.Column(db.Text, nullable=True)  # Keep for backward compatibility
+    description = db.Column(db.Text, nullable=True)  # Description field for membership details
+    is_active = db.Column(db.Boolean, default=True, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    # Relationships
+    membership_services = db.relationship('MembershipService', backref='membership', lazy=True, cascade='all, delete-orphan')
 
 class YearlyMembership(db.Model):
     """Yearly membership packages"""
