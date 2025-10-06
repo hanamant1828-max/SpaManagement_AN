@@ -399,9 +399,11 @@ function recalculateTotals() {
 
     if (currentPackage) {
         const packageType = document.getElementById('packageType').value;
+        console.log('Recalculating for package type:', packageType, 'Package data:', currentPackage);
 
         if (packageType === 'prepaid') {
-            subtotal = currentPackage.actual_price || 0;
+            subtotal = currentPackage.price || currentPackage.actual_price || 0;
+            console.log('Prepaid package subtotal:', subtotal);
         } else if (packageType === 'service_package' && currentService) {
             const payFor = currentPackage.pay_for || 0;
             const free = currentPackage.free_services || 0;
