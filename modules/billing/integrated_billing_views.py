@@ -1642,7 +1642,10 @@ def get_customer_packages(customer_id):
 @app.route('/integrated-billing/print-invoice/<int:invoice_id>')
 @login_required
 def print_professional_invoice(invoice_id):
-    """Generate printable professional invoice"""
+    """Generate and download PDF invoice"""
+    from flask import make_response
+    import io
+    
     # Allow all authenticated users to print invoices
     if not current_user.is_active:
         flash('Access denied', 'danger')
@@ -1669,12 +1672,41 @@ def print_professional_invoice(invoice_id):
         staffs = User.query.filter(User.id.in_(service_staff_ids)).all()
         staff_names = {staff.id: staff.full_name for staff in staffs}
 
-    return render_template('professional_invoice_print.html',
-                         invoice=invoice,
-                         invoice_items=invoice_items,
-                         tax_details=tax_details,
-                         staff_names=staff_names,
-                         total_amount_words=number_to_words) # Pass function to template
+    # Render HTML template
+    html_string = render_template('professional_invoice_print.html',
+                                 invoice=invoice,
+                                 invoice_items=invoice_items,
+                                 tax_details=tax_details,
+                                 staff_names=staff_names,
+                                 total_amount_words=number_to_words)
+    
+    try:
+        # Generate PDF from HTML
+        from weasyprint import HTML, CSS
+        from weasyprint.text.fonts import FontConfiguration
+        
+        # Create font configuration
+        font_config = FontConfiguration()
+        
+        # Generate PDF
+        pdf_buffer = io.BytesIO()
+        HTML(string=html_string, base_url=request.url_root).write_pdf(
+            pdf_buffer,
+            font_config=font_config
+        )
+        pdf_buffer.seek(0)
+        
+        # Create response with PDF
+        response = make_response(pdf_buffer.getvalue())
+        response.headers['Content-Type'] = 'application/pdf'
+        response.headers['Content-Disposition'] = f'attachment; filename="Invoice_{invoice.invoice_number}.pdf"'
+        
+        return response
+        
+    except Exception as e:
+        app.logger.error(f"PDF generation error: {e}")
+        # Fallback to HTML view if PDF generation fails
+        return html_string
 
 @app.route('/api/invoice-preview', methods=['POST'])
 @login_required
