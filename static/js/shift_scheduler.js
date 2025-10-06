@@ -252,7 +252,7 @@
     }
 
     /**
-     * Format date for display
+     * Format date for display in Indian format (DD-MM-YYYY)
      */
     function formatDate(dateString) {
         if (!dateString) return 'N/A';
@@ -261,11 +261,10 @@
             if (isNaN(date.getTime())) {
                 return 'Invalid Date';
             }
-            return date.toLocaleDateString('en-US', {
-                year: 'numeric',
-                month: 'short',
-                day: 'numeric'
-            });
+            const day = String(date.getDate()).padStart(2, '0');
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const year = date.getFullYear();
+            return `${day}-${month}-${year}`;
         } catch (e) {
             console.error("Error formatting date:", dateString, e);
             return 'Error';

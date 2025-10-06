@@ -77,28 +77,28 @@ def validate_phone(phone):
 
 
 def format_date(date_obj):
-    """Format date for display"""
+    """Format date for display in Indian format (DD-MM-YYYY)"""
     if date_obj is None:
         return "N/A"
     if isinstance(date_obj, str):
         return date_obj
-    return date_obj.strftime('%Y-%m-%d')
+    return date_obj.strftime('%d-%m-%Y')
 
 def format_datetime(datetime_obj):
-    """Format datetime for display"""
+    """Format datetime for display in Indian format (DD-MM-YYYY hh:mm AM/PM)"""
     if datetime_obj is None:
         return "N/A"
     if isinstance(datetime_obj, str):
         return datetime_obj
-    return datetime_obj.strftime('%Y-%m-%d %H:%M')
+    return datetime_obj.strftime('%d-%m-%Y %I:%M %p')
 
 def format_time(time_obj):
-    """Format time for display"""
+    """Format time for display in Indian format (hh:mm AM/PM)"""
     if time_obj is None:
         return "N/A"
     if isinstance(time_obj, str):
         return time_obj
-    return time_obj.strftime('%H:%M')
+    return time_obj.strftime('%I:%M %p')
 
 def calculate_age(birth_date):
     """Calculate age from birth date"""

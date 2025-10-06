@@ -665,7 +665,7 @@ const S = { loaded:false, page:1, per:20, q:'', status:'', expiring:'', packageT
 
 const $ = (id) => document.getElementById(id);
 const fmtMoney = n => '₹' + (n||0).toLocaleString(undefined,{maximumFractionDigits:0});
-const fmtDate = s => { if(!s) return '—'; const d=new Date(s); return d.toLocaleDateString()+' '+d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}); };
+const fmtDate = s => { if(!s) return '—'; const d=new Date(s); const day = String(d.getDate()).padStart(2, '0'); const month = String(d.getMonth() + 1).padStart(2, '0'); const year = d.getFullYear(); const hours = d.getHours(); const minutes = String(d.getMinutes()).padStart(2, '0'); const ampm = hours >= 12 ? 'PM' : 'AM'; const hour12 = hours % 12 || 12; return `${day}-${month}-${year} ${hour12}:${minutes} ${ampm}`; };
 const badge = (t,c) => `<span class="badge ${c}">${t}</span>`;
 const debounce = (fn,ms)=>{ let t; return (...a)=>{ clearTimeout(t); t=setTimeout(()=>fn(...a),ms);} };
 
