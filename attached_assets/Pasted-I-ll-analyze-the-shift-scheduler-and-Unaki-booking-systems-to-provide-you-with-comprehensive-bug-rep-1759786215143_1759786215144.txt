@@ -1,0 +1,287 @@
+I'll analyze the shift scheduler and Unaki booking systems to provide you with comprehensive bug reports. Let me examine the code and logs to identify issues.
+🔴 SHIFT SCHEDULER - BUGS & ISSUES REPORT
+Critical Issues
+1. Duplicate Staff Records in Database
+
+Severity: HIGH
+Evidence: Console logs show duplicate processing:
+
+👤 Processing staff 1 (Sarah Johnson) - scheduled
+👤 Processing staff 18 (Sarah Johnson) - scheduled  # DUPLICATE!
+👤 Processing staff 2 (Mike Wilson) - scheduled
+👤 Processing staff 19 (Mike Wilson) - scheduled    # DUPLICATE!
+
+Root Cause: Multiple staff entries exist for the same person in the user table
+Impact: Shift schedules appear duplicated, confusing UI, data integrity issues
+
+Files Affected:
+
+    - User model
+    Database integrity
+
+Fix Required:
+
+# Run cleanup script to remove duplicates
+# Enforce unique constraints on staff_code field
+
+2. One Staff = Multiple Shift Management Entries (Schema Violation)
+
+Severity: HIGH
+Evidence: In rag://rag_source_2, ShiftManagement model has unique=True on staff_id:
+
+staff_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False, unique=True)
+
+Problem: Design expects ONE shift management per staff, but logs show processing same staff multiple times due to duplicate User records (Issue #1)
+
+Impact:
+
+    Violates database constraint design
+    Causes confusion in shift overlay rendering
+    Multiple "off duty" overlays for same staff
+
+3. Off-Day Staff Still Show Shift Overlays
+
+Severity: MEDIUM
+Evidence: Console logs show:
+
+👤 Processing staff 28 (Rahul Sk): {"day_status":"off"}
+  📅 Adding OFF DAY overlay: full day (0 - 1820px)
+
+Problem: Staff marked as "off" still render full-day overlays instead of being hidden or marked clearly
+
+Files Affected:
+
+- Overlay rendering logic
+
+    - /api/unaki/schedule endpoint
+
+Expected Behavior: Off-day staff should either:
+
+    Not appear in the timeline, OR
+    Show clear "DAY OFF" status without clickable slots
+
+4. Break Time Data Not Properly Validated
+
+Severity: MEDIUM
+Evidence: In rag://rag_source_2, ShiftLogs model:
+
+break_start_time = db.Column(db.Time, nullable=True)
+break_end_time = db.Column(db.Time, nullable=True)
+
+Problem: No validation ensures break_end_time > break_start_time
+Impact: Could allow invalid break periods (end before start)
+
+Files Affected:
+
+- API endpoint validation
+
+    - ShiftLogs model
+
+5. Shift Scheduler UI - Missing Real-time Validation
+
+Severity: LOW
+Evidence: In rag://rag_source_3, add shift form lacks client-side validation
+
+Problem: Form allows submission of:
+
+    Overlapping break times with shift hours
+    Break periods longer than shift duration
+    Invalid time ranges
+
+Files Affected:
+
+Database Schema Issues
+6. Missing Cascade Delete on ShiftLogs
+
+Severity: MEDIUM
+Evidence: rag://rag_source_10 shows:
+
+shift_management_id = db.Column(db.Integer, db.ForeignKey('shift_management.id', ondelete='CASCADE'))
+
+Status: ✅ Actually CORRECT - Cascade is implemented
+Note: This is working as designed
+Frontend Issues
+7. Date Navigation Broken in IST Timezone
+
+Severity: MEDIUM
+Evidence: In rag://rag_source_7, navigation code shows:
+
+function navigateDate(days) {
+    const now = new Date();
+    const utcTime = now.getTime() + (now.getTimezoneOffset() * 60000);
+    const istTime = new Date(utcTime + (5.5 * 60 * 60 * 1000));
+    // ...
+}
+
+Problem: Complex IST calculation may cause date boundary issues (e.g., at midnight)
+Impact: "Next Day" button might skip or duplicate dates
+
+Files Affected:
+
+    - Date navigation functions
+
+API Endpoint Issues
+8. Out-of-Office CRUD APIs Not Tested
+
+Severity: LOW
+Evidence: rag://rag_source_2 shows OOO endpoints exist but no test coverage
+
+Files Affected:
+
+    - Lines 450-550 (OOO endpoints)
+
+Missing Tests:
+
+    Create out-of-office entry
+    Update existing OOO
+    Delete OOO entry
+    Conflict with appointments during OOO
+
+🔴 UNAKI BOOKING - BUGS & ISSUES REPORT
+Critical Issues
+1. Missing DELETE Endpoint for Bookings
+
+Severity: HIGH
+Evidence: rag://rag_source_1 shows:
+
+DELETE /api/unaki/bookings/<id> - Returns 405 Method Not Allowed
+
+Root Cause: No DELETE route implemented in booking API
+Impact: Cannot delete test bookings, cannot cancel appointments programmatically
+
+Files Affected:
+
+    - Missing DELETE endpoint
+    Test suite shows this as blocker
+
+Fix Required:
+
+@app.route('/api/unaki/bookings/<int:booking_id>', methods=['DELETE'])
+def delete_unaki_booking(booking_id):
+    # Implementation needed
+
+2. Shift Validation Not Configured in Test Environment
+
+Severity: HIGH
+Evidence: rag://rag_source_1 shows:
+
+❌ Break time conflict - Status 400: No shift config
+⚠️ Shift hours validation - Pass with warning: *No shift configured
+
+Root Cause: Test environment lacks shift_management and shift_logs seed data
+Impact:
+
+    Cannot validate break-time conflicts
+    Cannot enforce shift hour restrictions
+    Staff availability checks fail
+
+Files Affected:
+
+    Test data seeding scripts
+
+    - /api/unaki/book-appointment endpoint
+
+3. UPDATE API Requires Full Payload (Not Partial Updates)
+
+Severity: MEDIUM
+Evidence: rag://rag_source_1 shows:
+
+PUT /api/unaki/bookings/<id> - Requires ALL fields
+❌ Status updates - 0/4 status transitions worked
+
+Problem: Cannot update just status field - must send entire booking object
+Impact: Complex client code, error-prone updates
+
+Files Affected:
+
+    - PUT endpoint around line 500-600
+
+Recommendation: Add PATCH endpoint for partial updates OR make PUT flexible
+4. Duplicate Staff Causing Timeline Issues
+
+Severity: HIGH
+Evidence: Same as Shift Scheduler Issue #1
+Impact: Unaki booking timeline shows duplicate staff rows
+
+Root Cause: Duplicate User records (linked to Shift Scheduler Issue #1)
+5. Current Time Indicator Outside Business Hours
+
+Severity: LOW
+Evidence: Console logs show:
+
+🕐 Current IST time: 2:40
+⏰ Outside business hours (2:40), hiding time line
+
+Status: ✅ Working as designed - correctly hides indicator at 2:40 AM
+Note: This is expected behavior
+Validation & Error Handling Issues
+6. Missing Frontend Validation
+
+Severity: MEDIUM
+Evidence: rag://rag_source_1 shows backend validation works, but rag://rag_source_7 lacks client-side checks
+
+Problem: Form allows submission of invalid data, relying on backend rejection
+Impact: Poor UX - users see errors after submission
+
+Files Affected:
+
+    - Booking modal forms
+
+Missing Validations:
+
+    Service duration vs. available time
+    Overlapping appointments (client-side preview)
+    Break time conflicts (visual feedback)
+
+7. Staff Availability API Returns Nested Structure
+
+Severity: LOW
+Evidence: rag://rag_source_6 shows complex staff_availability object
+Problem: Deeply nested response makes frontend parsing complex
+Database & Model Issues
+8. UnakiBooking Table Missing Status Enum
+
+Severity: LOW
+Evidence: rag://rag_source_10 shows Appointment has status enum, but UnakiBooking uses plain string
+
+Impact: No database-level validation of status values
+Risk: Could store invalid statuses like "complted" (typo)
+Test Coverage Gaps
+9. Edge Cases Not Tested
+
+Severity: MEDIUM
+Evidence: rag://rag_source_1 shows missing tests:
+
+Not Tested:
+
+    ❌ Multi-service bookings (same client, back-to-back services)
+    ❌ Holiday/off-day restrictions
+    ❌ Payment status updates
+    ❌ No-show scenarios
+    ❌ Draft booking functionality
+
+Files Affected:
+
+📋 PRIORITY FIX ORDER
+For Shift Scheduler:
+
+    🔴 HIGH: Remove duplicate staff records (run 
+
+)
+🔴 HIGH: Add unique constraint enforcement on
+
+    🟡 MEDIUM: Fix off-day staff rendering (hide or mark clearly)
+    🟡 MEDIUM: Add break time validation (end > start)
+    🟢 LOW: Add client-side form validation
+
+For Unaki Booking:
+
+    🔴 HIGH: Implement DELETE endpoint for bookings
+    🔴 HIGH: Create shift seed data for test environment
+    🔴 HIGH: Fix duplicate staff in timeline (same as shift scheduler #1)
+    🟡 MEDIUM: Add PATCH endpoint for partial updates
+    🟡 MEDIUM: Add frontend validation to booking modal
+    🟢 LOW: Add status enum to UnakiBooking model
+
+🛠️ IMMEDIATE ACTIONS FOR REPLIT AGENT
+Action 1: Clean Up Duplicate Staff
