@@ -2544,6 +2544,7 @@
                         window.scheduleData = {
                             current_ist_time: data.current_ist_time,
                             current_ist_datetime: data.current_ist_datetime,
+                            loadTime: Date.now(), // Store load time for client-side adjustment
                             timezone: data.timezone || 'Asia/Kolkata'
                         };
 
@@ -2753,20 +2754,20 @@
             // Update current time display in IST
             function updateCurrentTimeDisplay() {
                 const now = new Date();
-                
+
                 // Convert to IST (UTC+5:30)
                 const istOffset = 5.5 * 60 * 60 * 1000; // IST offset in milliseconds
                 const istTime = new Date(now.getTime() + istOffset + (now.getTimezoneOffset() * 60 * 1000));
-                
+
                 // Format time as HH:MM:SS AM/PM IST
                 const hours = istTime.getHours();
                 const minutes = istTime.getMinutes().toString().padStart(2, '0');
                 const seconds = istTime.getSeconds().toString().padStart(2, '0');
                 const ampm = hours >= 12 ? 'PM' : 'AM';
                 const displayHours = hours % 12 || 12;
-                
+
                 const timeString = `${displayHours}:${minutes}:${seconds} ${ampm} IST`;
-                
+
                 const timeDisplay = document.getElementById('currentTimeDisplay');
                 if (timeDisplay) {
                     timeDisplay.textContent = timeString;
@@ -4205,56 +4206,55 @@
 
             // Update the current time line indicator on the schedule (fallback using client-side calculation)
             function updateCurrentTimeLine() {
-                const currentTimeLine = document.getElementById('currentTimeLine');
-                const currentTimeLabel = document.getElementById('currentTimeLabel');
+                let istHours, istMinutes;
 
-                // Use server-provided IST time from schedule data
-                if (!window.scheduleData || !window.scheduleData.current_ist_time) {
-                    console.log('⚠️ No server IST time available, using client fallback');
+                // Use server-provided IST time if available
+                if (window.scheduleData && window.scheduleData.current_ist_datetime) {
+                    // Adjust server time based on client's current time and server's load time
+                    const serverISTTime = new Date(window.scheduleData.current_ist_datetime);
                     const now = new Date();
-                    const hours = now.getHours();
-                    const minutes = now.getMinutes();
+                    const timeDifference = now.getTime() - window.scheduleData.loadTime; // Difference in ms since server load
+                    const currentIST = new Date(serverISTTime.getTime() + timeDifference); // Apply difference to server time
 
-                    if (hours < 9 || hours >= 22) {
-                        currentTimeLine.style.display = 'none';
-                        return;
+                    istHours = currentIST.getHours();
+                    istMinutes = currentIST.getMinutes();
+                } else {
+                    // Fallback: Convert local time to IST
+                    const now = new Date();
+                    const istOffset = 5.5 * 60 * 60 * 1000;
+                    const istTime = new Date(now.getTime() + istOffset + (now.getTimezoneOffset() * 60 * 1000));
+
+                    istHours = istTime.getHours();
+                    istMinutes = istTime.getMinutes();
+                }
+
+                console.log(`🕐 Current IST time (server): ${istHours}:${istMinutes.toString().padStart(2, '0')}`);
+
+                // Only show during business hours (9 AM to 10 PM IST)
+                if (istHours >= 9 && istHours < 22) {
+                    const minutesSince9AM = (istHours - 9) * 60 + istMinutes;
+                    const left = minutesSince9AM * pixelsPerMinute;
+
+                    const line = document.getElementById('currentTimeLine');
+                    const label = document.getElementById('currentTimeLabel');
+
+                    if (line && label) {
+                        line.style.left = `${left}px`;
+                        line.style.display = 'block';
+
+                        const displayHours = istHours % 12 || 12;
+                        const ampm = istHours >= 12 ? 'PM' : 'AM';
+                        label.textContent = `${displayHours}:${istMinutes.toString().padStart(2, '0')} ${ampm} IST`;
+
+                        console.log(`⏰ Time line visible at ${left}px (${displayHours}:${istMinutes.toString().padStart(2, '0')} ${ampm} IST)`);
                     }
-
-                    const currentTimeMinutes = hours * 60 + minutes;
-                    const startMinutes = 9 * 60;
-                    const pixelsFromStart = ((currentTimeMinutes - startMinutes) / 60) * 140;
-
-                    currentTimeLine.style.left = pixelsFromStart + 'px';
-                    currentTimeLine.style.display = 'block';
-                    currentTimeLabel.textContent = `${hours}:${String(minutes).padStart(2, '0')}`;
-                    return;
+                } else {
+                    const line = document.getElementById('currentTimeLine');
+                    if (line) {
+                        line.style.display = 'none';
+                        console.log(`⏰ Outside business hours (${istHours}:${istMinutes.toString().padStart(2, '0')}), hiding time line`);
+                    }
                 }
-
-                // Parse server IST time
-                const [hours, minutes] = window.scheduleData.current_ist_time.split(':').map(Number);
-                const currentTimeMinutes = hours * 60 + minutes;
-
-                console.log(`🕐 Current IST time (server): ${hours}:${minutes}`);
-
-                // Business hours: 9 AM to 10 PM
-                if (hours < 9 || hours >= 22) {
-                    console.log(`⏰ Outside business hours (${hours}:${minutes}), hiding time line`);
-                    currentTimeLine.style.display = 'none';
-                    return;
-                }
-
-                // Calculate position from 9 AM
-                const startMinutes = 9 * 60;
-                const pixelsFromStart = ((currentTimeMinutes - startMinutes) / 60) * 140;
-
-                currentTimeLine.style.left = pixelsFromStart + 'px';
-                currentTimeLine.style.display = 'block';
-
-                // Update label with IST time
-                const hour12 = hours % 12 || 12;
-                const ampm = hours >= 12 ? 'PM' : 'AM';
-                const timeStr = `${hour12}:${String(minutes).padStart(2, '0')} ${ampm}`;
-                currentTimeLabel.textContent = `Now (IST): ${timeStr}`;
             }
 
 

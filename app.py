@@ -984,8 +984,11 @@ def unaki_schedule():
             'success': True,
             'date': date_str,
             'timezone': 'Asia/Kolkata',
+            'timezone_offset': '+05:30',
             'current_ist_time': ist_now.strftime('%H:%M'),
+            'current_ist_time_full': ist_now.strftime('%H:%M:%S'),
             'current_ist_datetime': ist_now.isoformat(),
+            'current_ist_date': ist_now.strftime('%Y-%m-%d'),
             'staff': staff_data,
             'appointments': appointments_data,
             'breaks': breaks_data
