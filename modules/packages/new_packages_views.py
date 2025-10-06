@@ -417,15 +417,31 @@ def create_student_offer():
         if not data.get('discount_percentage'):
             return jsonify({'success': False, 'error': 'Discount percentage is required'}), 400
 
+        # Validate price is provided and valid
+        if 'price' not in data or data.get('price') == '' or data.get('price') is None:
+            return jsonify({'success': False, 'error': 'Package price is required'}), 400
+        
+        try:
+            price = float(data['price'])
+            if price < 0:
+                return jsonify({'success': False, 'error': 'Package price must be 0 or greater'}), 400
+        except (ValueError, TypeError):
+            return jsonify({'success': False, 'error': 'Invalid price format'}), 400
+
         # Import models
         from models import StudentOffer, StudentOfferService, Service
         from datetime import datetime
 
-        # Create student offer
+        # Generate default name if not provided
+        offer_name = data.get('offer_name', '').strip()
+        if not offer_name:
+            offer_name = f"Student Discount {data['discount_percentage']}%"
+
+        # Create student offer with validated price
         student_offer = StudentOffer(
-            name=data.get('offer_name', ''),
-            price=float(data.get('price', 0)),
-            discount_percent=float(data['discount_percentage']),
+            name=offer_name,
+            price=price,
+            discount_percentage=float(data['discount_percentage']),
             valid_from=datetime.strptime(data['valid_from'], '%Y-%m-%d').date() if data.get('valid_from') else None,
             valid_to=datetime.strptime(data['valid_to'], '%Y-%m-%d').date() if data.get('valid_to') else None,
             valid_days=data.get('valid_days', 'Mon-Sun'),

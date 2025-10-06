@@ -235,78 +235,94 @@ def get_student_offer_by_id(offer_id):
 
 def create_student_offer(data):
     """Create new student offer"""
-    from models import StudentOffer, StudentOfferService
-    from app import db
+    try:
+        from models import StudentOffer, StudentOfferService, Service
+        from datetime import datetime
 
-    # Generate a name if not provided
-    offer_name = data.get('name') or data.get('offer_name') or f"Student Discount {data['discount_percentage']}%"
-    
-    offer = StudentOffer(
-        name=offer_name,
-        price=float(data['price']),
-        discount_percentage=float(data['discount_percentage']),
-        valid_from=datetime.strptime(data['valid_from'], '%Y-%m-%d').date(),
-        valid_to=datetime.strptime(data['valid_to'], '%Y-%m-%d').date(),
-        valid_days=data.get('valid_days', 'Mon-Fri'),
-        conditions=data.get('conditions', 'Valid with Student ID'),
-        is_active=bool(data.get('is_active', True))
-    )
+        # Validate and get price
+        price = float(data.get('price', 0))
+        if price < 0:
+            raise ValueError("Price cannot be negative")
 
-    db.session.add(offer)
-    db.session.flush()  # Get the offer ID
+        # Generate name if not provided
+        offer_name = data.get('offer_name', '').strip()
+        if not offer_name:
+            offer_name = f"Student Discount {data['discount_percentage']}%"
 
-    # Add service mappings
-    service_ids = data.get('service_ids', [])
-    if isinstance(service_ids, str):
-        service_ids = [service_ids]
+        # Create student offer with price
+        student_offer = StudentOffer(
+            name=offer_name,
+            price=price,
+            discount_percentage=float(data['discount_percentage']),
+            valid_from=datetime.strptime(data['valid_from'], '%Y-%m-%d').date(),
+            valid_to=datetime.strptime(data['valid_to'], '%Y-%m-%d').date(),
+            valid_days=data.get('valid_days', 'Mon-Fri'),
+            conditions=data.get('conditions', 'Valid with Student ID'),
+            is_active=data.get('is_active', True)
+        )
 
-    for service_id in service_ids:
-        if service_id:
+        db.session.add(student_offer)
+        db.session.flush()
+
+        # Add services
+        for service_id in data.get('service_ids', []):
             offer_service = StudentOfferService(
-                offer_id=offer.id,
-                service_id=int(service_id)
+                offer_id=student_offer.id,
+                service_id=service_id
             )
             db.session.add(offer_service)
 
-    db.session.commit()
-    return offer
+        db.session.commit()
+        return student_offer
+
+    except Exception as e:
+        db.session.rollback()
+        logging.error(f"Error creating student offer: {e}")
+        raise
 
 def update_student_offer(offer_id, data):
     """Update student offer"""
-    from models import StudentOffer, StudentOfferService
-    from app import db
+    try:
+        from models import StudentOffer, StudentOfferService
+        from datetime import datetime
 
-    offer = StudentOffer.query.get_or_404(offer_id)
+        student_offer = StudentOffer.query.get_or_404(offer_id)
 
-    # Update name if provided, otherwise generate one
-    offer.name = data.get('name') or data.get('offer_name') or f"Student Discount {data['discount_percentage']}%"
-    offer.price = float(data['price']) if 'price' in data else offer.price
-    offer.discount_percentage = float(data['discount_percentage'])
-    offer.valid_from = datetime.strptime(data['valid_from'], '%Y-%m-%d').date()
-    offer.valid_to = datetime.strptime(data['valid_to'], '%Y-%m-%d').date()
-    offer.valid_days = data.get('valid_days', 'Mon-Fri')
-    offer.conditions = data.get('conditions', 'Valid with Student ID')
-    offer.is_active = bool(data.get('is_active', True))
+        # Update price if provided
+        if 'price' in data:
+            price = float(data['price'])
+            if price < 0:
+                raise ValueError("Price cannot be negative")
+            student_offer.price = price
 
-    # Update service mappings
-    # First, remove existing mappings
-    StudentOfferService.query.filter_by(offer_id=offer.id).delete()
+        # Update name if provided
+        if 'offer_name' in data and data['offer_name'].strip():
+            student_offer.name = data['offer_name'].strip()
 
-    # Add new mappings
-    service_ids = data.get('service_ids', [])
-    if isinstance(service_ids, str):
-        service_ids = [service_ids]
+        # Update basic fields
+        student_offer.discount_percentage = float(data['discount_percentage'])
+        student_offer.valid_from = datetime.strptime(data['valid_from'], '%Y-%m-%d').date()
+        student_offer.valid_to = datetime.strptime(data['valid_to'], '%Y-%m-%d').date()
+        student_offer.valid_days = data.get('valid_days', 'Mon-Fri')
+        student_offer.conditions = data.get('conditions', 'Valid with Student ID')
+        student_offer.is_active = data.get('is_active', True)
 
-    for service_id in service_ids:
-        if service_id:
+        # Update services
+        StudentOfferService.query.filter_by(offer_id=offer_id).delete()
+        for service_id in data.get('service_ids', []):
             offer_service = StudentOfferService(
-                offer_id=offer.id,
-                service_id=int(service_id)
+                offer_id=offer_id,
+                service_id=service_id
             )
             db.session.add(offer_service)
 
-    db.session.commit()
-    return offer
+        db.session.commit()
+        return student_offer
+
+    except Exception as e:
+        db.session.rollback()
+        logging.error(f"Error updating student offer: {e}")
+        raise
 
 def delete_student_offer(offer_id):
     """Delete student offer"""
