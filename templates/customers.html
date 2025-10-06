@@ -686,13 +686,13 @@
                                     </div>
                                 </div>
                                 <div class="d-grid gap-3">
-                                    <button id="startCameraBtn" class="btn btn-success btn-lg">
+                                    <button id="startCameraBtn" class="btn btn-success btn-lg" onclick="startFaceCamera()">
                                         <i class="fas fa-video me-2"></i>Start Camera
                                     </button>
-                                    <button id="captureFacePhoto" class="btn btn-primary btn-lg" disabled>
+                                    <button id="captureFacePhoto" class="btn btn-primary btn-lg" onclick="captureFacePhoto()" disabled>
                                         <i class="fas fa-camera me-2"></i>Capture Photo
                                     </button>
-                                    <button id="saveFaceData" class="btn btn-warning btn-lg" disabled>
+                                    <button id="saveFaceData" class="btn btn-warning btn-lg" onclick="saveFaceData()" disabled>
                                         <i class="fas fa-save me-2"></i>Save Face Data
                                     </button>
                                 </div>
