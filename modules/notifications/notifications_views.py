@@ -59,6 +59,15 @@ def send_appointment_reminders():
                 sent_count += 1
             else:
                 failed_count += 1
+        else:
+            failed_count += 1
+    
+    if failed_count > 0:
+        flash(f'Sent {sent_count} WhatsApp reminders, {failed_count} failed', 'warning')
+    else:
+        flash(f'Sent {sent_count} WhatsApp reminders successfully', 'success')
+    
+    return redirect(url_for('notifications'))
 
 
 @app.route('/notifications/send-single-whatsapp/<int:appointment_id>', methods=['POST'])
@@ -100,12 +109,6 @@ def send_single_whatsapp_reminder(appointment_id):
         flash(f'Failed to send WhatsApp reminder to {client.full_name}', 'danger')
     
     return redirect(url_for('notifications'))
-
-                sent_count += 1
-            else:
-                failed_count += 1
-        else:
-            failed_count += 1
     
     if failed_count > 0:
         flash(f'Sent {sent_count} WhatsApp reminders, {failed_count} failed', 'warning')
