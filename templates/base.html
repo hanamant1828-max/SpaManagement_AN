@@ -198,20 +198,38 @@
                     </li>
 
                     <li class="nav-item">
-                        <a class="nav-link text-white" href="{{ url_for('system_management') }}">
-                            <i class="fas fa-cogs me-2"></i><span>System Settings</span>
+                        <a class="nav-link text-white" href="{{ url_for('user_management_dashboard') }}">
+                            <i class="fas fa-users-cog me-2"></i><span>User Management</span>
                         </a>
                     </li>
 
                     <li class="nav-item">
-                        <a class="nav-link text-white" href="{{ url_for('settings') }}">
+                        <a class="nav-link text-white" href="{{ url_for('manage_users') }}">
+                            <i class="fas fa-user me-2"></i><span>Manage Users</span>
+                        </a>
+                    </li>
+
+                    <li class="nav-item">
+                        <a class="nav-link text-white" href="{{ url_for('manage_roles') }}">
                             <i class="fas fa-user-shield me-2"></i><span>Role Management</span>
                         </a>
                     </li>
 
                     <li class="nav-item">
-                        <a class="nav-link text-white" href="{{ url_for('settings') }}">
-                            <i class="fas fa-lock me-2"></i><span>Access Control</span>
+                        <a class="nav-link text-white" href="{{ url_for('manage_permissions') }}">
+                            <i class="fas fa-key me-2"></i><span>Permissions</span>
+                        </a>
+                    </li>
+
+                    <li class="nav-item">
+                        <a class="nav-link text-white" href="{{ url_for('access_control') }}">
+                            <i class="fas fa-shield-alt me-2"></i><span>Access Control</span>
+                        </a>
+                    </li>
+
+                    <li class="nav-item">
+                        <a class="nav-link text-white" href="{{ url_for('system_management') }}">
+                            <i class="fas fa-cogs me-2"></i><span>System Settings</span>
                         </a>
                     </li>
                     {% endif %}
