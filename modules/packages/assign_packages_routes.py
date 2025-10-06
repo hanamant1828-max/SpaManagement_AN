@@ -54,6 +54,8 @@ def assign_packages_page():
     student_offers = [{
         'id': s.id,
         'name': s.name if s.name else f"{s.discount_percentage}% Student Discount",
+        'price': float(s.price) if s.price else 0.0,
+        'actual_price': float(s.price) if s.price else 0.0,  # Compatibility field
         'discount_percentage': s.discount_percentage,
         'valid_from': s.valid_from.isoformat() if s.valid_from else None,
         'valid_to': s.valid_to.isoformat() if s.valid_to else None,
