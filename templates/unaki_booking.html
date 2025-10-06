@@ -2309,6 +2309,7 @@
             const currentDate = "{{ today }}";
             let bookingsData = [];
             let appointmentCounter = 1; // Renamed from appointmentCount to avoid confusion
+            const pixelsPerMinute = 140 / 60; // 140px per hour, so 140/60 px per minute
 
             // Get the container for multi-booking event listeners
             const multiBookingContainer = document.getElementById('multiBookModal');
@@ -2594,7 +2595,7 @@
                         if (!timeStr) return 0;
                         const [hours, minutes] = timeStr.split(':').map(Number);
                         const hoursSince9AM = hours - 9 + minutes / 60;
-                        return hoursSince9AM * 140; // 140px per hour
+                        return hoursSince9AM * 140; // 140px per hour slot
                     }
 
                     // Helper to calculate width
@@ -2743,47 +2744,66 @@
                     .querySelectorAll(".appointment-block")
                     .forEach((el) => el.remove());
 
-                bookingsData.forEach((booking) => {
-                    const row = document.querySelector(
-                        `.timeline-row[data-staff-id="${booking.staff_id}"]`,
-                    );
-                    if (!row) return; // Skip if no matching row found
+                const appointments = bookingsData.map(apt => ({ // Map to a consistent format
+                    id: apt.id,
+                    staffId: apt.staff_id,
+                    clientName: apt.client_name,
+                    service: apt.service_names, // Assuming service_names is the correct field
+                    startTime: apt.start_time,
+                    endTime: apt.end_time,
+                    duration: apt.duration,
+                    serviceClass: getServiceClass(apt.service_type || 'default') // Add class for styling
+                }));
 
-                    const startHour = parseFloat(booking.start_hour);
-                    const startMinute = parseFloat(booking.start_minute);
-                    const hoursSince9AM = startHour - 9 + startMinute / 60;
-                    const leftPosition = hoursSince9AM * 140; // 140px per hour slot
+                // Render appointments
+                console.log('📍 Rendering appointments:', appointments.length);
+                appointments.forEach(apt => {
+                    console.log(`  Rendering appointment for staff ${apt.staffId}: ${apt.clientName} (${apt.startTime} - ${apt.endTime})`);
 
-                    const durationHours = booking.duration / 60;
-                    const width = Math.max(durationHours * 140, 80); // Minimum width of 80px
+                    const staffRow = document.querySelector(`.timeline-row[data-staff-id="${apt.staffId}"]`);
+                    if (!staffRow) {
+                        console.warn(`❌ No row found for staff ${apt.staffId}`);
+                        return;
+                    }
 
-                    const serviceType = booking.service_type || "default"; // Use service type for styling
+                    const startMinutes = timeToMinutes(apt.startTime);
+                    const endMinutes = timeToMinutes(apt.endTime);
+                    const duration = endMinutes - startMinutes;
 
-                    const block = document.createElement("div");
-                    block.className = `appointment-block service-${serviceType}`;
-                    block.style.left = `${leftPosition}px`;
-                    block.style.width = `${width}px`;
-                    block.dataset.appointmentId = booking.id;
-                    block.draggable = true; // Enable dragging for appointments
+                    // Calculate position (6:00 AM = 0px)
+                    const left = (startMinutes - 360) * pixelsPerMinute; // 360 = 6:00 AM in minutes
+                    const width = duration * pixelsPerMinute;
 
-                    // Populate block content
-                    block.innerHTML = `
-            <div class="appointment-header">
-                <div class="appointment-client">${booking.client_name}</div>
-                <div class="appointment-status"></div>
-            </div>
-            <div class="appointment-service">${booking.service_names}</div>
-            <div class="appointment-footer">
-                <div class="appointment-time">
-                    <i class="fas fa-clock"></i>
-                    ${booking.start_time}
-                </div>
-                <div class="appointment-duration">${booking.duration}m</div>
-            </div>
-        `;
+                    console.log(`  Position: left=${left}px, width=${width}px (${apt.startTime} - ${apt.endTime}, ${duration}min)`);
 
-                    row.appendChild(block);
+                    // Create appointment block
+                    const appointmentBlock = document.createElement('div');
+                    appointmentBlock.className = `appointment-block ${apt.serviceClass}`;
+                    appointmentBlock.style.left = `${left}px`;
+                    appointmentBlock.style.width = `${width}px`;
+                    appointmentBlock.dataset.appointmentId = apt.id;
+                    appointmentBlock.dataset.staffId = apt.staffId;
+                    appointmentBlock.draggable = true;
+
+                    appointmentBlock.innerHTML = `
+                        <div class="appointment-header">
+                            <div class="appointment-client">${apt.clientName}</div>
+                            <div class="appointment-status"></div>
+                        </div>
+                        <div class="appointment-service">${apt.service}</div>
+                        <div class="appointment-footer">
+                            <div class="appointment-time">
+                                <i class="fas fa-clock"></i> ${apt.startTime} - ${apt.endTime}
+                            </div>
+                            <div class="appointment-duration">${duration}min</div>
+                        </div>
+                    `;
+
+                    staffRow.appendChild(appointmentBlock);
+                    console.log(`  ✅ Appointment rendered for ${apt.clientName}`);
                 });
+
+                console.log('📍 Finished rendering appointments');
 
                 // Reinitialize context menu for dynamically added appointments
                 if (window.appointmentContextMenu && typeof window.appointmentContextMenu.reinitializeForAppointments === 'function') {
@@ -3239,8 +3259,8 @@
                         addValidationError(endTimeInput, 'End time must be after start time');
                     }
 
-                    // Validate business hours (9 AM to 11 PM)
-                    if (startTime < 540 || endTime > 1380) {
+                    // Validate business hours (9 AM to 11 PM) - Note: This might need adjustment based on actual business hours. Currently 9:00 to 21:00
+                    if (startTime < 540 || endTime > 1380) { // 540 mins = 9 AM, 1380 mins = 11 PM
                         errors.push('Time must be within business hours (9 AM - 11 PM)');
                         addValidationError(startTimeInput, 'Must be within business hours (9 AM - 11 PM)');
                     }
@@ -3337,7 +3357,7 @@
 
                         appointments.push({
                             client_name: clientDropdown.options[clientDropdown.selectedIndex].text.split(' - ')[0], // Extract client name
-                            client_phone: clientDropdown.value, // Assuming value is client ID, need phone from data attribute
+                            client_phone: clientDropdown.selectedOptions[0].dataset.phone || '', // Get phone from data attribute
                             client_email: clientDropdown.selectedOptions[0].dataset.email || '', // Get email from data attribute
                             staff_id: staffSelect.value,
                             staff_name: staffSelect.options[staffSelect.selectedIndex].text,
@@ -3395,7 +3415,7 @@
                             },
                             body: JSON.stringify({
                                 client_name: appointment.client_name,
-                                client_phone: clientDropdown.selectedOptions[0].dataset.phone || '', // Correctly get phone number
+                                client_phone: appointment.client_phone, // Use the correct field
                                 client_email: appointment.client_email,
                                 staff_id: parseInt(appointment.staff_id), // Ensure staff_id is an integer
                                 service_id: parseInt(appointment.service_id), // Ensure service_id is an integer
@@ -3437,13 +3457,13 @@
                         'success'
                     );
                     bootstrap.Modal.getInstance(document.getElementById('multiBookModal')).hide();
-                    await loadBookingsForDate(currentDate); // Assuming loadBookingsForDate exists and works
+                    loadBookings(); // Refresh the main schedule view
                 } else if (successCount > 0) {
                     showNotification(
                         `⚠️ Partial Success\n\n${successCount} of ${appointments.length} appointments booked successfully.\n\nErrors:\n${errorMessages.join('\n')}`,
                         'warning'
                     );
-                    await loadBookingsForDate(currentDate); // Assuming loadBookingsForDate exists and works
+                    loadBookings(); // Refresh the main schedule view
                 } else {
                     showNotification(
                         `❌ Booking Failed\n\nFailed to book any appointments:\n${errorMessages.join('\n')}`,
@@ -3518,18 +3538,19 @@
                     errors.push(`Start time is required for Appointment #${appointmentNum}`);
                     addValidationError(timeInput, `Start time is required for Appointment #${appointmentNum}`);
                 } else {
-                    // Check business hours (09:00 - 21:00)
+                    // Check business hours (9:00 AM - 11:00 PM)
                     const [hours, minutes] = timeValue.split(':').map(Number);
-                    if (hours < 9 || hours >= 21) {
-                        errors.push('Time must be between 9:00 AM and 9:00 PM');
-                        addValidationError(timeInput, 'Time must be between 9:00 AM and 9:00 PM');
+                    const totalMinutes = hours * 60 + minutes;
+
+                    if (totalMinutes < 540 || totalMinutes >= 1380) { // 9 AM to 11 PM
+                        errors.push('Time must be between 9:00 AM and 11:00 PM');
+                        addValidationError(timeInput, 'Time must be between 9:00 AM and 11:00 PM');
                     } else if (dateValue === new Date().toISOString().split('T')[0]) {
                         // If date is today, check if time is in future
                         const now = new Date();
-                        const selectedTime = new Date();
-                        selectedTime.setHours(hours, minutes, 0, 0);
+                        const selectedDateTime = new Date(`${dateValue}T${timeValue}:00`);
 
-                        if (selectedTime <= now) {
+                        if (selectedDateTime <= now) {
                             errors.push('Cannot book appointments in the past');
                             addValidationError(timeInput, 'Cannot book appointments in the past');
                         } else {
@@ -3550,6 +3571,19 @@
                     clearFieldError(endTimeInput);
                 }
 
+                // Validate time range consistency
+                if (timeValue && endTimeValue) {
+                    const startTimeMinutes = parseTimeToMinutes(timeValue);
+                    const endTimeMinutes = parseTimeToMinutes(endTimeValue);
+
+                    if (endTimeMinutes <= startTimeMinutes) {
+                        errors.push('End time must be after start time');
+                        addValidationError(endTimeInput, 'End time must be after start time');
+                    } else {
+                        clearFieldError(endTimeInput);
+                    }
+                }
+
                 return errors;
             }
 
@@ -3560,20 +3594,20 @@
 
                 // Collect current appointments from the modal
                 appointmentCards.forEach((card, index) => {
-                    const staffId = card.querySelector('.staff-select').value;
-                    const date = card.querySelector('.appointment-date').value;
-                    const startTime = card.querySelector('.start-time').value;
-                    const endTime = card.querySelector('.end-time').value;
+                    const staffSelect = card.querySelector('.staff-select');
+                    const dateInput = card.querySelector('.appointment-date');
+                    const startTimeInput = card.querySelector('.start-time');
+                    const endTimeInput = card.querySelector('.end-time');
 
                     // Only consider appointments with all necessary fields
-                    if (staffId && date && startTime && endTime) {
+                    if (staffSelect.value && dateInput.value && startTimeInput.value && endTimeInput.value) {
                         currentAppointments.push({
                             index,
                             card,
-                            staffId,
-                            date,
-                            startTime,
-                            endTime
+                            staffId: staffSelect.value,
+                            date: dateInput.value,
+                            startTime: startTimeInput.value,
+                            endTime: endTimeInput.value
                         });
                     }
                 });
@@ -3830,7 +3864,7 @@
                         serviceSelect.addEventListener('change', () => {
                             calculateEndTime(index); // Recalculate end time on service change FIRST
                             validateAppointmentCard(card, index);
-                            checkConflicts(index); // Re-check conflicts
+                            detectConflicts(); // Re-check conflicts
                             updateSummary();
                             updateSubmitButton();
                         });
@@ -4109,6 +4143,12 @@
                 return `${displayHours}:${String(minutes).padStart(2, '0')} ${period}`;
             }
 
+            // Helper function to convert time string (HH:MM) to total minutes from midnight
+            function timeToMinutes(timeStr) {
+                if (!timeStr) return 0;
+                const [hours, minutes] = timeStr.split(':').map(Number);
+                return hours * 60 + minutes;
+            }
 
             // Add JavaScript functions for auto-calculating and updating end times
             document.addEventListener('DOMContentLoaded', function() {
@@ -4234,6 +4274,41 @@
                 }, 100); // Small delay
             });
 
+            // Helper function to get CSS class based on service type
+            function getServiceClass(serviceName) {
+                if (!serviceName) return 'service-default';
+                const lowerCaseName = serviceName.toLowerCase();
+                if (lowerCaseName.includes('massage')) return 'service-massage';
+                if (lowerCaseName.includes('facial')) return 'service-facial';
+                if (lowerCaseName.includes('manicure')) return 'service-manicure';
+                if (lowerCaseName.includes('pedicure')) return 'service-pedicure';
+                if (lowerCaseName.includes('haircut')) return 'service-haircut';
+                if (lowerCaseName.includes('waxing')) return 'service-waxing';
+                return 'service-default';
+            }
+
+            // Load schedule for a specific date
+            async function loadScheduleForDate(date) {
+                console.log('📅 Loading schedule for date:', date);
+                console.log('📅 Full API URL:', `/api/unaki/schedule?date=${date}`);
+
+                try {
+                    const response = await fetch(`/api/unaki/schedule?date=${date}`);
+                    console.log('📡 Response status:', response.status);
+                    const data = await response.json();
+                    console.log('📊 Response data:', data);
+
+                    if (data.success) {
+                        renderShiftOverlays(data.staff); // Render shifts for the loaded staff
+                        // Assuming bookings are loaded separately by loadBookings() or a similar function
+                    } else {
+                        throw new Error(data.error || 'Failed to load schedule data');
+                    }
+                } catch (error) {
+                    console.error('Error loading schedule for date:', error);
+                    showNotification(`Failed to load schedule for ${date}: ${error.message}`, 'error');
+                }
+            }
         </script>
     </body>
 </html>
