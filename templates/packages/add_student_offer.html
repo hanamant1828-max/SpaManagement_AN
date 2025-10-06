@@ -168,6 +168,18 @@
                     <h5><i class="fas fa-percentage me-2"></i>Discount Configuration</h5>
                     <div class="row g-3">
                         <div class="col-md-6">
+                            <label for="packagePrice" class="form-label">Package Price *</label>
+                            <div class="input-group">
+                                <span class="input-group-text">₹</span>
+                                <input type="number" class="form-control form-control-lg" id="packagePrice" 
+                                       name="price" required min="0" step="0.01"
+                                       placeholder="500">
+                            </div>
+                            <div id="priceError" class="error-message" style="display: none;"></div>
+                            <div class="form-text">Enter the package price</div>
+                        </div>
+
+                        <div class="col-md-6">
                             <label for="discountPercentage" class="form-label">Discount Percentage *</label>
                             <div class="input-group">
                                 <input type="number" class="form-control form-control-lg" id="discountPercentage" 
@@ -266,6 +278,7 @@
     let studentOfferServices = [];
     let studentOfferFormValidation = {
         services: false,
+        price: false,
         discount: false,
         validFrom: false,
         validTo: false
@@ -363,6 +376,11 @@
         }
         
         // Real-time validation
+        const priceInput = document.getElementById('packagePrice');
+        if (priceInput) {
+            priceInput.addEventListener('input', validateStudentOfferPrice);
+        }
+
         const discountInput = document.getElementById('discountPercentage');
         if (discountInput) {
             discountInput.addEventListener('input', validateStudentOfferDiscount);
@@ -423,6 +441,42 @@
         }
         
         console.log('Services validation:', studentOfferFormValidation.services);
+        updateStudentOfferSaveButton();
+        updateStudentOfferPreview();
+    }
+
+    function validateStudentOfferPrice() {
+        const input = document.getElementById('packagePrice');
+        const errorDiv = document.getElementById('priceError');
+        const value = parseFloat(input.value);
+        
+        if (input) {
+            input.classList.remove('is-invalid', 'is-valid');
+        }
+        
+        if (!input || !input.value) {
+            if (errorDiv) {
+                errorDiv.textContent = 'Package price is required';
+                errorDiv.style.display = 'block';
+            }
+            if (input) input.classList.add('is-invalid');
+            studentOfferFormValidation.price = false;
+        } else if (isNaN(value) || value < 0) {
+            if (errorDiv) {
+                errorDiv.textContent = 'Price must be 0 or greater';
+                errorDiv.style.display = 'block';
+            }
+            if (input) input.classList.add('is-invalid');
+            studentOfferFormValidation.price = false;
+        } else {
+            if (errorDiv) {
+                errorDiv.style.display = 'none';
+            }
+            if (input) input.classList.add('is-valid');
+            studentOfferFormValidation.price = true;
+        }
+        
+        console.log('Price validation:', studentOfferFormValidation.price);
         updateStudentOfferSaveButton();
         updateStudentOfferPreview();
     }
@@ -539,6 +593,7 @@
 
     function updateStudentOfferPreview() {
         const checkboxes = document.querySelectorAll('input[name="service_ids"]:checked');
+        const price = document.getElementById('packagePrice').value;
         const discount = document.getElementById('discountPercentage').value;
         const validDays = document.getElementById('validDays').value;
         const validFrom = document.getElementById('validFrom').value;
@@ -554,10 +609,12 @@
 
             const previewHTML = `
                 ${offerName ? `<div class="mb-3"><strong>Offer Name:</strong><br>${offerName}</div>` : ''}
+                ${price ? `<div class="mb-3"><strong>Package Price:</strong> <span class="badge bg-primary fs-6">₹${price}</span></div>` : ''}
                 <div class="mb-3">
                     <strong>Discount:</strong> 
                     <span class="badge bg-success fs-6">${discount}%</span>
                 </div>
+                ${price && discount ? `<div class="mb-3"><strong>Final Price:</strong> <span class="badge bg-info fs-6">₹${(parseFloat(price) * (1 - parseFloat(discount) / 100)).toFixed(2)}</span></div>` : ''}
                 <div class="mb-3">
                     <strong>Services (${checkboxes.length}):</strong>
                     <ul class="mb-2 small">

@@ -385,6 +385,7 @@ def api_get_student_offers():
         return jsonify([{
             'id': o.id,
             'name': o.name or f"Student Discount {o.discount_percentage}%",
+            'price': float(o.price) if o.price else 0.0,
             'discount_percentage': o.discount_percentage,
             'valid_from': o.valid_from.isoformat(),
             'valid_to': o.valid_to.isoformat(),
@@ -421,6 +422,8 @@ def create_student_offer():
 
         # Create student offer
         student_offer = StudentOffer(
+            name=data.get('offer_name', ''),
+            price=float(data.get('price', 0)),
             discount_percent=float(data['discount_percentage']),
             valid_from=datetime.strptime(data['valid_from'], '%Y-%m-%d').date() if data.get('valid_from') else None,
             valid_to=datetime.strptime(data['valid_to'], '%Y-%m-%d').date() if data.get('valid_to') else None,
@@ -471,6 +474,8 @@ def api_get_student_offer(offer_id):
             'success': True,
             'offer': {
                 'id': offer.id,
+                'name': offer.name,
+                'price': float(offer.price) if offer.price else 0.0,
                 'discount_percentage': offer.discount_percentage,
                 'valid_from': offer.valid_from.isoformat() if offer.valid_from else None,
                 'valid_to': offer.valid_to.isoformat() if offer.valid_to else None,
