@@ -1245,7 +1245,7 @@ class UnakiBreak(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     staff_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    break_type = db.Column(db.String(50), nullable=False)
+    break_type = db.Column(db.String(50), nullable=False, default='break')  # Add default value
     start_time = db.Column(db.DateTime, nullable=False)
     end_time = db.Column(db.DateTime, nullable=False)
     break_date = db.Column(db.Date, nullable=False)
