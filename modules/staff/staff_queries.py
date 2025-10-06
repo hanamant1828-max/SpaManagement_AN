@@ -324,7 +324,6 @@ def get_comprehensive_staff():
         db.session.expire_all()
         
         staff_members = User.query.options(
-            db.joinedload(User.user_role),
             db.joinedload(User.staff_department),
             db.joinedload(User.staff_services)
         ).filter(

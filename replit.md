@@ -11,6 +11,15 @@ This is a comprehensive **Spa & Salon Management System** built with Flask and P
 - Use Bootstrap for UI components
 - Implement proper error handling and logging
 
+## Recent Changes (October 6, 2025)
+### User Management Testing & Bug Fixes ✅
+- Completed comprehensive end-to-end testing of all user management features
+- Fixed critical staff route 404 error by adding @app.route('/staff') decorator
+- Fixed template error (true.has_role → current_user.has_role) in staff.html
+- Resolved Flask endpoint conflict by renaming duplicate punch_out function in inventory module
+- All 10 regression tests now pass at 100% success rate
+- Verified login, user creation, profile management, role/permission system, and staff attendance
+
 ## System Architecture
 The application is built with Flask and uses SQLAlchemy for database interactions. It follows a modular design, separating features into distinct modules (e.g., auth, clients, billing).
 
