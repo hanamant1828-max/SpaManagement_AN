@@ -56,6 +56,9 @@ def send_appointment_reminders():
             create_notification(notification_data)
             
             if success:
+                sent_count += 1
+            else:
+                failed_count += 1
 
 
 @app.route('/notifications/send-single-whatsapp/<int:appointment_id>', methods=['POST'])
