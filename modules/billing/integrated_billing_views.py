@@ -1197,10 +1197,11 @@ def create_professional_invoice():
                     service_items_created += 1
 
                     # === CRITICAL: APPLY PACKAGE BENEFIT ===
-                    # First check for yearly membership discount
+                    # Initialize package deduction tracking
                     yearly_discount_applied = False
                     package_result = {'success': False, 'applied': False, 'message': 'No package benefit checked'}
                     
+                    # First check for yearly membership discount
                     yearly_membership_assignment = ServicePackageAssignment.query.filter(
                         ServicePackageAssignment.customer_id == int(client_id),
                         ServicePackageAssignment.package_type == 'yearly_membership',
