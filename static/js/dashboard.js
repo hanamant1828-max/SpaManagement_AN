@@ -98,6 +98,8 @@ function initializeDashboard() {
     }
 }
 
+const chartInstances = {};
+
 function initializeCharts() {
     console.log('Initializing dashboard charts...');
 
@@ -105,7 +107,10 @@ function initializeCharts() {
     const revenueCtx = document.getElementById('revenueChart');
     if (revenueCtx && typeof Chart !== 'undefined') {
         try {
-            new Chart(revenueCtx.getContext('2d'), {
+            if (chartInstances.revenueChart) {
+                chartInstances.revenueChart.destroy();
+            }
+            chartInstances.revenueChart = new Chart(revenueCtx.getContext('2d'), {
                 type: 'line',
                 data: {
                     labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
@@ -126,7 +131,10 @@ function initializeCharts() {
     const serviceCtx = document.getElementById('serviceChart');
     if (serviceCtx && typeof Chart !== 'undefined') {
         try {
-            new Chart(serviceCtx.getContext('2d'), {
+            if (chartInstances.serviceChart) {
+                chartInstances.serviceChart.destroy();
+            }
+            chartInstances.serviceChart = new Chart(serviceCtx.getContext('2d'), {
                 type: 'doughnut',
                 data: {
                     labels: ['Massage', 'Facial', 'Hair', 'Nails'],
@@ -145,7 +153,10 @@ function initializeCharts() {
     const bookingsCtx = document.getElementById('bookingsChart');
     if (bookingsCtx && typeof Chart !== 'undefined') {
         try {
-            new Chart(bookingsCtx.getContext('2d'), {
+            if (chartInstances.bookingsChart) {
+                chartInstances.bookingsChart.destroy();
+            }
+            chartInstances.bookingsChart = new Chart(bookingsCtx.getContext('2d'), {
                 type: 'bar',
                 data: {
                     labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
@@ -165,7 +176,10 @@ function initializeCharts() {
     const staffCtx = document.getElementById('staffChart');
     if (staffCtx && typeof Chart !== 'undefined') {
         try {
-            new Chart(staffCtx.getContext('2d'), {
+            if (chartInstances.staffChart) {
+                chartInstances.staffChart.destroy();
+            }
+            chartInstances.staffChart = new Chart(staffCtx.getContext('2d'), {
                 type: 'radar',
                 data: {
                     labels: ['Punctuality', 'Service', 'Sales', 'Customer Rating'],
