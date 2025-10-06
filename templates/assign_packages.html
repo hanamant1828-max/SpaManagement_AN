@@ -323,6 +323,9 @@ document.getElementById('packageType').addEventListener('change', function() {
     const serviceGroup = document.getElementById('serviceSelectGroup');
 
     packageSelect.innerHTML = '<option value="">Select Package...</option>';
+    
+    currentPackage = null;
+    currentService = null;
 
     if (type && packages[type]) {
         packages[type].forEach(pkg => {
