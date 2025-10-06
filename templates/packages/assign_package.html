@@ -18,7 +18,7 @@
                         </a>
                     </div>
                 </div>
-
+                
                 <div class="card-body">
                     <!-- Package Information Card -->
                     <div class="card mb-4 border-primary">
@@ -89,7 +89,7 @@
                                             <div class="form-text">Select the customer who will receive this package</div>
                                         </div>
                                     </div>
-
+                                    
                                     <div class="col-md-6">
                                         <div class="mb-3">
                                             <label for="custom_price" class="form-label">
@@ -155,7 +155,7 @@
 document.getElementById('custom_price').addEventListener('input', function() {
     const customPrice = this.value;
     const hiddenPriceField = document.querySelector('input[name="price_paid"]');
-
+    
     if (customPrice && !isNaN(customPrice)) {
         hiddenPriceField.value = customPrice;
     } else {
@@ -169,11 +169,11 @@ document.getElementById('customer_id').addEventListener('change', function() {
     const selectedCustomer = customerSelect.options[customerSelect.selectedIndex];
     const summaryDiv = document.getElementById('assignmentSummary');
     const summaryContent = document.getElementById('summaryContent');
-
+    
     if (this.value) {
         const customPrice = document.getElementById('custom_price').value;
         const finalPrice = customPrice || {{ package.price|default(0)|tojson }};
-
+        
         summaryContent.innerHTML = `
             <div class="row">
                 <div class="col-md-4">
@@ -196,93 +196,18 @@ document.getElementById('customer_id').addEventListener('change', function() {
     }
 });
 
-// Load package details and calculate pricing
-    function loadPackageDetails() {
-        const packageType = '{{ package_type }}';
-        const packageId = {{ package.id }};
-
-        console.log('Loading package details:', { packageType, packageId });
-
-        // Set package type and ID in hidden fields
-        document.getElementById('package_type').value = packageType;
-        document.getElementById('package_id').value = packageId;
-
-        // Calculate and display pricing based on package type
-        if (packageType === 'student') {
-            // For student offers, calculate total service price and apply discount
-            {% if package.student_offer_services %}
-            let totalServicePrice = 0;
-            {% for sos in package.student_offer_services %}
-            totalServicePrice += {{ sos.service.price if sos.service.price else 0 }};
-            {% endfor %}
-            const discountPercent = {{ package.discount_percentage if package.discount_percentage else 0 }};
-            const discountAmount = totalServicePrice * (discountPercent / 100);
-            const finalPrice = totalServicePrice - discountAmount;
-            updatePricingSummary(finalPrice, discountPercent, discountAmount);
-            {% else %}
-            const discountPercent = {{ package.discount_percentage if package.discount_percentage else 0 }};
-            updatePricingSummary(0, discountPercent, 0);
-            {% endif %}
-        } else if (packageType === 'membership') {
-            // For membership packages, use the defined price
-            const basePrice = {{ package.price|default(0) }};
-            updatePricingSummary(basePrice);
-        } else {
-            // Default case for other package types
-            const basePrice = {{ package.price|default(0) }};
-            updatePricingSummary(basePrice);
-        }
-    }
-
-
-// Update pricing summary in the payment section
-    function updatePricingSummary(basePrice, discountPercent = 0, discountAmount = 0) {
-        const gstRate = 0.18; // 18% GST (9% CGST + 9% SGST)
-
-        // If discount amount is not provided but percent is, calculate it
-        if (discountAmount === 0 && discountPercent > 0) {
-            discountAmount = basePrice * (discountPercent / 100);
-        }
-
-        const netPrice = basePrice - discountAmount;
-        const gstAmount = netPrice * gstRate;
-        const grandTotal = netPrice + gstAmount;
-
-        // Update display elements
-        document.getElementById('package_price').textContent = `₹${basePrice.toFixed(2)}`;
-        document.getElementById('net_price').textContent = `₹${netPrice.toFixed(2)}`;
-        document.getElementById('gst_amount').textContent = `₹${gstAmount.toFixed(2)}`;
-        document.getElementById('discount_amount').textContent = discountAmount > 0 ? `₹${discountAmount.toFixed(2)}` : '₹0.00';
-        document.getElementById('grand_total').textContent = `₹${grandTotal.toFixed(2)}`;
-
-        // Update payment amount field
-        const amountInput = document.getElementById('amount_paid');
-        if (amountInput) {
-            amountInput.value = grandTotal.toFixed(2);
-        }
-
-        // Update hidden field for backend
-        document.getElementById('price_paid').value = grandTotal.toFixed(2);
-
-        console.log('Pricing updated:', { basePrice, discountPercent, discountAmount, netPrice, gstAmount, grandTotal });
-    }
-
-// Initial call to load package details and pricing when the page loads
-document.addEventListener('DOMContentLoaded', loadPackageDetails);
-
-
 // Handle form submission
 document.getElementById('assignmentForm').addEventListener('submit', function(e) {
     e.preventDefault();
-
+    
     const formData = new FormData(this);
     const assignBtn = document.getElementById('assignBtn');
     const originalText = assignBtn.innerHTML;
-
+    
     // Update button to show loading
     assignBtn.disabled = true;
     assignBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Assigning...';
-
+    
     // Prepare data for API
     const data = {
         customer_id: parseInt(formData.get('customer_id')),
@@ -291,7 +216,7 @@ document.getElementById('assignmentForm').addEventListener('submit', function(e)
         price_paid: parseFloat(formData.get('custom_price') || formData.get('price_paid') || {{ package.price|default(0)|tojson }}),
         notes: formData.get('notes') || ''
     };
-
+    
     // Submit to API
     fetch('/packages/api/assign', {
         method: 'POST',
@@ -311,16 +236,16 @@ document.getElementById('assignmentForm').addEventListener('submit', function(e)
                 <strong>Success!</strong> ${result.message || 'Package assigned successfully!'}
                 <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             `;
-
+            
             // Insert at top of page
             const container = document.querySelector('.container-fluid');
             container.insertBefore(successAlert, container.firstChild);
-
+            
             // Redirect after 2 seconds
             setTimeout(() => {
                 window.location.href = '{{ url_for("packages") }}';
             }, 2000);
-
+            
         } else {
             throw new Error(result.error || 'Assignment failed');
         }
@@ -334,11 +259,11 @@ document.getElementById('assignmentForm').addEventListener('submit', function(e)
             <strong>Error!</strong> ${error.message}
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         `;
-
+        
         // Insert at top of page
         const container = document.querySelector('.container-fluid');
         container.insertBefore(errorAlert, container.firstChild);
-
+        
         // Restore button
         assignBtn.disabled = false;
         assignBtn.innerHTML = originalText;
