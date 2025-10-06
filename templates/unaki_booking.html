@@ -3498,9 +3498,10 @@
                     errors.push(`Date is required for Appointment #${appointmentNum}`);
                     addValidationError(dateInput, `Date is required for Appointment #${appointmentNum}`);
                 } else {
-                    const selectedDate = new Date(dateValue);
+                    const selectedDate = new Date(dateValue + 'T00:00:00');
                     const today = new Date();
                     today.setHours(0, 0, 0, 0);
+                    selectedDate.setHours(0, 0, 0, 0);
 
                     if (selectedDate < today) {
                         errors.push('Cannot book appointments in the past');
@@ -3827,8 +3828,8 @@
                             updateSubmitButton();
                         });
                         serviceSelect.addEventListener('change', () => {
+                            calculateEndTime(index); // Recalculate end time on service change FIRST
                             validateAppointmentCard(card, index);
-                            calculateEndTime(index); // Recalculate end time on service change
                             checkConflicts(index); // Re-check conflicts
                             updateSummary();
                             updateSubmitButton();
@@ -3864,14 +3865,14 @@
                     const timeInput = card.querySelector('.start-time');
                     if (timeInput) {
                         timeInput.addEventListener('blur', () => {
+                            calculateEndTime(index); // Recalculate end time on time change FIRST
                             validateAppointmentCard(card, index);
-                            calculateEndTime(index); // Recalculate end time on time change
                             detectConflicts(); // Re-check conflicts
                             updateSubmitButton();
                         });
                         timeInput.addEventListener('change', () => {
+                            calculateEndTime(index); // Recalculate end time on time change FIRST
                             validateAppointmentCard(card, index);
-                            calculateEndTime(index); // Recalculate end time on time change
                             detectConflicts(); // Re-check conflicts
                             updateSubmitButton();
                         });
