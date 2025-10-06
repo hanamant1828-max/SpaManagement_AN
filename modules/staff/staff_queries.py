@@ -331,7 +331,7 @@ def get_comprehensive_staff():
         
         # Get all users that should be considered staff (by legacy role field OR role_id)
         staff_members = User.query.options(
-            db.joinedload(User.user_role),
+            db.joinedload(User.dynamic_role),
             db.joinedload(User.staff_department),
             db.joinedload(User.staff_services)
         ).filter(

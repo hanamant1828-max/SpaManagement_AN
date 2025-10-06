@@ -804,7 +804,7 @@ def api_get_all_staff():
                 'phone': staff.phone,
                 'role': staff.role,
                 'role_id': staff.role_id,
-                'role_display': staff.user_role.display_name if staff.user_role else staff.role.title(),
+                'role_display': staff.dynamic_role.display_name if staff.dynamic_role else staff.role.title(),
                 'department_id': staff.department_id,
                 'department_display': staff.staff_department.display_name if staff.staff_department else 'No Department',
                 'designation': staff.designation,
