@@ -41,23 +41,42 @@ def update_setting(key, value):
         return False
 
 def get_business_settings():
-    """Get business settings"""
+    """Get business settings as a dictionary-like object"""
     try:
-        settings = BusinessSettings.query.first()
-        if not settings:
-            # Create default business settings
-            settings = BusinessSettings(
-                business_name='Spa Management System',
-                business_phone='',
-                business_email='',
-                business_address='',
-                tax_rate=0.0,
-                currency='USD',
-                timezone='UTC'
-            )
-            db.session.add(settings)
-            db.session.commit()
-        return settings
+        # Create a simple object to hold settings
+        class SettingsObject:
+            def __init__(self):
+                self.business_name = ''
+                self.business_phone = ''
+                self.business_email = ''
+                self.business_address = ''
+                self.tax_rate = 0.0
+                self.currency = 'USD'
+                self.timezone = 'UTC'
+        
+        settings_obj = SettingsObject()
+        
+        # Get all settings from database
+        all_settings = BusinessSettings.query.all()
+        
+        # Map settings to object attributes
+        for setting in all_settings:
+            if setting.setting_key == 'business_name':
+                settings_obj.business_name = setting.setting_value or ''
+            elif setting.setting_key == 'business_phone':
+                settings_obj.business_phone = setting.setting_value or ''
+            elif setting.setting_key == 'business_email':
+                settings_obj.business_email = setting.setting_value or ''
+            elif setting.setting_key == 'business_address':
+                settings_obj.business_address = setting.setting_value or ''
+            elif setting.setting_key == 'tax_rate':
+                settings_obj.tax_rate = float(setting.setting_value) if setting.setting_value else 0.0
+            elif setting.setting_key == 'currency':
+                settings_obj.currency = setting.setting_value or 'USD'
+            elif setting.setting_key == 'timezone':
+                settings_obj.timezone = setting.setting_value or 'UTC'
+        
+        return settings_obj
     except Exception as e:
         print(f"Error getting business settings: {e}")
         return None
@@ -65,14 +84,15 @@ def get_business_settings():
 def update_business_settings(settings_data):
     """Update business settings"""
     try:
-        settings = BusinessSettings.query.first()
-        if not settings:
-            settings = BusinessSettings()
-            db.session.add(settings)
-        
         for key, value in settings_data.items():
-            if hasattr(settings, key):
-                setattr(settings, key, value)
+            # Find or create setting
+            setting = BusinessSettings.query.filter_by(setting_key=key).first()
+            if not setting:
+                setting = BusinessSettings(setting_key=key)
+                db.session.add(setting)
+            
+            # Update value
+            setting.setting_value = str(value) if value is not None else ''
         
         db.session.commit()
         return True

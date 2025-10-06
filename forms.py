@@ -197,10 +197,12 @@ class RecurringAppointmentForm(FlaskForm):
 class BusinessSettingsForm(FlaskForm):
     """Business settings form"""
     business_name = StringField('Business Name', validators=[DataRequired(), Length(max=100)])
-    address = TextAreaField('Address', validators=[Optional()])
-    phone = StringField('Phone', validators=[Optional(), Length(max=20)])
-    email = StringField('Email', validators=[Optional(), Email()])
-    business_hours = TextAreaField('Business Hours', validators=[Optional()])
+    business_phone = StringField('Business Phone', validators=[Optional(), Length(max=20)])
+    business_email = StringField('Business Email', validators=[Optional(), Email()])
+    business_address = TextAreaField('Business Address', validators=[Optional()])
+    tax_rate = FloatField('Tax Rate', validators=[Optional(), NumberRange(min=0)])
+    currency = SelectField('Currency', choices=[('USD', 'USD'), ('EUR', 'EUR'), ('GBP', 'GBP'), ('INR', 'INR')], default='USD')
+    timezone = SelectField('Timezone', choices=[('UTC', 'UTC'), ('America/New_York', 'Eastern'), ('America/Chicago', 'Central'), ('America/Los_Angeles', 'Pacific'), ('Asia/Kolkata', 'India')], default='UTC')
     submit = SubmitField('Save Settings')
 
 class AdvancedCustomerForm(FlaskForm):
