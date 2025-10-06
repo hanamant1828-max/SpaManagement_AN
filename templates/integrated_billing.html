@@ -1283,11 +1283,28 @@ function displayCustomerPackagesTable(packages) {
             const usageCount = pkg.usage_count || 0;
             balanceText = `<span style="background: #d1fae5; color: #065f46; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.75rem;">Unlimited</span>`;
             balanceDetails = `<small class="text-muted">✓ Used ${usageCount} times</small>`;
+        } else if (packageType === 'student_offer') {
+            // For student offers, show discount percentage in balance column
+            const discountPct = pkg.discount_percentage || 0;
+            balanceText = `<span style="background: #e9d5ff; color: #6b21a8; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.85rem; font-weight: bold;">${discountPct}% OFF</span>`;
+            if (pkg.package_price) {
+                balanceDetails = `<small class="text-muted">Package: ₹${pkg.package_price}</small>`;
+            }
         }
 
         // Format expiry date - check both valid_to and expires_on
-        const expiryDate = (pkg.valid_to || pkg.expires_on) ?
-            new Date(pkg.valid_to || pkg.expires_on).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'No expiry';
+        let expiryDate = '';
+        if (packageType === 'student_offer' && pkg.valid_from && pkg.valid_to) {
+            // Show validity period for student offers
+            expiryDate = `<small>${pkg.valid_from} to<br>${pkg.valid_to}</small>`;
+            // Add details button if conditions exist
+            if (pkg.conditions) {
+                expiryDate += `<br><button type="button" class="btn btn-sm btn-outline-info mt-1" onclick="showStudentOfferDetails('${pkg.name}', '${pkg.discount_percentage}', '${pkg.applicable_service_names}', '${pkg.valid_from}', '${pkg.valid_to}', '${pkg.valid_days}', '${pkg.conditions}')"><i class="fas fa-info-circle"></i> Details</button>`;
+            }
+        } else {
+            expiryDate = (pkg.valid_to || pkg.expires_on) ?
+                new Date(pkg.valid_to || pkg.expires_on).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'No expiry';
+        }
 
         // Type badge
         let typeBadge = '';
@@ -1299,6 +1316,8 @@ function displayCustomerPackagesTable(packages) {
             typeBadge = '<span style="background: #e9d5ff; color: #6b21a8; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.75rem;">Membership</span>';
         } else if (packageType === 'yearly') {
             typeBadge = '<span style="background: #e0e7ff; color: #4338ca; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.75rem;">Yearly</span>';
+        } else if (packageType === 'student_offer') {
+            typeBadge = '<span class="badge bg-gradient" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);"><i class="fas fa-graduation-cap me-1"></i>Student Offer</span>';
         }
 
 
@@ -1311,6 +1330,19 @@ function displayCustomerPackagesTable(packages) {
             serviceNameDisplay = `<br><small class="text-muted"><i class="fas fa-spa"></i> ${serviceNames}</small>`;
         } else if (packageType === 'yearly') {
             serviceNameDisplay = `<br><small class="text-muted"><i class="fas fa-percentage"></i> ${pkg.name.split(' - ')[1]}</small>`; // Show the percentage
+        } else if (packageType === 'student_offer') {
+            // Enhanced student offer display
+            let studentOfferDetails = '';
+            if (pkg.applicable_service_names) {
+                studentOfferDetails += `<br><small class="text-primary"><i class="fas fa-graduation-cap me-1"></i>${pkg.applicable_service_names}</small>`;
+            }
+            if (pkg.discount_percentage) {
+                studentOfferDetails += `<br><small class="text-success"><i class="fas fa-tag me-1"></i>${pkg.discount_percentage}% Discount</small>`;
+            }
+            if (pkg.valid_days) {
+                studentOfferDetails += `<br><small class="text-info"><i class="fas fa-calendar-check me-1"></i>Valid: ${pkg.valid_days}</small>`;
+            }
+            serviceNameDisplay = studentOfferDetails;
         }
 
         html += `

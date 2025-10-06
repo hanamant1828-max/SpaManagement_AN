@@ -1506,6 +1506,39 @@ def get_customer_packages(customer_id):
                 "expires_on": r.expires_on.isoformat() if r.expires_on else None,
             }
 
+            # Enhanced student offer metadata loading
+            if actual_package_type == 'student_offer':
+                try:
+                    from models import StudentOffer
+                    student_offer = StudentOffer.query.get(r.package_reference_id)
+                    if student_offer:
+                        # Add discount percentage
+                        if student_offer.discount_percentage:
+                            package_data['discount_percentage'] = float(student_offer.discount_percentage)
+                        
+                        # Get list of service IDs and names this offer applies to
+                        if hasattr(student_offer, 'student_offer_services'):
+                            applicable_service_ids = [sos.service_id for sos in student_offer.student_offer_services]
+                            package_data['applicable_service_ids'] = applicable_service_ids
+                            
+                            # Get service names for display
+                            applicable_services = []
+                            for sos in student_offer.student_offer_services:
+                                if sos.service:
+                                    applicable_services.append(sos.service.name)
+                            package_data['applicable_service_names'] = ', '.join(applicable_services) if applicable_services else 'All Services'
+                        
+                        # Add student offer specific fields
+                        package_data['valid_from'] = student_offer.valid_from.strftime('%b %d, %Y') if student_offer.valid_from else None
+                        package_data['valid_to'] = student_offer.valid_to.strftime('%b %d, %Y') if student_offer.valid_to else None
+                        package_data['valid_days'] = student_offer.valid_days or 'All Days'
+                        package_data['conditions'] = student_offer.conditions or 'Standard terms apply'
+                        package_data['package_price'] = float(student_offer.price) if student_offer.price else 0
+                        
+                        app.logger.info(f"✅ API Student offer {package_data['name']}: {package_data.get('discount_percentage', 0)}% off, valid {package_data['valid_days']}, applies to: {package_data.get('applicable_service_names', 'N/A')}")
+                except Exception as e:
+                    app.logger.error(f"Error getting student offer details in API: {e}")
+
             # CRITICAL FIX: Check PackageBenefitTracker first for accurate session data
             benefit_tracker = None
             if hasattr(r, 'package_benefits') and r.package_benefits:
