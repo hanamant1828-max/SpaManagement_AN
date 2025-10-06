@@ -506,7 +506,6 @@ class ServicePackage(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
-    package_name = db.Column(db.String(100))  # Alternative name field
     description = db.Column(db.Text)
     service_id = db.Column(db.Integer, db.ForeignKey('service.id'))
     

@@ -14,7 +14,7 @@ from datetime import datetime, date, timedelta, time
 def compute_sqlite_uri():
     """Compute SQLite database URI for the current instance"""
     import shutil
-    
+
     # Create base directory for databases
     base_dir = os.path.join(os.getcwd(), 'hanamantdatabase')
     os.makedirs(base_dir, exist_ok=True)
@@ -27,7 +27,7 @@ def compute_sqlite_uri():
 
     # Create absolute path to database file
     db_path = os.path.abspath(os.path.join(base_dir, f'{instance}.db'))
-    
+
     # Auto-restore from default.db if workspace.db doesn't exist
     if instance == 'workspace' and not os.path.exists(db_path):
         default_db = os.path.join(base_dir, 'default.db')
@@ -60,66 +60,77 @@ def run_automatic_migrations():
     This runs on every startup to ensure cloned projects have the correct schema.
     """
     import sqlite3
-    
+
     # Get database path from SQLAlchemy URI
     db_uri = app.config['SQLALCHEMY_DATABASE_URI']
     if not db_uri or 'sqlite' not in db_uri:
         return
-    
+
     # Extract database path from URI (sqlite:///path/to/db.db)
     db_path = db_uri.replace('sqlite:///', '')
-    
+
     try:
         conn = sqlite3.connect(db_path)
         cursor = conn.cursor()
-        
+
         migrations_applied = False
-        
+
         # Migration 1: shift_logs table
         cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='shift_logs'")
         if cursor.fetchone():
             cursor.execute("PRAGMA table_info(shift_logs)")
             shift_columns = [row[1] for row in cursor.fetchall()]
-            
+
             if 'out_of_office_start' not in shift_columns:
                 print("  → Adding column: shift_logs.out_of_office_start")
                 cursor.execute("ALTER TABLE shift_logs ADD COLUMN out_of_office_start TIME")
                 migrations_applied = True
-                
+
             if 'out_of_office_end' not in shift_columns:
                 print("  → Adding column: shift_logs.out_of_office_end")
                 cursor.execute("ALTER TABLE shift_logs ADD COLUMN out_of_office_end TIME")
                 migrations_applied = True
-                
+
             if 'out_of_office_reason' not in shift_columns:
                 print("  → Adding column: shift_logs.out_of_office_reason")
                 cursor.execute("ALTER TABLE shift_logs ADD COLUMN out_of_office_reason VARCHAR(200)")
                 migrations_applied = True
-        
+
         # Migration 2: student_offers table
         cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='student_offers'")
         if cursor.fetchone():
             cursor.execute("PRAGMA table_info(student_offers)")
             student_columns = [row[1] for row in cursor.fetchall()]
-            
+
             if 'name' not in student_columns:
                 print("  → Adding column: student_offers.name")
                 cursor.execute("ALTER TABLE student_offers ADD COLUMN name VARCHAR(200)")
                 migrations_applied = True
-                
+
             if 'discount_percentage' not in student_columns:
                 print("  → Adding column: student_offers.discount_percentage")
                 cursor.execute("ALTER TABLE student_offers ADD COLUMN discount_percentage FLOAT")
                 migrations_applied = True
-        
+
+        # Migration 3: service_packages table
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='service_packages'")
+        if cursor.fetchone():
+            cursor.execute("PRAGMA table_info(service_packages)")
+            service_package_columns = [row[1] for row in cursor.fetchall()]
+
+            if 'package_name' not in service_package_columns:
+                print("  → Adding column: service_packages.package_name")
+                cursor.execute("ALTER TABLE service_packages ADD COLUMN package_name VARCHAR(255)")
+                migrations_applied = True
+
         if migrations_applied:
             conn.commit()
             print("  ✅ Database schema updated successfully")
         else:
             print("  ✅ Database schema is up to date")
-            
+
         conn.close()
-        
+
     except Exception as e:
         print(f"  ⚠️ Migration error: {e}")
         if 'conn' in locals():
@@ -185,8 +196,40 @@ def load_user(user_id):
 # Make utils available in all templates
 @app.context_processor
 def utility_processor():
-    import utils
-    return dict(utils=utils)
+    """Add utility functions to Jinja context"""
+    def get_month_name(month_num):
+        """Get month name from number"""
+        months = ['', 'January', 'February', 'March', 'April', 'May', 'June',
+                 'July', 'August', 'September', 'October', 'November', 'December']
+        try:
+            return months[int(month_num)]
+        except (IndexError, ValueError):
+            return ''
+
+    def format_date(date_obj):
+        """Format date object"""
+        if not date_obj:
+            return 'N/A'
+        try:
+            return date_obj.strftime('%d %b %Y')
+        except:
+            return str(date_obj)
+
+    def truncate_text(text, length=50):
+        """Truncate text to specified length"""
+        if not text:
+            return ''
+        text = str(text)
+        return text[:length] + '...' if len(text) > length else text
+
+    return dict(
+        utils=dict(
+            get_month_name=get_month_name,
+            format_date=format_date,
+            truncate_text=truncate_text,
+            format_currency=format_currency
+        )
+    )
 
 # Add ping route for health check
 @app.route('/ping')
@@ -255,7 +298,7 @@ def init_app():
             db.create_all()
             print("Database tables created successfully")
             print(f"Database connection: {db_uri}")
-            
+
             # Run automatic database migrations for missing columns
             if db_uri and 'sqlite' in db_uri:
                 try:
@@ -264,7 +307,7 @@ def init_app():
                     print("Database schema check completed")
                 except Exception as migration_error:
                     print(f"Migration warning: {migration_error}")
-                    
+
         except Exception as e:
             print(f"Database initialization warning: {e}")
             print("Continuing with existing database...")
@@ -497,7 +540,7 @@ def unaki_schedule():
 
         # Get date parameter and clean it
         date_str = request.args.get('date', date.today().strftime('%Y-%m-%d')).strip()
-        
+
         # Validate date format
         try:
             target_date = datetime.strptime(date_str, '%Y-%m-%d').date()
@@ -559,7 +602,7 @@ def unaki_schedule():
                         print(f"Error formatting break times for staff {staff.id}: {time_error}")
                         break_start = None
                         break_end = None
-                    
+
                     # Safely format out-of-office times with proper validation
                     ooo_start = None
                     ooo_end = None
@@ -576,7 +619,7 @@ def unaki_schedule():
                         ooo_start = None
                         ooo_end = None
                         ooo_reason = None
-                    
+
                     shift_status = shift_log.status
 
                     # Define holiday and off-day status sets
@@ -586,7 +629,7 @@ def unaki_schedule():
                     # Determine working status and day_status based on shift log status
                     status_raw = (shift_status or '').strip().lower()
                     day_status = "scheduled"
-                    
+
                     if status_raw in HOLIDAY_STATUSES:
                         is_working = False
                         shift_start, shift_end = None, None
@@ -663,17 +706,17 @@ def unaki_schedule():
                 breaks = []
                 if break_start and break_end:
                     breaks.append({
-                        "start": break_start, 
+                        "start": break_start,
                         "end": break_end
                     })
                     print(f"    ☕ Break added: {break_start} - {break_end}")
-                
+
                 # Build out-of-office array for frontend rendering
                 ooo = []
                 if ooo_start and ooo_end:
                     ooo.append({
-                        "start": ooo_start, 
-                        "end": ooo_end, 
+                        "start": ooo_start,
+                        "end": ooo_end,
                         "reason": ooo_reason or "Out of Office"
                     })
                     print(f"    🚫 OOO added: {ooo_start} - {ooo_end}, reason: {ooo_reason or 'N/A'}")
@@ -1258,7 +1301,7 @@ def unaki_create_appointment():
                 Service.name.ilike(f'%{str(service_type).strip()}%'),
                 Service.is_active == True
             ).first()
-        
+
         service_price = float(service.price) if service and service.price else 100.0
         service_id = service.id if service else None
 
@@ -1439,10 +1482,14 @@ def api_unaki_get_bookings():
         except ValueError:
             return jsonify({'success': False, 'error': 'Invalid date format'}), 400
 
-        # Get all bookings for the date, excluding completed appointments
+        # Get today's date for comparison
+        today = date.today()
+
+        # Get all bookings for the date, excluding completed appointments unless it's today
         bookings = UnakiBooking.query.filter_by(appointment_date=booking_date).filter(
-            UnakiBooking.status != 'completed'
+            (UnakiBooking.status != 'completed') | (booking_date == today)
         ).all()
+
 
         bookings_data = []
         for booking in bookings:
@@ -1514,6 +1561,7 @@ def index():
     return redirect(url_for('login'))
 
 @app.route('/zenoti-booking')
+@app.route('/zenoti_booking')
 @login_required
 def zenoti_booking():
     """Zenoti-style appointment booking interface"""
@@ -1701,7 +1749,7 @@ def unaki_create_booking():
         from datetime import datetime, time
 
         data = request.get_json()
-        
+
         if not data:
             return jsonify({
                 'success': False,
@@ -1820,7 +1868,7 @@ def unaki_update_booking_status(booking_id):
         from datetime import datetime
 
         data = request.get_json()
-        
+
         if not data:
             return jsonify({
                 'success': False,
@@ -2138,3 +2186,5 @@ def unaki_delete_appointment(appointment_id):
             'success': False,
             'error': f'Failed to delete appointment: {str(e)}'
         }), 500
+</replit_final_file>
+This change adds the `get_month_name` utility function to the Jinja context and adds a migration to create the `package_name` column in the `service_packages` table.
