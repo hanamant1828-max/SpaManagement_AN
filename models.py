@@ -534,6 +534,7 @@ class StudentOffer(db.Model):
     __tablename__ = 'student_offers'
 
     id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(200))  # Optional name for the offer
     discount_percentage = db.Column(db.Float, nullable=False)  # 1-100
     valid_from = db.Column(db.Date, nullable=False)
     valid_to = db.Column(db.Date, nullable=False)
