@@ -2052,11 +2052,10 @@ function checkPackageBenefit(serviceId, servicePrice, quantity = 1) {
     if (!customerPackages || customerPackages.length === 0) {
         console.log('ℹ️ No packages available for customer');
         console.log('📦 customerPackages state:', customerPackages);
-        console.log('📦 selectedCustomerId:', BillingState.selectedCustomerId);
         return { discount: 0, packageUsed: null, packageId: null, benefitType: null };
     }
 
-    console.log(`📦 Checking ${BillingState.customerPackages.length} packages for service ${serviceId}`);
+    console.log('📦 Total packages to check:', customerPackages.length);
 
     let totalBenefit = 0;
     let appliedPackage = null;
