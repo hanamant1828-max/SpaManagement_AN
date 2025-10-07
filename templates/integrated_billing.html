@@ -1048,7 +1048,7 @@ textarea.form-control {
                     <div class="grand-total" id="grandTotal">₹0.00</div>
 
                     <div class="summary-actions">
-                        <button type="submit" class="btn btn-success btn-lg" id="saveBtn">
+                        <button type="submit" class="btn btn-success btn-lg" id="saveBtn" onclick="validateAndSubmitForm(); return false;">
                             <span class="btn-text">
                                 <i class="fas fa-check-circle"></i>
                                 Save
@@ -1378,7 +1378,7 @@ function displayCustomerPackagesTable(packages) {
         } else if (packageType === 'service_package') {
             typeBadge = '<span style="background: #fef3c7; color: #92400e; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.75rem;">Service</span>';
         } else if (packageType === 'membership') {
-            typeBadge = '<span style="background: #e9d5ff; color: #6b21a8; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.75rem;">Membership</span>';
+            typeBadge = '<span style="background: #e9d5ff; color: #4338ca; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.75rem;">Membership</span>';
         } else if (packageType === 'yearly') {
             typeBadge = '<span style="background: #e0e7ff; color: #4338ca; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.75rem;">Yearly</span>';
         } else if (packageType === 'student_offer') {
@@ -2029,10 +2029,10 @@ function updateCalculations() {
                 // Apply special styling for student offers
                 if (benefitApplied.benefitType === 'student_discount') {
                     benefitDiv.className = 'package-benefit student-discount';
-                    benefitDiv.innerHTML = `<i class="fas fa-graduation-cap"></i> Student Discount (${benefitApplied.packageUsed}): -₹${discountAmount.toFixed(2)}`;
+                    benefitDiv.innerHTML = `<i class="fas fa-graduation-cap"></i> ${benefitApplied.packageUsed}: -₹${discountAmount.toFixed(2)}`;
                 } else {
                     benefitDiv.className = 'package-benefit';
-                    benefitDiv.innerHTML = `<i class="fas fa-gift"></i> Package Benefit (${benefitApplied.packageUsed || benefitApplied.benefitType}): -₹${discountAmount.toFixed(2)}`;
+                    benefitDiv.innerHTML = `<i class="fas fa-gift"></i> ${benefitApplied.packageUsed || benefitApplied.benefitType}: -₹${discountAmount.toFixed(2)}`;
                 }
             } else {
                 // No benefit applied, ensure price input is updated with base price if it exists
@@ -2284,7 +2284,7 @@ function checkPackageBenefit(serviceId, servicePrice, quantity = 1) {
         }
         // --- PRIORITY 4: Membership Package Logic ---
         else if (pkg.package_type === 'membership' && pkg.status === 'active') {
-            // Memberships provide unlimited access ONLY to specific included services
+            // Memberships provide unlimited access ONLY to specific services
             const includedServices = pkg.services || [];
             const includedServiceIds = includedServices.map(s => s.service_id);
 
@@ -2372,156 +2372,7 @@ function checkPackageBenefit(serviceId, servicePrice, quantity = 1) {
 // ==========================================
 // VALIDATION
 // ==========================================
-function validateForm() {
-    console.log('🔬 validateForm called');
-    let isValid = true;
-    const errors = [];
-
-    // Customer validation
-    const client = document.getElementById('client_id');
-    if (!client.value) {
-        client.classList.add('is-invalid');
-        errors.push('Select a customer');
-        isValid = false;
-        console.log('❌ Validation failed: Customer not selected');
-    } else {
-        client.classList.remove('is-invalid');
-    }
-
-    let hasItems = false; // Track if any services or products are added
-
-    // Service validation
-    const serviceRows = document.querySelectorAll('.service-row');
-    console.log(`Checking ${serviceRows.length} service rows...`);
-    serviceRows.forEach((row, i) => {
-        const serviceSelect = row.querySelector('select[name="service_ids[]"]');
-        const staffSelect = row.querySelector('select[name="staff_ids[]"]');
-        const qtyInput = row.querySelector('input[name="service_quantities[]"]');
-        const appointmentIdInput = row.querySelector('input[name="appointment_ids[]"]');
-
-        if (serviceSelect?.value) {
-            hasItems = true; // At least one item is added
-            if (!staffSelect?.value) {
-                staffSelect.classList.add('is-invalid');
-                errors.push(`Service #${i + 1}: Staff required`);
-                isValid = false;
-                console.log(`❌ Validation failed: Staff required for Service #${i + 1}`);
-            } else {
-                staffSelect.classList.remove('is-invalid');
-            }
-
-             // Validate quantity if it's not an appointment row (appointments have fixed quantity)
-            if (!appointmentIdInput.value) {
-                const qty = parseFloat(qtyInput?.value);
-                if (isNaN(qty) || qty <= 0) {
-                     qtyInput.classList.add('is-invalid');
-                     errors.push(`Service #${i + 1}: Valid quantity required`);
-                     isValid = false;
-                     console.log(`❌ Validation failed: Invalid quantity for Service #${i + 1}`);
-                } else {
-                    qtyInput.classList.remove('is-invalid');
-                }
-            } else {
-                // For appointment rows, quantity is usually 1 and fixed
-                qtyInput.classList.remove('is-invalid');
-            }
-        } else {
-            // If serviceSelect is empty, clear related fields' invalid status
-            staffSelect.classList.remove('is-invalid');
-            qtyInput.classList.remove('is-invalid');
-        }
-    });
-
-    // Product validation
-    const productRows = document.querySelectorAll('.product-row');
-    console.log(`Checking ${productRows.length} product rows...`);
-    productRows.forEach((row, i) => {
-        const productSelect = row.querySelector('select[name="product_ids[]"]');
-        const batchSelect = row.querySelector('.batch-select');
-        const staffSelect = row.querySelector('select[name="product_staff_ids[]"]');
-        const qtyInput = row.querySelector('input[name="product_quantities[]"]');
-        const priceInput = row.querySelector('input[name="product_prices[]"]');
-
-        if (productSelect?.value) {
-            hasItems = true; // At least one item is added
-            if (!batchSelect?.value) {
-                batchSelect.classList.add('is-invalid');
-                errors.push(`Product #${i + 1}: Batch required`);
-                isValid = false;
-                console.log(`❌ Validation failed: Batch required for Product #${i + 1}`);
-            } else {
-                batchSelect.classList.remove('is-invalid');
-            }
-            if (!staffSelect?.value) {
-                staffSelect.classList.add('is-invalid');
-                errors.push(`Product #${i + 1}: Staff required`);
-                isValid = false;
-                console.log(`❌ Validation failed: Staff required for Product #${i + 1}`);
-            } else {
-                staffSelect.classList.remove('is-invalid');
-            }
-            const qty = parseFloat(qtyInput?.value);
-            if (isNaN(qty) || qty <= 0) {
-                 qtyInput.classList.add('is-invalid');
-                 errors.push(`Product #${i + 1}: Valid quantity required`);
-                 isValid = false;
-                 console.log(`❌ Validation failed: Invalid quantity for Product #${i + 1}`);
-            } else {
-                qtyInput.classList.remove('is-invalid');
-            }
-             const price = parseFloat(priceInput?.value);
-            if (isNaN(price) || price < 0) { // Price can be 0, but not negative
-                 priceInput.classList.add('is-invalid');
-                 errors.push(`Product #${i + 1}: Valid price required`);
-                 isValid = false;
-                 console.log(`❌ Validation failed: Invalid price for Product #${i + 1}`);
-            } else {
-                priceInput.classList.remove('is-invalid');
-            }
-        } else {
-            // Clear invalid status if product is deselected
-            batchSelect.classList.remove('is-invalid');
-            staffSelect.classList.remove('is-invalid');
-            qtyInput.classList.remove('is-invalid');
-            priceInput.classList.remove('is-invalid');
-        }
-    });
-
-    // Check if any items were added
-    if (!hasItems) {
-        errors.push('Add at least one service or product');
-        isValid = false;
-        console.log('❌ Validation failed: No services or products added');
-    }
-
-    // Payment method validation
-    const payment = document.querySelector('select[name="payment_method"]');
-    if (!payment?.value) {
-        payment.classList.add('is-invalid');
-        errors.push('Payment method required');
-        isValid = false;
-        console.log('❌ Validation failed: Payment method not selected');
-    } else {
-        payment.classList.remove('is-invalid');
-    }
-
-    // If there are errors, display them and stop submission
-    if (!isValid) {
-        console.log('❗ Form validation failed with errors:', errors);
-        showNotification(errors.join('\n'), 'danger');
-        // Scroll to the first invalid field
-        const firstErrorElement = document.querySelector('.is-invalid');
-        if (firstErrorElement) {
-            firstErrorElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }
-    } else {
-        console.log('✅ Form validation passed');
-    }
-
-    return isValid;
-}
-
-function setupInputValidation() {
+function validateForm() { // This function is now only for input styling, not full validation
     console.log('⚙️ Setting up input validation listeners');
     document.getElementById('billingForm').addEventListener('input', function(e) {
         // Remove 'is-invalid' class when user starts typing/changing input
@@ -2536,201 +2387,200 @@ function setupInputValidation() {
     });
 }
 
-// ==========================================
-// FORM SUBMISSION
-// ==========================================
-async function saveAndPrint() {
-    console.log('🚀 saveAndPrint called');
+function validateAndSubmitForm() {
+    console.log('🔍 Validating form before submission...');
 
-    const form = document.getElementById('billingForm');
-    if (!form) {
-        console.error('❌ Billing form not found');
-        showNotification('Error: Form not found', 'error');
-        return;
+    const errors = [];
+
+    // Clear previous validation states
+    document.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
+    document.querySelectorAll('.invalid-feedback').forEach(el => el.style.display = 'none');
+
+    // 1. Check customer selection
+    const clientSelect = document.getElementById('client_id');
+    if (!clientSelect || !clientSelect.value) {
+        errors.push('❌ Please select a customer');
+        if (clientSelect) {
+            clientSelect.classList.add('is-invalid');
+            // Scroll to the element if it's visible
+            clientSelect.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
     }
 
-    // Validate required fields
-    const clientId = document.getElementById('client_id')?.value;
-    const paymentMethod = document.querySelector('select[name="payment_method"]')?.value;
-
-    // Check if at least one service or product is selected
-    const hasService = Array.from(document.querySelectorAll('select[name="service_ids[]"]'))
-        .some(select => select.value);
-    const hasProduct = Array.from(document.querySelectorAll('select[name="product_ids[]"]'))
-        .some(select => select.value && document.querySelector(`select[name="batch_ids[]"][value!=""]`));
-
-    // Validate staff assignment for services
+    // 2. Check if at least one service or product is added and their details
     const serviceRows = document.querySelectorAll('.service-row');
-    let missingStaff = false;
-    serviceRows.forEach(row => {
-        const serviceId = row.querySelector('select[name="service_ids[]"]')?.value;
-        const staffId = row.querySelector('select[name="staff_ids[]"]')?.value;
-        if (serviceId && !staffId) {
-            missingStaff = true;
-        }
-    });
+    const productRows = document.querySelectorAll('.product-row');
 
-    if (!clientId) {
-        showNotification('Please select a customer', 'error');
-        document.getElementById('client_id')?.focus();
-        return;
-    }
+    let hasValidService = false;
+    let hasValidProduct = false;
 
-    if (!hasService && !hasProduct) {
-        showNotification('Please add at least one service or product', 'error');
-        return;
-    }
+    // Validate services
+    serviceRows.forEach((row, index) => {
+        const serviceSelect = row.querySelector('select[name="service_ids[]"]');
+        const staffSelect = row.querySelector('select[name="staff_ids[]"]');
+        const qtyInput = row.querySelector('input[name="service_quantities[]"]');
+        const appointmentIdInput = row.querySelector('input[name="appointment_ids[]"]');
 
-    if (missingStaff) {
-        showNotification('Please assign staff to all services', 'error');
-        return;
-    }
+        // Only validate if a service is actually selected
+        if (serviceSelect && serviceSelect.value) {
+            hasValidService = true; // Mark that at least one service is present
 
-    if (!paymentMethod) {
-        showNotification('Please select a payment method', 'error');
-        document.querySelector('select[name="payment_method"]')?.focus();
-        return;
-    }
-
-    console.log('✅ Form valid, submitting for print...');
-
-    try {
-        // Add print flag to form data
-        const formData = new FormData(form);
-        formData.append('print_after_save', 'true');
-
-        // Show loading
-        showNotification('Creating invoice...', 'info');
-
-        // Submit via AJAX
-        const response = await fetch(form.action, {
-            method: 'POST',
-            body: formData
-        });
-
-        const result = await response.json();
-
-        if (result.success) {
-            showNotification('Invoice created successfully!', 'success');
-
-            // Open print window immediately
-            if (result.invoice_id) {
-                window.open(`/integrated-billing/print-invoice/${result.invoice_id}`, '_blank');
-            }
-
-            // Redirect to billing page after short delay
-            setTimeout(() => {
-                window.location.href = '/integrated-billing';
-            }, 1500);
-        } else {
-            showNotification(`Error: ${result.message}`, 'error');
-        }
-    } catch (error) {
-        console.error('Error saving invoice:', error);
-        showNotification('Error saving invoice. Please try again.', 'error');
-    }
-}
-
-function handleFormSubmit(e) {
-    e.preventDefault();
-    console.log('🚀 Form submit event triggered');
-
-    if (!validateForm()) {
-        console.log('🚫 Form submission aborted due to validation errors.');
-        return;
-    }
-
-    if (BillingState.isSubmitting) {
-        console.log('⏳ Submission already in progress. Aborting duplicate submission.');
-        return;
-    }
-
-    BillingState.isSubmitting = true;
-    const btn = document.getElementById('saveBtn');
-    btn.disabled = true;
-    btn.classList.add('btn-loading');
-    console.log('⚙️ Submission initiated. Button disabled and loading state activated.');
-
-    const formData = new FormData(e.target);
-
-    fetch('/integrated-billing/create-professional', {
-        method: 'POST',
-        body: formData
-    })
-    .then(res => {
-        console.log('📈 Server response received. Status:', res.status);
-        if (!res.ok) {
-            // Attempt to get error message from response body
-            return res.text().then(text => {
-                console.error('Server returned error:', text);
-                throw new Error(`Server error: ${res.status} - ${text || 'Unknown error'}`);
-            });
-        }
-        return res.json();
-    })
-    .then(data => {
-        console.log('✅ Server successfully processed request. Response data:', data);
-        if (data.success) {
-            // Build success message for toast
-            let toastMessage = `✅ Bill Saved Successfully!\n\n`;
-            toastMessage += `📋 Invoice Number: ${data.invoice_number}\n`;
-            toastMessage += `💰 Total Amount: ₹${data.total_amount.toFixed(2)}\n\n`;
-
-            if (data.service_items_created > 0) {
-                toastMessage += `✓ ${data.service_items_created} service(s) billed\n`;
-            }
-            if (data.inventory_items_created > 0) {
-                toastMessage += `✓ ${data.inventory_items_created} product(s) billed\n`;
-            }
-            if (data.appointments_completed > 0) {
-                toastMessage += `✓ ${data.appointments_completed} appointment(s) completed\n`;
-            }
-            if (data.package_deductions_applied > 0) {
-                toastMessage += `✓ ${data.package_deductions_applied} package benefit(s) applied\n`;
-            }
-
-            // Show success toast
-            showNotification(toastMessage, 'success', 8000); // Display for 8 seconds
-
-            // Refresh package display if packages were updated
-            if (data.updated_packages && data.updated_packages.length > 0) {
-                const customerId = document.getElementById('client_id').value;
-                if (customerId) {
-                    console.log('🔄 Refreshing customer package display...');
-                    refreshCustomerPackages(customerId, data.updated_packages);
+            // Check if staff is assigned for a selected service
+            if (!staffSelect || !staffSelect.value) {
+                errors.push(`❌ Service #${index + 1}: Please assign a staff member`);
+                if (staffSelect) {
+                    staffSelect.classList.add('is-invalid');
+                    staffSelect.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 }
             }
 
-            // Handle print if needed (window.printAfterSave is set by saveAndPrint)
-            if (window.printAfterSave && data.invoice_id) {
-                console.log(`🖨️ Opening print window for invoice ID: ${data.invoice_id}`);
-                window.open(`/integrated-billing/print-invoice/${data.invoice_id}`, '_blank');
-                window.printAfterSave = false; // Reset flag
+            // Check quantity for non-appointment services
+            if (!appointmentIdInput || !appointmentIdInput.value) {
+                const qty = parseFloat(qtyInput?.value);
+                if (isNaN(qty) || qty <= 0) {
+                    errors.push(`❌ Service #${index + 1}: Please enter a valid quantity`);
+                    if (qtyInput) {
+                        qtyInput.classList.add('is-invalid');
+                        qtyInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                }
+            }
+        }
+    });
+
+    // Validate products
+    productRows.forEach((row, index) => {
+        const productSelect = row.querySelector('select[name="product_ids[]"]');
+        const batchSelect = row.querySelector('select[name="batch_ids[]"]');
+        const staffSelect = row.querySelector('select[name="product_staff_ids[]"]');
+        const qtyInput = row.querySelector('input[name="product_quantities[]"]');
+        const priceInput = row.querySelector('input[name="product_prices[]"]');
+
+        // Only validate if a product is actually selected
+        if (productSelect && productSelect.value) {
+            hasValidProduct = true; // Mark that at least one product is present
+
+            // Check if batch is selected for a selected product
+            if (!batchSelect || !batchSelect.value) {
+                errors.push(`❌ Product #${index + 1}: Please select a batch`);
+                if (batchSelect) {
+                    batchSelect.classList.add('is-invalid');
+                    batchSelect.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
             }
 
-            // Redirect to invoice detail page after a short delay
-            setTimeout(() => {
-                console.log(`🚀 Redirecting to invoice detail page: /integrated-billing/invoice/${data.invoice_id}`);
-                window.location.href = `/integrated-billing/invoice/${data.invoice_id}`;
-            }, 2500); // Delay for toast message visibility
+            // Check if staff is assigned for a selected product
+            if (!staffSelect || !staffSelect.value) {
+                errors.push(`❌ Product #${index + 1}: Please assign a staff member`);
+                if (staffSelect) {
+                    staffSelect.classList.add('is-invalid');
+                    staffSelect.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            }
 
-        } else {
-            // Handle case where success is false but response is OK
-            throw new Error(data.message || 'Failed to create invoice');
+            // Check quantity for a selected product
+            const qty = parseFloat(qtyInput?.value);
+            if (isNaN(qty) || qty <= 0) {
+                errors.push(`❌ Product #${index + 1}: Please enter a valid quantity`);
+                if (qtyInput) {
+                    qtyInput.classList.add('is-invalid');
+                    qtyInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            }
+
+            // Check price for a selected product (can be 0, but not negative)
+            const price = parseFloat(priceInput?.value);
+            if (isNaN(price) || price < 0) {
+                errors.push(`❌ Product #${index + 1}: Please enter a valid price`);
+                if (priceInput) {
+                    priceInput.classList.add('is-invalid');
+                    priceInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            }
         }
-    })
-    .catch(err => {
-        console.error('❌ Form submission failed:', err);
-        console.error('❌ Error stack:', err.stack);
-
-        BillingState.isSubmitting = false; // Reset submission flag
-        btn.disabled = false; // Re-enable button
-        btn.classList.remove('btn-loading'); // Remove loading state
-
-        // Show error toast
-        const errorMessage = err.message || 'Failed to save invoice. Please check your entries and try again.';
-        showNotification(`❌ Error: ${errorMessage}`, 'danger', 6000); // Display for 6 seconds
     });
+
+    // Check if at least one item (service or product) is added
+    if (!hasValidService && !hasValidProduct) {
+        errors.push('❌ Please add at least one service or product to the invoice');
+        // Scroll to the top of the form to guide user
+        document.getElementById('billingForm')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    // 3. Check payment method selection
+    const paymentMethodRadios = document.querySelectorAll('input[name="payment_method"]');
+    let paymentMethodSelected = false;
+    paymentMethodRadios.forEach(radio => {
+        if (radio.checked) {
+            paymentMethodSelected = true;
+        }
+    });
+    if (!paymentMethodSelected) {
+        errors.push('❌ Please select a payment method');
+        const paymentContainer = document.querySelector('.payment-method-options');
+        if (paymentContainer) {
+            paymentContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    }
+
+    // Show errors or submit
+    if (errors.length > 0) {
+        const errorMessage = `<strong>Please fix the following issues:</strong><br><br>${errors.join('<br>')}`;
+        showNotification(errorMessage, 'error', 8000);
+        console.log('❌ Validation failed:', errors);
+        return false;
+    }
+
+    // All validations passed - submit the form
+    console.log('✅ Validation passed, submitting form...');
+    const form = document.getElementById('billingForm');
+    if (form) {
+        const saveBtn = document.getElementById('saveBtn');
+        if (saveBtn) {
+            saveBtn.disabled = true;
+            saveBtn.classList.add('btn-loading');
+        }
+        form.submit();
+    }
+
+    return true;
+}
+
+// ==========================================
+// FORM SUBMISSION
+// ==========================================
+function handleFormSubmit(event) {
+    event.preventDefault();
+    console.log('🚀 Form submit event caught.');
+
+    // The actual validation and submission logic is now in validateAndSubmitForm
+    // We call it here, and it will handle the form submission if validation passes.
+    validateAndSubmitForm();
+}
+
+// Save and print function
+function saveAndPrint() {
+    console.log('🚀 saveAndPrint called');
+    const form = document.getElementById('billingForm');
+
+    if (!form) {
+        console.error('Form not found');
+        return;
+    }
+
+    // Validate form first using the new validation function
+    if (validateAndSubmitForm()) {
+        console.log('✅ Form valid, submitting for print...');
+
+        // Add hidden input to indicate print request
+        const printInput = document.createElement('input');
+        printInput.type = 'hidden';
+        printInput.name = 'print_after_save';
+        printInput.value = 'true';
+        form.appendChild(printInput);
+
+        // Form will be submitted by validateAndSubmitForm
+    }
 }
 
 // ==========================================
