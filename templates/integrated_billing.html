@@ -1120,11 +1120,22 @@ function initializeBillingSystem() {
         console.log('Selected option text:', this.options[this.selectedIndex]?.text);
 
         if (this.value) {
+            // Clear existing service/product rows first
+            clearBillingRows();
+
+            // Load customer data
             loadCustomerPackages(this.value); // Pass value directly
             loadCustomerAppointments(this.value);
+
+            // Force recalculation after customer change
+            setTimeout(() => {
+                updateCalculations();
+            }, 500);
         } else {
             resetCustomerPackages();
             resetCustomerAppointments();
+            clearBillingRows();
+            updateCalculations();
         }
     });
 
@@ -1893,6 +1904,130 @@ function removeRow(button) {
     }
 }
 
+// Helper to clear all service and product rows
+function clearBillingRows() {
+    console.log('🧹 Clearing all service and product rows');
+    document.getElementById('servicesContainer').innerHTML = '';
+    document.getElementById('productsContainer').innerHTML = '';
+
+    // Re-add the template row for services
+    const servicesContainer = document.getElementById('servicesContainer');
+    const serviceTemplateHtml = `
+        <div class="item-row service-row">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <label class="form-label">Service</label>
+                        <select class="form-select" name="service_ids[]" onchange="handleServiceChange(this)">
+                            <option value="">Select Service</option>
+                            {% for service in services %}
+                            <option value="{{ service.id }}" data-price="{{ "%.2f"|format(service.price|float) }}">
+                                {{ service.name }} - ₹{{ "{:,.2f}".format(service.price) }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="form-group">
+                        <label class="form-label required">Staff</label>
+                        <select class="form-select" name="staff_ids[]">
+                            <option value="">Select Staff</option>
+                            {% for staff in staff_members %}
+                            <option value="{{ staff.id }}">{{ staff.full_name }}</option>
+                            {% endfor %}
+                        </select>
+                        <div class="invalid-feedback">Staff required</div>
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="form-group">
+                        <label class="form-label">Qty</label>
+                        <input type="number" class="form-control" name="service_quantities[]" value="1" min="0.5" step="0.5" oninput="updateCalculations()">
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="form-group">
+                        <label class="form-label">Apt ID</label>
+                        <input type="number" class="form-control" name="appointment_ids[]" placeholder="Optional">
+                    </div>
+                </div>
+                <div class="col-md-1">
+                    <button type="button" class="btn btn-danger btn-sm w-100" onclick="removeRow(this)" style="display:none;">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+    servicesContainer.innerHTML = serviceTemplateHtml;
+
+    // Re-add the template row for products
+    const productsContainer = document.getElementById('productsContainer');
+    const productTemplateHtml = `
+        <div class="item-row product-row">
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <div class="form-group">
+                        <label class="form-label">Product</label>
+                        <select class="form-select" name="product_ids[]" onchange="loadBatches(this)">
+                            <option value="">Select Product</option>
+                            {% for product in inventory_items %}
+                            <option value="{{ product.id }}">{{ product.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="form-group">
+                        <label class="form-label">Batch</label>
+                        <select class="form-select batch-select" name="batch_ids[]" disabled>
+                            <option value="">Select Product</option>
+                        </select>
+                        <div class="batch-info"></div>
+                        <div class="invalid-feedback">Batch required</div>
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="form-group">
+                        <label class="form-label required">Staff</label>
+                        <select class="form-select" name="product_staff_ids[]">
+                            <option value="">Select Staff</option>
+                            {% for staff in staff_members %}
+                            <option value="{{ staff.id }}">{{ staff.full_name }}</option>
+                            {% endfor %}
+                        </select>
+                        <div class="invalid-feedback">Staff required</div>
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="form-group">
+                        <label class="form-label">Qty</label>
+                        <input type="number" class="form-control" name="product_quantities[]" value="1" min="0.01" step="0.01" oninput="updateCalculations()">
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="form-group">
+                        <label class="form-label">Price</label>
+                        <input type="number" class="form-control" name="product_prices[]" placeholder="₹0.00" min="0" step="0.01" oninput="updateCalculations()">
+                    </div>
+                </div>
+                <div class="col-md-1">
+                    <button type="button" class="btn btn-danger btn-sm w-100" onclick="removeRow(this)" style="display:none;">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+    productsContainer.innerHTML = productTemplateHtml;
+
+    // Reset tracking for added appointments
+    addedAppointmentIds.clear();
+    console.log('✅ Billing rows cleared and template rows re-added.');
+}
+
+
 // ==========================================
 // CALCULATIONS
 // ==========================================
@@ -1912,7 +2047,7 @@ function handleServiceChange(selectElement) {
 
     const serviceId = parseInt(selectedOption.value); // Convert to number
     const servicePrice = parseFloat(selectedOption.getAttribute('data-price')) || 0;
-    
+
     console.log('🔍 Service selected:', {
         serviceId,
         servicePrice,
@@ -2336,7 +2471,7 @@ function checkPackageBenefit(serviceId, servicePrice, quantity = 1) {
             const validDays = pkg.valid_days || '';
 
             if (!isStudentOfferValid(validFrom, validTo, validDays)) {
-                console.log(`⏭️ Student offer ${pkg.name} is not valid today (expired or wrong day)`);
+                console.log(`❌ Student offer ${pkg.name} is not valid today (expired or wrong day)`);
                 continue; // Skip this offer
             }
 
@@ -2379,7 +2514,7 @@ function checkPackageBenefit(serviceId, servicePrice, quantity = 1) {
 // ==========================================
 // VALIDATION
 // ==========================================
-function validateForm() { // This function is now only for input styling, not full validation
+function setupInputValidation() { // Renamed from validateForm to setupInputValidation for clarity
     console.log('⚙️ Setting up input validation listeners');
     document.getElementById('billingForm').addEventListener('input', function(e) {
         // Remove 'is-invalid' class when user starts typing/changing input
