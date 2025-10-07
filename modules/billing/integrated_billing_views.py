@@ -1460,15 +1460,25 @@ def create_professional_invoice():
 def get_customer_packages(customer_id):
     """Get fresh customer package data (no cache) for UI refresh"""
     try:
-        from models import ServicePackageAssignment
+        from models import ServicePackageAssignment, PackageBenefitTracker
 
-        rows = (ServicePackageAssignment.query
-                .filter_by(customer_id=customer_id)
-                .order_by(ServicePackageAssignment.expires_on.asc())
-                .all())
+        # Get all active benefit trackers for this customer (what billing actually uses)
+        benefit_trackers = PackageBenefitTracker.query.filter_by(
+            customer_id=customer_id,
+            is_active=True
+        ).all()
+        
+        app.logger.info(f"Found {len(benefit_trackers)} active benefit trackers for customer {customer_id}")
 
         packages_list = []
-        for r in rows:
+        for tracker in benefit_trackers:
+            # Get assignment
+            assignment = tracker.package_assignment
+            if not assignment:
+                app.logger.warning(f"Tracker {tracker.id} has no assignment")
+                continue
+                
+            r = assignment  # Use assignment variable for compatibility
             # Get package name with comprehensive fallback logic
             package_name = None
 
@@ -1642,7 +1652,81 @@ def get_customer_packages(customer_id):
 
             packages_list.append(package_data)
 
+        # If no trackers found, try getting assignments directly as fallback
+        if not packages_list:
+            app.logger.warning(f"No benefit trackers found, checking assignments for customer {customer_id}")
+            assignments = ServicePackageAssignment.query.filter_by(
+                customer_id=customer_id,
+                status='active'
+            ).all()
+            
+            app.logger.info(f"Found {len(assignments)} active assignments for customer {customer_id}")
+            
+            for r in assignments:
+                # Build package info from assignment
+                package_name = None
+                if hasattr(r, 'package_name') and r.package_name:
+                    package_name = r.package_name
+                elif hasattr(r, 'package_display_name') and r.package_display_name:
+                    package_name = r.package_display_name
+                elif hasattr(r, 'name') and r.name:
+                    package_name = r.name
+                    
+                if not package_name:
+                    try:
+                        package_template = r.get_package_template()
+                        if package_template:
+                            if hasattr(package_template, 'name') and package_template.name:
+                                package_name = package_template.name
+                            elif hasattr(package_template, 'package_name') and package_template.package_name:
+                                package_name = package_template.package_name
+                    except:
+                        pass
+                        
+                if not package_name:
+                    pkg_type = r.package_type if hasattr(r, 'package_type') and r.package_type else "package"
+                    package_name = pkg_type.replace('_', ' ').title() + ' Package'
+                
+                service_id = r.service_id
+                service_name = None
+                if service_id:
+                    service_obj = Service.query.get(service_id)
+                    if service_obj:
+                        service_name = service_obj.name
+                        
+                actual_package_type = r.package_type if hasattr(r, 'package_type') and r.package_type else (
+                    "service_package" if r.total_sessions else "prepaid" if r.credit_amount is not None else "membership"
+                )
+                
+                package_data = {
+                    "id": r.id,
+                    "assignment_id": r.id,
+                    "package_type": actual_package_type,
+                    "name": package_name,
+                    "service_name": service_name,
+                    "service_id": service_id,
+                    "status": r.status,
+                    "assigned_on": r.assigned_on.isoformat() if r.assigned_on else None,
+                    "expires_on": r.expires_on.isoformat() if r.expires_on else None,
+                }
+                
+                # Add session or credit data
+                if r.total_sessions is not None:
+                    package_data["sessions"] = {
+                        "total": int(r.total_sessions or 0),
+                        "used": int(r.used_sessions or 0),
+                        "remaining": int(r.remaining_sessions or 0),
+                    }
+                elif r.credit_amount is not None:
+                    package_data["credit"] = {
+                        "total": float(r.credit_amount or 0.0),
+                        "remaining": float(r.remaining_credit or 0.0),
+                    }
+                    
+                packages_list.append(package_data)
+
         payload = {"success": True, "packages": packages_list}
+        app.logger.info(f"Returning {len(packages_list)} packages for customer {customer_id}")
 
         resp = jsonify(payload)
         resp.headers["Cache-Control"] = "no-store"
