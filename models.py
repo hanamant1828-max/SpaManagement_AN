@@ -1138,6 +1138,9 @@ class InvoiceItem(db.Model):
     original_amount = db.Column(db.Float, nullable=False)
     deduction_amount = db.Column(db.Float, default=0.0)
     final_amount = db.Column(db.Float, nullable=False)
+    
+    # Staff revenue tracking - ALWAYS store original service price for staff commission calculation
+    staff_revenue_price = db.Column(db.Float, nullable=True)  # Original service price before package benefits
 
     # Package/subscription tracking
     is_package_deduction = db.Column(db.Boolean, default=False)

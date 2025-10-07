@@ -1299,6 +1299,9 @@ def create_professional_invoice():
                             app.logger.warning(f"⚠️ Appointment ID {appt_id} not found in appointment table - setting to None to avoid FK constraint error")
                     
                     # Create invoice item FIRST (to get invoice_item_id)
+                    # CRITICAL: Store original service price in staff_revenue_price for commission calculation
+                    original_service_price = service.price * service_data['quantity']
+                    
                     item = InvoiceItem(
                         invoice_id=invoice.id,
                         item_type='service',
@@ -1308,8 +1311,9 @@ def create_professional_invoice():
                         description=service.description or '',
                         quantity=service_data['quantity'],
                         unit_price=service.price,
-                        original_amount=service.price * service_data['quantity'],
-                        final_amount=service.price * service_data['quantity'],
+                        original_amount=original_service_price,
+                        final_amount=original_service_price,
+                        staff_revenue_price=original_service_price,  # ALWAYS store original price for staff revenue
                         staff_id=service_data.get('staff_id')
                     )
                     db.session.add(item)
@@ -1361,8 +1365,9 @@ def create_professional_invoice():
                         if package_result.get('success') and package_result.get('applied'):
                             # Update invoice item with package deduction
                             item.deduction_amount = package_result.get('deduction_amount', 0)
-                            item.final_amount = service.price * service_data['quantity'] - item.deduction_amount # Recalculate final amount
+                            item.final_amount = service.price * service_data['quantity'] - item.deduction_amount # Customer pays this
                             item.is_package_deduction = True
+                            # staff_revenue_price remains unchanged - staff gets commission on original price
                             package_deductions_applied += 1
 
                             # Capture updated package info for UI refresh
