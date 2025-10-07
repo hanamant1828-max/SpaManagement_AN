@@ -745,7 +745,7 @@ textarea.form-control {
                                         <select class="form-select" name="service_ids[]" onchange="handleServiceChange(this)">
                                             <option value="">Select Service</option>
                                             {% for service in services %}
-                                            <option value="{{ service.id }}" data-price="{{ service.price|float }}">
+                                            <option value="{{ service.id }}" data-price="{{ service.price|float }}" data-duration="{{ service.duration|default(60) }}">
                                                 {{ service.name }} - ₹{{ "{:,.2f}".format(service.price) }}
                                             </option>
                                             {% endfor %}
@@ -1506,39 +1506,17 @@ function addAppointmentToBill(appointmentId, serviceName, serviceId, staffId, se
     const serviceSelect = targetRow.querySelector('select[name="service_ids[]"]');
     const staffSelect = targetRow.querySelector('select[name="staff_ids[]"]');
     const qtyInput = targetRow.querySelector('input[name="service_quantities[]"]');
-    const appointmentInput = targetRow.querySelector('input[name="appointment_ids[]"]');
+    const appointmentIdInput = targetRow.querySelector('input[name="appointment_ids[]"]');
 
-    // Set values from appointment data
-    if (serviceId !== 'null' && serviceSelect) { // Check if serviceId is not null
-        serviceSelect.value = serviceId;
-        handleServiceChange(serviceSelect); // This should update price if service is selected
-    }
+    // Set the service using trigger function to ensure change handlers fire
+    setSelectValueAndTrigger(serviceSelect, serviceId);
+    setSelectValueAndTrigger(staffSelect, staffId);
+    appointmentIdInput.value = appointmentId;
 
-    if (staffId !== 'null' && staffSelect) { // Check if staffId is not null
-        staffSelect.value = staffId;
-    }
-
-    if (qtyInput) qtyInput.value = 1; // Default quantity to 1 for appointment
-
-    if (appointmentInput) {
-        appointmentInput.value = appointmentId;
-        appointmentInput.dataset.appointmentId = appointmentId; // Store ID for tracking
-        appointmentInput.dataset.servicePrice = servicePrice; // Store price for accurate calculation
-        appointmentInput.dataset.serviceDuration = serviceDuration; // Store duration
-        console.log(`✅ Set appointment ID ${appointmentId} in row`);
-    }
-
-    // Mark as added
-    addedAppointmentIds.add(appointmentId);
-    console.log('Tracking added appointment ID:', appointmentId);
-
-    updateCalculations();
-
-    // Refresh appointments display to show "Added" button state
-    const clientId = document.getElementById('client_id').value;
-    if (clientId) {
-        loadCustomerAppointments(clientId);
-    }
+    // Apply package benefits immediately after setting service
+    setTimeout(() => {
+        updateCalculations();
+    }, 100);
 }
 
 function removeAppointmentFromBill(appointmentId) {
@@ -1822,23 +1800,220 @@ function removeRow(button) {
 // CALCULATIONS
 // ==========================================
 function handleServiceChange(selectElement) {
-    console.log('▶️ handleServiceChange triggered for select:', selectElement);
+    console.log('▶️ handleServiceChange triggered for service select:', selectElement);
 
-    const row = selectElement.closest('.service-row');
-    if (!row) return;
+    // Apply package-aware pricing to this row
+    const row = selectElement.closest('.service-row, .item-row');
+    if (row) {
+        applyPackageToRow(row);
+    }
 
-    const selectedOption = selectElement.options[selectElement.selectedIndex];
-    if (!selectedOption || !selectedOption.value) return;
-
-    const serviceId = parseInt(selectedOption.value); // Convert to number
-    const servicePrice = parseFloat(selectedOption.dataset.price) || 0;
-
-    // Set the service price in a data attribute for calculations
-    row.dataset.serviceId = serviceId;
-    row.dataset.basePrice = servicePrice;
-
-    // Update calculations immediately to apply package benefits
+    // Update calculations when service changes
     updateCalculations();
+}
+
+// Apply package benefits to a specific service row
+function applyPackageToRow(row) {
+    const serviceSelect = row.querySelector('select[name="service_ids[]"]');
+    if (!serviceSelect || !serviceSelect.value) return;
+
+    const selectedOption = serviceSelect.options[serviceSelect.selectedIndex];
+    const serviceId = parseInt(serviceSelect.value);
+    const basePrice = parseFloat(selectedOption.dataset.price || 0);
+    const baseDuration = parseInt(selectedOption.dataset.duration || 60);
+
+    // Get effective pricing based on packages
+    const pricingResult = getEffectivePricing(serviceId, baseDuration, basePrice);
+
+    // Store effective values on the row for calculations
+    row.dataset.effectivePrice = pricingResult.price;
+    row.dataset.effectiveDuration = pricingResult.duration;
+    row.dataset.packageApplied = pricingResult.packageApplied ? '1' : '0';
+    row.dataset.packageId = pricingResult.packageInfo?.package_id || '';
+
+    // Show visual indicator if package applied
+    updatePackageBadge(row, pricingResult);
+}
+
+// Compute effective pricing based on client packages
+function getEffectivePricing(serviceId, baseDuration, basePrice) {
+    // Use clientPackages which is populated from BillingState.customerPackages
+    const clientPackages = BillingState.customerPackages;
+
+    if (!clientPackages || clientPackages.length === 0) {
+        return {
+            duration: baseDuration,
+            price: basePrice,
+            packageApplied: false,
+            packageInfo: null
+        };
+    }
+
+    // Check each package for applicable benefits
+    for (const pkg of clientPackages) {
+        // Skip packages that are explicitly inactive or expired
+        if (pkg.status === 'expired' || pkg.status === 'completed' || pkg.is_active === false) {
+             continue;
+        }
+
+        // Check if package has remaining benefits based on package_type
+        if (pkg.package_type === 'service_package') {
+            const remaining = pkg.sessions?.remaining || 0;
+            if (remaining <= 0) continue;
+        } else if (pkg.package_type === 'prepaid') {
+            const remaining = pkg.credit?.remaining || 0;
+            if (remaining <= 0) continue;
+        }
+
+        // --- PRIORITY 1: Yearly membership - applies percentage discount to ALL services ---
+        if (pkg.package_type === 'yearly') {
+            const discountMatch = pkg.name.match(/(\d+)%/);
+            if (discountMatch) {
+                const discountPercent = parseInt(discountMatch[1]);
+                const totalServiceCost = basePrice; // For individual service line item
+                const discountedPrice = totalServiceCost * (1 - discountPercent / 100);
+                return {
+                    duration: baseDuration,
+                    price: discountedPrice,
+                    packageApplied: true,
+                    packageInfo: {
+                        package_id: pkg.assignment_id,
+                        package_name: pkg.name,
+                        benefit_type: 'yearly_discount',
+                        discount_percentage: discountPercent
+                    }
+                };
+            }
+        }
+
+        // --- PRIORITY 2: Student Offer packages ---
+        else if (pkg.package_type === 'student_offer' && pkg.discount_percentage > 0) {
+            const validFrom = pkg.valid_from || '';
+            const validTo = pkg.valid_to || '';
+            const validDays = pkg.valid_days || '';
+
+            if (!isStudentOfferValid(validFrom, validTo, validDays)) {
+                continue; // Skip this offer if not valid today
+            }
+
+            const applicableServiceIds = pkg.applicable_service_ids || [];
+            // CRITICAL: Ensure numeric comparison
+            const numericApplicableIds = applicableServiceIds.map(id => parseInt(id));
+
+            const appliesToThisService = applicableServiceIds.length === 0 || numericApplicableIds.includes(serviceId);
+
+            if (appliesToThisService) {
+                const discountedPrice = basePrice * (1 - pkg.discount_percentage / 100);
+                return {
+                    duration: baseDuration,
+                    price: discountedPrice,
+                    packageApplied: true,
+                    packageInfo: {
+                        package_id: pkg.assignment_id,
+                        package_name: pkg.name,
+                        benefit_type: 'student_discount',
+                        discount_percentage: pkg.discount_percentage
+                    }
+                };
+            }
+        }
+
+        // --- PRIORITY 3: Service Package / Free Session Logic ---
+        else if (pkg.package_type === 'service_package') {
+            const packageServiceId = parseInt(pkg.service_id);
+            if (packageServiceId === serviceId && pkg.sessions?.remaining > 0) {
+                return {
+                    duration: baseDuration,
+                    price: 0, // Free session
+                    packageApplied: true,
+                    packageInfo: {
+                        package_id: pkg.assignment_id,
+                        package_name: pkg.name,
+                        benefit_type: 'free_session'
+                    }
+                };
+            }
+        }
+        // --- PRIORITY 4: Prepaid / Credit Package Logic ---
+        else if (pkg.package_type === 'prepaid') {
+            if (pkg.credit?.remaining > 0) {
+                const creditToUse = Math.min(basePrice, pkg.credit.remaining);
+                return {
+                    duration: baseDuration,
+                    price: basePrice - creditToUse,
+                    packageApplied: true,
+                    packageInfo: {
+                        package_id: pkg.assignment_id,
+                        package_name: pkg.name,
+                        benefit_type: 'prepaid_credit',
+                        credit_used: creditToUse
+                    }
+                };
+            }
+        }
+        // --- PRIORITY 5: Membership Package Logic ---
+        else if (pkg.package_type === 'membership' || pkg.package_type === 'yearly_membership') {
+            // Check if membership covers this service
+            if (pkg.service_id === serviceId || pkg.package_type === 'yearly_membership') {
+                const discountPct = pkg.discount_percentage || 0;
+                const discountedPrice = discountPct > 0 ? basePrice * (1 - discountPct / 100) : 0;
+                return {
+                    duration: baseDuration,
+                    price: discountedPrice,
+                    packageApplied: true,
+                    packageInfo: {
+                        package_id: pkg.assignment_id,
+                        package_name: pkg.name,
+                        benefit_type: 'membership',
+                        discount_percentage: discountPct
+                    }
+                };
+            }
+        }
+    }
+
+    // No package applied
+    return {
+        duration: baseDuration,
+        price: basePrice,
+        packageApplied: false,
+        packageInfo: null
+    };
+}
+
+// Update visual package badge on row
+function updatePackageBadge(row, pricingResult) {
+    // Remove existing badge
+    const existingBadge = row.querySelector('.package-benefit');
+    if (existingBadge) {
+        existingBadge.remove();
+    }
+
+    if (pricingResult.packageApplied && pricingResult.packageInfo) {
+        const badge = document.createElement('div');
+        badge.className = 'package-benefit';
+
+        let badgeText = '';
+        const info = pricingResult.packageInfo;
+
+        if (info.benefit_type === 'student_discount') {
+            badgeText = `🎓 ${info.discount_percentage}% OFF - ${info.package_name}`;
+            badge.classList.add('student-discount'); // Add specific class for styling
+        } else if (info.benefit_type === 'free_session') {
+            badgeText = `📦 FREE SESSION - ${info.package_name}`;
+        } else if (info.benefit_type === 'prepaid_credit') {
+            badgeText = `💳 ₹${info.credit_used} CREDIT - ${info.package_name}`;
+        } else if (info.benefit_type === 'membership') {
+            badgeText = info.discount_percentage > 0
+                ? `🏅 ${info.discount_percentage}% OFF - ${info.package_name}`
+                : `🏅 FREE - ${info.package_name}`;
+        } else if (info.benefit_type === 'yearly_discount') {
+            badgeText = `🌟 ${info.discount_percentage}% OFF - ${info.package_name}`;
+        }
+
+        badge.textContent = badgeText;
+        row.appendChild(badge);
+    }
 }
 
 function updateCalculations() {
@@ -1846,7 +2021,7 @@ function updateCalculations() {
 
     let servicesSubtotal = 0;
     let productsSubtotal = 0;
-    let packageDeductions = 0;
+    let totalPackageDeductions = 0; // Sum of all package benefits applied
 
     // --- Calculate Services Subtotal ---
     console.log('🔄 Calculating services subtotal...');
@@ -1858,90 +2033,67 @@ function updateCalculations() {
 
         const serviceId = serviceSelect?.value;
         const quantity = parseFloat(qtyInput?.value) || 0;
-        let basePrice = parseFloat(serviceSelect.selectedOptions[0]?.dataset.price) || 0; // Get base price from dataset initially
+        // Get base price from the option's data-price attribute
+        const basePrice = parseFloat(serviceSelect.selectedOptions[0]?.dataset.price || 0);
 
-        // If a price input exists, use its value as it might be updated by package benefits or explicitly set
-        if (priceInput && priceInput.value) {
-             basePrice = parseFloat(priceInput.value);
-        }
-
-        let effectivePrice = basePrice; // Start with the base price
+        let effectivePrice = basePrice; // Default to base price
         let itemTotal = 0;
-        let benefitApplied = { discount: 0, packageUsed: null, packageId: null, benefitType: null };
+        let discountAmount = 0; // Discount for this specific item line
 
         // Check if it's an appointment row
         const isAppointmentRow = appointmentIdInput && appointmentIdInput.value;
         if (isAppointmentRow) {
+            // For appointments, use the price stored in the dataset
             const appointmentPrice = parseFloat(appointmentIdInput.dataset.servicePrice);
-            const appointmentDuration = parseFloat(appointmentIdInput.dataset.serviceDuration);
-
             if (!isNaN(appointmentPrice)) {
-                effectivePrice = appointmentPrice; // Use the price from the appointment
-                // Quantity for appointments is usually 1, but we use it for calculation
-                itemTotal = effectivePrice * quantity;
-                console.log('➕ Appointment row item total:', { quantity, effectivePrice, itemTotal });
+                effectivePrice = appointmentPrice;
+                itemTotal = effectivePrice * quantity; // Quantity might be > 1 if user adjusted
             } else {
                 console.warn('⚠️ Appointment row detected but price is missing.');
                 itemTotal = 0; // Cannot calculate if price is missing
             }
-            // Package benefits typically don't apply to services already covered by an appointment
-            benefitApplied = { discount: 0, packageUsed: null, packageId: null, benefitType: null };
-            row.querySelector('.package-benefit')?.remove(); // Remove any previous benefit indicator
+            // Package benefits are generally NOT applied to services already covered by an appointment
+            row.querySelector('.package-benefit')?.remove(); // Ensure no benefit badge is shown
+            row.dataset.packageApplied = '0'; // Mark as no package applied
         } else if (serviceId && quantity > 0) {
-            // Apply package benefits only if it's NOT an appointment row
-            benefitApplied = checkPackageBenefit(serviceId, basePrice, quantity);
-            console.log('🎁 Package benefit for service row:', { serviceId, basePrice, quantity, benefitApplied });
+            // Apply package benefits only if it's NOT an appointment row and service selected
+            applyPackageToRow(row); // Ensure row dataset is updated with effective pricing
 
-            if (benefitApplied.discount > 0) {
-                const discountAmount = Math.min(benefitApplied.discount, basePrice * quantity); // Ensure discount doesn't exceed item total
-                packageDeductions += discountAmount;
+            // Use effective price from row dataset if package was applied
+            effectivePrice = parseFloat(row.dataset.effectivePrice) || basePrice;
+            const packageApplied = row.dataset.packageApplied === '1';
 
-                // Calculate effective price after benefit per unit
-                effectivePrice = Math.max(0, basePrice - discountAmount / quantity);
-                itemTotal = effectivePrice * quantity; // Item total after applying benefit
+            itemTotal = effectivePrice * quantity;
+            discountAmount = packageApplied ? (basePrice - effectivePrice) * quantity : 0; // Calculate discount for this item
 
-                if (priceInput) {
-                    priceInput.value = effectivePrice.toFixed(2);
-                    console.log(`⬆️ Updated priceInput in row due to package benefit: ${priceInput.value}`);
-                }
-
-                // Show package benefit indicator on the row
-                let benefitDiv = row.querySelector('.package-benefit');
-                if (!benefitDiv) {
-                    benefitDiv = document.createElement('div');
-                    benefitDiv.className = 'package-benefit';
-                    row.appendChild(benefitDiv);
-                }
-
-                // Apply special styling for student offers
-                if (benefitApplied.benefitType === 'student_discount') {
-                    benefitDiv.className = 'package-benefit student-discount';
-                    benefitDiv.innerHTML = `<i class="fas fa-graduation-cap"></i> Student Discount (${benefitApplied.packageUsed}): -₹${discountAmount.toFixed(2)}`;
-                } else {
-                    benefitDiv.className = 'package-benefit';
-                    benefitDiv.innerHTML = `<i class="fas fa-gift"></i> Package Benefit (${benefitApplied.packageUsed || benefitApplied.benefitType}): -₹${discountAmount.toFixed(2)}`;
-                }
+            if (packageApplied) {
+                console.log('🎁 Package benefit for service row:', {
+                    serviceId,
+                    basePrice: basePrice,
+                    effectivePrice,
+                    quantity,
+                    discount: discountAmount
+                });
+                totalPackageDeductions += discountAmount; // Add to overall package deductions
             } else {
-                // No benefit applied, ensure price input is updated with base price if it exists
-                if (priceInput) {
-                    priceInput.value = basePrice.toFixed(2);
-                }
-                row.querySelector('.package-benefit')?.remove(); // Remove benefit indicator if no benefit
-                itemTotal = basePrice * quantity; // Item total is just base price * quantity
+                console.log('➕ Service row item total:', { quantity, effectivePrice, itemTotal });
             }
-            console.log('➕ Service row added to subtotal:', { serviceId, quantity, basePrice, effectivePrice, itemTotal, benefitApplied });
         } else if (serviceSelect && !serviceId) {
             // If serviceSelect is empty, clear related fields and remove benefit
             row.querySelector('.package-benefit')?.remove();
-            if (priceInput) priceInput.value = ''; // Clear price input if service is deselected
+            row.dataset.packageApplied = '0'; // Mark as no package applied
+            effectivePrice = 0; // No price if no service
+            itemTotal = 0;
         }
 
-        // Only add to subtotal if it's a valid item and not an appointment row that couldn't be priced
-        if (serviceId && quantity > 0 && !isNaN(itemTotal) && itemTotal >= 0) {
+        // Update the hidden price input with the effective price
+        if (priceInput) {
+            priceInput.value = effectivePrice.toFixed(2);
+        }
+
+        // Only add to subtotal if it's a valid calculable item
+        if (itemTotal > 0 && !isNaN(itemTotal)) {
              servicesSubtotal += itemTotal;
-        } else if (isAppointmentRow && !isNaN(itemTotal) && itemTotal >= 0) {
-            // Add to subtotal even if it's an appointment row, as long as it's calculable
-            servicesSubtotal += itemTotal;
         }
     });
 
@@ -1970,7 +2122,7 @@ function updateCalculations() {
     let discountAmount = 0;
 
     // Discount applies after package benefits
-    // Note: Package benefits are already applied to itemTotal, so subtotal already reflects the reduced prices
+    // Note: totalPackageDeductions already reflects package benefits applied to services
     const taxableAmountBeforeDiscount = Math.max(0, subtotal);
 
     if (discountType === 'percentage') {
@@ -2000,7 +2152,7 @@ function updateCalculations() {
     document.getElementById('servicesSubtotal').textContent = `₹${servicesSubtotal.toFixed(2)}`;
     document.getElementById('productsSubtotal').textContent = `₹${productsSubtotal.toFixed(2)}`;
     document.getElementById('subtotalAmount').textContent = `₹${subtotal.toFixed(2)}`;
-    document.getElementById('packageDeductions').textContent = `-₹${packageDeductions.toFixed(2)}`;
+    document.getElementById('packageDeductions').textContent = `-₹${totalPackageDeductions.toFixed(2)}`; // Display total deductions from packages
     document.getElementById('discountAmount').textContent = `-₹${discountAmount.toFixed(2)}`;
     document.getElementById('cgstAmount').textContent = `₹${cgst.toFixed(2)}`;
     document.getElementById('sgstAmount').textContent = `₹${sgst.toFixed(2)}`;
@@ -2012,7 +2164,7 @@ function updateCalculations() {
         servicesSubtotal: servicesSubtotal.toFixed(2),
         productsSubtotal: productsSubtotal.toFixed(2),
         subtotal: subtotal.toFixed(2),
-        packageDeductions: packageDeductions.toFixed(2),
+        totalPackageDeductions: totalPackageDeductions.toFixed(2),
         discountAmount: discountAmount.toFixed(2),
         taxableAmountAfterTax: taxableAmountAfterTax.toFixed(2),
         cgst: cgst.toFixed(2),
@@ -2024,235 +2176,14 @@ function updateCalculations() {
     console.log('✅ Calculations complete');
 }
 
-// Function to check package benefits for a given service
-// IMPORTANT: This now calls the backend API for real-time benefit calculation
-function checkPackageBenefit(serviceId, servicePrice, quantity = 1) {
-    // CRITICAL: Convert serviceId to number for proper comparison
-    const numericServiceId = parseInt(serviceId);
 
-    console.log('🔍 checkPackageBenefit called:', {serviceId: numericServiceId, servicePrice, quantity});
-    console.log('📊 Input validation:', {
-        serviceIdType: typeof numericServiceId,
-        servicePriceType: typeof servicePrice,
-        quantityType: typeof quantity,
-        serviceIdValue: numericServiceId,
-        servicePriceValue: servicePrice,
-        quantityValue: quantity
-    });
-
-    // Quick check: if no customer selected, no benefits apply
-    if (!BillingState.selectedCustomerId) {
-        console.log('ℹ️ No customer selected - no benefits');
-        return { discount: 0, packageUsed: null, packageId: null, benefitType: null };
-    }
-
-    // Use cached packages for quick client-side display
-    const customerPackages = BillingState.customerPackages;
-
-    if (!customerPackages || customerPackages.length === 0) {
-        console.log('ℹ️ No packages available for customer');
-        console.log('📦 customerPackages state:', customerPackages);
-        return { discount: 0, packageUsed: null, packageId: null, benefitType: null };
-    }
-
-    console.log('📦 Total packages to check:', customerPackages.length);
-
-    let totalBenefit = 0;
-    let appliedPackage = null;
-    let appliedPackageId = null;
-    let benefitType = null;
-
-    // Check each package
-    for (const pkg of customerPackages) {
-        console.log(`🔍 Checking package: ${pkg.name} (type: ${pkg.package_type})`);
-
-        // Skip packages that are explicitly inactive or expired
-        if (pkg.status === 'expired' || pkg.status === 'completed' || pkg.is_active === false) {
-             console.log('⏭️ Package skipped (expired/completed):', pkg.name);
-             continue;
-        }
-
-        // Check if package has remaining benefits based on package_type
-        if (pkg.package_type === 'service_package') {
-            const remaining = pkg.sessions?.remaining || 0;
-            if (remaining <= 0) {
-                console.log('⏭️ Package skipped (no sessions):', pkg.name);
-                continue;
-            }
-        } else if (pkg.package_type === 'prepaid') {
-            const remaining = pkg.credit?.remaining || 0;
-            if (remaining <= 0) {
-                console.log('⏭️ Package skipped (no credit):', pkg.name);
-                continue;
-            }
-        }
-
-        // --- PRIORITY 1: Yearly membership - applies percentage discount to ALL services ---
-        if (pkg.package_type === 'yearly') {
-            // Extract discount percentage from package name (e.g., "Gold Membership - 20% Discount")
-            const discountMatch = pkg.name.match(/(\d+)%/);
-            if (discountMatch) {
-                const discountPercent = parseInt(discountMatch[1]);
-                const totalServiceCost = servicePrice * quantity;
-                totalBenefit = (totalServiceCost * discountPercent) / 100;
-                appliedPackage = pkg.name;
-                benefitType = 'yearly_discount';
-                console.log(`✅ Yearly membership discount applied: ${pkg.name}, ${discountPercent}% off = ₹${totalBenefit.toFixed(2)}`);
-                break; // Use first matching yearly package
-            } else {
-                console.log('⏭️ Yearly package found but no percentage in name:', pkg.name);
-            }
-        }
-
-        // --- PRIORITY 2: Service Package / Free Session Logic ---
-        else if (pkg.package_type === 'service_package') {
-            // CRITICAL: Convert package service_id to number for comparison
-            const packageServiceId = parseInt(pkg.service_id);
-
-            console.log(`🔍 Service package match check:`, {
-                packageServiceId: packageServiceId,
-                requestedServiceId: numericServiceId,
-                match: packageServiceId === numericServiceId,
-                remainingSessions: pkg.sessions?.remaining || 0
-            });
-
-            if (packageServiceId === numericServiceId && pkg.sessions && pkg.sessions.remaining > 0) {
-                const sessionsToUse = Math.min(quantity, pkg.sessions.remaining);
-                const pricePerSession = servicePrice;
-                const benefitAmount = pricePerSession * sessionsToUse;
-
-                totalBenefit += benefitAmount;
-                appliedPackage = pkg.name;
-                appliedPackageId = pkg.assignment_id || pkg.id;
-                benefitType = 'free_sessions';
-
-                console.log('   Benefit Details:', {
-                    sessionsToUse,
-                    benefitAmount: benefitAmount.toFixed(2),
-                    remainingAfter: pkg.sessions.remaining - sessionsToUse
-                });
-
-                break; // First matching package wins
-            } else {
-                console.log('❌ Service package NOT applied (no sessions):', {
-                    packageService: packageServiceId,
-                    selectedService: numericServiceId,
-                    remaining: pkg.sessions?.remaining || 0
-                });
-            }
-        }
-        // --- PRIORITY 3: Prepaid / Credit Package Logic ---
-        else if (pkg.package_type === 'prepaid') {
-            const remaining = pkg.credit?.remaining || 0;
-            const serviceCost = servicePrice * quantity;
-
-            if (remaining > 0 && serviceCost > 0) {
-                const creditToUse = Math.min(serviceCost, remaining);
-                console.log('✅ Prepaid credit APPLIED:', {
-                    packageId: pkg.assignment_id,
-                    packageName: pkg.name,
-                    creditRemaining: remaining,
-                    serviceCost: serviceCost.toFixed(2),
-                    creditToUse: creditToUse.toFixed(2)
-                });
-
-                totalBenefit += creditToUse;
-                appliedPackage = pkg.name;
-                appliedPackageId = pkg.assignment_id || pkg.id;
-                benefitType = 'prepaid_credit';
-
-                break; // First matching package wins
-            } else {
-                console.log('❌ Prepaid credit NOT applied:', {
-                    hasRemaining: remaining > 0,
-                    serviceCostPositive: serviceCost > 0
-                });
-            }
-        }
-        // --- PRIORITY 4: Membership Package Logic ---
-        else if (pkg.package_type === 'membership' && pkg.status === 'active') {
-            // Memberships provide unlimited access ONLY to specific included services
-            const includedServices = pkg.services || [];
-            const includedServiceIds = includedServices.map(s => s.service_id);
-
-            console.log('🎫 Checking membership:', {
-                packageName: pkg.name,
-                includedServiceIds: includedServiceIds,
-                requestedServiceId: numericServiceId,
-                isServiceIncluded: includedServiceIds.includes(numericServiceId)
-            });
-
-            // Check if the requested service is included in the membership
-            if (includedServiceIds.includes(numericServiceId)) {
-                const serviceCost = servicePrice * quantity;
-
-                console.log('✅ Membership APPLIED (unlimited access):', {
-                    packageId: pkg.assignment_id || pkg.id,
-                    packageName: pkg.name,
-                    serviceName: includedServices.find(s => s.service_id == numericServiceId)?.service_name || 'Unknown',
-                    serviceCost: serviceCost.toFixed(2),
-                    quantity: quantity
-                });
-
-                totalBenefit += serviceCost;
-                appliedPackage = pkg.name;
-                appliedPackageId = pkg.assignment_id || pkg.id;
-                benefitType = 'membership_unlimited';
-
-                break; // First matching package wins
-            } else {
-                console.log('⏭️ Membership skipped (service not included):', {
-                    packageName: pkg.name,
-                    requestedServiceId: numericServiceId,
-                    includedServices: includedServices.map(s => s.service_name)
-                });
-            }
-        }
-        // --- PRIORITY 5: Student Offer packages ---
-        else if (pkg.package_type === 'student_offer' && pkg.discount_percentage > 0) {
-            // Validate student offer dates and valid days
-            const validFrom = pkg.valid_from || '';
-            const validTo = pkg.valid_to || '';
-            const validDays = pkg.valid_days || '';
-
-            if (!isStudentOfferValid(validFrom, validTo, validDays)) {
-                console.log(`⏭️ Student offer ${pkg.name} is not valid today (expired or wrong day)`);
-                continue; // Skip this offer
-            }
-
-            console.log(`✅ Student offer ${pkg.name} is valid today`);
-
-            // Student offers only apply to specific services that were selected when creating the offer
-            const applicableServiceIds = pkg.applicable_service_ids || [];
-            // CRITICAL: Ensure numeric comparison
-            const numericApplicableIds = applicableServiceIds.map(id => parseInt(id));
-
-            const appliesToThisService = applicableServiceIds.length === 0 || numericApplicableIds.includes(numericServiceId);
-
-            if (appliesToThisService) {
-                const totalServiceCost = servicePrice * quantity;
-                const discountAmount = (totalServiceCost * pkg.discount_percentage) / 100;
-
-                totalBenefit += discountAmount;
-                appliedPackage = pkg.name;
-                appliedPackageId = pkg.assignment_id;
-                benefitType = 'student_discount';
-                console.log(`✅ Student offer discount applied: ${pkg.name}, ${pkg.discount_percentage}% off = ₹${discountAmount.toFixed(2)} (service ${numericServiceId} is in applicable list: ${numericApplicableIds})`);
-                break; // Use first matching valid student offer
-            } else {
-                console.log(`⏭️ Student offer ${pkg.name} skipped - service ${numericServiceId} not in applicable list: ${numericApplicableIds}`);
-            }
-        }
-    }
-
-    if (totalBenefit === 0) {
-        console.log('ℹ️ No package benefit applied for serviceId:', numericServiceId);
-    }
-
-    console.log('💰 Total benefit calculated:', totalBenefit.toFixed(2));
-    console.log('📦 Package applied:', appliedPackage ? `${appliedPackage} (${benefitType})` : 'None');
-
-    return { discount: totalBenefit, packageUsed: appliedPackage, packageId: appliedPackageId, benefitType: benefitType };
+// Helper function to set select value and trigger change event
+function setSelectValueAndTrigger(selectElement, value) {
+    if (!selectElement) return;
+    selectElement.value = value;
+    // Manually trigger a change event
+    const event = new Event('change', { bubbles: true });
+    selectElement.dispatchEvent(event);
 }
 
 
