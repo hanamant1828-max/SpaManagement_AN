@@ -1287,12 +1287,23 @@ def create_professional_invoice():
             for service_data in services_data:
                 service = Service.query.get(service_data['service_id'])
                 if service:
+                    # Validate appointment_id exists in appointment table (FK constraint requirement)
+                    appt_id = service_data.get('appointment_id')
+                    valid_appt_id = None
+                    if appt_id:
+                        from models import Appointment
+                        existing_appt = Appointment.query.get(appt_id)
+                        if existing_appt:
+                            valid_appt_id = appt_id
+                        else:
+                            app.logger.warning(f"⚠️ Appointment ID {appt_id} not found in appointment table - setting to None to avoid FK constraint error")
+                    
                     # Create invoice item FIRST (to get invoice_item_id)
                     item = InvoiceItem(
                         invoice_id=invoice.id,
                         item_type='service',
                         item_id=service.id,
-                        appointment_id=service_data.get('appointment_id'),
+                        appointment_id=valid_appt_id,  # Only set if valid
                         item_name=service.name,
                         description=service.description or '',
                         quantity=service_data['quantity'],
