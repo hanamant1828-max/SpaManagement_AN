@@ -1836,7 +1836,12 @@ function handleServiceChange(selectElement) {
     if (!row) return;
 
     const selectedOption = selectElement.options[selectElement.selectedIndex];
-    if (!selectedOption || !selectedOption.value) return;
+    if (!selectedOption || !selectedOption.value) {
+        // Clear package benefits if service is deselected
+        row.querySelector('.package-benefit')?.remove();
+        updateCalculations();
+        return;
+    }
 
     const serviceId = parseInt(selectedOption.value); // Convert to number
     const servicePrice = parseFloat(selectedOption.dataset.price) || 0;
@@ -1844,6 +1849,41 @@ function handleServiceChange(selectElement) {
     // Set the service price in a data attribute for calculations
     row.dataset.serviceId = serviceId;
     row.dataset.basePrice = servicePrice;
+
+    console.log('🔄 Service changed - checking for package benefits:', { serviceId, servicePrice });
+
+    // Check and apply package benefits for this service
+    const qtyInput = row.querySelector('input[name="service_quantities[]"]');
+    const quantity = parseFloat(qtyInput?.value) || 1;
+
+    // Check if customer is selected
+    const customerId = BillingState.selectedCustomerId;
+    if (customerId && BillingState.customerPackages && BillingState.customerPackages.length > 0) {
+        console.log('🎁 Customer selected with packages - applying benefits');
+        
+        // Apply package benefit check
+        const benefit = checkPackageBenefit(serviceId, servicePrice, quantity);
+        
+        // Visual feedback for package application
+        if (benefit && benefit.discount > 0) {
+            let benefitDiv = row.querySelector('.package-benefit');
+            if (!benefitDiv) {
+                benefitDiv = document.createElement('div');
+                row.appendChild(benefitDiv);
+            }
+
+            if (benefit.benefitType === 'student_discount') {
+                benefitDiv.className = 'package-benefit student-discount';
+                benefitDiv.innerHTML = `<i class="fas fa-graduation-cap"></i> ${benefit.packageUsed}: -₹${benefit.discount.toFixed(2)}`;
+            } else {
+                benefitDiv.className = 'package-benefit';
+                benefitDiv.innerHTML = `<i class="fas fa-gift"></i> ${benefit.packageUsed}: -₹${benefit.discount.toFixed(2)}`;
+            }
+        } else {
+            // Remove benefit indicator if no benefit applies
+            row.querySelector('.package-benefit')?.remove();
+        }
+    }
 
     // Update calculations immediately to apply package benefits
     updateCalculations();
