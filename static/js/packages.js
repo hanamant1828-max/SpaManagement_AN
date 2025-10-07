@@ -660,6 +660,18 @@ function updatePaymentSummary() {
 }
 
 /**
+ * Initialize service selection listener for validation
+ */
+document.addEventListener('DOMContentLoaded', function() {
+    const serviceSelects = document.querySelectorAll('#service_assign_service_id, #assign_service_id');
+    serviceSelects.forEach(select => {
+        if (select) {
+            select.addEventListener('change', validateAssignButton);
+        }
+    });
+});
+
+/**
  * Handle payment status change
  */
 function handlePaymentStatusChange() {
@@ -690,12 +702,21 @@ function validateAssignButton() {
     const paymentMethod = document.getElementById('asPaymentMethod')?.value;
     const paymentStatus = document.getElementById('asPaymentStatus')?.value;
     const amountPaid = parseFloat(document.getElementById('asAmountPaid')?.value) || 0;
+    const packageType = document.getElementById('asPackageType')?.value || '';
+    const selectedService = document.getElementById('service_assign_service_id')?.value || 
+                           document.getElementById('assign_service_id')?.value;
     
     const saveBtn = document.getElementById('confirmAssignBtn') || document.getElementById('asSave');
     
     if (!saveBtn) return;
     
-    let isValid = customer && price > 0 && paymentMethod && paymentStatus;
+    // For service packages, validate service selection instead of price
+    let isValid = false;
+    if (packageType === 'service_package') {
+        isValid = customer && selectedService && paymentMethod && paymentStatus;
+    } else {
+        isValid = customer && price > 0 && paymentMethod && paymentStatus;
+    }
     
     // Validate partial payment amount
     if (paymentStatus === 'partial') {
@@ -708,7 +729,11 @@ function validateAssignButton() {
     if (isValid) {
         saveBtn.innerHTML = '<i class="fas fa-check me-2"></i>Assign Package & Collect Payment';
     } else {
-        saveBtn.innerHTML = '<i class="fas fa-check me-2"></i>Complete All Fields';
+        if (packageType === 'service_package' && !selectedService) {
+            saveBtn.innerHTML = '<i class="fas fa-spa me-2"></i>Select Service First';
+        } else {
+            saveBtn.innerHTML = '<i class="fas fa-check me-2"></i>Complete All Fields';
+        }
     }
 }
 
