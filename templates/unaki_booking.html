@@ -2350,6 +2350,25 @@
                         refreshSchedule();
                     }
                 });
+
+                // Setup edit modal listeners
+                const editServiceSelect = document.getElementById('editServiceSelect');
+                const editStartTime = document.getElementById('editStartTime');
+
+                if (editServiceSelect) {
+                    editServiceSelect.addEventListener('change', calculateEditEndTime);
+                }
+
+                if (editStartTime) {
+                    editStartTime.addEventListener('change', calculateEditEndTime);
+                }
+
+                // Setup appointment context menu
+                setTimeout(function() {
+                    if (window.appointmentContextMenu && typeof window.appointmentContextMenu.reinitializeForAppointments === 'function') {
+                        window.appointmentContextMenu.reinitializeForAppointments();
+                    }
+                }, 100);
             });
 
             // Setup event listeners for dynamic updates
@@ -2538,17 +2557,13 @@
                         if (!data.success) {
                             throw new Error(data.error || 'Failed to load schedule');
                         }
-                        console.log('✅ Schedule loaded:', data);
-
                         // Store schedule data globally for IST time access
                         window.scheduleData = {
                             current_ist_time: data.current_ist_time,
                             current_ist_datetime: data.current_ist_datetime,
-                            loadTime: Date.now(), // Store load time for client-side adjustment
+                            loadTime: Date.now(),
                             timezone: data.timezone || 'Asia/Kolkata'
                         };
-
-                        console.log(`🌏 Using IST timezone: ${window.scheduleData.timezone}, Current time: ${window.scheduleData.current_ist_time}`);
 
                         // Render staff shifts with breaks and overlays
                         renderStaffShifts(data.staff);
@@ -2577,32 +2592,18 @@
 
             // Render shift overlays (breaks, OOO, off-duty)
             function renderStaffShifts(staffData) {
-                console.log('🎨 Rendering shift overlays for', staffData ? staffData.length : 0, 'staff members');
-
                 // Remove existing overlays
                 const existingOverlays = document.querySelectorAll(".shift-overlay");
-                console.log('🧹 Removing', existingOverlays.length, 'existing overlays');
                 existingOverlays.forEach((el) => el.remove());
 
                 if (!staffData || staffData.length === 0) {
-                    console.warn('⚠️ No staff data to render overlays');
                     return;
                 }
 
                 staffData.forEach((staff) => {
-                    console.log(`👤 Processing staff ${staff.id} (${staff.name}):`, {
-                        shift_start: staff.shift_start,
-                        shift_end: staff.shift_end,
-                        breaks: staff.breaks,
-                        ooo: staff.ooo,
-                        day_status: staff.day_status
-                    });
 
                     const row = document.querySelector(`.timeline-row[data-staff-id="${staff.id}"]`);
-                    if (!row) {
-                        console.warn(`⚠️ No timeline row found for staff ${staff.id}`);
-                        return;
-                    }
+                    if (!row) return;
 
                     // Helper to convert time to position
                     function timeToPosition(timeStr) {
@@ -2628,44 +2629,36 @@
                     const OFFDAY_STATUSES = ['off', 'absent', 'leave', 'weekoff', 'not_scheduled', 'offday'];
 
                     if (staff.day_status && HOLIDAY_STATUSES.includes(staff.day_status)) {
-                        // Full-row holiday overlay (indigo)
-                        const gridEnd = 13 * 140; // Full day 9:00 - 22:00
-                        console.log(`  🏖️ Adding HOLIDAY overlay: full day (0 - ${gridEnd}px)`);
+                        const gridEnd = 13 * 140;
                         const holidayOverlay = createOverlay('holiday', 0, gridEnd, 'Holiday');
                         row.appendChild(holidayOverlay);
                         row.classList.add('off-duty');
-                        return; // Skip other overlays
+                        return;
                     }
 
                     if (!staff.is_working || !staff.shift_start || !staff.shift_end ||
                         (staff.day_status && OFFDAY_STATUSES.includes(staff.day_status))) {
-                        // Full-row off-day overlay (gray)
-                        const gridEnd = 13 * 140; // Full day 9:00 - 22:00
-                        console.log(`  📅 Adding OFF DAY overlay: full day (0 - ${gridEnd}px)`);
+                        const gridEnd = 13 * 140;
                         const offDayOverlay = createOverlay('off-duty', 0, gridEnd, 'Off Day');
                         row.appendChild(offDayOverlay);
                         row.classList.add('off-duty');
-                        return; // Skip other overlays
+                        return;
                     }
 
-                    // Render off-duty overlay (gray) - before shift start
                     if (staff.shift_start && staff.shift_start !== '09:00') {
                         const left = 0;
                         const width = timeToPosition(staff.shift_start);
                         if (width > 0) {
-                            console.log(`  ⏰ Adding off-duty overlay BEFORE shift: left=${left}px, width=${width}px`);
                             const offDutyStart = createOverlay('off-duty', left, width, 'Before Shift');
                             row.appendChild(offDutyStart);
                         }
                     }
 
-                    // Render off-duty overlay (gray) - after shift end
                     if (staff.shift_end && staff.shift_end !== '22:00') {
                         const left = timeToPosition(staff.shift_end);
-                        const gridEnd = 13 * 140; // 22:00 - 9:00 = 13 hours
+                        const gridEnd = 13 * 140;
                         const width = gridEnd - left;
                         if (width > 0) {
-                            console.log(`  ⏰ Adding off-duty overlay AFTER shift: left=${left}px, width=${width}px`);
                             const offDutyEnd = createOverlay('off-duty', left, width, 'After Shift');
                             row.appendChild(offDutyEnd);
                         }
@@ -4267,30 +4260,6 @@
                 return `${displayHours}:${String(minutes).padStart(2, '0')} ${period}`;
             }
 
-            // Helper function to convert time string (HH:MM) to total minutes from midnight
-            function timeToMinutes(timeStr) {
-                if (!timeStr) return 0;
-                const [hours, minutes] = timeStr.split(':').map(Number);
-                return hours * 60 + minutes;
-            }
-
-            // Add JavaScript functions for auto-calculating and updating end times
-            document.addEventListener('DOMContentLoaded', function() {
-                const serviceSelects = document.querySelectorAll('.service-select');
-                serviceSelects.forEach(select => {
-                    select.addEventListener('change', function() {
-                        updateEndTime(this);
-                    });
-                });
-
-                // Also add change listeners to start times
-                const startTimeInputs = document.querySelectorAll('.start-time');
-                startTimeInputs.forEach(input => {
-                    input.addEventListener('change', function() {
-                        updateAppointmentEndTime(this);
-                    });
-                });
-            });
 
             // Calculate edit modal end time based on service duration and start time
             function calculateEditEndTime() {
@@ -4312,26 +4281,6 @@
                 }
             }
 
-            // Update end time for appointment cards within the multi-book modal
-            function updateAppointmentEndTime(startTimeElement) {
-                const appointmentCard = startTimeElement.closest('.appointment-card');
-                if (!appointmentCard) return;
-
-                const serviceSelect = appointmentCard.querySelector('.service-select');
-                const endTimeInput = appointmentCard.querySelector('.end-time');
-
-                if (!serviceSelect || !endTimeInput) return;
-
-                const selectedOption = serviceSelect.options[serviceSelect.selectedIndex];
-                const duration = parseInt(selectedOption.dataset.duration) || 60;
-                const startTime = startTimeElement.value;
-
-                if (startTime && duration) {
-                    const endTime = calculateEndTimeFromStart(startTime, duration);
-                    endTimeInput.value = endTime;
-                }
-            }
-
             // Helper function to calculate end time from start time and duration
             function calculateEndTimeFromStart(startTime, durationMinutes) {
                 if (!startTime) return '';
@@ -4348,55 +4297,10 @@
                 return `${endHours}:${endMinutes}`;
             }
 
-            // Update end time when a service is selected in the multi-book modal
-            function updateEndTime(serviceSelect) {
-                const card = serviceSelect.closest('.appointment-card');
-                const selectedOption = serviceSelect.options[serviceSelect.selectedIndex];
-                const duration = parseInt(selectedOption.dataset.duration) || 60;
-                const startTimeInput = card.querySelector('.start-time');
-                const endTimeInput = card.querySelector('.end-time');
-
-                if (startTimeInput && endTimeInput) {
-                    const startTime = startTimeInput.value || '09:00';
-                    const endTime = calculateEndTimeFromStart(startTime, duration);
-                    endTimeInput.value = endTime;
-                }
-            }
-
-            // Update edit modal end time when service or start time changes
-            document.addEventListener('DOMContentLoaded', function() {
-                const editServiceSelect = document.getElementById('editServiceSelect');
-                const editStartTime = document.getElementById('editStartTime');
-
-                if (editServiceSelect) {
-                    editServiceSelect.addEventListener('change', calculateEditEndTime);
-                }
-
-                if (editStartTime) {
-                    editStartTime.addEventListener('change', calculateEditEndTime);
-                }
-            });
-
 
             // ==========================================
             // CONTEXT MENU INITIALIZATION
             // ==========================================
-
-            // Initialize context menu when the DOM is fully loaded
-            document.addEventListener('DOMContentLoaded', function() {
-                // Wait a moment to ensure appointmentContextMenu is loaded
-                setTimeout(function() {
-                    if (window.appointmentContextMenu) {
-                        console.log('✅ AppointmentContextMenu is available');
-                        // Reinitialize the context menu for any existing appointments
-                        if (typeof window.appointmentContextMenu.reinitializeForAppointments === 'function') {
-                            window.appointmentContextMenu.reinitializeForAppointments();
-                        }
-                    } else {
-                        console.error('❌ AppointmentContextMenu not loaded or available');
-                    }
-                }, 100); // Small delay
-            });
 
             // Helper function to get CSS class based on service type
             function getServiceClass(serviceName) {
