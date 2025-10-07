@@ -1533,14 +1533,16 @@ function addAppointmentToBill(appointmentId, serviceName, serviceId, staffId, se
     addedAppointmentIds.add(appointmentId);
     console.log('Tracking added appointment ID:', appointmentId);
 
-    // CRITICAL: Trigger service change event AFTER all values are set to apply package benefits
-    if (serviceId !== 'null' && serviceSelect) {
-        console.log('🎯 Triggering service change to apply package benefits for appointment', appointmentId);
-        serviceSelect.dispatchEvent(new Event('change', { bubbles: true }));
-    }
-
-    // Force recalculation after package benefits are applied
-    updateCalculations();
+    // CRITICAL: Use setTimeout to ensure DOM is fully updated before triggering package calculation
+    setTimeout(() => {
+        if (serviceId !== 'null' && serviceSelect) {
+            console.log('🎯 Triggering service change to apply package benefits for appointment', appointmentId);
+            // Manually trigger handleServiceChange instead of just dispatching event
+            handleServiceChange(serviceSelect);
+        }
+        // Force recalculation after package benefits are applied
+        updateCalculations();
+    }, 100);
 
     // Refresh appointments display to show "Added" button state
     const clientId = document.getElementById('client_id').value;
