@@ -787,7 +787,7 @@ textarea.form-control {
                                         <select class="form-select" name="service_ids[]" onchange="handleServiceChange(this)">
                                             <option value="">Select Service</option>
                                             {% for service in services %}
-                                            <option value="{{ service.id }}" data-price="{{ service.price|float }}">
+                                            <option value="{{ service.id }}" data-price="{{ "%.2f"|format(service.price|float) }}">
                                                 {{ service.name }} - ₹{{ "{:,.2f}".format(service.price) }}
                                             </option>
                                             {% endfor %}
@@ -1911,7 +1911,14 @@ function handleServiceChange(selectElement) {
     }
 
     const serviceId = parseInt(selectedOption.value); // Convert to number
-    const servicePrice = parseFloat(selectedOption.dataset.price) || 0;
+    const servicePrice = parseFloat(selectedOption.getAttribute('data-price')) || 0;
+    
+    console.log('🔍 Service selected:', {
+        serviceId,
+        servicePrice,
+        optionText: selectedOption.text,
+        dataPrice: selectedOption.getAttribute('data-price')
+    });
 
     // Set the service price in a data attribute for calculations
     row.dataset.serviceId = serviceId;
