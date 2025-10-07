@@ -792,7 +792,6 @@ textarea.form-control {
                                             </option>
                                             {% endfor %}
                                         </select>
-                                        <small class="service-price-breakdown text-muted" style="display: none;"></small>
                                     </div>
                                 </div>
                                 <div class="col-md-3">
@@ -820,7 +819,7 @@ textarea.form-control {
                                     </div>
                                 </div>
                                 <div class="col-md-1">
-                                    <button type="button" class="btn btn-danger btn-sm w-100" onclick="removeRow(this)">
+                                    <button type="button" class="btn btn-danger btn-sm w-100" onclick="removeRow(this)" style="display:none;">
                                         <i class="fas fa-trash"></i>
                                     </button>
                                 </div>
@@ -890,7 +889,7 @@ textarea.form-control {
                                     </div>
                                 </div>
                                 <div class="col-md-1">
-                                    <button type="button" class="btn btn-danger btn-sm w-100" onclick="removeRow(this)">
+                                    <button type="button" class="btn btn-danger btn-sm w-100" onclick="removeRow(this)" style="display:none;">
                                         <i class="fas fa-trash"></i>
                                     </button>
                                 </div>
@@ -1898,42 +1897,63 @@ function removeRow(button) {
 // CALCULATIONS
 // ==========================================
 function handleServiceChange(selectElement) {
-    const selectedOption = selectElement.options[selectElement.selectedIndex];
+    console.log('▶️ handleServiceChange triggered for select:', selectElement);
+
     const row = selectElement.closest('.service-row');
-    const breakdownElement = row.querySelector('.service-price-breakdown');
+    if (!row) return;
 
-    if (selectedOption && selectedOption.dataset.price) {
-        const price = parseFloat(selectedOption.dataset.price);
-
-        // Get GST rate from form
-        const cgstRate = parseFloat(document.querySelector('input[name="cgst_rate"]').value) || 9;
-        const sgstRate = parseFloat(document.querySelector('input[name="sgst_rate"]').value) || 9;
-        const totalGstRate = cgstRate + sgstRate;
-
-        // Calculate base price and GST amount (price is GST-inclusive)
-        const basePrice = price / (1 + (totalGstRate / 100));
-        const gstAmount = price - basePrice;
-
-        // Display breakdown
-        if (breakdownElement) {
-            breakdownElement.style.display = 'block';
-            breakdownElement.innerHTML = `<i class="fas fa-info-circle me-1"></i>₹${basePrice.toFixed(2)} + ₹${gstAmount.toFixed(2)} tax`;
-        }
-
-        updateServicePrice(selectElement.value, price);
-    } else {
-        // If no price is found (e.g., for "Select a service..."), reset price fields
-        if (breakdownElement) {
-            breakdownElement.style.display = 'none';
-            breakdownElement.innerHTML = '';
-        }
-        updateServicePrice(selectElement.value, '0.00');
+    const selectedOption = selectElement.options[selectElement.selectedIndex];
+    if (!selectedOption || !selectedOption.value) {
+        // Clear package benefits if service is deselected
+        row.querySelector('.package-benefit')?.remove();
+        updateCalculations();
+        return;
     }
 
-    // Trigger calculation update if updateTaxCalculations exists
-    if (typeof updateTaxCalculations === 'function') {
-        updateTaxCalculations();
+    const serviceId = parseInt(selectedOption.value); // Convert to number
+    const servicePrice = parseFloat(selectedOption.dataset.price) || 0;
+
+    // Set the service price in a data attribute for calculations
+    row.dataset.serviceId = serviceId;
+    row.dataset.basePrice = servicePrice;
+
+    console.log('🔄 Service changed - checking for package benefits:', { serviceId, servicePrice });
+
+    // Check and apply package benefits for this service
+    const qtyInput = row.querySelector('input[name="service_quantities[]"]');
+    const quantity = parseFloat(qtyInput?.value) || 1;
+
+    // Check if customer is selected
+    const customerId = BillingState.selectedCustomerId;
+    if (customerId && BillingState.customerPackages && BillingState.customerPackages.length > 0) {
+        console.log('🎁 Customer selected with packages - applying benefits');
+
+        // Apply package benefit check
+        const benefit = checkPackageBenefit(serviceId, servicePrice, quantity);
+
+        // Visual feedback for package application
+        if (benefit && benefit.discount > 0) {
+            let benefitDiv = row.querySelector('.package-benefit');
+            if (!benefitDiv) {
+                benefitDiv = document.createElement('div');
+                row.appendChild(benefitDiv);
+            }
+
+            if (benefit.benefitType === 'student_discount') {
+                benefitDiv.className = 'package-benefit student-discount';
+                benefitDiv.innerHTML = `<i class="fas fa-graduation-cap"></i> ${benefit.packageUsed}: -₹${benefit.discount.toFixed(2)}`;
+            } else {
+                benefitDiv.className = 'package-benefit';
+                benefitDiv.innerHTML = `<i class="fas fa-gift"></i> ${benefit.packageUsed}: -₹${benefit.discount.toFixed(2)}`;
+            }
+        } else {
+            // Remove benefit indicator if no benefit applies
+            row.querySelector('.package-benefit')?.remove();
+        }
     }
+
+    // Update calculations immediately to apply package benefits
+    updateCalculations();
 }
 
 function updateCalculations() {
