@@ -13,7 +13,7 @@ from .bookings_queries import (
     get_appointment_stats, get_staff_schedule, get_appointments_by_date_range
 )
 # Import models
-from models import Appointment, Customer, Service, User, ShiftManagement, ShiftLogs
+from models import Appointment, Customer, Service, User, ShiftManagement, ShiftLogs, UnakiBooking
 # Late imports to avoid circular dependency
 from sqlalchemy import func
 import re # Import re for regular expressions
@@ -296,7 +296,6 @@ def api_get_appointment_customer_id(appointment_id):
     try:
         # First try to find in UnakiBooking table (primary system)
         try:
-            from models import UnakiBooking
             unaki_appointment = UnakiBooking.query.get(appointment_id)
             if unaki_appointment:
                 return jsonify({
@@ -1441,7 +1440,7 @@ def api_unaki_delete_booking(booking_id):
 
         client_name = booking.client_name
         service_name = booking.service_name
-        
+
         db.session.delete(booking)
         db.session.commit()
 
@@ -1557,7 +1556,7 @@ def validate_against_shift(staff_id, date_obj, start_time_str, end_time_str):
     """
     try:
         from models import ShiftManagement, ShiftLogs
-        
+
         # Helper to check time overlap
         def time_overlaps(a_start, a_end, b_start, b_end):
             def to_minutes(t):
@@ -1566,47 +1565,47 @@ def validate_against_shift(staff_id, date_obj, start_time_str, end_time_str):
             a_s, a_e = to_minutes(a_start), to_minutes(a_end)
             b_s, b_e = to_minutes(b_start), to_minutes(b_end)
             return a_e > b_s and a_s < b_e
-        
+
         # Get shift management for this staff
         shift_mgmt = ShiftManagement.query.filter(
             ShiftManagement.staff_id == staff_id,
             ShiftManagement.from_date <= date_obj,
             ShiftManagement.to_date >= date_obj
         ).first()
-        
+
         if not shift_mgmt:
             return False, "Staff is not scheduled for this date."
-        
+
         # Get shift log for this specific date
         shift_log = ShiftLogs.query.filter(
             ShiftLogs.shift_management_id == shift_mgmt.id,
             ShiftLogs.individual_date == date_obj
         ).first()
-        
+
         if not shift_log:
             return False, "No shift log found for this date."
-        
+
         # Check if staff is working
         if shift_log.status in ['absent', 'holiday']:
             return False, f"Staff is {shift_log.status} on this date."
-        
+
         # Check if within shift hours
         if not (shift_log.shift_start_time and shift_log.shift_end_time):
             return False, "No shift hours set for this staff."
-        
+
         shift_start = shift_log.shift_start_time.strftime('%H:%M')
         shift_end = shift_log.shift_end_time.strftime('%H:%M')
-        
+
         if not (start_time_str >= shift_start and end_time_str <= shift_end):
             return False, f"Outside of shift hours ({shift_start} - {shift_end})."
-        
+
         # Check break time
         if shift_log.break_start_time and shift_log.break_end_time:
             break_start = shift_log.break_start_time.strftime('%H:%M')
             break_end = shift_log.break_end_time.strftime('%H:%M')
             if time_overlaps(start_time_str, end_time_str, break_start, break_end):
                 return False, f"Overlaps with break time ({break_start} - {break_end})."
-        
+
         # Check out-of-office time
         if shift_log.out_of_office_start and shift_log.out_of_office_end:
             ooo_start = shift_log.out_of_office_start.strftime('%H:%M')
@@ -1614,9 +1613,9 @@ def validate_against_shift(staff_id, date_obj, start_time_str, end_time_str):
             ooo_reason = shift_log.out_of_office_reason or "Out of office"
             if time_overlaps(start_time_str, end_time_str, ooo_start, ooo_end):
                 return False, f"Staff is out of office: {ooo_reason} ({ooo_start} - {ooo_end})."
-        
+
         return True, None
-        
+
     except Exception as e:
         print(f"Error in shift validation: {e}")
         return True, None  # Don't block bookings if validation fails
@@ -2394,10 +2393,10 @@ def unaki_schedule_api(date_str):
     """API endpoint to get schedule data for Unaki booking system"""
     try:
         from app import get_ist_now, IST
-        
+
         # Parse the date
         target_date = datetime.strptime(date_str, '%Y-%m-%d').date()
-        
+
         # Get current IST time for frontend
         ist_now = get_ist_now()
         current_ist_time = ist_now.strftime('%H:%M')
@@ -2409,7 +2408,7 @@ def unaki_schedule_api(date_str):
         for staff in staff_members:
             schedule = get_staff_schedule_for_date(staff.id, target_date)
             is_working = schedule['is_working_day'] if schedule else True
-            
+
             if schedule and not is_working:
                 staff_info = {
                     'id': staff.id,
@@ -2800,52 +2799,79 @@ def api_unaki_save_draft():
 @app.route('/api/unaki/customer-appointments/<int:client_id>', methods=['GET'])
 @login_required
 def api_unaki_customer_appointments(client_id):
-    """API endpoint to get all appointments for a specific customer"""
+    """API endpoint to get all Unaki appointments for a customer"""
     if not current_user.can_access('bookings'):
         return jsonify({'error': 'Access denied', 'success': False}), 403
 
     try:
-        from models import UnakiBooking, Customer
-        from app import db
+        from models import UnakiBooking, Customer, User
 
-        # Verify customer exists
         customer = Customer.query.get(client_id)
         if not customer:
             return jsonify({'success': False, 'error': 'Customer not found', 'bookings': []}), 404
 
-        # Get appointments - try matching by client_id first
-        appointments = UnakiBooking.query.filter(
-            UnakiBooking.client_id == client_id,
-            UnakiBooking.status.in_(['scheduled', 'confirmed'])
-        ).order_by(UnakiBooking.appointment_date.desc()).all()
+        # Get all Unaki bookings for this customer
+        bookings = UnakiBooking.query.filter_by(client_id=customer.id).all()
 
-        # If no results, try to match by phone
-        if not appointments and customer.phone:
-            appointments = UnakiBooking.query.filter(
+        # If no bookings found by client_id, try matching by phone number
+        if not bookings and customer.phone:
+            bookings = UnakiBooking.query.filter(
                 UnakiBooking.client_phone == customer.phone,
-                UnakiBooking.status.in_(['scheduled', 'confirmed'])
-            ).order_by(UnakiBooking.appointment_date.desc()).all()
+                UnakiBooking.client_id.is_(None)  # Only consider if client_id is not set
+            ).all()
 
-        bookings_data = []
-        for booking in appointments:
-            bookings_data.append({
-                'id': booking.id,
-                'client_name': booking.client_name,
-                'client_phone': booking.client_phone,
-                'staff_id': booking.staff_id,
-                'staff_name': booking.staff.full_name if booking.staff else 'Unknown',
-                'service_names': booking.service_name,
-                'appointment_date': booking.appointment_date.strftime('%Y-%m-%d'),
-                'start_time': booking.start_time.strftime('%H:%M'),
-                'end_time': booking.end_time.strftime('%H:%M'),
-                'status': booking.status,
-                'payment_status': booking.payment_status,
-                'notes': booking.notes or ''
-            })
+        appointments_data = []
+        for appointment in bookings:
+            apt_dict = appointment.to_dict()
+
+            # Ensure service_price is set
+            if not apt_dict.get('service_price'):
+                apt_dict['service_price'] = 0.0
+
+            # Try to match service by name or service_id
+            matching_service = None
+            if appointment.service_id:
+                matching_service = Service.query.get(appointment.service_id)
+            elif appointment.service_name:
+                # Try exact match first
+                matching_service = Service.query.filter(
+                    Service.name == appointment.service_name,
+                    Service.is_active == True
+                ).first()
+
+                # If no exact match, try partial match (service name might include price/duration)
+                if not matching_service:
+                    service_base_name = appointment.service_name.split('(')[0].strip()
+                    matching_service = Service.query.filter(
+                        Service.name.ilike(f'{service_base_name}%'),
+                        Service.is_active == True
+                    ).first()
+
+            # Add service details to appointment data
+            if matching_service:
+                apt_dict['service_id'] = matching_service.id
+                apt_dict['service_name'] = matching_service.name
+                apt_dict['service_price'] = float(matching_service.price)
+                apt_dict['service_duration'] = matching_service.duration
+            else:
+                # If still no match, log it for debugging
+                app.logger.warning(f"No matching service found for appointment {appointment.id} with service_name: {appointment.service_name}")
+
+            # Get staff name from staff_id (UnakiBooking doesn't have staff relationship)
+            if appointment.staff_id:
+                staff_member = User.query.get(appointment.staff_id)
+                if staff_member:
+                    apt_dict['staff_name'] = staff_member.full_name
+                else:
+                    apt_dict['staff_name'] = 'Unknown'
+            else:
+                apt_dict['staff_name'] = 'Unknown'
+
+            appointments_data.append(apt_dict)
 
         return jsonify({
             'success': True,
-            'bookings': bookings_data
+            'bookings': appointments_data
         })
 
     except Exception as e:
