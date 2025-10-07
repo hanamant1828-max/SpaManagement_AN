@@ -2104,6 +2104,9 @@ function updateCalculations() {
     let servicesSubtotal = 0;
     let productsSubtotal = 0;
     let packageDeductions = 0;
+    
+    // CRITICAL: Track cumulative package usage across all services in this invoice
+    const cumulativePackageUsage = {};
 
     // --- Calculate Services Subtotal ---
     console.log('🔄 Calculating services subtotal...');
@@ -2143,8 +2146,8 @@ function updateCalculations() {
 
         // Apply package benefits for ALL service rows (including appointments)
         if (serviceId && quantity > 0) {
-            // Check for applicable package benefits
-            benefitApplied = checkPackageBenefit(serviceId, basePrice, quantity);
+            // Check for applicable package benefits with cumulative usage tracking
+            benefitApplied = checkPackageBenefit(serviceId, basePrice, quantity, cumulativePackageUsage);
             console.log('🎁 Package benefit check for service row:', { serviceId, basePrice, quantity, isAppointmentRow, benefitApplied });
 
             if (benefitApplied.discount > 0) {
@@ -2281,7 +2284,7 @@ function updateCalculations() {
 
 // Function to check package benefits for a given service
 // IMPORTANT: This now calls the backend API for real-time benefit calculation
-function checkPackageBenefit(serviceId, servicePrice, quantity = 1) {
+function checkPackageBenefit(serviceId, servicePrice, quantity = 1, cumulativePackageUsage = {}) {
     // CRITICAL: Convert serviceId to number for proper comparison
     const numericServiceId = parseInt(serviceId);
 
@@ -2398,15 +2401,27 @@ function checkPackageBenefit(serviceId, servicePrice, quantity = 1) {
         }
         // --- PRIORITY 3: Prepaid / Credit Package Logic ---
         else if (pkg.package_type === 'prepaid') {
-            const remaining = pkg.credit?.remaining || 0;
+            const packageKey = `${pkg.assignment_id || pkg.id}`;
+            const alreadyUsed = cumulativePackageUsage[packageKey] || 0;
+            const originalRemaining = pkg.credit?.remaining || 0;
+            const adjustedRemaining = Math.max(0, originalRemaining - alreadyUsed);
             const serviceCost = servicePrice * quantity;
 
-            if (remaining > 0 && serviceCost > 0) {
-                const creditToUse = Math.min(serviceCost, remaining);
+            console.log('📊 Prepaid package cumulative check:', {
+                packageName: pkg.name,
+                originalRemaining: originalRemaining.toFixed(2),
+                alreadyUsedInInvoice: alreadyUsed.toFixed(2),
+                adjustedRemaining: adjustedRemaining.toFixed(2),
+                serviceCost: serviceCost.toFixed(2)
+            });
+
+            if (adjustedRemaining > 0 && serviceCost > 0) {
+                const creditToUse = Math.min(serviceCost, adjustedRemaining);
                 console.log('✅ Prepaid credit APPLIED:', {
                     packageId: pkg.assignment_id,
                     packageName: pkg.name,
-                    creditRemaining: remaining,
+                    creditRemaining: originalRemaining,
+                    adjustedRemaining: adjustedRemaining.toFixed(2),
                     serviceCost: serviceCost.toFixed(2),
                     creditToUse: creditToUse.toFixed(2)
                 });
@@ -2415,12 +2430,16 @@ function checkPackageBenefit(serviceId, servicePrice, quantity = 1) {
                 appliedPackage = pkg.name;
                 appliedPackageId = pkg.assignment_id || pkg.id;
                 benefitType = 'prepaid_credit';
+                
+                // Track cumulative usage for this invoice
+                cumulativePackageUsage[packageKey] = alreadyUsed + creditToUse;
 
                 break; // First matching package wins
             } else {
                 console.log('❌ Prepaid credit NOT applied:', {
-                    hasRemaining: remaining > 0,
-                    serviceCostPositive: serviceCost > 0
+                    hasAdjustedRemaining: adjustedRemaining > 0,
+                    serviceCostPositive: serviceCost > 0,
+                    reason: adjustedRemaining <= 0 ? 'Package exhausted by previous services' : 'Invalid service cost'
                 });
             }
         }
