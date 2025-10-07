@@ -1,0 +1,374 @@
+
+{% extends "base.html" %}
+
+{% block title %}Billing Reports - Spa & Salon Management{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <h1 class="h3 mb-4">
+                <i class="fas fa-chart-line me-2"></i>Billing Reports & Analytics
+            </h1>
+        </div>
+    </div>
+
+    <!-- Date Range Filter -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-calendar-alt me-2"></i>Select Date Range
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <form method="GET" class="row g-3 align-items-end">
+                        <div class="col-md-3">
+                            <label for="start_date" class="form-label fw-bold">Start Date</label>
+                            <input type="date" class="form-control" name="start_date" id="start_date" 
+                                   value="{{ start_date.strftime('%Y-%m-%d') }}">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="end_date" class="form-label fw-bold">End Date</label>
+                            <input type="date" class="form-control" name="end_date" id="end_date" 
+                                   value="{{ end_date.strftime('%Y-%m-%d') }}">
+                        </div>
+                        <div class="col-md-4">
+                            <div class="d-flex gap-2">
+                                <button type="button" class="btn btn-outline-primary" onclick="setDateRange('today')">Today</button>
+                                <button type="button" class="btn btn-outline-primary" onclick="setDateRange('week')">This Week</button>
+                                <button type="button" class="btn btn-outline-primary" onclick="setDateRange('month')">This Month</button>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <button type="submit" class="btn btn-success w-100">
+                                <i class="fas fa-search me-1"></i>Apply
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-success shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Total Revenue</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">₹{{ "{:,.2f}".format(total_revenue) }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-rupee-sign fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-primary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Total Invoices</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_invoices }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-file-invoice fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-warning shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Pending Amount</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">₹{{ "{:,.2f}".format(pending_amount) }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-clock fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-info shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Avg Invoice Value</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">₹{{ "{:,.2f}".format(avg_invoice_value) }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-chart-bar fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Revenue Chart -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Revenue Trend</h6>
+                </div>
+                <div class="card-body">
+                    <canvas id="revenueChart" height="100"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Top Customers -->
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Top Customers by Revenue</h6>
+                </div>
+                <div class="card-body">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Customer</th>
+                                <th>Invoices</th>
+                                <th>Total Spent</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for customer in top_customers %}
+                            <tr>
+                                <td><strong>{{ customer.first_name }} {{ customer.last_name }}</strong></td>
+                                <td><span class="badge bg-info">{{ customer.invoice_count }}</span></td>
+                                <td><strong>₹{{ "{:,.2f}".format(customer.total_spent) }}</strong></td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Top Services -->
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Top Services by Revenue</h6>
+                </div>
+                <div class="card-body">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Service</th>
+                                <th>Quantity</th>
+                                <th>Revenue</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for service in top_services %}
+                            <tr>
+                                <td><strong>{{ service.name }}</strong></td>
+                                <td><span class="badge bg-success">{{ service.total_quantity }}</span></td>
+                                <td><strong>₹{{ "{:,.2f}".format(service.total_revenue) }}</strong></td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Staff Performance & Payment Methods -->
+    <div class="row">
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Staff Performance</h6>
+                </div>
+                <div class="card-body">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Staff</th>
+                                <th>Items Sold</th>
+                                <th>Revenue</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for staff in staff_performance %}
+                            <tr>
+                                <td><strong>{{ staff.first_name }} {{ staff.last_name }}</strong></td>
+                                <td><span class="badge bg-info">{{ staff.item_count }}</span></td>
+                                <td><strong>₹{{ "{:,.2f}".format(staff.total_revenue) }}</strong></td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Revenue by Payment Method</h6>
+                </div>
+                <div class="card-body">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Payment Method</th>
+                                <th>Transactions</th>
+                                <th>Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for method in revenue_by_method %}
+                            <tr>
+                                <td><strong>{{ method.payment_method|title }}</strong></td>
+                                <td><span class="badge bg-primary">{{ method.count }}</span></td>
+                                <td><strong>₹{{ "{:,.2f}".format(method.total) }}</strong></td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Additional Stats -->
+    <div class="row">
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Tax & Deductions Summary</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-6">
+                            <p class="text-muted mb-1">Total Tax Collected</p>
+                            <h4>₹{{ "{:,.2f}".format(total_tax) }}</h4>
+                        </div>
+                        <div class="col-6">
+                            <p class="text-muted mb-1">Package Deductions</p>
+                            <h4 class="text-success">₹{{ "{:,.2f}".format(total_package_deductions) }}</h4>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+function setDateRange(period) {
+    const today = new Date();
+    let startDate, endDate;
+    
+    switch(period) {
+        case 'today':
+            startDate = endDate = today;
+            break;
+        case 'week':
+            const weekStart = new Date(today.setDate(today.getDate() - today.getDay()));
+            startDate = weekStart;
+            endDate = new Date();
+            break;
+        case 'month':
+            startDate = new Date(today.getFullYear(), today.getMonth(), 1);
+            endDate = new Date();
+            break;
+    }
+    
+    document.getElementById('start_date').value = startDate.toISOString().split('T')[0];
+    document.getElementById('end_date').value = endDate.toISOString().split('T')[0];
+}
+
+// Revenue Chart
+document.addEventListener('DOMContentLoaded', function() {
+    const ctx = document.getElementById('revenueChart').getContext('2d');
+    
+    const labels = [
+        {% for item in revenue_by_date %}
+        '{{ item.date.strftime("%m/%d") }}'{% if not loop.last %},{% endif %}
+        {% endfor %}
+    ];
+    
+    const data = [
+        {% for item in revenue_by_date %}
+        {{ item.total_revenue or 0 }}{% if not loop.last %},{% endif %}
+        {% endfor %}
+    ];
+    
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Daily Revenue',
+                data: data,
+                borderColor: 'rgb(75, 192, 192)',
+                backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                tension: 0.1
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                            return '₹' + value.toFixed(2);
+                        }
+                    }
+                }
+            },
+            plugins: {
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return 'Revenue: ₹' + context.parsed.y.toFixed(2);
+                        }
+                    }
+                }
+            }
+        }
+    });
+});
+</script>
+
+<style>
+.border-left-success {
+    border-left: 0.25rem solid #1cc88a !important;
+}
+.border-left-primary {
+    border-left: 0.25rem solid #4e73df !important;
+}
+.border-left-warning {
+    border-left: 0.25rem solid #f6c23e !important;
+}
+.border-left-info {
+    border-left: 0.25rem solid #36b9cc !important;
+}
+</style>
+{% endblock %}

@@ -1,4 +1,9 @@
 from app import app
+from modules.billing.integrated_billing_views import *
+print("✅ Integrated billing views imported")
+
+from modules.billing.billing_reports_views import *
+print("✅ Billing reports views imported")
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)
