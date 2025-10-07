@@ -1511,14 +1511,19 @@ function addAppointmentToBill(appointmentId, serviceName, serviceId, staffId, se
     // Set values from appointment data
     if (serviceId !== 'null' && serviceSelect) { // Check if serviceId is not null
         serviceSelect.value = serviceId;
-        handleServiceChange(serviceSelect); // This should update price if service is selected
+        // CRITICAL FIX: Trigger change event to apply package benefits
+        serviceSelect.dispatchEvent(new Event('change', { bubbles: true }));
     }
 
     if (staffId !== 'null' && staffSelect) { // Check if staffId is not null
         staffSelect.value = staffId;
     }
 
-    if (qtyInput) qtyInput.value = 1; // Default quantity to 1 for appointment
+    if (qtyInput) {
+        qtyInput.value = 1; // Default quantity to 1 for appointment
+        // Trigger input event to recalculate if needed
+        qtyInput.dispatchEvent(new Event('input', { bubbles: true }));
+    }
 
     if (appointmentInput) {
         appointmentInput.value = appointmentId;
@@ -1532,6 +1537,7 @@ function addAppointmentToBill(appointmentId, serviceName, serviceId, staffId, se
     addedAppointmentIds.add(appointmentId);
     console.log('Tracking added appointment ID:', appointmentId);
 
+    // Force recalculation after all values are set
     updateCalculations();
 
     // Refresh appointments display to show "Added" button state
