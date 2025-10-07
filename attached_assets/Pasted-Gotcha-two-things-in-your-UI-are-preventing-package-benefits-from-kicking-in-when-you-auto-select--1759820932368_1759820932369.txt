@@ -1,0 +1,247 @@
+Gotcha — two things in your UI are preventing package benefits from kicking in when you auto-select a service:
+
+You set <select> values programmatically but don’t fire the change handlers, so your pricing/duration logic (and updateSummary() etc.) never run.
+
+There’s no package-aware pricing path at all in the current code. updateSummary() and submitMultiAppointment() always read data-price/data-duration from the <option> — which are base prices — so any client package/benefit is ignored.
+
+Here’s a clean, minimal way to fix both.
+
+1) When you auto-select a service, fire the change flow
+
+Wherever you set a select’s value (e.g., from your “booked appointments table” / auto-selection), add a dispatch so your existing listeners run:
+
+function setSelectValueAndTrigger(selectEl, value) {
+  selectEl.value = value;
+  // trigger your existing listener chain
+  selectEl.dispatchEvent(new Event('change', { bubbles: true }));
+}
+
+
+Example when auto-picking a service/staff/slot:
+
+setSelectValueAndTrigger(firstCard.querySelector('.service-select'), serviceId);
+setSelectValueAndTrigger(firstCard.querySelector('.staff-select'), staffId);
+firstCard.querySelector('.start-time').value = time;
+firstCard.querySelector('.start-time').dispatchEvent(new Event('change', { bubbles: true }));
+
+
+(If you’re filling cards in a loop, do this for each.)
+
+2) Make pricing/duration package-aware
+
+Add a small pricing module that looks up the selected client’s package entitlements and returns the effective duration/price for the chosen service. Then use those “effective” values everywhere (UI totals and the POST payload).
+
+2a) Cache client packages when a client is selected
+let clientPackages = null; // cache for selected client
+
+async function fetchClientPackages(clientId) {
+  try {
+    const res = await fetch(`/api/unaki/client-packages?client_id=${clientId}`);
+    const data = await res.json();
+    clientPackages = data.success ? (data.packages || []) : [];
+  } catch {
+    clientPackages = [];
+  }
+}
+
+
+Hook it into your existing client change:
+
+if (clientSelect) {
+  clientSelect.addEventListener('change', async () => {
+    validateClientSelection();
+    await fetchClientPackages(clientSelect.value);
+    loadCustomerExistingAppointments(clientSelect.value);
+    // re-evaluate cards with the new package context
+    document.querySelectorAll('.appointment-card').forEach((card, idx) => {
+      calculateEndTime(idx);
+      applyPackageToCard(idx); // new
+    });
+    updateSummary();
+    updateSubmitButton();
+  });
+}
+
+2b) Compute effective price/duration for a service given packages
+
+Adjust as per your backend’s model — below assumes the package can fully discount the service or apply a %/fixed discount.
+
+function getEffectivePricing(serviceId, baseDuration, basePrice) {
+  if (!clientPackages || !clientPackages.length) {
+    return { duration: baseDuration, price: basePrice, packageApplied: false, packageInfo: null };
+  }
+
+  // Example logic: find an applicable package item
+  for (const pkg of clientPackages) {
+    for (const item of (pkg.items || [])) {
+      if (String(item.service_id) === String(serviceId) && (item.remaining_uses > 0 || item.unlimited)) {
+        // Example policies: free, percent_off, amount_off, alt_duration
+        let price = basePrice;
+        if (item.benefit_type === 'free') price = 0;
+        else if (item.benefit_type === 'percent_off') price = Math.max(0, basePrice * (1 - (item.percent || 0) / 100));
+        else if (item.benefit_type === 'amount_off') price = Math.max(0, basePrice - (item.amount || 0));
+
+        const duration = item.alt_duration_minutes ? item.alt_duration_minutes : baseDuration;
+
+        return {
+          duration,
+          price,
+          packageApplied: true,
+          packageInfo: {
+            package_id: pkg.id,
+            package_item_id: item.id,
+            policy: item.benefit_type,
+          }
+        };
+      }
+    }
+  }
+  return { duration: baseDuration, price: basePrice, packageApplied: false, packageInfo: null };
+}
+
+2c) Apply it to each card when service/time changes
+
+Extend your existing change handler chain by adding applyPackageToCard(index):
+
+function applyPackageToCard(index) {
+  const card = document.querySelector(`[data-appointment-index="${index}"]`);
+  if (!card) return;
+
+  const serviceSelect = card.querySelector('.service-select');
+  const endTimeInput  = card.querySelector('.end-time');
+  if (!serviceSelect.value) return;
+
+  const opt = serviceSelect.selectedOptions[0];
+  const baseDuration = parseInt(opt.dataset.duration) || 60;
+  const basePrice    = parseFloat(opt.dataset.price) || 0;
+  const serviceId    = serviceSelect.value;
+
+  const { duration, price, packageApplied, packageInfo } = getEffectivePricing(serviceId, baseDuration, basePrice);
+
+  // Store back the effective numbers on the card for later use
+  card.dataset.effectiveDuration = duration;
+  card.dataset.effectivePrice = price;
+  card.dataset.packageApplied = packageApplied ? '1' : '0';
+  card.dataset.packageId = packageInfo?.package_id || '';
+  card.dataset.packageItemId = packageInfo?.package_item_id || '';
+
+  // If duration changed due to package, recompute end time
+  const start = card.querySelector('.start-time')?.value;
+  if (start && endTimeInput) {
+    const [h, m] = start.split(':').map(Number);
+    const t0 = new Date();
+    t0.setHours(h, m, 0, 0);
+    const t1 = new Date(t0.getTime() + duration * 60000);
+    endTimeInput.value = t1.toTimeString().slice(0, 5);
+  }
+
+  // Optional: visual cue
+  const priceBadge = card.querySelector('.package-badge');
+  if (packageApplied) {
+    if (!priceBadge) {
+      const badge = document.createElement('div');
+      badge.className = 'package-badge';
+      badge.style.cssText = 'position:absolute;right:12px;top:-10px;background:#10b981;color:#fff;font-weight:700;font-size:12px;padding:4px 10px;border-radius:999px;box-shadow:0 2px 6px rgba(16,185,129,.4)';
+      badge.textContent = 'PACKAGE APPLIED';
+      card.appendChild(badge);
+    }
+  } else if (priceBadge) {
+    priceBadge.remove();
+  }
+}
+
+
+Wire it into your existing listener:
+
+document.addEventListener("change", function(e) {
+  if (e.target.matches('.service-select, .start-time, .appointment-date, .staff-select')) {
+    const card = e.target.closest(".appointment-card");
+    if (card) {
+      const index = parseInt(card.dataset.appointmentIndex);
+      calculateEndTime(index);
+      applyPackageToCard(index);   // <-- new
+      checkConflicts(index);
+      updateSummary();
+      updateSubmitButton();
+    }
+  }
+});
+
+2d) Make totals package-aware
+
+Right now updateSummary() sums data-duration/data-price from the <option>. Change it to prefer the effective values stored on the card:
+
+function updateSummary() {
+  let totalDuration = 0, totalPrice = 0;
+  const staffSet = new Set();
+
+  document.querySelectorAll(".appointment-card").forEach(card => {
+    const serviceSelect = card.querySelector(".service-select");
+    const staffSelect = card.querySelector(".staff-select");
+
+    if (serviceSelect.value) {
+      const effectiveDuration = parseInt(card.dataset.effectiveDuration || 0);
+      const effectivePrice    = parseFloat(card.dataset.effectivePrice || 0);
+
+      if (effectiveDuration) totalDuration += effectiveDuration;
+      else {
+        const opt = serviceSelect.selectedOptions[0];
+        totalDuration += parseInt(opt.dataset.duration) || 60;
+      }
+
+      if (!isNaN(effectivePrice)) totalPrice += effectivePrice;
+      else {
+        const opt = serviceSelect.selectedOptions[0];
+        totalPrice += parseFloat(opt.dataset.price) || 0;
+      }
+    }
+
+    if (staffSelect.value) staffSet.add(staffSelect.value);
+  });
+
+  document.getElementById("multiTotalDuration").textContent = `${totalDuration} min`;
+  document.getElementById("multiTotalPrice").textContent = `₹${totalPrice.toFixed(2)}`;
+  document.getElementById("multiStaffCount").textContent = staffSet.size;
+}
+
+2e) Send package info to the backend when booking
+
+Update your POST payload in submitMultiAppointment() to include the effective values + package details (so the backend redeems the benefit):
+
+appointments.push({
+  // ...existing fields
+  effective_duration: parseInt(row.dataset.effectiveDuration || 0) || serviceDuration,
+  effective_price: parseFloat(row.dataset.effectivePrice || NaN),
+  package_applied: row.dataset.packageApplied === '1',
+  package_id: row.dataset.packageId || null,
+  package_item_id: row.dataset.packageItemId || null,
+});
+
+
+and in the actual fetch('/api/unaki/book-appointment'...) body:
+
+body: JSON.stringify({
+  // existing
+  service_duration: appointment.effective_duration,  // use effective
+  service_price: isFinite(appointment.effective_price) ? appointment.effective_price : appointment.service_price,
+  package_applied: appointment.package_applied,
+  package_id: appointment.package_id,
+  package_item_id: appointment.package_item_id
+})
+
+
+Tip: on the server, validate the package is still available at booking time and decrement remaining uses atomically.
+
+Quick sanity checklist
+
+ When auto-selecting a service/staff/date/time, dispatch change events.
+
+ Fetch client packages on client change; cache results.
+
+ Compute and store dataset.effectiveDuration/Price on each card.
+
+ Use effective values in updateSummary() and in the booking POST.
+
+ Show a “PACKAGE APPLIED” badge (optional but UX-helpful).
+
+If you share your package API response shape (/api/unaki/client-packages or equivalent), I can drop in exact field names for you.
