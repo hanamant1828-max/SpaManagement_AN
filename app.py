@@ -1561,14 +1561,15 @@ def unaki_create_appointment():
 @login_required
 def unaki_booking():
     """Enhanced Unaki Appointment Booking System - Professional spa booking interface"""
+    from datetime import date
+    
+    # Get current date parameter before try block
+    selected_date = request.args.get('date', date.today().strftime('%Y-%m-%d'))
+    
     try:
         from modules.staff.staff_queries import get_staff_members
         from modules.services.services_queries import get_active_services
         from modules.clients.clients_queries import get_all_customers
-        from datetime import date
-
-        # Get current date parameter
-        selected_date = request.args.get('date', date.today().strftime('%Y-%m-%d'))
 
         # Get data for the booking form
         staff_members = get_staff_members()
