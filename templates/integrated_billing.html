@@ -788,10 +788,15 @@ textarea.form-control {
                                             <option value="">Select Service</option>
                                             {% for service in services %}
                                             <option value="{{ service.id }}" data-price="{{ service.price|float }}">
-                                                {{ service.name }} - ₹{{ "{:,.2f}".format(service.price) }}
+                                                {{ service.name }} - ₹{{ "{:,.2f}".format(service.price) }} (incl. tax)
                                             </option>
                                             {% endfor %}
                                         </select>
+                                        <small class="text-muted service-breakdown" style="display: none; margin-top: 4px;">
+                                            <i class="fas fa-info-circle"></i> 
+                                            <span class="service-charge">₹0.00</span> + 
+                                            <span class="tax-amount">₹0.00</span> tax
+                                        </small>
                                     </div>
                                 </div>
                                 <div class="col-md-3">
@@ -1897,63 +1902,56 @@ function removeRow(button) {
 // CALCULATIONS
 // ==========================================
 function handleServiceChange(selectElement) {
-    console.log('▶️ handleServiceChange triggered for select:', selectElement);
-
     const row = selectElement.closest('.service-row');
-    if (!row) return;
-
     const selectedOption = selectElement.options[selectElement.selectedIndex];
-    if (!selectedOption || !selectedOption.value) {
-        // Clear package benefits if service is deselected
-        row.querySelector('.package-benefit')?.remove();
-        updateCalculations();
-        return;
-    }
-
-    const serviceId = parseInt(selectedOption.value); // Convert to number
     const servicePrice = parseFloat(selectedOption.dataset.price) || 0;
 
-    // Set the service price in a data attribute for calculations
-    row.dataset.serviceId = serviceId;
-    row.dataset.basePrice = servicePrice;
+    console.log('🎯 Service selected:', {
+        serviceId: selectElement.value,
+        serviceName: selectedOption.text,
+        servicePrice: servicePrice
+    });
 
-    console.log('🔄 Service changed - checking for package benefits:', { serviceId, servicePrice });
+    // Calculate tax breakdown (price is inclusive)
+    if (servicePrice > 0) {
+        const cgstRate = parseFloat(document.querySelector('input[name="cgst_rate"]').value) || 9;
+        const sgstRate = parseFloat(document.querySelector('input[name="sgst_rate"]').value) || 9;
+        const totalTaxRate = cgstRate + sgstRate;
 
-    // Check and apply package benefits for this service
-    const qtyInput = row.querySelector('input[name="service_quantities[]"]');
-    const quantity = parseFloat(qtyInput?.value) || 1;
+        // Extract base amount from inclusive price
+        const baseAmount = servicePrice / (1 + (totalTaxRate / 100));
+        const taxAmount = servicePrice - baseAmount;
 
-    // Check if customer is selected
-    const customerId = BillingState.selectedCustomerId;
-    if (customerId && BillingState.customerPackages && BillingState.customerPackages.length > 0) {
-        console.log('🎁 Customer selected with packages - applying benefits');
+        // Display breakdown
+        const breakdownDiv = row.querySelector('.service-breakdown');
+        const serviceChargeSpan = row.querySelector('.service-charge');
+        const taxAmountSpan = row.querySelector('.tax-amount');
 
-        // Apply package benefit check
-        const benefit = checkPackageBenefit(serviceId, servicePrice, quantity);
+        if (breakdownDiv && serviceChargeSpan && taxAmountSpan) {
+            serviceChargeSpan.textContent = `₹${baseAmount.toFixed(2)}`;
+            taxAmountSpan.textContent = `₹${taxAmount.toFixed(2)}`;
+            breakdownDiv.style.display = 'block';
+        }
 
-        // Visual feedback for package application
-        if (benefit && benefit.discount > 0) {
-            let benefitDiv = row.querySelector('.package-benefit');
-            if (!benefitDiv) {
-                benefitDiv = document.createElement('div');
-                row.appendChild(benefitDiv);
-            }
-
-            if (benefit.benefitType === 'student_discount') {
-                benefitDiv.className = 'package-benefit student-discount';
-                benefitDiv.innerHTML = `<i class="fas fa-graduation-cap"></i> ${benefit.packageUsed}: -₹${benefit.discount.toFixed(2)}`;
-            } else {
-                benefitDiv.className = 'package-benefit';
-                benefitDiv.innerHTML = `<i class="fas fa-gift"></i> ${benefit.packageUsed}: -₹${benefit.discount.toFixed(2)}`;
-            }
-        } else {
-            // Remove benefit indicator if no benefit applies
-            row.querySelector('.package-benefit')?.remove();
+        console.log('💰 Tax breakdown:', {
+            totalPrice: servicePrice,
+            baseAmount: baseAmount.toFixed(2),
+            taxAmount: taxAmount.toFixed(2),
+            taxRate: `${totalTaxRate}%`
+        });
+    } else {
+        // Hide breakdown if no service selected
+        const breakdownDiv = row.querySelector('.service-breakdown');
+        if (breakdownDiv) {
+            breakdownDiv.style.display = 'none';
         }
     }
 
-    // Update calculations immediately to apply package benefits
+    // Update calculations
     updateCalculations();
+
+    // Check for package benefits after service is selected
+    checkPackageBenefits();
 }
 
 function updateCalculations() {
@@ -2329,7 +2327,7 @@ function checkPackageBenefit(serviceId, servicePrice, quantity = 1) {
             const validDays = pkg.valid_days || '';
 
             if (!isStudentOfferValid(validFrom, validTo, validDays)) {
-                console.log(`⏭️ Student offer ${pkg.name} is not valid today (expired or wrong day)`);
+                console.log(`❌ Student offer ${pkg.name} is not valid today (expired or wrong day)`);
                 continue; // Skip this offer
             }
 

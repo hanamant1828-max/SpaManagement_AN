@@ -1125,9 +1125,12 @@ def create_professional_invoice():
 
         # IMPORTANT: Service prices are GST-INCLUSIVE
         # Extract base amount and GST from service prices
+        # Formula: Base Amount = Inclusive Price / (1 + Tax Rate)
         if total_gst_rate > 0:
             service_base_amount = services_subtotal / (1 + total_gst_rate)
             service_gst_amount = services_subtotal - service_base_amount
+            
+            app.logger.info(f"📊 Tax-Inclusive Calculation: Total Services ₹{services_subtotal:.2f} = Base ₹{service_base_amount:.2f} + Tax ₹{service_gst_amount:.2f} (Rate: {total_gst_rate*100}%)")
         else:
             service_base_amount = services_subtotal
             service_gst_amount = 0
