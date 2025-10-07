@@ -1926,21 +1926,19 @@ function updateCalculations() {
             const appointmentDuration = parseFloat(appointmentIdInput.dataset.serviceDuration);
 
             if (!isNaN(appointmentPrice)) {
-                effectivePrice = appointmentPrice; // Use the price from the appointment
-                // Quantity for appointments is usually 1, but we use it for calculation
-                itemTotal = effectivePrice * quantity;
-                console.log('➕ Appointment row item total:', { quantity, effectivePrice, itemTotal });
+                basePrice = appointmentPrice; // Use the price from the appointment as base price
+                console.log('➕ Appointment row detected - Base price from appointment:', basePrice);
             } else {
                 console.warn('⚠️ Appointment row detected but price is missing.');
-                itemTotal = 0; // Cannot calculate if price is missing
+                basePrice = 0;
             }
-            // Package benefits typically don't apply to services already covered by an appointment
-            benefitApplied = { discount: 0, packageUsed: null, packageId: null, benefitType: null };
-            row.querySelector('.package-benefit')?.remove(); // Remove any previous benefit indicator
-        } else if (serviceId && quantity > 0) {
-            // Apply package benefits only if it's NOT an appointment row
+        }
+        
+        // Apply package benefits for ALL service rows (including appointments)
+        if (serviceId && quantity > 0) {
+            // Check for applicable package benefits
             benefitApplied = checkPackageBenefit(serviceId, basePrice, quantity);
-            console.log('🎁 Package benefit for service row:', { serviceId, basePrice, quantity, benefitApplied });
+            console.log('🎁 Package benefit check for service row:', { serviceId, basePrice, quantity, isAppointmentRow, benefitApplied });
 
             if (benefitApplied.discount > 0) {
                 const discountAmount = Math.min(benefitApplied.discount, basePrice * quantity); // Ensure discount doesn't exceed item total
