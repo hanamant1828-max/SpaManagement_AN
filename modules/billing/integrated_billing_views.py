@@ -1387,6 +1387,9 @@ def create_professional_invoice():
                             item.is_package_deduction = True
                             package_discount_applied = True
                             package_deductions_applied += 1
+                            
+                            # CRITICAL: Flush changes so next service sees updated state
+                            db.session.flush()
 
                             app.logger.info(f"✅ Yearly membership '{yearly_membership.name}' {yearly_membership.discount_percent}% discount applied: ₹{discount_amount:.2f} on ₹{service_amount:.2f}")
 
@@ -1409,6 +1412,9 @@ def create_professional_invoice():
                             item.is_package_deduction = True
                             # staff_revenue_price remains unchanged - staff gets commission on original price
                             package_deductions_applied += 1
+                            
+                            # CRITICAL: Flush changes so next service sees updated package balance
+                            db.session.flush()
 
                             # Capture updated package info for UI refresh
                             if package_result.get('assignment_id'):
