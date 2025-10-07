@@ -43,13 +43,13 @@ def billing_reports():
     
     # Revenue by payment method
     revenue_by_method = db.session.query(
-        EnhancedInvoice.payment_method,
-        func.sum(EnhancedInvoice.total_amount).label('total'),
-        func.count(EnhancedInvoice.id).label('count')
-    ).filter(
+        InvoicePayment.payment_method,
+        func.sum(InvoicePayment.amount).label('total'),
+        func.count(InvoicePayment.id).label('count')
+    ).join(EnhancedInvoice, InvoicePayment.invoice_id == EnhancedInvoice.id).filter(
         EnhancedInvoice.invoice_date.between(start_date, end_date),
         EnhancedInvoice.payment_status == 'paid'
-    ).group_by(EnhancedInvoice.payment_method).all()
+    ).group_by(InvoicePayment.payment_method).all()
     
     # Top customers by revenue
     top_customers = db.session.query(
