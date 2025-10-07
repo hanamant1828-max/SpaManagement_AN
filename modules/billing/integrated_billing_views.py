@@ -1002,7 +1002,22 @@ def check_package_benefits():
 @app.route('/integrated-billing/create-professional', methods=['POST'])
 @login_required
 def create_professional_invoice():
-    """Create new professional invoice with complete GST/SGST tax support"""
+    """
+    Create new professional invoice with complete GST/SGST tax support
+    
+    MULTI-SERVICE STAFF BILLING:
+    - Each service gets its own InvoiceItem record
+    - Each InvoiceItem stores the staff who performed that service
+    - staff_revenue_price stores ORIGINAL service price (for commission calculation)
+    - final_amount stores customer price (after package benefits/discounts)
+    - This allows accurate staff commission even when packages reduce customer price
+    
+    Example: 
+    Service 1: Massage by Staff A - Original ₹500, Customer pays ₹250 (50% package discount)
+      → Staff A gets commission on ₹500 (staff_revenue_price)
+    Service 2: Facial by Staff B - Original ₹300, Customer pays ₹300 (no discount)
+      → Staff B gets commission on ₹300 (staff_revenue_price)
+    """
     # Allow all authenticated users to create invoices
     if not current_user.is_active:
         return jsonify({'success': False, 'message': 'Access denied'}), 403
@@ -1287,6 +1302,28 @@ def create_professional_invoice():
             for service_data in services_data:
                 service = Service.query.get(service_data['service_id'])
                 if service:
+                    # Validate staff assignment - CRITICAL for multi-service billing
+                    staff_id = service_data.get('staff_id')
+                    staff_name = None
+                    
+                    if staff_id:
+                        staff = User.query.get(staff_id)
+                        if staff:
+                            staff_name = staff.full_name
+                            app.logger.info(f"✅ Service '{service.name}' assigned to staff: {staff_name} (ID: {staff_id})")
+                        else:
+                            app.logger.error(f"❌ Staff ID {staff_id} not found for service '{service.name}'")
+                            return jsonify({
+                                'success': False, 
+                                'message': f'Invalid staff assignment for service: {service.name}'
+                            }), 400
+                    else:
+                        app.logger.error(f"❌ No staff assigned for service '{service.name}'")
+                        return jsonify({
+                            'success': False, 
+                            'message': f'Staff assignment required for service: {service.name}'
+                        }), 400
+                    
                     # Validate appointment_id exists in appointment table (FK constraint requirement)
                     appt_id = service_data.get('appointment_id')
                     valid_appt_id = None
@@ -1298,10 +1335,10 @@ def create_professional_invoice():
                         else:
                             app.logger.warning(f"⚠️ Appointment ID {appt_id} not found in appointment table - setting to None to avoid FK constraint error")
                     
-                    # Create invoice item FIRST (to get invoice_item_id)
-                    # CRITICAL: Store original service price in staff_revenue_price for commission calculation
+                    # CRITICAL: Store original service price for staff commission calculation
                     original_service_price = service.price * service_data['quantity']
                     
+                    # Create invoice item with staff information
                     item = InvoiceItem(
                         invoice_id=invoice.id,
                         item_type='service',
@@ -1313,12 +1350,15 @@ def create_professional_invoice():
                         unit_price=service.price,
                         original_amount=original_service_price,
                         final_amount=original_service_price,
-                        staff_revenue_price=original_service_price,  # ALWAYS store original price for staff revenue
-                        staff_id=service_data.get('staff_id')
+                        staff_revenue_price=original_service_price,  # ALWAYS store original price for staff revenue/commission
+                        staff_id=staff_id,  # Store staff ID
+                        staff_name=staff_name  # Store staff name for quick reference
                     )
                     db.session.add(item)
                     db.session.flush()  # Get item.id
                     service_items_created += 1
+                    
+                    app.logger.info(f"📋 Invoice item created: Service='{service.name}', Staff='{staff_name}', Price=₹{original_service_price}, Staff Revenue=₹{original_service_price}")
 
                     # === CRITICAL: APPLY PACKAGE BENEFIT ===
                     # Initialize package deduction tracking
@@ -1417,7 +1457,23 @@ def create_professional_invoice():
                 product = InventoryProduct.query.get(item_data['product_id'])
 
                 if batch and product:
-                    # Create invoice item
+                    # Get staff information for product sale
+                    staff_id = item_data.get('staff_id')
+                    staff_name = None
+                    
+                    if staff_id:
+                        staff = User.query.get(staff_id)
+                        if staff:
+                            staff_name = staff.full_name
+                            app.logger.info(f"✅ Product '{product.name}' sold by staff: {staff_name} (ID: {staff_id})")
+                        else:
+                            app.logger.warning(f"⚠️ Staff ID {staff_id} not found for product '{product.name}'")
+                    else:
+                        app.logger.warning(f"⚠️ No staff assigned for product sale: '{product.name}'")
+                    
+                    # Create invoice item with staff tracking
+                    product_amount = item_data['unit_price'] * item_data['quantity']
+                    
                     item = InvoiceItem(
                         invoice_id=invoice.id,
                         item_type='inventory',
@@ -1429,12 +1485,16 @@ def create_professional_invoice():
                         batch_name=batch.batch_name,
                         quantity=item_data['quantity'],
                         unit_price=item_data['unit_price'],
-                        original_amount=item_data['unit_price'] * item_data['quantity'],
-                        final_amount=item_data['unit_price'] * item_data['quantity'],
-                        staff_id=item_data.get('staff_id')
+                        original_amount=product_amount,
+                        final_amount=product_amount,
+                        staff_revenue_price=product_amount,  # Track product revenue for staff commission
+                        staff_id=staff_id,
+                        staff_name=staff_name
                     )
                     db.session.add(item)
                     inventory_items_created += 1
+                    
+                    app.logger.info(f"📦 Inventory item created: Product='{product.name}', Staff='{staff_name}', Amount=₹{product_amount}")
 
                     # Reduce stock
                     batch.qty_available = float(batch.qty_available) - item_data['quantity']
