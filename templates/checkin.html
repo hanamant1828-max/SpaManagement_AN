@@ -254,13 +254,28 @@
 
 {% block extra_scripts %}
 <script>
+console.log('Face recognition check-in module loaded');
+
 let checkinStream = null;
 let recognitionInterval = null;
 let isRecognizing = false;
 
+// Verify elements on page load
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM loaded, checking elements...');
+    console.log('Start button:', document.getElementById('startRecognition'));
+    console.log('Stop button:', document.getElementById('stopRecognition'));
+    console.log('Video element:', document.getElementById('checkinVideo'));
+});
+
 // Start Recognition
-document.getElementById('startRecognition')?.addEventListener('click', async function() {
-    try {
+const startButton = document.getElementById('startRecognition');
+console.log('Attaching click listener to start button:', startButton);
+
+if (startButton) {
+    startButton.addEventListener('click', async function() {
+        console.log('Start Recognition button clicked!');
+        try {
         // Start camera
         checkinStream = await navigator.mediaDevices.getUserMedia({ 
             video: { 
@@ -291,11 +306,14 @@ document.getElementById('startRecognition')?.addEventListener('click', async fun
         isRecognizing = true;
         recognitionInterval = setInterval(() => performRecognition(video), 2000);
         
-    } catch (error) {
-        console.error('Camera access error:', error);
-        updateStatus('danger', 'Camera Error', 'Unable to access camera. Please check permissions.');
-    }
-});
+        } catch (error) {
+            console.error('Camera access error:', error);
+            updateStatus('danger', 'Camera Error', 'Unable to access camera. Please check permissions.');
+        }
+    });
+} else {
+    console.error('Start Recognition button not found!');
+}
 
 // Stop Recognition
 document.getElementById('stopRecognition')?.addEventListener('click', function() {
