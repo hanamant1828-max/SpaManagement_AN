@@ -251,6 +251,14 @@ async function startFaceCameraForTab() {
         const saveBtn = document.getElementById('saveFaceData');
         const startBtn = document.getElementById('startFaceCamera');
 
+        console.log('Face camera elements check:', {
+            video: !!video,
+            placeholder: !!placeholder,
+            captureBtn: !!captureBtn,
+            saveBtn: !!saveBtn,
+            startBtn: !!startBtn
+        });
+
         if (!video) {
             console.error('Face video element not found - check HTML template for id="faceVideo"');
             alert('Camera setup error: Video element not found. Please refresh the page.');
@@ -270,6 +278,7 @@ async function startFaceCameraForTab() {
 
         // Set video source and show it
         video.srcObject = stream;
+        await video.play(); // Ensure video starts playing
         video.style.display = 'block';
 
         // Hide placeholder
@@ -278,7 +287,10 @@ async function startFaceCameraForTab() {
         }
 
         // Update button states
-        if (startBtn) startBtn.style.display = 'none';
+        if (startBtn) {
+            startBtn.style.display = 'none';
+            startBtn.disabled = true;
+        }
         if (captureBtn) {
             captureBtn.disabled = false;
             captureBtn.style.display = 'inline-block';
@@ -423,6 +435,12 @@ function resetFaceInterface() {
 
 async function startFaceCamera(videoId, areaId) {
     console.log('Starting face camera:', videoId);
+
+    // If called without parameters, use the face tab function
+    if (!videoId) {
+        console.log('No videoId provided, redirecting to face tab camera');
+        return startFaceCameraForTab();
+    }
 
     try {
         const video = document.getElementById(videoId);
