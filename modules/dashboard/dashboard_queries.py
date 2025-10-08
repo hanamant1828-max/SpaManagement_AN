@@ -46,8 +46,15 @@ def get_dashboard_stats():
             Invoice.payment_status == 'paid'
         ).scalar() or 0.0
 
-        # Combine both revenue sources
-        total_revenue_today = float(todays_appointment_revenue) + float(todays_invoice_revenue)
+        # Today's revenue from EnhancedInvoice table (Unaki bookings)
+        from models import EnhancedInvoice
+        todays_enhanced_invoice_revenue = db.session.query(func.sum(EnhancedInvoice.total_amount)).filter(
+            func.date(EnhancedInvoice.invoice_date) == today,
+            EnhancedInvoice.payment_status == 'paid'
+        ).scalar() or 0.0
+
+        # Combine all revenue sources
+        total_revenue_today = float(todays_appointment_revenue) + float(todays_invoice_revenue) + float(todays_enhanced_invoice_revenue)
 
         # This month's revenue from Appointment table
         monthly_appointment_revenue = db.session.query(func.sum(Appointment.amount)).filter(
@@ -62,8 +69,15 @@ def get_dashboard_stats():
             Invoice.payment_status == 'paid'
         ).scalar() or 0.0
 
-        # Combine both revenue sources
-        total_revenue_month = float(monthly_appointment_revenue) + float(monthly_invoice_revenue)
+        # This month's revenue from EnhancedInvoice table (Unaki bookings)
+        from models import EnhancedInvoice
+        monthly_enhanced_invoice_revenue = db.session.query(func.sum(EnhancedInvoice.total_amount)).filter(
+            EnhancedInvoice.invoice_date >= first_day_of_month,
+            EnhancedInvoice.payment_status == 'paid'
+        ).scalar() or 0.0
+
+        # Combine all revenue sources
+        total_revenue_month = float(monthly_appointment_revenue) + float(monthly_invoice_revenue) + float(monthly_enhanced_invoice_revenue)
 
         print(f"DEBUG Dashboard Stats:")
         print(f"  Today's appointments: {todays_appointments}")
