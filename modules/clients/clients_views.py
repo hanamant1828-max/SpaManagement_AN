@@ -527,11 +527,15 @@ def api_recognize_face():
         if not face_image:
             return jsonify({'success': False, 'error': 'No face image provided'}), 400
 
+        app.logger.info("Face recognition request received")
+
         # Get all customers with face data
         customers_with_faces = Customer.query.filter(
             Customer.face_image_url.isnot(None),
             Customer.is_active == True
         ).all()
+
+        app.logger.info(f"Found {len(customers_with_faces)} customers with face data")
 
         if not customers_with_faces:
             return jsonify({
@@ -558,6 +562,8 @@ def api_recognize_face():
             else:
                 face_image_data = face_image
                 
+            app.logger.info(f"Face image data length: {len(face_image_data)}")
+                
             # Compare with stored faces
             for customer in customers_with_faces:
                 if not customer.face_image_url:
@@ -576,6 +582,7 @@ def api_recognize_face():
                     # Exact match
                     matched_customer = customer
                     best_match_score = 1.0
+                    app.logger.info(f"Exact match found: {customer.first_name} {customer.last_name}")
                     break
                 else:
                     # Calculate similarity using hash comparison
@@ -587,6 +594,7 @@ def api_recognize_face():
                     if face_hash == stored_hash:
                         matched_customer = customer
                         best_match_score = 1.0
+                        app.logger.info(f"Hash match found: {customer.first_name} {customer.last_name}")
                         break
                         
         except Exception as match_error:
@@ -594,6 +602,7 @@ def api_recognize_face():
             # Continue with no match
 
         if matched_customer:
+            app.logger.info(f"Customer recognized: {matched_customer.first_name} {matched_customer.last_name}")
             return jsonify({
                 'success': True,
                 'recognized': True,
@@ -609,6 +618,7 @@ def api_recognize_face():
                 'message': f'Welcome back, {matched_customer.first_name}!'
             }), 200
         else:
+            app.logger.info("No matching face found")
             return jsonify({
                 'success': True,
                 'recognized': False,
