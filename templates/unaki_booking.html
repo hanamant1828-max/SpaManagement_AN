@@ -1492,8 +1492,8 @@
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
-                        // Filter out cancelled and paid appointments
-                        bookingsData = (data.bookings || []).filter(b => b.status !== "cancelled" && b.payment_status !== 'paid');
+                        // Filter out cancelled appointments
+                        bookingsData = (data.bookings || []).filter(b => b.status !== "cancelled");
                         renderBookings();
                         updateStats();
                     } else {
@@ -1585,9 +1585,17 @@
         // RENDERING
         // ==========================================
         function renderBookings() {
-            document.querySelectorAll(".appointment-block").forEach(el => el.remove());
+            console.log('📋 Rendering bookings:', bookingsData.length);
 
-            bookingsData.forEach(booking => {
+            // Clear existing appointments
+            document.querySelectorAll('.appointment-block').forEach(block => block.remove());
+
+            // Filter out paid appointments before rendering
+            const visibleBookings = bookingsData.filter(b => b.payment_status !== 'paid');
+            console.log(`📊 Rendering ${visibleBookings.length} visible bookings (${bookingsData.length - visibleBookings.length} paid bookings hidden)`);
+
+            // Render each booking
+            visibleBookings.forEach(booking => {
                 const row = document.querySelector(`.timeline-row[data-staff-id="${booking.staff_id}"]`);
                 if (!row) return;
 
