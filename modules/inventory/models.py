@@ -227,21 +227,17 @@ class InventoryAuditLog(db.Model):
     user = db.relationship('User', backref='audit_logs')
 
 class InventoryConsumption(db.Model):
-    """Track item usage and issuance for inventory consumption"""
+    """Track consumption/usage of inventory items"""
     __tablename__ = 'inventory_consumption'
 
     id = db.Column(db.Integer, primary_key=True)
     batch_id = db.Column(db.Integer, db.ForeignKey('inventory_batches.id'), nullable=False)
-
-    # Consumption details
-    quantity = db.Column(db.Numeric(10, 2), nullable=False)
-    issued_to = db.Column(db.String(200), nullable=False)  # Who/what consumed the item
-    reference = db.Column(db.String(100))  # Optional reference number/document
-    purpose = db.Column(db.String(50))  # service, sample, waste, maintenance, other
+    quantity = db.Column(db.Float, nullable=False)
+    issued_to = db.Column(db.String(100))
+    reference = db.Column(db.String(100))
+    purpose = db.Column(db.String(200))  # Missing column added
     notes = db.Column(db.Text)
-
-    # Tracking
-    created_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
+    created_by = db.Column(db.Integer, db.ForeignKey('user.id'))
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     # Relationships
