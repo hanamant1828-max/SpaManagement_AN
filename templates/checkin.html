@@ -195,6 +195,12 @@
                                 </div>
                             </div>
                         </div>
+                        <div class="text-center mt-3" id="billingButtonContainer" style="display: none;">
+                            <button type="button" class="btn btn-primary btn-lg w-100" onclick="goToBillingWithCustomer()">
+                                <i data-feather="credit-card" class="me-2"></i>
+                                Go to Billing
+                            </button>
+                        </div>
                     </div>
 
                     <div class="mt-4">
@@ -509,6 +515,10 @@ function stopRecognition() {
     updateStatus('info', 'Ready for check-in', 'Click "Start Recognition" and position your face in the circle for automatic check-in.');
     const customerInfo = document.getElementById('customerInfo');
     if (customerInfo) customerInfo.style.display = 'none';
+    
+    // Hide billing button
+    const billingButtonContainer = document.getElementById('billingButtonContainer');
+    if (billingButtonContainer) billingButtonContainer.style.display = 'none';
 
     console.log('Face recognition stopped');
 }
@@ -660,6 +670,16 @@ function displayRecognizedCustomer(customer) {
 
     // Show the customer info card
     customerInfo.style.display = 'block';
+
+    // Show the billing button
+    const billingButtonContainer = document.getElementById('billingButtonContainer');
+    if (billingButtonContainer) {
+        billingButtonContainer.style.display = 'block';
+        // Re-initialize feather icons for the button
+        if (typeof feather !== 'undefined') {
+            feather.replace();
+        }
+    }
 
     // Update last recognition timestamp
     const lastRecognitionEl = document.getElementById('lastRecognition');
