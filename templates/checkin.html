@@ -26,6 +26,7 @@
     align-items: center;
     justify-content: center;
     position: relative;
+    overflow: hidden;
 }
 
 #checkinVideo {
@@ -44,6 +45,8 @@
     width: 200px;
     height: 200px;
     pointer-events: none;
+    z-index: 10;
+    box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.3);
 }
 
 .recognition-status {
@@ -394,10 +397,19 @@ async function startFaceRecognition() {
         
         console.log('Step 6: Updating UI...');
         video.style.display = 'block';
+        video.style.position = 'absolute';
+        video.style.top = '0';
+        video.style.left = '0';
         if (placeholder) placeholder.style.display = 'none';
         if (overlay) {
             overlay.style.display = 'block';
+            overlay.style.position = 'absolute';
             overlay.classList.add('scanning-animation');
+            console.log('✅ Overlay displayed with styles:', {
+                display: overlay.style.display,
+                position: overlay.style.position,
+                border: window.getComputedStyle(overlay).border
+            });
         }
         console.log('✅ UI updated');
         
