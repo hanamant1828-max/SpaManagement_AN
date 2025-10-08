@@ -133,6 +133,42 @@
         </div>
     </div>
 
+    <!-- Quick Report Links -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Detailed Reports</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-md-4 mb-3">
+                            <a href="{{ url_for('staff_revenue_report') }}?start_date={{ start_date.strftime('%Y-%m-%d') }}&end_date={{ end_date.strftime('%Y-%m-%d') }}" class="btn btn-outline-primary btn-lg w-100">
+                                <i class="fas fa-user-tie fa-2x d-block mb-2"></i>
+                                <strong>Staff Revenue Report</strong>
+                                <p class="small text-muted mb-0">View detailed staff performance with client details and department data</p>
+                            </a>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <a href="{{ url_for('client_revenue_report') }}?start_date={{ start_date.strftime('%Y-%m-%d') }}&end_date={{ end_date.strftime('%Y-%m-%d') }}" class="btn btn-outline-success btn-lg w-100">
+                                <i class="fas fa-users fa-2x d-block mb-2"></i>
+                                <strong>Client Revenue Report</strong>
+                                <p class="small text-muted mb-0">View client spending patterns and service preferences</p>
+                            </a>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <a href="{{ url_for('service_revenue_report') }}?start_date={{ start_date.strftime('%Y-%m-%d') }}&end_date={{ end_date.strftime('%Y-%m-%d') }}" class="btn btn-outline-warning btn-lg w-100">
+                                <i class="fas fa-spa fa-2x d-block mb-2"></i>
+                                <strong>Service Revenue Report</strong>
+                                <p class="small text-muted mb-0">View service performance by category and popularity</p>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="row">
         <!-- Top Customers -->
         <div class="col-lg-6 mb-4">

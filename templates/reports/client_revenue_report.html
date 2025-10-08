@@ -1,0 +1,174 @@
+
+{% extends "base.html" %}
+
+{% block title %}Client Revenue Report - Spa & Salon Management{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <h1 class="h3 mb-4">
+                <i class="fas fa-users me-2"></i>Client Revenue Report
+            </h1>
+        </div>
+    </div>
+
+    <!-- Date Range Filter -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-calendar-alt me-2"></i>Select Date Range
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <form method="GET" class="row g-3 align-items-end">
+                        <div class="col-md-3">
+                            <label for="start_date" class="form-label fw-bold">Start Date</label>
+                            <input type="date" class="form-control" name="start_date" id="start_date" 
+                                   value="{{ start_date.strftime('%Y-%m-%d') }}">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="end_date" class="form-label fw-bold">End Date</label>
+                            <input type="date" class="form-control" name="end_date" id="end_date" 
+                                   value="{{ end_date.strftime('%Y-%m-%d') }}">
+                        </div>
+                        <div class="col-md-4">
+                            <button type="submit" class="btn btn-success">
+                                <i class="fas fa-search me-1"></i>Apply Filter
+                            </button>
+                            <a href="{{ url_for('billing_reports') }}" class="btn btn-outline-secondary">
+                                <i class="fas fa-arrow-left me-1"></i>Back to Reports
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Client Summary -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header py-3 bg-primary text-white">
+                    <h6 class="m-0 font-weight-bold">Client Performance Summary</h6>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Client Name</th>
+                                    <th>Phone</th>
+                                    <th>Total Invoices</th>
+                                    <th>Total Spent</th>
+                                    <th>Avg Invoice Value</th>
+                                    <th>Last Visit</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for client in client_summary %}
+                                <tr>
+                                    <td><strong>{{ client.first_name }} {{ client.last_name }}</strong></td>
+                                    <td>{{ client.phone }}</td>
+                                    <td><span class="badge bg-info">{{ client.total_invoices }}</span></td>
+                                    <td><strong class="text-success">₹{{ "{:,.2f}".format(client.total_spent or 0) }}</strong></td>
+                                    <td>₹{{ "{:,.2f}".format(client.avg_invoice_value or 0) }}</td>
+                                    <td>{{ client.last_visit.strftime('%d/%m/%Y') if client.last_visit else 'N/A' }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Top Services by Client -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header py-3 bg-success text-white">
+                    <h6 class="m-0 font-weight-bold">Top Services by Client</h6>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Client Name</th>
+                                    <th>Service</th>
+                                    <th>Service Count</th>
+                                    <th>Service Revenue</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for service in top_services_by_client %}
+                                <tr>
+                                    <td><strong>{{ service.first_name }} {{ service.last_name }}</strong></td>
+                                    <td>{{ service.service_name }}</td>
+                                    <td><span class="badge bg-primary">{{ service.service_count }}</span></td>
+                                    <td><strong>₹{{ "{:,.2f}".format(service.service_revenue or 0) }}</strong></td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Detailed Transactions -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Detailed Client Transactions</h6>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Invoice #</th>
+                                    <th>Client</th>
+                                    <th>Phone</th>
+                                    <th>Staff</th>
+                                    <th>Service</th>
+                                    <th>Qty</th>
+                                    <th>Amount</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for detail in client_transaction_details %}
+                                <tr>
+                                    <td>{{ detail.invoice_date.strftime('%d/%m/%Y') }}</td>
+                                    <td><small>{{ detail.invoice_number }}</small></td>
+                                    <td><strong>{{ detail.first_name }} {{ detail.last_name }}</strong></td>
+                                    <td>{{ detail.phone }}</td>
+                                    <td>{{ detail.staff_first_name }} {{ detail.staff_last_name if detail.staff_first_name else 'N/A' }}</td>
+                                    <td>{{ detail.service_name or 'N/A' }}</td>
+                                    <td>{{ detail.quantity }}</td>
+                                    <td><strong>₹{{ "{:,.2f}".format(detail.final_amount or 0) }}</strong></td>
+                                    <td>
+                                        <span class="badge bg-{{ 'success' if detail.payment_status == 'paid' else 'warning' }}">
+                                            {{ detail.payment_status|title }}
+                                        </span>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

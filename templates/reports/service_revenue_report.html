@@ -1,0 +1,176 @@
+
+{% extends "base.html" %}
+
+{% block title %}Service Revenue Report - Spa & Salon Management{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <h1 class="h3 mb-4">
+                <i class="fas fa-spa me-2"></i>Service Revenue Report
+            </h1>
+        </div>
+    </div>
+
+    <!-- Date Range Filter -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-calendar-alt me-2"></i>Select Date Range
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <form method="GET" class="row g-3 align-items-end">
+                        <div class="col-md-3">
+                            <label for="start_date" class="form-label fw-bold">Start Date</label>
+                            <input type="date" class="form-control" name="start_date" id="start_date" 
+                                   value="{{ start_date.strftime('%Y-%m-%d') }}">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="end_date" class="form-label fw-bold">End Date</label>
+                            <input type="date" class="form-control" name="end_date" id="end_date" 
+                                   value="{{ end_date.strftime('%Y-%m-%d') }}">
+                        </div>
+                        <div class="col-md-4">
+                            <button type="submit" class="btn btn-success">
+                                <i class="fas fa-search me-1"></i>Apply Filter
+                            </button>
+                            <a href="{{ url_for('billing_reports') }}" class="btn btn-outline-secondary">
+                                <i class="fas fa-arrow-left me-1"></i>Back to Reports
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Category Summary -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header py-3 bg-primary text-white">
+                    <h6 class="m-0 font-weight-bold">Category Performance Summary</h6>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Category</th>
+                                    <th>Service Count</th>
+                                    <th>Total Bookings</th>
+                                    <th>Total Revenue</th>
+                                    <th>Avg per Booking</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for cat in category_summary %}
+                                <tr>
+                                    <td><strong>{{ cat.category or 'Uncategorized' }}</strong></td>
+                                    <td><span class="badge bg-info">{{ cat.service_count }}</span></td>
+                                    <td>{{ cat.total_bookings }}</td>
+                                    <td><strong class="text-success">₹{{ "{:,.2f}".format(cat.total_revenue or 0) }}</strong></td>
+                                    <td>₹{{ "{:,.2f}".format((cat.total_revenue or 0) / cat.total_bookings if cat.total_bookings > 0 else 0) }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Service Summary -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header py-3 bg-success text-white">
+                    <h6 class="m-0 font-weight-bold">Service Performance Summary</h6>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Service Name</th>
+                                    <th>Category</th>
+                                    <th>Price</th>
+                                    <th>Bookings</th>
+                                    <th>Quantity</th>
+                                    <th>Unique Clients</th>
+                                    <th>Total Revenue</th>
+                                    <th>Avg per Booking</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for service in service_summary %}
+                                <tr>
+                                    <td><strong>{{ service.name }}</strong></td>
+                                    <td>{{ service.category or 'N/A' }}</td>
+                                    <td>₹{{ "{:,.2f}".format(service.price or 0) }}</td>
+                                    <td><span class="badge bg-primary">{{ service.total_bookings }}</span></td>
+                                    <td>{{ service.total_quantity }}</td>
+                                    <td><span class="badge bg-info">{{ service.unique_clients }}</span></td>
+                                    <td><strong class="text-success">₹{{ "{:,.2f}".format(service.total_revenue or 0) }}</strong></td>
+                                    <td>₹{{ "{:,.2f}".format(service.avg_revenue_per_booking or 0) }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Detailed Transactions -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Detailed Service Transactions</h6>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Invoice #</th>
+                                    <th>Service</th>
+                                    <th>Category</th>
+                                    <th>Client</th>
+                                    <th>Staff</th>
+                                    <th>Qty</th>
+                                    <th>Unit Price</th>
+                                    <th>Total Amount</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for detail in service_transaction_details %}
+                                <tr>
+                                    <td>{{ detail.invoice_date.strftime('%d/%m/%Y') }}</td>
+                                    <td><small>{{ detail.invoice_number }}</small></td>
+                                    <td><strong>{{ detail.name }}</strong></td>
+                                    <td><small>{{ detail.category or 'N/A' }}</small></td>
+                                    <td>{{ detail.client_first_name }} {{ detail.client_last_name }}</td>
+                                    <td>{{ detail.staff_first_name }} {{ detail.staff_last_name if detail.staff_first_name else 'N/A' }}</td>
+                                    <td>{{ detail.quantity }}</td>
+                                    <td>₹{{ "{:,.2f}".format(detail.unit_price or 0) }}</td>
+                                    <td><strong>₹{{ "{:,.2f}".format(detail.final_amount or 0) }}</strong></td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

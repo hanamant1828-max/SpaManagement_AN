@@ -3,6 +3,9 @@ from modules.billing.integrated_billing_views import *
 print("✅ Integrated billing views imported")
 
 from modules.billing.billing_reports_views import *
+from modules.billing.staff_revenue_report_views import *
+from modules.billing.client_revenue_report_views import *
+from modules.billing.service_revenue_report_views import *
 print("✅ Billing reports views imported")
 
 if __name__ == "__main__":
