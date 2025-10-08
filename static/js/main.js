@@ -252,7 +252,8 @@ async function startFaceCameraForTab() {
         const startBtn = document.getElementById('startFaceCamera');
 
         if (!video) {
-            console.warn('Face video element not found - skipping camera initialization');
+            console.error('Face video element not found - check HTML template for id="faceVideo"');
+            alert('Camera setup error: Video element not found. Please refresh the page.');
             return;
         }
 
