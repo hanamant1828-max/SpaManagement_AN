@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Customer Management!111 - Spa & Salon Management Suite{% endblock %}
+{% block title %}Customer Management - Spa & Salon Management Suite{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -579,12 +579,12 @@
                                                 <button class="btn btn-action btn-outline-primary" 
                                                         data-bs-toggle="modal" 
                                                         data-bs-target="#viewCustomerModal" 
-                                                        onclick="viewCustomer({{ customer.id if customer.id else 'null' }})"
+                                                        onclick="viewCustomer({{ customer.id }})"
                                                         title="View Details">
                                                     <i class="fas fa-eye"></i>
                                                 </button>
                                                 <button class="btn btn-action btn-outline-success" 
-                                                        onclick="bookAppointment({{ customer.id if customer.id else 'null' }})"
+                                                        onclick="bookAppointment({{ customer.id }})"
                                                         title="Book Appointment">
                                                     <i class="fas fa-calendar-plus"></i>
                                                 </button>
@@ -592,14 +592,14 @@
                                                 <button class="btn btn-action btn-outline-warning" 
                                                         data-bs-toggle="modal" 
                                                         data-bs-target="#editCustomerModal" 
-                                                        onclick="editCustomer({{ customer.id if customer.id else 'null' }})"
+                                                        onclick="editCustomer({{ customer.id }})"
                                                         title="Edit Customer">
                                                     <i class="fas fa-edit"></i>
                                                 </button>
                                                 {% endif %}
                                                 {% if current_user.has_permission('clients_delete') %}
                                                 <button class="btn btn-action btn-outline-danger" 
-                                                        onclick="deleteCustomer({{ customer.id if customer.id else 'null' }}, '{{ (customer.first_name ~ ' ' ~ customer.last_name)|replace("'", "\\'") }}')"
+                                                        onclick="deleteCustomer({{ customer.id }}, '{{ (customer.first_name ~ ' ' ~ customer.last_name)|replace("'", "\\'") }}')"
                                                         title="Delete Customer">
                                                     <i class="fas fa-trash"></i>
                                                 </button>
@@ -747,9 +747,11 @@
 </div>
 
 <!-- Floating Add Button -->
+{% if current_user.has_permission('clients_create') %}
 <button type="button" class="floating-add-button" data-bs-toggle="modal" data-bs-target="#addCustomerModal">
     <i class="fas fa-plus"></i>
 </button>
+{% endif %}
 
 <!-- Enhanced Add Customer Modal -->
 <div class="modal fade modal-modern" id="addCustomerModal" tabindex="-1">
@@ -925,8 +927,8 @@
                     </div>
 
                     <div class="form-floating-modern">
-                        <label for="edit_preferences">Preferences</label>
-                        <textarea class="form-control" name="preferences" id="edit_preferences" rows="2" placeholder="Customer preferences, favorite services, etc."></textarea>
+                        <label for="edit_emergency_contact">Emergency Contact</label>
+                        <input type="text" class="form-control" name="emergency_contact" id="edit_emergency_contact">
                     </div>
 
                     <div class="form-floating-modern">
@@ -963,7 +965,10 @@
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body" id="customerDetails">
-                <!-- Customer details will be loaded here -->
+                <div class="text-center py-4">
+                    <i class="fas fa-spinner fa-spin fa-2x text-muted"></i>
+                    <p class="text-muted mt-2">Loading...</p>
+                </div>
             </div>
             <div class="modal-footer justify-content-between">
                 <button type="button" class="btn btn-secondary btn-lg" data-bs-dismiss="modal">
@@ -976,42 +981,15 @@
         </div>
     </div>
 </div>
-
-<!-- Customer Profile Modal -->
-<div class="modal fade" id="customerProfileModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Customer Profile</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <div id="customerProfileContent">
-                    <!-- Content will be loaded here -->
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-            </div>
-        </div>
-    </div>
-</div>
 {% endblock %}
-
-{% block extra_scripts %}
-{% extends "base.html" %}
-
-{% block title %}Customer Management - Spa & Salon Management Suite{% endblock %}
-
-{# REST OF THE FILE REMAINS THE SAME UNTIL THE JAVASCRIPT SECTION #}
 
 {% block extra_scripts %}
 <script>
 // ============================================
-// CUSTOMER MANAGEMENT - CLEANED UP VERSION
+// CUSTOMER MANAGEMENT SYSTEM - COMPLETE
 // ============================================
 
-// Global variables
+// Global Variables
 let currentEditCustomerId = null;
 let currentCustomerId = null;
 let faceVideo = null;
@@ -1020,68 +998,345 @@ let faceStream = null;
 let capturedImageData = null;
 
 // ============================================
-// INITIALIZATION - ONE TIME ONLY
+// INITIALIZATION
 // ============================================
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Customer Management: Initializing...');
-
-    // Validate customer action buttons on load
+    
+    // Validate all customer action buttons
     validateCustomerActionButtons();
-
+    
     // Populate customer select for face capture
     populateCustomerSelect();
-
-    // Setup face capture tab lazy loading
+    
+    // Setup face capture tab with lazy loading
     const faceTab = document.getElementById('face-capture-tab');
     if (faceTab) {
         faceTab.addEventListener('shown.bs.tab', function() {
             if (!this.dataset.initialized) {
-                console.log('Face Recognition tab: First time activation');
+                console.log('Face Recognition: First activation');
                 initializeFaceCaptureOnce();
                 this.dataset.initialized = 'true';
             }
         });
     }
+    
+    console.log('Customer Management: Ready');
 });
 
 // ============================================
-// FACE CAPTURE - INITIALIZE ONCE
+// CUSTOMER MANAGEMENT FUNCTIONS
 // ============================================
-function initializeFaceCaptureOnce() {
-    console.log('Initializing face capture features...');
 
-    // Get DOM elements
-    faceVideo = document.getElementById('faceVideo');
-    faceCanvas = document.getElementById('faceCanvas');
-
-    // Setup event listeners (only once)
-    const faceClientSelect = document.getElementById('faceClientSelect');
-    if (faceClientSelect && !faceClientSelect.dataset.listenerAttached) {
-        faceClientSelect.addEventListener('change', (e) => selectCustomerForFace(e.target.value));
-        faceClientSelect.dataset.listenerAttached = 'true';
+function validateCustomerId(customerId, operation) {
+    if (!customerId || customerId === 'null' || customerId === null || customerId === undefined || isNaN(customerId)) {
+        console.error(`Invalid customer ID for ${operation}:`, customerId);
+        showNotification('Error: Invalid customer data. Please refresh the page.', 'danger');
+        return false;
     }
+    return true;
+}
 
-    // Load face data table
-    loadFaceDataTable();
+function validateCustomerActionButtons() {
+    console.log('Validating customer action buttons...');
+    
+    const actionButtons = document.querySelectorAll('[onclick*="viewCustomer"], [onclick*="editCustomer"], [onclick*="deleteCustomer"], [onclick*="bookAppointment"]');
+    let invalidCount = 0;
+    
+    actionButtons.forEach((button, index) => {
+        const onclick = button.getAttribute('onclick');
+        if (onclick && (onclick.includes('undefined') || onclick.includes('null') || onclick.includes('Customer(null'))) {
+            console.error(`Invalid button found: ${onclick}`);
+            button.disabled = true;
+            button.title = 'Error: Invalid customer data';
+            button.style.opacity = '0.5';
+            invalidCount++;
+        }
+    });
+    
+    if (invalidCount > 0) {
+        console.warn(`Found ${invalidCount} invalid buttons`);
+        showNotification(`Found ${invalidCount} invalid customer buttons. Please refresh.`, 'warning');
+    } else {
+        console.log('All customer buttons validated successfully');
+    }
+}
+
+function viewCustomer(customerId) {
+    console.log('View customer:', customerId);
+    
+    if (!validateCustomerId(customerId, 'viewCustomer')) return;
+    
+    const modal = new bootstrap.Modal(document.getElementById('viewCustomerModal'));
+    const details = document.getElementById('customerDetails');
+    
+    details.innerHTML = '<div class="text-center py-4"><i class="fas fa-spinner fa-spin fa-2x text-primary"></i><p class="text-muted mt-2">Loading customer details...</p></div>';
+    modal.show();
+    
+    fetch(`/api/customers/${customerId}`)
+        .then(response => {
+            if (!response.ok) throw new Error('Customer not found');
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                renderCustomerDetails(data.customer, details);
+                currentEditCustomerId = customerId;
+            } else {
+                throw new Error(data.error || 'Failed to load customer');
+            }
+        })
+        .catch(error => {
+            console.error('Error loading customer:', error);
+            details.innerHTML = `
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    Error loading customer: ${error.message}
+                </div>
+            `;
+        });
+}
+
+function renderCustomerDetails(customer, container) {
+    const initials = `${customer.first_name[0]}${customer.last_name[0]}`;
+    const age = customer.date_of_birth ? calculateAge(customer.date_of_birth) : 'N/A';
+    
+    container.innerHTML = `
+        <div class="row">
+            <div class="col-md-3 text-center">
+                <div class="customer-avatar mx-auto mb-3" style="width: 80px; height: 80px; font-size: 1.5rem;">
+                    ${initials}
+                </div>
+                ${customer.is_vip ? '<span class="badge bg-warning"><i class="fas fa-crown"></i> VIP</span>' : ''}
+                <span class="badge ${customer.is_active ? 'bg-success' : 'bg-secondary'} mt-2">
+                    ${customer.is_active ? 'Active' : 'Inactive'}
+                </span>
+            </div>
+            <div class="col-md-9">
+                <h4 class="mb-1">${customer.full_name}</h4>
+                <p class="text-muted mb-3">${customer.status}</p>
+                
+                <div class="row mb-3">
+                    <div class="col-sm-6">
+                        <strong>Phone:</strong><br>
+                        <a href="tel:${customer.phone}" class="text-decoration-none">
+                            <i class="fas fa-phone me-1"></i>${customer.phone}
+                        </a>
+                    </div>
+                    <div class="col-sm-6">
+                        <strong>Email:</strong><br>
+                        ${customer.email ? `<a href="mailto:${customer.email}" class="text-decoration-none"><i class="fas fa-envelope me-1"></i>${customer.email}</a>` : 'Not provided'}
+                    </div>
+                </div>
+                
+                <div class="row mb-3">
+                    <div class="col-sm-6">
+                        <strong>Date of Birth:</strong><br>
+                        ${customer.date_of_birth ? new Date(customer.date_of_birth).toLocaleDateString() + ` (${age} years)` : 'Not provided'}
+                    </div>
+                    <div class="col-sm-6">
+                        <strong>Gender:</strong><br>
+                        ${customer.gender ? customer.gender.charAt(0).toUpperCase() + customer.gender.slice(1) : 'Not specified'}
+                    </div>
+                </div>
+                
+                ${customer.address ? `
+                    <div class="mb-3">
+                        <strong>Address:</strong><br>
+                        <span class="text-muted">${customer.address.replace(/\n/g, '<br>')}</span>
+                    </div>
+                ` : ''}
+                
+                <div class="row mb-3">
+                    <div class="col-sm-4">
+                        <div class="text-center p-3 bg-light rounded">
+                            <strong class="text-primary h4">${customer.total_visits}</strong><br>
+                            <small class="text-muted">Total Visits</small>
+                        </div>
+                    </div>
+                    <div class="col-sm-4">
+                        <div class="text-center p-3 bg-light rounded">
+                            <strong class="text-success h4">₹${customer.total_spent.toFixed(2)}</strong><br>
+                            <small class="text-muted">Total Spent</small>
+                        </div>
+                    </div>
+                    <div class="col-sm-4">
+                        <div class="text-center p-3 bg-light rounded">
+                            <strong class="text-info h6">${customer.last_visit ? new Date(customer.last_visit).toLocaleDateString() : 'Never'}</strong><br>
+                            <small class="text-muted">Last Visit</small>
+                        </div>
+                    </div>
+                </div>
+                
+                ${customer.emergency_contact ? `
+                    <div class="mb-3">
+                        <strong>Emergency Contact:</strong><br>
+                        <span class="text-muted">${customer.emergency_contact}</span>
+                    </div>
+                ` : ''}
+                
+                ${customer.allergies ? `
+                    <div class="alert alert-warning mb-3">
+                        <strong><i class="fas fa-exclamation-triangle me-2"></i>Allergies:</strong><br>
+                        ${customer.allergies}
+                    </div>
+                ` : ''}
+                
+                ${customer.notes ? `
+                    <div class="mb-3">
+                        <strong>Notes:</strong><br>
+                        <span class="text-muted">${customer.notes}</span>
+                    </div>
+                ` : ''}
+            </div>
+        </div>
+    `;
+}
+
+function calculateAge(dateString) {
+    const today = new Date();
+    const birthDate = new Date(dateString);
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+    
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+        age--;
+    }
+    
+    return age;
+}
+
+function editCustomer(customerId) {
+    console.log('Edit customer:', customerId);
+    
+    if (!validateCustomerId(customerId, 'editCustomer')) return;
+    
+    currentEditCustomerId = customerId;
+    
+    fetch(`/api/customers/${customerId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                populateEditForm(data.customer);
+                const modal = new bootstrap.Modal(document.getElementById('editCustomerModal'));
+                modal.show();
+            } else {
+                showNotification('Error loading customer data', 'danger');
+            }
+        })
+        .catch(error => {
+            console.error('Edit error:', error);
+            showNotification('Failed to load customer data', 'danger');
+        });
+}
+
+function populateEditForm(customer) {
+    console.log('Populating edit form:', customer);
+    
+    const form = document.getElementById('editCustomerForm');
+    form.action = `/clients/update/${customer.id}`;
+    
+    const fields = {
+        'edit_first_name': customer.first_name,
+        'edit_last_name': customer.last_name,
+        'edit_phone': customer.phone,
+        'edit_email': customer.email,
+        'edit_address': customer.address,
+        'edit_date_of_birth': customer.date_of_birth,
+        'edit_gender': customer.gender,
+        'edit_emergency_contact': customer.emergency_contact,
+        'edit_allergies': customer.allergies,
+        'edit_notes': customer.notes
+    };
+    
+    Object.entries(fields).forEach(([id, value]) => {
+        const field = document.getElementById(id);
+        if (field && value !== null && value !== undefined && value !== '') {
+            field.value = value;
+        }
+    });
+}
+
+function deleteCustomer(customerId, customerName) {
+    console.log('Delete customer:', customerId, customerName);
+    
+    if (!validateCustomerId(customerId, 'deleteCustomer')) return;
+    
+    const safeName = customerName || 'this customer';
+    
+    if (confirm(`Are you sure you want to delete "${safeName}"?\n\nThis will deactivate the customer but preserve their data.`)) {
+        showNotification('Deleting customer...', 'info');
+        
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = `/clients/delete/${customerId}`;
+        form.style.display = 'none';
+        
+        const csrfToken = document.querySelector('meta[name=csrf-token]');
+        if (csrfToken) {
+            const csrfInput = document.createElement('input');
+            csrfInput.type = 'hidden';
+            csrfInput.name = 'csrf_token';
+            csrfInput.value = csrfToken.getAttribute('content');
+            form.appendChild(csrfInput);
+        }
+        
+        document.body.appendChild(form);
+        form.submit();
+    }
+}
+
+function bookAppointment(customerId) {
+    console.log('Book appointment for customer:', customerId);
+    
+    if (!validateCustomerId(customerId, 'bookAppointment')) return;
+    
+    window.location.href = `/bookings?customer_id=${customerId}`;
+}
+
+function bookAppointmentFromModal() {
+    if (currentEditCustomerId) {
+        bookAppointment(currentEditCustomerId);
+    } else {
+        showNotification('No customer selected', 'warning');
+    }
 }
 
 // ============================================
 // FACE CAPTURE FUNCTIONS
 // ============================================
-function selectCustomerForFace(customerId) {
-    currentCustomerId = customerId;
 
+function initializeFaceCaptureOnce() {
+    console.log('Initializing face capture...');
+    
+    faceVideo = document.getElementById('faceVideo');
+    faceCanvas = document.getElementById('faceCanvas');
+    
+    const faceClientSelect = document.getElementById('faceClientSelect');
+    if (faceClientSelect && !faceClientSelect.dataset.listenerAttached) {
+        faceClientSelect.addEventListener('change', (e) => selectCustomerForFace(e.target.value));
+        faceClientSelect.dataset.listenerAttached = 'true';
+    }
+    
+    loadFaceDataTable();
+    console.log('Face capture initialized');
+}
+
+function selectCustomerForFace(customerId) {
+    console.log('Customer selected for face capture:', customerId);
+    currentCustomerId = customerId;
+    
     const selectedInfo = document.getElementById('selectedFaceClientInfo');
     const selectedDetails = document.getElementById('selectedFaceClientDetails');
-
+    
     if (!customerId) {
         if (selectedInfo) selectedInfo.classList.add('d-none');
         return;
     }
-
+    
     const select = document.getElementById('faceClientSelect');
     const selectedOption = select?.options[select.selectedIndex];
-
+    
     if (selectedOption && selectedDetails && selectedInfo) {
         selectedDetails.textContent = selectedOption.textContent;
         selectedInfo.classList.remove('d-none');
@@ -1089,85 +1344,100 @@ function selectCustomerForFace(customerId) {
 }
 
 async function startFaceCamera() {
+    console.log('Starting face camera...');
+    
     if (!currentCustomerId) {
         showNotification('Please select a customer first', 'warning');
         return;
     }
-
+    
     try {
-        // Stop existing stream
         if (faceStream) {
             faceStream.getTracks().forEach(track => track.stop());
         }
-
-        // Request camera
+        
         faceStream = await navigator.mediaDevices.getUserMedia({
-            video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: 'user' }
+            video: {
+                width: { ideal: 640 },
+                height: { ideal: 480 },
+                facingMode: 'user'
+            }
         });
-
+        
         faceVideo.srcObject = faceStream;
         await faceVideo.play();
         faceVideo.style.display = 'block';
-
+        
         document.getElementById('faceCameraPlaceholder').style.display = 'none';
-
-        // Update buttons
+        
         const startBtn = document.getElementById('startCameraBtn');
         startBtn.disabled = true;
         startBtn.innerHTML = '<i class="fas fa-circle text-danger me-2"></i>Camera Active';
-        startBtn.classList.replace('btn-success', 'btn-secondary');
-
+        startBtn.classList.remove('btn-success');
+        startBtn.classList.add('btn-secondary');
+        
         document.getElementById('captureFacePhoto').disabled = false;
-
+        
         showNotification('Camera started successfully!', 'success');
-
+        
     } catch (error) {
         console.error('Camera error:', error);
+        
         const messages = {
             'NotAllowedError': 'Please allow camera access and try again.',
             'NotFoundError': 'No camera found on this device.',
             'default': 'Please check your camera and permissions.'
         };
+        
         showNotification('Camera access failed. ' + (messages[error.name] || messages.default), 'danger');
     }
 }
 
 function captureFacePhoto() {
+    console.log('Capturing face photo...');
+    
     if (!currentCustomerId || !faceVideo) {
-        showNotification('Please select a customer and start camera first', 'warning');
+        showNotification('Please select customer and start camera first', 'warning');
         return;
     }
-
+    
     faceCanvas.width = faceVideo.videoWidth || 640;
     faceCanvas.height = faceVideo.videoHeight || 480;
-
+    
     const ctx = faceCanvas.getContext('2d');
     ctx.drawImage(faceVideo, 0, 0, faceCanvas.width, faceCanvas.height);
-
+    
     capturedImageData = faceCanvas.toDataURL('image/jpeg', 0.8);
-
+    
     faceVideo.style.display = 'none';
     faceCanvas.style.display = 'block';
-
+    
     document.getElementById('captureFacePhoto').style.display = 'none';
-    document.getElementById('saveFaceData').disabled = false;
-
+    
+    const saveBtn = document.getElementById('saveFaceData');
+    saveBtn.disabled = false;
+    saveBtn.style.display = 'inline-block';
+    
     showNotification('Photo captured! Click "Save Face Data" to store it.', 'success');
 }
 
 function saveFaceData() {
+    console.log('Saving face data...');
+    
     if (!currentCustomerId || !capturedImageData) {
         showNotification('No customer selected or photo captured', 'warning');
         return;
     }
-
+    
     const saveBtn = document.getElementById('saveFaceData');
     saveBtn.disabled = true;
     saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Saving...';
-
+    
     fetch('/api/save_face', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+            'Content-Type': 'application/json'
+        },
         body: JSON.stringify({
             client_id: currentCustomerId,
             face_image: capturedImageData
@@ -1192,11 +1462,13 @@ function saveFaceData() {
 }
 
 function resetFaceCapture() {
+    console.log('Resetting face capture...');
+    
     if (faceStream) {
         faceStream.getTracks().forEach(track => track.stop());
         faceStream = null;
     }
-
+    
     if (faceVideo) {
         faceVideo.style.display = 'none';
         if (faceVideo.srcObject) {
@@ -1204,38 +1476,43 @@ function resetFaceCapture() {
             faceVideo.srcObject = null;
         }
     }
-
+    
     if (faceCanvas) faceCanvas.style.display = 'none';
-
+    
     const placeholder = document.getElementById('faceCameraPlaceholder');
     if (placeholder) placeholder.style.display = 'flex';
-
-    // Reset buttons
+    
     const startBtn = document.getElementById('startCameraBtn');
     startBtn.disabled = false;
     startBtn.innerHTML = '<i class="fas fa-video me-2"></i>Start Camera';
-    startBtn.classList.replace('btn-secondary', 'btn-success');
-
+    startBtn.classList.remove('btn-secondary');
+    startBtn.classList.add('btn-success');
+    
     document.getElementById('captureFacePhoto').disabled = true;
-    document.getElementById('saveFaceData').disabled = true;
-
+    
+    const saveBtn = document.getElementById('saveFaceData');
+    saveBtn.disabled = true;
+    saveBtn.innerHTML = '<i class="fas fa-save me-2"></i>Save Face Data';
+    
     capturedImageData = null;
     currentCustomerId = null;
-
+    
     document.getElementById('faceClientSelect').value = '';
     document.getElementById('selectedFaceClientInfo').classList.add('d-none');
 }
 
 function loadFaceDataTable() {
+    console.log('Loading face data table...');
+    
     const container = document.getElementById('faceTableContainer');
     if (!container) return;
-
-    container.innerHTML = '<div class="text-center py-4"><i class="fas fa-spinner fa-spin fa-2x text-primary"></i><p class="text-muted mt-2">Loading...</p></div>';
-
+    
+    container.innerHTML = '<div class="text-center py-4"><i class="fas fa-spinner fa-spin fa-2x text-primary"></i><p class="text-muted mt-2">Loading face data...</p></div>';
+    
     fetch('/api/customers_with_faces')
         .then(response => response.json())
         .then(data => {
-            if (data.success && data.customers?.length > 0) {
+            if (data.success && data.customers && data.customers.length > 0) {
                 renderFaceTable(data.customers, container);
             } else {
                 showEmptyFaceState(container);
@@ -1248,8 +1525,19 @@ function loadFaceDataTable() {
 }
 
 function renderFaceTable(customers, container) {
-    let html = '<table class="table table-enhanced mb-0"><thead><tr><th>Customer</th><th>Phone</th><th>Registration Date</th><th class="text-center">Actions</th></tr></thead><tbody>';
-
+    let html = `
+        <table class="table table-enhanced mb-0">
+            <thead>
+                <tr>
+                    <th>Customer</th>
+                    <th>Phone</th>
+                    <th>Registration Date</th>
+                    <th class="text-center">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+    `;
+    
     customers.forEach(customer => {
         const date = customer.face_registration_date ? new Date(customer.face_registration_date).toLocaleDateString() : 'Unknown';
         html += `
@@ -1280,7 +1568,7 @@ function renderFaceTable(customers, container) {
             </tr>
         `;
     });
-
+    
     html += '</tbody></table>';
     container.innerHTML = html;
 }
@@ -1291,204 +1579,66 @@ function showEmptyFaceState(container) {
             <i class="fas fa-user-friends"></i>
             <h4 class="mt-3">No registered faces yet</h4>
             <p class="text-muted">Start capturing customer faces using the section above.</p>
+            <div class="mt-3">
+                <small class="text-info">
+                    <i class="fas fa-info-circle me-1"></i>
+                    Face recognition data will appear here once you capture and save customer faces
+                </small>
+            </div>
         </div>
     `;
 }
 
 function refreshFaceTable() {
+    console.log('Refreshing face table...');
     loadFaceDataTable();
 }
 
 function searchFaceData() {
-    // Implement search functionality
+    console.log('Searching face data...');
     loadFaceDataTable();
 }
 
 function updateFace(customerId) {
     if (confirm('Update face data for this customer?')) {
-        // Switch to capture tab and pre-select customer
         const captureTab = document.getElementById('face-capture-tab');
-        const managementTab = new bootstrap.Tab(captureTab);
-        managementTab.show();
-
+        if (captureTab) {
+            const tab = new bootstrap.Tab(captureTab);
+            tab.show();
+        }
+        
         const select = document.getElementById('faceClientSelect');
         if (select) {
             select.value = customerId;
             selectCustomerForFace(customerId);
         }
+        
+        showNotification('Select customer and capture new photo', 'info');
     }
 }
 
 function removeFace(customerId) {
     if (confirm('Remove face data for this customer?')) {
-        // Implement face removal
-        showNotification('Face removal not yet implemented', 'info');
-    }
-}
-
-// ============================================
-// CUSTOMER MANAGEMENT FUNCTIONS
-// ============================================
-function validateCustomerId(customerId, operation) {
-    if (!customerId || customerId === 'null' || isNaN(customerId)) {
-        console.error(`Invalid customer ID for ${operation}:`, customerId);
-        showNotification('Error: Invalid customer data', 'danger');
-        return false;
-    }
-    return true;
-}
-
-function validateCustomerActionButtons() {
-    const buttons = document.querySelectorAll('[onclick*="viewCustomer"], [onclick*="editCustomer"], [onclick*="deleteCustomer"], [onclick*="bookAppointment"]');
-
-    let invalidCount = 0;
-    buttons.forEach(button => {
-        const onclick = button.getAttribute('onclick');
-        if (onclick?.includes('null') || onclick?.includes('undefined')) {
-            button.disabled = true;
-            button.title = 'Error: Invalid customer data';
-            button.style.opacity = '0.5';
-            invalidCount++;
-        }
-    });
-
-    if (invalidCount > 0) {
-        console.warn(`Found ${invalidCount} invalid buttons`);
-    }
-}
-
-function viewCustomer(customerId) {
-    if (!validateCustomerId(customerId, 'viewCustomer')) return;
-
-    const modal = new bootstrap.Modal(document.getElementById('viewCustomerModal'));
-    const details = document.getElementById('customerDetails');
-
-    details.innerHTML = '<div class="text-center py-4"><i class="fas fa-spinner fa-spin fa-2x"></i></div>';
-    modal.show();
-
-    fetch(`/api/customers/${customerId}`)
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                renderCustomerDetails(data.customer, details);
-            } else {
-                throw new Error(data.error);
-            }
-        })
-        .catch(error => {
-            details.innerHTML = `<div class="alert alert-danger">Error: ${error.message}</div>`;
-        });
-}
-
-function renderCustomerDetails(customer, container) {
-    const initials = `${customer.first_name[0]}${customer.last_name[0]}`;
-    container.innerHTML = `
-        <div class="row">
-            <div class="col-md-3 text-center">
-                <div class="customer-avatar mx-auto mb-3" style="width: 80px; height: 80px; font-size: 1.5rem;">
-                    ${initials}
-                </div>
-                ${customer.is_vip ? '<span class="badge bg-warning"><i class="fas fa-crown"></i> VIP</span>' : ''}
-            </div>
-            <div class="col-md-9">
-                <h4>${customer.full_name}</h4>
-                <p class="text-muted">${customer.status}</p>
-                <div class="row">
-                    <div class="col-sm-6"><strong>Phone:</strong> ${customer.phone}</div>
-                    <div class="col-sm-6"><strong>Email:</strong> ${customer.email || 'N/A'}</div>
-                </div>
-                <div class="row mt-2">
-                    <div class="col-sm-4"><strong>Visits:</strong> ${customer.total_visits}</div>
-                    <div class="col-sm-4"><strong>Spent:</strong> ₹${customer.total_spent.toFixed(2)}</div>
-                    <div class="col-sm-4"><strong>Last Visit:</strong> ${customer.last_visit ? new Date(customer.last_visit).toLocaleDateString() : 'Never'}</div>
-                </div>
-            </div>
-        </div>
-    `;
-}
-
-function editCustomer(customerId) {
-    if (!validateCustomerId(customerId, 'editCustomer')) return;
-
-    currentEditCustomerId = customerId;
-
-    fetch(`/api/customers/${customerId}`)
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                populateEditForm(data.customer);
-                const modal = new bootstrap.Modal(document.getElementById('editCustomerModal'));
-                modal.show();
-            } else {
-                showNotification('Error loading customer data', 'danger');
-            }
-        })
-        .catch(error => {
-            console.error('Edit error:', error);
-            showNotification('Failed to load customer data', 'danger');
-        });
-}
-
-function populateEditForm(customer) {
-    const form = document.getElementById('editCustomerForm');
-    form.action = `/clients/update/${customer.id}`;
-
-    const fields = {
-        'edit_first_name': customer.first_name,
-        'edit_last_name': customer.last_name,
-        'edit_phone': customer.phone,
-        'edit_email': customer.email,
-        'edit_address': customer.address,
-        'edit_date_of_birth': customer.date_of_birth,
-        'edit_gender': customer.gender,
-        'edit_preferences': customer.preferences,
-        'edit_allergies': customer.allergies,
-        'edit_notes': customer.notes
-    };
-
-    Object.entries(fields).forEach(([id, value]) => {
-        const field = document.getElementById(id);
-        if (field && value) field.value = value;
-    });
-}
-
-function deleteCustomer(customerId, customerName) {
-    if (!validateCustomerId(customerId, 'deleteCustomer')) return;
-
-    if (confirm(`Delete customer "${customerName}"?\n\nThis will deactivate the customer.`)) {
-        const form = document.createElement('form');
-        form.method = 'POST';
-        form.action = `/clients/delete/${customerId}`;
-        document.body.appendChild(form);
-        form.submit();
-    }
-}
-
-function bookAppointment(customerId) {
-    if (!validateCustomerId(customerId, 'bookAppointment')) return;
-    window.location.href = `/bookings?customer_id=${customerId}`;
-}
-
-function bookAppointmentFromModal() {
-    if (currentEditCustomerId) {
-        bookAppointment(currentEditCustomerId);
+        showNotification('Face removal feature coming soon', 'info');
     }
 }
 
 function populateCustomerSelect() {
     const select = document.getElementById('faceClientSelect');
     if (!select) return;
-
+    
     try {
         const customersData = {{ customers|tojson|safe }};
-        select.innerHTML = '<option value="">Select a customer...</option>';
-
-        customersData.forEach(customer => {
-            const option = document.createElement('option');
-            option.value = customer.id;
-            option.textContent = `${customer.full_name} - ${customer.phone}`;
-            select.appendChild(option);
-        });
+        if (customersData && customersData.length > 0) {
+            select.innerHTML = '<option value="">Select a customer...</option>';
+            customersData.forEach(customer => {
+                const option = document.createElement('option');
+                option.value = customer.id;
+                option.textContent = `${customer.full_name} - ${customer.phone}`;
+                select.appendChild(option);
+            });
+            console.log(`Populated ${customersData.length} customers`);
+        }
     } catch (error) {
         console.error('Error populating select:', error);
     }
@@ -1497,6 +1647,7 @@ function populateCustomerSelect() {
 // ============================================
 // UTILITY FUNCTIONS
 // ============================================
+
 function showNotification(message, type = 'info') {
     const icons = {
         success: 'check-circle',
@@ -1504,7 +1655,7 @@ function showNotification(message, type = 'info') {
         danger: 'times-circle',
         info: 'info-circle'
     };
-
+    
     const alert = document.createElement('div');
     alert.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
     alert.style.cssText = 'top: 80px; right: 20px; z-index: 9999; min-width: 300px; max-width: 400px;';
@@ -1512,10 +1663,21 @@ function showNotification(message, type = 'info') {
         <i class="fas fa-${icons[type]} me-2"></i>${message}
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     `;
-
+    
     document.body.appendChild(alert);
-    setTimeout(() => alert.remove(), 5000);
+    setTimeout(() => {
+        if (alert.parentNode) alert.remove();
+    }, 5000);
 }
+
+// Global error handler
+window.addEventListener('error', function(e) {
+    console.error('JavaScript error:', e.error);
+    if (e.error && e.error.message && e.error.message.includes('missing ) after argument list')) {
+        showNotification('Page error detected. Please refresh the page.', 'danger');
+    }
+});
+
+console.log('Customer Management System: All scripts loaded');
 </script>
-{% endblock %}
 {% endblock %}
