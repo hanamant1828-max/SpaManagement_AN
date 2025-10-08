@@ -1237,12 +1237,15 @@ def create_professional_invoice():
                 import time
                 invoice_number = f"INV-{date_prefix}-{int(time.time() * 1000) % 100000:05d}"
 
-            # Create enhanced invoice
+            # Create enhanced invoice with IST timezone
+            from app import get_ist_now
+            ist_now = get_ist_now()
+            
             invoice = EnhancedInvoice()
             invoice.invoice_number = invoice_number
             invoice.client_id = int(client_id)
-            invoice.invoice_date = current_date
-            invoice.created_at = datetime.datetime.utcnow() # Add created_at timestamp
+            invoice.invoice_date = ist_now.replace(tzinfo=None)  # Store as naive IST datetime
+            invoice.created_at = ist_now.replace(tzinfo=None)  # Store as naive IST datetime
 
             # Professional billing fields
             invoice.services_subtotal = services_subtotal
