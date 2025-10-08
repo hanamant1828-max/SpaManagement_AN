@@ -1085,32 +1085,67 @@
 
                     <div class="row mb-4">
                         <div class="col-md-6">
-                            <label class="form-label fw-semibold">
-                                <i class="fas fa-concierge-bell me-2" style="color: var(--primary-color)"></i>Service
-                            </label>
-                            <select id="editServiceSelect" class="form-select" required style="border-radius: 10px; padding: 12px">
-                                <option value="">Select service...</option>
-                                {% if services %}
-                                {% for service in services %}
-                                <option value="{{ service.id }}" data-duration="{{ service.duration or 60 }}" data-price="{{ service.price }}">
-                                    {{ service.name }} ({{ service.duration or 60 }} min - ₹{{ "%.2f"|format(service.price) }})
-                                </option>
-                                {% endfor %}
-                                {% endif %}
-                            </select>
+                            <div class="form-group">
+                                <label class="form-label fw-semibold">
+                                    <i class="fas fa-concierge-bell me-2" style="color: var(--primary-color)"></i>Service
+                                </label>
+                                <select id="editServiceSelect" class="form-select" required style="border-radius: 10px; padding: 12px">
+                                    <option value="">Select service...</option>
+                                    {% if services %}
+                                    {% for service in services %}
+                                    <option value="{{ service.id }}" data-duration="{{ service.duration or 60 }}" data-price="{{ service.price }}">
+                                        {{ service.name }} ({{ service.duration or 60 }} min - ₹{{ "%.2f"|format(service.price) }})
+                                    </option>
+                                    {% endfor %}
+                                    {% endif %}
+                                </select>
+                            </div>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label fw-semibold">
-                                <i class="fas fa-user-md me-2" style="color: var(--primary-color)"></i>Staff Member
-                            </label>
-                            <select id="editStaffSelect" class="form-select" required style="border-radius: 10px; padding: 12px">
-                                <option value="">Select staff member...</option>
-                                {% if staff_members %}
-                                {% for staff in staff_members %}
-                                <option value="{{ staff.id }}">{{ staff.first_name }} {{ staff.last_name if staff.last_name else '' }}</option>
-                                {% endfor %}
-                                {% endif %}
-                            </select>
+                            <div class="form-group">
+                                <label class="form-label fw-semibold">
+                                    <i class="fas fa-user-md me-2" style="color: var(--primary-color)"></i>Staff Member
+                                </label>
+                                <select id="editStaffSelect" class="form-select" required style="border-radius: 10px; padding: 12px">
+                                    <option value="">Select staff member...</option>
+                                    {% if staff_members %}
+                                    {% for staff in staff_members %}
+                                    <option value="{{ staff.id }}">{{ staff.first_name }} {{ staff.last_name if staff.last_name else '' }}</option>
+                                    {% endfor %}
+                                    {% endif %}
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="form-label fw-semibold">
+                                    <i class="fas fa-info-circle me-2" style="color: var(--primary-color)"></i>Status
+                                </label>
+                                <select id="editStatus" class="form-select" required style="border-radius: 10px; padding: 12px">
+                                    <option value="scheduled">Scheduled</option>
+                                    <option value="confirmed">Confirmed</option>
+                                    <option value="in_progress">In Progress</option>
+                                    <option value="completed">Completed</option>
+                                    <option value="cancelled">Cancelled</option>
+                                    <option value="no_show">No Show</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="form-label fw-semibold">
+                                    <i class="fas fa-money-bill-wave me-2" style="color: var(--success-color)"></i>Payment Status
+                                </label>
+                                <select id="editPaymentStatus" class="form-select" required style="border-radius: 10px; padding: 12px">
+                                    <option value="pending">Pending</option>
+                                    <option value="partial">Partial</option>
+                                    <option value="paid">Paid</option>
+                                    <option value="cancelled">Cancelled</option>
+                                </select>
+                            </div>
                         </div>
                     </div>
 
@@ -1919,7 +1954,7 @@
             if (!serviceSelect || !startTimeInput || !endTimeInput) return;
 
             const selectedOption = serviceSelect.options[serviceSelect.selectedIndex];
-            const duration = parseInt(selectedOption.getAttribute('data-duration')) || 60;
+            const duration = parseInt(selectedOption.dataset.duration) || 60;
             const startTime = startTimeInput.value;
 
             if (startTime) {
@@ -2245,8 +2280,117 @@
         }
 
         function saveEditedAppointment() {
-            // Implement save logic here
-            alert("Save edited appointment");
+            const appointmentId = document.getElementById('editAppointmentId').value;
+            const serviceId = document.getElementById('editServiceSelect').value;
+            const staffId = document.getElementById('editStaffSelect').value;
+            const appointmentDate = document.getElementById('editAppointmentDate').value;
+            const startTime = document.getElementById('editStartTime').value;
+            const endTime = document.getElementById('editEndTime').value;
+            const notes = document.getElementById('editNotes').value;
+
+            // Get status and payment_status from dropdowns
+            const status = document.getElementById('editStatus').value;
+            const paymentStatus = document.getElementById('editPaymentStatus').value;
+
+            if (!serviceId || !staffId || !appointmentDate || !startTime) {
+                showToast('Please fill in all required fields', 'error');
+                return;
+            }
+
+            const updateData = {
+                service_id: parseInt(serviceId),
+                staff_id: parseInt(staffId),
+                appointment_date: appointmentDate,
+                start_time: startTime,
+                end_time: endTime,
+                notes: notes,
+                status: status,
+                payment_status: paymentStatus
+            };
+
+            console.log('Updating appointment:', appointmentId, updateData);
+
+            fetch(`/api/unaki/update-appointment/${appointmentId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(updateData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showToast(data.message || 'Appointment updated successfully', 'success');
+                    bootstrap.Modal.getInstance(document.getElementById('editAppointmentModal')).hide();
+
+                    // If payment status changed to 'paid', appointment will be hidden after refresh
+                    if (paymentStatus === 'paid') {
+                        showToast('Appointment marked as paid and will be hidden from view', 'info');
+                    }
+
+                    refreshSchedule();
+                } else {
+                    showToast(data.error || 'Failed to update appointment', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error updating appointment:', error);
+                showToast('Error updating appointment', 'error');
+            });
+        }
+
+        function showEditModal(appointmentData) {
+            console.log('✏️ Showing edit appointment modal:', appointmentData);
+
+            // Populate form fields
+            document.getElementById('editAppointmentId').value = appointmentData.id;
+            document.getElementById('editClientName').value = appointmentData.client_name;
+            document.getElementById('editAppointmentDate').value = appointmentData.appointment_date;
+            document.getElementById('editStartTime').value = appointmentData.start_time;
+            document.getElementById('editEndTime').value = appointmentData.end_time;
+            document.getElementById('editNotes').value = appointmentData.notes || '';
+
+            // Set service dropdown
+            const serviceSelect = document.getElementById('editServiceSelect');
+            if (appointmentData.service_id) {
+                serviceSelect.value = appointmentData.service_id;
+            }
+
+            // Set staff dropdown
+            const staffSelect = document.getElementById('editStaffSelect');
+            staffSelect.value = appointmentData.staff_id;
+
+            // Set status dropdown
+            const statusSelect = document.getElementById('editStatus');
+            statusSelect.value = appointmentData.status || 'scheduled';
+
+            // Set payment status dropdown
+            const paymentStatusSelect = document.getElementById('editPaymentStatus');
+            paymentStatusSelect.value = appointmentData.payment_status || 'pending';
+
+            // Show modal
+            const editModal = new bootstrap.Modal(document.getElementById('editAppointmentModal'));
+            editModal.show();
+
+            // Update end time when service changes
+            serviceSelect.addEventListener('change', function() {
+                const selectedOption = this.options[this.selectedIndex];
+                const duration = parseInt(selectedOption.dataset.duration) || 60;
+                const startTime = document.getElementById('editStartTime').value;
+
+                if (startTime) {
+                    const endTime = calculateEndTime(startTime, duration);
+                    document.getElementById('editEndTime').value = endTime;
+                }
+            });
+
+            // Update end time when start time changes
+            document.getElementById('editStartTime').addEventListener('change', function() {
+                const selectedOption = serviceSelect.options[serviceSelect.selectedIndex];
+                const duration = parseInt(selectedOption.dataset.duration) || 60;
+                const endTime = calculateEndTime(this.value, duration);
+                document.getElementById('editEndTime').value = endTime;
+            });
         }
     </script>
 </body>
