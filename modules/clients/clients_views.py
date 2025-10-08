@@ -470,11 +470,17 @@ def api_get_customer_by_name(name):
 @app.route('/api/save_face', methods=['POST'])
 @login_required
 def api_save_face():
-    """Save face recognition data"""
+    """Save face recognition data with validation"""
     if not current_user.can_access('clients'):
         return jsonify({'success': False, 'error': 'Access denied'}), 403
 
     try:
+        import face_recognition
+        import numpy as np
+        import base64
+        import io
+        from PIL import Image
+        
         data = request.get_json()
         if not data:
             return jsonify({'success': False, 'error': 'No data provided'}), 400
@@ -489,11 +495,48 @@ def api_save_face():
         if not customer:
             return jsonify({'success': False, 'error': 'Customer not found'}), 404
 
+        # Validate that image contains a face
+        if ',' in face_image:
+            face_image_data = face_image.split(',')[1]
+        else:
+            face_image_data = face_image
+        
+        # Decode and validate face
+        image_bytes = base64.b64decode(face_image_data)
+        image = Image.open(io.BytesIO(image_bytes))
+        image_array = np.array(image)
+        
+        # Detect faces in the image
+        face_locations = face_recognition.face_locations(image_array)
+        
+        if len(face_locations) == 0:
+            return jsonify({
+                'success': False,
+                'error': 'No face detected in image. Please capture a clear photo of your face.'
+            }), 400
+        
+        if len(face_locations) > 1:
+            return jsonify({
+                'success': False,
+                'error': 'Multiple faces detected. Please ensure only one person is in the frame.'
+            }), 400
+        
+        # Get face encodings to ensure quality
+        face_encodings = face_recognition.face_encodings(image_array)
+        
+        if len(face_encodings) == 0:
+            return jsonify({
+                'success': False,
+                'error': 'Could not extract face features. Please try again with better lighting.'
+            }), 400
+
         # Save face image
         if hasattr(customer, 'face_image_url'):
             customer.face_image_url = face_image
             db.session.commit()
 
+            app.logger.info(f"Face data saved for customer {customer.id}: {customer.first_name} {customer.last_name}")
+            
             return jsonify({
                 'success': True,
                 'message': 'Face data saved successfully',
@@ -505,6 +548,12 @@ def api_save_face():
                 'error': 'Face recognition not supported for this customer model'
             }), 400
 
+    except ImportError as import_error:
+        app.logger.error(f"Face recognition library not installed: {str(import_error)}")
+        return jsonify({
+            'success': False,
+            'error': 'Face recognition library not available. Please contact administrator.'
+        }), 500
     except Exception as e:
         db.session.rollback()
         app.logger.error(f"Face save error: {str(e)}")
@@ -514,11 +563,17 @@ def api_save_face():
 @app.route('/api/recognize_face', methods=['POST'])
 @login_required
 def api_recognize_face():
-    """Recognize customer from face image"""
+    """Recognize customer from face image using face_recognition library"""
     if not current_user.can_access('clients'):
         return jsonify({'success': False, 'error': 'Access denied'}), 403
 
     try:
+        import face_recognition
+        import numpy as np
+        import base64
+        import io
+        from PIL import Image
+        
         data = request.get_json()
         if not data:
             return jsonify({'success': False, 'error': 'No data provided'}), 400
@@ -544,31 +599,41 @@ def api_recognize_face():
                 'message': 'No registered faces in system'
             }), 200
 
-        # Image matching using base64 comparison
-        # Note: For production, use face_recognition library with proper face encodings
-        # This implementation does basic image similarity comparison
-        matched_customer = None
-        best_match_score = 0
-        MATCH_THRESHOLD = 0.85  # 85% similarity required
-        
-        import base64
-        import hashlib
-        
         # Extract image data from base64
-        try:
-            # Remove data URL prefix if present
-            if ',' in face_image:
-                face_image_data = face_image.split(',')[1]
-            else:
-                face_image_data = face_image
-                
-            app.logger.info(f"Face image data length: {len(face_image_data)}")
-                
-            # Compare with stored faces
-            for customer in customers_with_faces:
-                if not customer.face_image_url:
-                    continue
-                    
+        if ',' in face_image:
+            face_image_data = face_image.split(',')[1]
+        else:
+            face_image_data = face_image
+        
+        # Decode the incoming image
+        incoming_image_bytes = base64.b64decode(face_image_data)
+        incoming_image = Image.open(io.BytesIO(incoming_image_bytes))
+        incoming_image_array = np.array(incoming_image)
+        
+        # Get face encodings from incoming image
+        incoming_face_encodings = face_recognition.face_encodings(incoming_image_array)
+        
+        if len(incoming_face_encodings) == 0:
+            app.logger.warning("No face detected in incoming image")
+            return jsonify({
+                'success': True,
+                'recognized': False,
+                'message': 'No face detected. Please position your face clearly in the camera.'
+            }), 200
+        
+        incoming_face_encoding = incoming_face_encodings[0]
+        app.logger.info(f"Face encoding extracted from incoming image")
+        
+        # Compare with stored faces
+        matched_customer = None
+        best_match_distance = 1.0  # Lower is better
+        MATCH_THRESHOLD = 0.6  # Face recognition threshold (0.6 is standard)
+        
+        for customer in customers_with_faces:
+            if not customer.face_image_url:
+                continue
+            
+            try:
                 # Extract stored image data
                 stored_image = customer.face_image_url
                 if ',' in stored_image:
@@ -576,33 +641,37 @@ def api_recognize_face():
                 else:
                     stored_image_data = stored_image
                 
-                # Simple comparison: check if images are identical or very similar
-                # In production, use face_recognition.compare_faces()
-                if face_image_data == stored_image_data:
-                    # Exact match
+                # Decode stored image
+                stored_image_bytes = base64.b64decode(stored_image_data)
+                stored_image_pil = Image.open(io.BytesIO(stored_image_bytes))
+                stored_image_array = np.array(stored_image_pil)
+                
+                # Get face encodings from stored image
+                stored_face_encodings = face_recognition.face_encodings(stored_image_array)
+                
+                if len(stored_face_encodings) == 0:
+                    app.logger.warning(f"No face encoding in stored image for customer {customer.id}")
+                    continue
+                
+                stored_face_encoding = stored_face_encodings[0]
+                
+                # Compare faces using face_recognition library
+                face_distance = face_recognition.face_distance([stored_face_encoding], incoming_face_encoding)[0]
+                
+                app.logger.info(f"Customer {customer.first_name} {customer.last_name}: distance={face_distance}")
+                
+                # Check if this is the best match so far
+                if face_distance < best_match_distance and face_distance < MATCH_THRESHOLD:
+                    best_match_distance = face_distance
                     matched_customer = customer
-                    best_match_score = 1.0
-                    app.logger.info(f"Exact match found: {customer.first_name} {customer.last_name}")
-                    break
-                else:
-                    # Calculate similarity using hash comparison
-                    # This is a simplified approach - production should use proper face recognition
-                    face_hash = hashlib.md5(face_image_data.encode()).hexdigest()
-                    stored_hash = hashlib.md5(stored_image_data.encode()).hexdigest()
                     
-                    # Check if hashes match (for identical images)
-                    if face_hash == stored_hash:
-                        matched_customer = customer
-                        best_match_score = 1.0
-                        app.logger.info(f"Hash match found: {customer.first_name} {customer.last_name}")
-                        break
-                        
-        except Exception as match_error:
-            app.logger.error(f"Face matching error: {str(match_error)}")
-            # Continue with no match
+            except Exception as customer_error:
+                app.logger.error(f"Error processing customer {customer.id}: {str(customer_error)}")
+                continue
 
         if matched_customer:
-            app.logger.info(f"Customer recognized: {matched_customer.first_name} {matched_customer.last_name}")
+            confidence = (1 - best_match_distance) * 100
+            app.logger.info(f"Customer recognized: {matched_customer.first_name} {matched_customer.last_name} (confidence: {confidence:.1f}%)")
             return jsonify({
                 'success': True,
                 'recognized': True,
@@ -615,6 +684,7 @@ def api_recognize_face():
                     'is_vip': getattr(matched_customer, 'is_vip', False),
                     'face_image_url': matched_customer.face_image_url
                 },
+                'confidence': f"{confidence:.1f}%",
                 'message': f'Welcome back, {matched_customer.first_name}!'
             }), 200
         else:
@@ -625,6 +695,12 @@ def api_recognize_face():
                 'message': 'Face not recognized. Please try again or contact staff.'
             }), 200
 
+    except ImportError as import_error:
+        app.logger.error(f"Face recognition library not installed: {str(import_error)}")
+        return jsonify({
+            'success': False,
+            'error': 'Face recognition library not available. Please contact administrator.'
+        }), 500
     except Exception as e:
         app.logger.error(f"Face recognition error: {str(e)}")
         return jsonify({'success': False, 'error': 'Face recognition failed'}), 500
