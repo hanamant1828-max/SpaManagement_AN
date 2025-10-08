@@ -1617,17 +1617,14 @@ def api_unaki_get_bookings():
         except ValueError:
             return jsonify({'success': False, 'error': 'Invalid date format'}), 400
 
-        # Get today's date for comparison
-        today = date.today()
-
-        # Get all bookings for the date, excluding completed appointments unless it's today
-        bookings = UnakiBooking.query.filter_by(appointment_date=booking_date).filter(
-            (UnakiBooking.status != 'completed') | (booking_date == today)
-        ).all()
-
+        # Get all bookings for the date
+        bookings = UnakiBooking.query.filter_by(appointment_date=booking_date).all()
 
         bookings_data = []
         for booking in bookings:
+            # Skip appointments that are completed AND paid (already billed)
+            if booking.status == 'completed' and booking.payment_status == 'paid':
+                continue
             # Calculate position data
             start_hour = booking.start_time.hour
             start_minute = booking.start_time.minute
@@ -1659,7 +1656,8 @@ def api_unaki_get_bookings():
                 'start_hour': start_hour,
                 'start_minute': start_minute,
                 'duration': booking.service_duration,
-                'status': booking.status
+                'status': booking.status,
+                'payment_status': booking.payment_status
             })
 
         return jsonify({'success': True, 'bookings': bookings_data})
