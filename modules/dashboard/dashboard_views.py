@@ -44,6 +44,89 @@ def dashboard():
                              low_stock_items=[],
                              expiring_items=[])
 
+@app.route('/api/dashboard/stats')
+def dashboard_stats_api():
+    """API endpoint for real-time dashboard statistics"""
+    try:
+        from datetime import datetime, timedelta
+        from sqlalchemy import func
+        from models import Appointment, Service
+        
+        # Get last 7 days revenue
+        today = date.today()
+        revenue_data = []
+        revenue_labels = []
+        
+        for i in range(6, -1, -1):
+            day = today - timedelta(days=i)
+            day_revenue = db.session.query(func.sum(Appointment.amount)).filter(
+                func.date(Appointment.appointment_date) == day,
+                Appointment.status == 'completed',
+                Appointment.is_paid == True
+            ).scalar() or 0.0
+            
+            revenue_data.append(float(day_revenue))
+            revenue_labels.append(day.strftime('%a'))
+        
+        # Get service popularity (top 6 services)
+        service_popularity = db.session.query(
+            Service.name,
+            func.count(Appointment.id).label('count')
+        ).join(Appointment, Appointment.service_id == Service.id).filter(
+            Appointment.appointment_date >= today - timedelta(days=30)
+        ).group_by(Service.name).order_by(func.count(Appointment.id).desc()).limit(6).all()
+        
+        service_labels = [s[0] for s in service_popularity]
+        service_data = [s[1] for s in service_popularity]
+        
+        # Get last 7 days bookings
+        bookings_data = []
+        bookings_labels = []
+        
+        for i in range(6, -1, -1):
+            day = today - timedelta(days=i)
+            day_bookings = Appointment.query.filter(
+                func.date(Appointment.appointment_date) == day
+            ).count()
+            
+            bookings_data.append(day_bookings)
+            bookings_labels.append(day.strftime('%a'))
+        
+        # Get staff performance (top 5 staff by completed appointments)
+        staff_performance = db.session.query(
+            User.full_name,
+            func.count(Appointment.id).label('count')
+        ).join(Appointment, Appointment.staff_id == User.id).filter(
+            Appointment.status == 'completed',
+            Appointment.appointment_date >= today - timedelta(days=30)
+        ).group_by(User.full_name).order_by(func.count(Appointment.id).desc()).limit(5).all()
+        
+        staff_labels = [s[0] for s in staff_performance]
+        staff_data = [s[1] for s in staff_performance]
+        
+        return {
+            'success': True,
+            'revenue_chart': {
+                'labels': revenue_labels,
+                'data': revenue_data
+            },
+            'service_chart': {
+                'labels': service_labels,
+                'data': service_data
+            },
+            'bookings_chart': {
+                'labels': bookings_labels,
+                'data': bookings_data
+            },
+            'staff_chart': {
+                'labels': staff_labels,
+                'data': staff_data
+            }
+        }
+    except Exception as e:
+        print(f"Dashboard stats API error: {e}")
+        return {'success': False, 'error': str(e)}, 500
+
 @app.route('/alerts')
 def alerts():
     """Product alerts and notifications page"""
