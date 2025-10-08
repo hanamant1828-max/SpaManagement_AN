@@ -1624,8 +1624,9 @@ def api_unaki_get_bookings():
         today = date.today()
 
         # Get all bookings for the date, excluding completed appointments unless it's today
-        bookings = UnakiBooking.query.filter_by(appointment_date=booking_date).filter(
-            (UnakiBooking.status != 'completed') | (booking_date == today)
+        bookings = UnakiBooking.query.filter(
+            UnakiBooking.appointment_date == booking_date,
+            UnakiBooking.payment_status != 'paid'  # 👈 ADD THIS LINE
         ).all()
 
 
