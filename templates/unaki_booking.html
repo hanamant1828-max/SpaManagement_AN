@@ -1189,6 +1189,69 @@
         </div>
     </div>
 
+    <!-- Quick Add Client Modal -->
+    <div class="modal fade" id="quickAddClientModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content" style="border-radius: 16px; border: none; box-shadow: var(--shadow-xl);">
+                <div class="modal-header" style="border-bottom: 2px solid var(--border-color); padding: 20px 24px;">
+                    <h5 class="modal-title" style="font-weight: 700; font-size: 18px">
+                        <i class="fas fa-user-plus me-2" style="color: var(--primary-color)"></i>Quick Add New Client
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" style="padding: 24px">
+                    <form id="quickAddClientForm">
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">
+                                    <i class="fas fa-user me-2" style="color: var(--primary-color)"></i>First Name *
+                                </label>
+                                <input type="text" id="quickFirstName" class="form-control" required style="border-radius: 10px; padding: 12px">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">
+                                    <i class="fas fa-user me-2" style="color: var(--primary-color)"></i>Last Name *
+                                </label>
+                                <input type="text" id="quickLastName" class="form-control" required style="border-radius: 10px; padding: 12px">
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">
+                                <i class="fas fa-phone me-2" style="color: var(--primary-color)"></i>Phone Number *
+                            </label>
+                            <input type="tel" id="quickPhone" class="form-control" required style="border-radius: 10px; padding: 12px">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">
+                                <i class="fas fa-envelope me-2" style="color: var(--primary-color)"></i>Email
+                            </label>
+                            <input type="email" id="quickEmail" class="form-control" style="border-radius: 10px; padding: 12px">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">
+                                <i class="fas fa-venus-mars me-2" style="color: var(--primary-color)"></i>Gender *
+                            </label>
+                            <select id="quickGender" class="form-select" required style="border-radius: 10px; padding: 12px">
+                                <option value="">Select gender...</option>
+                                <option value="male">Male</option>
+                                <option value="female">Female</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer" style="border-top: 2px solid var(--border-color); padding: 16px 24px;">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" style="border-radius: 10px; padding: 10px 20px">
+                        <i class="fas fa-times me-2"></i>Cancel
+                    </button>
+                    <button type="button" class="btn btn-primary" onclick="saveQuickClient()" style="border-radius: 10px; padding: 10px 20px; background: var(--primary-color); border: none;">
+                        <i class="fas fa-save me-2"></i>Save Client
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Multi-Appointment Booking Modal -->
     <div class="modal fade" id="multiBookModal" tabindex="-1">
         <div class="modal-dialog modal-xl modal-dialog-centered">
@@ -1205,16 +1268,21 @@
                             <label class="form-label fw-semibold">
                                 <i class="fas fa-user me-2" style="color: var(--primary-color)"></i>Select Client
                             </label>
-                            <select id="multiClientSelect" class="form-select select2-dropdown" required style="border-radius: 10px; padding: 12px">
-                                <option value="">Choose a client...</option>
-                                {% if clients %}
-                                {% for client in clients %}
-                                <option value="{{ client.id }}" data-phone="{{ client.phone }}" data-email="{{ client.email or '' }}">
-                                    {{ client.first_name }} {{ client.last_name }} - {{ client.phone }}
-                                </option>
-                                {% endfor %}
-                                {% endif %}
-                            </select>
+                            <div class="d-flex gap-2 align-items-center">
+                                <select id="multiClientSelect" class="form-select select2-dropdown flex-grow-1" required style="border-radius: 10px; padding: 12px">
+                                    <option value="">Choose a client...</option>
+                                    {% if clients %}
+                                    {% for client in clients %}
+                                    <option value="{{ client.id }}" data-phone="{{ client.phone }}" data-email="{{ client.email or '' }}">
+                                        {{ client.first_name }} {{ client.last_name }} - {{ client.phone }}
+                                    </option>
+                                    {% endfor %}
+                                    {% endif %}
+                                </select>
+                                <button type="button" class="btn btn-primary" onclick="openQuickAddClient()" style="border-radius: 10px; padding: 12px 20px; white-space: nowrap;">
+                                    <i class="fas fa-plus me-2"></i>Add New Client
+                                </button>
+                            </div>
                         </div>
                     </div>
 
@@ -1792,6 +1860,69 @@
             } else {
                 document.getElementById("currentTimeLine").style.display = "none";
             }
+        }
+
+        // ==========================================
+        // QUICK ADD CLIENT
+        // ==========================================
+        function openQuickAddClient() {
+            const modal = new bootstrap.Modal(document.getElementById("quickAddClientModal"));
+            document.getElementById('quickAddClientForm').reset();
+            modal.show();
+        }
+
+        function saveQuickClient() {
+            const firstName = document.getElementById('quickFirstName').value.trim();
+            const lastName = document.getElementById('quickLastName').value.trim();
+            const phone = document.getElementById('quickPhone').value.trim();
+            const email = document.getElementById('quickEmail').value.trim();
+            const gender = document.getElementById('quickGender').value;
+
+            // Validation
+            if (!firstName || !lastName || !phone || !gender) {
+                showNotification('Please fill in all required fields (First Name, Last Name, Phone, Gender)', 'error');
+                return;
+            }
+
+            // Create FormData
+            const formData = new FormData();
+            formData.append('first_name', firstName);
+            formData.append('last_name', lastName);
+            formData.append('phone', phone);
+            formData.append('email', email);
+            formData.append('gender', gender);
+
+            // Submit to server
+            fetch('/customers/create', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.text())
+            .then(html => {
+                // Check if response indicates success
+                if (html.includes('has been created successfully')) {
+                    showNotification(`Client ${firstName} ${lastName} added successfully!`, 'success');
+                    
+                    // Close the quick add modal
+                    bootstrap.Modal.getInstance(document.getElementById('quickAddClientModal')).hide();
+                    
+                    // Reload the page to refresh the client dropdown
+                    setTimeout(() => {
+                        location.reload();
+                    }, 1000);
+                } else {
+                    // Extract error message if possible
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(html, 'text/html');
+                    const alerts = doc.querySelectorAll('.alert-danger');
+                    const errorMsg = alerts.length > 0 ? alerts[0].textContent.trim() : 'Failed to create client';
+                    showNotification(errorMsg, 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error creating client:', error);
+                showNotification('An error occurred while creating the client', 'error');
+            });
         }
 
         // ==========================================
