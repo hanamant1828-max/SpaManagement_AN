@@ -139,13 +139,13 @@
                                 <tr>
                                     <th>Date</th>
                                     <th>Invoice #</th>
-                                    <th>Staff</th>
-                                    <th>Dept</th>
+                                    <th>Staff Member</th>
+                                    <th>Department</th>
                                     <th>Client Name</th>
-                                    <th>Service</th>
+                                    <th>Item Type</th>
+                                    <th>Item Name</th>
                                     <th>Qty</th>
                                     <th>Staff Revenue</th>
-                                    <th>Total Amount</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -153,13 +153,15 @@
                                 <tr>
                                     <td>{{ detail.invoice_date.strftime('%d/%m/%Y') }}</td>
                                     <td><small>{{ detail.invoice_number }}</small></td>
-                                    <td><strong>{{ detail.first_name }} {{ detail.last_name }}</strong></td>
-                                    <td><small>{{ detail.department or 'N/A' }}</small></td>
-                                    <td>{{ detail.client_first_name }} {{ detail.client_last_name }}</td>
-                                    <td>{{ detail.service_name or 'N/A' }}</td>
+                                    <td><strong>{{ detail.first_name }} {{ detail.last_name }}</strong>
+                                        <br><small class="text-muted">{{ detail.staff_code or 'N/A' }}</small>
+                                    </td>
+                                    <td><small>{{ detail.department or 'Unassigned' }}</small></td>
+                                    <td>{{ detail.customer_first_name }} {{ detail.customer_last_name }}</td>
+                                    <td><span class="badge bg-{{ 'primary' if detail.item_type == 'service' else 'info' }}">{{ detail.item_type or 'N/A' }}</span></td>
+                                    <td>{{ detail.item_name or detail.service_name or 'N/A' }}</td>
                                     <td>{{ detail.quantity }}</td>
                                     <td class="text-success"><strong>₹{{ "{:,.2f}".format(detail.staff_revenue_price or 0) }}</strong></td>
-                                    <td>₹{{ "{:,.2f}".format(detail.final_amount or 0) }}</td>
                                 </tr>
                                 {% endfor %}
                             </tbody>

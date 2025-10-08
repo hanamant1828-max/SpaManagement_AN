@@ -42,11 +42,12 @@ def staff_revenue_report():
         Customer.last_name.label('customer_last_name'),
         EnhancedInvoice.invoice_number,
         EnhancedInvoice.invoice_date,
-        InvoiceItem.item_type.label('item_type'),  # 'service' or 'inventory'
-        InvoiceItem.item_name.label('item_name'),  # Product or Service name
+        InvoiceItem.item_type.label('item_type'),
+        InvoiceItem.item_name.label('item_name'),
         Service.name.label('service_name'),
         InvoiceItem.quantity,
-        InvoiceItem.staff_revenue_price.label('revenue')
+        InvoiceItem.staff_revenue_price.label('staff_revenue_price'),
+        InvoiceItem.final_amount.label('final_amount')
     ).join(InvoiceItem, User.id == InvoiceItem.staff_id)\
     .join(EnhancedInvoice, InvoiceItem.invoice_id == EnhancedInvoice.id)\
     .join(Customer, EnhancedInvoice.client_id == Customer.id)\

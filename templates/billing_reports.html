@@ -137,16 +137,16 @@
     <div class="row mb-4">
         <div class="col-12">
             <div class="card shadow">
-                <div class="card-header py-3">
-                    <h6 class="m-0 font-weight-bold text-primary">Detailed Reports</h6>
+                <div class="card-header py-3 bg-primary text-white">
+                    <h6 class="m-0 font-weight-bold">📊 Detailed Revenue Reports by Staff Members</h6>
                 </div>
                 <div class="card-body">
                     <div class="row text-center mb-3">
                         <div class="col-md-4 mb-3">
-                            <a href="{{ url_for('staff_revenue_report') }}?start_date={{ start_date.strftime('%Y-%m-%d') }}&end_date={{ end_date.strftime('%Y-%m-%d') }}" class="btn btn-outline-primary btn-lg w-100">
+                            <a href="{{ url_for('staff_revenue_report') }}?start_date={{ start_date.strftime('%Y-%m-%d') }}&end_date={{ end_date.strftime('%Y-%m-%d') }}" class="btn btn-primary btn-lg w-100">
                                 <i class="fas fa-user-tie fa-2x d-block mb-2"></i>
                                 <strong>Staff Revenue Report</strong>
-                                <p class="small text-muted mb-0">View detailed staff performance with client details and department data</p>
+                                <p class="small mb-0">View detailed revenue by staff members with client details</p>
                             </a>
                         </div>
                         <div class="col-md-4 mb-3">
