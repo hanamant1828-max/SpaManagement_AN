@@ -61,7 +61,7 @@
                             <label for="staffSelect" class="form-label fw-bold">
                                 <i class="fas fa-user me-1"></i>Staff Member
                             </label>
-                            <select class="form-select" id="staffSelect" name="staff_member" required>
+                            <select class="form-select searchable-select" id="staffSelect" name="staff_member" required>
                                 <option value="">Choose staff member...</option>
                                 {% for staff in staff_members %}
                                     <option value="{{ staff.id }}" data-name="{{ staff.full_name }}">
