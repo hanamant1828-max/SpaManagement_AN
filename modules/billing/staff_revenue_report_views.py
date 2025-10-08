@@ -1,8 +1,7 @@
-
 """
 Staff Revenue Report - Dedicated detailed reporting
 """
-from flask import render_template, request
+from flask import render_template, request, redirect, url_for
 from flask_login import login_required, current_user
 from datetime import datetime, date, timedelta
 from sqlalchemy import func
@@ -15,38 +14,39 @@ def staff_revenue_report():
     """Detailed staff revenue report with client details"""
     if not current_user.is_active:
         return redirect(url_for('dashboard'))
-    
+
     # Default to last 30 days
     end_date = date.today()
     start_date = end_date - timedelta(days=30)
-    
+
     # Get date range from request
     start_date_str = request.args.get('start_date')
     end_date_str = request.args.get('end_date')
-    
+
     if start_date_str and end_date_str:
         try:
             start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
             end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
         except ValueError:
             pass
-    
-    # Staff revenue with client details
+
+    # Detailed staff revenue with client info (includes products and services)
     staff_revenue_details = db.session.query(
         User.id.label('staff_id'),
         User.first_name,
         User.last_name,
         User.staff_code,
         Department.display_name.label('department'),
-        Customer.id.label('client_id'),
-        Customer.first_name.label('client_first_name'),
-        Customer.last_name.label('client_last_name'),
+        Customer.id.label('customer_id'),
+        Customer.first_name.label('customer_first_name'),
+        Customer.last_name.label('customer_last_name'),
         EnhancedInvoice.invoice_number,
         EnhancedInvoice.invoice_date,
+        InvoiceItem.item_type.label('item_type'),  # 'service' or 'inventory'
+        InvoiceItem.item_name.label('item_name'),  # Product or Service name
         Service.name.label('service_name'),
         InvoiceItem.quantity,
-        InvoiceItem.staff_revenue_price,
-        InvoiceItem.final_amount
+        InvoiceItem.staff_revenue_price.label('revenue')
     ).join(InvoiceItem, User.id == InvoiceItem.staff_id)\
     .join(EnhancedInvoice, InvoiceItem.invoice_id == EnhancedInvoice.id)\
     .join(Customer, EnhancedInvoice.client_id == Customer.id)\
@@ -57,7 +57,7 @@ def staff_revenue_report():
         EnhancedInvoice.payment_status == 'paid',
         InvoiceItem.staff_id.isnot(None)
     ).order_by(User.first_name, EnhancedInvoice.invoice_date.desc()).all()
-    
+
     # Staff summary statistics
     staff_summary = db.session.query(
         User.id.label('staff_id'),
@@ -78,7 +78,7 @@ def staff_revenue_report():
         EnhancedInvoice.payment_status == 'paid',
         InvoiceItem.staff_id.isnot(None)
     ).group_by(User.id, Department.id).order_by(func.sum(InvoiceItem.staff_revenue_price).desc()).all()
-    
+
     # Department summary
     department_summary = db.session.query(
         Department.display_name.label('department'),
@@ -92,7 +92,7 @@ def staff_revenue_report():
         EnhancedInvoice.invoice_date.between(start_date, end_date),
         EnhancedInvoice.payment_status == 'paid'
     ).group_by(Department.id).all()
-    
+
     return render_template('reports/staff_revenue_report.html',
                          start_date=start_date,
                          end_date=end_date,
