@@ -46,7 +46,7 @@ def get_dashboard_stats():
             Invoice.payment_status == 'paid'
         ).scalar() or 0.0
 
-        # Today's revenue from EnhancedInvoice table (Unaki bookings)
+        # Today's revenue from EnhancedInvoice table (Primary billing system)
         from models import EnhancedInvoice
         todays_enhanced_invoice_revenue = db.session.query(func.sum(EnhancedInvoice.total_amount)).filter(
             func.date(EnhancedInvoice.invoice_date) == today,
@@ -69,8 +69,7 @@ def get_dashboard_stats():
             Invoice.payment_status == 'paid'
         ).scalar() or 0.0
 
-        # This month's revenue from EnhancedInvoice table (Unaki bookings)
-        from models import EnhancedInvoice
+        # This month's revenue from EnhancedInvoice table (Primary billing system - uses total_amount which is final amount customer pays)
         monthly_enhanced_invoice_revenue = db.session.query(func.sum(EnhancedInvoice.total_amount)).filter(
             EnhancedInvoice.invoice_date >= first_day_of_month,
             EnhancedInvoice.payment_status == 'paid'
