@@ -2366,12 +2366,27 @@
                 if (editServiceSelect) editServiceSelect.addEventListener('change', calculateEditEndTime);
                 if (editStartTime) editStartTime.addEventListener('change', calculateEditEndTime);
 
-                // Client selection
+                // Client selection - handle both native and Select2 events
                 const clientSelect = document.getElementById('multiClientSelect');
                 if (clientSelect) {
+                    // Native change event
                     clientSelect.addEventListener('change', () => {
                         validateClientSelection();
                         loadCustomerExistingAppointments(clientSelect.value);
+                        updateSubmitButton();
+                    });
+                    
+                    // Select2 select event
+                    $(clientSelect).on('select2:select', function(e) {
+                        validateClientSelection();
+                        loadCustomerExistingAppointments(this.value);
+                        updateSubmitButton();
+                    });
+                    
+                    // Select2 clear event
+                    $(clientSelect).on('select2:clear', function(e) {
+                        validateClientSelection();
+                        loadCustomerExistingAppointments('');
                         updateSubmitButton();
                     });
                 }
@@ -2434,18 +2449,41 @@
                         allowClear: true
                     });
 
-                    // 🔥 FIX: Properly handle clearing
+                    // 🔥 FIX: Trigger change event when Select2 value changes
+                    $('.select2-dropdown').on('select2:select', function(e) {
+                        const card = $(this).closest('.appointment-card')[0];
+                        if (card) {
+                            const index = parseInt(card.dataset.appointmentIndex);
+                            calculateEndTime(index);
+                            checkConflicts(index);
+                            updateSummary();
+                            updateSubmitButton();
+                        }
+                    });
+
+                    // Handle clearing
                     $('.select2-dropdown').on('select2:unselecting', function(e) {
-                        // Prevent default clearing behavior
                         e.preventDefault();
-
-                        // Manually set to empty value
                         $(this).val('').trigger('change');
+                        
+                        const card = $(this).closest('.appointment-card')[0];
+                        if (card) {
+                            const index = parseInt(card.dataset.appointmentIndex);
+                            calculateEndTime(index);
+                            checkConflicts(index);
+                            updateSummary();
+                            updateSubmitButton();
+                        }
+                    });
 
-                        // Ensure options are still there
-                        if ($(this).find('option').length <= 1) {
-                            console.warn('Options lost, reinitializing...');
-                            location.reload(); // Force reload as fallback
+                    $('.select2-dropdown').on('select2:clear', function(e) {
+                        const card = $(this).closest('.appointment-card')[0];
+                        if (card) {
+                            const index = parseInt(card.dataset.appointmentIndex);
+                            calculateEndTime(index);
+                            checkConflicts(index);
+                            updateSummary();
+                            updateSubmitButton();
                         }
                     });
 
@@ -2462,10 +2500,41 @@
                                         allowClear: true
                                     });
 
-                                    // Add unselecting handler
+                                    // Add event handlers to new dropdowns
+                                    $(this).on('select2:select', function(e) {
+                                        const card = $(this).closest('.appointment-card')[0];
+                                        if (card) {
+                                            const index = parseInt(card.dataset.appointmentIndex);
+                                            calculateEndTime(index);
+                                            checkConflicts(index);
+                                            updateSummary();
+                                            updateSubmitButton();
+                                        }
+                                    });
+
                                     $(this).on('select2:unselecting', function(e) {
                                         e.preventDefault();
                                         $(this).val('').trigger('change');
+                                        
+                                        const card = $(this).closest('.appointment-card')[0];
+                                        if (card) {
+                                            const index = parseInt(card.dataset.appointmentIndex);
+                                            calculateEndTime(index);
+                                            checkConflicts(index);
+                                            updateSummary();
+                                            updateSubmitButton();
+                                        }
+                                    });
+
+                                    $(this).on('select2:clear', function(e) {
+                                        const card = $(this).closest('.appointment-card')[0];
+                                        if (card) {
+                                            const index = parseInt(card.dataset.appointmentIndex);
+                                            calculateEndTime(index);
+                                            checkConflicts(index);
+                                            updateSummary();
+                                            updateSubmitButton();
+                                        }
                                     });
                                 });
                             }
