@@ -4,6 +4,7 @@
 
 {% block extra_head %}
 <link href="{{ url_for('static', filename='css/shift_scheduler.css') }}" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 <style>
 .ooo-card {
     background: white;
@@ -47,6 +48,29 @@
     border-radius: 20px;
     font-weight: 500;
 }
+
+/* Select2 adjustments */
+.select2-container--default .select2-selection--single {
+    border-color: #ced4da;
+    height: 38px;
+    border-radius: 0.375rem;
+    padding: 0.375rem 0.75rem;
+}
+
+.select2-container--default.select2-container--focus .select2-selection--single,
+.select2-container--default .select2-selection--single:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+}
+
+.select2-container--default .select2-selection--single .select2-selection__arrow {
+    height: 36px;
+}
+
+.select2-container .select2-search__field {
+    border: 1px solid #ced4da;
+    border-radius: 0.375rem;
+}
 </style>
 {% endblock %}
 
@@ -84,10 +108,10 @@
                     <div class="card-body">
                         <form id="outOfOfficeForm">
                             <input type="hidden" id="entryId">
-                            
+
                             <div class="mb-3">
                                 <label for="staffId" class="form-label">Staff Member <span class="text-danger">*</span></label>
-                                <select class="form-select" id="staffId" required>
+                                <select class="form-select searchable-select" id="staffId" required>
                                     <option value="">-- Select Staff Member --</option>
                                     {% for staff in staff_members %}
                                     <option value="{{ staff.id }}">{{ staff.first_name }} {{ staff.last_name }}</option>
@@ -181,9 +205,17 @@
 {% endblock %}
 
 {% block scripts %}
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script>
 $(document).ready(function() {
     let editingId = null;
+
+    // Initialize Select2 for the staffId dropdown
+    $('#staffId').select2({
+        placeholder: "-- Select Staff Member --",
+        allowClear: true
+    });
 
     loadEntries();
 
@@ -210,20 +242,20 @@ $(document).ready(function() {
 
     function loadEntries() {
         $('#loadingRow').removeClass('d-none');
-        
+
         $.ajax({
             url: '/shift-scheduler/api/out-of-office',
             method: 'GET',
             success: function(response) {
                 $('#loadingRow').addClass('d-none');
-                
+
                 if (response.success && response.entries && response.entries.length > 0) {
                     $('#noEntriesMessage').addClass('d-none');
                     $('#entriesTable').removeClass('d-none');
-                    
+
                     const tbody = $('#entriesTableBody');
                     tbody.empty();
-                    
+
                     response.entries.forEach(entry => {
                         const row = `
                             <tr class="entry-row">
@@ -326,13 +358,13 @@ $(document).ready(function() {
                     const entry = response.entry;
                     editingId = entry.id;
                     $('#entryId').val(entry.id);
-                    $('#staffId').val(entry.staff_id);
+                    $('#staffId').val(entry.staff_id).trigger('change'); // Trigger change to update Select2
                     $('#entryDate').val(entry.date);
                     $('#startTime').val(entry.start_time);
                     $('#endTime').val(entry.end_time);
                     $('#reason').val(entry.reason);
                     $('#formTitle').text('Edit Out of Office Entry');
-                    
+
                     $('html, body').animate({
                         scrollTop: $('#outOfOfficeForm').offset().top - 100
                     }, 500);
@@ -380,6 +412,7 @@ $(document).ready(function() {
         $('#endTime').val('17:00');
         $('#formTitle').text('Add Out of Office Entry');
         hideAlerts();
+        $('#staffId').val(null).trigger('change'); // Reset Select2
     }
 
     function showError(message) {

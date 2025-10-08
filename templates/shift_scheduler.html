@@ -130,6 +130,17 @@
 <script>
 $(document).ready(function() {
     console.log('New Shift Scheduler initialized');
+    
+    // Initialize Select2 for searchable dropdowns
+    if (typeof $.fn.select2 !== 'undefined') {
+        $('.searchable-select').select2({
+            theme: 'bootstrap-5',
+            width: '100%',
+            placeholder: 'Search...',
+            allowClear: true
+        });
+        console.log('✅ Searchable dropdowns initialized');
+    }
 
     // Initialize date inputs with defaults
     const today = new Date();

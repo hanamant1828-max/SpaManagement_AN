@@ -1331,6 +1331,7 @@
             setupTooltips();
             setupScrollSync();
             initializeSearchableDropdowns();
+            initializeEditModalSearchableDropdowns();
         });
 
         function initializeApp() {
@@ -1472,6 +1473,38 @@
                     observer.observe(container, { childList: true, subtree: true });
                 }
             }
+        }
+
+        function initializeEditModalSearchableDropdowns() {
+            // Initialize Select2 for edit modal dropdowns when modal is shown
+            $('#editAppointmentModal').on('shown.bs.modal', function() {
+                if (typeof $.fn.select2 !== 'undefined') {
+                    // Destroy existing Select2 instances in edit modal first
+                    $('#editServiceSelect, #editStaffSelect').select2('destroy');
+                    
+                    // Initialize Select2 for edit modal dropdowns
+                    $('#editServiceSelect').select2({
+                        dropdownParent: $('#editAppointmentModal'),
+                        width: '100%',
+                        placeholder: 'Select service...',
+                        allowClear: true
+                    });
+
+                    $('#editStaffSelect').select2({
+                        dropdownParent: $('#editAppointmentModal'),
+                        width: '100%',
+                        placeholder: 'Select staff member...',
+                        allowClear: true
+                    });
+                }
+            });
+
+            // Clean up Select2 when modal is hidden
+            $('#editAppointmentModal').on('hidden.bs.modal', function() {
+                if (typeof $.fn.select2 !== 'undefined') {
+                    $('#editServiceSelect, #editStaffSelect').select2('destroy');
+                }
+            });
         }
 
         // ==========================================
