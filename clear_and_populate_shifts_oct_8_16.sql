@@ -3,7 +3,7 @@
 -- Clear and Populate Shift Tables for October 8-16, 2025
 -- ============================================================================
 -- This script clears all existing shift data and creates new shifts for
--- each day from October 8 to October 16, 2025 (9 days total)
+-- ALL ACTIVE STAFF MEMBERS from October 8 to October 16, 2025 (9 days total)
 -- Shift hours: 09:00 AM to 09:00 PM (21:00)
 -- ============================================================================
 
@@ -27,20 +27,24 @@ DELETE FROM sqlite_sequence WHERE name='shift_management';
 PRAGMA foreign_keys = ON;
 
 -- ============================================================================
--- Insert Shift Management Records (October 8-16, 2025)
+-- Insert Shift Management Records for ALL ACTIVE STAFF (October 8-16, 2025)
 -- ============================================================================
--- Note: Assuming staff_id exists in your database. Replace '1' with actual staff IDs
--- If you have multiple staff members, duplicate these INSERTs with different staff_ids
 
--- Insert shift management for staff member 1
-INSERT INTO shift_management (staff_id, from_date, to_date, created_at, updated_at) 
-VALUES (1, '2025-10-08', '2025-10-16', datetime('now'), datetime('now'));
+-- Create shift management entries for all active staff members
+INSERT INTO shift_management (staff_id, from_date, to_date, created_at, updated_at)
+SELECT 
+    id as staff_id,
+    '2025-10-08' as from_date,
+    '2025-10-16' as to_date,
+    datetime('now') as created_at,
+    datetime('now') as updated_at
+FROM user
+WHERE is_active = 1;
 
 -- ============================================================================
--- Insert Shift Logs (Individual Daily Records)
+-- Insert Shift Logs (Individual Daily Records) for ALL STAFF
 -- ============================================================================
--- Each log represents one working day with shift details
--- shift_management_id references the record created above (ID will be 1)
+-- This creates 9 daily shift logs for each staff member
 
 -- October 8, 2025 (Wednesday)
 INSERT INTO shift_logs (
@@ -52,16 +56,17 @@ INSERT INTO shift_logs (
     break_end_time,
     status,
     created_at
-) VALUES (
-    1,                      -- References shift_management with ID 1
-    '2025-10-08',          -- Wednesday
-    '09:00:00',            -- 9:00 AM
-    '21:00:00',            -- 9:00 PM
-    '13:00:00',            -- Break start: 1:00 PM
-    '14:00:00',            -- Break end: 2:00 PM
-    'scheduled',
-    datetime('now')
-);
+)
+SELECT 
+    sm.id as shift_management_id,
+    '2025-10-08' as individual_date,
+    '09:00:00' as shift_start_time,
+    '21:00:00' as shift_end_time,
+    '13:00:00' as break_start_time,
+    '14:00:00' as break_end_time,
+    'scheduled' as status,
+    datetime('now') as created_at
+FROM shift_management sm;
 
 -- October 9, 2025 (Thursday)
 INSERT INTO shift_logs (
@@ -73,16 +78,17 @@ INSERT INTO shift_logs (
     break_end_time,
     status,
     created_at
-) VALUES (
-    1,
-    '2025-10-09',          -- Thursday
-    '09:00:00',
-    '21:00:00',
-    '13:00:00',
-    '14:00:00',
-    'scheduled',
-    datetime('now')
-);
+)
+SELECT 
+    sm.id as shift_management_id,
+    '2025-10-09' as individual_date,
+    '09:00:00' as shift_start_time,
+    '21:00:00' as shift_end_time,
+    '13:00:00' as break_start_time,
+    '14:00:00' as break_end_time,
+    'scheduled' as status,
+    datetime('now') as created_at
+FROM shift_management sm;
 
 -- October 10, 2025 (Friday)
 INSERT INTO shift_logs (
@@ -94,16 +100,17 @@ INSERT INTO shift_logs (
     break_end_time,
     status,
     created_at
-) VALUES (
-    1,
-    '2025-10-10',          -- Friday
-    '09:00:00',
-    '21:00:00',
-    '13:00:00',
-    '14:00:00',
-    'scheduled',
-    datetime('now')
-);
+)
+SELECT 
+    sm.id as shift_management_id,
+    '2025-10-10' as individual_date,
+    '09:00:00' as shift_start_time,
+    '21:00:00' as shift_end_time,
+    '13:00:00' as break_start_time,
+    '14:00:00' as break_end_time,
+    'scheduled' as status,
+    datetime('now') as created_at
+FROM shift_management sm;
 
 -- October 11, 2025 (Saturday)
 INSERT INTO shift_logs (
@@ -115,16 +122,17 @@ INSERT INTO shift_logs (
     break_end_time,
     status,
     created_at
-) VALUES (
-    1,
-    '2025-10-11',          -- Saturday
-    '09:00:00',
-    '21:00:00',
-    '13:00:00',
-    '14:00:00',
-    'scheduled',
-    datetime('now')
-);
+)
+SELECT 
+    sm.id as shift_management_id,
+    '2025-10-11' as individual_date,
+    '09:00:00' as shift_start_time,
+    '21:00:00' as shift_end_time,
+    '13:00:00' as break_start_time,
+    '14:00:00' as break_end_time,
+    'scheduled' as status,
+    datetime('now') as created_at
+FROM shift_management sm;
 
 -- October 12, 2025 (Sunday)
 INSERT INTO shift_logs (
@@ -136,16 +144,17 @@ INSERT INTO shift_logs (
     break_end_time,
     status,
     created_at
-) VALUES (
-    1,
-    '2025-10-12',          -- Sunday
-    '09:00:00',
-    '21:00:00',
-    '13:00:00',
-    '14:00:00',
-    'scheduled',
-    datetime('now')
-);
+)
+SELECT 
+    sm.id as shift_management_id,
+    '2025-10-12' as individual_date,
+    '09:00:00' as shift_start_time,
+    '21:00:00' as shift_end_time,
+    '13:00:00' as break_start_time,
+    '14:00:00' as break_end_time,
+    'scheduled' as status,
+    datetime('now') as created_at
+FROM shift_management sm;
 
 -- October 13, 2025 (Monday)
 INSERT INTO shift_logs (
@@ -157,16 +166,17 @@ INSERT INTO shift_logs (
     break_end_time,
     status,
     created_at
-) VALUES (
-    1,
-    '2025-10-13',          -- Monday
-    '09:00:00',
-    '21:00:00',
-    '13:00:00',
-    '14:00:00',
-    'scheduled',
-    datetime('now')
-);
+)
+SELECT 
+    sm.id as shift_management_id,
+    '2025-10-13' as individual_date,
+    '09:00:00' as shift_start_time,
+    '21:00:00' as shift_end_time,
+    '13:00:00' as break_start_time,
+    '14:00:00' as break_end_time,
+    'scheduled' as status,
+    datetime('now') as created_at
+FROM shift_management sm;
 
 -- October 14, 2025 (Tuesday)
 INSERT INTO shift_logs (
@@ -178,16 +188,17 @@ INSERT INTO shift_logs (
     break_end_time,
     status,
     created_at
-) VALUES (
-    1,
-    '2025-10-14',          -- Tuesday
-    '09:00:00',
-    '21:00:00',
-    '13:00:00',
-    '14:00:00',
-    'scheduled',
-    datetime('now')
-);
+)
+SELECT 
+    sm.id as shift_management_id,
+    '2025-10-14' as individual_date,
+    '09:00:00' as shift_start_time,
+    '21:00:00' as shift_end_time,
+    '13:00:00' as break_start_time,
+    '14:00:00' as break_end_time,
+    'scheduled' as status,
+    datetime('now') as created_at
+FROM shift_management sm;
 
 -- October 15, 2025 (Wednesday)
 INSERT INTO shift_logs (
@@ -199,16 +210,17 @@ INSERT INTO shift_logs (
     break_end_time,
     status,
     created_at
-) VALUES (
-    1,
-    '2025-10-15',          -- Wednesday
-    '09:00:00',
-    '21:00:00',
-    '13:00:00',
-    '14:00:00',
-    'scheduled',
-    datetime('now')
-);
+)
+SELECT 
+    sm.id as shift_management_id,
+    '2025-10-15' as individual_date,
+    '09:00:00' as shift_start_time,
+    '21:00:00' as shift_end_time,
+    '13:00:00' as break_start_time,
+    '14:00:00' as break_end_time,
+    'scheduled' as status,
+    datetime('now') as created_at
+FROM shift_management sm;
 
 -- October 16, 2025 (Thursday)
 INSERT INTO shift_logs (
@@ -220,16 +232,17 @@ INSERT INTO shift_logs (
     break_end_time,
     status,
     created_at
-) VALUES (
-    1,
-    '2025-10-16',          -- Thursday
-    '09:00:00',
-    '21:00:00',
-    '13:00:00',
-    '14:00:00',
-    'scheduled',
-    datetime('now')
-);
+)
+SELECT 
+    sm.id as shift_management_id,
+    '2025-10-16' as individual_date,
+    '09:00:00' as shift_start_time,
+    '21:00:00' as shift_end_time,
+    '13:00:00' as break_start_time,
+    '14:00:00' as break_end_time,
+    'scheduled' as status,
+    datetime('now') as created_at
+FROM shift_management sm;
 
 -- ============================================================================
 -- Verification Queries (Optional - comment out if not needed)
@@ -246,7 +259,7 @@ INSERT INTO shift_logs (
 -- ============================================================================
 -- Summary: 
 -- - Deleted all records from shift_management and shift_logs
--- - Created 1 shift_management record for staff_id=1
--- - Created 9 shift_logs records (Oct 8-16, 2025)
+-- - Created shift_management records for ALL ACTIVE STAFF
+-- - Created 9 shift_logs records per staff member (Oct 8-16, 2025)
 -- - Each shift: 09:00-21:00 with 1-hour break at 13:00-14:00
 -- ============================================================================
