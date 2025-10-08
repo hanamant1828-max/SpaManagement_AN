@@ -1,0 +1,205 @@
+
+{% extends "base.html" %}
+
+{% block title %}Service Revenue Report - Spa & Salon Management{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <h1 class="h3 mb-4">
+                <i class="fas fa-spa me-2"></i>Service Revenue Report
+            </h1>
+        </div>
+    </div>
+
+    <!-- Date Range Filter -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-calendar-alt me-2"></i>Select Date Range
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <form method="GET" class="row g-3 align-items-end">
+                        <div class="col-md-3">
+                            <label for="start_date" class="form-label fw-bold">Start Date</label>
+                            <input type="date" class="form-control" name="start_date" id="start_date" 
+                                   value="{{ start_date.strftime('%Y-%m-%d') }}">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="end_date" class="form-label fw-bold">End Date</label>
+                            <input type="date" class="form-control" name="end_date" id="end_date" 
+                                   value="{{ end_date.strftime('%Y-%m-%d') }}">
+                        </div>
+                        <div class="col-md-4">
+                            <button type="submit" class="btn btn-success">
+                                <i class="fas fa-search me-1"></i>Apply Filter
+                            </button>
+                            <a href="{{ url_for('billing_reports') }}" class="btn btn-outline-secondary">
+                                <i class="fas fa-arrow-left me-1"></i>Back to Reports
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="row mb-4">
+        <div class="col-xl-4 col-md-6 mb-4">
+            <div class="card border-left-success shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Total Service Revenue</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">₹{{ "{:,.2f}".format(total_service_revenue) }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-rupee-sign fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-4 col-md-6 mb-4">
+            <div class="card border-left-primary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Total Service Bookings</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_service_bookings }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-calendar-check fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-4 col-md-6 mb-4">
+            <div class="card border-left-info shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Avg Revenue per Booking</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                ₹{{ "{:,.2f}".format(total_service_revenue / total_service_bookings if total_service_bookings > 0 else 0) }}
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-chart-line fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Service Revenue Chart -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Service Revenue Trend</h6>
+                </div>
+                <div class="card-body">
+                    <canvas id="serviceRevenueChart" height="100"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Service Revenue Summary Table -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header py-3 bg-success text-white">
+                    <h6 class="m-0 font-weight-bold">Service Revenue Summary</h6>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Service Name</th>
+                                    <th>Base Price</th>
+                                    <th>Total Bookings</th>
+                                    <th>Total Quantity</th>
+                                    <th>Total Revenue</th>
+                                    <th>Avg Revenue</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for service in service_revenue_summary %}
+                                <tr>
+                                    <td><strong>{{ service.name }}</strong></td>
+                                    <td>₹{{ "{:,.2f}".format(service.price or 0) }}</td>
+                                    <td><span class="badge bg-primary">{{ service.total_bookings }}</span></td>
+                                    <td>{{ service.total_quantity }}</td>
+                                    <td><strong class="text-success">₹{{ "{:,.2f}".format(service.total_revenue or 0) }}</strong></td>
+                                    <td>₹{{ "{:,.2f}".format(service.avg_revenue or 0) }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const ctx = document.getElementById('serviceRevenueChart').getContext('2d');
+    
+    const labels = [
+        {% for item in service_revenue_by_date %}
+        '{{ item.date.strftime("%m/%d") }}'{% if not loop.last %},{% endif %}
+        {% endfor %}
+    ];
+    
+    const data = [
+        {% for item in service_revenue_by_date %}
+        {{ item.revenue or 0 }}{% if not loop.last %},{% endif %}
+        {% endfor %}
+    ];
+    
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Service Revenue',
+                data: data,
+                borderColor: 'rgb(28, 200, 138)',
+                backgroundColor: 'rgba(28, 200, 138, 0.2)',
+                tension: 0.1
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                            return '₹' + value.toFixed(2);
+                        }
+                    }
+                }
+            }
+        }
+    });
+});
+</script>
+{% endblock %}

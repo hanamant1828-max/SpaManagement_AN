@@ -165,4 +165,141 @@ def billing_revenue_chart():
         'data': [float(item.revenue or 0) for item in revenue_data]
     })
 
+@app.route('/billing/reports/service-revenue-only')
+@login_required
+def service_revenue_only_report():
+    """Detailed service revenue report (services only, no products)"""
+    if not current_user.is_active:
+        return redirect(url_for('dashboard'))
+    
+    # Default to last 30 days
+    end_date = date.today()
+    start_date = end_date - timedelta(days=30)
+    
+    # Get date range from request
+    start_date_str = request.args.get('start_date')
+    end_date_str = request.args.get('end_date')
+    
+    if start_date_str and end_date_str:
+        try:
+            start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
+            end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
+        except ValueError:
+            pass
+    
+    # Service revenue summary
+    service_revenue_summary = db.session.query(
+        Service.id,
+        Service.name,
+        Service.price,
+        func.count(InvoiceItem.id).label('total_bookings'),
+        func.sum(InvoiceItem.quantity).label('total_quantity'),
+        func.sum(InvoiceItem.final_amount).label('total_revenue'),
+        func.avg(InvoiceItem.final_amount).label('avg_revenue')
+    ).join(InvoiceItem, Service.id == InvoiceItem.item_id)\
+    .join(EnhancedInvoice, InvoiceItem.invoice_id == EnhancedInvoice.id)\
+    .filter(
+        EnhancedInvoice.invoice_date.between(start_date, end_date),
+        EnhancedInvoice.payment_status == 'paid',
+        InvoiceItem.item_type == 'service'
+    ).group_by(Service.id).order_by(func.sum(InvoiceItem.final_amount).desc()).all()
+    
+    # Service revenue by date
+    service_revenue_by_date = db.session.query(
+        func.date(EnhancedInvoice.invoice_date).label('date'),
+        func.sum(InvoiceItem.final_amount).label('revenue'),
+        func.count(InvoiceItem.id).label('bookings')
+    ).join(EnhancedInvoice, InvoiceItem.invoice_id == EnhancedInvoice.id)\
+    .filter(
+        EnhancedInvoice.invoice_date.between(start_date, end_date),
+        EnhancedInvoice.payment_status == 'paid',
+        InvoiceItem.item_type == 'service'
+    ).group_by(func.date(EnhancedInvoice.invoice_date)).all()
+    
+    # Calculate totals
+    total_service_revenue = sum([item.total_revenue or 0 for item in service_revenue_summary])
+    total_service_bookings = sum([item.total_bookings or 0 for item in service_revenue_summary])
+    
+    return render_template('reports/service_revenue_only.html',
+                         start_date=start_date,
+                         end_date=end_date,
+                         service_revenue_summary=service_revenue_summary,
+                         service_revenue_by_date=service_revenue_by_date,
+                         total_service_revenue=total_service_revenue,
+                         total_service_bookings=total_service_bookings)
+
+@app.route('/billing/reports/product-revenue-only')
+@login_required
+def product_revenue_only_report():
+    """Detailed product revenue report (inventory/products only, no services)"""
+    if not current_user.is_active:
+        return redirect(url_for('dashboard'))
+    
+    # Default to last 30 days
+    end_date = date.today()
+    start_date = end_date - timedelta(days=30)
+    
+    # Get date range from request
+    start_date_str = request.args.get('start_date')
+    end_date_str = request.args.get('end_date')
+    
+    if start_date_str and end_date_str:
+        try:
+            start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
+            end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
+        except ValueError:
+            pass
+    
+    # Import inventory models
+    try:
+        from modules.inventory.models import InventoryProduct
+        
+        # Product revenue summary
+        product_revenue_summary = db.session.query(
+            InventoryProduct.id,
+            InventoryProduct.name,
+            InvoiceItem.batch_name,
+            func.sum(InvoiceItem.quantity).label('total_quantity'),
+            func.avg(InvoiceItem.unit_price).label('avg_price'),
+            func.sum(InvoiceItem.final_amount).label('total_revenue'),
+            func.count(InvoiceItem.id).label('total_sales')
+        ).join(InvoiceItem, InventoryProduct.id == InvoiceItem.product_id)\
+        .join(EnhancedInvoice, InvoiceItem.invoice_id == EnhancedInvoice.id)\
+        .filter(
+            EnhancedInvoice.invoice_date.between(start_date, end_date),
+            EnhancedInvoice.payment_status == 'paid',
+            InvoiceItem.item_type == 'inventory'
+        ).group_by(InventoryProduct.id, InvoiceItem.batch_name)\
+        .order_by(func.sum(InvoiceItem.final_amount).desc()).all()
+        
+        # Product revenue by date
+        product_revenue_by_date = db.session.query(
+            func.date(EnhancedInvoice.invoice_date).label('date'),
+            func.sum(InvoiceItem.final_amount).label('revenue'),
+            func.sum(InvoiceItem.quantity).label('quantity_sold')
+        ).join(EnhancedInvoice, InvoiceItem.invoice_id == EnhancedInvoice.id)\
+        .filter(
+            EnhancedInvoice.invoice_date.between(start_date, end_date),
+            EnhancedInvoice.payment_status == 'paid',
+            InvoiceItem.item_type == 'inventory'
+        ).group_by(func.date(EnhancedInvoice.invoice_date)).all()
+        
+    except ImportError:
+        product_revenue_summary = []
+        product_revenue_by_date = []
+    
+    # Calculate totals
+    total_product_revenue = sum([item.total_revenue or 0 for item in product_revenue_summary])
+    total_product_sales = sum([item.total_sales or 0 for item in product_revenue_summary])
+    total_quantity_sold = sum([item.total_quantity or 0 for item in product_revenue_summary])
+    
+    return render_template('reports/product_revenue_only.html',
+                         start_date=start_date,
+                         end_date=end_date,
+                         product_revenue_summary=product_revenue_summary,
+                         product_revenue_by_date=product_revenue_by_date,
+                         total_product_revenue=total_product_revenue,
+                         total_product_sales=total_product_sales,
+                         total_quantity_sold=total_quantity_sold)
+
 print("✅ Billing reports views imported")
