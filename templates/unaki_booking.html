@@ -2283,6 +2283,7 @@
                                 background: var(--primary-color);
                                 border: none;
                             "
+                            id="bookAllAppointments"
                         >
                             <i class="fas fa-check-circle me-2"></i>Book All
                             Appointments
@@ -2932,6 +2933,26 @@
                 }
             }
 
+            function updateAppointmentEndTime(card) {
+                const serviceSelect = card.querySelector('.service-select');
+                const startTimeInput = card.querySelector('.start-time');
+                const endTimeInput = card.querySelector('.end-time');
+
+                if (!serviceSelect || !startTimeInput || !endTimeInput) return;
+
+                const selectedOption = serviceSelect.selectedOptions[0];
+                const startTime = startTimeInput.value;
+
+                if (!selectedOption || !startTime) {
+                    endTimeInput.value = "";
+                    return;
+                }
+
+                const duration = parseInt(selectedOption.dataset.duration) || 60;
+                const endTime = calculateEndTimeFromDuration(startTime, duration);
+                endTimeInput.value = endTime;
+            }
+
             function updateAppointmentCount() {
                 const count = document.querySelectorAll(".appointment-card").length;
                 document.getElementById("appointmentCount").textContent = `${count} Appointment${count !== 1 ? "s" : ""}`;
@@ -2948,25 +2969,9 @@
             function calculateEndTime(index) {
                 const card = document.querySelector(`[data-appointment-index="${index}"]`);
                 if (!card) return;
-
-                const serviceSelect = card.querySelector(".service-select");
-                const startTimeInput = card.querySelector(".start-time");
-                const endTimeInput = card.querySelector(".end-time");
-                const selectedOption = serviceSelect.selectedOptions[0];
-                const startTime = startTimeInput.value;
-
-                if (!selectedOption || !startTime) {
-                    endTimeInput.value = "";
-                    return;
-                }
-
-                const duration = parseInt(selectedOption.dataset.duration) || 60;
-                const [hours, minutes] = startTime.split(':').map(Number);
-                const startDate = new Date();
-                startDate.setHours(hours, minutes, 0, 0);
-                const endDate = new Date(startDate.getTime() + duration * 60000);
-                endTimeInput.value = endDate.toTimeString().slice(0, 5);
+                updateAppointmentEndTime(card);
             }
+
 
             function calculateEditEndTime() {
                 const serviceSelect = document.getElementById('editServiceSelect');
@@ -2978,14 +2983,8 @@
                 const selectedOption = serviceSelect.options[serviceSelect.selectedIndex];
                 const duration = parseInt(selectedOption.dataset.duration) || 60;
                 const startTime = startTimeInput.value;
-
-                if (startTime) {
-                    const [hours, minutes] = startTime.split(':').map(Number);
-                    const startDate = new Date();
-                    startDate.setHours(hours, minutes, 0, 0);
-                    const endDate = new Date(startDate.getTime() + duration * 60000);
-                    endTimeInput.value = endDate.toTimeString().slice(0, 5);
-                }
+                const endTime = calculateEndTimeFromDuration(startTime, duration);
+                endTimeInput.value = endTime;
             }
 
             function checkConflicts(appointmentIndex) {
@@ -3089,36 +3088,72 @@
             // ==========================================
             // VALIDATION
             // ==========================================
+
+            // Validate all appointments before booking
+            function validateAllAppointments() {
+                const appointments = document.querySelectorAll('.appointment-card');
+                if (appointments.length === 0) {
+                    return false;
+                }
+
+                for (const appointment of appointments) {
+                    const clientSelect = appointment.querySelector('.client-select'); // This is not used in the current multi-book modal, but kept for potential future use or if it existed elsewhere
+                    const serviceSelect = appointment.querySelector('.service-select');
+                    const staffSelect = appointment.querySelector('.staff-select');
+                    const startTime = appointment.querySelector('.start-time');
+                    const endTime = appointment.querySelector('.end-time');
+
+                    // Check if values exist and are not empty/default
+                    if (!serviceSelect?.value || serviceSelect.value === '' ||
+                        !staffSelect?.value || staffSelect.value === '' ||
+                        !startTime?.value || startTime.value === '' ||
+                        !endTime?.value || endTime.value === '') {
+                        return false;
+                    }
+                    // Also check for duplicates/conflicts
+                    if (appointment.classList.contains('duplicate')) {
+                        return false;
+                    }
+                }
+
+                return true;
+            }
+
+            // Update Book All button state
+            function updateBookAllButton() {
+                const bookAllBtn = document.getElementById('bookAllAppointments');
+                if (bookAllBtn) {
+                    const isValid = validateAllAppointments();
+                    bookAllBtn.disabled = !isValid;
+
+                    // Visual feedback
+                    if (isValid) {
+                        bookAllBtn.classList.remove('btn-secondary');
+                        bookAllBtn.classList.add('btn-primary');
+                    } else {
+                        bookAllBtn.classList.remove('btn-primary');
+                        bookAllBtn.classList.add('btn-secondary');
+                    }
+                }
+            }
+
             function validateClientSelection() {
                 const clientSelect = document.getElementById('multiClientSelect');
                 return !!clientSelect.value;
             }
 
             function updateSubmitButton() {
-                const submitBtn = document.querySelector('.btn-success[onclick="submitMultiAppointment()"]');
+                const submitBtn = document.getElementById('bookAllAppointments');
                 if (!submitBtn) return;
 
                 const hasClient = validateClientSelection();
-                const cards = document.querySelectorAll('.appointment-card');
-                let isValid = hasClient && cards.length > 0;
+                const isValidAppointments = validateAllAppointments();
 
-                cards.forEach(card => {
-                    const serviceSelect = card.querySelector('.service-select');
-                    const staffSelect = card.querySelector('.staff-select');
-                    const dateInput = card.querySelector('.appointment-date');
-                    const startTimeInput = card.querySelector('.start-time');
+                const allValid = hasClient && isValidAppointments;
 
-                    if (!serviceSelect.value || !staffSelect.value || !dateInput.value || !startTimeInput.value) {
-                        isValid = false;
-                    }
-
-                    if (card.classList.contains('duplicate')) {
-                        isValid = false;
-                    }
-                });
-
-                submitBtn.disabled = !isValid;
-                submitBtn.classList.toggle('submit-btn-disabled', !isValid);
+                submitBtn.disabled = !allValid;
+                submitBtn.classList.toggle('btn-secondary', !allValid);
+                submitBtn.classList.toggle('btn-primary', allValid);
             }
 
             // ==========================================
@@ -3163,7 +3198,7 @@
                     });
                 });
 
-                const bookButton = document.querySelector('.btn-book-all');
+                const bookButton = document.getElementById('bookAllAppointments');
                 if (bookButton) {
                     bookButton.disabled = true;
                     bookButton.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Booking...';
@@ -3436,6 +3471,60 @@
                 console.log(`Toast (${type}): ${message}`);
                 alert(`${type.toUpperCase()}: ${message}`);
             }
+
+            // Initialize Book All button state on page load and when modal is shown/appointments added
+            document.addEventListener('DOMContentLoaded', () => {
+                updateBookAllButton(); // Initial state on page load
+
+                // Re-validate when modal is shown
+                const multiBookModal = document.getElementById('multiBookModal');
+                if (multiBookModal) {
+                    multiBookModal.addEventListener('shown.bs.modal', function() {
+                        updateBookAllButton();
+                    });
+                }
+
+                // Re-validate when appointments are added
+                const addAppointmentBtn = document.querySelector('.add-appointment-btn');
+                if (addAppointmentBtn) {
+                    addAppointmentBtn.addEventListener('click', function() {
+                        // Use setTimeout to ensure the new appointment card is rendered before validation
+                        setTimeout(() => {
+                            updateBookAllButton();
+                        }, 100);
+                    });
+                }
+            });
+
+            // Event delegation for dynamically added appointments
+            document.getElementById('appointmentsContainer').addEventListener('change', function(e) {
+                if (e.target.matches('.service-select, .staff-select, .appointment-date, .start-time')) {
+                    const appointmentCard = e.target.closest('.appointment-card');
+                    if (appointmentCard) {
+                        // Update end time if service or start time changed
+                        if (e.target.matches('.service-select') || e.target.matches('.start-time')) {
+                            updateAppointmentEndTime(appointmentCard);
+                        }
+                        // Re-check conflicts
+                        const index = parseInt(appointmentCard.dataset.appointmentIndex);
+                        checkConflicts(index);
+                        updateSummary();
+                        updateSubmitButton(); // Update button state after changes
+                    }
+                }
+            });
+
+            // Also trigger on input events for immediate feedback (e.g., time input)
+            document.getElementById('appointmentsContainer').addEventListener('input', function(e) {
+                if (e.target.matches('.start-time')) {
+                    const appointmentCard = e.target.closest('.appointment-card');
+                    if (appointmentCard) {
+                        updateAppointmentEndTime(appointmentCard);
+                        updateSubmitButton(); // Update button state after changes
+                    }
+                }
+            });
+
         </script>
     </body>
 </html>
