@@ -163,13 +163,13 @@
                         <i data-feather="info" class="me-2"></i>
                         Recognition Status
                     </h5>
-                    
+
                     <div id="statusAlert" class="alert alert-info">
                         <i data-feather="info" class="me-2"></i>
                         <strong>Ready for check-in</strong><br>
                         Click "Start Recognition" and position your face in the circle for automatic check-in.
                     </div>
-                    
+
                     <div id="scanningProgress" class="progress mt-3" style="display: none; height: 25px;">
                         <div class="progress-bar progress-bar-striped progress-bar-animated bg-info" 
                              role="progressbar" style="width: 100%">
@@ -291,40 +291,41 @@ console.log('Face recognition check-in module loaded');
 let checkinStream = null;
 let checkinRecognitionInterval = null;
 let checkinIsRecognizing = false;
+let recognizedCustomerId = null; // Variable to store the recognized customer ID
 
 // Verify elements on page load
 // Initialize when DOM is ready
 document.addEventListener('DOMContentLoaded', function() {
     console.log('=== CHECKIN PAGE DOM LOADED ===');
-    
+
     // Log all elements
     const startButton = document.getElementById('startRecognition');
     const stopButton = document.getElementById('stopRecognition');
     const video = document.getElementById('checkinVideo');
     const placeholder = document.getElementById('cameraPlaceholder');
-    
+
     console.log('Elements found:');
     console.log('- Start button:', startButton);
     console.log('- Stop button:', stopButton);
     console.log('- Video element:', video);
     console.log('- Placeholder:', placeholder);
-    
+
     // Attach event listeners - using addEventListener for better reliability
     if (startButton) {
         console.log('Attaching click handler to start button...');
-        
+
         startButton.addEventListener('click', function(e) {
             e.preventDefault();
             e.stopPropagation();
             console.log('>>> START BUTTON CLICKED <<<');
             startFaceRecognition();
         });
-        
+
         console.log('✅ Start button listener attached successfully');
     } else {
         console.error('❌ Start button NOT FOUND');
     }
-    
+
     if (stopButton) {
         stopButton.addEventListener('click', function(e) {
             e.preventDefault();
@@ -336,13 +337,13 @@ document.addEventListener('DOMContentLoaded', function() {
     } else {
         console.error('❌ Stop button NOT FOUND');
     }
-    
+
     // Initialize Feather icons
     if (typeof feather !== 'undefined') {
         feather.replace();
         console.log('✅ Feather icons initialized');
     }
-    
+
     console.log('=== CHECKIN PAGE INITIALIZATION COMPLETE ===');
 });
 
@@ -350,17 +351,17 @@ async function startFaceRecognition() {
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     console.log('🎥 START FACE RECOGNITION FUNCTION CALLED');
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-    
+
     try {
         console.log('Step 1: Checking camera API availability...');
-        
+
         if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
             throw new Error('Camera API not available in this browser');
         }
         console.log('✅ Camera API available');
-        
+
         console.log('Step 2: Requesting camera access...');
-        
+
         // Request camera access
         checkinStream = await navigator.mediaDevices.getUserMedia({ 
             video: { 
@@ -369,32 +370,32 @@ async function startFaceRecognition() {
                 facingMode: 'user'
             } 
         });
-        
+
         console.log('✅ Camera access granted!');
         console.log('Stream details:', checkinStream);
         console.log('Video tracks:', checkinStream.getVideoTracks());
-        
+
         console.log('Step 3: Getting DOM elements...');
         const video = document.getElementById('checkinVideo');
         const placeholder = document.getElementById('cameraPlaceholder');
         const overlay = document.getElementById('cameraOverlay');
-        
+
         console.log('Video element:', video);
         console.log('Placeholder element:', placeholder);
         console.log('Overlay element:', overlay);
-        
+
         console.log('Step 4: Setting up video stream...');
         if (!video) {
             throw new Error('Video element not found!');
         }
-        
+
         video.srcObject = checkinStream;
         console.log('Video source set');
-        
+
         console.log('Step 5: Starting video playback...');
         await video.play();
         console.log('✅ Video playing');
-        
+
         console.log('Step 6: Updating UI...');
         video.style.display = 'block';
         video.style.position = 'absolute';
@@ -412,37 +413,38 @@ async function startFaceRecognition() {
             });
         }
         console.log('✅ UI updated');
-        
+
         console.log('Step 7: Updating button states...');
         const startBtn = document.getElementById('startRecognition');
         const stopBtn = document.getElementById('stopRecognition');
         if (startBtn) startBtn.disabled = true;
         if (stopBtn) stopBtn.disabled = false;
         console.log('✅ Buttons updated');
-        
+
         console.log('Step 8: Updating status message...');
         window.recognitionAttempts = 0; // Reset attempt counter
+        recognizedCustomerId = null; // Reset recognized customer ID
         updateStatus('info', 'Scanning for faces...', 'Position your face in the circle for recognition.');
-        
+
         // Show progress bar
         const progressBar = document.getElementById('scanningProgress');
         if (progressBar) {
             progressBar.style.display = 'block';
         }
-        
+
         console.log('Step 9: Starting recognition loop...');
         checkinIsRecognizing = true;
         checkinRecognitionInterval = setInterval(() => performRecognition(video), 2000);
-        
+
         console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
         console.log('✅ FACE RECOGNITION STARTED SUCCESSFULLY');
         console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-        
+
     } catch (error) {
         console.error('Camera access error:', error);
         console.error('Error name:', error.name);
         console.error('Error message:', error.message);
-        
+
         let errorMessage = 'Unable to access camera. ';
         if (error.name === 'NotAllowedError') {
             errorMessage += 'Please allow camera access and try again.';
@@ -453,7 +455,7 @@ async function startFaceRecognition() {
         } else {
             errorMessage += 'Please check your camera and permissions. Error: ' + error.message;
         }
-        
+
         updateStatus('danger', 'Camera Error', errorMessage);
     }
 }
@@ -463,51 +465,51 @@ console.log('Face recognition check-in script loaded and ready');
 
 function stopRecognition() {
     console.log('Stopping face recognition...');
-    
+
     // Reset attempt counter
     window.recognitionAttempts = 0;
-    
+
     // Stop camera stream
     if (checkinStream) {
         checkinStream.getTracks().forEach(track => track.stop());
         checkinStream = null;
     }
-    
+
     // Clear recognition interval
     if (checkinRecognitionInterval) {
         clearInterval(checkinRecognitionInterval);
         checkinRecognitionInterval = null;
     }
-    
+
     checkinIsRecognizing = false;
-    
+
     // Reset UI
     const video = document.getElementById('checkinVideo');
     const placeholder = document.getElementById('cameraPlaceholder');
     const overlay = document.getElementById('cameraOverlay');
-    
+
     if (video) video.style.display = 'none';
     if (placeholder) placeholder.style.display = 'block';
     if (overlay) {
         overlay.style.display = 'none';
         overlay.classList.remove('scanning-animation');
     }
-    
+
     // Update button states
     document.getElementById('startRecognition').disabled = false;
     document.getElementById('stopRecognition').disabled = true;
-    
+
     // Hide progress bar
     const progressBar = document.getElementById('scanningProgress');
     if (progressBar) {
         progressBar.style.display = 'none';
     }
-    
+
     // Reset status
     updateStatus('info', 'Ready for check-in', 'Click "Start Recognition" and position your face in the circle for automatic check-in.');
     const customerInfo = document.getElementById('customerInfo');
     if (customerInfo) customerInfo.style.display = 'none';
-    
+
     console.log('Face recognition stopped');
 }
 
@@ -515,26 +517,26 @@ async function performRecognition(video) {
     if (!checkinIsRecognizing || !video || video.readyState !== video.HAVE_ENOUGH_DATA) {
         return;
     }
-    
+
     try {
         console.log('Capturing frame for recognition...');
-        
+
         // Show scanning indicator
         const overlay = document.getElementById('cameraOverlay');
         if (overlay) {
             overlay.style.borderColor = '#ffc107'; // Yellow while scanning
         }
-        
+
         // Capture current video frame
         const canvas = document.createElement('canvas');
         canvas.width = video.videoWidth || 640;
         canvas.height = video.videoHeight || 480;
         const ctx = canvas.getContext('2d');
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-        
+
         // Convert to base64 image
         const imageData = canvas.toDataURL('image/jpeg', 0.8);
-        
+
         // Send to face recognition API
         const response = await fetch('/api/recognize_face', {
             method: 'POST',
@@ -545,29 +547,36 @@ async function performRecognition(video) {
                 face_image: imageData
             })
         });
-        
+
         const result = await response.json();
         console.log('Recognition result:', result);
-        
+
         if (response.ok && result.success) {
             if (result.recognized && result.customer) {
                 // Customer recognized successfully
                 console.log('Customer recognized:', result.customer.name);
-                
+
+                // Store the recognized customer ID
+                recognizedCustomerId = result.customer.id;
+
                 // Show success indicator
                 if (overlay) {
                     overlay.style.borderColor = '#28a745'; // Green for success
                 }
-                
+
                 displayRecognizedCustomer(result.customer);
                 highlightCustomerAppointment(result.customer.id);
-                
+
+                // Add a button to go to billing
+                addGoToBillingButton();
+
+
                 // Stop recognition after successful match
                 setTimeout(() => stopRecognition(), 1000);
             } else if (result.message) {
                 // No match found - show visual feedback
                 console.log('No match:', result.message);
-                
+
                 // Flash red briefly to show scan attempt
                 if (overlay) {
                     overlay.style.borderColor = '#dc3545'; // Red for no match
@@ -577,43 +586,43 @@ async function performRecognition(video) {
                         }
                     }, 500);
                 }
-                
+
                 // Update status with attempt count
                 const statusEl = document.getElementById('statusAlert');
                 const progressText = document.getElementById('progressText');
                 if (statusEl) {
                     const attemptCount = (window.recognitionAttempts || 0) + 1;
                     window.recognitionAttempts = attemptCount;
-                    
+
                     if (progressText) {
                         progressText.textContent = `Scanning... (Attempt ${attemptCount})`;
                     }
-                    
+
                     updateStatus('warning', 'Scanning...', 
                         `Face detection attempt ${attemptCount}. Please ensure your face is clearly visible in the circle.`);
                 }
             }
         } else {
             console.error('Recognition failed:', result.error || 'Unknown error');
-            
+
             // Show error indicator
             if (overlay) {
                 overlay.style.borderColor = '#dc3545';
             }
-            
+
             updateStatus('danger', 'Recognition Error', 
                 result.error || 'Unable to process face recognition. Please try again.');
         }
-        
+
     } catch (err) {
         console.error('Recognition error:', err);
-        
+
         // Show error indicator
         const overlay = document.getElementById('cameraOverlay');
         if (overlay) {
             overlay.style.borderColor = '#dc3545';
         }
-        
+
         updateStatus('danger', 'Connection Error', 
             'Unable to connect to recognition service. Please check your connection and try again.');
     }
@@ -621,37 +630,37 @@ async function performRecognition(video) {
 
 function displayRecognizedCustomer(customer) {
     console.log('Displaying recognized customer:', customer);
-    
+
     // Update status alert with success message
     updateStatus('success', `Welcome ${customer.name}!`, 'Customer recognized successfully.');
-    
+
     // Show customer info card
     const customerInfo = document.getElementById('customerInfo');
     if (!customerInfo) {
         console.error('Customer info element not found');
         return;
     }
-    
+
     // Get initials for avatar
     const nameParts = customer.name.split(' ');
     const initials = nameParts.map(n => n[0]).join('').toUpperCase();
-    
+
     // Update customer info elements
     const avatarEl = document.getElementById('customerAvatar');
     const nameEl = document.getElementById('customerName');
     const phoneEl = document.getElementById('customerPhone');
     const visitsEl = document.getElementById('customerVisits');
     const statusEl = document.getElementById('customerStatus');
-    
+
     if (avatarEl) avatarEl.textContent = initials;
     if (nameEl) nameEl.textContent = customer.name;
     if (phoneEl) phoneEl.textContent = customer.phone || 'N/A';
     if (visitsEl) visitsEl.textContent = customer.total_visits || 0;
     if (statusEl) statusEl.textContent = customer.is_vip ? 'VIP' : 'Regular';
-    
+
     // Show the customer info card
     customerInfo.style.display = 'block';
-    
+
     // Update last recognition timestamp
     const lastRecognitionEl = document.getElementById('lastRecognition');
     if (lastRecognitionEl) {
@@ -662,15 +671,15 @@ function displayRecognizedCustomer(customer) {
 
 function highlightCustomerAppointment(customerId) {
     console.log('Highlighting appointment for customer:', customerId);
-    
+
     // Find and highlight the customer's appointment in the table
     const rows = document.querySelectorAll('#appointmentsTable tr');
     let found = false;
-    
+
     rows.forEach(row => {
         row.classList.remove('table-primary');
         const clientId = row.dataset.clientId;
-        
+
         if (clientId && parseInt(clientId) === parseInt(customerId)) {
             row.classList.add('table-primary');
             row.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
@@ -678,7 +687,7 @@ function highlightCustomerAppointment(customerId) {
             console.log('Appointment highlighted for customer:', customerId);
         }
     });
-    
+
     if (!found) {
         console.log('No appointment found for customer:', customerId);
     }
@@ -690,23 +699,63 @@ function updateStatus(type, title, message) {
         console.error('Status alert element not found');
         return;
     }
-    
+
     statusAlert.className = `alert alert-${type}`;
-    
+
     let icon = 'info';
     if (type === 'success') icon = 'check-circle';
     else if (type === 'danger') icon = 'x-circle';
     else if (type === 'warning') icon = 'alert-triangle';
-    
+
     statusAlert.innerHTML = `
         <i data-feather="${icon}" class="me-2"></i>
         <strong>${title}</strong><br>
         ${message}
     `;
-    
+
     // Re-initialize feather icons if available
     if (typeof feather !== 'undefined') {
         feather.replace();
+    }
+}
+
+// Function to add a "Go to Billing" button
+function addGoToBillingButton() {
+    // Check if the button already exists to avoid duplicates
+    if (!document.getElementById('goToBillingButton')) {
+        const customerInfoDiv = document.getElementById('customerInfo');
+        if (customerInfoDiv) {
+            const button = document.createElement('button');
+            button.id = 'goToBillingButton';
+            button.type = 'button';
+            button.className = 'btn btn-primary btn-lg mt-3 w-100';
+            button.innerHTML = '<i data-feather="dollar-sign" class="me-2"></i>Go to Billing';
+            
+            // Append the button to the customer info div
+            customerInfoDiv.appendChild(button);
+
+            // Re-initialize feather icons for the new button
+            if (typeof feather !== 'undefined') {
+                feather.replace();
+            }
+
+            // Attach event listener to the new button
+            button.addEventListener('click', goToBillingWithCustomer);
+            console.log('Go to Billing button added and event listener attached.');
+        } else {
+            console.error('Customer info div not found, cannot add Go to Billing button.');
+        }
+    }
+}
+
+// Function to navigate to the billing page with the customer ID
+function goToBillingWithCustomer() {
+    if (recognizedCustomerId) {
+        // Navigate to billing page with customer ID in URL path (same as Unaki booking)
+        window.location.href = `/integrated-billing/${recognizedCustomerId}`;
+    } else {
+        console.error('No customer ID available for billing');
+        alert('Customer information not available. Please try again.');
     }
 }
 
