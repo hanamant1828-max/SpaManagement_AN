@@ -507,9 +507,16 @@ def api_save_face():
         image = Image.open(io.BytesIO(image_bytes))
         image_array = np.array(image)
         
-        # Convert RGB to BGR for OpenCV/InsightFace
-        if len(image_array.shape) == 3 and image_array.shape[2] == 3:
-            image_bgr = cv2.cvtColor(image_array, cv2.COLOR_RGB2BGR)
+        # Convert to BGR for OpenCV/InsightFace (handle both RGB and RGBA)
+        if len(image_array.shape) == 3:
+            if image_array.shape[2] == 4:
+                # RGBA from browser canvas
+                image_bgr = cv2.cvtColor(image_array, cv2.COLOR_RGBA2BGR)
+            elif image_array.shape[2] == 3:
+                # RGB
+                image_bgr = cv2.cvtColor(image_array, cv2.COLOR_RGB2BGR)
+            else:
+                image_bgr = image_array
         else:
             image_bgr = image_array
         
@@ -613,9 +620,16 @@ def api_recognize_face():
         incoming_image = Image.open(io.BytesIO(incoming_image_bytes))
         incoming_image_array = np.array(incoming_image)
         
-        # Convert RGB to BGR for OpenCV/InsightFace
-        if len(incoming_image_array.shape) == 3 and incoming_image_array.shape[2] == 3:
-            incoming_image_bgr = cv2.cvtColor(incoming_image_array, cv2.COLOR_RGB2BGR)
+        # Convert to BGR for OpenCV/InsightFace (handle both RGB and RGBA)
+        if len(incoming_image_array.shape) == 3:
+            if incoming_image_array.shape[2] == 4:
+                # RGBA from browser canvas
+                incoming_image_bgr = cv2.cvtColor(incoming_image_array, cv2.COLOR_RGBA2BGR)
+            elif incoming_image_array.shape[2] == 3:
+                # RGB
+                incoming_image_bgr = cv2.cvtColor(incoming_image_array, cv2.COLOR_RGB2BGR)
+            else:
+                incoming_image_bgr = incoming_image_array
         else:
             incoming_image_bgr = incoming_image_array
         
@@ -659,9 +673,16 @@ def api_recognize_face():
                 stored_image_pil = Image.open(io.BytesIO(stored_image_bytes))
                 stored_image_array = np.array(stored_image_pil)
                 
-                # Convert RGB to BGR
-                if len(stored_image_array.shape) == 3 and stored_image_array.shape[2] == 3:
-                    stored_image_bgr = cv2.cvtColor(stored_image_array, cv2.COLOR_RGB2BGR)
+                # Convert to BGR for OpenCV/InsightFace (handle both RGB and RGBA)
+                if len(stored_image_array.shape) == 3:
+                    if stored_image_array.shape[2] == 4:
+                        # RGBA from browser canvas
+                        stored_image_bgr = cv2.cvtColor(stored_image_array, cv2.COLOR_RGBA2BGR)
+                    elif stored_image_array.shape[2] == 3:
+                        # RGB
+                        stored_image_bgr = cv2.cvtColor(stored_image_array, cv2.COLOR_RGB2BGR)
+                    else:
+                        stored_image_bgr = stored_image_array
                 else:
                     stored_image_bgr = stored_image_array
                 
