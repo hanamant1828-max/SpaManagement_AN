@@ -511,16 +511,13 @@ function stopRecognition() {
         progressBar.style.display = 'none';
     }
 
-    // Reset status
-    updateStatus('info', 'Ready for check-in', 'Click "Start Recognition" and position your face in the circle for automatic check-in.');
-    const customerInfo = document.getElementById('customerInfo');
-    if (customerInfo) customerInfo.style.display = 'none';
-    
-    // Hide billing button
-    const billingButtonContainer = document.getElementById('billingButtonContainer');
-    if (billingButtonContainer) billingButtonContainer.style.display = 'none';
+    // Only reset status if no customer is recognized
+    // Customer info and billing button will remain visible for 10 minutes
+    if (!recognizedCustomerId) {
+        updateStatus('info', 'Ready for check-in', 'Click "Start Recognition" and position your face in the circle for automatic check-in.');
+    }
 
-    console.log('Face recognition stopped');
+    console.log('Face recognition stopped - customer info remains visible');
 }
 
 async function performRecognition(video) {
@@ -642,7 +639,7 @@ function displayRecognizedCustomer(customer) {
     console.log('Displaying recognized customer:', customer);
 
     // Update status alert with success message
-    updateStatus('success', `Welcome ${customer.name}!`, 'Customer recognized successfully.');
+    updateStatus('success', `Welcome ${customer.name}!`, 'Customer recognized successfully. Billing button available for 10 minutes.');
 
     // Show customer info card
     const customerInfo = document.getElementById('customerInfo');
@@ -687,6 +684,21 @@ function displayRecognizedCustomer(customer) {
         const now = new Date();
         lastRecognitionEl.textContent = `${customer.name} - ${now.toLocaleTimeString()}`;
     }
+
+    // Clear any existing timeout
+    if (window.customerInfoTimeout) {
+        clearTimeout(window.customerInfoTimeout);
+    }
+
+    // Set timeout to hide customer info and billing button after 10 minutes (600000 ms)
+    window.customerInfoTimeout = setTimeout(() => {
+        if (customerInfo) customerInfo.style.display = 'none';
+        if (billingButtonContainer) billingButtonContainer.style.display = 'none';
+        updateStatus('info', 'Session expired', 'Customer information cleared. Please scan again to proceed to billing.');
+        console.log('Customer info hidden after 10 minutes');
+    }, 600000); // 10 minutes = 600000 milliseconds
+
+    console.log('Customer info will remain visible for 10 minutes');
 }
 
 function highlightCustomerAppointment(customerId) {
