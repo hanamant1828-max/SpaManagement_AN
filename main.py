@@ -8,5 +8,8 @@ from modules.billing.client_revenue_report_views import *
 from modules.billing.service_revenue_report_views import *
 print("✅ Billing reports views imported")
 
+from modules.clients.clients_views import *
+print("✅ Clients views imported")
+
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)
