@@ -23,18 +23,18 @@ def get_ist_now():
 
 def convert_to_ist(dt):
     """Convert a datetime object to IST timezone
-    
+
     WARNING: This function assumes naive datetimes are in UTC.
-    Since our database stores naive IST datetimes, do NOT use this 
+    Since our database stores naive IST datetimes, do NOT use this
     on database timestamps - they are already in IST!
     """
     if dt is None:
         return None
-    
+
     # If datetime is naive (no timezone), assume it's UTC
     if dt.tzinfo is None:
         dt = pytz.utc.localize(dt)
-    
+
     # Convert to IST
     return dt.astimezone(IST)
 
@@ -405,7 +405,7 @@ def init_app():
             db.create_all()
             print("Database tables created successfully")
             print(f"Database connection: {db_uri}")
-            
+
             # Auto-initialize database if it's empty (first run after clone)
             from models import User
             if User.query.count() == 0:
@@ -909,12 +909,12 @@ def unaki_schedule():
             if booking.status == 'completed' and booking.payment_status == 'paid':
                 print(f"🚫 Hiding paid appointment: {booking.id} - {booking.client_name} - Status: {booking.status}, Payment: {booking.payment_status}")
                 continue
-            
+
             print(f"✅ Showing appointment: {booking.id} - {booking.client_name} - Status: {booking.status}, Payment: {booking.payment_status}")
-                
+
             # Ensure end_time is properly formatted
             end_time_str = booking.end_time.strftime('%H:%M') if booking.end_time else None
-            
+
             appointment_info = {
                 'id': booking.id,
                 'staffId': booking.staff_id,
@@ -987,7 +987,7 @@ def unaki_schedule():
 
         # Get current IST time for frontend
         ist_now = get_ist_now()
-        
+
         return jsonify({
             'success': True,
             'date': date_str,
@@ -1355,7 +1355,7 @@ def unaki_create_appointment():
 
         # Validate required fields and collect missing ones
         missing_fields = []
-        
+
         if not staff_id:
             missing_fields.append('staff_id')
         if not client_name or not str(client_name).strip():
@@ -1368,7 +1368,7 @@ def unaki_create_appointment():
             missing_fields.append('start_time')
         if not end_time:
             missing_fields.append('end_time')
-        
+
         if missing_fields:
             return jsonify({
                 'success': False,
@@ -1570,10 +1570,10 @@ def unaki_create_appointment():
 def unaki_booking():
     """Enhanced Unaki Appointment Booking System - Professional spa booking interface"""
     from datetime import date
-    
+
     # Get current date parameter before try block
     selected_date = request.args.get('date', date.today().strftime('%Y-%m-%d'))
-    
+
     try:
         from modules.staff.staff_queries import get_staff_members
         from modules.services.services_queries import get_active_services

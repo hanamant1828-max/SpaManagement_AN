@@ -2375,14 +2375,14 @@
                         loadCustomerExistingAppointments(clientSelect.value);
                         updateSubmitButton();
                     });
-                    
+
                     // Select2 select event
                     $(clientSelect).on('select2:select', function(e) {
                         validateClientSelection();
                         loadCustomerExistingAppointments(this.value);
                         updateSubmitButton();
                     });
-                    
+
                     // Select2 clear event
                     $(clientSelect).on('select2:clear', function(e) {
                         validateClientSelection();
@@ -2465,7 +2465,7 @@
                     $('.select2-dropdown').on('select2:unselecting', function(e) {
                         e.preventDefault();
                         $(this).val('').trigger('change');
-                        
+
                         const card = $(this).closest('.appointment-card')[0];
                         if (card) {
                             const index = parseInt(card.dataset.appointmentIndex);
@@ -2515,7 +2515,7 @@
                                     $(this).on('select2:unselecting', function(e) {
                                         e.preventDefault();
                                         $(this).val('').trigger('change');
-                                        
+
                                         const card = $(this).closest('.appointment-card')[0];
                                         if (card) {
                                             const index = parseInt(card.dataset.appointmentIndex);
@@ -2832,7 +2832,7 @@
                 modal.show();
             }
 
-            function saveQuickClient() {
+            async function saveQuickClient() {
                 const firstName = document.getElementById('quickFirstName').value.trim();
                 const lastName = document.getElementById('quickLastName').value.trim();
                 const phone = document.getElementById('quickPhone').value.trim();
@@ -2845,46 +2845,87 @@
                     return;
                 }
 
-                // Create FormData
-                const formData = new FormData();
-                formData.append('first_name', firstName);
-                formData.append('last_name', lastName);
-                formData.append('phone', phone);
-                formData.append('email', email);
-                formData.append('gender', gender);
+                const quickAddForm = document.getElementById("quickAddClientForm");
+                const submitBtn = quickAddForm.querySelector('button[type="submit"]');
+                const originalText = submitBtn.innerHTML;
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Saving...';
 
-                // Submit to server
-                fetch('/customers/create', {
-                    method: 'POST',
-                    body: formData
-                })
-                .then(response => response.text())
-                .then(html => {
-                    // Check if response indicates success
-                    if (html.includes('has been created successfully')) {
-                        showNotification(`Client ${firstName} ${lastName} added successfully!`, 'success');
+                const clientData = {
+                    first_name: firstName,
+                    last_name: lastName,
+                    phone: phone,
+                    email: email,
+                    gender: gender,
+                };
 
-                        // Close the quick add modal
+                try {
+                    const response = await fetch("/api/unaki/quick-add-client", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                        },
+                        body: JSON.stringify(clientData),
+                    });
+
+                    const result = await response.json();
+
+                    if (result.success) {
+                        showNotification(result.message, 'success');
                         bootstrap.Modal.getInstance(document.getElementById('quickAddClientModal')).hide();
+                        quickAddForm.reset();
+                        // Refresh clients list
+                        await loadClients(); // Assuming loadClients() reloads the client dropdown
 
-                        // Reload the page to refresh the client dropdown
-                        setTimeout(() => {
-                            location.reload();
-                        }, 1000);
+                        // Auto-select the newly added client in the multi-booking form
+                        const clientSelect = document.getElementById('multiClientSelect');
+                        if (clientSelect && result.client) {
+                            // Add new option to select
+                            const option = document.createElement('option');
+                            option.value = result.client.id;
+                            option.textContent = `${result.client.first_name} ${result.client.last_name} - ${result.client.phone}`;
+                            clientSelect.appendChild(option);
+
+                            // Select the new client
+                            clientSelect.value = result.client.id;
+
+                            // Trigger change event to update UI
+                            const event = new Event('change');
+                            clientSelect.dispatchEvent(event);
+                        }
                     } else {
-                        // Extract error message if possible
-                        const parser = new DOMParser();
-                        const doc = parser.parseFromString(html, 'text/html');
-                        const alerts = doc.querySelectorAll('.alert-danger');
-                        const errorMsg = alerts.length > 0 ? alerts[0].textContent.trim() : 'Failed to create client';
-                        showNotification(errorMsg, 'error');
+                        showNotification(result.error || 'Failed to create client', 'error');
                     }
-                })
-                .catch(error => {
-                    console.error('Error creating client:', error);
-                    showNotification('An error occurred while creating the client', 'error');
-                });
+                } catch (error) {
+                    console.error("Error:", error);
+                    showNotification('Failed to create client: ' + error.message, 'error');
+                } finally {
+                    // Re-enable submit button
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = originalText;
+                }
             }
+
+            // Placeholder for loadClients function if it's needed for refreshing the dropdown
+            async function loadClients() {
+                // This function should ideally fetch the latest client list and update the #multiClientSelect dropdown.
+                // For now, we'll assume the page reload or manual refresh handles this,
+                // or that the added option is sufficient. If not, implement fetching and updating here.
+                console.log("Refreshing client list (implementation needed if not handled by page reload)");
+                // Example:
+                // const response = await fetch('/api/clients');
+                // const clients = await response.json();
+                // const clientSelect = document.getElementById('multiClientSelect');
+                // clientSelect.innerHTML = '<option value="">Choose a client...</option>'; // Clear existing
+                // clients.forEach(client => {
+                //     const option = document.createElement('option');
+                //     option.value = client.id;
+                //     option.textContent = `${client.first_name} ${client.last_name} - ${client.phone}`;
+                //     clientSelect.appendChild(option);
+                // });
+                // $(clientSelect).select2({ dropdownParent: $('#multiBookModal'), width: '100%' }); // Re-initialize select2
+            }
+
 
             // ==========================================
             // MULTI-BOOKING MODAL
@@ -3375,6 +3416,8 @@
             }
 
             function showNotification(message, type) {
+                // Replace this with your actual toast implementation if available
+                // For now, using alert for simplicity.
                 alert(message);
             }
 
