@@ -1787,76 +1787,84 @@
                     <div
                         class="modal-header"
                         style="
-                            border-bottom: 2px solid var(--border-color);
-                            padding: 20px 24px;
+                            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                            border-bottom: none;
+                            padding: 24px 28px;
                         "
                     >
                         <h5
                             class="modal-title"
-                            style="font-weight: 700; font-size: 18px"
+                            style="font-weight: 700; font-size: 22px; color: white; display: flex; align-items: center; gap: 12px;"
                         >
-                            <i
-                                class="fas fa-calendar-plus me-2"
-                                style="color: var(--primary-color)"
-                            ></i
-                            >Book Multiple Appointments
+                            <div style="background: rgba(255,255,255,0.2); padding: 10px; border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+                                <i class="fas fa-calendar-check" style="color: white; font-size: 20px;"></i>
+                            </div>
+                            <span>Book Multiple Appointments</span>
                         </h5>
                         <button
                             type="button"
-                            class="btn-close"
+                            class="btn-close btn-close-white"
                             data-bs-dismiss="modal"
+                            style="filter: brightness(0) invert(1);"
                         ></button>
                     </div>
-                    <div class="modal-body" style="padding: 24px">
-                        <div class="row mb-4">
-                            <div class="col-md-12">
-                                <label class="form-label fw-semibold">
-                                    <i
-                                        class="fas fa-user me-2"
-                                        style="color: var(--primary-color)"
-                                    ></i
-                                    >Select Client
-                                </label>
-                                <div class="d-flex gap-2 align-items-center">
-                                    <select
-                                        id="multiClientSelect"
-                                        class="form-select select2-dropdown flex-grow-1"
-                                        required
-                                        style="
-                                            border-radius: 10px;
-                                            padding: 12px;
-                                        "
-                                    >
-                                        <option value="">
-                                            Choose a client...
-                                        </option>
-                                        {% if clients %} {% for client in
-                                        clients %}
-                                        <option
-                                            value="{{ client.id }}"
-                                            data-phone="{{ client.phone }}"
-                                            data-email="{{ client.email or '' }}"
-                                        >
-                                            {{ client.first_name }} {{
-                                            client.last_name }} - {{
-                                            client.phone }}
-                                        </option>
-                                        {% endfor %} {% endif %}
-                                    </select>
-                                    <button
-                                        type="button"
-                                        class="btn btn-primary"
-                                        onclick="openQuickAddClient()"
-                                        style="
-                                            border-radius: 10px;
-                                            padding: 12px 20px;
-                                            white-space: nowrap;
-                                        "
-                                    >
-                                        <i class="fas fa-plus me-2"></i>Add New
-                                        Client
-                                    </button>
+                    <div class="modal-body" style="padding: 28px; background: #f8fafc;">
+                        <!-- Client Selection Section -->
+                        <div class="mb-4" style="background: white; padding: 24px; border-radius: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
+                            <label class="form-label fw-semibold mb-3" style="font-size: 15px; color: #334155; display: flex; align-items: center; gap: 8px;">
+                                <div style="width: 32px; height: 32px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 8px; display: flex; align-items: center; justify-content: center;">
+                                    <i class="fas fa-user" style="color: white; font-size: 14px;"></i>
                                 </div>
+                                <span>Select Client</span>
+                            </label>
+                            <div class="d-flex gap-3 align-items-center">
+                                <select
+                                    id="multiClientSelect"
+                                    class="form-select select2-dropdown flex-grow-1"
+                                    required
+                                    style="
+                                        border-radius: 12px;
+                                        padding: 14px 16px;
+                                        border: 2px solid #e2e8f0;
+                                        font-size: 15px;
+                                        transition: all 0.2s;
+                                    "
+                                >
+                                    <option value="">
+                                        Choose a client...
+                                    </option>
+                                    {% if clients %} {% for client in
+                                    clients %}
+                                    <option
+                                        value="{{ client.id }}"
+                                        data-phone="{{ client.phone }}"
+                                        data-email="{{ client.email or '' }}"
+                                    >
+                                        {{ client.first_name }} {{
+                                        client.last_name }} - {{
+                                        client.phone }}
+                                    </option>
+                                    {% endfor %} {% endif %}
+                                </select>
+                                <button
+                                    type="button"
+                                    class="btn btn-primary"
+                                    onclick="openQuickAddClient()"
+                                    style="
+                                        border-radius: 12px;
+                                        padding: 14px 24px;
+                                        white-space: nowrap;
+                                        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                                        border: none;
+                                        font-weight: 600;
+                                        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+                                        transition: all 0.2s;
+                                    "
+                                    onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 16px rgba(102, 126, 234, 0.5)'"
+                                    onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(102, 126, 234, 0.4)'"
+                                >
+                                    <i class="fas fa-plus me-2"></i>Add New Client
+                                </button>
                             </div>
                         </div>
 
@@ -1891,34 +1899,35 @@
                             </div>
                         </div>
 
-                        <div class="mb-4">
+                        <!-- Appointments Section -->
+                        <div class="mb-4" style="background: white; padding: 24px; border-radius: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
                             <div
                                 style="
                                     display: flex;
                                     justify-content: space-between;
                                     align-items: center;
-                                    margin-bottom: 16px;
+                                    margin-bottom: 20px;
                                 "
                             >
                                 <label
                                     class="form-label fw-semibold mb-0"
-                                    style="font-size: 16px"
+                                    style="font-size: 16px; color: #334155; display: flex; align-items: center; gap: 8px;"
                                 >
-                                    <i
-                                        class="fas fa-calendar-alt me-2"
-                                        style="color: var(--primary-color)"
-                                    ></i
-                                    >Appointments
+                                    <div style="width: 32px; height: 32px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 8px; display: flex; align-items: center; justify-content: center;">
+                                        <i class="fas fa-calendar-alt" style="color: white; font-size: 14px;"></i>
+                                    </div>
+                                    <span>Appointments</span>
                                 </label>
                                 <span
                                     id="appointmentCount"
                                     style="
-                                        background: var(--primary-color);
+                                        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
                                         color: white;
-                                        padding: 4px 12px;
+                                        padding: 6px 16px;
                                         border-radius: 20px;
-                                        font-size: 12px;
+                                        font-size: 13px;
                                         font-weight: 600;
+                                        box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
                                     "
                                     >1 Appointment</span
                                 >
@@ -2129,147 +2138,180 @@
                                 type="button"
                                 class="add-appointment-btn"
                                 onclick="addAppointment()"
+                                style="
+                                    width: 100%;
+                                    padding: 14px;
+                                    border: 2px dashed #cbd5e1;
+                                    background: #f8fafc;
+                                    border-radius: 12px;
+                                    color: #667eea;
+                                    font-weight: 600;
+                                    font-size: 15px;
+                                    cursor: pointer;
+                                    transition: all 0.2s;
+                                    margin-top: 16px;
+                                    display: flex;
+                                    align-items: center;
+                                    justify-content: center;
+                                    gap: 8px;
+                                "
+                                onmouseover="this.style.background='#ede9fe'; this.style.borderColor='#667eea'; this.style.transform='translateY(-1px)'"
+                                onmouseout="this.style.background='#f8fafc'; this.style.borderColor='#cbd5e1'; this.style.transform='translateY(0)'"
                             >
                                 <i class="fas fa-plus-circle"></i>Add Another
                                 Appointment
                             </button>
                         </div>
 
-                        <div class="row mb-4">
+                        <!-- Summary Cards -->
+                        <div class="row mb-4" style="gap: 16px 0;">
                             <div class="col-md-4">
                                 <div
                                     style="
-                                        background: linear-gradient(
-                                            135deg,
-                                            #dbeafe 0%,
-                                            #bfdbfe 100%
-                                        );
-                                        padding: 16px;
-                                        border-radius: 10px;
+                                        background: white;
+                                        padding: 20px;
+                                        border-radius: 16px;
+                                        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+                                        border-left: 4px solid #3b82f6;
                                     "
                                 >
-                                    <label
-                                        class="form-label fw-semibold"
-                                        style="
-                                            color: #1e40af;
-                                            margin-bottom: 8px;
-                                        "
-                                    >
-                                        <i
-                                            class="fas fa-hourglass-half me-2"
-                                        ></i
-                                        >Total Duration
-                                    </label>
+                                    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+                                        <div style="width: 40px; height: 40px; background: #eff6ff; border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+                                            <i class="fas fa-hourglass-half" style="color: #3b82f6; font-size: 18px;"></i>
+                                        </div>
+                                        <label
+                                            class="form-label fw-semibold mb-0"
+                                            style="color: #64748b; font-size: 14px;"
+                                        >Total Duration</label>
+                                    </div>
                                     <div
                                         style="
-                                            font-size: 28px;
+                                            font-size: 32px;
                                             font-weight: 700;
-                                            color: #1e40af;
+                                            color: #1e293b;
                                         "
                                         id="multiTotalDuration"
                                     >
-                                        0 min
+                                        60 min
                                     </div>
                                 </div>
                             </div>
                             <div class="col-md-4">
                                 <div
                                     style="
-                                        background: linear-gradient(
-                                            135deg,
-                                            #a7f3d0 0%,
-                                            #a7f3d0 100%
-                                        );
-                                        padding: 16px;
-                                        border-radius: 10px;
+                                        background: white;
+                                        padding: 20px;
+                                        border-radius: 16px;
+                                        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+                                        border-left: 4px solid #10b981;
                                     "
                                 >
-                                    <label
-                                        class="form-label fw-semibold"
-                                        style="
-                                            color: #065f46;
-                                            margin-bottom: 8px;
-                                        "
-                                    >
-                                        <i class="fas fa-dollar-sign me-2"></i
-                                        >Total Price
-                                    </label>
+                                    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+                                        <div style="width: 40px; height: 40px; background: #f0fdf4; border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+                                            <i class="fas fa-rupee-sign" style="color: #10b981; font-size: 18px;"></i>
+                                        </div>
+                                        <label
+                                            class="form-label fw-semibold mb-0"
+                                            style="color: #64748b; font-size: 14px;"
+                                        >Total Price</label>
+                                    </div>
                                     <div
                                         style="
-                                            font-size: 28px;
+                                            font-size: 32px;
                                             font-weight: 700;
-                                            color: #065f46;
+                                            color: #1e293b;
                                         "
                                         id="multiTotalPrice"
                                     >
-                                        $0.00
+                                        ₹65.00
                                     </div>
                                 </div>
                             </div>
                             <div class="col-md-4">
                                 <div
                                     style="
-                                        background: linear-gradient(
-                                            135deg,
-                                            #fef3c7 0%,
-                                            #fde68a 100%
-                                        );
-                                        padding: 16px;
-                                        border-radius: 10px;
+                                        background: white;
+                                        padding: 20px;
+                                        border-radius: 16px;
+                                        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+                                        border-left: 4px solid #f59e0b;
                                     "
                                 >
-                                    <label
-                                        class="form-label fw-semibold"
-                                        style="
-                                            color: #78350f;
-                                            margin-bottom: 8px;
-                                        "
-                                    >
-                                        <i class="fas fa-users me-2"></i>Staff
-                                        Required
-                                    </label>
+                                    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+                                        <div style="width: 40px; height: 40px; background: #fffbeb; border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+                                            <i class="fas fa-users" style="color: #f59e0b; font-size: 18px;"></i>
+                                        </div>
+                                        <label
+                                            class="form-label fw-semibold mb-0"
+                                            style="color: #64748b; font-size: 14px;"
+                                        >Staff Required</label>
+                                    </div>
                                     <div
                                         style="
-                                            font-size: 28px;
+                                            font-size: 32px;
                                             font-weight: 700;
-                                            color: #78350f;
+                                            color: #1e293b;
                                         "
                                         id="multiStaffCount"
                                     >
-                                        0
+                                        1
                                     </div>
                                 </div>
                             </div>
                         </div>
 
-                        <div class="mb-3">
-                            <label class="form-label fw-semibold">
-                                <i
-                                    class="fas fa-sticky-note me-2"
-                                    style="color: var(--primary-color)"
-                                ></i
-                                >Notes
+                        <!-- Notes Section -->
+                        <div class="mb-3" style="background: white; padding: 24px; border-radius: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
+                            <label class="form-label fw-semibold mb-3" style="font-size: 15px; color: #334155; display: flex; align-items: center; gap: 8px;">
+                                <div style="width: 32px; height: 32px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 8px; display: flex; align-items: center; justify-content: center;">
+                                    <i class="fas fa-sticky-note" style="color: white; font-size: 14px;"></i>
+                                </div>
+                                <span>Notes</span>
                             </label>
                             <textarea
                                 id="multiNotes"
                                 class="form-control"
-                                rows="3"
-                                style="border-radius: 10px; padding: 12px"
+                                rows="4"
+                                placeholder="Add any special instructions or notes for these appointments..."
+                                style="
+                                    border-radius: 12px;
+                                    padding: 14px 16px;
+                                    border: 2px solid #e2e8f0;
+                                    font-size: 15px;
+                                    transition: all 0.2s;
+                                    resize: vertical;
+                                "
+                                onfocus="this.style.borderColor='#667eea'; this.style.boxShadow='0 0 0 3px rgba(102, 126, 234, 0.1)'"
+                                onblur="this.style.borderColor='#e2e8f0'; this.style.boxShadow='none'"
                             ></textarea>
                         </div>
                     </div>
                     <div
                         class="modal-footer"
                         style="
-                            border-top: 2px solid var(--border-color);
-                            padding: 16px 24px;
+                            border-top: none;
+                            background: #f8fafc;
+                            padding: 20px 28px;
+                            gap: 12px;
+                            display: flex;
+                            justify-content: flex-end;
                         "
                     >
                         <button
                             type="button"
                             class="btn btn-secondary"
                             data-bs-dismiss="modal"
-                            style="border-radius: 10px; padding: 10px 20px"
+                            style="
+                                border-radius: 12px;
+                                padding: 12px 24px;
+                                background: white;
+                                color: #64748b;
+                                border: 2px solid #e2e8f0;
+                                font-weight: 600;
+                                transition: all 0.2s;
+                            "
+                            onmouseover="this.style.background='#f8fafc'; this.style.borderColor='#cbd5e1'"
+                            onmouseout="this.style.background='white'; this.style.borderColor='#e2e8f0'"
                         >
                             <i class="fas fa-times me-2"></i>Cancel
                         </button>
@@ -2278,15 +2320,19 @@
                             class="btn btn-success btn-book-all"
                             onclick="submitMultiAppointment()"
                             style="
-                                border-radius: 10px;
-                                padding: 10px 20px;
-                                background: var(--primary-color);
+                                border-radius: 12px;
+                                padding: 12px 32px;
+                                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
                                 border: none;
+                                font-weight: 600;
+                                box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+                                transition: all 0.2s;
                             "
+                            onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 16px rgba(102, 126, 234, 0.5)'"
+                            onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(102, 126, 234, 0.4)'"
                             id="bookAllAppointments"
                         >
-                            <i class="fas fa-check-circle me-2"></i>Book All
-                            Appointments
+                            <i class="fas fa-check-circle me-2"></i>Book All Appointments
                         </button>
                     </div>
                 </div>
