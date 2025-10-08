@@ -13,11 +13,25 @@
     // Initialize when document is ready
     $(document).ready(function() {
         console.log('Add Shift Scheduler JavaScript loaded');
+
+        // Initialize loading modal first
+        loadingModal = new bootstrap.Modal(document.getElementById('loadingModal'));
+
+        // Initialize Select2 for searchable dropdowns
+        if (typeof $.fn.select2 !== 'undefined') {
+            $('.searchable-select').select2({
+                theme: 'bootstrap-5',
+                width: '100%',
+                placeholder: 'Search...',
+                allowClear: true
+            });
+            console.log('✅ Searchable dropdowns initialized for shift scheduler');
+        } else {
+            console.warn('⚠️ Select2 not loaded, searchable dropdowns disabled');
+        }
+
         initializeEventHandlers();
         initializeDefaultDates();
-
-        // Initialize loading modal
-        loadingModal = new bootstrap.Modal(document.getElementById('loadingModal'));
 
         // Check if we're in view/edit mode and load existing data
         const urlParams = new URLSearchParams(window.location.search);
