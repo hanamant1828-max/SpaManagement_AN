@@ -272,20 +272,40 @@ document.addEventListener('DOMContentLoaded', function() {
     const stopButton = document.getElementById('stopRecognition');
     
     if (startButton) {
-        startButton.addEventListener('click', startFaceRecognition);
+        startButton.addEventListener('click', function(e) {
+            e.preventDefault();
+            console.log('Start button clicked!');
+            startFaceRecognition();
+        });
         console.log('Start button listener attached');
+    } else {
+        console.error('Start button not found!');
     }
     
     if (stopButton) {
-        stopButton.addEventListener('click', stopRecognition);
+        stopButton.addEventListener('click', function(e) {
+            e.preventDefault();
+            console.log('Stop button clicked!');
+            stopRecognition();
+        });
         console.log('Stop button listener attached');
+    } else {
+        console.error('Stop button not found!');
+    }
+    
+    // Initialize Feather icons
+    if (typeof feather !== 'undefined') {
+        feather.replace();
     }
 });
 
 async function startFaceRecognition() {
-    console.log('Start Recognition button clicked!');
+    console.log('=== START FACE RECOGNITION CALLED ===');
+    console.log('Function executing...');
     
     try {
+        console.log('Requesting camera access...');
+        
         // Request camera access
         checkinStream = await navigator.mediaDevices.getUserMedia({ 
             video: { 
@@ -295,7 +315,7 @@ async function startFaceRecognition() {
             } 
         });
         
-        console.log('Camera access granted');
+        console.log('Camera access granted:', checkinStream);
         
         const video = document.getElementById('checkinVideo');
         const placeholder = document.getElementById('cameraPlaceholder');
@@ -328,19 +348,26 @@ async function startFaceRecognition() {
         
     } catch (error) {
         console.error('Camera access error:', error);
+        console.error('Error name:', error.name);
+        console.error('Error message:', error.message);
         
         let errorMessage = 'Unable to access camera. ';
         if (error.name === 'NotAllowedError') {
             errorMessage += 'Please allow camera access and try again.';
         } else if (error.name === 'NotFoundError') {
             errorMessage += 'No camera found on this device.';
+        } else if (error.name === 'NotReadableError') {
+            errorMessage += 'Camera is already in use by another application.';
         } else {
-            errorMessage += 'Please check your camera and permissions.';
+            errorMessage += 'Please check your camera and permissions. Error: ' + error.message;
         }
         
         updateStatus('danger', 'Camera Error', errorMessage);
     }
 }
+
+// Log when script loads
+console.log('Face recognition check-in script loaded and ready');
 
 function stopRecognition() {
     console.log('Stopping face recognition...');
