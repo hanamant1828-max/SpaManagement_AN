@@ -277,14 +277,16 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log('- Video element:', video);
     console.log('- Placeholder:', placeholder);
     
-    // Attach event listeners - simplified like customer management
+    // Attach event listeners - using addEventListener for better reliability
     if (startButton) {
         console.log('Attaching click handler to start button...');
         
-        startButton.onclick = function() {
+        startButton.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
             console.log('>>> START BUTTON CLICKED <<<');
             startFaceRecognition();
-        };
+        });
         
         console.log('✅ Start button listener attached successfully');
     } else {
@@ -292,10 +294,12 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     if (stopButton) {
-        stopButton.onclick = function() {
+        stopButton.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
             console.log('>>> STOP BUTTON CLICKED <<<');
             stopRecognition();
-        };
+        });
         console.log('✅ Stop button listener attached');
     } else {
         console.error('❌ Stop button NOT FOUND');
