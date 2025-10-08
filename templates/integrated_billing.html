@@ -1102,6 +1102,7 @@ let taxRate = 9; // Default tax rate
 // Initialize application when DOM is loaded
 document.addEventListener('DOMContentLoaded', function() {
     initializeBillingSystem();
+    initializeSearchableDropdowns();
     updateCalculations(); // Initial calculation to set display to 0.00
 
     {% if selected_customer %}
@@ -1111,6 +1112,61 @@ document.addEventListener('DOMContentLoaded', function() {
     loadCustomerAppointments({{ selected_customer.id }});
     {% endif %}
 });
+
+// ==========================================
+// SEARCHABLE DROPDOWNS (SELECT2)
+// ==========================================
+function initializeSearchableDropdowns() {
+    // Initialize Select2 on customer dropdown
+    $('#client_id').select2({
+        theme: 'bootstrap-5',
+        placeholder: 'Search for customer...',
+        allowClear: true,
+        width: '100%'
+    });
+
+    // Initialize Select2 on all service dropdowns
+    $('select[name="service_ids[]"]').each(function() {
+        $(this).select2({
+            theme: 'bootstrap-5',
+            placeholder: 'Search for service...',
+            allowClear: true,
+            width: '100%'
+        });
+    });
+
+    // Initialize Select2 on all staff dropdowns
+    $('select[name="staff_ids[]"], select[name="product_staff_ids[]"]').each(function() {
+        $(this).select2({
+            theme: 'bootstrap-5',
+            placeholder: 'Search for staff...',
+            allowClear: true,
+            width: '100%'
+        });
+    });
+
+    // Initialize Select2 on product dropdowns
+    $('select[name="product_ids[]"]').each(function() {
+        $(this).select2({
+            theme: 'bootstrap-5',
+            placeholder: 'Search for product...',
+            allowClear: true,
+            width: '100%'
+        });
+    });
+
+    // Initialize Select2 on batch dropdowns
+    $('.batch-select').each(function() {
+        $(this).select2({
+            theme: 'bootstrap-5',
+            placeholder: 'Select batch...',
+            allowClear: true,
+            width: '100%'
+        });
+    });
+
+    console.log('✅ Searchable dropdowns initialized');
+}
 
 function initializeBillingSystem() {
     // Customer selector
@@ -1754,6 +1810,11 @@ function populateBatchSelect(batches, batchSelect, batchInfo, priceInput) {
 
     console.log('🔢 Available batches after filtering and sorting:', availableBatches);
 
+    // Destroy existing Select2 instance if it exists
+    if ($(batchSelect).hasClass('select2-hidden-accessible')) {
+        $(batchSelect).select2('destroy');
+    }
+
     if (!availableBatches.length) {
         batchSelect.innerHTML = '<option value="">Out of Stock</option>';
         batchSelect.disabled = true;
@@ -1769,6 +1830,14 @@ function populateBatchSelect(batches, batchSelect, batchInfo, priceInput) {
         </option>`
     ).join('');
     batchSelect.disabled = false;
+
+    // Reinitialize Select2 on batch dropdown
+    $(batchSelect).select2({
+        theme: 'bootstrap-5',
+        placeholder: 'Select batch...',
+        allowClear: true,
+        width: '100%'
+    });
 
     // Display first batch info
     const firstBatch = availableBatches[0];
@@ -1786,7 +1855,7 @@ function populateBatchSelect(batches, batchSelect, batchInfo, priceInput) {
 
     // Add event listener for batch change (only if not already added to prevent duplicates)
     if (!batchSelect.dataset.changeListenerAdded) {
-        batchSelect.addEventListener('change', function() {
+        $(batchSelect).on('change', function() {
             const selectedOption = this.options[this.selectedIndex];
             const qty = selectedOption.dataset.qty;
             const price = selectedOption.dataset.price;
@@ -1828,6 +1897,11 @@ function addServiceRow() {
 
     const newRow = firstRow.cloneNode(true); // Clone the template row
 
+    // Destroy Select2 instances in the cloned row if they exist
+    $(newRow).find('.select2-hidden-accessible').each(function() {
+        $(this).select2('destroy');
+    });
+
     // Clear values in the new row, except for quantity which should default to 1
     newRow.querySelectorAll('select, input').forEach(input => {
         input.value = ''; // Clear all select and input values
@@ -1850,7 +1924,23 @@ function addServiceRow() {
     if (removeButton) removeButton.style.display = 'block';
 
     container.appendChild(newRow); // Append the new row
-    console.log('✅ New service row added');
+
+    // Initialize Select2 on the new row's dropdowns
+    $(newRow).find('select[name="service_ids[]"]').select2({
+        theme: 'bootstrap-5',
+        placeholder: 'Search for service...',
+        allowClear: true,
+        width: '100%'
+    });
+
+    $(newRow).find('select[name="staff_ids[]"]').select2({
+        theme: 'bootstrap-5',
+        placeholder: 'Search for staff...',
+        allowClear: true,
+        width: '100%'
+    });
+
+    console.log('✅ New service row added with searchable dropdowns');
 }
 
 function addProductRow() {
@@ -1864,6 +1954,11 @@ function addProductRow() {
     }
 
     const newRow = firstRow.cloneNode(true); // Clone the template row
+
+    // Destroy Select2 instances in the cloned row if they exist
+    $(newRow).find('.select2-hidden-accessible').each(function() {
+        $(this).select2('destroy');
+    });
 
     // Clear values in the new row
     newRow.querySelectorAll('select, input').forEach(input => {
@@ -1889,7 +1984,30 @@ function addProductRow() {
     if (removeButton) removeButton.style.display = 'block';
 
     container.appendChild(newRow);
-    console.log('✅ New product row added');
+
+    // Initialize Select2 on the new row's dropdowns
+    $(newRow).find('select[name="product_ids[]"]').select2({
+        theme: 'bootstrap-5',
+        placeholder: 'Search for product...',
+        allowClear: true,
+        width: '100%'
+    });
+
+    $(newRow).find('select[name="product_staff_ids[]"]').select2({
+        theme: 'bootstrap-5',
+        placeholder: 'Search for staff...',
+        allowClear: true,
+        width: '100%'
+    });
+
+    $(newRow).find('.batch-select').select2({
+        theme: 'bootstrap-5',
+        placeholder: 'Select batch...',
+        allowClear: true,
+        width: '100%'
+    });
+
+    console.log('✅ New product row added with searchable dropdowns');
 }
 
 function removeRow(button) {
