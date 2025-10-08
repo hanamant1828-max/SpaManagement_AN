@@ -11,7 +11,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
-    
+
     <!-- Select2 CSS for searchable dropdowns -->
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 
@@ -1492,7 +1492,8 @@
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
-                        bookingsData = (data.bookings || []).filter(b => b.status !== "cancelled");
+                        // Filter out cancelled and paid appointments
+                        bookingsData = (data.bookings || []).filter(b => b.status !== "cancelled" && b.payment_status !== 'paid');
                         renderBookings();
                         updateStats();
                     } else {
@@ -1667,7 +1668,7 @@
                     return;
                 }
 
-                if (!staff.is_working || !staff.shift_start || !staff.shift_end || 
+                if (!staff.is_working || !staff.shift_start || !staff.shift_end ||
                     (staff.day_status && OFFDAY_STATUSES.includes(staff.day_status))) {
                     row.appendChild(createOverlay('off-duty', 0, 13 * 140, 'Off Day'));
                     return;
@@ -1715,9 +1716,20 @@
 
         function updateStats() {
             const total = bookingsData.length;
-            const completed = bookingsData.filter(b => b.status === "completed").length;
-            document.getElementById("totalBookings").textContent = total;
-            document.getElementById("completedBookings").textContent = completed;
+            const completed = bookingsData.filter(b => b.status === 'completed').length;
+            const paid = bookingsData.filter(b => b.payment_status === 'paid').length;
+            const pending = bookingsData.filter(b => b.payment_status === 'pending').length;
+
+            document.getElementById('totalBookings').textContent = total;
+            document.getElementById('completedBookings').textContent = completed;
+
+            // Log payment status breakdown
+            console.log(`📊 Stats Update:
+                Total: ${total}
+                Completed: ${completed}
+                Paid (hidden): ${paid}
+                Pending (visible): ${pending}
+            `);
         }
 
         function updateCurrentTimeLine() {
@@ -1840,6 +1852,7 @@
             container.insertAdjacentHTML('beforeend', html);
             updateAppointmentCount();
             updateRemoveButtonsVisibility();
+            updateSummary();
             updateSubmitButton();
         }
 
@@ -1975,8 +1988,8 @@
             .then(response => response.json())
             .then(data => {
                 if (data.shift_violation || (data.has_conflicts && data.conflicts?.length)) {
-                    const message = data.reason || (data.conflicts?.[0] ? 
-                        `Conflicts with ${data.conflicts[0].client_name || 'booking'} (${data.conflicts[0].start_time} - ${data.conflicts[0].end_time})` : 
+                    const message = data.reason || (data.conflicts?.[0] ?
+                        `Conflicts with ${data.conflicts[0].client_name || 'booking'} (${data.conflicts[0].start_time} - ${data.conflicts[0].end_time})` :
                         'Shift constraint violation');
                     if (conflictMessageSpan) conflictMessageSpan.textContent = message;
                     if (conflictAlert) conflictAlert.classList.remove('d-none');
