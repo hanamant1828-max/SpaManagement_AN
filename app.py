@@ -907,7 +907,10 @@ def unaki_schedule():
         for booking in unaki_bookings:
             # Skip appointments that are completed AND paid (already billed)
             if booking.status == 'completed' and booking.payment_status == 'paid':
+                print(f"🚫 Hiding paid appointment: {booking.id} - {booking.client_name} - Status: {booking.status}, Payment: {booking.payment_status}")
                 continue
+            
+            print(f"✅ Showing appointment: {booking.id} - {booking.client_name} - Status: {booking.status}, Payment: {booking.payment_status}")
                 
             # Ensure end_time is properly formatted
             end_time_str = booking.end_time.strftime('%H:%M') if booking.end_time else None

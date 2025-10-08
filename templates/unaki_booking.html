@@ -1902,10 +1902,10 @@
                 // Check if response indicates success
                 if (html.includes('has been created successfully')) {
                     showNotification(`Client ${firstName} ${lastName} added successfully!`, 'success');
-                    
+
                     // Close the quick add modal
                     bootstrap.Modal.getInstance(document.getElementById('quickAddClientModal')).hide();
-                    
+
                     // Reload the page to refresh the client dropdown
                     setTimeout(() => {
                         location.reload();
@@ -2413,23 +2413,23 @@
         function saveEditedAppointment() {
             const appointmentId = document.getElementById('editAppointmentId').value;
             const serviceId = document.getElementById('editServiceSelect').value;
+            const serviceName = document.getElementById('editServiceSelect').selectedOptions[0]?.text.split('(')[0].trim();
             const staffId = document.getElementById('editStaffSelect').value;
             const appointmentDate = document.getElementById('editAppointmentDate').value;
             const startTime = document.getElementById('editStartTime').value;
             const endTime = document.getElementById('editEndTime').value;
             const notes = document.getElementById('editNotes').value;
-
-            // Get status and payment_status from dropdowns
             const status = document.getElementById('editStatus').value;
             const paymentStatus = document.getElementById('editPaymentStatus').value;
 
-            if (!serviceId || !staffId || !appointmentDate || !startTime) {
-                showToast('Please fill in all required fields', 'error');
+            if (!serviceId || !staffId || !appointmentDate || !startTime || !endTime) {
+                showToast('Please fill all required fields', 'error');
                 return;
             }
 
             const updateData = {
                 service_id: parseInt(serviceId),
+                service_name: serviceName,
                 staff_id: parseInt(staffId),
                 appointment_date: appointmentDate,
                 start_time: startTime,
@@ -2439,33 +2439,36 @@
                 payment_status: paymentStatus
             };
 
-            console.log('Updating appointment:', appointmentId, updateData);
+            console.log('💾 Saving appointment with payment status:', paymentStatus, 'and status:', status);
 
-            fetch(`/api/unaki/update-appointment/${appointmentId}`, {
+            fetch(`/api/unaki/bookings/${appointmentId}`, {
                 method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(updateData)
             })
             .then(response => response.json())
             .then(data => {
+                console.log('✅ Update response:', data);
                 if (data.success) {
                     showToast(data.message || 'Appointment updated successfully', 'success');
-                    bootstrap.Modal.getInstance(document.getElementById('editAppointmentModal')).hide();
 
-                    // If payment status changed to 'paid', appointment will be hidden after refresh
-                    if (paymentStatus === 'paid') {
-                        showToast('Appointment marked as paid and will be hidden from view', 'info');
+                    // Show special message if payment status changed to paid and completed
+                    if (paymentStatus === 'paid' && status === 'completed') {
+                        showToast('Payment marked as paid. Appointment will be hidden from view.', 'info');
+                        // Force page reload after 1 second to ensure UI updates
+                        setTimeout(() => {
+                            window.location.reload();
+                        }, 1000);
+                    } else {
+                        bootstrap.Modal.getInstance(document.getElementById('editAppointmentModal')).hide();
+                        loadBookings();
                     }
-
-                    refreshSchedule();
                 } else {
                     showToast(data.error || 'Failed to update appointment', 'error');
                 }
             })
             .catch(error => {
-                console.error('Error updating appointment:', error);
+                console.error('❌ Error updating appointment:', error);
                 showToast('Error updating appointment', 'error');
             });
         }
