@@ -1,24 +1,25 @@
+
 """
 Reports related database queries
 """
 from datetime import datetime, date, timedelta
 from sqlalchemy import func, and_, extract
 from app import db
-from models import Appointment, Invoice, Expense, Customer, User
+from models import UnakiBooking, EnhancedInvoice, InvoiceItem, Expense, Customer, User, Service
 from modules.inventory.models import InventoryProduct as Inventory
 
 def get_revenue_report(start_date, end_date):
-    """Get revenue report for date range"""
+    """Get revenue report for date range from invoices"""
     try:
         revenue_data = db.session.query(
-            func.date(Appointment.appointment_date).label('date'),
-            func.sum(Appointment.amount).label('total'),
-            func.count(Appointment.id).label('appointment_count')
+            func.date(EnhancedInvoice.invoice_date).label('date'),
+            func.sum(EnhancedInvoice.total_amount).label('total'),
+            func.count(EnhancedInvoice.id).label('appointment_count')
         ).filter(
-            Appointment.appointment_date >= start_date,
-            Appointment.appointment_date <= end_date,
-            Appointment.is_paid == True
-        ).group_by(func.date(Appointment.appointment_date)).all()
+            EnhancedInvoice.invoice_date >= start_date,
+            EnhancedInvoice.invoice_date <= end_date,
+            EnhancedInvoice.payment_status == 'paid'
+        ).group_by(func.date(EnhancedInvoice.invoice_date)).all()
         
         return revenue_data if revenue_data else []
     except Exception as e:
@@ -27,30 +28,37 @@ def get_revenue_report(start_date, end_date):
 
 def get_expense_report(start_date, end_date):
     """Get expense report for date range"""
-    expense_data = db.session.query(
-        func.date(Expense.expense_date).label('date'),
-        func.sum(Expense.amount).label('total_expenses'),
-        func.count(Expense.id).label('expense_count')
-    ).filter(
-        Expense.expense_date >= start_date,
-        Expense.expense_date <= end_date
-    ).group_by(func.date(Expense.expense_date)).all()
-    
-    return expense_data
+    try:
+        expense_data = db.session.query(
+            func.date(Expense.expense_date).label('date'),
+            func.sum(Expense.amount).label('total_expenses'),
+            func.count(Expense.id).label('expense_count')
+        ).filter(
+            Expense.expense_date >= start_date,
+            Expense.expense_date <= end_date
+        ).group_by(func.date(Expense.expense_date)).all()
+        
+        return expense_data if expense_data else []
+    except Exception as e:
+        print(f"Error in get_expense_report: {e}")
+        return []
 
 def get_staff_performance_report(start_date, end_date):
-    """Get staff performance report"""
+    """Get staff performance report from invoice items"""
     try:
         staff_data = db.session.query(
             User.id,
             User.first_name,
             User.last_name,
-            func.count(Appointment.id).label('appointments'),
-            func.sum(Appointment.amount).label('revenue')
-        ).join(Appointment, User.id == Appointment.staff_id).filter(
-            Appointment.appointment_date >= start_date,
-            Appointment.appointment_date <= end_date,
-            Appointment.is_paid == True
+            func.count(InvoiceItem.id).label('appointments'),
+            func.sum(InvoiceItem.staff_revenue_price).label('revenue')
+        ).join(InvoiceItem, User.id == InvoiceItem.staff_id)\
+        .join(EnhancedInvoice, InvoiceItem.invoice_id == EnhancedInvoice.id)\
+        .filter(
+            EnhancedInvoice.invoice_date >= start_date,
+            EnhancedInvoice.invoice_date <= end_date,
+            EnhancedInvoice.payment_status == 'paid',
+            InvoiceItem.staff_id.isnot(None)
         ).group_by(User.id, User.first_name, User.last_name).all()
         
         return staff_data if staff_data else []
@@ -59,18 +67,19 @@ def get_staff_performance_report(start_date, end_date):
         return []
 
 def get_client_report(start_date, end_date):
-    """Get client report"""
+    """Get client report from invoices"""
     try:
         client_data = db.session.query(
             Customer.id,
             Customer.first_name,
             Customer.last_name,
-            func.count(Appointment.id).label('bookings'),
-            func.sum(Appointment.amount).label('revenue')
-        ).join(Appointment, Customer.id == Appointment.client_id).filter(
-            Appointment.appointment_date >= start_date,
-            Appointment.appointment_date <= end_date,
-            Appointment.is_paid == True
+            func.count(EnhancedInvoice.id).label('bookings'),
+            func.sum(EnhancedInvoice.total_amount).label('revenue')
+        ).join(EnhancedInvoice, Customer.id == EnhancedInvoice.client_id)\
+        .filter(
+            EnhancedInvoice.invoice_date >= start_date,
+            EnhancedInvoice.invoice_date <= end_date,
+            EnhancedInvoice.payment_status == 'paid'
         ).group_by(Customer.id, Customer.first_name, Customer.last_name).all()
         
         return client_data if client_data else []

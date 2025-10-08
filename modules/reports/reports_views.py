@@ -4,7 +4,8 @@ Reports views and routes
 from flask import render_template, request, redirect, url_for, flash, jsonify
 from flask_login import login_required, current_user
 from datetime import datetime, date, timedelta
-from app import app
+from app import app, db
+from models import Service, InvoiceItem, EnhancedInvoice
 from .reports_queries import (
     get_revenue_report, get_expense_report, get_staff_performance_report,
     get_client_report, get_inventory_report
@@ -71,7 +72,26 @@ def reports():
         
         # Add staff performance and service stats for template
         staff_performance = staff_data if staff_data else []
-        service_stats = []
+        
+        # Get service statistics
+        try:
+            service_stats = db.session.query(
+                Service.id,
+                Service.name,
+                func.count(InvoiceItem.id).label('bookings'),
+                func.sum(InvoiceItem.final_amount).label('revenue')
+            ).join(InvoiceItem, Service.id == InvoiceItem.item_id)\
+            .join(EnhancedInvoice, InvoiceItem.invoice_id == EnhancedInvoice.id)\
+            .filter(
+                EnhancedInvoice.invoice_date >= start_date,
+                EnhancedInvoice.invoice_date <= end_date,
+                EnhancedInvoice.payment_status == 'paid',
+                InvoiceItem.item_type == 'service'
+            ).group_by(Service.id, Service.name)\
+            .order_by(func.sum(InvoiceItem.final_amount).desc()).all()
+        except Exception as e:
+            print(f"Error getting service stats: {e}")
+            service_stats = []
         
         return render_template('reports.html',
                              revenue_data=revenue_data,
