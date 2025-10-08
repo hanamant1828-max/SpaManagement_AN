@@ -1378,11 +1378,12 @@
                                     </label>
                                     <select
                                         id="editServiceSelect"
-                                        class="form-select"
+                                        class="form-select service-select"
                                         required
                                         style="
                                             border-radius: 10px;
                                             padding: 12px;
+                                            width: 100%;
                                         "
                                     >
                                         <option value="">
@@ -1962,6 +1963,7 @@
                                                 style="
                                                     border-radius: 10px;
                                                     padding: 12px;
+                                                    width: 100%;
                                                 "
                                             >
                                                 <option value="">
@@ -2418,119 +2420,6 @@
 
             function initializeSearchableDropdowns() {
                 if (typeof $.fn.select2 !== 'undefined') {
-                    // Initialize all dropdowns normally
-                    $('.select2-dropdown').select2({
-                        dropdownParent: $('#multiBookModal'),
-                        width: '100%',
-                        placeholder: function() {
-                            return $(this).find('option:first').text();
-                        },
-                        allowClear: true
-                    });
-
-                    // 🔥 SPECIAL FIX: Only for SERVICE dropdowns
-                    $('.service-select').each(function() {
-                        const $serviceSelect = $(this);
-
-                        // Store original options HTML
-                        $serviceSelect.data('original-options', $serviceSelect.html());
-
-                        // Handle clear event for service dropdown
-                        $serviceSelect.on('select2:clearing', function(e) {
-                            e.preventDefault(); // Prevent default clear
-
-                            const $this = $(this);
-                            const originalOptions = $this.data('original-options');
-
-                            // Clear the value
-                            $this.val('').trigger('change.select2');
-
-                            // Check and restore options if lost
-                            setTimeout(() => {
-                                if ($this.find('option').length <= 1) {
-                                    console.log('🔧 Restoring service dropdown options...');
-
-                                    // Restore options
-                                    $this.html(originalOptions);
-
-                                    // Reinitialize Select2
-                                    $this.select2('destroy').select2({
-                                        dropdownParent: $('#multiBookModal'),
-                                        width: '100%',
-                                        placeholder: 'Select service...',
-                                        allowClear: true
-                                    });
-
-                                    // Re-store original options
-                                    $this.data('original-options', originalOptions);
-
-                                    // Re-attach clearing event
-                                    $this.off('select2:clearing').on('select2:clearing', function(e) {
-                                        e.preventDefault();
-                                        $(this).val('').trigger('change.select2');
-                                    });
-                                }
-                            }, 10);
-                        });
-                    });
-
-                    // 🔥 Re-initialize when new appointment cards are added
-                    const observer = new MutationObserver(function(mutations) {
-                        mutations.forEach(function(mutation) {
-                            if (mutation.addedNodes.length) {
-                                // Initialize new dropdowns
-                                $('.select2-dropdown').not('.select2-hidden-accessible').select2({
-                                    dropdownParent: $('#multiBookModal'),
-                                    width: '100%',
-                                    placeholder: function() {
-                                        return $(this).find('option:first').text();
-                                    },
-                                    allowClear: true
-                                });
-
-                                // Apply special fix to new service dropdowns
-                                $('.service-select').not('.select2-hidden-accessible').each(function() {
-                                    const $serviceSelect = $(this);
-
-                                    // Store original options
-                                    $serviceSelect.data('original-options', $serviceSelect.html());
-
-                                    // Add clearing handler
-                                    $serviceSelect.on('select2:clearing', function(e) {
-                                        e.preventDefault();
-
-                                        const $this = $(this);
-                                        const originalOptions = $this.data('original-options');
-
-                                        $this.val('').trigger('change.select2');
-
-                                        setTimeout(() => {
-                                            if ($this.find('option').length <= 1) {
-                                                console.log('🔧 Restoring service dropdown options...');
-                                                $this.html(originalOptions);
-                                                $this.select2('destroy').select2({
-                                                    dropdownParent: $('#multiBookModal'),
-                                                    width: '100%',
-                                                    placeholder: 'Select service...',
-                                                    allowClear: true
-                                                });
-                                                $this.data('original-options', originalOptions);
-                                            }
-                                        }, 10);
-                                    });
-                                });
-                            }
-                        });
-                    });
-
-                    const container = document.getElementById('appointmentsContainer');
-                    if (container) {
-                        observer.observe(container, { childList: true, subtree: true });
-                    }
-                }
-            }
-
-                if (typeof $.fn.select2 !== 'undefined') {
                     // Destroy existing Select2 instances first
                     $('.select2-dropdown.select2-hidden-accessible').select2('destroy');
 
@@ -2983,7 +2872,7 @@
                         <div class="row">
                             <div class="col-md-6 mb-3">
                                 <label class="form-label fw-semibold"><i class="fas fa-concierge-bell me-2" style="color: var(--primary-color);"></i>Service</label>
-                                <select name="service_id" class="form-select service-select select2-dropdown" required style="border-radius: 10px; padding: 12px;">
+                                <select name="service_id" class="form-select service-select select2-dropdown" required style="border-radius: 10px; padding: 12px; width: 100%;">
                                     <option value="">Select service...</option>
                                     {% if services %}{% for service in services %}
                                     <option value="{{ service.id }}" data-duration="{{ service.duration or 60 }}" data-price="{{ service.price }}">
@@ -3414,8 +3303,9 @@
 
             function saveEditedAppointment() {
                 const appointmentId = document.getElementById('editAppointmentId').value;
-                const serviceId = document.getElementById('editServiceSelect').value;
-                const serviceName = document.getElementById('editServiceSelect').selectedOptions[0]?.text.split('(')[0].trim();
+                const serviceSelect = document.getElementById('editServiceSelect');
+                const serviceId = serviceSelect.value;
+                const serviceName = serviceSelect.selectedOptions[0]?.text.split(' (')[0].trim();
                 const staffId = document.getElementById('editStaffSelect').value;
                 const appointmentDate = document.getElementById('editAppointmentDate').value;
                 const startTime = document.getElementById('editStartTime').value;
@@ -3490,6 +3380,8 @@
                 const serviceSelect = document.getElementById('editServiceSelect');
                 if (appointmentData.service_id) {
                     serviceSelect.value = appointmentData.service_id;
+                    // Trigger change event to ensure end time is calculated if needed
+                    serviceSelect.dispatchEvent(new Event('change'));
                 }
 
                 // Set staff dropdown
@@ -3515,7 +3407,7 @@
                     const startTime = document.getElementById('editStartTime').value;
 
                     if (startTime) {
-                        const endTime = calculateEndTime(startTime, duration);
+                        const endTime = calculateEndTimeFromDuration(startTime, duration);
                         document.getElementById('editEndTime').value = endTime;
                     }
                 });
@@ -3524,9 +3416,25 @@
                 document.getElementById('editStartTime').addEventListener('change', function() {
                     const selectedOption = serviceSelect.options[serviceSelect.selectedIndex];
                     const duration = parseInt(selectedOption.dataset.duration) || 60;
-                    const endTime = calculateEndTime(this.value, duration);
+                    const endTime = calculateEndTimeFromDuration(this.value, duration);
                     document.getElementById('editEndTime').value = endTime;
                 });
+            }
+
+            // Helper function to calculate end time based on start time and duration
+            function calculateEndTimeFromDuration(startTime, durationMinutes) {
+                const [hours, minutes] = startTime.split(':').map(Number);
+                const startDate = new Date();
+                startDate.setHours(hours, minutes, 0, 0);
+                const endDate = new Date(startDate.getTime() + durationMinutes * 60000);
+                return endDate.toTimeString().slice(0, 5);
+            }
+
+            // Helper function to show toast notifications (if you have a toast library integrated)
+            function showToast(message, type = 'info') {
+                // Replace this with your actual toast implementation
+                console.log(`Toast (${type}): ${message}`);
+                alert(`${type.toUpperCase()}: ${message}`);
             }
         </script>
     </body>
