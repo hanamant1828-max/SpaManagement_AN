@@ -475,11 +475,12 @@ def api_save_face():
         return jsonify({'success': False, 'error': 'Access denied'}), 403
 
     try:
-        import face_recognition
+        from insightface.app import FaceAnalysis
         import numpy as np
         import base64
         import io
         from PIL import Image
+        import cv2
         
         data = request.get_json()
         if not data:
@@ -506,28 +507,29 @@ def api_save_face():
         image = Image.open(io.BytesIO(image_bytes))
         image_array = np.array(image)
         
-        # Detect faces in the image
-        face_locations = face_recognition.face_locations(image_array)
+        # Convert RGB to BGR for OpenCV/InsightFace
+        if len(image_array.shape) == 3 and image_array.shape[2] == 3:
+            image_bgr = cv2.cvtColor(image_array, cv2.COLOR_RGB2BGR)
+        else:
+            image_bgr = image_array
         
-        if len(face_locations) == 0:
+        # Initialize InsightFace
+        face_app = FaceAnalysis(providers=['CPUExecutionProvider'])
+        face_app.prepare(ctx_id=0, det_size=(640, 640))
+        
+        # Detect faces
+        faces = face_app.get(image_bgr)
+        
+        if len(faces) == 0:
             return jsonify({
                 'success': False,
                 'error': 'No face detected in image. Please capture a clear photo of your face.'
             }), 400
         
-        if len(face_locations) > 1:
+        if len(faces) > 1:
             return jsonify({
                 'success': False,
                 'error': 'Multiple faces detected. Please ensure only one person is in the frame.'
-            }), 400
-        
-        # Get face encodings to ensure quality
-        face_encodings = face_recognition.face_encodings(image_array)
-        
-        if len(face_encodings) == 0:
-            return jsonify({
-                'success': False,
-                'error': 'Could not extract face features. Please try again with better lighting.'
             }), 400
 
         # Save face image
@@ -563,16 +565,17 @@ def api_save_face():
 @app.route('/api/recognize_face', methods=['POST'])
 @login_required
 def api_recognize_face():
-    """Recognize customer from face image using face_recognition library"""
+    """Recognize customer from face image using InsightFace"""
     if not current_user.can_access('clients'):
         return jsonify({'success': False, 'error': 'Access denied'}), 403
 
     try:
-        import face_recognition
+        from insightface.app import FaceAnalysis
         import numpy as np
         import base64
         import io
         from PIL import Image
+        import cv2
         
         data = request.get_json()
         if not data:
@@ -610,10 +613,20 @@ def api_recognize_face():
         incoming_image = Image.open(io.BytesIO(incoming_image_bytes))
         incoming_image_array = np.array(incoming_image)
         
-        # Get face encodings from incoming image
-        incoming_face_encodings = face_recognition.face_encodings(incoming_image_array)
+        # Convert RGB to BGR for OpenCV/InsightFace
+        if len(incoming_image_array.shape) == 3 and incoming_image_array.shape[2] == 3:
+            incoming_image_bgr = cv2.cvtColor(incoming_image_array, cv2.COLOR_RGB2BGR)
+        else:
+            incoming_image_bgr = incoming_image_array
         
-        if len(incoming_face_encodings) == 0:
+        # Initialize InsightFace
+        face_app = FaceAnalysis(providers=['CPUExecutionProvider'])
+        face_app.prepare(ctx_id=0, det_size=(640, 640))
+        
+        # Detect faces in incoming image
+        incoming_faces = face_app.get(incoming_image_bgr)
+        
+        if len(incoming_faces) == 0:
             app.logger.warning("No face detected in incoming image")
             return jsonify({
                 'success': True,
@@ -621,13 +634,13 @@ def api_recognize_face():
                 'message': 'No face detected. Please position your face clearly in the camera.'
             }), 200
         
-        incoming_face_encoding = incoming_face_encodings[0]
-        app.logger.info(f"Face encoding extracted from incoming image")
+        incoming_embedding = incoming_faces[0].embedding
+        app.logger.info(f"Face embedding extracted from incoming image")
         
         # Compare with stored faces
         matched_customer = None
-        best_match_distance = 1.0  # Lower is better
-        MATCH_THRESHOLD = 0.6  # Face recognition threshold (0.6 is standard)
+        best_similarity = 0.0  # Higher is better for cosine similarity
+        MATCH_THRESHOLD = 0.3  # InsightFace similarity threshold (typically 0.25-0.4)
         
         for customer in customers_with_faces:
             if not customer.face_image_url:
@@ -646,23 +659,31 @@ def api_recognize_face():
                 stored_image_pil = Image.open(io.BytesIO(stored_image_bytes))
                 stored_image_array = np.array(stored_image_pil)
                 
-                # Get face encodings from stored image
-                stored_face_encodings = face_recognition.face_encodings(stored_image_array)
+                # Convert RGB to BGR
+                if len(stored_image_array.shape) == 3 and stored_image_array.shape[2] == 3:
+                    stored_image_bgr = cv2.cvtColor(stored_image_array, cv2.COLOR_RGB2BGR)
+                else:
+                    stored_image_bgr = stored_image_array
                 
-                if len(stored_face_encodings) == 0:
-                    app.logger.warning(f"No face encoding in stored image for customer {customer.id}")
+                # Get face embeddings from stored image
+                stored_faces = face_app.get(stored_image_bgr)
+                
+                if len(stored_faces) == 0:
+                    app.logger.warning(f"No face embedding in stored image for customer {customer.id}")
                     continue
                 
-                stored_face_encoding = stored_face_encodings[0]
+                stored_embedding = stored_faces[0].embedding
                 
-                # Compare faces using face_recognition library
-                face_distance = face_recognition.face_distance([stored_face_encoding], incoming_face_encoding)[0]
+                # Calculate cosine similarity
+                similarity = np.dot(incoming_embedding, stored_embedding) / (
+                    np.linalg.norm(incoming_embedding) * np.linalg.norm(stored_embedding)
+                )
                 
-                app.logger.info(f"Customer {customer.first_name} {customer.last_name}: distance={face_distance}")
+                app.logger.info(f"Customer {customer.first_name} {customer.last_name}: similarity={similarity:.4f}")
                 
                 # Check if this is the best match so far
-                if face_distance < best_match_distance and face_distance < MATCH_THRESHOLD:
-                    best_match_distance = face_distance
+                if similarity > best_similarity and similarity > MATCH_THRESHOLD:
+                    best_similarity = similarity
                     matched_customer = customer
                     
             except Exception as customer_error:
@@ -670,7 +691,7 @@ def api_recognize_face():
                 continue
 
         if matched_customer:
-            confidence = (1 - best_match_distance) * 100
+            confidence = best_similarity * 100
             app.logger.info(f"Customer recognized: {matched_customer.first_name} {matched_customer.last_name} (confidence: {confidence:.1f}%)")
             return jsonify({
                 'success': True,
