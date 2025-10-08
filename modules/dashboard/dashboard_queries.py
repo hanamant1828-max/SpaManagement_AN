@@ -30,7 +30,7 @@ def get_dashboard_stats():
         total_services = Service.query.filter_by(is_active=True).count()
 
         # Total staff
-        total_staff = User.query.filter_by(is_active=True, user_type='staff').count()
+        total_staff = User.query.filter_by(is_active=True, role='staff').count()
 
         # Today's revenue from Appointment table
         todays_appointment_revenue = db.session.query(func.sum(Appointment.amount)).filter(
