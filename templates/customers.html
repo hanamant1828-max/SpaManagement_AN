@@ -999,1240 +999,523 @@
 {% endblock %}
 
 {% block extra_scripts %}
-<!-- Customer management specific scripts -->
+{% extends "base.html" %}
+
+{% block title %}Customer Management - Spa & Salon Management Suite{% endblock %}
+
+{# REST OF THE FILE REMAINS THE SAME UNTIL THE JAVASCRIPT SECTION #}
+
+{% block extra_scripts %}
 <script>
-        // Face capture functionality - Fixed
-        let currentCustomerId = null;
-        let faceVideo = null;
-        let faceCanvas = null;
-        let faceStream = null;
-        let capturedImageData = null;
+// ============================================
+// CUSTOMER MANAGEMENT - CLEANED UP VERSION
+// ============================================
 
-        function selectCustomerForFace(customerId) {
-            console.log('Customer selected for face capture:', customerId);
-            currentCustomerId = customerId;
-            
-            // Initialize video and canvas elements if not already done
-            if (!faceVideo) {
-                faceVideo = document.getElementById('faceVideo');
-            }
-            if (!faceCanvas) {
-                faceCanvas = document.getElementById('faceCanvas');
-            }
+// Global variables
+let currentEditCustomerId = null;
+let currentCustomerId = null;
+let faceVideo = null;
+let faceCanvas = null;
+let faceStream = null;
+let capturedImageData = null;
 
-            if (!customerId) {
-                const selectedInfo = document.getElementById('selectedFaceClientInfo');
-                if (selectedInfo) {
-                    selectedInfo.classList.add('d-none');
-                }
-                return;
-            }
+// ============================================
+// INITIALIZATION - ONE TIME ONLY
+// ============================================
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Customer Management: Initializing...');
 
-            const select = document.getElementById('faceClientSelect');
-            if (select) {
-                const selectedOption = select.options[select.selectedIndex];
-                if (selectedOption) {
-                    const customerName = selectedOption.textContent.split(' - ')[0];
-                    const customerPhone = selectedOption.textContent.split(' - ')[1];
+    // Validate customer action buttons on load
+    validateCustomerActionButtons();
 
-                    const selectedDetails = document.getElementById('selectedFaceClientDetails');
-                    const selectedInfo = document.getElementById('selectedFaceClientInfo');
+    // Populate customer select for face capture
+    populateCustomerSelect();
 
-                    if (selectedDetails && selectedInfo) {
-                        selectedDetails.textContent = `${customerName} - ${customerPhone}`;
-                        selectedInfo.classList.remove('d-none');
-                    }
-                }
-            }
-        }
-
-        async function startFaceCamera() {
-            console.log('Starting face camera...');
-
-            if (!currentCustomerId) {
-                showFaceNotification('Please select a customer first', 'warning');
-                return;
-            }
-
-            try {
-                faceVideo = document.getElementById('faceVideo');
-                faceCanvas = document.getElementById('faceCanvas');
-
-                if (!faceVideo || !faceCanvas) {
-                    console.error('Video or canvas elements not found');
-                    showFaceNotification('Camera elements not found', 'danger');
-                    return;
-                }
-
-                // Stop any existing stream
-                if (faceStream) {
-                    faceStream.getTracks().forEach(track => track.stop());
-                }
-
-                // Request camera access
-                faceStream = await navigator.mediaDevices.getUserMedia({
-                    video: {
-                        width: { ideal: 640 },
-                        height: { ideal: 480 },
-                        facingMode: 'user'
-                    }
-                });
-
-                console.log('Camera access granted');
-
-                faceVideo.srcObject = faceStream;
-                await faceVideo.play();
-                faceVideo.style.display = 'block';
-
-                // Hide placeholder
-                const placeholder = document.getElementById('faceCameraPlaceholder');
-                if (placeholder) {
-                    placeholder.style.display = 'none';
-                }
-
-                // Update button states
-                const startBtn = document.getElementById('startCameraBtn');
-                const captureBtn = document.getElementById('captureFacePhoto');
-
-                if (startBtn) {
-                    startBtn.disabled = true;
-                    startBtn.innerHTML = '<i class="fas fa-circle text-danger me-2"></i>Camera Active';
-                    startBtn.classList.remove('btn-success');
-                    startBtn.classList.add('btn-secondary');
-                }
-                if (captureBtn) {
-                    captureBtn.disabled = false;
-                }
-
-                showFaceNotification('Camera started successfully!', 'success');
-
-            } catch (error) {
-                console.error('Error accessing camera:', error);
-                let errorMessage = 'Camera access failed. ';
-
-                if (error.name === 'NotAllowedError') {
-                    errorMessage += 'Please allow camera access and try again.';
-                } else if (error.name === 'NotFoundError') {
-                    errorMessage += 'No camera found on this device.';
-                } else {
-                    errorMessage += 'Please check your camera and permissions.';
-                }
-
-                showFaceNotification(errorMessage, 'danger');
-            }
-        }
-
-        function captureFacePhoto() {
-            console.log('Capturing face photo...');
-
-            if (!currentCustomerId) {
-                showFaceNotification('Please select a customer first', 'warning');
-                return;
-            }
-
-            if (!faceVideo || !faceCanvas) {
-                showFaceNotification('Camera not ready', 'warning');
-                return;
-            }
-
-            // Set canvas size to match video
-            faceCanvas.width = faceVideo.videoWidth || 640;
-            faceCanvas.height = faceVideo.videoHeight || 480;
-
-            const ctx = faceCanvas.getContext('2d');
-            ctx.drawImage(faceVideo, 0, 0, faceCanvas.width, faceCanvas.height);
-
-            capturedImageData = faceCanvas.toDataURL('image/jpeg', 0.8);
-
-            // Show captured image
-            faceVideo.style.display = 'none';
-            faceCanvas.style.display = 'block';
-
-            // Update button states
-            const captureBtn = document.getElementById('captureFacePhoto');
-            const saveBtn = document.getElementById('saveFaceData');
-
-            if (captureBtn) {
-                captureBtn.style.display = 'none';
-            }
-            if (saveBtn) {
-                saveBtn.disabled = false;
-                saveBtn.style.display = 'inline-block';
-            }
-
-            showFaceNotification('Photo captured! Click "Save Face Data" to store it.', 'success');
-        }
-
-        function saveFaceData() {
-            console.log('Saving face data...');
-
-            if (!currentCustomerId || !capturedImageData) {
-                showFaceNotification('No customer selected or photo captured', 'warning');
-                return;
-            }
-
-            try {
-                const saveBtn = document.getElementById('saveFaceData');
-                if (saveBtn) {
-                    saveBtn.disabled = true;
-                    saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Saving...';
-                }
-
-                // For now, simulate a successful save since the API endpoint doesn't exist
-                setTimeout(() => {
-                    showFaceNotification('Face data saved successfully!', 'success');
-                    resetFaceCapture();
-
-                    // Reload face data table
-                    loadFaceDataTable();
-                }, 1000);
-
-            } catch (error) {
-                console.error('Error saving face data:', error);
-                showFaceNotification('Error saving face data', 'danger');
-
-                const saveBtn = document.getElementById('saveFaceData');
-                if (saveBtn) {
-                    saveBtn.disabled = false;
-                    saveBtn.innerHTML = '<i class="fas fa-save me-2"></i>Save Face Data';
-                }
-            }
-        }
-
-        function resetFaceCapture() {
-            console.log('Resetting face capture...');
-
-            // Stop video stream
-            if (faceStream) {
-                faceStream.getTracks().forEach(track => track.stop());
-                faceStream = null;
-            }
-
-            if (faceVideo && faceVideo.srcObject) {
-                faceVideo.srcObject.getTracks().forEach(track => track.stop());
-                faceVideo.srcObject = null;
-            }
-
-            // Reset UI elements
-            if (faceVideo) faceVideo.style.display = 'none';
-            if (faceCanvas) faceCanvas.style.display = 'none';
-
-            // Show placeholder
-            const placeholder = document.getElementById('faceCameraPlaceholder');
-            if (placeholder) placeholder.style.display = 'flex';
-
-            // Reset button states
-            const startBtn = document.getElementById('startCameraBtn');
-            const captureBtn = document.getElementById('captureFacePhoto');
-            const saveBtn = document.getElementById('saveFaceData');
-
-            if (startBtn) {
-                startBtn.disabled = false;
-                startBtn.innerHTML = '<i class="fas fa-video me-2"></i>Start Camera';
-                startBtn.classList.remove('btn-secondary');
-                startBtn.classList.add('btn-success');
-            }
-            if (captureBtn) {
-                captureBtn.disabled = true;
-            }
-            if (saveBtn) {
-                saveBtn.disabled = true;
-                saveBtn.innerHTML = '<i class="fas fa-save me-2"></i>Save Face Data';
-            }
-
-            // Clear data
-            capturedImageData = null;
-            currentCustomerId = null;
-
-            const selectElement = document.getElementById('faceClientSelect');
-            if (selectElement) selectElement.value = '';
-
-            const selectedInfo = document.getElementById('selectedFaceClientInfo');
-            if (selectedInfo) selectedInfo.classList.add('d-none');
-        }
-
-        function showFaceNotification(message, type = 'info') {
-            const alertDiv = document.createElement('div');
-            alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
-            alertDiv.style.cssText = 'top: 80px; right: 20px; z-index: 9999; min-width: 300px; max-width: 400px;';
-            alertDiv.innerHTML = `
-                <strong><i class="fas fa-${type === 'success' ? 'check-circle' : type === 'warning' ? 'exclamation-triangle' : type === 'danger' ? 'times-circle' : 'info-circle'} me-2"></i></strong>
-                ${message}
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            `;
-
-            document.body.appendChild(alertDiv);
-
-            setTimeout(() => {
-                if (alertDiv.parentNode) {
-                    alertDiv.parentNode.removeChild(alertDiv);
-                }
-            }, 5000);
-        }
-
-        // Face capture initialization
-            console.log('Initializing face capture functionality...');
-            setupFaceCapture();
-
-        // Global error handler for JavaScript errors
-        window.addEventListener('error', function(e) {
-            console.error('JavaScript error caught:', e.error);
-            if (e.error && e.error.message && e.error.message.includes('missing ) after argument list')) {
-                console.error('Syntax error in customer action buttons detected');
-                showFaceNotification('JavaScript error detected. Please refresh the page.', 'danger');
+    // Setup face capture tab lazy loading
+    const faceTab = document.getElementById('face-capture-tab');
+    if (faceTab) {
+        faceTab.addEventListener('shown.bs.tab', function() {
+            if (!this.dataset.initialized) {
+                console.log('Face Recognition tab: First time activation');
+                initializeFaceCaptureOnce();
+                this.dataset.initialized = 'true';
             }
         });
+    }
+});
 
-        // Validate customer IDs before any operations
-        function validateCustomerId(customerId, operation) {
-            if (!customerId || customerId === 'null' || customerId === null || customerId === undefined || isNaN(customerId)) {
-                console.error(`Invalid customer ID for ${operation}:`, customerId);
-                showFaceNotification(`Error: Invalid customer data. Please refresh the page.`, 'danger');
-                return false;
-            }
-            return true;
+// ============================================
+// FACE CAPTURE - INITIALIZE ONCE
+// ============================================
+function initializeFaceCaptureOnce() {
+    console.log('Initializing face capture features...');
+
+    // Get DOM elements
+    faceVideo = document.getElementById('faceVideo');
+    faceCanvas = document.getElementById('faceCanvas');
+
+    // Setup event listeners (only once)
+    const faceClientSelect = document.getElementById('faceClientSelect');
+    if (faceClientSelect && !faceClientSelect.dataset.listenerAttached) {
+        faceClientSelect.addEventListener('change', (e) => selectCustomerForFace(e.target.value));
+        faceClientSelect.dataset.listenerAttached = 'true';
+    }
+
+    // Load face data table
+    loadFaceDataTable();
+}
+
+// ============================================
+// FACE CAPTURE FUNCTIONS
+// ============================================
+function selectCustomerForFace(customerId) {
+    currentCustomerId = customerId;
+
+    const selectedInfo = document.getElementById('selectedFaceClientInfo');
+    const selectedDetails = document.getElementById('selectedFaceClientDetails');
+
+    if (!customerId) {
+        if (selectedInfo) selectedInfo.classList.add('d-none');
+        return;
+    }
+
+    const select = document.getElementById('faceClientSelect');
+    const selectedOption = select?.options[select.selectedIndex];
+
+    if (selectedOption && selectedDetails && selectedInfo) {
+        selectedDetails.textContent = selectedOption.textContent;
+        selectedInfo.classList.remove('d-none');
+    }
+}
+
+async function startFaceCamera() {
+    if (!currentCustomerId) {
+        showNotification('Please select a customer first', 'warning');
+        return;
+    }
+
+    try {
+        // Stop existing stream
+        if (faceStream) {
+            faceStream.getTracks().forEach(track => track.stop());
         }
 
-        // Initialize customer management separately from face capture
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('Customers page loaded, validating customer action buttons...');
-
-            // Validate all customer action buttons immediately
-            validateCustomerActionButtons();
+        // Request camera
+        faceStream = await navigator.mediaDevices.getUserMedia({
+            video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: 'user' }
         });
 
-        function validateCustomerActionButtons() {
-            console.log('Validating customer action buttons...');
+        faceVideo.srcObject = faceStream;
+        await faceVideo.play();
+        faceVideo.style.display = 'block';
 
-            // Find all customer action buttons
-            const actionButtons = document.querySelectorAll('[onclick*="viewCustomer"], [onclick*="editCustomer"], [onclick*="deleteCustomer"], [onclick*="bookAppointment"]');
+        document.getElementById('faceCameraPlaceholder').style.display = 'none';
 
-            let invalidButtonCount = 0;
+        // Update buttons
+        const startBtn = document.getElementById('startCameraBtn');
+        startBtn.disabled = true;
+        startBtn.innerHTML = '<i class="fas fa-circle text-danger me-2"></i>Camera Active';
+        startBtn.classList.replace('btn-success', 'btn-secondary');
 
-            actionButtons.forEach((button, index) => {
-                const onclick = button.getAttribute('onclick');
-                console.log(`Button ${index}: ${onclick}`);
+        document.getElementById('captureFacePhoto').disabled = false;
 
-                if (onclick && (onclick.includes('undefined') || onclick.includes('null') || onclick.includes('Customer(null'))) {
-                    console.error(`Invalid onclick found: ${onclick}`);
-                    button.disabled = true;
-                    button.title = 'Error: Invalid customer data - please refresh the page';
-                    button.style.opacity = '0.5';
-                    invalidButtonCount++;
-                } else {
-                    // Try to extract customer ID from onclick
-                    const match = onclick.match(/\((\d+)/);
-                    if (match && match[1]) {
-                        console.log(`Valid customer ID found: ${match[1]}`);
-                    } else {
-                        console.warn(`Could not extract customer ID from: ${onclick}`);
-                    }
-                }
-            });
+        showNotification('Camera started successfully!', 'success');
 
-            if (invalidButtonCount > 0) {
-                console.warn(`Found ${invalidButtonCount} invalid customer buttons`);
-                showFaceNotification(`Found ${invalidButtonCount} invalid customer buttons. Please refresh the page.`, 'warning');
+    } catch (error) {
+        console.error('Camera error:', error);
+        const messages = {
+            'NotAllowedError': 'Please allow camera access and try again.',
+            'NotFoundError': 'No camera found on this device.',
+            'default': 'Please check your camera and permissions.'
+        };
+        showNotification('Camera access failed. ' + (messages[error.name] || messages.default), 'danger');
+    }
+}
+
+function captureFacePhoto() {
+    if (!currentCustomerId || !faceVideo) {
+        showNotification('Please select a customer and start camera first', 'warning');
+        return;
+    }
+
+    faceCanvas.width = faceVideo.videoWidth || 640;
+    faceCanvas.height = faceVideo.videoHeight || 480;
+
+    const ctx = faceCanvas.getContext('2d');
+    ctx.drawImage(faceVideo, 0, 0, faceCanvas.width, faceCanvas.height);
+
+    capturedImageData = faceCanvas.toDataURL('image/jpeg', 0.8);
+
+    faceVideo.style.display = 'none';
+    faceCanvas.style.display = 'block';
+
+    document.getElementById('captureFacePhoto').style.display = 'none';
+    document.getElementById('saveFaceData').disabled = false;
+
+    showNotification('Photo captured! Click "Save Face Data" to store it.', 'success');
+}
+
+function saveFaceData() {
+    if (!currentCustomerId || !capturedImageData) {
+        showNotification('No customer selected or photo captured', 'warning');
+        return;
+    }
+
+    const saveBtn = document.getElementById('saveFaceData');
+    saveBtn.disabled = true;
+    saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Saving...';
+
+    fetch('/api/save_face', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            client_id: currentCustomerId,
+            face_image: capturedImageData
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showNotification('Face data saved successfully!', 'success');
+            resetFaceCapture();
+            loadFaceDataTable();
+        } else {
+            throw new Error(data.error || 'Save failed');
+        }
+    })
+    .catch(error => {
+        console.error('Save error:', error);
+        showNotification('Error saving face data: ' + error.message, 'danger');
+        saveBtn.disabled = false;
+        saveBtn.innerHTML = '<i class="fas fa-save me-2"></i>Save Face Data';
+    });
+}
+
+function resetFaceCapture() {
+    if (faceStream) {
+        faceStream.getTracks().forEach(track => track.stop());
+        faceStream = null;
+    }
+
+    if (faceVideo) {
+        faceVideo.style.display = 'none';
+        if (faceVideo.srcObject) {
+            faceVideo.srcObject.getTracks().forEach(track => track.stop());
+            faceVideo.srcObject = null;
+        }
+    }
+
+    if (faceCanvas) faceCanvas.style.display = 'none';
+
+    const placeholder = document.getElementById('faceCameraPlaceholder');
+    if (placeholder) placeholder.style.display = 'flex';
+
+    // Reset buttons
+    const startBtn = document.getElementById('startCameraBtn');
+    startBtn.disabled = false;
+    startBtn.innerHTML = '<i class="fas fa-video me-2"></i>Start Camera';
+    startBtn.classList.replace('btn-secondary', 'btn-success');
+
+    document.getElementById('captureFacePhoto').disabled = true;
+    document.getElementById('saveFaceData').disabled = true;
+
+    capturedImageData = null;
+    currentCustomerId = null;
+
+    document.getElementById('faceClientSelect').value = '';
+    document.getElementById('selectedFaceClientInfo').classList.add('d-none');
+}
+
+function loadFaceDataTable() {
+    const container = document.getElementById('faceTableContainer');
+    if (!container) return;
+
+    container.innerHTML = '<div class="text-center py-4"><i class="fas fa-spinner fa-spin fa-2x text-primary"></i><p class="text-muted mt-2">Loading...</p></div>';
+
+    fetch('/api/customers_with_faces')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && data.customers?.length > 0) {
+                renderFaceTable(data.customers, container);
             } else {
-                console.log('All customer action buttons are valid');
+                showEmptyFaceState(container);
             }
-        }
+        })
+        .catch(error => {
+            console.error('Load error:', error);
+            showEmptyFaceState(container);
+        });
+}
 
-        function verifyFaceCaptureElements() {
-            const requiredElements = [
-                'faceClientSelect',
-                'startCameraBtn', 
-                'captureFacePhoto',
-                'saveFaceData',
-                'faceVideo',
-                'faceCanvas',
-                'faceCameraPlaceholder'
-            ];
+function renderFaceTable(customers, container) {
+    let html = '<table class="table table-enhanced mb-0"><thead><tr><th>Customer</th><th>Phone</th><th>Registration Date</th><th class="text-center">Actions</th></tr></thead><tbody>';
 
-            const missingElements = [];
-            requiredElements.forEach(id => {
-                const element = document.getElementById(id);
-                if (!element) {
-                    missingElements.push(id);
-                }
-            });
-
-            if (missingElements.length > 0) {
-                console.error('Missing face capture elements:', missingElements);
-                showFaceNotification('Some face capture elements are missing. Please refresh the page.', 'warning');
-            } else {
-                console.log('All face capture elements found successfully');
-                showFaceNotification('Face capture system ready', 'success');
-            }
-        }
-
-
-        // Customer select population function
-        function populateCustomerSelect() {
-            const selectElement = document.getElementById('faceClientSelect');
-            
-            if (!selectElement) {
-                console.warn('Face client select element not found');
-                return;
-            }
-
-            try {
-                const customersJson = '{{ customers|tojson|safe }}';
-                const customers = JSON.parse(customersJson);
-
-                if (customers && customers.length > 0) {
-                    selectElement.innerHTML = '<option value="">Select a customer...</option>';
-                    customers.forEach(customer => {
-                        const option = document.createElement('option');
-                        option.value = customer.id;
-                        const fullName = customer.full_name || `${customer.first_name} ${customer.last_name}`;
-                        option.textContent = `${fullName} - ${customer.phone}`;
-                        option.dataset.name = fullName;
-                        option.dataset.phone = customer.phone;
-                        selectElement.appendChild(option);
-                    });
-                    console.log(`Populated ${customers.length} customers in face select`);
-                } else {
-                    selectElement.innerHTML = '<option value="">No customers available</option>';
-                }
-            } catch (error) {
-                console.error('Error populating customer select:', error);
-                selectElement.innerHTML = '<option value="">Error loading customers</option>';
-            }
-        }
-
-        // Load face data only when Face Recognition tab is activated
-        const faceTab = document.getElementById('face-capture-tab');
-        if (faceTab) {
-            faceTab.addEventListener('shown.bs.tab', function() {
-                console.log('Face Recognition tab activated');
-                loadFaceDataTable();
-            });
-        }
-
-        // Load customers function
-        function loadCustomers() {
-            console.log('Loading customers...');
-        }
-
-        // Load face data table - Fixed infinite loader
-        function loadFaceDataTable() {
-            console.log('Loading face data table...');
-
-            const tableContainer = document.getElementById('faceTableContainer');
-            if (!tableContainer) {
-                console.error('Face table container not found');
-                return;
-            }
-
-            // Show loading state
-            tableContainer.innerHTML = `
-                <div class="text-center py-4">
-                    <i class="fas fa-spinner fa-spin fa-2x text-primary mb-3"></i>
-                    <p class="text-muted">Loading face data...</p>
-                </div>
-            `;
-
-            // Try to load actual face data from server
-            fetch('/api/customers_with_faces')
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error('Failed to fetch face data');
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    if (data.success && data.customers && data.customers.length > 0) {
-                        // Display customers with face data
-                        let tableHtml = `
-                            <table class="table table-enhanced mb-0">
-                                <thead>
-                                    <tr>
-                                        <th>Customer</th>
-                                        <th>Phone</th>
-                                        <th>Registration Date</th>
-                                        <th class="text-center">Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                        `;
-
-                        data.customers.forEach(customer => {
-                            tableHtml += `
-                                <tr>
-                                    <td>
-                                        <div class="d-flex align-items-center">
-                                            <div class="face-preview me-3">
-                                                <div class="face-image bg-primary d-flex align-items-center justify-content-center text-white">
-                                                    ${customer.full_name.charAt(0)}
-                                                </div>
-                                            </div>
-                                            <div>
-                                                <strong>${customer.full_name}</strong>
-                                                <br><small class="text-muted">${customer.email || 'No email'}</small>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td>${customer.phone}</td>
-                                    <td>${customer.face_registration_date ? new Date(customer.face_registration_date).toLocaleDateString() : 'Unknown'}</td>
-                                    <td class="text-center">
-                                        <button class="btn btn-sm btn-outline-warning me-1" onclick="updateFace(${customer.id})" title="Update Face">
-                                            <i class="fas fa-sync-alt"></i>
-                                        </button>
-                                        <button class="btn btn-sm btn-outline-danger" onclick="removeFace(${customer.id})" title="Remove Face">
-                                            <i class="fas fa-trash"></i>
-                                        </button>
-                                    </td>
-                                </tr>
-                            `;
-                        });
-
-                        tableHtml += `
-                                </tbody>
-                            </table>
-                        `;
-
-                        tableContainer.innerHTML = tableHtml;
-                    } else {
-                        // Show empty state
-                        tableContainer.innerHTML = `
-                            <div class="empty-state">
-                                <i class="fas fa-user-friends"></i>
-                                <h4 class="mt-3">No registered faces yet</h4>
-                                <p class="text-muted">Start capturing customer faces using the section above to see them listed here.</p>
-                                <div class="mt-3">
-                                    <small class="text-info">
-                                        <i class="fas fa-info-circle me-1"></i>
-                                        Face recognition data will appear here once you capture and save customer faces
-                                    </small>
-                                </div>
-                            </div>
-                        `;
-                    }
-                })
-                .catch(error => {
-                    console.error('Error loading face data:', error);
-                    // Show empty state on error
-                    tableContainer.innerHTML = `
-                        <div class="empty-state">
-                            <i class="fas fa-user-friends"></i>
-                            <h4 class="mt-3">No registered faces yet</h4>
-                            <p class="text-muted">Start capturing customer faces using the section above to see them listed here.</p>
-                            <div class="mt-3">
-                                <small class="text-info">
-                                    <i class="fas fa-info-circle me-1"></i>
-                                    Face recognition data will appear here once you capture and save customer faces
-                                </small>
+    customers.forEach(customer => {
+        const date = customer.face_registration_date ? new Date(customer.face_registration_date).toLocaleDateString() : 'Unknown';
+        html += `
+            <tr>
+                <td>
+                    <div class="d-flex align-items-center">
+                        <div class="face-preview me-3">
+                            <div class="face-image bg-primary d-flex align-items-center justify-content-center text-white">
+                                ${customer.full_name.charAt(0)}
                             </div>
                         </div>
-                    `;
-                });
-        }
-
-        // Refresh face table
-        function refreshFaceTable() {
-            const tableContainer = document.getElementById('faceTableContainer');
-            if (tableContainer) {
-                tableContainer.innerHTML = `
-                    <div class="text-center py-5">
-                        <i class="fas fa-spinner fa-spin fa-2x text-primary mb-3"></i>
-                        <p class="text-muted">Refreshing face data...</p>
-                    </div>
-                `;
-            }
-            loadFaceDataTable();
-        }
-
-        // Search face data
-        function searchFaceData() {
-            const searchInput = document.getElementById('faceSearchInput');
-            const searchTerm = searchInput ? searchInput.value.toLowerCase() : '';
-
-            // For now, just reload all data
-            // In a real implementation, you'd filter server-side
-            loadFaceDataTable();
-        }
-
-        // Update face
-        function updateFace(customerId) {
-            if (confirm('Update face data for this customer? This will replace the existing face registration.')) {
-                // You can implement this to allow updating/recapturing face data
-                alert(`Update face for customer ID: ${customerId}`);
-            }
-        }
-
-        // Remove face
-        async function removeFace(customerId) {
-            if (confirm('Are you sure you want to remove the face data for this customer?')) {
-                try {
-                    // You'd implement a delete endpoint here
-                    alert(`Remove face for customer ID: ${customerId}`);
-                    refreshFaceTable();
-                } catch (error) {
-                    console.error('Error removing face:', error);
-                }
-            }
-        }
-    </script>
-    <script>
-        // Customer management functions
-        let currentEditCustomerId = null;
-
-        // Function to ensure customer data is visible immediately
-        function ensureCustomerDataVisibility() {
-            console.log('Ensuring customer data visibility...');
-            
-            // Remove any loading overlays or spinners that might be hiding data
-            const loadingElements = document.querySelectorAll('.spinner-border, .text-center[style*="loading"]');
-            loadingElements.forEach(element => {
-                if (element.textContent.includes('Loading') || element.classList.contains('spinner-border')) {
-                    element.style.display = 'none';
-                }
-            });
-            
-            // Ensure customer table is visible
-            const customerTable = document.querySelector('.spa-table, table');
-            if (customerTable) {
-                customerTable.style.display = '';
-                const tableContainer = customerTable.closest('.card-body, .table-responsive, .professional-card');
-                if (tableContainer) {
-                    tableContainer.style.display = '';
-                }
-            }
-            
-            // Ensure stats are visible
-            const statsOverview = document.querySelector('.stats-overview');
-            if (statsOverview) {
-                statsOverview.style.display = 'block';
-            }
-            
-            console.log('Customer data visibility ensured');
-        }
-
-        // Ensure data loads immediately on page load
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('Customers page DOM loaded - ensuring data visibility');
-            
-            // Populate customer select for face capture
-            populateCustomerSelect();
-            
-            // Force immediate data visibility
-            setTimeout(function() {
-                ensureCustomerDataVisibility();
-            }, 100);
-            
-            // Force show customer data immediately
-            const customerTable = document.querySelector('.spa-table tbody');
-            const statsOverview = document.querySelector('.stats-overview');
-            const emptyState = document.querySelector('.empty-state');
-            
-            // Ensure customer table is visible if it has data
-            if (customerTable && customerTable.children.length > 0) {
-                customerTable.style.display = '';
-                customerTable.parentElement.style.display = '';
-                
-                // Hide any loading states
-                const loadingStates = document.querySelectorAll('.text-center[style*="loading"], .spinner-border');
-                loadingStates.forEach(loader => {
-                    if (loader.textContent.includes('Loading') || loader.classList.contains('spinner-border')) {
-                        loader.style.display = 'none';
-                    }
-                });
-            }
-            
-            // Show stats if available
-            if (statsOverview && !emptyState) {
-                statsOverview.style.display = 'block';
-            }
-            
-            // Initialize face capture only when specifically needed
-            const faceTab = document.getElementById('face-capture-tab');
-            if (faceTab) {
-                faceTab.addEventListener('shown.bs.tab', function() {
-                    console.log('Face capture tab activated - initializing face features');
-                    setTimeout(initializeFaceCaptureFeatures, 100);
-                });
-            }
-            
-            console.log('Customer data visibility ensured on page load');
-        });
-
-        // Separate face capture initialization to prevent interference
-        function initializeFaceCaptureFeatures() {
-            console.log('🎥 Initializing face capture features...');
-            
-            // Populate customer dropdown first
-            populateCustomerSelect();
-            
-            // Set up event listeners
-            setupFaceCapture();
-            
-            // Verify all elements exist
-            verifyFaceCaptureElements();
-            
-            // Load existing face data
-            loadFaceDataTable();
-            
-            console.log('✅ Face capture features initialized');
-        }
-
-        // Open customer profile modal
-        function openCustomerProfile(customerId) {
-            const modal = new bootstrap.Modal(document.getElementById('customerProfileModal'));
-            const contentDiv = document.getElementById('customerProfileContent');
-
-            // Show loading spinner
-            contentDiv.innerHTML = `
-                <div class="text-center py-4">
-                    <div class="spinner-border text-primary" role="status">
-                        <span class="visually-hidden">Loading...</span>
-                    </div>
-                    <p class="mt-2 text-muted">Loading customer details...</p>
-                </div>
-            `;
-
-            modal.show();
-
-            // Fetch customer data
-            fetch(`/api/customers/${customerId}`)
-                .then(response => {
-                    if (response.status === 404) {
-                        throw new Error('not_found');
-                    } else if (!response.ok) {
-                        throw new Error('server_error');
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    if (data.success) {
-                        renderCustomerProfile(data.customer);
-                    } else {
-                        throw new Error(data.error || 'unknown_error');
-                    }
-                })
-                .catch(error => {
-                    console.error('Error loading customer:', error);
-                    showCustomerError(error.message, customerId);
-                });
-        }
-
-        // Render customer profile in modal
-        function renderCustomerProfile(customer) {
-            const contentDiv = document.getElementById('customerProfileContent');
-
-            // Generate avatar initials
-            const initials = `${customer.first_name.charAt(0)}${customer.last_name.charAt(0)}`.toUpperCase();
-
-            // Format dates
-            const formatDate = (dateString) => {
-                if (!dateString) return 'Not provided';
-                return new Date(dateString).toLocaleDateString();
-            };
-
-            // Status badges
-            const statusBadges = [];
-            if (customer.is_vip) statusBadges.push('<span class="badge bg-warning">VIP</span>');
-            if (customer.is_active) statusBadges.push('<span class="badge bg-success">Active</span>');
-            else statusBadges.push('<span class="badge bg-secondary">Inactive</span>');
-
-            contentDiv.innerHTML = `
-                <div class="card border-0">
-                    <div class="card-body">
-                        <div class="row">
-                            <div class="col-md-3 text-center">
-                                <div class="avatar-circle bg-primary text-white mb-3" style="width: 80px; height: 80px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: bold; margin: 0 auto;">
-                                    ${initials}
-                                </div>
-                                <div class="mb-2">
-                                    ${statusBadges.join(' ')}
-                                </div>
-                            </div>
-                            <div class="col-md-9">
-                                <h4 class="mb-1">${customer.full_name}</h4>
-                                <p class="text-muted mb-3">${customer.status || 'Customer'}</p>
-
-                                <div class="row mb-3">
-                                    <div class="col-sm-6">
-                                        <strong>Phone:</strong><br>
-                                        <a href="tel:${customer.phone}" class="text-decoration-none">${customer.phone || 'Not provided'}</a>
-                                    </div>
-                                    <div class="col-sm-6">
-                                        <strong>Email:</strong><br>
-                                        <a href="mailto:${customer.email}" class="text-decoration-none">${customer.email || 'Not provided'}</a>
-                                    </div>
-                                </div>
-
-                                <div class="row mb-3">
-                                    <div class="col-sm-6">
-                                        <strong>Date of Birth:</strong><br>
-                                        ${formatDate(customer.date_of_birth)}${customer.age ? ` (${customer.age} years)` : ''}
-                                    </div>
-                                    <div class="col-sm-6">
-                                        <strong>Gender:</strong><br>
-                                        ${customer.gender || 'Not specified'}
-                                    </div>
-                                </div>
-
-                                ${customer.address ? `
-                                    <div class="mb-3">
-                                        <strong>Address:</strong><br>
-                                        ${customer.address.replace(/\n/g, '<br>')}
-                                    </div>
-                                ` : ''}
-
-                                <div class="row mb-3">
-                                    <div class="col-sm-4">
-                                        <strong>Total Visits:</strong><br>
-                                        <span class="badge bg-info">${customer.total_visits}</span>
-                                    </div>
-                                    <div class="col-sm-4">
-                                        <strong>Lifetime Value:</strong><br>
-                                        <span class="badge bg-success">₹${customer.total_spent.toFixed(2)}</span>
-                                    </div>
-                                    <div class="col-sm-4">
-                                        <strong>Last Visit:</strong><br>
-                                        ${formatDate(customer.last_visit)}
-                                    </div>
-                                </div>
-
-                                ${customer.preferences ? `
-                                    <div class="mb-3">
-                                        <strong>Preferences:</strong><br>
-                                        <span class="text-muted">${customer.preferences}</span>
-                                    </div>
-                                ` : ''}
-
-                                ${customer.allergies ? `
-                                    <div class="mb-3">
-                                        <strong>Allergies:</strong><br>
-                                        <span class="text-danger">${customer.allergies}</span>
-                                    </div>
-                                ` : ''}
-
-                                ${customer.notes ? `
-                                    <div class="mb-3">
-                                        <strong>Notes:</strong><br>
-                                        <span class="text-muted">${customer.notes}</span>
-                                    </div>
-                                ` : ''}
-
-                                <div class="mt-4">
-                                    <a href="/appointments/new?client_id=${customer.id}" class="btn btn-primary">
-                                        <i class="fas fa-calendar-plus me-2"></i>Book Appointment
-                                    </a>
-                                    <button class="btn btn-outline-primary ms-2" onclick="editCustomer(${customer.id})">
-                                        <i class="fas fa-edit me-2"></i>Edit Customer
-                                    </button>
-                                </div>
-                            </div>
+                        <div>
+                            <strong>${customer.full_name}</strong><br>
+                            <small class="text-muted">${customer.email || 'No email'}</small>
                         </div>
                     </div>
-                </div>
-            `;
-        }
-
-        // Show error in customer profile modal
-        function showCustomerError(errorType, customerId) {
-            const contentDiv = document.getElementById('customerProfileContent');
-
-            let errorMessage = 'An unexpected error occurred.';
-            let errorIcon = 'fas fa-exclamation-triangle';
-
-            if (errorType === 'not_found') {
-                errorMessage = "We couldn't find this customer. It may have been deleted.";
-                errorIcon = 'fas fa-user-slash';
-            } else if (errorType === 'server_error' || errorType === 'unknown_error') {
-                errorMessage = "We couldn't load customer details. Please try again.";
-                errorIcon = 'fas fa-server';
-            }
-
-            contentDiv.innerHTML = `
-                <div class="text-center py-4">
-                    <i class="${errorIcon} text-danger" style="font-size: 3rem;"></i>
-                    <h5 class="mt-3 text-danger">Error Loading Customer</h5>
-                    <p class="text-muted">${errorMessage}</p>
-                    <button class="btn btn-primary" onclick="openCustomerProfile(${customerId})">
-                        <i class="fas fa-retry me-2"></i>Try Again
+                </td>
+                <td>${customer.phone}</td>
+                <td>${date}</td>
+                <td class="text-center">
+                    <button class="btn btn-sm btn-outline-warning me-1" onclick="updateFace(${customer.id})" title="Update Face">
+                        <i class="fas fa-sync-alt"></i>
                     </button>
+                    <button class="btn btn-sm btn-outline-danger" onclick="removeFace(${customer.id})" title="Remove Face">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </td>
+            </tr>
+        `;
+    });
+
+    html += '</tbody></table>';
+    container.innerHTML = html;
+}
+
+function showEmptyFaceState(container) {
+    container.innerHTML = `
+        <div class="empty-state">
+            <i class="fas fa-user-friends"></i>
+            <h4 class="mt-3">No registered faces yet</h4>
+            <p class="text-muted">Start capturing customer faces using the section above.</p>
+        </div>
+    `;
+}
+
+function refreshFaceTable() {
+    loadFaceDataTable();
+}
+
+function searchFaceData() {
+    // Implement search functionality
+    loadFaceDataTable();
+}
+
+function updateFace(customerId) {
+    if (confirm('Update face data for this customer?')) {
+        // Switch to capture tab and pre-select customer
+        const captureTab = document.getElementById('face-capture-tab');
+        const managementTab = new bootstrap.Tab(captureTab);
+        managementTab.show();
+
+        const select = document.getElementById('faceClientSelect');
+        if (select) {
+            select.value = customerId;
+            selectCustomerForFace(customerId);
+        }
+    }
+}
+
+function removeFace(customerId) {
+    if (confirm('Remove face data for this customer?')) {
+        // Implement face removal
+        showNotification('Face removal not yet implemented', 'info');
+    }
+}
+
+// ============================================
+// CUSTOMER MANAGEMENT FUNCTIONS
+// ============================================
+function validateCustomerId(customerId, operation) {
+    if (!customerId || customerId === 'null' || isNaN(customerId)) {
+        console.error(`Invalid customer ID for ${operation}:`, customerId);
+        showNotification('Error: Invalid customer data', 'danger');
+        return false;
+    }
+    return true;
+}
+
+function validateCustomerActionButtons() {
+    const buttons = document.querySelectorAll('[onclick*="viewCustomer"], [onclick*="editCustomer"], [onclick*="deleteCustomer"], [onclick*="bookAppointment"]');
+
+    let invalidCount = 0;
+    buttons.forEach(button => {
+        const onclick = button.getAttribute('onclick');
+        if (onclick?.includes('null') || onclick?.includes('undefined')) {
+            button.disabled = true;
+            button.title = 'Error: Invalid customer data';
+            button.style.opacity = '0.5';
+            invalidCount++;
+        }
+    });
+
+    if (invalidCount > 0) {
+        console.warn(`Found ${invalidCount} invalid buttons`);
+    }
+}
+
+function viewCustomer(customerId) {
+    if (!validateCustomerId(customerId, 'viewCustomer')) return;
+
+    const modal = new bootstrap.Modal(document.getElementById('viewCustomerModal'));
+    const details = document.getElementById('customerDetails');
+
+    details.innerHTML = '<div class="text-center py-4"><i class="fas fa-spinner fa-spin fa-2x"></i></div>';
+    modal.show();
+
+    fetch(`/api/customers/${customerId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                renderCustomerDetails(data.customer, details);
+            } else {
+                throw new Error(data.error);
+            }
+        })
+        .catch(error => {
+            details.innerHTML = `<div class="alert alert-danger">Error: ${error.message}</div>`;
+        });
+}
+
+function renderCustomerDetails(customer, container) {
+    const initials = `${customer.first_name[0]}${customer.last_name[0]}`;
+    container.innerHTML = `
+        <div class="row">
+            <div class="col-md-3 text-center">
+                <div class="customer-avatar mx-auto mb-3" style="width: 80px; height: 80px; font-size: 1.5rem;">
+                    ${initials}
                 </div>
-            `;
-        }
+                ${customer.is_vip ? '<span class="badge bg-warning"><i class="fas fa-crown"></i> VIP</span>' : ''}
+            </div>
+            <div class="col-md-9">
+                <h4>${customer.full_name}</h4>
+                <p class="text-muted">${customer.status}</p>
+                <div class="row">
+                    <div class="col-sm-6"><strong>Phone:</strong> ${customer.phone}</div>
+                    <div class="col-sm-6"><strong>Email:</strong> ${customer.email || 'N/A'}</div>
+                </div>
+                <div class="row mt-2">
+                    <div class="col-sm-4"><strong>Visits:</strong> ${customer.total_visits}</div>
+                    <div class="col-sm-4"><strong>Spent:</strong> ₹${customer.total_spent.toFixed(2)}</div>
+                    <div class="col-sm-4"><strong>Last Visit:</strong> ${customer.last_visit ? new Date(customer.last_visit).toLocaleDateString() : 'Never'}</div>
+                </div>
+            </div>
+        </div>
+    `;
+}
 
-        function editCustomer(customerId) {
-            console.log('Edit customer called with ID:', customerId);
+function editCustomer(customerId) {
+    if (!validateCustomerId(customerId, 'editCustomer')) return;
 
-            // Validate customer ID before proceeding
-            if (!validateCustomerId(customerId, 'editCustomer')) {
-                return;
-            }
+    currentEditCustomerId = customerId;
 
-            loadCustomerDataForEdit(customerId);
-        }
-
-        function loadCustomerDataForEdit(customerId) {
-            console.log('Loading customer data for editing:', customerId);
-
-            // Double-check customer ID validation
-            if (!validateCustomerId(customerId, 'loadCustomerDataForEdit')) {
-                return;
-            }
-
-            currentEditCustomerId = customerId;
-
-            // Make AJAX call to get customer data
-            fetch(`/api/customers/${customerId}`)
-                .then(response => {
-                    console.log('API response status:', response.status);
-                    return response.json();
-                })
-                .then(data => {
-                    console.log('Customer data received:', data);
-
-                    if (data.success && data.customer) {
-                        populateEditForm(data.customer);
-
-                        // Show the modal
-                        const modal = new bootstrap.Modal(document.getElementById('editCustomerModal'));
-                        modal.show();
-                    } else {
-                        alert('Error loading customer data: ' + (data.error || 'Customer not found'));
-                    }
-                })
-                .catch(error => {
-                    console.error('Error fetching customer:', error);
-                    alert('Failed to load customer data. Please try again.');
-                });
-        }
-
-        function populateEditForm(customer) {
-            console.log('Populating edit form with customer data:', customer);
-
-            // Update form action
-            const form = document.getElementById('editCustomerForm');
-            if (form) {
-                form.action = `/clients/update/${customer.id}`;
-            }
-
-            // Populate form fields
-            const fields = {
-                'edit_first_name': customer.first_name,
-                'edit_last_name': customer.last_name,
-                'edit_phone': customer.phone,
-                'edit_email': customer.email,
-                'edit_address': customer.address,
-                'edit_date_of_birth': customer.date_of_birth,
-                'edit_gender': customer.gender,
-                'edit_preferences': customer.preferences,
-                'edit_allergies': customer.allergies,
-                'edit_notes': customer.notes
-            };
-
-            for (const [fieldId, value] of Object.entries(fields)) {
-                const field = document.getElementById(fieldId);
-                if (field && value !== null && value !== undefined) {
-                    field.value = value;
-                    console.log(`Set ${fieldId} to:`, value);
-                }
-            }
-
-            console.log('Edit form populated successfully');
-        }
-
-        function deleteCustomer(customerId, customerName) {
-            // Validate customer ID
-            if (!validateCustomerId(customerId, 'deleteCustomer')) {
-                return;
-            }
-
-            // Escape customer name for safe display
-            const safeName = customerName ? customerName.replace(/'/g, "\\'") : 'this customer';
-
-            if (confirm(`Are you sure you want to delete customer "${safeName}"?\n\nThis action will deactivate the customer but preserve their data.`)) {
-                // Show loading notification
-                showNotification('Deleting customer...', 'info');
-
-                // Use the POST route that actually works
-                const form = document.createElement('form');
-                form.method = 'POST';
-                form.action = `/clients/delete/${customerId}`;
-                form.style.display = 'none';
-
-                // Add CSRF token if available
-                const csrfToken = document.querySelector('meta[name=csrf-token]');
-                if (csrfToken) {
-                    const csrfInput = document.createElement('input');
-                    csrfInput.type = 'hidden';
-                    csrfInput.name = 'csrf_token';
-                    csrfInput.value = csrfToken.getAttribute('content');
-                    form.appendChild(csrfInput);
-                }
-
-                document.body.appendChild(form);
-                form.submit();
-            }
-        }
-
-        function bookAppointment(customerId) {
-            // Validate customer ID
-            if (!validateCustomerId(customerId, 'bookAppointment')) {
-                return;
-            }
-
-            // Redirect to booking page with customer ID
-            window.location.href = `/bookings?customer_id=${customerId}`;
-        }
-
-        function bookAppointmentFromModal() {
-            if (currentEditCustomerId) {
-                bookAppointment(currentEditCustomerId);
+    fetch(`/api/customers/${customerId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                populateEditForm(data.customer);
+                const modal = new bootstrap.Modal(document.getElementById('editCustomerModal'));
+                modal.show();
             } else {
-                // Get customer ID from the modal if available
-                const customerDetails = document.getElementById('customerDetails');
-                if (customerDetails) {
-                    // Try to extract customer ID from the modal content
-                    const customerIdMatch = customerDetails.innerHTML.match(/data-customer-id="(\d+)"/);
-                    if (customerIdMatch) {
-                        bookAppointment(parseInt(customerIdMatch[1]));
-                        return;
-                    }
-                }
-                alert('No customer selected');
+                showNotification('Error loading customer data', 'danger');
             }
-        }
+        })
+        .catch(error => {
+            console.error('Edit error:', error);
+            showNotification('Failed to load customer data', 'danger');
+        });
+}
 
-        function setupFaceCapture() {
-            console.log('Setting up face capture elements...');
-            const faceClientSelect = document.getElementById('faceClientSelect');
-            const startCameraBtn = document.getElementById('startCameraBtn');
-            const captureFacePhotoBtn = document.getElementById('captureFacePhoto');
-            const saveFaceDataBtn = document.getElementById('saveFaceData');
+function populateEditForm(customer) {
+    const form = document.getElementById('editCustomerForm');
+    form.action = `/clients/update/${customer.id}`;
 
-            if (faceClientSelect) {
-                faceClientSelect.addEventListener('change', (e) => {
-                    selectCustomerForFace(e.target.value);
-                });
-                console.log('✓ Face client select listener attached');
-            } else {
-                console.warn('✗ Face client select not found');
-            }
+    const fields = {
+        'edit_first_name': customer.first_name,
+        'edit_last_name': customer.last_name,
+        'edit_phone': customer.phone,
+        'edit_email': customer.email,
+        'edit_address': customer.address,
+        'edit_date_of_birth': customer.date_of_birth,
+        'edit_gender': customer.gender,
+        'edit_preferences': customer.preferences,
+        'edit_allergies': customer.allergies,
+        'edit_notes': customer.notes
+    };
 
-            if (startCameraBtn) {
-                startCameraBtn.addEventListener('click', startFaceCamera);
-                console.log('✓ Start camera button listener attached');
-            } else {
-                console.warn('✗ Start camera button not found');
-            }
+    Object.entries(fields).forEach(([id, value]) => {
+        const field = document.getElementById(id);
+        if (field && value) field.value = value;
+    });
+}
 
-            if (captureFacePhotoBtn) {
-                captureFacePhotoBtn.addEventListener('click', captureFacePhoto);
-                console.log('✓ Capture photo button listener attached');
-            } else {
-                console.warn('✗ Capture photo button not found');
-            }
+function deleteCustomer(customerId, customerName) {
+    if (!validateCustomerId(customerId, 'deleteCustomer')) return;
 
-            if (saveFaceDataBtn) {
-                saveFaceDataBtn.addEventListener('click', saveFaceData);
-                console.log('✓ Save face data button listener attached');
-            } else {
-                console.warn('✗ Save face data button not found');
-            }
-        }
+    if (confirm(`Delete customer "${customerName}"?\n\nThis will deactivate the customer.`)) {
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = `/clients/delete/${customerId}`;
+        document.body.appendChild(form);
+        form.submit();
+    }
+}
 
-        function setupCameraButtons() {
-            console.log('Setting up camera buttons...');
-            const startCameraBtn = document.getElementById('startCameraBtn');
-            const startRecognitionBtn = document.getElementById('startRecognitionBtn');
+function bookAppointment(customerId) {
+    if (!validateCustomerId(customerId, 'bookAppointment')) return;
+    window.location.href = `/bookings?customer_id=${customerId}`;
+}
 
-            console.log('Found buttons:', {
-                startCameraBtn: !!startCameraBtn,
-                startRecognitionBtn: !!startRecognitionBtn
-            });
-        }
+function bookAppointmentFromModal() {
+    if (currentEditCustomerId) {
+        bookAppointment(currentEditCustomerId);
+    }
+}
 
-        function initializeCameraButtons() {
-            const startCameraBtn = document.getElementById('startCameraBtn');
-            const startRecognitionBtn = document.getElementById('startRecognitionBtn');
+function populateCustomerSelect() {
+    const select = document.getElementById('faceClientSelect');
+    if (!select) return;
 
-            if (startCameraBtn) {
-                startCameraBtn.addEventListener('click', startCamera);
-            }
+    try {
+        const customersData = {{ customers|tojson|safe }};
+        select.innerHTML = '<option value="">Select a customer...</option>';
 
-            if (startRecognitionBtn) {
-                startRecognitionBtn.addEventListener('click', startRecognition);
-            }
-        }
+        customersData.forEach(customer => {
+            const option = document.createElement('option');
+            option.value = customer.id;
+            option.textContent = `${customer.full_name} - ${customer.phone}`;
+            select.appendChild(option);
+        });
+    } catch (error) {
+        console.error('Error populating select:', error);
+    }
+}
 
-        let videoStream = null;
-        let videoElement = null;
+// ============================================
+// UTILITY FUNCTIONS
+// ============================================
+function showNotification(message, type = 'info') {
+    const icons = {
+        success: 'check-circle',
+        warning: 'exclamation-triangle',
+        danger: 'times-circle',
+        info: 'info-circle'
+    };
 
-        async function startCamera() {
-            console.log('Starting camera...');
+    const alert = document.createElement('div');
+    alert.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+    alert.style.cssText = 'top: 80px; right: 20px; z-index: 9999; min-width: 300px; max-width: 400px;';
+    alert.innerHTML = `
+        <i class="fas fa-${icons[type]} me-2"></i>${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
 
-            try {
-                // Stop any existing stream
-                if (videoStream) {
-                    videoStream.getTracks().forEach(track => track.stop());
-                }
-
-                // Get or create video element
-                videoElement = document.getElementById('cameraVideo');
-                if (!videoElement) {
-                    videoElement = document.createElement('video');
-                    videoElement.id = 'cameraVideo';
-                    videoElement.width = 400;
-                    videoElement.height = 300;
-                    videoElement.autoplay = true;
-                    videoElement.muted = true;
-                    videoElement.style.borderRadius = '10px';
-                    videoElement.style.border = '2px solid #007bff';
-
-                    // Insert video into the face table container
-                    const container = document.getElementById('faceTableContainer');
-                    container.innerHTML = '';
-                    container.appendChild(videoElement);
-                }
-
-                // Request camera access
-                videoStream = await navigator.mediaDevices.getUserMedia({
-                    video: { 
-                        width: { ideal: 640 },
-                        height: { ideal: 480 },
-                        facingMode: 'user'
-                    },
-                    audio: false
-                });
-
-                videoElement.srcObject = videoStream;
-
-                // Update button state
-                const startCameraBtn = document.getElementById('startCameraBtn');
-                startCameraBtn.innerHTML = '<i class="fas fa-stop me-1"></i>Stop Camera';
-                startCameraBtn.onclick = stopCamera;
-                startCameraBtn.className = 'btn btn-danger me-2';
-
-                showNotification('Camera started successfully!', 'success');
-
-            } catch (error) {
-                console.error('Camera error:', error);
-                let errorMessage = 'Camera access failed: ';
-
-                if (error.name === 'NotAllowedError') {
-                    errorMessage += 'Permission denied. Please allow camera access.';
-                } else if (error.name === 'NotFoundError') {
-                    errorMessage += 'No camera found on this device.';
-                } else {
-                    errorMessage += error.message;
-                }
-
-                showNotification(errorMessage, 'danger');
-            }
-        }
-
-        function stopCamera() {
-            console.log('Stopping camera...');
-
-            if (videoStream) {
-                videoStream.getTracks().forEach(track => track.stop());
-                videoStream = null;
-            }
-
-            if (videoElement) {
-                videoElement.srcObject = null;
-                videoElement.remove();
-                videoElement = null;
-            }
-
-            // Reset button
-            const startCameraBtn = document.getElementById('startCameraBtn');
-            startCameraBtn.innerHTML = '<i class="fas fa-video me-1"></i>Start Camera';
-            startCameraBtn.onclick = startCamera;
-            startCameraBtn.className = 'btn btn-success me-2';
-
-            // Reset container
-            loadFaceData();
-
-            showNotification('Camera stopped', 'info');
-        }
-
-        async function startRecognition() {
-            console.log('Starting face recognition...');
-
-            if (!videoElement || !videoStream) {
-                showNotification('Please start the camera first', 'warning');
-                return;
-            }
-
-            try {
-                // Capture current frame
-                const canvas = document.createElement('canvas');
-                canvas.width = videoElement.videoWidth;
-                canvas.height = videoElement.videoHeight;
-
-                const ctx = canvas.getContext('2d');
-                ctx.drawImage(videoElement, 0, 0);
-
-                const imageData = canvas.toDataURL('image/jpeg', 0.8);
-
-                // Send to recognition API
-                const response = await fetch('/api/customer_face_login', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        face_image: imageData
-                    })
-                });
-
-                const result = await response.json();
-
-                if (result.success) {
-                    if (result.recognized) {
-                        showNotification(`Customer recognized: ${result.customer.name} (${result.confidence}% confidence)`, 'success');
-                        // You can add logic here to auto-select the recognized customer
-                    } else {
-                        showNotification('No matching customer found', 'info');
-                    }
-                } else {
-                    showNotification('Recognition failed: ' + result.error, 'danger');
-                }
-
-            } catch (error) {
-                console.error('Recognition error:', error);
-                showNotification('Recognition error: ' + error.message, 'danger');
-            }
-        }
-
-        function loadFaceData() {
-            const tableContainer = document.getElementById('faceTableContainer');
-            if (tableContainer) {
-                tableContainer.innerHTML = `
-                    <div class="text-center py-5">
-                        <i class="fas fa-spinner fa-spin fa-2x text-muted mb-3"></i>
-                        <p class="text-muted">Loading face data...</p>
-                    </div>
-                `;
-            }
-            loadFaceDataTable();
-        }
-
-        function showNotification(message, type = 'info') {
-            const alertDiv = document.createElement('div');
-            alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
-            alertDiv.style.cssText = 'top: 80px; right: 20px; z-index: 9999; min-width: 300px; max-width: 400px;';
-            alertDiv.innerHTML = `
-                <strong><i class="fas fa-${type === 'success' ? 'check-circle' : type === 'warning' ? 'exclamation-triangle' : type === 'danger' ? 'times-circle' : 'info-circle'} me-2"></i></strong>
-                ${message}
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            `;
-
-            document.body.appendChild(alertDiv);
-
-            setTimeout(() => {
-                if (alertDiv.parentNode) {
-                    alertDiv.parentNode.removeChild(alertDiv);
-                }
-            }, 5000);
-        }
-    </script>
+    document.body.appendChild(alert);
+    setTimeout(() => alert.remove(), 5000);
+}
+</script>
+{% endblock %}
 {% endblock %}
