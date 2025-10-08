@@ -514,6 +514,7 @@
                                         <th>Customer</th>
                                         <th>Contact Information</th>
                                         <th>Visit History</th>
+                                        <th class="text-center">Face Data</th>
                                         <th>Status</th>
                                         <th class="text-center">Actions</th>
                                     </tr>
@@ -568,6 +569,17 @@
                                             <div class="small">
                                                 <strong>{{ utils.format_currency(customer.total_spent) }}</strong> spent
                                             </div>
+                                        </td>
+                                        <td class="text-center">
+                                            {% if customer.face_encoding or customer.face_image_url %}
+                                                <span class="badge bg-success" title="Face data captured">
+                                                    <i class="fas fa-check-circle"></i> Captured
+                                                </span>
+                                            {% else %}
+                                                <span class="badge bg-secondary" title="No face data">
+                                                    <i class="fas fa-times-circle"></i> Not Captured
+                                                </span>
+                                            {% endif %}
                                         </td>
                                         <td>
                                             <span class="status-badge bg-{{ utils.get_status_badge_class(customer.status.lower().replace(' ', '_')) }}">
