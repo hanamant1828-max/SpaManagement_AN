@@ -1161,7 +1161,7 @@
                             <label class="form-label fw-semibold">
                                 <i class="fas fa-user me-2" style="color: var(--primary-color)"></i>Select Client
                             </label>
-                            <select id="multiClientSelect" class="form-select" required style="border-radius: 10px; padding: 12px">
+                            <select id="multiClientSelect" class="form-select select2-dropdown" required style="border-radius: 10px; padding: 12px">
                                 <option value="">Choose a client...</option>
                                 {% if clients %}
                                 {% for client in clients %}
@@ -1204,7 +1204,7 @@
                                         <label class="form-label fw-semibold">
                                             <i class="fas fa-concierge-bell me-2" style="color: var(--primary-color);"></i>Service
                                         </label>
-                                        <select name="service_id" class="form-select service-select" required style="border-radius: 10px; padding: 12px;">
+                                        <select name="service_id" class="form-select service-select select2-dropdown" required style="border-radius: 10px; padding: 12px;">
                                             <option value="">Select service...</option>
                                             {% if services %}
                                             {% for service in services %}
@@ -1219,7 +1219,7 @@
                                         <label class="form-label fw-semibold">
                                             <i class="fas fa-user-md me-2" style="color: var(--primary-color);"></i>Staff Member
                                         </label>
-                                        <select name="staff_id" class="form-select staff-select" required style="border-radius: 10px; padding: 12px;">
+                                        <select name="staff_id" class="form-select staff-select select2-dropdown" required style="border-radius: 10px; padding: 12px;">
                                             <option value="">Select staff member...</option>
                                             {% if staff_members %}
                                             {% for staff in staff_members %}
@@ -1330,6 +1330,7 @@
             setupEventListeners();
             setupTooltips();
             setupScrollSync();
+            initializeSearchableDropdowns();
         });
 
         function initializeApp() {
@@ -1436,6 +1437,41 @@
                 }
                 syncingFromPanel = false;
             }, { passive: true });
+        }
+
+        function initializeSearchableDropdowns() {
+            // Initialize Select2 for all dropdowns with search
+            if (typeof $.fn.select2 !== 'undefined') {
+                $('.select2-dropdown').select2({
+                    dropdownParent: $('#multiBookModal'),
+                    width: '100%',
+                    placeholder: function() {
+                        return $(this).find('option:first').text();
+                    },
+                    allowClear: true
+                });
+
+                // Re-initialize when new appointments are added
+                const observer = new MutationObserver(function(mutations) {
+                    mutations.forEach(function(mutation) {
+                        if (mutation.addedNodes.length) {
+                            $('.select2-dropdown').not('.select2-hidden-accessible').select2({
+                                dropdownParent: $('#multiBookModal'),
+                                width: '100%',
+                                placeholder: function() {
+                                    return $(this).find('option:first').text();
+                                },
+                                allowClear: true
+                            });
+                        }
+                    });
+                });
+
+                const container = document.getElementById('appointmentsContainer');
+                if (container) {
+                    observer.observe(container, { childList: true, subtree: true });
+                }
+            }
         }
 
         // ==========================================
@@ -1705,6 +1741,9 @@
         }
 
         function resetMultiBookModal() {
+            // Destroy Select2 instances before resetting
+            $('.select2-dropdown').select2('destroy');
+
             document.getElementById("multiClientSelect").value = "";
             document.getElementById("multiNotes").value = "";
             document.getElementById("customerExistingAppointments").style.display = "none";
@@ -1727,6 +1766,9 @@
                 firstCard.classList.remove("duplicate");
             }
 
+            // Reinitialize Select2
+            initializeSearchableDropdowns();
+
             updateAppointmentCount();
             updateSummary();
             updateSubmitButton();
@@ -1744,7 +1786,7 @@
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label class="form-label fw-semibold"><i class="fas fa-concierge-bell me-2" style="color: var(--primary-color);"></i>Service</label>
-                            <select name="service_id" class="form-select service-select" required style="border-radius: 10px; padding: 12px;">
+                            <select name="service_id" class="form-select service-select select2-dropdown" required style="border-radius: 10px; padding: 12px;">
                                 <option value="">Select service...</option>
                                 {% if services %}{% for service in services %}
                                 <option value="{{ service.id }}" data-duration="{{ service.duration or 60 }}" data-price="{{ service.price }}">
@@ -1755,7 +1797,7 @@
                         </div>
                         <div class="col-md-6 mb-3">
                             <label class="form-label fw-semibold"><i class="fas fa-user-md me-2" style="color: var(--primary-color);"></i>Staff Member</label>
-                            <select name="staff_id" class="form-select staff-select" required style="border-radius: 10px; padding: 12px;">
+                            <select name="staff_id" class="form-select staff-select select2-dropdown" required style="border-radius: 10px; padding: 12px;">
                                 <option value="">Select staff member...</option>
                                 {% if staff_members %}{% for staff in staff_members %}
                                 <option value="{{ staff.id }}">{{ staff.first_name }} {{ staff.last_name if staff.last_name else '' }}</option>
