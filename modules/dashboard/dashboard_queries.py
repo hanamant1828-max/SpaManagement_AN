@@ -48,8 +48,15 @@ def get_dashboard_stats():
 
         # Today's revenue from EnhancedInvoice table (Primary billing system)
         from models import EnhancedInvoice
+        from datetime import datetime as dt, timedelta
+        
+        # Create date range for today (00:00:00 to 23:59:59)
+        today_start = dt.combine(today, dt.min.time())
+        today_end = dt.combine(today, dt.max.time())
+        
         todays_enhanced_invoice_revenue = db.session.query(func.sum(EnhancedInvoice.total_amount)).filter(
-            func.date(EnhancedInvoice.invoice_date) == today,
+            EnhancedInvoice.invoice_date >= today_start,
+            EnhancedInvoice.invoice_date <= today_end,
             EnhancedInvoice.payment_status == 'paid'
         ).scalar() or 0.0
 
@@ -70,8 +77,12 @@ def get_dashboard_stats():
         ).scalar() or 0.0
 
         # This month's revenue from EnhancedInvoice table (Primary billing system - uses total_amount which is final amount customer pays)
+        # Create proper datetime for first day of month
+        from datetime import datetime as dt
+        first_day_datetime = dt.combine(first_day_of_month, dt.min.time())
+        
         monthly_enhanced_invoice_revenue = db.session.query(func.sum(EnhancedInvoice.total_amount)).filter(
-            EnhancedInvoice.invoice_date >= first_day_of_month,
+            EnhancedInvoice.invoice_date >= first_day_datetime,
             EnhancedInvoice.payment_status == 'paid'
         ).scalar() or 0.0
 
