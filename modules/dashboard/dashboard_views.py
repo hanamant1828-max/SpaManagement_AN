@@ -53,12 +53,12 @@ def dashboard_stats_api():
         from sqlalchemy import func
         from models import Appointment, Service, User
         from app import db
-        
+
         # Get last 7 days revenue
         today = date.today()
         revenue_data = []
         revenue_labels = []
-        
+
         for i in range(6, -1, -1):
             day = today - timedelta(days=i)
             day_revenue = db.session.query(func.sum(Appointment.amount)).filter(
@@ -66,10 +66,10 @@ def dashboard_stats_api():
                 Appointment.status == 'completed',
                 Appointment.is_paid == True
             ).scalar() or 0.0
-            
+
             revenue_data.append(float(day_revenue))
             revenue_labels.append(day.strftime('%a'))
-        
+
         # Get service popularity (top 6 services)
         service_popularity = db.session.query(
             Service.name,
@@ -77,23 +77,23 @@ def dashboard_stats_api():
         ).join(Appointment, Appointment.service_id == Service.id).filter(
             Appointment.appointment_date >= today - timedelta(days=30)
         ).group_by(Service.name).order_by(func.count(Appointment.id).desc()).limit(6).all()
-        
+
         service_labels = [s[0] for s in service_popularity]
         service_data = [s[1] for s in service_popularity]
-        
+
         # Get last 7 days bookings
         bookings_data = []
         bookings_labels = []
-        
+
         for i in range(6, -1, -1):
             day = today - timedelta(days=i)
             day_bookings = Appointment.query.filter(
                 func.date(Appointment.appointment_date) == day
             ).count()
-            
+
             bookings_data.append(day_bookings)
             bookings_labels.append(day.strftime('%a'))
-        
+
         # Get staff performance (top 5 staff by completed appointments)
         staff_performance = db.session.query(
             User.id,
@@ -104,10 +104,10 @@ def dashboard_stats_api():
             Appointment.status == 'completed',
             Appointment.appointment_date >= today - timedelta(days=30)
         ).group_by(User.id, User.first_name, User.last_name).order_by(func.count(Appointment.id).desc()).limit(5).all()
-        
+
         staff_labels = [f"{s[1]} {s[2]}" for s in staff_performance]
         staff_data = [s[3] for s in staff_performance]
-        
+
         return jsonify({
             'success': True,
             'revenue_chart': {
@@ -138,7 +138,7 @@ def alerts():
         # Get inventory alerts
         from modules.inventory.models import InventoryBatch, InventoryProduct
         from sqlalchemy.orm import joinedload
-        
+
 
         # Get current date in IST for default filters
         ist_now = get_ist_now()
