@@ -311,7 +311,14 @@ def unaki_create_appointment_enhanced():
             'amount': service.price
         }
 
-        appointment = create_appointment(appointment_data)
+        appointment, error = create_appointment(appointment_data)
+        if not appointment:
+            db.session.rollback()
+            return jsonify({
+                'success': False,
+                'error': error or 'Failed to create appointment'
+            }), 400
+        
         db.session.commit()
 
         return jsonify({
@@ -457,7 +464,7 @@ def unaki_load_sample_data():
                     'amount': services[i % len(services)].price
                 }
                 
-                appointment = create_appointment(appointment_data)
+                appointment, error = create_appointment(appointment_data)
                 if appointment:
                     created_count += 1
 

@@ -179,7 +179,12 @@ def get_appointment_stats(filter_date):
     return stats
 
 def create_appointment(appointment_data):
-    """Create a new appointment"""
+    """Create a new appointment
+    
+    Returns:
+        tuple: (appointment, error_message) where appointment is the created Appointment object or None,
+               and error_message is a string describing the error or None if successful
+    """
     try:
         # Calculate end_time if not provided
         if 'end_time' not in appointment_data and 'service_id' in appointment_data:
@@ -190,14 +195,51 @@ def create_appointment(appointment_data):
                     appointment_date = datetime.strptime(appointment_date, '%Y-%m-%d %H:%M')
                 appointment_data['end_time'] = appointment_date + timedelta(minutes=service.duration)
 
+        # Check for client conflicts - prevent same client from having multiple appointments at same time
+        if 'client_id' in appointment_data and 'appointment_date' in appointment_data and 'end_time' in appointment_data:
+            client_id = appointment_data['client_id']
+            start_time = appointment_data['appointment_date']
+            end_time = appointment_data['end_time']
+            
+            if isinstance(start_time, str):
+                start_time = datetime.strptime(start_time, '%Y-%m-%d %H:%M')
+            if isinstance(end_time, str):
+                end_time = datetime.strptime(end_time, '%Y-%m-%d %H:%M')
+            
+            # Check existing appointments for this client
+            existing_appointments = Appointment.query.filter(
+                Appointment.client_id == client_id,
+                Appointment.status.in_(['scheduled', 'confirmed']),
+                func.date(Appointment.appointment_date) == start_time.date()
+            ).all()
+            
+            for existing in existing_appointments:
+                existing_start = existing.appointment_date
+                existing_end = existing.end_time
+                
+                # Skip appointments without end_time or calculate it from service duration
+                if not existing_end:
+                    if existing.service and existing.service.duration:
+                        existing_end = existing_start + timedelta(minutes=existing.service.duration)
+                    else:
+                        # Skip if we can't determine the end time
+                        continue
+                
+                # Check for overlap
+                if start_time < existing_end and end_time > existing_start:
+                    error_msg = f'Client already has an appointment from {existing_start.strftime("%I:%M %p")} to {existing_end.strftime("%I:%M %p")}'
+                    print(f"❌ Client conflict: {error_msg}")
+                    return None, error_msg
+
         appointment = Appointment(**appointment_data)
         db.session.add(appointment)
         db.session.commit()
-        return appointment
+        return appointment, None
     except Exception as e:
         db.session.rollback()
-        print(f"Error creating appointment: {e}")
-        return None
+        error_msg = f"Error creating appointment: {str(e)}"
+        print(error_msg)
+        return None, error_msg
 
 def update_appointment(appointment_id, appointment_data):
     """Update an existing appointment"""

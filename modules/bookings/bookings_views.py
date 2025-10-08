@@ -166,8 +166,12 @@ def create_booking():
             'status': 'scheduled'
         }
 
-        create_appointment(appointment_data)
-        flash('Appointment created successfully!', 'success')
+        appointment, error = create_appointment(appointment_data)
+        if appointment:
+            flash('Appointment created successfully!', 'success')
+        else:
+            error_msg = error or 'Error creating appointment. Please check your input.'
+            flash(error_msg, 'danger')
     else:
         flash('Error creating appointment. Please check your input.', 'danger')
 
@@ -252,11 +256,12 @@ def add_appointment():
             'discount': form.discount.data or 0
         }
 
-        appointment = create_appointment(appointment_data)
+        appointment, error = create_appointment(appointment_data)
         if appointment:
             flash('Appointment created successfully', 'success')
         else:
-            flash('Failed to create appointment', 'danger')
+            error_msg = error or 'Failed to create appointment'
+            flash(error_msg, 'danger')
 
     return redirect(url_for('bookings'))
 
@@ -657,7 +662,13 @@ def book_appointment_api():
         }
 
         # Create the appointment
-        appointment = create_appointment(appointment_data)
+        appointment, error = create_appointment(appointment_data)
+        
+        if not appointment:
+            return jsonify({
+                'success': False,
+                'error': error or 'Failed to create appointment'
+            }), 400
 
         return jsonify({
             'success': True,
@@ -728,7 +739,13 @@ def api_quick_book():
             'amount': service.price
         }
 
-        appointment = create_appointment(appointment_data)
+        appointment, error = create_appointment(appointment_data)
+        
+        if not appointment:
+            return jsonify({
+                'success': False,
+                'error': error or 'Failed to create appointment'
+            }), 400
 
         return jsonify({
             'success': True,
@@ -1063,8 +1080,32 @@ def api_unaki_book_appointment():
 
             # Check for overlap: appointments overlap if start < other_end AND end > other_start
             if start_datetime < existing_end and end_datetime > existing_start:
-                conflict_msg = f'Time conflict! {booking.client_name} already has an appointment from {booking.start_time.strftime("%I:%M %p")} to {booking.end_time.strftime("%I:%M %p")}'
+                conflict_msg = f'Time conflict! Staff member already has an appointment with {booking.client_name} from {booking.start_time.strftime("%I:%M %p")} to {booking.end_time.strftime("%I:%M %p")}'
                 print(f"❌ Conflict detected: {conflict_msg}")
+                return jsonify({
+                    'error': conflict_msg,
+                    'success': False
+                }), 400
+
+        # Check for client conflicts - prevent same client from having multiple appointments at the same time
+        client_bookings = UnakiBooking.query.filter_by(
+            client_name=client_name,
+            appointment_date=appointment_date
+        ).filter(UnakiBooking.status.in_(['scheduled', 'confirmed'])).all()
+
+        print(f"🔍 Checking client conflicts for {client_name} on {appointment_date}")
+        print(f"📋 Existing client bookings: {len(client_bookings)}")
+
+        for booking in client_bookings:
+            existing_start = datetime.combine(appointment_date, booking.start_time)
+            existing_end = datetime.combine(appointment_date, booking.end_time)
+
+            print(f"   Client's existing: {booking.start_time} - {booking.end_time} (Staff: {booking.staff_name})")
+
+            # Check for overlap
+            if start_datetime < existing_end and end_datetime > existing_start:
+                conflict_msg = f'Client conflict! {client_name} already has an appointment from {booking.start_time.strftime("%I:%M %p")} to {booking.end_time.strftime("%I:%M %p")} with {booking.staff_name}'
+                print(f"❌ Client conflict detected: {conflict_msg}")
                 return jsonify({
                     'error': conflict_msg,
                     'success': False
@@ -2111,7 +2152,7 @@ def appointments_book():
             print(f"Creating appointment with data: {appointment_data}")
 
             # Create the appointment
-            appointment = create_appointment(appointment_data)
+            appointment, error = create_appointment(appointment_data)
 
             if appointment:
                 success_msg = 'Appointment booked successfully!'
@@ -2124,7 +2165,7 @@ def appointments_book():
                 flash(success_msg, 'success')
                 return redirect(url_for('staff_availability', date=appointment_date_obj.strftime('%Y-%m-%d')))
             else:
-                error_msg = 'Error booking appointment'
+                error_msg = error or 'Error booking appointment'
                 if request.is_json:
                     return jsonify({'error': error_msg}), 500
                 flash(error_msg, 'danger')
