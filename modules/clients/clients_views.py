@@ -1,120 +1,4 @@
 
-@app.route('/api/detect_duplicate_faces', methods=['GET'])
-@login_required
-def api_detect_duplicate_faces():
-    """Detect customers with similar/duplicate face registrations"""
-    if not current_user.can_access('clients'):
-        return jsonify({'success': False, 'error': 'Access denied'}), 403
-
-    try:
-        from insightface.app import FaceAnalysis
-        import numpy as np
-        import base64
-        import io
-        from PIL import Image
-        import cv2
-        
-        # Get all customers with face data
-        customers_with_faces = Customer.query.filter(
-            Customer.face_image_url.isnot(None),
-            Customer.is_active == True
-        ).all()
-
-        if len(customers_with_faces) < 2:
-            return jsonify({
-                'success': True,
-                'duplicates': [],
-                'message': 'Not enough customers with faces to compare'
-            })
-
-        # Initialize face analysis
-        face_app = FaceAnalysis(providers=['CPUExecutionProvider'])
-        face_app.prepare(ctx_id=0, det_size=(640, 640))
-        
-        # Extract embeddings for all customers
-        customer_embeddings = []
-        for customer in customers_with_faces:
-            try:
-                stored_image = customer.face_image_url
-                if ',' in stored_image:
-                    stored_image_data = stored_image.split(',')[1]
-                else:
-                    stored_image_data = stored_image
-                
-                stored_image_bytes = base64.b64decode(stored_image_data)
-                stored_image_pil = Image.open(io.BytesIO(stored_image_bytes))
-                stored_image_array = np.array(stored_image_pil)
-                
-                # Convert to BGR
-                if len(stored_image_array.shape) == 3:
-                    if stored_image_array.shape[2] == 4:
-                        stored_image_bgr = cv2.cvtColor(stored_image_array, cv2.COLOR_RGBA2BGR)
-                    elif stored_image_array.shape[2] == 3:
-                        stored_image_bgr = cv2.cvtColor(stored_image_array, cv2.COLOR_RGB2BGR)
-                    else:
-                        stored_image_bgr = stored_image_array
-                else:
-                    stored_image_bgr = stored_image_array
-                
-                faces = face_app.get(stored_image_bgr)
-                if len(faces) > 0:
-                    customer_embeddings.append({
-                        'customer': customer,
-                        'embedding': faces[0].embedding
-                    })
-            except Exception as e:
-                app.logger.warning(f"Could not process face for customer {customer.id}: {e}")
-                continue
-        
-        # Find duplicates
-        duplicates = []
-        DUPLICATE_THRESHOLD = 0.6  # High similarity threshold for duplicates
-        
-        for i in range(len(customer_embeddings)):
-            for j in range(i + 1, len(customer_embeddings)):
-                customer1 = customer_embeddings[i]
-                customer2 = customer_embeddings[j]
-                
-                similarity = np.dot(customer1['embedding'], customer2['embedding']) / (
-                    np.linalg.norm(customer1['embedding']) * np.linalg.norm(customer2['embedding'])
-                )
-                
-                if similarity > DUPLICATE_THRESHOLD:
-                    duplicates.append({
-                        'customer1': {
-                            'id': customer1['customer'].id,
-                            'name': f"{customer1['customer'].first_name} {customer1['customer'].last_name}",
-                            'phone': customer1['customer'].phone
-                        },
-                        'customer2': {
-                            'id': customer2['customer'].id,
-                            'name': f"{customer2['customer'].first_name} {customer2['customer'].last_name}",
-                            'phone': customer2['customer'].phone
-                        },
-                        'similarity': f"{similarity*100:.1f}%"
-                    })
-        
-        return jsonify({
-            'success': True,
-            'duplicates': duplicates,
-            'total_customers_checked': len(customer_embeddings),
-            'message': f'Found {len(duplicates)} potential duplicate face(s)'
-        })
-
-    except ImportError:
-        return jsonify({
-            'success': False,
-            'error': 'Face recognition library not available'
-        }), 500
-    except Exception as e:
-        app.logger.error(f"Duplicate detection error: {e}")
-        return jsonify({
-            'success': False,
-            'error': 'Failed to detect duplicates'
-        }), 500
-
-
-
 """
 Customer/Client Management Routes
 Compatible with your app.py structure
@@ -1031,6 +915,121 @@ def format_appointment(apt):
         'amount': float(getattr(apt, 'amount', 0) or 0),
         'duration': getattr(apt, 'duration', None)
     }
+
+
+@app.route('/api/detect_duplicate_faces', methods=['GET'])
+@login_required
+def api_detect_duplicate_faces():
+    """Detect customers with similar/duplicate face registrations"""
+    if not current_user.can_access('clients'):
+        return jsonify({'success': False, 'error': 'Access denied'}), 403
+
+    try:
+        from insightface.app import FaceAnalysis
+        import numpy as np
+        import base64
+        import io
+        from PIL import Image
+        import cv2
+        
+        # Get all customers with face data
+        customers_with_faces = Customer.query.filter(
+            Customer.face_image_url.isnot(None),
+            Customer.is_active == True
+        ).all()
+
+        if len(customers_with_faces) < 2:
+            return jsonify({
+                'success': True,
+                'duplicates': [],
+                'message': 'Not enough customers with faces to compare'
+            })
+
+        # Initialize face analysis
+        face_app = FaceAnalysis(providers=['CPUExecutionProvider'])
+        face_app.prepare(ctx_id=0, det_size=(640, 640))
+        
+        # Extract embeddings for all customers
+        customer_embeddings = []
+        for customer in customers_with_faces:
+            try:
+                stored_image = customer.face_image_url
+                if ',' in stored_image:
+                    stored_image_data = stored_image.split(',')[1]
+                else:
+                    stored_image_data = stored_image
+                
+                stored_image_bytes = base64.b64decode(stored_image_data)
+                stored_image_pil = Image.open(io.BytesIO(stored_image_bytes))
+                stored_image_array = np.array(stored_image_pil)
+                
+                # Convert to BGR
+                if len(stored_image_array.shape) == 3:
+                    if stored_image_array.shape[2] == 4:
+                        stored_image_bgr = cv2.cvtColor(stored_image_array, cv2.COLOR_RGBA2BGR)
+                    elif stored_image_array.shape[2] == 3:
+                        stored_image_bgr = cv2.cvtColor(stored_image_array, cv2.COLOR_RGB2BGR)
+                    else:
+                        stored_image_bgr = stored_image_array
+                else:
+                    stored_image_bgr = stored_image_array
+                
+                faces = face_app.get(stored_image_bgr)
+                if len(faces) > 0:
+                    customer_embeddings.append({
+                        'customer': customer,
+                        'embedding': faces[0].embedding
+                    })
+            except Exception as e:
+                app.logger.warning(f"Could not process face for customer {customer.id}: {e}")
+                continue
+        
+        # Find duplicates
+        duplicates = []
+        DUPLICATE_THRESHOLD = 0.6  # High similarity threshold for duplicates
+        
+        for i in range(len(customer_embeddings)):
+            for j in range(i + 1, len(customer_embeddings)):
+                customer1 = customer_embeddings[i]
+                customer2 = customer_embeddings[j]
+                
+                similarity = np.dot(customer1['embedding'], customer2['embedding']) / (
+                    np.linalg.norm(customer1['embedding']) * np.linalg.norm(customer2['embedding'])
+                )
+                
+                if similarity > DUPLICATE_THRESHOLD:
+                    duplicates.append({
+                        'customer1': {
+                            'id': customer1['customer'].id,
+                            'name': f"{customer1['customer'].first_name} {customer1['customer'].last_name}",
+                            'phone': customer1['customer'].phone
+                        },
+                        'customer2': {
+                            'id': customer2['customer'].id,
+                            'name': f"{customer2['customer'].first_name} {customer2['customer'].last_name}",
+                            'phone': customer2['customer'].phone
+                        },
+                        'similarity': f"{similarity*100:.1f}%"
+                    })
+        
+        return jsonify({
+            'success': True,
+            'duplicates': duplicates,
+            'total_customers_checked': len(customer_embeddings),
+            'message': f'Found {len(duplicates)} potential duplicate face(s)'
+        })
+
+    except ImportError:
+        return jsonify({
+            'success': False,
+            'error': 'Face recognition library not available'
+        }), 500
+    except Exception as e:
+        app.logger.error(f"Duplicate detection error: {e}")
+        return jsonify({
+            'success': False,
+            'error': 'Failed to detect duplicates'
+        }), 500
 
 
 # Log module load
