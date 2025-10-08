@@ -1,120 +1,4 @@
 
-@app.route('/api/detect_duplicate_faces', methods=['GET'])
-@login_required
-def api_detect_duplicate_faces():
-    """Detect customers with similar/duplicate face registrations"""
-    if not current_user.can_access('clients'):
-        return jsonify({'success': False, 'error': 'Access denied'}), 403
-
-    try:
-        from insightface.app import FaceAnalysis
-        import numpy as np
-        import base64
-        import io
-        from PIL import Image
-        import cv2
-        
-        # Get all customers with face data
-        customers_with_faces = Customer.query.filter(
-            Customer.face_image_url.isnot(None),
-            Customer.is_active == True
-        ).all()
-
-        if len(customers_with_faces) < 2:
-            return jsonify({
-                'success': True,
-                'duplicates': [],
-                'message': 'Not enough customers with faces to compare'
-            })
-
-        # Initialize face analysis
-        face_app = FaceAnalysis(providers=['CPUExecutionProvider'])
-        face_app.prepare(ctx_id=0, det_size=(640, 640))
-        
-        # Extract embeddings for all customers
-        customer_embeddings = []
-        for customer in customers_with_faces:
-            try:
-                stored_image = customer.face_image_url
-                if ',' in stored_image:
-                    stored_image_data = stored_image.split(',')[1]
-                else:
-                    stored_image_data = stored_image
-                
-                stored_image_bytes = base64.b64decode(stored_image_data)
-                stored_image_pil = Image.open(io.BytesIO(stored_image_bytes))
-                stored_image_array = np.array(stored_image_pil)
-                
-                # Convert to BGR
-                if len(stored_image_array.shape) == 3:
-                    if stored_image_array.shape[2] == 4:
-                        stored_image_bgr = cv2.cvtColor(stored_image_array, cv2.COLOR_RGBA2BGR)
-                    elif stored_image_array.shape[2] == 3:
-                        stored_image_bgr = cv2.cvtColor(stored_image_array, cv2.COLOR_RGB2BGR)
-                    else:
-                        stored_image_bgr = stored_image_array
-                else:
-                    stored_image_bgr = stored_image_array
-                
-                faces = face_app.get(stored_image_bgr)
-                if len(faces) > 0:
-                    customer_embeddings.append({
-                        'customer': customer,
-                        'embedding': faces[0].embedding
-                    })
-            except Exception as e:
-                app.logger.warning(f"Could not process face for customer {customer.id}: {e}")
-                continue
-        
-        # Find duplicates
-        duplicates = []
-        DUPLICATE_THRESHOLD = 0.6  # High similarity threshold for duplicates
-        
-        for i in range(len(customer_embeddings)):
-            for j in range(i + 1, len(customer_embeddings)):
-                customer1 = customer_embeddings[i]
-                customer2 = customer_embeddings[j]
-                
-                similarity = np.dot(customer1['embedding'], customer2['embedding']) / (
-                    np.linalg.norm(customer1['embedding']) * np.linalg.norm(customer2['embedding'])
-                )
-                
-                if similarity > DUPLICATE_THRESHOLD:
-                    duplicates.append({
-                        'customer1': {
-                            'id': customer1['customer'].id,
-                            'name': f"{customer1['customer'].first_name} {customer1['customer'].last_name}",
-                            'phone': customer1['customer'].phone
-                        },
-                        'customer2': {
-                            'id': customer2['customer'].id,
-                            'name': f"{customer2['customer'].first_name} {customer2['customer'].last_name}",
-                            'phone': customer2['customer'].phone
-                        },
-                        'similarity': f"{similarity*100:.1f}%"
-                    })
-        
-        return jsonify({
-            'success': True,
-            'duplicates': duplicates,
-            'total_customers_checked': len(customer_embeddings),
-            'message': f'Found {len(duplicates)} potential duplicate face(s)'
-        })
-
-    except ImportError:
-        return jsonify({
-            'success': False,
-            'error': 'Face recognition library not available'
-        }), 500
-    except Exception as e:
-        app.logger.error(f"Duplicate detection error: {e}")
-        return jsonify({
-            'success': False,
-            'error': 'Failed to detect duplicates'
-        }), 500
-
-
-
 """
 Customer/Client Management Routes
 Compatible with your app.py structure
@@ -771,10 +655,6 @@ def api_recognize_face():
         matched_customer = None
         best_similarity = 0.0  # Higher is better for cosine similarity
         MATCH_THRESHOLD = 0.3  # InsightFace similarity threshold (typically 0.25-0.4)
-        DUPLICATE_WARNING_THRESHOLD = 0.05  # Warn if multiple matches within 5% similarity
-        
-        # Track all potential matches
-        potential_matches = []
         
         for customer in customers_with_faces:
             if not customer.face_image_url:
@@ -822,15 +702,8 @@ def api_recognize_face():
                 
                 app.logger.info(f"Customer {customer.first_name} {customer.last_name}: similarity={similarity:.4f}")
                 
-                # Track all matches above threshold
-                if similarity > MATCH_THRESHOLD:
-                    potential_matches.append({
-                        'customer': customer,
-                        'similarity': similarity
-                    })
-                
                 # Check if this is the best match so far
-                if similarity > best_similarity:
+                if similarity > best_similarity and similarity > MATCH_THRESHOLD:
                     best_similarity = similarity
                     matched_customer = customer
                     
@@ -840,35 +713,8 @@ def api_recognize_face():
 
         if matched_customer:
             confidence = best_similarity * 100
-            
-            # Check for duplicate/similar faces
-            duplicate_warning = False
-            similar_customers = []
-            
-            if len(potential_matches) > 1:
-                # Sort by similarity (highest first)
-                sorted_matches = sorted(potential_matches, key=lambda x: x['similarity'], reverse=True)
-                
-                # Check if top 2 matches are very close in similarity
-                if len(sorted_matches) >= 2:
-                    top_similarity = sorted_matches[0]['similarity']
-                    second_similarity = sorted_matches[1]['similarity']
-                    
-                    if (top_similarity - second_similarity) < DUPLICATE_WARNING_THRESHOLD:
-                        duplicate_warning = True
-                        similar_customers = [
-                            {
-                                'id': match['customer'].id,
-                                'name': f"{match['customer'].first_name} {match['customer'].last_name}",
-                                'similarity': f"{match['similarity']*100:.1f}%"
-                            }
-                            for match in sorted_matches[:3]  # Show top 3 matches
-                        ]
-                        app.logger.warning(f"DUPLICATE FACE DETECTED: Multiple customers with similar faces: {similar_customers}")
-            
             app.logger.info(f"Customer recognized: {matched_customer.first_name} {matched_customer.last_name} (confidence: {confidence:.1f}%)")
-            
-            response = {
+            return jsonify({
                 'success': True,
                 'recognized': True,
                 'customer': {
@@ -882,15 +728,7 @@ def api_recognize_face():
                 },
                 'confidence': f"{confidence:.1f}%",
                 'message': f'Welcome back, {matched_customer.first_name}!'
-            }
-            
-            # Add duplicate warning if detected
-            if duplicate_warning:
-                response['duplicate_warning'] = True
-                response['similar_customers'] = similar_customers
-                response['message'] = f'Face matched to {matched_customer.first_name}, but similar faces detected. Please verify customer identity.'
-            
-            return jsonify(response), 200
+            }), 200
         else:
             app.logger.info("No matching face found")
             return jsonify({
