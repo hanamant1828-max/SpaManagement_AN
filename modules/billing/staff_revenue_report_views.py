@@ -59,7 +59,7 @@ def staff_revenue_report():
         InvoiceItem.staff_id.isnot(None)
     ).order_by(User.first_name, EnhancedInvoice.invoice_date.desc()).all()
 
-    # Staff summary statistics
+    # Staff summary statistics with service/product breakdown
     staff_summary = db.session.query(
         User.id.label('staff_id'),
         User.first_name,
@@ -67,9 +67,32 @@ def staff_revenue_report():
         User.staff_code,
         Department.display_name.label('department'),
         func.count(func.distinct(Customer.id)).label('unique_clients'),
-        func.count(InvoiceItem.id).label('total_services'),
+        func.count(InvoiceItem.id).label('total_items'),
         func.sum(InvoiceItem.staff_revenue_price).label('total_revenue'),
-        func.avg(InvoiceItem.staff_revenue_price).label('avg_service_value')
+        func.sum(
+            func.case(
+                (InvoiceItem.item_type == 'service', InvoiceItem.staff_revenue_price),
+                else_=0
+            )
+        ).label('service_revenue'),
+        func.sum(
+            func.case(
+                (InvoiceItem.item_type == 'inventory', InvoiceItem.staff_revenue_price),
+                else_=0
+            )
+        ).label('product_revenue'),
+        func.count(
+            func.case(
+                (InvoiceItem.item_type == 'service', InvoiceItem.id),
+                else_=None
+            )
+        ).label('service_count'),
+        func.count(
+            func.case(
+                (InvoiceItem.item_type == 'inventory', InvoiceItem.id),
+                else_=None
+            )
+        ).label('product_count')
     ).join(InvoiceItem, User.id == InvoiceItem.staff_id)\
     .join(EnhancedInvoice, InvoiceItem.invoice_id == EnhancedInvoice.id)\
     .join(Customer, EnhancedInvoice.client_id == Customer.id)\

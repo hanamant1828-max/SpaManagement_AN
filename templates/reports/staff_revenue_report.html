@@ -93,16 +93,18 @@
                 </div>
                 <div class="card-body">
                     <div class="table-responsive">
-                        <table class="table table-hover">
+                        <table class="table table-hover table-sm">
                             <thead>
                                 <tr>
                                     <th>Staff Code</th>
                                     <th>Staff Name</th>
                                     <th>Department</th>
                                     <th>Unique Clients</th>
-                                    <th>Total Services</th>
+                                    <th>Service Revenue</th>
+                                    <th>Product Revenue</th>
                                     <th>Total Revenue</th>
-                                    <th>Avg Service Value</th>
+                                    <th>Services</th>
+                                    <th>Products</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -112,9 +114,11 @@
                                     <td><strong>{{ staff.first_name }} {{ staff.last_name }}</strong></td>
                                     <td>{{ staff.department or 'Unassigned' }}</td>
                                     <td><span class="badge bg-info">{{ staff.unique_clients }}</span></td>
-                                    <td>{{ staff.total_services }}</td>
+                                    <td><strong class="text-primary">₹{{ "{:,.2f}".format(staff.service_revenue or 0) }}</strong></td>
+                                    <td><strong class="text-warning">₹{{ "{:,.2f}".format(staff.product_revenue or 0) }}</strong></td>
                                     <td><strong class="text-success">₹{{ "{:,.2f}".format(staff.total_revenue or 0) }}</strong></td>
-                                    <td>₹{{ "{:,.2f}".format(staff.avg_service_value or 0) }}</td>
+                                    <td><span class="badge bg-primary">{{ staff.service_count }}</span></td>
+                                    <td><span class="badge bg-warning">{{ staff.product_count }}</span></td>
                                 </tr>
                                 {% endfor %}
                             </tbody>
@@ -142,7 +146,7 @@
                                     <th>Staff Member</th>
                                     <th>Department</th>
                                     <th>Client Name</th>
-                                    <th>Item Type</th>
+                                    <th>Type</th>
                                     <th>Item Name</th>
                                     <th>Qty</th>
                                     <th>Staff Revenue</th>
@@ -158,7 +162,15 @@
                                     </td>
                                     <td><small>{{ detail.department or 'Unassigned' }}</small></td>
                                     <td>{{ detail.customer_first_name }} {{ detail.customer_last_name }}</td>
-                                    <td><span class="badge bg-{{ 'primary' if detail.item_type == 'service' else 'info' }}">{{ detail.item_type or 'N/A' }}</span></td>
+                                    <td>
+                                        {% if detail.item_type == 'service' %}
+                                            <span class="badge bg-primary">Service</span>
+                                        {% elif detail.item_type == 'inventory' %}
+                                            <span class="badge bg-warning text-dark">Product</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">N/A</span>
+                                        {% endif %}
+                                    </td>
                                     <td>{{ detail.item_name or detail.service_name or 'N/A' }}</td>
                                     <td>{{ detail.quantity }}</td>
                                     <td class="text-success"><strong>₹{{ "{:,.2f}".format(detail.staff_revenue_price or 0) }}</strong></td>
