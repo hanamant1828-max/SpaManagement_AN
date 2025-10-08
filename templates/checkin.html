@@ -120,11 +120,11 @@
                         <div id="cameraOverlay" class="camera-overlay" style="display: none;"></div>
                     </div>
                     <div class="card-body text-center">
-                        <button id="startRecognition" class="btn btn-success btn-lg me-2">
+                        <button type="button" id="startRecognition" class="btn btn-success btn-lg me-2">
                             <i data-feather="play" class="me-1"></i>
                             Start Recognition
                         </button>
-                        <button id="stopRecognition" class="btn btn-secondary btn-lg" disabled>
+                        <button type="button" id="stopRecognition" class="btn btn-secondary btn-lg" disabled>
                             <i data-feather="stop-circle" class="me-1"></i>
                             Stop
                         </button>
@@ -277,37 +277,25 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log('- Video element:', video);
     console.log('- Placeholder:', placeholder);
     
-    // Attach event listeners with detailed logging
+    // Attach event listeners - simplified like customer management
     if (startButton) {
         console.log('Attaching click handler to start button...');
         
-        startButton.addEventListener('click', function(e) {
+        startButton.onclick = function() {
             console.log('>>> START BUTTON CLICKED <<<');
-            console.log('Event:', e);
-            e.preventDefault();
-            e.stopPropagation();
-            
-            console.log('Calling startFaceRecognition()...');
             startFaceRecognition();
-        });
+        };
         
         console.log('✅ Start button listener attached successfully');
-        
-        // Test if button is disabled
-        if (startButton.disabled) {
-            console.warn('⚠️ Start button is DISABLED');
-        }
     } else {
         console.error('❌ Start button NOT FOUND');
     }
     
     if (stopButton) {
-        stopButton.addEventListener('click', function(e) {
+        stopButton.onclick = function() {
             console.log('>>> STOP BUTTON CLICKED <<<');
-            e.preventDefault();
-            e.stopPropagation();
             stopRecognition();
-        });
+        };
         console.log('✅ Stop button listener attached');
     } else {
         console.error('❌ Stop button NOT FOUND');
