@@ -902,11 +902,11 @@ def unaki_schedule():
                 staff_data.append(staff_info)
 
         # Format Unaki bookings data with proper IST time handling
-        # Filter out paid appointments - they should not appear in the schedule
+        # Filter out completed and paid appointments - they are already billed
         appointments_data = []
         for booking in unaki_bookings:
-            # Skip appointments that have been paid
-            if booking.payment_status == 'paid':
+            # Skip appointments that are completed AND paid (already billed)
+            if booking.status == 'completed' and booking.payment_status == 'paid':
                 continue
                 
             # Ensure end_time is properly formatted

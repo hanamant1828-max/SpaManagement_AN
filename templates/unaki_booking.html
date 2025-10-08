@@ -1625,9 +1625,9 @@
             // Clear existing appointments
             document.querySelectorAll('.appointment-block').forEach(block => block.remove());
 
-            // Filter out paid appointments before rendering
-            const visibleBookings = bookingsData.filter(b => b.payment_status !== 'paid');
-            console.log(`📊 Rendering ${visibleBookings.length} visible bookings (${bookingsData.length - visibleBookings.length} paid bookings hidden)`);
+            // Filter out completed and paid appointments (already billed)
+            const visibleBookings = bookingsData.filter(b => !(b.status === 'completed' && b.payment_status === 'paid'));
+            console.log(`📊 Rendering ${visibleBookings.length} visible bookings (${bookingsData.length - visibleBookings.length} completed & paid bookings hidden)`);
 
             // Render each booking
             visibleBookings.forEach(booking => {
