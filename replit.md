@@ -11,8 +11,19 @@ This is a comprehensive **Spa & Salon Management System** built with Flask and P
 - Use Bootstrap for UI components
 - Implement proper error handling and logging
 
+## Recent Changes (October 8, 2025)
+### InsightFace-Based Face Recognition System Migration ✅ (Latest)
+- **Technology Migration**: Migrated from dlib/face_recognition to InsightFace + ONNXRuntime for improved accuracy and easier installation
+- **RGBA Color Channel Support**: Fixed critical color conversion bug - browser webcam captures send RGBA (4-channel) images, now properly converted to BGR for InsightFace processing
+- **Face Registration**: Updated `/api/save_face` endpoint to use InsightFace FaceAnalysis for face detection and embedding extraction
+- **Face Recognition**: Updated `/api/recognize_face` endpoint to use cosine similarity matching with 0.3 threshold (replaces Euclidean distance)
+- **Multi-Point Conversion**: All three color conversion touchpoints fixed (registration, recognition incoming, recognition stored images)
+- **Production Ready**: Face recognition fully functional for Customer Management (registration) and Check-In (recognition) workflows
+- **Architect Review**: All changes reviewed and approved - RGBA handling complete, no security issues, end-to-end flow verified
+- **Dependencies Installed**: insightface==0.7.3, onnxruntime==1.20.1, opencv-python==4.10.0.84
+
 ## Recent Changes (October 6, 2025)
-### IST Timezone Implementation for Unaki Booking System ✅ (Latest)
+### IST Timezone Implementation for Unaki Booking System ✅
 - **Timezone Utilities**: Added comprehensive IST timezone utilities (get_ist_now(), IST timezone) using pytz library
 - **Database Storage**: All UnakiBooking and ShiftLogs timestamps now stored as naive datetimes in IST timezone
 - **API IST Support**: Schedule API now returns current_ist_time and timezone='Asia/Kolkata' to frontend
@@ -74,7 +85,13 @@ The application is built with Flask and uses SQLAlchemy for database interaction
 - Unaki booking system features visual overlays for holidays and off-days in the calendar (Indigo for holidays, Gray for off-days).
 
 **Technical Implementations:**
-- **Core Modules:** Dashboard, Client Management, Staff Management, Shift Scheduling, Appointment Booking (Unaki integration), Integrated Billing, Service Catalog, Package Management (Prepaid, Service, Memberships, Student Offers, Kitty Party), Inventory, Check-In, Reporting, Notifications, User Roles & Permissions, **User Management (NEW)**.
+- **Core Modules:** Dashboard, Client Management, Staff Management, Shift Scheduling, Appointment Booking (Unaki integration), Integrated Billing, Service Catalog, Package Management (Prepaid, Service, Memberships, Student Offers, Kitty Party), Inventory, Check-In, Reporting, Notifications, User Roles & Permissions, User Management, **Face Recognition System (NEW)**.
+- **Face Recognition System:** InsightFace-based biometric authentication for customer registration and check-in:
+  - Face registration via webcam in Customer Management module (stores face embeddings in database)
+  - Face recognition matching in Check-In module (cosine similarity with 0.3 threshold)
+  - RGBA-to-BGR color space conversion for browser webcam captures
+  - CPU-based inference using ONNXRuntime (no GPU dependencies required)
+  - Base64 image encoding/decoding for frontend-backend communication
 - **User Management System:** Complete administrative interface for managing users, roles, and permissions with:
   - User CRUD operations (create, read, update, delete)
   - Role management with permission assignment
@@ -102,4 +119,5 @@ The application is built with Flask and uses SQLAlchemy for database interaction
 - **Web Server:** Gunicorn 23.0.0
 - **Authentication:** Flask-Login 0.6.3
 - **Forms:** Flask-WTF 1.2.2, WTForms 3.2.1
+- **Face Recognition:** InsightFace 0.7.3, ONNXRuntime 1.20.1, OpenCV-Python 4.10.0.84
 - **Utility Libraries:** Pandas, OpenAI, BeautifulSoup4, Requests
