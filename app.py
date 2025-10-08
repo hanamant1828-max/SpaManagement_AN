@@ -266,6 +266,8 @@ def load_user(user_id):
 @app.context_processor
 def utility_processor():
     """Add utility functions to Jinja context"""
+    from utils import format_currency, format_datetime
+    
     def get_month_name(month_num):
         """Get month name from number"""
         months = ['', 'January', 'February', 'March', 'April', 'May', 'June',
@@ -332,6 +334,7 @@ def utility_processor():
             format_date=format_date,
             truncate_text=truncate_text,
             format_currency=format_currency,
+            format_datetime=format_datetime,
             calculate_age=calculate_age,
             get_status_badge_class=get_status_badge_class
         ),

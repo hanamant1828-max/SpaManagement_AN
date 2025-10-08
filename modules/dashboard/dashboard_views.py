@@ -1,7 +1,7 @@
 """
 Dashboard views and routes
 """
-from flask import render_template, redirect, url_for, flash
+from flask import render_template, redirect, url_for, flash, jsonify
 from flask_login import login_required, current_user
 from app import app, get_ist_now, IST
 from .dashboard_queries import get_dashboard_stats, get_recent_appointments, get_low_stock_items, get_expiring_items
@@ -108,7 +108,7 @@ def dashboard_stats_api():
         staff_labels = [f"{s[1]} {s[2]}" for s in staff_performance]
         staff_data = [s[3] for s in staff_performance]
         
-        return {
+        return jsonify({
             'success': True,
             'revenue_chart': {
                 'labels': revenue_labels,
@@ -126,10 +126,10 @@ def dashboard_stats_api():
                 'labels': staff_labels,
                 'data': staff_data
             }
-        }
+        })
     except Exception as e:
         print(f"Dashboard stats API error: {e}")
-        return {'success': False, 'error': str(e)}, 500
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/alerts')
 def alerts():
