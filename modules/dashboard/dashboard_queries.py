@@ -9,35 +9,88 @@ from modules.inventory.models import InventoryProduct
 
 def get_dashboard_stats():
     """Get dashboard statistics"""
-    today = date.today()
+    try:
+        from datetime import date, timedelta
+        from sqlalchemy import func
+        from models import Appointment, Customer, Service, User
+        from app import db
 
-    # Calculate today's revenue
-    todays_revenue = db.session.query(func.sum(Appointment.amount)).filter(
-        func.date(Appointment.appointment_date) == today,
-        Appointment.status == 'completed',
-        Appointment.is_paid == True
-    ).scalar() or 0.0
+        today = date.today()
+        first_day_of_month = date(today.year, today.month, 1)
 
-    # Calculate monthly revenue
-    month_start = today.replace(day=1)
-    monthly_revenue = db.session.query(func.sum(Appointment.amount)).filter(
-        Appointment.appointment_date >= month_start,
-        Appointment.status == 'completed',
-        Appointment.is_paid == True
-    ).scalar() or 0.0
-
-    stats = {
-        'todays_appointments': Appointment.query.filter(
+        # Today's appointments count
+        todays_appointments = Appointment.query.filter(
             func.date(Appointment.appointment_date) == today
-        ).count() or 0,
-        'total_clients': Customer.query.filter_by(is_active=True).count() or 0,
-        'total_services': Service.query.filter_by(is_active=True).count() or 0,
-        'total_staff': User.query.filter(User.role.in_(['staff', 'manager'])).count() or 0,
-        'total_revenue_today': todays_revenue,
-        'total_revenue_month': monthly_revenue
-    }
+        ).count()
 
-    return stats
+        # Total clients
+        total_clients = Customer.query.filter_by(is_active=True).count()
+
+        # Total services
+        total_services = Service.query.filter_by(is_active=True).count()
+
+        # Total staff
+        total_staff = User.query.filter_by(is_active=True, user_type='staff').count()
+
+        # Today's revenue from Appointment table
+        todays_appointment_revenue = db.session.query(func.sum(Appointment.amount)).filter(
+            func.date(Appointment.appointment_date) == today,
+            Appointment.status == 'completed',
+            Appointment.is_paid == True
+        ).scalar() or 0.0
+
+        # Today's revenue from Invoice table
+        from models import Invoice
+        todays_invoice_revenue = db.session.query(func.sum(Invoice.total_amount)).filter(
+            func.date(Invoice.invoice_date) == today,
+            Invoice.payment_status == 'paid'
+        ).scalar() or 0.0
+
+        # Combine both revenue sources
+        total_revenue_today = float(todays_appointment_revenue) + float(todays_invoice_revenue)
+
+        # This month's revenue from Appointment table
+        monthly_appointment_revenue = db.session.query(func.sum(Appointment.amount)).filter(
+            Appointment.appointment_date >= first_day_of_month,
+            Appointment.status == 'completed',
+            Appointment.is_paid == True
+        ).scalar() or 0.0
+
+        # This month's revenue from Invoice table
+        monthly_invoice_revenue = db.session.query(func.sum(Invoice.total_amount)).filter(
+            Invoice.invoice_date >= first_day_of_month,
+            Invoice.payment_status == 'paid'
+        ).scalar() or 0.0
+
+        # Combine both revenue sources
+        total_revenue_month = float(monthly_appointment_revenue) + float(monthly_invoice_revenue)
+
+        print(f"DEBUG Dashboard Stats:")
+        print(f"  Today's appointments: {todays_appointments}")
+        print(f"  Total clients: {total_clients}")
+        print(f"  Today's revenue: ₹{total_revenue_today}")
+        print(f"  Monthly revenue: ₹{total_revenue_month}")
+
+        return {
+            'todays_appointments': todays_appointments,
+            'total_clients': total_clients,
+            'total_services': total_services,
+            'total_staff': total_staff,
+            'total_revenue_today': float(total_revenue_today),
+            'total_revenue_month': float(total_revenue_month)
+        }
+    except Exception as e:
+        print(f"Error getting dashboard stats: {e}")
+        import traceback
+        traceback.print_exc()
+        return {
+            'todays_appointments': 0,
+            'total_clients': 0,
+            'total_services': 0,
+            'total_staff': 0,
+            'total_revenue_today': 0.0,
+            'total_revenue_month': 0.0
+        }
 
 def get_recent_appointments(limit=10):
     """Get recent appointments"""
