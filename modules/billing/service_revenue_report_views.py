@@ -7,7 +7,7 @@ from flask_login import login_required, current_user
 from datetime import datetime, date, timedelta
 from sqlalchemy import func
 from app import app, db
-from models import EnhancedInvoice, InvoiceItem, Customer, User, Service, ServiceCategory
+from models import EnhancedInvoice, InvoiceItem, Customer, User, Service, Category
 
 @app.route('/billing/reports/service-revenue')
 @login_required
@@ -36,7 +36,7 @@ def service_revenue_report():
         Service.id.label('service_id'),
         Service.name,
         Service.price,
-        ServiceCategory.name.label('category'),
+        Category.display_name.label('category'),
         Customer.first_name.label('client_first_name'),
         Customer.last_name.label('client_last_name'),
         User.first_name.label('staff_first_name'),
@@ -50,7 +50,7 @@ def service_revenue_report():
     .join(EnhancedInvoice, InvoiceItem.invoice_id == EnhancedInvoice.id)\
     .join(Customer, EnhancedInvoice.client_id == Customer.id)\
     .outerjoin(User, InvoiceItem.staff_id == User.id)\
-    .outerjoin(ServiceCategory, Service.category_id == ServiceCategory.id)\
+    .outerjoin(Category, Service.category_id == Category.id)\
     .filter(
         EnhancedInvoice.invoice_date.between(start_date, end_date),
         EnhancedInvoice.payment_status == 'paid',
@@ -62,7 +62,7 @@ def service_revenue_report():
         Service.id.label('service_id'),
         Service.name,
         Service.price,
-        ServiceCategory.name.label('category'),
+        Category.display_name.label('category'),
         func.count(InvoiceItem.id).label('total_bookings'),
         func.sum(InvoiceItem.quantity).label('total_quantity'),
         func.sum(InvoiceItem.final_amount).label('total_revenue'),
@@ -71,27 +71,27 @@ def service_revenue_report():
     ).join(InvoiceItem, Service.id == InvoiceItem.item_id)\
     .join(EnhancedInvoice, InvoiceItem.invoice_id == EnhancedInvoice.id)\
     .join(Customer, EnhancedInvoice.client_id == Customer.id)\
-    .outerjoin(ServiceCategory, Service.category_id == ServiceCategory.id)\
+    .outerjoin(Category, Service.category_id == Category.id)\
     .filter(
         EnhancedInvoice.invoice_date.between(start_date, end_date),
         EnhancedInvoice.payment_status == 'paid',
         InvoiceItem.item_type == 'service'
-    ).group_by(Service.id, ServiceCategory.id).order_by(func.sum(InvoiceItem.final_amount).desc()).all()
+    ).group_by(Service.id, Category.id).order_by(func.sum(InvoiceItem.final_amount).desc()).all()
     
     # Category summary
     category_summary = db.session.query(
-        ServiceCategory.name.label('category'),
+        Category.display_name.label('category'),
         func.count(func.distinct(Service.id)).label('service_count'),
         func.sum(InvoiceItem.final_amount).label('total_revenue'),
         func.count(InvoiceItem.id).label('total_bookings')
-    ).join(Service, ServiceCategory.id == Service.category_id)\
+    ).join(Service, Category.id == Service.category_id)\
     .join(InvoiceItem, Service.id == InvoiceItem.item_id)\
     .join(EnhancedInvoice, InvoiceItem.invoice_id == EnhancedInvoice.id)\
     .filter(
         EnhancedInvoice.invoice_date.between(start_date, end_date),
         EnhancedInvoice.payment_status == 'paid',
         InvoiceItem.item_type == 'service'
-    ).group_by(ServiceCategory.id).all()
+    ).group_by(Category.id).all()
     
     return render_template('reports/service_revenue_report.html',
                          start_date=start_date,
