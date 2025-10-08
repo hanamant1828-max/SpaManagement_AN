@@ -8,7 +8,7 @@ from .dashboard_queries import get_dashboard_stats, get_recent_appointments, get
 from datetime import date, timedelta
 
 @app.route('/dashboard')
-
+@login_required
 def dashboard():
     try:
         # Get current IST time
@@ -45,12 +45,14 @@ def dashboard():
                              expiring_items=[])
 
 @app.route('/api/dashboard/stats')
+@login_required
 def dashboard_stats_api():
     """API endpoint for real-time dashboard statistics"""
     try:
         from datetime import datetime, timedelta
         from sqlalchemy import func
-        from models import Appointment, Service
+        from models import Appointment, Service, User
+        from app import db
         
         # Get last 7 days revenue
         today = date.today()
