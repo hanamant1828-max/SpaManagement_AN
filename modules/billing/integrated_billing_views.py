@@ -1241,10 +1241,14 @@ def create_professional_invoice():
             from app import get_ist_now
             ist_now = get_ist_now()
             
+            # CRITICAL: Store invoice_date as DATE only (not datetime) for dashboard filtering
+            # Dashboard queries use func.date() which expects a date, not datetime
+            invoice_date_only = ist_now.date()  # Extract just the date portion
+            
             invoice = EnhancedInvoice()
             invoice.invoice_number = invoice_number
             invoice.client_id = int(client_id)
-            invoice.invoice_date = ist_now.replace(tzinfo=None)  # Store as naive IST datetime
+            invoice.invoice_date = datetime.combine(invoice_date_only, datetime.min.time())  # Store as midnight on invoice date
             invoice.created_at = ist_now.replace(tzinfo=None)  # Store as naive IST datetime
 
             # Professional billing fields
