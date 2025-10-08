@@ -96,15 +96,17 @@ def dashboard_stats_api():
         
         # Get staff performance (top 5 staff by completed appointments)
         staff_performance = db.session.query(
-            User.full_name,
+            User.id,
+            User.first_name,
+            User.last_name,
             func.count(Appointment.id).label('count')
         ).join(Appointment, Appointment.staff_id == User.id).filter(
             Appointment.status == 'completed',
             Appointment.appointment_date >= today - timedelta(days=30)
-        ).group_by(User.full_name).order_by(func.count(Appointment.id).desc()).limit(5).all()
+        ).group_by(User.id, User.first_name, User.last_name).order_by(func.count(Appointment.id).desc()).limit(5).all()
         
-        staff_labels = [s[0] for s in staff_performance]
-        staff_data = [s[1] for s in staff_performance]
+        staff_labels = [f"{s[1]} {s[2]}" for s in staff_performance]
+        staff_data = [s[3] for s in staff_performance]
         
         return {
             'success': True,
