@@ -177,8 +177,8 @@ localPort = 33729
 externalPort = 3001
 
 [[ports]]
-localPort = 34907
-externalPort = 3003
+localPort = 34817
+externalPort = 4200
 
 [[ports]]
 localPort = 37485
