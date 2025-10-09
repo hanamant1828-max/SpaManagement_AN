@@ -1798,6 +1798,7 @@
                         <button
                             type="button"
                             class="btn btn-primary"
+                            id="saveQuickClientBtn"
                             onclick="saveQuickClient()"
                             style="
                                 border-radius: 10px;
@@ -2956,20 +2957,41 @@
             }
 
             async function saveQuickClient() {
+                console.log('🔵 saveQuickClient() called');
+                
+                // Get form values
                 const firstName = document.getElementById('quickFirstName').value.trim();
                 const lastName = document.getElementById('quickLastName').value.trim();
                 const phone = document.getElementById('quickPhone').value.trim();
                 const email = document.getElementById('quickEmail').value.trim();
                 const gender = document.getElementById('quickGender').value;
 
+                console.log('📋 Form values:', { firstName, lastName, phone, email, gender });
+
                 // Validation
                 if (!firstName || !lastName || !phone || !gender) {
+                    console.error('❌ Validation failed - missing required fields');
                     showNotification('Please fill in all required fields (First Name, Last Name, Phone, Gender)', 'error');
                     return;
                 }
 
-                const quickAddForm = document.getElementById("quickAddClientForm");
-                const submitBtn = quickAddForm.querySelector('button[type="submit"]');
+                // Phone validation
+                if (phone.length < 10) {
+                    console.error('❌ Invalid phone number');
+                    showNotification('Please enter a valid phone number (at least 10 digits)', 'error');
+                    return;
+                }
+
+                console.log('✅ Validation passed');
+
+                // Get save button by ID
+                const submitBtn = document.getElementById('saveQuickClientBtn');
+                
+                if (!submitBtn) {
+                    console.error('❌ Save button not found!');
+                    return;
+                }
+                
                 const originalText = submitBtn.innerHTML;
                 submitBtn.disabled = true;
                 submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Saving...';
@@ -2982,6 +3004,8 @@
                     gender: gender,
                 };
 
+                console.log('📤 Sending data to API:', clientData);
+
                 try {
                     const response = await fetch("/api/unaki/quick-add-client", {
                         method: "POST",
@@ -2991,41 +3015,62 @@
                         body: JSON.stringify(clientData),
                     });
 
+                    console.log('📥 Response status:', response.status);
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+
                     const result = await response.json();
+                    console.log('📥 Response data:', result);
 
                     if (result.success) {
-                        showNotification(result.message, 'success');
-                        bootstrap.Modal.getInstance(document.getElementById('quickAddClientModal')).hide();
+                        console.log('✅ Client saved successfully:', result.client);
+                        
+                        showNotification(result.message || 'Client added successfully!', 'success');
+                        
+                        // Close modal
+                        const modalEl = document.getElementById('quickAddClientModal');
+                        const modal = bootstrap.Modal.getInstance(modalEl);
+                        if (modal) {
+                            modal.hide();
+                        }
+                        
                         quickAddForm.reset();
-                        // Refresh clients list
-                        await loadClients(); // Assuming loadClients() reloads the client dropdown
 
                         // Auto-select the newly added client in the multi-booking form
                         const clientSelect = document.getElementById('multiClientSelect');
                         if (clientSelect && result.client) {
-                            // Add new option to select
-                            const option = document.createElement('option');
-                            option.value = result.client.id;
-                            option.textContent = `${result.client.first_name} ${result.client.last_name} - ${result.client.phone}`;
-                            clientSelect.appendChild(option);
+                            // Add new option to select with data attributes
+                            const option = new Option(
+                                `${result.client.first_name} ${result.client.last_name} - ${result.client.phone}`,
+                                result.client.id,
+                                true,
+                                true
+                            );
+                            option.setAttribute('data-phone', result.client.phone);
+                            option.setAttribute('data-email', result.client.email || '');
+                            clientSelect.add(option);
 
-                            // Select the new client
-                            clientSelect.value = result.client.id;
-
-                            // Trigger change event to update UI
-                            const event = new Event('change');
-                            clientSelect.dispatchEvent(event);
+                            // Trigger change event for Select2
+                            $(clientSelect).trigger('change');
+                            
+                            console.log('✅ Client added to dropdown');
                         }
                     } else {
+                        console.error('❌ Server returned error:', result.error);
                         showNotification(result.error || 'Failed to create client', 'error');
                     }
                 } catch (error) {
-                    console.error("Error:", error);
+                    console.error("❌ Error saving client:", error);
                     showNotification('Failed to create client: ' + error.message, 'error');
                 } finally {
                     // Re-enable submit button
-                    submitBtn.disabled = false;
-                    submitBtn.innerHTML = originalText;
+                    if (submitBtn) {
+                        submitBtn.disabled = false;
+                        submitBtn.innerHTML = originalText;
+                    }
+                    console.log('🔵 saveQuickClient() completed');
                 }
             }
 
