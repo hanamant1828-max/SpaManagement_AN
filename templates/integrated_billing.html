@@ -648,8 +648,8 @@ textarea.form-control {
                         <div class="col-md-6">
                             <div class="form-group">
                                 <label class="form-label required">Select Customer</label>
-                                <select class="form-select" id="client_id" name="client_id" required>
-                                    <option value="">Choose customer...</option>
+                                <select class="form-select form-select-lg" id="client_id" name="client_id" required>
+                                    <option value="">-- Select Customer --</option>
                                     {% for customer in customers %}
                                     <option value="{{ customer.id }}" {{ 'selected' if selected_customer and customer.id == selected_customer.id else '' }}>
                                         {{ customer.full_name }} - {{ customer.phone }}
@@ -1117,45 +1117,16 @@ document.addEventListener('DOMContentLoaded', function() {
 // SEARCHABLE DROPDOWNS (SELECT2)
 // ==========================================
 function initializeSearchableDropdowns() {
-    // Customer dropdown - use Select2 for search by name/phone
-    $('#client_id').select2({
-        theme: 'bootstrap-5',
-        placeholder: 'Search customer by name or phone...',
-        allowClear: true,
-        width: '100%'
-    });
-
-    // Service dropdowns - use regular HTML select (no Select2)
+    // All dropdowns use regular HTML select (no Select2)
+    
+    // Service dropdowns - attach change handler
     $('select[name="service_ids[]"]').each(function() {
-        // Just attach change handler, no Select2
         $(this).on('change', function() {
             handleServiceChange(this);
         });
     });
 
-    // Staff dropdowns - use regular HTML select (no Select2)
-
-    // Initialize Select2 on product dropdowns
-    $('select[name="product_ids[]"]').each(function() {
-        $(this).select2({
-            theme: 'bootstrap-5',
-            placeholder: 'Search for product...',
-            allowClear: true,
-            width: '100%'
-        });
-    });
-
-    // Initialize Select2 on batch dropdowns
-    $('.batch-select').each(function() {
-        $(this).select2({
-            theme: 'bootstrap-5',
-            placeholder: 'Select batch...',
-            allowClear: true,
-            width: '100%'
-        });
-    });
-
-    console.log('✅ Searchable dropdowns initialized');
+    console.log('✅ Standard dropdowns initialized');
 }
 
 function initializeBillingSystem() {
@@ -1826,11 +1797,6 @@ function resetCustomerAppointments() {
 
         console.log('🔢 Available batches after filtering and sorting:', availableBatches);
 
-        // Destroy existing Select2 instance if it exists
-        if ($(batchSelect).hasClass('select2-hidden-accessible')) {
-            $(batchSelect).select2('destroy');
-        }
-
         if (!availableBatches.length) {
             batchSelect.innerHTML = '<option value="">Out of Stock</option>';
             batchSelect.disabled = true;
@@ -1846,14 +1812,6 @@ function resetCustomerAppointments() {
             </option>`
         ).join('');
         batchSelect.disabled = false;
-
-        // Reinitialize Select2 on batch dropdown
-        $(batchSelect).select2({
-            theme: 'bootstrap-5',
-            placeholder: 'Select batch...',
-            allowClear: true,
-            width: '100%'
-        });
 
         // Display first batch info
         const firstBatch = availableBatches[0];
@@ -1871,7 +1829,7 @@ function resetCustomerAppointments() {
 
         // Add event listener for batch change (only if not already added to prevent duplicates)
         if (!batchSelect.dataset.changeListenerAdded) {
-            $(batchSelect).on('change', function() {
+            batchSelect.addEventListener('change', function() {
                 const selectedOption = this.options[this.selectedIndex];
                 const qty = selectedOption.dataset.qty;
                 const price = selectedOption.dataset.price;
@@ -1982,24 +1940,7 @@ function resetCustomerAppointments() {
 
         container.appendChild(newRow);
 
-        // Initialize Select2 on the new row's dropdowns
-        $(newRow).find('select[name="product_ids[]"]').select2({
-            theme: 'bootstrap-5',
-            placeholder: 'Search for product...',
-            allowClear: true,
-            width: '100%'
-        });
-
-        // Product staff dropdown - use regular HTML select (no Select2)
-
-        $(newRow).find('.batch-select').select2({
-            theme: 'bootstrap-5',
-            placeholder: 'Select batch...',
-            allowClear: true,
-            width: '100%'
-        });
-
-        console.log('✅ New product row added with searchable dropdowns');
+        console.log('✅ New product row added with standard dropdowns');
     }
 
     function removeRow(button) {
