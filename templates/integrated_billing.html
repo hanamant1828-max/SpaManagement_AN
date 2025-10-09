@@ -627,7 +627,7 @@ textarea.form-control {
             Create Professional Invoice
         </h1>
         <p class="page-subtitle">
-            Comprehensiveqqqq billing with package benefits, inventory tracking, and staff management
+            Comprehensive billing with package benefits, inventory tracking, and staff management
         </p>
     </div>
 
@@ -648,7 +648,7 @@ textarea.form-control {
                         <div class="col-md-6">
                             <div class="form-group">
                                 <label class="form-label required">Select Customer</label>
-                                <select class="form-select" id="client_id" name="client_id" required onchange="handleCustomerChange(this.value)">
+                                <select class="form-select" id="client_id" name="client_id" required>
                                     <option value="">Choose customer...</option>
                                     {% for customer in customers %}
                                     <option value="{{ customer.id }}" {{ 'selected' if selected_customer and customer.id == selected_customer.id else '' }}>
@@ -1206,84 +1206,6 @@ function initializeBillingSystem() {
     // (Assuming selectedServices and selectedProducts might be populated from backend for edits)
     if (selectedServices.length > 0) renderServiceCart();
     if (selectedProducts.length > 0) renderProductCart();
-
-    // Handle customer change using the new function
-    // This is triggered when the select element's value changes
-    if (clientSelect) {
-        // Trigger the change event manually if a customer is pre-selected
-        if (clientSelect.value) {
-            clientSelect.dispatchEvent(new Event('change'));
-        }
-    }
-}
-
-// Handle customer change using the new function
-window.handleCustomerChange = function(customerId) {
-    if (customerId) {
-        // Clear existing rows before loading new customer data
-        clearBillingRows();
-        loadCustomerPackages(customerId);
-        loadCustomerAppointments(customerId);
-        // Force recalculation after customer change
-        setTimeout(() => {
-            updateCalculations();
-        }, 500);
-    } else {
-        // Clear appointments and packages if no customer selected
-        resetCustomerPackages();
-        resetCustomerAppointments();
-        updateCalculations();
-    }
-};
-
-// Load customer appointments and packages
-function loadCustomerData(customerId) {
-    if (!customerId) return;
-
-    console.log('Loading data for customer:', customerId);
-
-    // Fetch customer appointments
-    fetch(`/api/customer/${customerId}/appointments`)
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                console.log('Customer appointments loaded:', data);
-                displayCustomerAppointments(data.appointments || []);
-            } else {
-                console.error('Failed to load customer appointments:', data.error);
-                showNotification('Failed to load customer appointments: ' + (data.error || 'Unknown error'), 'error');
-            }
-        })
-        .catch(error => {
-            console.error('Error loading customer appointments:', error);
-            showNotification('Error loading customer appointments. Please try again.', 'error');
-        });
-
-    // Fetch customer packages
-    fetch(`/integrated-billing/customer-packages/${customerId}`)
-        .then(response => response.json())
-        .then(data => {
-            if (data.success && data.packages) {
-                console.log('Customer packages loaded:', data.packages);
-                BillingState.customerPackages = data.packages; // Store in state
-                displayCustomerPackagesTable(data.packages);
-            } else {
-                console.error('Failed to load customer packages:', data.message);
-                BillingState.customerPackages = []; // Ensure state is cleared on error
-                displayCustomerPackagesTable([]); // Clear the table display
-                showNotification('Failed to load customer packages: ' + (data.message || 'Unknown error'), 'error');
-            }
-        })
-        .catch(error => {
-            console.error('Error loading customer packages:', error);
-            BillingState.customerPackages = []; // Ensure state is cleared on error
-            displayCustomerPackagesTable([]); // Clear the table display
-            showNotification('Error loading customer packages. Please try again.', 'error');
-        })
-        .finally(() => {
-            // Always update calculations after loading both appointments and packages
-            updateCalculations();
-        });
 }
 
 // ==========================================
@@ -2257,13 +2179,17 @@ function handleServiceChange(selectElement) {
 
     console.log('🔄 Service changed - checking for package benefits:', { serviceId, servicePrice });
 
+    // Check and apply package benefits for this service
+    const qtyInput = row.querySelector('input[name="service_quantities[]"]');
+    const quantity = parseFloat(qtyInput?.value) || 1;
+
     // Check if customer is selected
     const customerId = BillingState.selectedCustomerId;
     if (customerId && BillingState.customerPackages && BillingState.customerPackages.length > 0) {
         console.log('🎁 Customer selected with packages - applying benefits');
 
         // Apply package benefit check
-        const benefit = checkPackageBenefit(serviceId, servicePrice); // Removed quantity as it's not used here
+        const benefit = checkPackageBenefit(serviceId, servicePrice, quantity);
 
         // Visual feedback for package application
         if (benefit && benefit.discount > 0) {
@@ -2278,7 +2204,7 @@ function handleServiceChange(selectElement) {
                 benefitDiv.innerHTML = `<i class="fas fa-graduation-cap"></i> ${benefit.packageUsed}: -₹${benefit.discount.toFixed(2)}`;
             } else {
                 benefitDiv.className = 'package-benefit';
-                benefitDiv.innerHTML = `<i class="fas fa-gift"></i> ${benefit.packageUsed || benefit.benefitType}: -₹${benefit.discount.toFixed(2)}`;
+                benefitDiv.innerHTML = `<i class="fas fa-gift"></i> ${benefit.packageUsed}: -₹${benefit.discount.toFixed(2)}`;
             }
         } else {
             // Remove benefit indicator if no benefit applies
@@ -2339,7 +2265,7 @@ function updateCalculations() {
         // Apply package benefits for ALL service rows (including appointments)
         if (serviceId && quantity > 0) {
             // Check for applicable package benefits with cumulative usage tracking
-            benefitApplied = checkPackageBenefit(serviceId, basePrice, quantity, cumulativePackageUsage); // Pass quantity for checks
+            benefitApplied = checkPackageBenefit(serviceId, basePrice, quantity, cumulativePackageUsage);
             console.log('🎁 Package benefit check for service row:', { serviceId, basePrice, quantity, isAppointmentRow, benefitApplied });
 
             if (benefitApplied.discount > 0) {
