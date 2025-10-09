@@ -59,3 +59,14 @@ opencv-python
 python-dotenv
 pytz
 weasyprint
+email-validator
+flask
+flask-login
+flask-sqlalchemy
+flask-wtf
+gunicorn
+psycopg2-binary
+pytz
+sqlalchemy
+werkzeug
+wtforms
