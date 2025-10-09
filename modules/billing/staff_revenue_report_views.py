@@ -72,25 +72,23 @@ def staff_revenue_report():
         func.sum(
             func.case(
                 (InvoiceItem.item_type == 'service', InvoiceItem.staff_revenue_price),
-                (InvoiceItem.item_type == 'inventory', InvoiceItem.staff_revenue_price)
-            ).else_(0)
+                else_=0
+            )
         ).label('service_revenue'),
         func.sum(
             func.case(
                 (InvoiceItem.item_type == 'inventory', InvoiceItem.staff_revenue_price),
-                (InvoiceItem.item_type == 'service', InvoiceItem.staff_revenue_price)
-            ).else_(0)
+                else_=0
+            )
         ).label('product_revenue'),
         func.count(
             func.case(
-                (InvoiceItem.item_type == 'service', InvoiceItem.id),
-                else_=None
+                (InvoiceItem.item_type == 'service', InvoiceItem.id)
             )
         ).label('service_count'),
         func.count(
             func.case(
-                (InvoiceItem.item_type == 'inventory', InvoiceItem.id),
-                else_=None
+                (InvoiceItem.item_type == 'inventory', InvoiceItem.id)
             )
         ).label('product_count')
     ).join(InvoiceItem, User.id == InvoiceItem.staff_id)\
