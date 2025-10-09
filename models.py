@@ -228,7 +228,7 @@ class User(UserMixin, db.Model):
         # These match the permissions defined in init_roles_permissions.py
         legacy_permission_map = {
             'manager': [
-                'dashboard_view', 
+                'dashboard_view',
                 'clients_view', 'clients_create', 'clients_edit',
                 'staff_view', 'staff_create', 'staff_edit',
                 'services_view', 'services_create', 'services_edit',
@@ -240,21 +240,21 @@ class User(UserMixin, db.Model):
                 'inventory_view'
             ],
             'staff': [
-                'dashboard_view', 
+                'dashboard_view',
                 'clients_view',
                 'services_view',
                 'appointments_view',
                 'billing_view'
             ],
             'therapist': [
-                'dashboard_view', 
+                'dashboard_view',
                 'clients_view',
                 'services_view',
                 'appointments_view',
                 'billing_view'
             ],
             'receptionist': [
-                'dashboard_view', 
+                'dashboard_view',
                 'clients_view', 'clients_create', 'clients_edit',
                 'services_view',
                 'appointments_view', 'appointments_create', 'appointments_edit',
@@ -408,8 +408,8 @@ class Customer(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     first_name = db.Column(db.String(50), nullable=False)
     last_name = db.Column(db.String(50), nullable=False)
-    email = db.Column(db.String(120), unique=True, nullable=True, index=True)
-    phone = db.Column(db.String(20), nullable=False)
+    email = db.Column(db.String(120), unique=False, nullable=True, index=True)
+    phone = db.Column(db.String(20), unique=True, nullable=False, index=True)
     date_of_birth = db.Column(db.Date)
     gender = db.Column(db.String(10))
     address = db.Column(db.Text)
@@ -577,19 +577,19 @@ class ServicePackage(db.Model):
     name = db.Column(db.String(100), nullable=False)
     description = db.Column(db.Text)
     service_id = db.Column(db.Integer, db.ForeignKey('service.id'))
-    
+
     # Package structure fields
     pay_for = db.Column(db.Integer, default=0)  # Number of sessions customer pays for
     total_services = db.Column(db.Integer, default=0)  # Total sessions customer gets
     free_services = db.Column(db.Integer, default=0)  # Calculated: total - pay_for
     benefit_percent = db.Column(db.Float, default=0)  # Benefit percentage
-    
+
     # Legacy fields for compatibility
     sessions = db.Column(db.Integer, nullable=False, default=1)
     price = db.Column(db.Float, nullable=False)
     validity_days = db.Column(db.Integer)
     validity_months = db.Column(db.Integer, default=12)
-    
+
     is_active = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
@@ -818,6 +818,7 @@ class PackageAssignmentUsage(db.Model):
 
     def __repr__(self):
         return f'<PackageAssignmentUsage {self.id}: Assignment {self.assignment_id} - {self.change_type}>'
+
 
 # ========================================
 # CUSTOMER PACKAGE MANAGEMENT MODELS
@@ -1138,7 +1139,7 @@ class InvoiceItem(db.Model):
     original_amount = db.Column(db.Float, nullable=False)
     deduction_amount = db.Column(db.Float, default=0.0)
     final_amount = db.Column(db.Float, nullable=False)
-    
+
     # Staff revenue tracking - ALWAYS store original service price for staff commission calculation
     staff_revenue_price = db.Column(db.Float, nullable=True)  # Original service price before package benefits
 
@@ -1609,7 +1610,6 @@ class BusinessSettings(db.Model):
 
     # Relationships
     updater = db.relationship('User', backref='setting_updates')
-
 
 
 class Attendance(db.Model):
