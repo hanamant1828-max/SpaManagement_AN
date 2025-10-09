@@ -170,10 +170,16 @@ def customers():
 
 @app.route('/customers/create', methods=['POST'])
 @app.route('/clients/create', methods=['POST'])
+@app.route('/api/customers/create', methods=['POST'])
 @login_required
 def create_customer_route():
     """Create a new customer with validation"""
+    # Handle API requests differently
+    is_api_request = request.path.startswith('/api/')
+    
     if not current_user.has_permission('clients_create'):
+        if is_api_request:
+            return jsonify({'success': False, 'error': 'Permission denied'}), 403
         flash('You do not have permission to create customers.', 'danger')
         return redirect(url_for('customers'))
 
@@ -204,11 +210,29 @@ def create_customer_route():
         # Create customer
         new_customer = create_customer_query(customer_data)
         full_name = f"{new_customer.first_name} {new_customer.last_name}"
+        
+        if is_api_request:
+            return jsonify({
+                'success': True,
+                'message': f'Customer "{full_name}" created successfully!',
+                'customer': {
+                    'id': new_customer.id,
+                    'first_name': new_customer.first_name,
+                    'last_name': new_customer.last_name,
+                    'phone': new_customer.phone,
+                    'email': getattr(new_customer, 'email', '') or ''
+                }
+            }), 200
+        
         flash(f'Customer "{full_name}" created successfully!', 'success')
 
     except Exception as e:
         db.session.rollback()
         app.logger.error(f"Customer creation error: {str(e)}")
+        
+        if is_api_request:
+            return jsonify({'success': False, 'error': str(e)}), 500
+        
         flash('Error creating customer. Please try again.', 'danger')
 
     return redirect(url_for('customers'))
@@ -273,6 +297,69 @@ def delete_client_route(id):
         return redirect(url_for('customers'))
 
     try:
+
+
+@app.route('/api/quick-client', methods=['POST'])
+@login_required
+def api_quick_create_client():
+    """Quick client creation API endpoint for booking forms"""
+    if not current_user.has_permission('clients_create'):
+        return jsonify({'success': False, 'error': 'Permission denied'}), 403
+    
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'success': False, 'error': 'No data provided'}), 400
+        
+        # Validate required fields
+        required_fields = ['first_name', 'last_name', 'phone', 'gender']
+        for field in required_fields:
+            if not data.get(field):
+                return jsonify({'success': False, 'error': f'{field} is required'}), 400
+        
+        # Check for duplicates
+        if data.get('phone'):
+            existing = get_customer_by_phone(data['phone'])
+            if existing:
+                return jsonify({
+                    'success': False, 
+                    'error': 'A customer with this phone number already exists',
+                    'existing_customer': {
+                        'id': existing.id,
+                        'name': f"{existing.first_name} {existing.last_name}"
+                    }
+                }), 409
+        
+        # Create customer
+        customer_data = {
+            'first_name': data.get('first_name', '').strip().title(),
+            'last_name': data.get('last_name', '').strip().title(),
+            'phone': data.get('phone', '').strip(),
+            'email': data.get('email', '').strip().lower() or None,
+            'gender': data.get('gender', '').strip() or None
+        }
+        
+        new_customer = create_customer_query(customer_data)
+        
+        return jsonify({
+            'success': True,
+            'message': f'Customer created successfully',
+            'customer': {
+                'id': new_customer.id,
+                'first_name': new_customer.first_name,
+                'last_name': new_customer.last_name,
+                'full_name': f"{new_customer.first_name} {new_customer.last_name}",
+                'phone': new_customer.phone,
+                'email': getattr(new_customer, 'email', '') or '',
+                'gender': getattr(new_customer, 'gender', '') or ''
+            }
+        }), 201
+        
+    except Exception as e:
+        db.session.rollback()
+        app.logger.error(f"Quick client creation error: {str(e)}")
+        return jsonify({'success': False, 'error': 'Failed to create customer'}), 500
+
         customer = get_customer_by_id(id)
         if not customer:
             flash('Customer not found.', 'danger')
