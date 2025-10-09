@@ -1659,20 +1659,21 @@ function displayCustomerAppointments(appointments) {
                     <strong style="color: var(--primary);">₹${(apt.service_price || 0).toFixed(2)}</strong>
                 </td>
                 <td style="padding: 8px;">
-                    <button type="button"
-                            class="btn btn-sm ${isAdded ? 'btn-success' : 'btn-primary'} w-100"
-                            data-appointment-id="${apt.id}"
-                            data-service-name="${serviceName}"
-                            data-service-id="${apt.service_id || 'null'}"
-                            data-staff-id="${apt.staff_id || 'null'}"
-                            data-service-price="${apt.service_price || 0}"
-                            data-service-duration="${apt.service_duration || 60}"
-                            onclick="addAppointmentToBill(this.dataset.appointmentId, this.dataset.serviceName, this.dataset.serviceId === 'null' ? null : this.dataset.serviceId, this.dataset.staffId === 'null' ? null : this.dataset.staffId, parseFloat(this.dataset.servicePrice), parseInt(this.dataset.serviceDuration))"
-                            ${isAdded ? 'disabled' : ''}
-                            style="font-size: 0.75rem; padding: 4px 8px;">
+                        <button type="button"
+                                class="btn btn-sm ${isAdded ? 'btn-success' : 'btn-primary'} w-100 appointment-add-btn"
+                                id="apt-btn-${apt.id}"
+                                data-appointment-id="${apt.id}"
+                                data-service-name="${serviceName}"
+                                data-service-id="${apt.service_id || 'null'}"
+                                data-staff-id="${apt.staff_id || 'null'}"
+                                data-service-price="${apt.service_price || 0}"
+                                data-service-duration="${apt.service_duration || 60}"
+                                onclick="addAppointmentToBill(this.dataset.appointmentId, this.dataset.serviceName, this.dataset.serviceId === 'null' ? null : this.dataset.serviceId, this.dataset.staffId === 'null' ? null : this.dataset.staffId, parseFloat(this.dataset.servicePrice), parseInt(this.dataset.serviceDuration))"
+                                ${isAdded ? 'disabled' : ''}
+                                style="font-size: 0.75rem; padding: 4px 8px;">
                         ${isAdded ? '<i class="fas fa-check"></i> Added' : '<i class="fas fa-plus"></i> Add'}
-                    </button>
-                </td>
+                        </button>
+                    </td>
             </tr>`;
     });
 
@@ -1703,7 +1704,7 @@ function addAppointmentToBill(appointmentId, serviceName, serviceId, staffId, se
 
     let targetRow = null;
     const existingRows = container.querySelectorAll('.service-row');
-    
+
     // ✅ FIX 1: Handle empty container or check if first row is empty
     if (existingRows.length === 0) {
         // No rows exist, create the first one
@@ -1715,7 +1716,7 @@ function addAppointmentToBill(appointmentId, serviceName, serviceId, staffId, se
         const firstRowServiceSelect = firstRow.querySelector('select[name="service_ids[]"]');
         const firstRowAppointmentInput = firstRow.querySelector('input[name="appointment_ids[]"]');
         const isFirstRowEmpty = !firstRowServiceSelect?.value && !firstRowAppointmentInput?.dataset.appointmentId;
-        
+
         if (isFirstRowEmpty) {
             // ✅ Use the existing empty first row
             targetRow = firstRow;
@@ -1730,7 +1731,7 @@ function addAppointmentToBill(appointmentId, serviceName, serviceId, staffId, se
                 break;
             }
         }
-        
+
         // ✅ Create new row only if appointment not found and first row is filled
         if (!targetRow) {
             addServiceRow();
@@ -1782,7 +1783,7 @@ function addAppointmentToBill(appointmentId, serviceName, serviceId, staffId, se
         allowClear: true,
         width: '100%'
     });
-    
+
     $(staffSelect).select2({
         theme: 'bootstrap-5',
         placeholder: 'Search for staff...',
@@ -1799,7 +1800,7 @@ function addAppointmentToBill(appointmentId, serviceName, serviceId, staffId, se
     if (removeBtn) {
         // Check if this is the only row and if it's now filled (has appointment ID or service selected)
         const updatedRows = container.querySelectorAll('.service-row');
-        const rowHasData = targetRow.querySelector('select[name="service_ids[]"]')?.value || 
+        const rowHasData = targetRow.querySelector('select[name="service_ids[]"]')?.value ||
                           targetRow.querySelector('input[name="appointment_ids[]"]')?.dataset.appointmentId;
         removeBtn.style.display = updatedRows.length > 1 || rowHasData ? 'inline-block' : 'none';
     }
@@ -2079,7 +2080,7 @@ function addServiceRow() {
             </div>`;
         container.innerHTML = serviceTemplateHtml;
         firstRow = container.querySelector('.service-row');
-        
+
         // Initialize Select2 on the newly created row
         $(firstRow).find('select[name="service_ids[]"]').select2({
             theme: 'bootstrap-5',
@@ -2218,7 +2219,7 @@ function removeRow(button) {
     if (row) {
         const container = row.closest('#servicesContainer, #productsContainer');
         const allRows = container ? container.querySelectorAll('.item-row') : [];
-        
+
         // ✅ FIX: Prevent deletion of the last row - instead clear it
         if (allRows.length === 1) {
             console.log('⚠️ Cannot delete last row, clearing it instead');
@@ -2234,7 +2235,7 @@ function removeRow(button) {
             // Reset quantity to 1
             const qtyInput = row.querySelector('input[name*="quantities[]"]');
             if (qtyInput) qtyInput.value = 1;
-            
+
             // Destroy and reinitialize Select2
             $(row).find('.select2-hidden-accessible').each(function() {
                 $(this).select2('destroy');
@@ -2242,8 +2243,8 @@ function removeRow(button) {
             $(row).find('select').each(function() {
                 $(this).select2({
                     theme: 'bootstrap-5',
-                    placeholder: $(this).attr('name').includes('service') ? 'Search for service...' : 
-                                 $(this).attr('name').includes('staff') ? 'Search for staff...' : 
+                    placeholder: $(this).attr('name').includes('service') ? 'Search for service...' :
+                                 $(this).attr('name').includes('staff') ? 'Search for staff...' :
                                  $(this).attr('name').includes('product') ? 'Search for product...' : 'Select...',
                     allowClear: true,
                     width: '100%'
@@ -2381,7 +2382,7 @@ function clearBillingRows() {
     // Reset tracking for added appointments
     addedAppointmentIds.clear();
     console.log('✅ Billing rows cleared and template rows re-added.');
-    
+
     // ✅ FIX: Reinitialize Select2 on the new template rows
     setTimeout(() => {
         initializeSearchableDropdowns();
