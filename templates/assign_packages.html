@@ -28,11 +28,7 @@
 
                             <div class="form-group mb-3">
                                 <label for="customerId">Customer *</label>
-                                <div class="input-group">
-                                    <span class="input-group-text"><i class="fas fa-search"></i></span>
-                                    <input type="text" id="customerSearch" class="form-control" placeholder="Search by name or phone...">
-                                </div>
-                                <select id="customerId" class="form-control mt-2" required>
+                                <select id="customerId" class="form-select" required>
                                     <option value="">Select Customer...</option>
                                     {% for customer in customers %}
                                     <option value="{{ customer.id }}" data-phone="{{ customer.phone }}" data-email="{{ customer.email }}">
@@ -284,19 +280,6 @@
 </div>
 
 <style>
-        .customer-search {
-            border: 2px solid #4CAF50;
-            border-radius: 8px;
-            padding: 10px;
-            font-size: 14px;
-        }
-
-        .customer-search:focus {
-            outline: none;
-            border-color: #45a049;
-            box-shadow: 0 0 5px rgba(76, 175, 80, 0.3);
-        }
-
         .package-card {
             transition: all 0.3s ease;
             border: 1px solid #e0e0e0;
@@ -386,39 +369,6 @@ document.getElementById('serviceId').addEventListener('change', function() {
 
 // Handle customer selection
 document.getElementById('customerId').addEventListener('change', validateAssignForm);
-
-// ============================================================================
-// CUSTOMER SEARCH
-// ============================================================================
-
-document.getElementById('customerSearch').addEventListener('input', function() {
-    const searchValue = this.value.toLowerCase().trim();
-    const customerSelect = document.getElementById('customerId');
-    const options = customerSelect.querySelectorAll('option');
-
-    options.forEach(option => {
-        if (option.value === '') {
-            option.style.display = 'block';
-            return;
-        }
-
-        const phone = option.getAttribute('data-phone') || '';
-        const name = option.textContent.toLowerCase();
-
-        if (phone.includes(searchValue) || name.includes(searchValue)) {
-            option.style.display = 'block';
-        } else {
-            option.style.display = 'none';
-        }
-    });
-
-    // Auto-select if only one match
-    const visibleOptions = Array.from(options).filter(opt => opt.value !== '' && opt.style.display !== 'none');
-    if (visibleOptions.length === 1) {
-        customerSelect.value = visibleOptions[0].value;
-        validateAssignForm();
-    }
-});
 
 // ============================================================================
 // PRICE CALCULATION
