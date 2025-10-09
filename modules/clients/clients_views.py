@@ -380,6 +380,76 @@ def api_quick_create_client():
         return jsonify({'success': False, 'error': 'Failed to create customer'}), 500
 
 
+@app.route('/api/unaki/quick-add-client', methods=['POST'])
+@login_required
+def api_unaki_quick_add_client():
+    """Unaki-specific quick client creation endpoint (alias to main quick-client API)"""
+    # Reuse the same logic as api_quick_create_client
+    if not current_user.has_permission('clients_create'):
+        return jsonify({'success': False, 'error': 'Permission denied'}), 403
+    
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'success': False, 'error': 'No data provided'}), 400
+        
+        # Validate required fields
+        required_fields = ['first_name', 'last_name', 'phone', 'gender']
+        for field in required_fields:
+            if not data.get(field):
+                return jsonify({'success': False, 'error': f'{field} is required'}), 400
+        
+        # Check for duplicates
+        if data.get('phone'):
+            existing = get_customer_by_phone(data['phone'])
+            if existing:
+                return jsonify({
+                    'success': False, 
+                    'error': 'A customer with this phone number already exists',
+                    'existing_customer': {
+                        'id': existing.id,
+                        'name': f"{existing.first_name} {existing.last_name}"
+                    }
+                }), 409
+        
+        # Create customer
+        customer_data = {
+            'first_name': data.get('first_name', '').strip().title(),
+            'last_name': data.get('last_name', '').strip().title(),
+            'phone': data.get('phone', '').strip(),
+            'email': data.get('email', '').strip().lower() or None,
+            'gender': data.get('gender', '').strip() or None
+        }
+        
+        new_customer = create_customer_query(customer_data)
+        
+        return jsonify({
+            'success': True,
+            'message': f'Client added successfully!',
+            'customer': {
+                'id': new_customer.id,
+                'first_name': new_customer.first_name,
+                'last_name': new_customer.last_name,
+                'full_name': f"{new_customer.first_name} {new_customer.last_name}",
+                'phone': new_customer.phone,
+                'email': getattr(new_customer, 'email', '') or '',
+                'gender': getattr(new_customer, 'gender', '') or ''
+            },
+            'client': {  # Add both 'customer' and 'client' keys for compatibility
+                'id': new_customer.id,
+                'first_name': new_customer.first_name,
+                'last_name': new_customer.last_name,
+                'phone': new_customer.phone,
+                'email': getattr(new_customer, 'email', '') or ''
+            }
+        }), 201
+        
+    except Exception as e:
+        db.session.rollback()
+        app.logger.error(f"Unaki quick client creation error: {str(e)}")
+        return jsonify({'success': False, 'error': 'Failed to create client'}), 500
+
+
 @app.route('/clients/<int:id>')
 @login_required
 def client_detail(id):
