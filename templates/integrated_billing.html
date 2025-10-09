@@ -1739,7 +1739,11 @@ function addAppointmentToBill(appointmentId, serviceName, serviceId, staffId, se
         }
     }
 
-    // Populate the target row
+    // ✅ Mark as added IMMEDIATELY to prevent race conditions
+    addedAppointmentIds.add(appointmentId);
+    console.log('✅ Marked appointment as added:', appointmentId);
+
+    // Populate ONLY this target row with the clicked appointment data
     const serviceSelect = targetRow.querySelector('select[name="service_ids[]"]');
     const staffSelect = targetRow.querySelector('select[name="staff_ids[]"]');
     const qtyInput = targetRow.querySelector('input[name="service_quantities[]"]');
@@ -1754,11 +1758,11 @@ function addAppointmentToBill(appointmentId, serviceName, serviceId, staffId, se
     }
 
     // Set values from appointment data
-    if (serviceId !== 'null' && serviceSelect) {
+    if (serviceId && serviceId !== 'null' && serviceSelect) {
         serviceSelect.value = serviceId;
     }
 
-    if (staffId !== 'null' && staffSelect) {
+    if (staffId && staffId !== 'null' && staffSelect) {
         staffSelect.value = staffId;
     }
 
@@ -1789,10 +1793,6 @@ function addAppointmentToBill(appointmentId, serviceName, serviceId, staffId, se
         width: '100%'
     });
 
-    // ✅ Mark as added BEFORE updating UI (prevents race conditions)
-    addedAppointmentIds.add(appointmentId);
-    console.log('✅ Marked appointment as added:', appointmentId);
-
     // Show/hide remove button
     const removeBtn = targetRow.querySelector('.btn-danger');
     if (removeBtn) {
@@ -1802,23 +1802,23 @@ function addAppointmentToBill(appointmentId, serviceName, serviceId, staffId, se
         removeBtn.style.display = allRows.length > 1 || rowHasData ? 'inline-block' : 'none';
     }
 
-    // Apply package benefits and update calculations
+    // ✅ Refresh appointments display FIRST to show "Added" button state
+    const clientId = document.getElementById('client_id').value;
+    if (clientId) {
+        loadCustomerAppointments(clientId);
+    }
+
+    // Apply package benefits and update calculations AFTER UI updates
     setTimeout(() => {
-        if (serviceId !== 'null' && serviceSelect) {
+        if (serviceId && serviceId !== 'null' && serviceSelect) {
             console.log('🎯 Triggering service change for appointment', appointmentId);
             handleServiceChange(serviceSelect);
         }
         updateCalculations();
     }, 100);
-
-    // ✅ Refresh appointments display to show "Added" button state
-    const clientId = document.getElementById('client_id').value;
-    if (clientId) {
-        loadCustomerAppointments(clientId);
-    }
     
     // ✅ Show success notification
-    showNotification(`Appointment #${appointmentId} added to bill`, 'success', 2000);
+    showNotification(`Appointment #${appointmentId} (${serviceName}) added to bill`, 'success', 2000);
 }
 
 function removeAppointmentFromBill(appointmentId) {
