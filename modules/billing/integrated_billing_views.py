@@ -11,7 +11,7 @@ from sqlalchemy import and_
 
 # Import core models first
 from models import (
-    Customer, Service, Appointment, User, 
+    Customer, Service, Appointment, User,
     EnhancedInvoice, InvoiceItem, InvoicePayment,
     ServicePackageAssignment
 )
@@ -403,26 +403,26 @@ def integrated_billing(customer_id=None):
                             if student_offer:
                                 if student_offer.discount_percentage:
                                     package_info['discount_percentage'] = float(student_offer.discount_percentage)
-                                
+
                                 # Get list of service IDs and names this offer applies to
                                 if hasattr(student_offer, 'student_offer_services'):
                                     applicable_service_ids = [sos.service_id for sos in student_offer.student_offer_services]
                                     package_info['applicable_service_ids'] = applicable_service_ids
-                                    
+
                                     # Get service names for display
                                     applicable_services = []
                                     for sos in student_offer.student_offer_services:
                                         if sos.service:
                                             applicable_services.append(sos.service.name)
                                     package_info['applicable_service_names'] = ', '.join(applicable_services) if applicable_services else 'All Services'
-                                
+
                                 # Add student offer specific fields
                                 package_info['valid_from'] = student_offer.valid_from.strftime('%b %d, %Y') if student_offer.valid_from else None
                                 package_info['valid_to'] = student_offer.valid_to.strftime('%b %d, %Y') if student_offer.valid_to else None
                                 package_info['valid_days'] = student_offer.valid_days or 'All Days'
                                 package_info['conditions'] = student_offer.conditions or 'Standard terms apply'
                                 package_info['package_price'] = float(student_offer.price) if student_offer.price else 0
-                                
+
                                 app.logger.info(f"✅ Student offer {package_info['name']}: {package_info['discount_percentage']}% off, valid {package_info['valid_days']}, applies to: {package_info.get('applicable_service_names', 'N/A')}")
                         except Exception as e:
                             app.logger.error(f"Error getting student offer details: {e}")
@@ -1004,15 +1004,15 @@ def check_package_benefits():
 def create_professional_invoice():
     """
     Create new professional invoice with complete GST/SGST tax support
-    
+
     MULTI-SERVICE STAFF BILLING:
     - Each service gets its own InvoiceItem record
     - Each InvoiceItem stores the staff who performed that service
     - staff_revenue_price stores ORIGINAL service price (for commission calculation)
     - final_amount stores customer price (after package benefits/discounts)
     - This allows accurate staff commission even when packages reduce customer price
-    
-    Example: 
+
+    Example:
     Service 1: Massage by Staff A - Original ₹500, Customer pays ₹250 (50% package discount)
       → Staff A gets commission on ₹500 (staff_revenue_price)
     Service 2: Facial by Staff B - Original ₹300, Customer pays ₹300 (no discount)
@@ -1209,7 +1209,7 @@ def create_professional_invoice():
             # Generate professional invoice number with retry logic to prevent duplicates
             current_date = datetime.datetime.now()
             date_prefix = current_date.strftime('%Y%m%d')
-            
+
             # Find the highest sequence number for today
             latest_invoice = db.session.query(EnhancedInvoice).filter(
                 EnhancedInvoice.invoice_number.like(f"INV-{date_prefix}-%")
@@ -1240,11 +1240,11 @@ def create_professional_invoice():
             # Create enhanced invoice with IST timezone
             from app import get_ist_now
             ist_now = get_ist_now()
-            
+
             # CRITICAL: Store invoice_date as DATE only (not datetime) for dashboard filtering
             # Dashboard queries use func.date() which expects a date, not datetime
             invoice_date_only = ist_now.date()  # Extract just the date portion
-            
+
             invoice = EnhancedInvoice()
             invoice.invoice_number = invoice_number
             invoice.client_id = int(client_id)
@@ -1314,7 +1314,7 @@ def create_professional_invoice():
                     # Validate staff assignment - CRITICAL for multi-service billing
                     staff_id = service_data.get('staff_id')
                     staff_name = None
-                    
+
                     if staff_id:
                         staff = User.query.get(staff_id)
                         if staff:
@@ -1323,16 +1323,16 @@ def create_professional_invoice():
                         else:
                             app.logger.error(f"❌ Staff ID {staff_id} not found for service '{service.name}'")
                             return jsonify({
-                                'success': False, 
+                                'success': False,
                                 'message': f'Invalid staff assignment for service: {service.name}'
                             }), 400
                     else:
                         app.logger.error(f"❌ No staff assigned for service '{service.name}'")
                         return jsonify({
-                            'success': False, 
+                            'success': False,
                             'message': f'Staff assignment required for service: {service.name}'
                         }), 400
-                    
+
                     # Validate appointment_id exists in appointment table (FK constraint requirement)
                     appt_id = service_data.get('appointment_id')
                     valid_appt_id = None
@@ -1343,10 +1343,10 @@ def create_professional_invoice():
                             valid_appt_id = appt_id
                         else:
                             app.logger.warning(f"⚠️ Appointment ID {appt_id} not found in appointment table - setting to None to avoid FK constraint error")
-                    
+
                     # CRITICAL: Store original service price for staff commission calculation
                     original_service_price = service.price * service_data['quantity']
-                    
+
                     # Create invoice item with staff information
                     item = InvoiceItem(
                         invoice_id=invoice.id,
@@ -1366,7 +1366,7 @@ def create_professional_invoice():
                     db.session.add(item)
                     db.session.flush()  # Get item.id
                     service_items_created += 1
-                    
+
                     app.logger.info(f"📋 Invoice item created: Service='{service.name}', Staff='{staff_name}', Price=₹{original_service_price}, Staff Revenue=₹{original_service_price}")
 
                     # === CRITICAL: APPLY PACKAGE BENEFIT ===
@@ -1385,11 +1385,11 @@ def create_professional_invoice():
 
                     if student_offer_assignment:
                         student_offer = StudentOffer.query.get(student_offer_assignment.package_reference_id)
-                        
+
                         if student_offer and student_offer.discount_percentage:
                             # Check if this service is applicable for the student offer
                             is_applicable = False
-                            
+
                             # Get applicable service IDs from student_offer_services relationship
                             if hasattr(student_offer, 'student_offer_services') and student_offer.student_offer_services:
                                 applicable_service_ids = [sos.service_id for sos in student_offer.student_offer_services]
@@ -1399,7 +1399,7 @@ def create_professional_invoice():
                                 # If no specific services, apply to all
                                 is_applicable = True
                                 app.logger.info(f"🔍 Student offer applies to ALL services")
-                            
+
                             if is_applicable:
                                 # Apply student offer discount
                                 service_amount = service.price * service_data['quantity']
@@ -1409,10 +1409,10 @@ def create_professional_invoice():
                                 item.is_package_deduction = True
                                 package_discount_applied = True
                                 package_deductions_applied += 1
-                                
+
                                 # CRITICAL: staff_revenue_price is ALREADY set to original price above
                                 # So staff gets commission on full ₹{service_amount}, customer pays ₹{item.final_amount}
-                                
+
                                 db.session.flush()
                                 app.logger.info(f"✅ Student offer '{student_offer.name}' {student_offer.discount_percentage}% discount applied: ₹{discount_amount:.2f} on ₹{service_amount:.2f}. Staff revenue stays ₹{item.staff_revenue_price:.2f}")
                             else:
@@ -1428,7 +1428,7 @@ def create_professional_invoice():
                         ).first()
 
                         if yearly_membership_assignment:
-                            # Get yearly membership details
+                            # Get the yearly membership template
                             from models import YearlyMembership
                             yearly_membership = YearlyMembership.query.get(yearly_membership_assignment.package_reference_id)
 
@@ -1441,7 +1441,7 @@ def create_professional_invoice():
                                 item.is_package_deduction = True
                                 package_discount_applied = True
                                 package_deductions_applied += 1
-                                
+
                                 db.session.flush()
                                 app.logger.info(f"✅ Yearly membership '{yearly_membership.name}' {yearly_membership.discount_percent}% discount applied: ₹{discount_amount:.2f} on ₹{service_amount:.2f}. Staff revenue stays ₹{item.staff_revenue_price:.2f}")
 
@@ -1464,7 +1464,7 @@ def create_professional_invoice():
                             item.is_package_deduction = True
                             # staff_revenue_price remains unchanged - staff gets commission on original price
                             package_deductions_applied += 1
-                            
+
                             db.session.flush()
 
                             # Capture updated package info for UI refresh
@@ -1516,7 +1516,7 @@ def create_professional_invoice():
                     # Get staff information for product sale
                     staff_id = item_data.get('staff_id')
                     staff_name = None
-                    
+
                     if staff_id:
                         staff = User.query.get(staff_id)
                         if staff:
@@ -1526,10 +1526,10 @@ def create_professional_invoice():
                             app.logger.warning(f"⚠️ Staff ID {staff_id} not found for product '{product.name}'")
                     else:
                         app.logger.warning(f"⚠️ No staff assigned for product sale: '{product.name}'")
-                    
+
                     # Create invoice item with staff tracking
                     product_amount = item_data['unit_price'] * item_data['quantity']
-                    
+
                     item = InvoiceItem(
                         invoice_id=invoice.id,
                         item_type='inventory',
@@ -1549,7 +1549,7 @@ def create_professional_invoice():
                     )
                     db.session.add(item)
                     inventory_items_created += 1
-                    
+
                     app.logger.info(f"📦 Inventory item created: Product='{product.name}', Staff='{staff_name}', Amount=₹{product_amount}")
 
                     # Reduce stock
@@ -1560,7 +1560,7 @@ def create_professional_invoice():
 
             # Check if this is a save-and-print request
             is_print_request = request.form.get('print_after_save') == 'true'
-            
+
             return jsonify({
                 'success': True,
                 'message': 'Invoice created successfully',
@@ -1599,7 +1599,7 @@ def get_customer_packages(customer_id):
             customer_id=customer_id,
             is_active=True
         ).all()
-        
+
         app.logger.info(f"Found {len(benefit_trackers)} active benefit trackers for customer {customer_id}")
 
         packages_list = []
@@ -1609,7 +1609,7 @@ def get_customer_packages(customer_id):
             if not assignment:
                 app.logger.warning(f"Tracker {tracker.id} has no assignment")
                 continue
-                
+
             r = assignment  # Use assignment variable for compatibility
             # Get package name with comprehensive fallback logic
             package_name = None
@@ -1681,26 +1681,26 @@ def get_customer_packages(customer_id):
                         # Add discount percentage
                         if student_offer.discount_percentage:
                             package_data['discount_percentage'] = float(student_offer.discount_percentage)
-                        
+
                         # Get list of service IDs and names this offer applies to
                         if hasattr(student_offer, 'student_offer_services'):
                             applicable_service_ids = [sos.service_id for sos in student_offer.student_offer_services]
                             package_data['applicable_service_ids'] = applicable_service_ids
-                            
+
                             # Get service names for display
                             applicable_services = []
                             for sos in student_offer.student_offer_services:
                                 if sos.service:
                                     applicable_services.append(sos.service.name)
                             package_data['applicable_service_names'] = ', '.join(applicable_services) if applicable_services else 'All Services'
-                        
+
                         # Add student offer specific fields
                         package_data['valid_from'] = student_offer.valid_from.strftime('%b %d, %Y') if student_offer.valid_from else None
                         package_data['valid_to'] = student_offer.valid_to.strftime('%b %d, %Y') if student_offer.valid_to else None
                         package_data['valid_days'] = student_offer.valid_days or 'All Days'
                         package_data['conditions'] = student_offer.conditions or 'Standard terms apply'
                         package_data['package_price'] = float(student_offer.price) if student_offer.price else 0
-                        
+
                         app.logger.info(f"✅ API Student offer {package_data['name']}: {package_data.get('discount_percentage', 0)}% off, valid {package_data['valid_days']}, applies to: {package_data.get('applicable_service_names', 'N/A')}")
                 except Exception as e:
                     app.logger.error(f"Error getting student offer details in API: {e}")
@@ -1791,9 +1791,9 @@ def get_customer_packages(customer_id):
                 customer_id=customer_id,
                 status='active'
             ).all()
-            
+
             app.logger.info(f"Found {len(assignments)} active assignments for customer {customer_id}")
-            
+
             for r in assignments:
                 # Build package info from assignment
                 package_name = None
@@ -1803,7 +1803,7 @@ def get_customer_packages(customer_id):
                     package_name = r.package_display_name
                 elif hasattr(r, 'name') and r.name:
                     package_name = r.name
-                    
+
                 if not package_name:
                     try:
                         package_template = r.get_package_template()
@@ -1814,22 +1814,22 @@ def get_customer_packages(customer_id):
                                 package_name = package_template.package_name
                     except:
                         pass
-                        
+
                 if not package_name:
                     pkg_type = r.package_type if hasattr(r, 'package_type') and r.package_type else "package"
                     package_name = pkg_type.replace('_', ' ').title() + ' Package'
-                
+
                 service_id = r.service_id
                 service_name = None
                 if service_id:
                     service_obj = Service.query.get(service_id)
                     if service_obj:
                         service_name = service_obj.name
-                        
+
                 actual_package_type = r.package_type if hasattr(r, 'package_type') and r.package_type else (
                     "service_package" if r.total_sessions else "prepaid" if r.credit_amount is not None else "membership"
                 )
-                
+
                 package_data = {
                     "id": r.id,
                     "assignment_id": r.id,
@@ -1841,7 +1841,7 @@ def get_customer_packages(customer_id):
                     "assigned_on": r.assigned_on.isoformat() if r.assigned_on else None,
                     "expires_on": r.expires_on.isoformat() if r.expires_on else None,
                 }
-                
+
                 # Add session or credit data
                 if r.total_sessions is not None:
                     package_data["sessions"] = {
@@ -1854,7 +1854,7 @@ def get_customer_packages(customer_id):
                         "total": float(r.credit_amount or 0.0),
                         "remaining": float(r.remaining_credit or 0.0),
                     }
-                    
+
                 packages_list.append(package_data)
 
         payload = {"success": True, "packages": packages_list}
@@ -1881,7 +1881,7 @@ def print_professional_invoice(invoice_id):
     """Generate and download PDF invoice"""
     from flask import make_response
     import io
-    
+
     # Allow all authenticated users to print invoices
     if not current_user.is_active:
         flash('Access denied', 'danger')
@@ -1915,15 +1915,15 @@ def print_professional_invoice(invoice_id):
                                  tax_details=tax_details,
                                  staff_names=staff_names,
                                  total_amount_words=number_to_words)
-    
+
     try:
         # Generate PDF from HTML
         from weasyprint import HTML, CSS
         from weasyprint.text.fonts import FontConfiguration
-        
+
         # Create font configuration
         font_config = FontConfiguration()
-        
+
         # Generate PDF
         pdf_buffer = io.BytesIO()
         HTML(string=html_string, base_url=request.url_root).write_pdf(
@@ -1931,14 +1931,14 @@ def print_professional_invoice(invoice_id):
             font_config=font_config
         )
         pdf_buffer.seek(0)
-        
+
         # Create response with PDF
         response = make_response(pdf_buffer.getvalue())
         response.headers['Content-Type'] = 'application/pdf'
         response.headers['Content-Disposition'] = f'attachment; filename="Invoice_{invoice.invoice_number}.pdf"'
-        
+
         return response
-        
+
     except Exception as e:
         app.logger.error(f"PDF generation error: {e}")
         # Fallback to HTML view if PDF generation fails

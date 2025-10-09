@@ -1422,7 +1422,10 @@ function displayCustomerPackagesTable(packages) {
             const serviceNames = pkg.services.map(s => s.service_name).join(', ');
             serviceNameDisplay = `<br><small class="text-muted"><i class="fas fa-spa"></i> ${serviceNames}</small>`;
         } else if (packageType === 'yearly') {
-            serviceNameDisplay = `<br><small class="text-muted"><i class="fas fa-percentage"></i> ${pkg.name.split(' - ')[1]}</small>`; // Show the percentage
+            // Extract discount from package name or show "All Services"
+            const nameParts = pkg.name.split(' - ');
+            const discountInfo = nameParts.length > 1 ? nameParts[1] : 'Yearly Discount';
+            serviceNameDisplay = `<br><small class="text-muted"><i class="fas fa-percentage"></i> ${discountInfo} on all services</small>`;
         } else if (packageType === 'student_offer') {
             // Enhanced student offer display
             let studentOfferDetails = '';
@@ -2408,7 +2411,18 @@ function resetCustomerAppointments() {
                     console.log(`✅ Yearly membership discount applied: ${pkg.name}, ${discountPercent}% off = ₹${totalBenefit.toFixed(2)}`);
                     break; // Use first matching yearly package
                 } else {
-                    console.log('⏭️ Yearly package found but no percentage in name:', pkg.name);
+                    // If no percentage in name, check for discount_percentage field
+                    if (pkg.discount_percentage && pkg.discount_percentage > 0) {
+                        const discountPercent = pkg.discount_percentage;
+                        const totalServiceCost = servicePrice * quantity;
+                        totalBenefit = (totalServiceCost * discountPercent) / 100;
+                        appliedPackage = pkg.name || 'Yearly Membership';
+                        benefitType = 'yearly_discount';
+                        console.log(`✅ Yearly membership discount applied: ${appliedPackage}, ${discountPercent}% off = ₹${totalBenefit.toFixed(2)}`);
+                        break;
+                    } else {
+                        console.log('⏭️ Yearly package found but no percentage available:', pkg.name);
+                    }
                 }
             }
 
