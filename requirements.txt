@@ -53,3 +53,9 @@ insightface
 onnxruntime
 opencv-python
 pytz
+insightface
+onnxruntime
+opencv-python
+python-dotenv
+pytz
+weasyprint
