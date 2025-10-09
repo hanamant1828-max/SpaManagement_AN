@@ -1374,35 +1374,78 @@ def create_professional_invoice():
                     package_discount_applied = False
                     package_result = {'success': False, 'applied': False, 'message': 'No package benefit checked'}
 
-                    # First check for yearly membership discount
-                    yearly_membership_assignment = ServicePackageAssignment.query.filter(
+                    # First check for student offers with service applicability
+                    from models import StudentOffer
+                    student_offer_assignment = ServicePackageAssignment.query.filter(
                         ServicePackageAssignment.customer_id == int(client_id),
-                        ServicePackageAssignment.package_type == 'yearly_membership',
-                        ServicePackageAssignment.status == 'active',
+                        ServicePackageAssignment.package_type == 'student_offer',
+                        ServicePackageAssignment.status.in_(['active', 'pending']),
                         ServicePackageAssignment.expires_on >= current_date
                     ).first()
 
-                    if yearly_membership_assignment:
-                        # Get yearly membership details
-                        from models import YearlyMembership
-                        yearly_membership = YearlyMembership.query.get(yearly_membership_assignment.package_reference_id)
-
-                        if yearly_membership and yearly_membership.discount_percent > 0:
-                            # Apply percentage discount
-                            service_amount = service.price * service_data['quantity']
-                            discount_amount = service_amount * (yearly_membership.discount_percent / 100)
-                            item.deduction_amount = discount_amount
-                            item.final_amount = service_amount - discount_amount
-                            item.is_package_deduction = True
-                            package_discount_applied = True
-                            package_deductions_applied += 1
+                    if student_offer_assignment:
+                        student_offer = StudentOffer.query.get(student_offer_assignment.package_reference_id)
+                        
+                        if student_offer and student_offer.discount_percentage:
+                            # Check if this service is applicable for the student offer
+                            is_applicable = False
                             
-                            # CRITICAL: Flush changes so next service sees updated state
-                            db.session.flush()
+                            # Get applicable service IDs from student_offer_services relationship
+                            if hasattr(student_offer, 'student_offer_services') and student_offer.student_offer_services:
+                                applicable_service_ids = [sos.service_id for sos in student_offer.student_offer_services]
+                                is_applicable = service.id in applicable_service_ids
+                                app.logger.info(f"🔍 Student offer check: Service {service.id} ({service.name}) in applicable list {applicable_service_ids}? {is_applicable}")
+                            else:
+                                # If no specific services, apply to all
+                                is_applicable = True
+                                app.logger.info(f"🔍 Student offer applies to ALL services")
+                            
+                            if is_applicable:
+                                # Apply student offer discount
+                                service_amount = service.price * service_data['quantity']
+                                discount_amount = service_amount * (student_offer.discount_percentage / 100)
+                                item.deduction_amount = discount_amount
+                                item.final_amount = service_amount - discount_amount
+                                item.is_package_deduction = True
+                                package_discount_applied = True
+                                package_deductions_applied += 1
+                                
+                                # CRITICAL: staff_revenue_price is ALREADY set to original price above
+                                # So staff gets commission on full ₹{service_amount}, customer pays ₹{item.final_amount}
+                                
+                                db.session.flush()
+                                app.logger.info(f"✅ Student offer '{student_offer.name}' {student_offer.discount_percentage}% discount applied: ₹{discount_amount:.2f} on ₹{service_amount:.2f}. Staff revenue stays ₹{item.staff_revenue_price:.2f}")
+                            else:
+                                app.logger.info(f"⏭️ Student offer '{student_offer.name}' does not apply to service '{service.name}'")
 
-                            app.logger.info(f"✅ Yearly membership '{yearly_membership.name}' {yearly_membership.discount_percent}% discount applied: ₹{discount_amount:.2f} on ₹{service_amount:.2f}")
+                    # If no student offer discount, check yearly membership
+                    if not package_discount_applied:
+                        yearly_membership_assignment = ServicePackageAssignment.query.filter(
+                            ServicePackageAssignment.customer_id == int(client_id),
+                            ServicePackageAssignment.package_type == 'yearly_membership',
+                            ServicePackageAssignment.status == 'active',
+                            ServicePackageAssignment.expires_on >= current_date
+                        ).first()
 
-                    # If no yearly membership discount, try other package benefits
+                        if yearly_membership_assignment:
+                            # Get yearly membership details
+                            from models import YearlyMembership
+                            yearly_membership = YearlyMembership.query.get(yearly_membership_assignment.package_reference_id)
+
+                            if yearly_membership and yearly_membership.discount_percent > 0:
+                                # Apply percentage discount
+                                service_amount = service.price * service_data['quantity']
+                                discount_amount = service_amount * (yearly_membership.discount_percent / 100)
+                                item.deduction_amount = discount_amount
+                                item.final_amount = service_amount - discount_amount
+                                item.is_package_deduction = True
+                                package_discount_applied = True
+                                package_deductions_applied += 1
+                                
+                                db.session.flush()
+                                app.logger.info(f"✅ Yearly membership '{yearly_membership.name}' {yearly_membership.discount_percent}% discount applied: ₹{discount_amount:.2f} on ₹{service_amount:.2f}. Staff revenue stays ₹{item.staff_revenue_price:.2f}")
+
+                    # If no discount packages, try other package benefits (free sessions, prepaid, etc.)
                     if not package_discount_applied:
                         package_result = PackageBillingService.apply_package_benefit(
                             customer_id=int(client_id),
@@ -1417,12 +1460,11 @@ def create_professional_invoice():
                         if package_result.get('success') and package_result.get('applied'):
                             # Update invoice item with package deduction
                             item.deduction_amount = package_result.get('deduction_amount', 0)
-                            item.final_amount = service.price * service_data['quantity'] - item.deduction_amount # Customer pays this
+                            item.final_amount = service.price * service_data['quantity'] - item.deduction_amount
                             item.is_package_deduction = True
                             # staff_revenue_price remains unchanged - staff gets commission on original price
                             package_deductions_applied += 1
                             
-                            # CRITICAL: Flush changes so next service sees updated package balance
                             db.session.flush()
 
                             # Capture updated package info for UI refresh
@@ -1440,8 +1482,7 @@ def create_professional_invoice():
                                         "status": assignment.status
                                     })
 
-                            # Log package usage
-                            app.logger.info(f"✅ Package benefit applied: {package_result.get('message')}")
+                            app.logger.info(f"✅ Package benefit applied: {package_result.get('message')}. Staff revenue stays ₹{item.staff_revenue_price:.2f}")
                         elif package_result.get('success') and not package_result.get('applied'):
                             app.logger.info(f"ℹ️ No package benefit: {package_result.get('message')}")
                         else:
