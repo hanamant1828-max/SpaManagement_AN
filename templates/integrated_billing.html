@@ -1132,6 +1132,8 @@ function initializeSearchableDropdowns() {
             placeholder: 'Search for service...',
             allowClear: true,
             width: '100%'
+        }).on('change', function() {
+            handleServiceChange(this);
         });
     });
 
@@ -1948,7 +1950,10 @@ function populateBatchSelect(batches, batchSelect, batchInfo, priceInput) {
       // Re-init Select2 on the fresh selects in THIS row only
       $(newRow).find('select[name="service_ids[]"]').select2({
         theme: 'bootstrap-5', placeholder: 'Search for service...', allowClear: true, width: '100%'
+      }).on('change', function() {
+        handleServiceChange(this);
       });
+      
       $(newRow).find('select[name="staff_ids[]"]').select2({
         theme: 'bootstrap-5', placeholder: 'Search for staff...', allowClear: true, width: '100%'
       });
