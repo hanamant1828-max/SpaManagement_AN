@@ -4,7 +4,7 @@ Staff Revenue Report - Dedicated detailed reporting
 from flask import render_template, request, redirect, url_for
 from flask_login import login_required, current_user
 from datetime import datetime, date, timedelta
-from sqlalchemy import func
+from sqlalchemy import func, case
 from app import app, db
 from models import EnhancedInvoice, InvoiceItem, Customer, User, Department, Service
 
@@ -70,25 +70,27 @@ def staff_revenue_report():
         func.count(InvoiceItem.id).label('total_items'),
         func.sum(InvoiceItem.staff_revenue_price).label('total_revenue'),
         func.sum(
-            func.case(
+            case(
                 (InvoiceItem.item_type == 'service', InvoiceItem.staff_revenue_price),
                 else_=0
             )
         ).label('service_revenue'),
         func.sum(
-            func.case(
+            case(
                 (InvoiceItem.item_type == 'inventory', InvoiceItem.staff_revenue_price),
                 else_=0
             )
         ).label('product_revenue'),
         func.count(
-            func.case(
-                (InvoiceItem.item_type == 'service', InvoiceItem.id)
+            case(
+                (InvoiceItem.item_type == 'service', InvoiceItem.id),
+                else_=None
             )
         ).label('service_count'),
         func.count(
-            func.case(
-                (InvoiceItem.item_type == 'inventory', InvoiceItem.id)
+            case(
+                (InvoiceItem.item_type == 'inventory', InvoiceItem.id),
+                else_=None
             )
         ).label('product_count')
     ).join(InvoiceItem, User.id == InvoiceItem.staff_id)\
