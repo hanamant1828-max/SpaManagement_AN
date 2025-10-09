@@ -2021,11 +2021,76 @@ function populateBatchSelect(batches, batchSelect, batchInfo, priceInput) {
 function addServiceRow() {
     console.log('➕ addServiceRow called');
     const container = document.getElementById('servicesContainer');
-    const firstRow = container.querySelector('.service-row'); // Get the template row
+    let firstRow = container.querySelector('.service-row'); // Get the template row
 
+    // ✅ FIX: If no template row exists, create one from scratch
     if (!firstRow) {
-        console.error('Template service row not found!');
-        return;
+        console.log('⚠️ No template row found, creating from scratch');
+        const serviceTemplateHtml = `
+            <div class="item-row service-row">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label class="form-label">Service</label>
+                            <select class="form-select" name="service_ids[]" onchange="handleServiceChange(this)">
+                                <option value="">Select Service</option>
+                                {% for service in services %}
+                                <option value="{{ service.id }}" data-price="{{ "%.2f"|format(service.price|float) }}">
+                                    {{ service.name }} - ₹{{ "{:,.2f}".format(service.price) }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label class="form-label required">Staff</label>
+                            <select class="form-select" name="staff_ids[]">
+                                <option value="">Select Staff</option>
+                                {% for staff in staff_members %}
+                                <option value="{{ staff.id }}">{{ staff.full_name }}</option>
+                                {% endfor %}
+                            </select>
+                            <div class="invalid-feedback">Staff required</div>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="form-group">
+                            <label class="form-label">Qty</label>
+                            <input type="number" class="form-control" name="service_quantities[]" value="1" min="0.5" step="0.5" oninput="updateCalculations()">
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="form-group">
+                            <label class="form-label">Apt ID</label>
+                            <input type="number" class="form-control" name="appointment_ids[]" placeholder="Optional">
+                        </div>
+                    </div>
+                    <div class="col-md-1">
+                        <button type="button" class="btn btn-danger btn-sm w-100" onclick="removeRow(this)" style="display:none;">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>`;
+        container.innerHTML = serviceTemplateHtml;
+        firstRow = container.querySelector('.service-row');
+        
+        // Initialize Select2 on the newly created row
+        $(firstRow).find('select[name="service_ids[]"]').select2({
+            theme: 'bootstrap-5',
+            placeholder: 'Search for service...',
+            allowClear: true,
+            width: '100%'
+        });
+        $(firstRow).find('select[name="staff_ids[]"]').select2({
+            theme: 'bootstrap-5',
+            placeholder: 'Search for staff...',
+            allowClear: true,
+            width: '100%'
+        });
+        console.log('✅ Template row created from scratch');
+        return; // Return after creating the first row
     }
 
     const newRow = firstRow.cloneNode(true); // Clone the template row
@@ -2147,8 +2212,44 @@ function removeRow(button) {
     console.log('🗑️ removeRow called for button:', button);
     const row = button.closest('.item-row');
     if (row) {
-        row.remove();
-        console.log('✅ Row removed');
+        const container = row.closest('#servicesContainer, #productsContainer');
+        const allRows = container ? container.querySelectorAll('.item-row') : [];
+        
+        // ✅ FIX: Prevent deletion of the last row - instead clear it
+        if (allRows.length === 1) {
+            console.log('⚠️ Cannot delete last row, clearing it instead');
+            // Clear all inputs but keep the row structure
+            row.querySelectorAll('select, input').forEach(input => {
+                input.value = '';
+                if (input.name?.includes('appointment_ids[]')) {
+                    delete input.dataset.appointmentId;
+                    delete input.dataset.servicePrice;
+                    delete input.dataset.serviceDuration;
+                }
+            });
+            // Reset quantity to 1
+            const qtyInput = row.querySelector('input[name*="quantities[]"]');
+            if (qtyInput) qtyInput.value = 1;
+            
+            // Destroy and reinitialize Select2
+            $(row).find('.select2-hidden-accessible').each(function() {
+                $(this).select2('destroy');
+            });
+            $(row).find('select').each(function() {
+                $(this).select2({
+                    theme: 'bootstrap-5',
+                    placeholder: $(this).attr('name').includes('service') ? 'Search for service...' : 
+                                 $(this).attr('name').includes('staff') ? 'Search for staff...' : 
+                                 $(this).attr('name').includes('product') ? 'Search for product...' : 'Select...',
+                    allowClear: true,
+                    width: '100%'
+                });
+            });
+            console.log('✅ Last row cleared');
+        } else {
+            row.remove();
+            console.log('✅ Row removed');
+        }
         updateCalculations(); // Recalculate totals after removing a row
     } else {
         console.error('Could not find closest .item-row to remove');
