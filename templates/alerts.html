@@ -11,9 +11,20 @@
                     <h2><i class="fas fa-exclamation-triangle me-2"></i>Product Alerts</h2>
                     <p class="text-muted mb-0">Monitor expired, expiring, and low stock items</p>
                 </div>
-                <button id="refreshAlerts" class="btn btn-primary" onclick="refreshAlerts()">
-                    <i class="fas fa-sync-alt me-2"></i>Refresh Alerts
-                </button>
+                <div class="btn-group" role="group">
+                    <button type="button" class="btn btn-outline-primary active" onclick="filterAlerts('all')">
+                        <i class="fas fa-list me-2"></i>All Alerts
+                    </button>
+                    <button type="button" class="btn btn-outline-danger" onclick="filterAlerts('expired')">
+                        <i class="fas fa-times-circle me-2"></i>Expired
+                    </button>
+                    <button type="button" class="btn btn-outline-warning" onclick="filterAlerts('expiring')">
+                        <i class="fas fa-clock me-2"></i>Expiring Soon
+                    </button>
+                    <button type="button" class="btn btn-outline-info" onclick="filterAlerts('low-stock')">
+                        <i class="fas fa-box me-2"></i>Low Stock
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -63,7 +74,7 @@
 
     <!-- Expired Items -->
     {% if expired_items %}
-    <div class="row mb-4">
+    <div class="row mb-4 alert-section" data-alert-type="expired">
         <div class="col-12">
             <div class="card border-danger">
                 <div class="card-header bg-danger text-white">
@@ -115,7 +126,7 @@
 
     <!-- Expiring Soon -->
     {% if expiring_soon %}
-    <div class="row mb-4">
+    <div class="row mb-4 alert-section" data-alert-type="expiring">
         <div class="col-12">
             <div class="card border-warning">
                 <div class="card-header bg-warning text-white">
@@ -183,7 +194,7 @@
 
     <!-- Low Stock Items -->
     {% if low_stock_items %}
-    <div class="row">
+    <div class="row mb-4 alert-section" data-alert-type="low-stock">
         <div class="col-12">
             <div class="card border-info">
                 <div class="card-header bg-info text-white">
@@ -297,6 +308,29 @@ function removeExpiredBatch(batchId) {
 // Refresh alerts function
 function refreshAlerts() {
     location.reload();
+}
+
+// Filter alerts function
+function filterAlerts(filterType) {
+    const alertSections = document.querySelectorAll('.alert-section');
+    alertSections.forEach(section => {
+        const sectionType = section.getAttribute('data-alert-type');
+        if (filterType === 'all' || sectionType === filterType) {
+            section.style.display = ''; // Show the section
+        } else {
+            section.style.display = 'none'; // Hide the section
+        }
+    });
+
+    // Update active button class
+    const buttons = document.querySelectorAll('.btn-group button');
+    buttons.forEach(button => {
+        if (button.onclick && button.onclick.toString().includes(`filterAlerts('${filterType}')`)) {
+            button.classList.add('active');
+        } else {
+            button.classList.remove('active');
+        }
+    });
 }
 
 // Auto-refresh alerts every 10 minutes
