@@ -153,11 +153,10 @@ def alerts():
         # Get inventory alerts
         from modules.inventory.models import InventoryBatch, InventoryProduct
         from sqlalchemy.orm import joinedload
+        from datetime import datetime, timedelta
 
-
-        # Get current date in IST for default filters
-        ist_now = get_ist_now()
-        today = ist_now.date()
+        # Get current date
+        today = datetime.now().date()
 
         # Get expired batches
         expired_batches = InventoryBatch.query.options(
@@ -186,16 +185,25 @@ def alerts():
         products = InventoryProduct.query.filter(InventoryProduct.is_active == True).all()
         for product in products:
             total_stock = sum(float(batch.qty_available or 0) for batch in product.batches if batch.status == 'active')
-            if total_stock <= 10 and total_stock > 0:  # Low stock threshold
-                low_stock_items.append({
-                    'product': product,
-                    'current_stock': total_stock
-                })
+            if total_stock <= product.min_stock_level and total_stock > 0:  # Low stock threshold
+                # Create a simple object with the required attributes
+                class LowStockItem:
+                    def __init__(self, product, stock):
+                        self.name = product.name
+                        self.description = product.description
+                        self.category = product.category or 'general'
+                        self.current_stock = stock
+                        self.min_stock_level = product.min_stock_level or 10
+                        self.supplier_name = product.supplier_name
+                        self.supplier_contact = product.supplier_contact
+                
+                low_stock_items.append(LowStockItem(product, total_stock))
 
         return render_template('alerts.html', 
                              expired_items=expired_batches,
                              expiring_soon=expiring_soon,
-                             low_stock_items=low_stock_items)
+                             low_stock_items=low_stock_items,
+                             today=today)
     except Exception as e:
         print(f"Alerts error: {e}")
         flash('Error loading alerts', 'danger')
