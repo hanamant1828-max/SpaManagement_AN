@@ -481,13 +481,26 @@ function recalculateTotals() {
 
         // Calculate based on package type
         if (packageType === 'service_package') {
-            // Service packages: calculate from sessions × service price
+            // Service packages: MUST have a service selected to calculate price
             if (currentService) {
                 const payFor = parseInt(currentPackage.pay_for || 0);
                 const free = parseInt(currentPackage.free_services || 0);
                 const servicePrice = parseFloat(currentService.price || 0);
+                
+                // Total package price = sessions you pay for × service price
                 subtotal = payFor * servicePrice;
+                // Discount = free sessions × service price
                 discount = free * servicePrice;
+                
+                console.log('Service package calculation:', {
+                    payFor,
+                    free,
+                    servicePrice,
+                    subtotal,
+                    discount
+                });
+            } else {
+                console.warn('Service package selected but no service chosen yet');
             }
         } else {
             // All other package types: use helper function
@@ -495,17 +508,12 @@ function recalculateTotals() {
         }
     }
 
-    // Prevent 0 price when package is selected (validation)
-    if (currentPackage && subtotal === 0) {
-        console.warn('Warning: Package selected but price is 0. Package data:', currentPackage);
-    }
-
     // Calculate tax and totals
     const taxable = Math.max(subtotal - discount, 0);
     const gstAmount = taxable * 0.18;
     const grandTotal = taxable + gstAmount;
 
-    // Update display
+    // Update display - show package price BEFORE tax, then add tax
     document.getElementById('displaySubtotal').textContent = `₹${grandTotal.toFixed(2)}`;
     document.getElementById('displayNetPrice').textContent = `₹${taxable.toFixed(2)}`;
     document.getElementById('displayTax').textContent = `₹${gstAmount.toFixed(2)}`;
@@ -542,21 +550,15 @@ function validateAssignForm() {
     // Base validation: must have customer and package type
     let isValid = hasValidCustomer && packageType;
 
-    // Package type specific validation - student offers need package ID too
-    if (packageType && packageType !== 'student_offer') { // Student offers might not need a specific package ID if it's a general type
+    // Package type specific validation
+    if (packageType) {
+        // All package types need a package selected
         isValid = isValid && packageId;
-    } else if (packageType === 'student_offer' && !packageId) {
-        // If student offer is selected, and no specific package ID is required, then packageId check can be skipped for this type
-        // However, if a specific student offer package exists and is selectable, it should be required.
-        // For now, we assume student_offer is a general type and doesn't require a specific package selection from the dropdown.
-        // If a specific student offer package *is* selected, then packageId will be present and isValid will be true for this part.
-        // If packageType is 'student_offer' and no packageId is selected, this part is skipped, and isValid depends on other fields.
-    }
-
-
-    // Service packages need a service selected
-    if (packageType === 'service_package') {
-        isValid = isValid && serviceId;
+        
+        // Service packages ALSO need a service selected
+        if (packageType === 'service_package') {
+            isValid = isValid && serviceId && serviceId !== '';
+        }
     }
 
     console.log('Form Valid:', isValid);
