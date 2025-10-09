@@ -627,7 +627,7 @@ textarea.form-control {
             Create Professional Invoice
         </h1>
         <p class="page-subtitle">
-            Comprehensive billing with package benefits, inventory tracking, and staff management
+            Comprehensiveqqqq billing with package benefits, inventory tracking, and staff management
         </p>
     </div>
 
@@ -1085,29 +1085,29 @@ textarea.form-control {
 // STATE MANAGEMENT
 // ==========================================
 const BillingState = {
-    selectedCustomerId: null,
-    customerPackages: null,
+    selectedCustomerId: null, // Customer ID for tracking selected customer
+    customerPackages: null, // Active packages for the selected customer
     batchCache: {},
     isSubmitting: false
 };
 
+// Global variables for cart items
 let selectedServices = [];
 let selectedProducts = [];
-let taxRate = 9;
-
-// Track which appointments have been added to bill
-const addedAppointmentIds = new Set();
+let taxRate = 9; // Default tax rate
 
 // ==========================================
 // INITIALIZATION
 // ==========================================
+// Initialize application when DOM is loaded
 document.addEventListener('DOMContentLoaded', function() {
     initializeBillingSystem();
     initializeSearchableDropdowns();
-    updateCalculations();
+    updateCalculations(); // Initial calculation to set display to 0.00
 
     {% if selected_customer %}
     console.log('Pre-selected customer ID:', {{ selected_customer.id }});
+    // Ensure to use the correct function name and pass ID as string or number based on API
     loadCustomerPackages({{ selected_customer.id }});
     loadCustomerAppointments({{ selected_customer.id }});
     {% endif %}
@@ -1117,6 +1117,7 @@ document.addEventListener('DOMContentLoaded', function() {
 // SEARCHABLE DROPDOWNS (SELECT2)
 // ==========================================
 function initializeSearchableDropdowns() {
+    // Initialize Select2 on customer dropdown
     $('#client_id').select2({
         theme: 'bootstrap-5',
         placeholder: 'Search for customer...',
@@ -1124,6 +1125,7 @@ function initializeSearchableDropdowns() {
         width: '100%'
     });
 
+    // Initialize Select2 on all service dropdowns
     $('select[name="service_ids[]"]').each(function() {
         $(this).select2({
             theme: 'bootstrap-5',
@@ -1133,6 +1135,7 @@ function initializeSearchableDropdowns() {
         });
     });
 
+    // Initialize Select2 on all staff dropdowns
     $('select[name="staff_ids[]"], select[name="product_staff_ids[]"]').each(function() {
         $(this).select2({
             theme: 'bootstrap-5',
@@ -1142,6 +1145,7 @@ function initializeSearchableDropdowns() {
         });
     });
 
+    // Initialize Select2 on product dropdowns
     $('select[name="product_ids[]"]').each(function() {
         $(this).select2({
             theme: 'bootstrap-5',
@@ -1151,6 +1155,7 @@ function initializeSearchableDropdowns() {
         });
     });
 
+    // Initialize Select2 on batch dropdowns
     $('.batch-select').each(function() {
         $(this).select2({
             theme: 'bootstrap-5',
@@ -1164,15 +1169,21 @@ function initializeSearchableDropdowns() {
 }
 
 function initializeBillingSystem() {
+    // Customer selector
     const clientSelect = document.getElementById('client_id');
     clientSelect?.addEventListener('change', function() {
         console.log('Customer selected:', this.value);
+        console.log('Selected option text:', this.options[this.selectedIndex]?.text);
 
         if (this.value) {
+            // Clear existing service/product rows first
             clearBillingRows();
-            loadCustomerPackages(this.value);
+
+            // Load customer data
+            loadCustomerPackages(this.value); // Pass value directly
             loadCustomerAppointments(this.value);
 
+            // Force recalculation after customer change
             setTimeout(() => {
                 updateCalculations();
             }, 500);
@@ -1184,39 +1195,54 @@ function initializeBillingSystem() {
         }
     });
 
+    // Form submission
     const form = document.getElementById('billingForm');
     form?.addEventListener('submit', handleFormSubmit);
 
+    // Input validation setup
     setupInputValidation();
 
+    // Initialize cart rendering if data is pre-loaded
+    // (Assuming selectedServices and selectedProducts might be populated from backend for edits)
     if (selectedServices.length > 0) renderServiceCart();
     if (selectedProducts.length > 0) renderProductCart();
 
-    if (clientSelect && clientSelect.value) {
-        clientSelect.dispatchEvent(new Event('change'));
+    // Handle customer change using the new function
+    // This is triggered when the select element's value changes
+    if (clientSelect) {
+        // Trigger the change event manually if a customer is pre-selected
+        if (clientSelect.value) {
+            clientSelect.dispatchEvent(new Event('change'));
+        }
     }
 }
 
+// Handle customer change using the new function
 window.handleCustomerChange = function(customerId) {
     if (customerId) {
+        // Clear existing rows before loading new customer data
         clearBillingRows();
         loadCustomerPackages(customerId);
         loadCustomerAppointments(customerId);
+        // Force recalculation after customer change
         setTimeout(() => {
             updateCalculations();
         }, 500);
     } else {
+        // Clear appointments and packages if no customer selected
         resetCustomerPackages();
         resetCustomerAppointments();
         updateCalculations();
     }
 };
 
+// Load customer appointments and packages
 function loadCustomerData(customerId) {
     if (!customerId) return;
 
     console.log('Loading data for customer:', customerId);
 
+    // Fetch customer appointments
     fetch(`/api/customer/${customerId}/appointments`)
         .then(response => response.json())
         .then(data => {
@@ -1233,27 +1259,29 @@ function loadCustomerData(customerId) {
             showNotification('Error loading customer appointments. Please try again.', 'error');
         });
 
+    // Fetch customer packages
     fetch(`/integrated-billing/customer-packages/${customerId}`)
         .then(response => response.json())
         .then(data => {
             if (data.success && data.packages) {
                 console.log('Customer packages loaded:', data.packages);
-                BillingState.customerPackages = data.packages;
+                BillingState.customerPackages = data.packages; // Store in state
                 displayCustomerPackagesTable(data.packages);
             } else {
                 console.error('Failed to load customer packages:', data.message);
-                BillingState.customerPackages = [];
-                displayCustomerPackagesTable([]);
+                BillingState.customerPackages = []; // Ensure state is cleared on error
+                displayCustomerPackagesTable([]); // Clear the table display
                 showNotification('Failed to load customer packages: ' + (data.message || 'Unknown error'), 'error');
             }
         })
         .catch(error => {
             console.error('Error loading customer packages:', error);
-            BillingState.customerPackages = [];
-            displayCustomerPackagesTable([]);
+            BillingState.customerPackages = []; // Ensure state is cleared on error
+            displayCustomerPackagesTable([]); // Clear the table display
             showNotification('Error loading customer packages. Please try again.', 'error');
         })
         .finally(() => {
+            // Always update calculations after loading both appointments and packages
             updateCalculations();
         });
 }
@@ -1262,9 +1290,13 @@ function loadCustomerData(customerId) {
 // CUSTOMER & PACKAGES
 // ==========================================
 
+// Updated function to fetch and store packages in BillingState
 async function loadCustomerPackages(customerId) {
     console.log('🔄 Loading packages for customer:', customerId);
+    console.log('📍 Customer ID type:', typeof customerId);
+    console.log('📍 Customer ID value:', customerId);
 
+    // CRITICAL: Store the selected customer ID in BillingState
     BillingState.selectedCustomerId = parseInt(customerId);
     console.log('✅ Set BillingState.selectedCustomerId:', BillingState.selectedCustomerId);
 
@@ -1273,21 +1305,43 @@ async function loadCustomerPackages(customerId) {
         console.log('🌐 Fetching from URL:', url);
 
         const response = await fetch(url);
+        console.log('📡 Response status:', response.status);
+        console.log('📡 Response headers:', Object.fromEntries(response.headers.entries()));
+
         const data = await response.json();
         console.log('📦 Packages loaded:', data);
+        console.log('📦 Raw response:', JSON.stringify(data, null, 2));
 
         if (data.success && data.packages) {
-            BillingState.customerPackages = data.packages;
+            BillingState.customerPackages = data.packages; // Store in BillingState
             console.log('✅ Successfully loaded', BillingState.customerPackages.length, 'packages');
+            console.log('📋 Package details:');
+            BillingState.customerPackages.forEach((pkg, index) => {
+                console.log(`  Package ${index + 1}:`, {
+                    name: pkg.name,
+                    type: pkg.package_type,
+                    service_id: pkg.service_id,
+                    service_name: pkg.service_name,
+                    sessions: pkg.sessions,
+                    credit: pkg.credit,
+                    status: pkg.status,
+                    expires_on: pkg.expires_on
+                });
+            });
         } else {
             BillingState.customerPackages = [];
             console.log('⚠️ No packages returned or request failed');
+            console.log('⚠️ Success flag:', data.success);
+            console.log('⚠️ Packages data:', data.packages);
         }
     } catch (error) {
         console.error('❌ Error loading packages:', error);
+        console.error('❌ Error stack:', error.stack);
         BillingState.customerPackages = [];
     } finally {
+        // Always update calculations after loading packages, even if empty or error
         updateCalculations();
+        // Also refresh the display table
         displayCustomerPackagesTable(BillingState.customerPackages || []);
     }
 }
@@ -1311,6 +1365,7 @@ function loadCustomerAppointments(customerId) {
             appointmentsDiv.innerHTML = '<div style="padding: var(--spacing-xl); text-align: center; color: var(--danger);"><i class="fas fa-exclamation-triangle fa-2x mb-2"></i><p class="mb-0"><strong>Error Loading Appointments</strong></p><small>Please try again</small></div>';
         });
 
+    // Also load packages display
     loadCustomerPackagesDisplay(customerId);
 }
 
@@ -1321,6 +1376,7 @@ function loadCustomerPackagesDisplay(customerId) {
     fetch(`/integrated-billing/customer-packages/${customerId}`)
         .then(res => res.json())
         .then(data => {
+            // Use the new display function which handles empty packages
             displayCustomerPackagesTable(data.packages || []);
         })
         .catch(err => {
@@ -1335,10 +1391,13 @@ function loadCustomerPackagesDisplay(customerId) {
 }
 
 function refreshCustomerPackages(customerId, updatedPackages) {
+    // Immediately update UI with the updated packages or fetch fresh data
     if (updatedPackages && updatedPackages.length > 0) {
+        // Update the display with fresh data
         console.log('Refreshing package display after invoice creation', updatedPackages);
     }
 
+    // Fetch fresh packages from server (fallback or additional verification)
     fetch(`/integrated-billing/customer-packages/${customerId}`, { cache: 'no-store' })
         .then(r => r.json())
         .then(j => {
@@ -1395,6 +1454,7 @@ function displayCustomerPackagesTable(packages) {
         const packageType = pkg.package_type || 'N/A';
         const status = pkg.status || 'active';
 
+        // Determine status badge
         let statusBadge = '';
         if (status === 'active') {
             statusBadge = '<span style="background: #d1fae5; color: #065f46; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.75rem;">Active</span>';
@@ -1404,10 +1464,12 @@ function displayCustomerPackagesTable(packages) {
             statusBadge = '<span style="background: #e5e7eb; color: #374151; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.75rem;">Completed</span>';
         }
 
+        // Display balance based on package type - USE EXACT FIELD NAMES FROM BACKEND
         let balanceText = '';
         let balanceDetails = '';
 
         if (packageType === 'prepaid') {
+            // FIXED: Use correct field names from API response
             const remaining = pkg.credit?.remaining || 0;
             const total = pkg.credit?.total || 0;
             const usedPct = total > 0 ? ((total - remaining) / total * 100).toFixed(0) : 0;
@@ -1417,6 +1479,7 @@ function displayCustomerPackagesTable(packages) {
                     <div class="progress-bar bg-success" style="width: ${100 - usedPct}%"></div>
                 </div>`;
         } else if (packageType === 'service_package') {
+            // FIXED: Use correct field names from API response (sessions.remaining and sessions.total)
             const remaining = pkg.sessions?.remaining || 0;
             const total = pkg.sessions?.total || 0;
             const usedPct = total > 0 ? ((total - remaining) / total * 100).toFixed(0) : 0;
@@ -1426,10 +1489,12 @@ function displayCustomerPackagesTable(packages) {
                     <div class="progress-bar bg-success" style="width: ${100 - usedPct}%"></div>
                 </div>`;
         } else if (packageType === 'membership') {
+            // For memberships, show unlimited badge and usage count
             const usageCount = pkg.usage_count || 0;
             balanceText = `<span style="background: #d1fae5; color: #065f46; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.75rem;">Unlimited</span>`;
             balanceDetails = `<small class="text-muted">✓ Used ${usageCount} times</small>`;
         } else if (packageType === 'student_offer') {
+            // For student offers, show discount percentage in balance column
             const discountPct = pkg.discount_percentage || 0;
             balanceText = `<span style="background: #e9d5ff; color: #6b21a8; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.85rem; font-weight: bold;">${discountPct}% OFF</span>`;
             if (pkg.package_price) {
@@ -1437,9 +1502,12 @@ function displayCustomerPackagesTable(packages) {
             }
         }
 
+        // Format expiry date - check both valid_to and expires_on
         let expiryDate = '';
         if (packageType === 'student_offer' && pkg.valid_from && pkg.valid_to) {
+            // Show validity period for student offers
             expiryDate = `<small>${pkg.valid_from} to<br>${pkg.valid_to}</small>`;
+            // Add details button if conditions exist
             if (pkg.conditions) {
                 expiryDate += `<br><button type="button" class="btn btn-sm btn-outline-info mt-1" onclick="showStudentOfferDetails('${pkg.name}', '${pkg.discount_percentage}', '${pkg.applicable_service_names}', '${pkg.valid_from}', '${pkg.valid_to}', '${pkg.valid_days}', '${pkg.conditions}')"><i class="fas fa-info-circle"></i> Details</button>`;
             }
@@ -1448,6 +1516,7 @@ function displayCustomerPackagesTable(packages) {
                 new Date(pkg.valid_to || pkg.expires_on).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'No expiry';
         }
 
+        // Type badge
         let typeBadge = '';
         if (packageType === 'prepaid') {
             typeBadge = '<span style="background: #dbeafe; color: #1e40af; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.75rem;">Prepaid</span>';
@@ -1462,6 +1531,7 @@ function displayCustomerPackagesTable(packages) {
         }
 
 
+        // Format service name display - ONLY for service packages
         let serviceNameDisplay = '';
         if (packageType === 'service_package' && pkg.service_name && pkg.service_name !== 'null' && pkg.service_name !== 'Any Service') {
             serviceNameDisplay = `<br><small class="text-muted"><i class="fas fa-spa"></i> ${pkg.service_name}</small>`;
@@ -1469,8 +1539,9 @@ function displayCustomerPackagesTable(packages) {
             const serviceNames = pkg.services.map(s => s.service_name).join(', ');
             serviceNameDisplay = `<br><small class="text-muted"><i class="fas fa-spa"></i> ${serviceNames}</small>`;
         } else if (packageType === 'yearly') {
-            serviceNameDisplay = `<br><small class="text-muted"><i class="fas fa-percentage"></i> ${pkg.name.split(' - ')[1]}</small>`;
+            serviceNameDisplay = `<br><small class="text-muted"><i class="fas fa-percentage"></i> ${pkg.name.split(' - ')[1]}</small>`; // Show the percentage
         } else if (packageType === 'student_offer') {
+            // Enhanced student offer display
             let studentOfferDetails = '';
             if (pkg.applicable_service_names) {
                 studentOfferDetails += `<br><small class="text-primary"><i class="fas fa-graduation-cap me-1"></i>${pkg.applicable_service_names}</small>`;
@@ -1511,14 +1582,19 @@ function displayCustomerPackagesTable(packages) {
 
 
 function resetCustomerAppointments() {
+    // Clear tracking when customer changes
     addedAppointmentIds.clear();
     document.getElementById('customerAppointments').innerHTML =
         '<div style="padding: var(--spacing-md); text-align: center; color: var(--gray-500);"><small><i class="fas fa-info-circle"></i> Select customer to view appointments</small></div>';
 
+    // Also reset packages table
     document.getElementById('customerPackagesTable').innerHTML =
         '<div style="padding: var(--spacing-md); text-align: center; color: var(--gray-500);"><small><i class="fas fa-gift"></i> Select customer to view active packages</small></div>';
 }
 
+
+// Track which appointments have been added to bill
+const addedAppointmentIds = new Set();
 
 function displayCustomerAppointments(appointments) {
     const appointmentsDiv = document.getElementById('customerAppointments');
@@ -1563,8 +1639,9 @@ function displayCustomerAppointments(appointments) {
 
         const isAdded = addedAppointmentIds.has(apt.id);
 
-        const serviceName = (apt.service_name || 'Service not specified').replace(/&/g, '&amp;').replace(/'/g, '&#39;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-        const staffName = (apt.staff_name || 'Not assigned').replace(/&/g, '&amp;').replace(/'/g, '&#39;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        // Safely escape service and staff names
+        const serviceName = (apt.service_name || 'Service not specified').replace(/'/g, "\\'").replace(/"/g, '\\"');
+        const staffName = (apt.staff_name || 'Not assigned').replace(/'/g, "\\'").replace(/"/g, '\\"');
 
         html += `
             <tr style="border-bottom: 1px solid var(--gray-200); ${isAdded ? 'background: #f0f0f0;' : ''}">
@@ -1584,13 +1661,7 @@ function displayCustomerAppointments(appointments) {
                 <td style="padding: 8px;">
                     <button type="button"
                             class="btn btn-sm ${isAdded ? 'btn-success' : 'btn-primary'} w-100"
-                            data-appointment-id="${apt.id}"
-                            data-service-name="${serviceName}"
-                            data-service-id="${apt.service_id || 'null'}"
-                            data-staff-id="${apt.staff_id || 'null'}"
-                            data-service-price="${apt.service_price || 0}"
-                            data-service-duration="${apt.service_duration || 60}"
-                            onclick="addAppointmentToBill(this.dataset.appointmentId, this.dataset.serviceName, this.dataset.serviceId === 'null' ? null : this.dataset.serviceId, this.dataset.staffId === 'null' ? null : this.dataset.staffId, parseFloat(this.dataset.servicePrice), parseInt(this.dataset.serviceDuration))"
+                            onclick="addAppointmentToBill(${apt.id}, '${serviceName}', ${apt.service_id || 'null'}, ${apt.staff_id || 'null'}, ${apt.service_price || 0}, ${apt.service_duration || 60})"
                             ${isAdded ? 'disabled' : ''}
                             style="font-size: 0.75rem; padding: 4px 8px;">
                         ${isAdded ? '<i class="fas fa-check"></i> Added' : '<i class="fas fa-plus"></i> Add'}
@@ -1608,22 +1679,15 @@ function displayCustomerAppointments(appointments) {
 }
 
 function resetCustomerPackages() {
-    BillingState.customerPackages = null;
-    addedAppointmentIds.clear();
+    BillingState.customerPackages = null; // Clear from state
+    addedAppointmentIds.clear(); // Also clear added appointments tracking
     updateCalculations();
-    displayCustomerPackagesTable([]);
+    displayCustomerPackagesTable([]); // Clear the display table
 }
 
 
 function addAppointmentToBill(appointmentId, serviceName, serviceId, staffId, servicePrice, serviceDuration) {
     console.log(`Adding appointment ${appointmentId} to bill - Service: ${serviceName}, ServiceID: ${serviceId}, StaffID: ${staffId}, Price: ${servicePrice}`);
-
-    // ✅ CRITICAL FIX: Check if appointment is already added FIRST
-    if (addedAppointmentIds.has(appointmentId)) {
-        console.log('⚠️ Appointment already added, skipping:', appointmentId);
-        showNotification(`This appointment (#${appointmentId}) has already been added to the bill.`, 'warning', 4000);
-        return; // Exit early to prevent duplicate
-    }
 
     const container = document.getElementById('servicesContainer');
     if (!container) {
@@ -1631,34 +1695,21 @@ function addAppointmentToBill(appointmentId, serviceName, serviceId, staffId, se
         return;
     }
 
-    const existingRows = container.querySelectorAll('.service-row');
+    // Try to find an existing row for this appointment or add a new one
     let targetRow = null;
-
-    // Strategy: Find first truly empty row, or create a new one
-    if (existingRows.length === 0) {
-        addServiceRow();
-        targetRow = container.lastElementChild;
-        console.log('✅ Created first service row (container was empty)');
-    } else {
-        // Look for an empty row (no service AND no appointment ID)
-        for (const row of existingRows) {
-            const serviceSelect = row.querySelector('select[name="service_ids[]"]');
-            const appointmentInput = row.querySelector('input[name="appointment_ids[]"]');
-            const isEmpty = !serviceSelect?.value && !appointmentInput?.dataset.appointmentId;
-
-            if (isEmpty) {
-                targetRow = row;
-                console.log('✅ Found empty row, reusing it');
-                break;
-            }
+    const existingRows = container.querySelectorAll('.service-row');
+    for (const row of existingRows) {
+        const appointmentInput = row.querySelector('input[name="appointment_ids[]"]');
+        if (appointmentInput && appointmentInput.dataset.appointmentId == appointmentId) {
+            targetRow = row;
+            break;
         }
+    }
 
-        // If no empty row found, create a new one
-        if (!targetRow) {
-            addServiceRow();
-            targetRow = container.lastElementChild;
-            console.log('✅ Created new service row (all existing rows filled)');
-        }
+    if (!targetRow) {
+        // If no existing row, add a new one
+        addServiceRow(); // This adds a new row at the end
+        targetRow = container.lastElementChild; // Get the newly added row
     }
 
     // Populate the target row
@@ -1667,69 +1718,39 @@ function addAppointmentToBill(appointmentId, serviceName, serviceId, staffId, se
     const qtyInput = targetRow.querySelector('input[name="service_quantities[]"]');
     const appointmentInput = targetRow.querySelector('input[name="appointment_ids[]"]');
 
-    // ✅ Destroy existing Select2 to prevent duplicates
-    if ($(serviceSelect).hasClass('select2-hidden-accessible')) {
-        $(serviceSelect).select2('destroy');
-    }
-    if ($(staffSelect).hasClass('select2-hidden-accessible')) {
-        $(staffSelect).select2('destroy');
-    }
-
-    // Set values from appointment
-    if (serviceId !== 'null' && serviceSelect) {
+    // Set values from appointment data
+    if (serviceId !== 'null' && serviceSelect) { // Check if serviceId is not null
         serviceSelect.value = serviceId;
     }
 
-    if (staffId !== 'null' && staffSelect) {
+    if (staffId !== 'null' && staffSelect) { // Check if staffId is not null
         staffSelect.value = staffId;
     }
 
     if (qtyInput) {
-        qtyInput.value = 1;
+        qtyInput.value = 1; // Default quantity to 1 for appointment
     }
 
     if (appointmentInput) {
         appointmentInput.value = appointmentId;
-        appointmentInput.dataset.appointmentId = appointmentId;
-        appointmentInput.dataset.servicePrice = servicePrice;
-        appointmentInput.dataset.serviceDuration = serviceDuration;
+        appointmentInput.dataset.appointmentId = appointmentId; // Store ID for tracking
+        appointmentInput.dataset.servicePrice = servicePrice; // Store price for accurate calculation
+        appointmentInput.dataset.serviceDuration = serviceDuration; // Store duration
         console.log(`✅ Set appointment ID ${appointmentId} in row`);
     }
 
-    // ✅ Re-initialize Select2 AFTER setting values
-    $(serviceSelect).select2({
-        theme: 'bootstrap-5',
-        placeholder: 'Search for service...',
-        allowClear: true,
-        width: '100%'
-    });
-
-    $(staffSelect).select2({
-        theme: 'bootstrap-5',
-        placeholder: 'Search for staff...',
-        allowClear: true,
-        width: '100%'
-    });
-
-    // ✅ Mark as added BEFORE updating UI to prevent race conditions
+    // Mark as added
     addedAppointmentIds.add(appointmentId);
-    console.log('✅ Marked appointment as added:', appointmentId);
-
-    // Show/hide remove button appropriately
-    const removeBtn = targetRow.querySelector('.btn-danger');
-    if (removeBtn) {
-        const allRows = container.querySelectorAll('.service-row');
-        const rowHasData = targetRow.querySelector('select[name="service_ids[]"]')?.value || 
-                          targetRow.querySelector('input[name="appointment_ids[]"]')?.dataset.appointmentId;
-        removeBtn.style.display = allRows.length > 1 || rowHasData ? 'inline-block' : 'none';
-    }
+    console.log('Tracking added appointment ID:', appointmentId);
 
     // CRITICAL: Use setTimeout to ensure DOM is fully updated before triggering package calculation
     setTimeout(() => {
         if (serviceId !== 'null' && serviceSelect) {
             console.log('🎯 Triggering service change to apply package benefits for appointment', appointmentId);
+            // Manually trigger handleServiceChange instead of just dispatching event
             handleServiceChange(serviceSelect);
         }
+        // Force recalculation after package benefits are applied
         updateCalculations();
     }, 100);
 
@@ -1738,15 +1759,13 @@ function addAppointmentToBill(appointmentId, serviceName, serviceId, staffId, se
     if (clientId) {
         loadCustomerAppointments(clientId);
     }
-
-    // ✅ Show success notification
-    showNotification(`Appointment #${appointmentId} added successfully!`, 'success', 3000);
 }
 
 function removeAppointmentFromBill(appointmentId) {
     const container = document.getElementById('servicesContainer');
     if (!container) return;
 
+    // Find and remove the row with this appointment ID
     const rows = container.querySelectorAll('.service-row');
     let rowToRemove = null;
     for (const row of rows) {
@@ -1758,30 +1777,35 @@ function removeAppointmentFromBill(appointmentId) {
     }
 
     if (rowToRemove) {
+        // If it's the only row and it contains this appointment, clear it instead of removing
         if (rows.length === 1 && rowToRemove.querySelector('input[name="appointment_ids[]"]')?.dataset.appointmentId == appointmentId) {
+            // Clear inputs but keep the row structure
             rowToRemove.querySelectorAll('select, input').forEach(input => {
-                input.value = '';
+                input.value = ''; // Clear all values
                 if (input.name?.includes('appointment_ids[]')) {
-                    delete input.dataset.appointmentId;
+                    delete input.dataset.appointmentId; // Remove tracking attribute
                     delete input.dataset.servicePrice;
                     delete input.dataset.serviceDuration;
                 }
             });
+            // Also reset quantity to 1 if it exists
             const qtyInput = rowToRemove.querySelector('input[name="service_quantities[]"]');
             if (qtyInput) qtyInput.value = 1;
 
             console.log(`Cleared inputs in existing row for appointment ID ${appointmentId}`);
         } else {
-            rowToRemove.remove();
+            rowToRemove.remove(); // Remove the entire row
             console.log(`Removed row associated with appointment ID ${appointmentId}`);
         }
     }
 
+    // Remove from tracking set
     addedAppointmentIds.delete(appointmentId);
     console.log('Removed appointment ID from tracking:', appointmentId);
 
     updateCalculations();
 
+    // Refresh appointments display to show "Add" button state
     const clientId = document.getElementById('client_id').value;
     if (clientId) {
         loadCustomerAppointments(clientId);
@@ -1805,16 +1829,18 @@ function loadBatches(productSelect) {
         batchSelect.disabled = true;
         batchInfo.innerHTML = '';
         if (priceInput) priceInput.value = '';
-        updateCalculations();
+        updateCalculations(); // Recalculate in case product was deselected
         return;
     }
 
+    // Check cache first
     if (BillingState.batchCache[productId]) {
         console.log('🗄️ Cache hit for product ID:', productId);
         populateBatchSelect(BillingState.batchCache[productId], batchSelect, batchInfo, priceInput);
         return;
     }
 
+    // Load from API
     console.log('🗄️ Cache miss for product ID:', productId, 'Fetching batches...');
     batchSelect.innerHTML = '<option value="">Loading...</option>';
     batchSelect.disabled = true;
@@ -1830,7 +1856,7 @@ function loadBatches(productSelect) {
             console.log('📦 Batch API response data:', data);
             if (data.success && data.batches) {
                 const batches = data.batches || [];
-                BillingState.batchCache[productId] = batches;
+                BillingState.batchCache[productId] = batches; // Cache the result
                 populateBatchSelect(batches, batchSelect, batchInfo, priceInput);
             } else {
                 throw new Error(data.message || 'Failed to load batches from API');
@@ -1838,27 +1864,31 @@ function loadBatches(productSelect) {
         })
         .catch(err => {
             console.error('❌ Error loading batches:', err);
+            console.error('❌ Error stack:', err.stack);
             batchSelect.innerHTML = '<option value="">Error loading batches</option>';
             batchInfo.innerHTML = '<span class="text-danger">Failed to load batches</span>';
         });
 }
 
 function populateBatchSelect(batches, batchSelect, batchInfo, priceInput) {
+    // Filter available batches and sort by expiry (FIFO)
     const availableBatches = batches
         .filter(b => b.qty_available > 0)
         .sort((a, b) => {
+            // Prioritize batches with expiry dates, sort by date
             if (a.expiry_date && b.expiry_date) {
                 return new Date(a.expiry_date) - new Date(b.expiry_date);
             } else if (a.expiry_date) {
-                return -1;
+                return -1; // a has expiry, b doesn't, so a comes first
             } else if (b.expiry_date) {
-                return 1;
+                return 1; // b has expiry, a doesn't, so b comes first
             }
-            return 0;
+            return 0; // Both have no expiry, order doesn't matter
         });
 
     console.log('🔢 Available batches after filtering and sorting:', availableBatches);
 
+    // Destroy existing Select2 instance if it exists
     if ($(batchSelect).hasClass('select2-hidden-accessible')) {
         $(batchSelect).select2('destroy');
     }
@@ -1868,7 +1898,7 @@ function populateBatchSelect(batches, batchSelect, batchInfo, priceInput) {
         batchSelect.disabled = true;
         batchInfo.innerHTML = '<span class="text-danger">Out of stock</span>';
         if (priceInput) priceInput.value = '';
-        updateCalculations();
+        updateCalculations(); // Recalculate
         return;
     }
 
@@ -1879,6 +1909,7 @@ function populateBatchSelect(batches, batchSelect, batchInfo, priceInput) {
     ).join('');
     batchSelect.disabled = false;
 
+    // Reinitialize Select2 on batch dropdown
     $(batchSelect).select2({
         theme: 'bootstrap-5',
         placeholder: 'Select batch...',
@@ -1886,18 +1917,21 @@ function populateBatchSelect(batches, batchSelect, batchInfo, priceInput) {
         width: '100%'
     });
 
+    // Display first batch info
     const firstBatch = availableBatches[0];
     const expiry = firstBatch.expiry_date ?
         new Date(firstBatch.expiry_date).toLocaleDateString() : 'No expiry';
     const expiryClass = firstBatch.is_near_expiry ? 'text-warning' : '';
     batchInfo.innerHTML = `<small>Avail: ${firstBatch.qty_available} | <span class="${expiryClass}">Exp: ${expiry}</span></small>`;
 
+    // Set price from batch
     if (priceInput && (firstBatch.selling_price || firstBatch.unit_price)) {
         priceInput.value = parseFloat(firstBatch.selling_price || firstBatch.unit_price).toFixed(2);
     } else if (priceInput) {
-        priceInput.value = '0.00';
+        priceInput.value = '0.00'; // Default to 0 if no price found
     }
 
+    // Add event listener for batch change (only if not already added to prevent duplicates)
     if (!batchSelect.dataset.changeListenerAdded) {
         $(batchSelect).on('change', function() {
             const selectedOption = this.options[this.selectedIndex];
@@ -1915,12 +1949,12 @@ function populateBatchSelect(batches, batchSelect, batchInfo, priceInput) {
                 if (priceInput && price) {
                     priceInput.value = parseFloat(price).toFixed(2);
                 } else if (priceInput) {
-                    priceInput.value = '0.00';
+                    priceInput.value = '0.00'; // Default if price is missing
                 }
             }
             updateCalculations();
         });
-        batchSelect.dataset.changeListenerAdded = 'true';
+        batchSelect.dataset.changeListenerAdded = 'true'; // Mark as added
     }
 
     updateCalculations();
@@ -1932,89 +1966,30 @@ function populateBatchSelect(batches, batchSelect, batchInfo, priceInput) {
 function addServiceRow() {
     console.log('➕ addServiceRow called');
     const container = document.getElementById('servicesContainer');
-    let firstRow = container.querySelector('.service-row');
+    const firstRow = container.querySelector('.service-row'); // Get the template row
 
     if (!firstRow) {
-        console.log('⚠️ No template row found, creating from scratch');
-        const serviceTemplateHtml = `
-            <div class="item-row service-row">
-                <div class="row g-3">
-                    <div class="col-md-4">
-                        <div class="form-group">
-                            <label class="form-label">Service</label>
-                            <select class="form-select" name="service_ids[]" onchange="handleServiceChange(this)">
-                                <option value="">Select Service</option>
-                                {% for service in services %}
-                                <option value="{{ service.id }}" data-price="{{ "%.2f"|format(service.price|float) }}">
-                                    {{ service.name }} - ₹{{ "{:,.2f}".format(service.price) }}
-                                </option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="form-group">
-                            <label class="form-label required">Staff</label>
-                            <select class="form-select" name="staff_ids[]">
-                                <option value="">Select Staff</option>
-                                {% for staff in staff_members %}
-                                <option value="{{ staff.id }}">{{ staff.full_name }}</option>
-                                {% endfor %}
-                            </select>
-                            <div class="invalid-feedback">Staff required</div>
-                        </div>
-                    </div>
-                    <div class="col-md-2">
-                        <div class="form-group">
-                            <label class="form-label">Qty</label>
-                            <input type="number" class="form-control" name="service_quantities[]" value="1" min="0.5" step="0.5" oninput="updateCalculations()">
-                        </div>
-                    </div>
-                    <div class="col-md-2">
-                        <div class="form-group">
-                            <label class="form-label">Apt ID</label>
-                            <input type="number" class="form-control" name="appointment_ids[]" placeholder="Optional">
-                        </div>
-                    </div>
-                    <div class="col-md-1">
-                        <button type="button" class="btn btn-danger btn-sm w-100" onclick="removeRow(this)" style="display:none;">
-                            <i class="fas fa-trash"></i>
-                        </button>
-                    </div>
-                </div>
-            </div>`;
-        container.innerHTML = serviceTemplateHtml;
-        firstRow = container.querySelector('.service-row');
-
-        $(firstRow).find('select[name="service_ids[]"]').select2({
-            theme: 'bootstrap-5',
-            placeholder: 'Search for service...',
-            allowClear: true,
-            width: '100%'
-        });
-        $(firstRow).find('select[name="staff_ids[]"]').select2({
-            theme: 'bootstrap-5',
-            placeholder: 'Search for staff...',
-            allowClear: true,
-            width: '100%'
-        });
-        console.log('✅ Template row created from scratch');
+        console.error('Template service row not found!');
         return;
     }
 
-    const newRow = firstRow.cloneNode(true);
+    const newRow = firstRow.cloneNode(true); // Clone the template row
 
+    // Destroy Select2 instances in the cloned row if they exist
     $(newRow).find('.select2-hidden-accessible').each(function() {
         $(this).select2('destroy');
     });
 
+    // Clear values in the new row, except for quantity which should default to 1
     newRow.querySelectorAll('select, input').forEach(input => {
-        input.value = '';
-        input.classList.remove('is-invalid');
+        input.value = ''; // Clear all select and input values
+        input.classList.remove('is-invalid'); // Remove validation classes
 
+        // Reset quantity input to default value
         if (input.type === 'number' && input.name.includes('quantities')) {
             input.value = '1';
         }
+        // Remove appointment tracking data if present
         if (input.name.includes('appointment_ids[]')) {
             delete input.dataset.appointmentId;
             delete input.dataset.servicePrice;
@@ -2022,11 +1997,13 @@ function addServiceRow() {
         }
     });
 
+    // Ensure remove button is visible on new rows
     const removeButton = newRow.querySelector('.btn-danger');
     if (removeButton) removeButton.style.display = 'block';
 
-    container.appendChild(newRow);
+    container.appendChild(newRow); // Append the new row
 
+    // Initialize Select2 on the new row's dropdowns
     $(newRow).find('select[name="service_ids[]"]').select2({
         theme: 'bootstrap-5',
         placeholder: 'Search for service...',
@@ -2047,19 +2024,21 @@ function addServiceRow() {
 function addProductRow() {
     console.log('➕ addProductRow called');
     const container = document.getElementById('productsContainer');
-    const firstRow = container.querySelector('.product-row');
+    const firstRow = container.querySelector('.product-row'); // Get the template row
 
     if (!firstRow) {
         console.error('Template product row not found!');
         return;
     }
 
-    const newRow = firstRow.cloneNode(true);
+    const newRow = firstRow.cloneNode(true); // Clone the template row
 
+    // Destroy Select2 instances in the cloned row if they exist
     $(newRow).find('.select2-hidden-accessible').each(function() {
         $(this).select2('destroy');
     });
 
+    // Clear values in the new row
     newRow.querySelectorAll('select, input').forEach(input => {
         input.value = '';
         input.classList.remove('is-invalid');
@@ -2069,6 +2048,7 @@ function addProductRow() {
         }
     });
 
+    // Reset batch select to default state
     const batchSelect = newRow.querySelector('.batch-select');
     batchSelect.innerHTML = '<option value="">Select Product</option>';
     batchSelect.disabled = true;
@@ -2077,11 +2057,13 @@ function addProductRow() {
         newRow.querySelector('input[name="product_prices[]"]').value = '';
     }
 
+    // Ensure remove button is visible
     const removeButton = newRow.querySelector('.btn-danger');
     if (removeButton) removeButton.style.display = 'block';
 
     container.appendChild(newRow);
 
+    // Initialize Select2 on the new row's dropdowns
     $(newRow).find('select[name="product_ids[]"]').select2({
         theme: 'bootstrap-5',
         placeholder: 'Search for product...',
@@ -2110,51 +2092,21 @@ function removeRow(button) {
     console.log('🗑️ removeRow called for button:', button);
     const row = button.closest('.item-row');
     if (row) {
-        const container = row.closest('#servicesContainer, #productsContainer');
-        const allRows = container ? container.querySelectorAll('.item-row') : [];
-
-        if (allRows.length === 1) {
-            console.log('⚠️ Cannot delete last row, clearing it instead');
-            row.querySelectorAll('select, input').forEach(input => {
-                input.value = '';
-                if (input.name?.includes('appointment_ids[]')) {
-                    delete input.dataset.appointmentId;
-                    delete input.dataset.servicePrice;
-                    delete input.dataset.serviceDuration;
-                }
-            });
-            const qtyInput = row.querySelector('input[name*="quantities[]"]');
-            if (qtyInput) qtyInput.value = 1;
-
-            $(row).find('.select2-hidden-accessible').each(function() {
-                $(this).select2('destroy');
-            });
-            $(row).find('select').each(function() {
-                $(this).select2({
-                    theme: 'bootstrap-5',
-                    placeholder: $(this).attr('name').includes('service') ? 'Search for service...' : 
-                                 $(this).attr('name').includes('staff') ? 'Search for staff...' : 
-                                 $(this).attr('name').includes('product') ? 'Search for product...' : 'Select...',
-                    allowClear: true,
-                    width: '100%'
-                });
-            });
-            console.log('✅ Last row cleared');
-        } else {
-            row.remove();
-            console.log('✅ Row removed');
-        }
-        updateCalculations();
+        row.remove();
+        console.log('✅ Row removed');
+        updateCalculations(); // Recalculate totals after removing a row
     } else {
         console.error('Could not find closest .item-row to remove');
     }
 }
 
+// Helper to clear all service and product rows
 function clearBillingRows() {
     console.log('🧹 Clearing all service and product rows');
     document.getElementById('servicesContainer').innerHTML = '';
     document.getElementById('productsContainer').innerHTML = '';
 
+    // Re-add the template row for services
     const servicesContainer = document.getElementById('servicesContainer');
     const serviceTemplateHtml = `
         <div class="item-row service-row">
@@ -2206,6 +2158,7 @@ function clearBillingRows() {
     `;
     servicesContainer.innerHTML = serviceTemplateHtml;
 
+    // Re-add the template row for products
     const productsContainer = document.getElementById('productsContainer');
     const productTemplateHtml = `
         <div class="item-row product-row">
@@ -2265,13 +2218,9 @@ function clearBillingRows() {
     `;
     productsContainer.innerHTML = productTemplateHtml;
 
+    // Reset tracking for added appointments
     addedAppointmentIds.clear();
     console.log('✅ Billing rows cleared and template rows re-added.');
-
-    setTimeout(() => {
-        initializeSearchableDropdowns();
-        console.log('✅ Select2 reinitialized after clearing rows');
-    }, 100);
 }
 
 
@@ -2286,12 +2235,13 @@ function handleServiceChange(selectElement) {
 
     const selectedOption = selectElement.options[selectElement.selectedIndex];
     if (!selectedOption || !selectedOption.value) {
+        // Clear package benefits if service is deselected
         row.querySelector('.package-benefit')?.remove();
         updateCalculations();
         return;
     }
 
-    const serviceId = parseInt(selectedOption.value);
+    const serviceId = parseInt(selectedOption.value); // Convert to number
     const servicePrice = parseFloat(selectedOption.getAttribute('data-price')) || 0;
 
     console.log('🔍 Service selected:', {
@@ -2301,17 +2251,21 @@ function handleServiceChange(selectElement) {
         dataPrice: selectedOption.getAttribute('data-price')
     });
 
+    // Set the service price in a data attribute for calculations
     row.dataset.serviceId = serviceId;
     row.dataset.basePrice = servicePrice;
 
     console.log('🔄 Service changed - checking for package benefits:', { serviceId, servicePrice });
 
+    // Check if customer is selected
     const customerId = BillingState.selectedCustomerId;
     if (customerId && BillingState.customerPackages && BillingState.customerPackages.length > 0) {
         console.log('🎁 Customer selected with packages - applying benefits');
 
-        const benefit = checkPackageBenefit(serviceId, servicePrice);
+        // Apply package benefit check
+        const benefit = checkPackageBenefit(serviceId, servicePrice); // Removed quantity as it's not used here
 
+        // Visual feedback for package application
         if (benefit && benefit.discount > 0) {
             let benefitDiv = row.querySelector('.package-benefit');
             if (!benefitDiv) {
@@ -2327,10 +2281,12 @@ function handleServiceChange(selectElement) {
                 benefitDiv.innerHTML = `<i class="fas fa-gift"></i> ${benefit.packageUsed || benefit.benefitType}: -₹${benefit.discount.toFixed(2)}`;
             }
         } else {
+            // Remove benefit indicator if no benefit applies
             row.querySelector('.package-benefit')?.remove();
         }
     }
 
+    // Update calculations immediately to apply package benefits
     updateCalculations();
 }
 
@@ -2341,33 +2297,38 @@ function updateCalculations() {
     let productsSubtotal = 0;
     let packageDeductions = 0;
 
+    // CRITICAL: Track cumulative package usage across all services in this invoice
     const cumulativePackageUsage = {};
 
+    // --- Calculate Services Subtotal ---
     console.log('🔄 Calculating services subtotal...');
     document.querySelectorAll('.service-row').forEach((row, index) => {
         const serviceSelect = row.querySelector('select[name="service_ids[]"]');
         const qtyInput = row.querySelector('input[name="service_quantities[]"]');
         const appointmentIdInput = row.querySelector('input[name="appointment_ids[]"]');
-        const priceInput = row.querySelector('input[name="service_prices[]"]');
+        const priceInput = row.querySelector('input[name="service_prices[]"]'); // Assuming a hidden price input
 
         const serviceId = serviceSelect?.value;
         const quantity = parseFloat(qtyInput?.value) || 0;
-        let basePrice = parseFloat(serviceSelect.selectedOptions[0]?.dataset.price) || 0;
+        let basePrice = parseFloat(serviceSelect.selectedOptions[0]?.dataset.price) || 0; // Get base price from dataset initially
 
+        // If a price input exists, use its value as it might be updated by package benefits or explicitly set
         if (priceInput && priceInput.value) {
              basePrice = parseFloat(priceInput.value);
         }
 
-        let effectivePrice = basePrice;
+        let effectivePrice = basePrice; // Start with the base price
         let itemTotal = 0;
         let benefitApplied = { discount: 0, packageUsed: null, packageId: null, benefitType: null };
 
+        // Check if it's an appointment row
         const isAppointmentRow = appointmentIdInput && appointmentIdInput.value;
         if (isAppointmentRow) {
             const appointmentPrice = parseFloat(appointmentIdInput.dataset.servicePrice);
+            const appointmentDuration = parseFloat(appointmentIdInput.dataset.serviceDuration);
 
             if (!isNaN(appointmentPrice)) {
-                basePrice = appointmentPrice;
+                basePrice = appointmentPrice; // Use the price from the appointment as base price
                 console.log('➕ Appointment row detected - Base price from appointment:', basePrice);
             } else {
                 console.warn('⚠️ Appointment row detected but price is missing.');
@@ -2375,22 +2336,26 @@ function updateCalculations() {
             }
         }
 
+        // Apply package benefits for ALL service rows (including appointments)
         if (serviceId && quantity > 0) {
-            benefitApplied = checkPackageBenefit(serviceId, basePrice, quantity, cumulativePackageUsage);
+            // Check for applicable package benefits with cumulative usage tracking
+            benefitApplied = checkPackageBenefit(serviceId, basePrice, quantity, cumulativePackageUsage); // Pass quantity for checks
             console.log('🎁 Package benefit check for service row:', { serviceId, basePrice, quantity, isAppointmentRow, benefitApplied });
 
             if (benefitApplied.discount > 0) {
-                const discountAmount = Math.min(benefitApplied.discount, basePrice * quantity);
+                const discountAmount = Math.min(benefitApplied.discount, basePrice * quantity); // Ensure discount doesn't exceed item total
                 packageDeductions += discountAmount;
 
+                // Calculate effective price after benefit per unit
                 effectivePrice = Math.max(0, basePrice - discountAmount / quantity);
-                itemTotal = effectivePrice * quantity;
+                itemTotal = effectivePrice * quantity; // Item total after applying benefit
 
                 if (priceInput) {
                     priceInput.value = effectivePrice.toFixed(2);
                     console.log(`⬆️ Updated priceInput in row due to package benefit: ${priceInput.value}`);
                 }
 
+                // Show package benefit indicator on the row
                 let benefitDiv = row.querySelector('.package-benefit');
                 if (!benefitDiv) {
                     benefitDiv = document.createElement('div');
@@ -2398,6 +2363,7 @@ function updateCalculations() {
                     row.appendChild(benefitDiv);
                 }
 
+                // Apply special styling for student offers
                 if (benefitApplied.benefitType === 'student_discount') {
                     benefitDiv.className = 'package-benefit student-discount';
                     benefitDiv.innerHTML = `<i class="fas fa-graduation-cap"></i> ${benefitApplied.packageUsed}: -₹${discountAmount.toFixed(2)}`;
@@ -2406,31 +2372,36 @@ function updateCalculations() {
                     benefitDiv.innerHTML = `<i class="fas fa-gift"></i> ${benefitApplied.packageUsed || benefitApplied.benefitType}: -₹${discountAmount.toFixed(2)}`;
                 }
             } else {
+                // No benefit applied, ensure price input is updated with base price if it exists
                 if (priceInput) {
                     priceInput.value = basePrice.toFixed(2);
                 }
-                row.querySelector('.package-benefit')?.remove();
-                itemTotal = basePrice * quantity;
+                row.querySelector('.package-benefit')?.remove(); // Remove benefit indicator if no benefit
+                itemTotal = basePrice * quantity; // Item total is just base price * quantity
             }
             console.log('➕ Service row added to subtotal:', { serviceId, quantity, basePrice, effectivePrice, itemTotal, benefitApplied });
         } else if (serviceSelect && !serviceId) {
+            // If serviceSelect is empty, clear related fields and remove benefit
             row.querySelector('.package-benefit')?.remove();
-            if (priceInput) priceInput.value = '';
+            if (priceInput) priceInput.value = ''; // Clear price input if service is deselected
         }
 
+        // Only add to subtotal if it's a valid item and not an appointment row that couldn't be priced
         if (serviceId && quantity > 0 && !isNaN(itemTotal) && itemTotal >= 0) {
              servicesSubtotal += itemTotal;
         } else if (isAppointmentRow && !isNaN(itemTotal) && itemTotal >= 0) {
+            // Add to subtotal even if it's an appointment row, as long as it's calculable
             servicesSubtotal += itemTotal;
         }
     });
 
+    // --- Calculate Products Subtotal ---
     console.log('🔄 Calculating products subtotal...');
     document.querySelectorAll('.product-row').forEach((row, index) => {
         const qtyInput = row.querySelector('input[name="product_quantities[]"]');
         const priceInput = row.querySelector('input[name="product_prices[]"]');
         const quantity = parseFloat(qtyInput?.value) || 0;
-        const price = parseFloat(priceInput?.value) || 0;
+        const price = parseFloat(priceInput?.value) || 0; // Price entered by user or from batch
 
         if (quantity > 0 && price > 0) {
             const itemTotal = price * quantity;
@@ -2443,31 +2414,39 @@ function updateCalculations() {
 
     const subtotal = servicesSubtotal + productsSubtotal;
 
+    // --- Discount Calculation ---
     const discountType = document.querySelector('select[name="discount_type"]')?.value || 'percentage';
     const discountValue = parseFloat(document.querySelector('input[name="discount_value"]')?.value) || 0;
     let discountAmount = 0;
 
+    // Discount applies after package benefits
+    // Note: Package benefits are already applied to itemTotal, so subtotal already reflects the reduced prices
     const taxableAmountBeforeDiscount = Math.max(0, subtotal);
 
     if (discountType === 'percentage') {
         discountAmount = (taxableAmountBeforeDiscount * discountValue) / 100;
-    } else {
+    } else { // 'amount'
         discountAmount = discountValue;
     }
-    discountAmount = Math.max(0, discountAmount);
+    discountAmount = Math.max(0, discountAmount); // Ensure discount is not negative
 
+    // --- Calculate Taxable Amount ---
     const taxableAmountAfterTax = Math.max(0, taxableAmountBeforeDiscount - discountAmount);
 
+    // --- Tax Calculation ---
     const cgstRate = parseFloat(document.querySelector('input[name="cgst_rate"]')?.value) || 0;
     const sgstRate = parseFloat(document.querySelector('input[name="sgst_rate"]')?.value) || 0;
     const cgst = (taxableAmountAfterTax * cgstRate) / 100;
     const sgst = (taxableAmountAfterTax * sgstRate) / 100;
 
+    // --- Additional Charges & Tips ---
     const additionalCharges = parseFloat(document.querySelector('input[name="additional_charges"]')?.value) || 0;
     const tips = parseFloat(document.querySelector('input[name="tips_amount"]')?.value) || 0;
 
+    // --- Grand Total ---
     const grandTotal = taxableAmountAfterTax + cgst + sgst + additionalCharges + tips;
 
+    // --- Update Display ---
     document.getElementById('servicesSubtotal').textContent = `₹${servicesSubtotal.toFixed(2)}`;
     document.getElementById('productsSubtotal').textContent = `₹${productsSubtotal.toFixed(2)}`;
     document.getElementById('subtotalAmount').textContent = `₹${subtotal.toFixed(2)}`;
@@ -2495,20 +2474,34 @@ function updateCalculations() {
     console.log('✅ Calculations complete');
 }
 
+// Function to check package benefits for a given service
+// IMPORTANT: This now calls the backend API for real-time benefit calculation
 function checkPackageBenefit(serviceId, servicePrice, quantity = 1, cumulativePackageUsage = {}) {
+    // CRITICAL: Convert serviceId to number for proper comparison
     const numericServiceId = parseInt(serviceId);
 
     console.log('🔍 checkPackageBenefit called:', {serviceId: numericServiceId, servicePrice, quantity});
+    console.log('📊 Input validation:', {
+        serviceIdType: typeof numericServiceId,
+        servicePriceType: typeof servicePrice,
+        quantityType: typeof quantity,
+        serviceIdValue: numericServiceId,
+        servicePriceValue: servicePrice,
+        quantityValue: quantity
+    });
 
+    // Quick check: if no customer selected, no benefits apply
     if (!BillingState.selectedCustomerId) {
         console.log('ℹ️ No customer selected - no benefits');
         return { discount: 0, packageUsed: null, packageId: null, benefitType: null };
     }
 
+    // Use cached packages for quick client-side display
     const customerPackages = BillingState.customerPackages;
 
     if (!customerPackages || customerPackages.length === 0) {
         console.log('ℹ️ No packages available for customer');
+        console.log('📦 customerPackages state:', customerPackages);
         return { discount: 0, packageUsed: null, packageId: null, benefitType: null };
     }
 
@@ -2519,14 +2512,17 @@ function checkPackageBenefit(serviceId, servicePrice, quantity = 1, cumulativePa
     let appliedPackageId = null;
     let benefitType = null;
 
+    // Check each package
     for (const pkg of customerPackages) {
         console.log(`🔍 Checking package: ${pkg.name} (type: ${pkg.package_type})`);
 
+        // Skip packages that are explicitly inactive or expired
         if (pkg.status === 'expired' || pkg.status === 'completed' || pkg.is_active === false) {
              console.log('⏭️ Package skipped (expired/completed):', pkg.name);
              continue;
         }
 
+        // Check if package has remaining benefits based on package_type
         if (pkg.package_type === 'service_package') {
             const remaining = pkg.sessions?.remaining || 0;
             if (remaining <= 0) {
@@ -2541,7 +2537,9 @@ function checkPackageBenefit(serviceId, servicePrice, quantity = 1, cumulativePa
             }
         }
 
+        // --- PRIORITY 1: Yearly membership - applies percentage discount to ALL services ---
         if (pkg.package_type === 'yearly') {
+            // Extract discount percentage from package name (e.g., "Gold Membership - 20% Discount")
             const discountMatch = pkg.name.match(/(\d+)%/);
             if (discountMatch) {
                 const discountPercent = parseInt(discountMatch[1]);
@@ -2550,13 +2548,15 @@ function checkPackageBenefit(serviceId, servicePrice, quantity = 1, cumulativePa
                 appliedPackage = pkg.name;
                 benefitType = 'yearly_discount';
                 console.log(`✅ Yearly membership discount applied: ${pkg.name}, ${discountPercent}% off = ₹${totalBenefit.toFixed(2)}`);
-                break;
+                break; // Use first matching yearly package
             } else {
                 console.log('⏭️ Yearly package found but no percentage in name:', pkg.name);
             }
         }
 
+        // --- PRIORITY 2: Service Package / Free Session Logic ---
         else if (pkg.package_type === 'service_package') {
+            // CRITICAL: Convert package service_id to number for comparison
             const packageServiceId = parseInt(pkg.service_id);
 
             console.log(`🔍 Service package match check:`, {
@@ -2582,7 +2582,7 @@ function checkPackageBenefit(serviceId, servicePrice, quantity = 1, cumulativePa
                     remainingAfter: pkg.sessions.remaining - sessionsToUse
                 });
 
-                break;
+                break; // First matching package wins
             } else {
                 console.log('❌ Service package NOT applied (no sessions):', {
                     packageService: packageServiceId,
@@ -2591,6 +2591,7 @@ function checkPackageBenefit(serviceId, servicePrice, quantity = 1, cumulativePa
                 });
             }
         }
+        // --- PRIORITY 3: Prepaid / Credit Package Logic ---
         else if (pkg.package_type === 'prepaid') {
             const packageKey = `${pkg.assignment_id || pkg.id}`;
             const alreadyUsed = cumulativePackageUsage[packageKey] || 0;
@@ -2622,9 +2623,10 @@ function checkPackageBenefit(serviceId, servicePrice, quantity = 1, cumulativePa
                 appliedPackageId = pkg.assignment_id || pkg.id;
                 benefitType = 'prepaid_credit';
 
+                // Track cumulative usage for this invoice
                 cumulativePackageUsage[packageKey] = alreadyUsed + creditToUse;
 
-                break;
+                break; // First matching package wins
             } else {
                 console.log('❌ Prepaid credit NOT applied:', {
                     hasAdjustedRemaining: adjustedRemaining > 0,
@@ -2633,7 +2635,9 @@ function checkPackageBenefit(serviceId, servicePrice, quantity = 1, cumulativePa
                 });
             }
         }
+        // --- PRIORITY 4: Membership Package Logic ---
         else if (pkg.package_type === 'membership' && pkg.status === 'active') {
+            // Memberships provide unlimited access ONLY to specific services
             const includedServices = pkg.services || [];
             const includedServiceIds = includedServices.map(s => s.service_id);
 
@@ -2644,6 +2648,7 @@ function checkPackageBenefit(serviceId, servicePrice, quantity = 1, cumulativePa
                 isServiceIncluded: includedServiceIds.includes(numericServiceId)
             });
 
+            // Check if the requested service is included in the membership
             if (includedServiceIds.includes(numericServiceId)) {
                 const serviceCost = servicePrice * quantity;
 
@@ -2660,7 +2665,7 @@ function checkPackageBenefit(serviceId, servicePrice, quantity = 1, cumulativePa
                 appliedPackageId = pkg.assignment_id || pkg.id;
                 benefitType = 'membership_unlimited';
 
-                break;
+                break; // First matching package wins
             } else {
                 console.log('⏭️ Membership skipped (service not included):', {
                     packageName: pkg.name,
@@ -2669,19 +2674,23 @@ function checkPackageBenefit(serviceId, servicePrice, quantity = 1, cumulativePa
                 });
             }
         }
+        // --- PRIORITY 5: Student Offer packages ---
         else if (pkg.package_type === 'student_offer' && pkg.discount_percentage > 0) {
+            // Validate student offer dates and valid days
             const validFrom = pkg.valid_from || '';
             const validTo = pkg.valid_to || '';
             const validDays = pkg.valid_days || '';
 
             if (!isStudentOfferValid(validFrom, validTo, validDays)) {
                 console.log(`❌ Student offer ${pkg.name} is not valid today (expired or wrong day)`);
-                continue;
+                continue; // Skip this offer
             }
 
             console.log(`✅ Student offer ${pkg.name} is valid today`);
 
+            // Student offers only apply to specific services that were selected when creating the offer
             const applicableServiceIds = pkg.applicable_service_ids || [];
+            // CRITICAL: Ensure numeric comparison
             const numericApplicableIds = applicableServiceIds.map(id => parseInt(id));
 
             const appliesToThisService = applicableServiceIds.length === 0 || numericApplicableIds.includes(numericServiceId);
@@ -2695,7 +2704,7 @@ function checkPackageBenefit(serviceId, servicePrice, quantity = 1, cumulativePa
                 appliedPackageId = pkg.assignment_id;
                 benefitType = 'student_discount';
                 console.log(`✅ Student offer discount applied: ${pkg.name}, ${pkg.discount_percentage}% off = ₹${discountAmount.toFixed(2)} (service ${numericServiceId} is in applicable list: ${numericApplicableIds})`);
-                break;
+                break; // Use first matching valid student offer
             } else {
                 console.log(`⏭️ Student offer ${pkg.name} skipped - service ${numericServiceId} not in applicable list: ${numericApplicableIds}`);
             }
@@ -2716,11 +2725,13 @@ function checkPackageBenefit(serviceId, servicePrice, quantity = 1, cumulativePa
 // ==========================================
 // VALIDATION
 // ==========================================
-function setupInputValidation() {
+function setupInputValidation() { // Renamed from validateForm to setupInputValidation for clarity
     console.log('⚙️ Setting up input validation listeners');
     document.getElementById('billingForm').addEventListener('input', function(e) {
+        // Remove 'is-invalid' class when user starts typing/changing input
         if (e.target.matches('select, input, textarea')) {
             e.target.classList.remove('is-invalid');
+            // Also clear associated feedback if it exists
             const feedbackElement = e.target.nextElementSibling;
             if (feedbackElement && feedbackElement.classList.contains('invalid-feedback')) {
                 feedbackElement.style.display = 'none';
@@ -2734,33 +2745,40 @@ function validateAndSubmitForm() {
 
     const errors = [];
 
+    // Clear previous validation states
     document.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
     document.querySelectorAll('.invalid-feedback').forEach(el => el.style.display = 'none');
 
+    // 1. Check customer selection
     const clientSelect = document.getElementById('client_id');
     if (!clientSelect || !clientSelect.value) {
         errors.push('❌ Please select a customer');
         if (clientSelect) {
             clientSelect.classList.add('is-invalid');
+            // Scroll to the element if it's visible
             clientSelect.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
     }
 
+    // 2. Check if at least one service or product is added and their details
     const serviceRows = document.querySelectorAll('.service-row');
     const productRows = document.querySelectorAll('.product-row');
 
     let hasValidService = false;
     let hasValidProduct = false;
 
+    // Validate services
     serviceRows.forEach((row, index) => {
         const serviceSelect = row.querySelector('select[name="service_ids[]"]');
         const staffSelect = row.querySelector('select[name="staff_ids[]"]');
         const qtyInput = row.querySelector('input[name="service_quantities[]"]');
         const appointmentIdInput = row.querySelector('input[name="appointment_ids[]"]');
 
+        // Only validate if a service is actually selected
         if (serviceSelect && serviceSelect.value) {
-            hasValidService = true;
+            hasValidService = true; // Mark that at least one service is present
 
+            // Check if staff is assigned for a selected service
             if (!staffSelect || !staffSelect.value) {
                 errors.push(`❌ Service #${index + 1}: Please assign a staff member`);
                 if (staffSelect) {
@@ -2769,6 +2787,7 @@ function validateAndSubmitForm() {
                 }
             }
 
+            // Check quantity for non-appointment services
             if (!appointmentIdInput || !appointmentIdInput.value) {
                 const qty = parseFloat(qtyInput?.value);
                 if (isNaN(qty) || qty <= 0) {
@@ -2782,6 +2801,7 @@ function validateAndSubmitForm() {
         }
     });
 
+    // Validate products
     productRows.forEach((row, index) => {
         const productSelect = row.querySelector('select[name="product_ids[]"]');
         const batchSelect = row.querySelector('select[name="batch_ids[]"]');
@@ -2789,9 +2809,11 @@ function validateAndSubmitForm() {
         const qtyInput = row.querySelector('input[name="product_quantities[]"]');
         const priceInput = row.querySelector('input[name="product_prices[]"]');
 
+        // Only validate if a product is actually selected
         if (productSelect && productSelect.value) {
-            hasValidProduct = true;
+            hasValidProduct = true; // Mark that at least one product is present
 
+            // Check if batch is selected for a selected product
             if (!batchSelect || !batchSelect.value) {
                 errors.push(`❌ Product #${index + 1}: Please select a batch`);
                 if (batchSelect) {
@@ -2800,6 +2822,7 @@ function validateAndSubmitForm() {
                 }
             }
 
+            // Check if staff is assigned for a selected product
             if (!staffSelect || !staffSelect.value) {
                 errors.push(`❌ Product #${index + 1}: Please assign a staff member`);
                 if (staffSelect) {
@@ -2808,6 +2831,7 @@ function validateAndSubmitForm() {
                 }
             }
 
+            // Check quantity for a selected product
             const qty = parseFloat(qtyInput?.value);
             if (isNaN(qty) || qty <= 0) {
                 errors.push(`❌ Product #${index + 1}: Please enter a valid quantity`);
@@ -2817,6 +2841,7 @@ function validateAndSubmitForm() {
                 }
             }
 
+            // Check price for a selected product (can be 0, but not negative)
             const price = parseFloat(priceInput?.value);
             if (isNaN(price) || price < 0) {
                 errors.push(`❌ Product #${index + 1}: Please enter a valid price`);
@@ -2828,11 +2853,14 @@ function validateAndSubmitForm() {
         }
     });
 
+    // Check if at least one item (service or product) is added
     if (!hasValidService && !hasValidProduct) {
         errors.push('❌ Please add at least one service or product to the invoice');
+        // Scroll to the top of the form to guide user
         document.getElementById('billingForm')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 
+    // 3. Check payment method selection
     const paymentMethodRadios = document.querySelectorAll('input[name="payment_method"]');
     let paymentMethodSelected = false;
     paymentMethodRadios.forEach(radio => {
@@ -2848,6 +2876,7 @@ function validateAndSubmitForm() {
         }
     }
 
+    // Show errors or submit
     if (errors.length > 0) {
         const errorMessage = `<strong>Please fix the following issues:</strong><br><br>${errors.join('<br>')}`;
         showNotification(errorMessage, 'error', 8000);
@@ -2855,6 +2884,7 @@ function validateAndSubmitForm() {
         return false;
     }
 
+    // All validations passed - submit the form
     console.log('✅ Validation passed, submitting form...');
     const form = document.getElementById('billingForm');
     if (form) {
@@ -2876,9 +2906,12 @@ function handleFormSubmit(event) {
     event.preventDefault();
     console.log('🚀 Form submit event caught.');
 
+    // The actual validation and submission logic is now in validateAndSubmitForm
+    // We call it here, and it will handle the form submission if validation passes.
     validateAndSubmitForm();
 }
 
+// Save and print function
 function saveAndPrint() {
     console.log('🚀 saveAndPrint called');
     const form = document.getElementById('billingForm');
@@ -2888,14 +2921,18 @@ function saveAndPrint() {
         return;
     }
 
+    // Validate form first using the new validation function
     if (validateAndSubmitForm()) {
         console.log('✅ Form valid, submitting for print...');
 
+        // Add hidden input to indicate print request
         const printInput = document.createElement('input');
         printInput.type = 'hidden';
         printInput.name = 'print_after_save';
         printInput.value = 'true';
         form.appendChild(printInput);
+
+        // Form will be submitted by validateAndSubmitForm
     }
 }
 
@@ -2949,6 +2986,7 @@ function showStudentOfferDetails(name, discount, services, validFrom, validTo, v
 }
 
 function isStudentOfferValid(validFrom, validTo, validDays) {
+    // Check date validity
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
@@ -2970,10 +3008,12 @@ function isStudentOfferValid(validFrom, validTo, validDays) {
         }
     }
 
+    // Check valid days
     if (validDays && validDays !== 'All Days' && validDays !== '') {
         const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
         const todayDay = daysOfWeek[today.getDay()];
 
+        // Parse valid days (e.g., "Mon-Fri", "Weekends Only", "Mon,Wed,Fri")
         let isValidDay = false;
 
         if (validDays === 'Mon-Fri') {
