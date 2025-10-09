@@ -5,7 +5,7 @@ Supports services, packages, subscriptions, and inventory items
 from flask import render_template, request, redirect, url_for, flash, jsonify
 from flask_login import login_required, current_user
 from app import app, db
-from datetime import datetime, date
+from datetime import datetime, date, time
 import json
 from sqlalchemy import and_
 
@@ -1248,7 +1248,7 @@ def create_professional_invoice():
             invoice = EnhancedInvoice()
             invoice.invoice_number = invoice_number
             invoice.client_id = int(client_id)
-            invoice.invoice_date = datetime.combine(invoice_date_only, datetime.min.time)  # Store as midnight on invoice date
+            invoice.invoice_date = datetime.combine(invoice_date_only, time.min)  # Store as midnight on invoice date
             invoice.created_at = ist_now.replace(tzinfo=None)  # Store as naive IST datetime
 
             # Professional billing fields
