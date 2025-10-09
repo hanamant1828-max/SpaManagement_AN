@@ -960,18 +960,6 @@ textarea.form-control {
                         </div>
                         <div class="col-md-4">
                             <div class="form-group">
-                                <label class="form-label">CGST Rate (%)</label>
-                                <input type="number" class="form-control" name="cgst_rate" value="9" min="0" max="100" step="0.01" oninput="updateCalculations()">
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="form-group">
-                                <label class="form-label">SGST Rate (%)</label>
-                                <input type="number" class="form-control" name="sgst_rate" value="9" min="0" max="100" step="0.01" oninput="updateCalculations()">
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="form-group">
                                 <label class="form-label">Additional Charges</label>
                                 <input type="number" class="form-control" name="additional_charges" value="0" min="0" step="0.01" oninput="updateCalculations()">
                             </div>
@@ -1023,16 +1011,6 @@ textarea.form-control {
                     <div class="summary-row">
                         <span class="summary-label">Discount:</span>
                         <span class="summary-value" id="discountAmount">-₹0.00</span>
-                    </div>
-
-                    <div class="summary-row">
-                        <span class="summary-label">CGST:</span>
-                        <span class="summary-value" id="cgstAmount">₹0.00</span>
-                    </div>
-
-                    <div class="summary-row">
-                        <span class="summary-label">SGST:</span>
-                        <span class="summary-value" id="sgstAmount">₹0.00</span>
                     </div>
 
                     <div class="summary-row">
@@ -2294,18 +2272,12 @@ function resetCustomerAppointments() {
         // --- Calculate Taxable Amount ---
         const taxableAmountAfterTax = Math.max(0, taxableAmountBeforeDiscount - discountAmount);
 
-        // --- Tax Calculation ---
-        const cgstRate = parseFloat(document.querySelector('input[name="cgst_rate"]')?.value) || 0;
-        const sgstRate = parseFloat(document.querySelector('input[name="sgst_rate"]')?.value) || 0;
-        const cgst = (taxableAmountAfterTax * cgstRate) / 100;
-        const sgst = (taxableAmountAfterTax * sgstRate) / 100;
-
         // --- Additional Charges & Tips ---
         const additionalCharges = parseFloat(document.querySelector('input[name="additional_charges"]')?.value) || 0;
         const tips = parseFloat(document.querySelector('input[name="tips_amount"]')?.value) || 0;
 
-        // --- Grand Total ---
-        const grandTotal = taxableAmountAfterTax + cgst + sgst + additionalCharges + tips;
+        // --- Grand Total (prices are GST inclusive) ---
+        const grandTotal = taxableAmountAfterTax + additionalCharges + tips;
 
         // --- Update Display ---
         document.getElementById('servicesSubtotal').textContent = `₹${servicesSubtotal.toFixed(2)}`;
@@ -2313,8 +2285,6 @@ function resetCustomerAppointments() {
         document.getElementById('subtotalAmount').textContent = `₹${subtotal.toFixed(2)}`;
         document.getElementById('packageDeductions').textContent = `-₹${packageDeductions.toFixed(2)}`;
         document.getElementById('discountAmount').textContent = `-₹${discountAmount.toFixed(2)}`;
-        document.getElementById('cgstAmount').textContent = `₹${cgst.toFixed(2)}`;
-        document.getElementById('sgstAmount').textContent = `₹${sgst.toFixed(2)}`;
         document.getElementById('additionalCharges').textContent = `₹${additionalCharges.toFixed(2)}`;
         document.getElementById('tipsDisplay').textContent = `₹${tips.toFixed(2)}`;
         document.getElementById('grandTotal').textContent = `₹${grandTotal.toFixed(2)}`;
@@ -2326,8 +2296,6 @@ function resetCustomerAppointments() {
             packageDeductions: packageDeductions.toFixed(2),
             discountAmount: discountAmount.toFixed(2),
             taxableAmountAfterTax: taxableAmountAfterTax.toFixed(2),
-            cgst: cgst.toFixed(2),
-            sgst: sgst.toFixed(2),
             additionalCharges: additionalCharges.toFixed(2),
             tips: tips.toFixed(2),
             grandTotal: grandTotal.toFixed(2)
