@@ -808,6 +808,27 @@
             }
 
             /* ==================== MODAL STYLES ==================== */
+            /* Booking Modal - Base Level */
+            #multiBookModal {
+                z-index: 1050 !important;
+            }
+            #multiBookModal + .modal-backdrop {
+                z-index: 1049 !important;
+            }
+
+            /* Quick Add Client Modal - Higher Level */
+            #quickAddClientModal {
+                z-index: 1060 !important;
+            }
+            #quickAddClientModal + .modal-backdrop {
+                z-index: 1059 !important;
+            }
+
+            /* Ensure stacked modals work properly */
+            .modal-backdrop.show:nth-of-type(2) {
+                z-index: 1059 !important;
+            }
+
             .modal-dialog {
                 max-height: 90vh;
             }
@@ -2400,6 +2421,31 @@
             // EVENT LISTENERS
             // ==========================================
             function setupEventListeners() {
+                // Handle Quick Add Client modal z-index on show
+                const quickAddModal = document.getElementById('quickAddClientModal');
+                if (quickAddModal) {
+                    quickAddModal.addEventListener('show.bs.modal', function() {
+                        this.style.zIndex = '1060';
+                        setTimeout(() => {
+                            const backdrops = document.querySelectorAll('.modal-backdrop');
+                            if (backdrops.length > 0) {
+                                backdrops[backdrops.length - 1].style.zIndex = '1059';
+                            }
+                        }, 50);
+                    });
+                    
+                    quickAddModal.addEventListener('hidden.bs.modal', function() {
+                        const bookingModal = document.getElementById('multiBookModal');
+                        if (bookingModal && bookingModal.classList.contains('show')) {
+                            bookingModal.style.zIndex = '1050';
+                            const backdrop = document.querySelector('.modal-backdrop');
+                            if (backdrop) {
+                                backdrop.style.zIndex = '1049';
+                            }
+                        }
+                    });
+                }
+                
                 // Multi-booking form changes
                 document.addEventListener("change", function(e) {
                     if (e.target.matches('.service-select, .start-time, .appointment-date, .staff-select')) {
@@ -2881,9 +2927,24 @@
             // QUICK ADD CLIENT
             // ==========================================
             function openQuickAddClient() {
-                const modal = new bootstrap.Modal(document.getElementById("quickAddClientModal"));
+                const modalEl = document.getElementById("quickAddClientModal");
+                const modal = new bootstrap.Modal(modalEl, {
+                    backdrop: 'static',
+                    keyboard: true
+                });
                 document.getElementById('quickAddClientForm').reset();
                 modal.show();
+                
+                // Ensure proper z-index stacking
+                setTimeout(() => {
+                    if (modalEl) {
+                        modalEl.style.zIndex = '1060';
+                    }
+                    const backdrops = document.querySelectorAll('.modal-backdrop');
+                    if (backdrops.length > 0) {
+                        backdrops[backdrops.length - 1].style.zIndex = '1059';
+                    }
+                }, 100);
             }
 
             async function saveQuickClient() {
