@@ -1639,9 +1639,9 @@ function displayCustomerAppointments(appointments) {
 
         const isAdded = addedAppointmentIds.has(apt.id);
 
-        // Safely escape service and staff names
-        const serviceName = (apt.service_name || 'Service not specified').replace(/'/g, "\\'").replace(/"/g, '\\"');
-        const staffName = (apt.staff_name || 'Not assigned').replace(/'/g, "\\'").replace(/"/g, '\\"');
+        // ✅ FIX: Properly encode for HTML attributes - use HTML entity encoding
+        const serviceName = (apt.service_name || 'Service not specified').replace(/&/g, '&amp;').replace(/'/g, '&#39;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        const staffName = (apt.staff_name || 'Not assigned').replace(/&/g, '&amp;').replace(/'/g, '&#39;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
         html += `
             <tr style="border-bottom: 1px solid var(--gray-200); ${isAdded ? 'background: #f0f0f0;' : ''}">
@@ -1661,7 +1661,13 @@ function displayCustomerAppointments(appointments) {
                 <td style="padding: 8px;">
                     <button type="button"
                             class="btn btn-sm ${isAdded ? 'btn-success' : 'btn-primary'} w-100"
-                            onclick="addAppointmentToBill(${apt.id}, '${serviceName}', ${apt.service_id || 'null'}, ${apt.staff_id || 'null'}, ${apt.service_price || 0}, ${apt.service_duration || 60})"
+                            data-appointment-id="${apt.id}"
+                            data-service-name="${serviceName}"
+                            data-service-id="${apt.service_id || 'null'}"
+                            data-staff-id="${apt.staff_id || 'null'}"
+                            data-service-price="${apt.service_price || 0}"
+                            data-service-duration="${apt.service_duration || 60}"
+                            onclick="addAppointmentToBill(this.dataset.appointmentId, this.dataset.serviceName, this.dataset.serviceId === 'null' ? null : this.dataset.serviceId, this.dataset.staffId === 'null' ? null : this.dataset.staffId, parseFloat(this.dataset.servicePrice), parseInt(this.dataset.serviceDuration))"
                             ${isAdded ? 'disabled' : ''}
                             style="font-size: 0.75rem; padding: 4px 8px;">
                         ${isAdded ? '<i class="fas fa-check"></i> Added' : '<i class="fas fa-plus"></i> Add'}
