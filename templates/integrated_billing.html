@@ -1709,39 +1709,42 @@ function addAppointmentToBill(appointmentId, serviceName, serviceId, staffId, se
         return;
     }
 
+    // ✅ Mark as added IMMEDIATELY to prevent race conditions
+    addedAppointmentIds.add(appointmentId);
+    console.log('✅ Marked appointment as added:', appointmentId);
+
     let targetRow = null;
     const existingRows = container.querySelectorAll('.service-row');
 
-    // Strategy: Find first truly empty row, or create a new one
+    // Strategy: ALWAYS create a new row for appointments (don't reuse existing rows)
+    // This ensures each appointment gets its own dedicated row with correct staff
     if (existingRows.length === 0) {
         addServiceRow();
         targetRow = container.lastElementChild;
         console.log('✅ Created first service row (container was empty)');
     } else {
-        // Look for an empty row (no service AND no appointment ID)
-        for (const row of existingRows) {
-            const serviceSelect = row.querySelector('select[name="service_ids[]"]');
-            const appointmentInput = row.querySelector('input[name="appointment_ids[]"]');
-            const isEmpty = !serviceSelect?.value && !appointmentInput?.dataset.appointmentId;
+        // Check if the ONLY existing row is completely empty
+        if (existingRows.length === 1) {
+            const firstRow = existingRows[0];
+            const serviceSelect = firstRow.querySelector('select[name="service_ids[]"]');
+            const appointmentInput = firstRow.querySelector('input[name="appointment_ids[]"]');
+            const isCompletelyEmpty = !serviceSelect?.value && !appointmentInput?.dataset.appointmentId;
             
-            if (isEmpty) {
-                targetRow = row;
-                console.log('✅ Found empty row, reusing it');
-                break;
+            if (isCompletelyEmpty) {
+                targetRow = firstRow;
+                console.log('✅ Using the only empty row');
+            } else {
+                addServiceRow();
+                targetRow = container.lastElementChild;
+                console.log('✅ Created new service row for appointment');
             }
-        }
-        
-        // If no empty row found, create a new one
-        if (!targetRow) {
+        } else {
+            // Multiple rows exist - always create new row for appointment
             addServiceRow();
             targetRow = container.lastElementChild;
-            console.log('✅ Created new service row (all existing rows filled)');
+            console.log('✅ Created new service row for appointment (multiple rows exist)');
         }
     }
-
-    // ✅ Mark as added IMMEDIATELY to prevent race conditions
-    addedAppointmentIds.add(appointmentId);
-    console.log('✅ Marked appointment as added:', appointmentId);
 
     // Populate ONLY this target row with the clicked appointment data
     const serviceSelect = targetRow.querySelector('select[name="service_ids[]"]');
