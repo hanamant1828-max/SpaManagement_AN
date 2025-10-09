@@ -810,23 +810,31 @@
             /* ==================== MODAL STYLES ==================== */
             /* Booking Modal - Base Level */
             #multiBookModal {
-                z-index: 1050 !important;
+                z-index: 1055 !important;
             }
-            #multiBookModal + .modal-backdrop {
-                z-index: 1049 !important;
+            .modal-backdrop:nth-of-type(1) {
+                z-index: 1050 !important;
             }
 
             /* Quick Add Client Modal - Higher Level */
             #quickAddClientModal {
+                z-index: 1065 !important;
+            }
+            .modal-backdrop:nth-of-type(2) {
                 z-index: 1060 !important;
             }
-            #quickAddClientModal + .modal-backdrop {
-                z-index: 1059 !important;
-            }
 
-            /* Ensure stacked modals work properly */
-            .modal-backdrop.show:nth-of-type(2) {
-                z-index: 1059 !important;
+            /* Ensure modal content is above backdrop */
+            .modal.show {
+                z-index: 1055;
+            }
+            .modal-backdrop.show {
+                z-index: 1050;
+            }
+            
+            /* When second modal opens */
+            .modal.show ~ .modal.show {
+                z-index: 1065 !important;
             }
 
             .modal-dialog {
@@ -2425,11 +2433,11 @@
                 const quickAddModal = document.getElementById('quickAddClientModal');
                 if (quickAddModal) {
                     quickAddModal.addEventListener('show.bs.modal', function() {
-                        this.style.zIndex = '1060';
+                        this.style.zIndex = '1065';
                         setTimeout(() => {
                             const backdrops = document.querySelectorAll('.modal-backdrop');
                             if (backdrops.length > 0) {
-                                backdrops[backdrops.length - 1].style.zIndex = '1059';
+                                backdrops[backdrops.length - 1].style.zIndex = '1060';
                             }
                         }, 50);
                     });
@@ -2437,10 +2445,10 @@
                     quickAddModal.addEventListener('hidden.bs.modal', function() {
                         const bookingModal = document.getElementById('multiBookModal');
                         if (bookingModal && bookingModal.classList.contains('show')) {
-                            bookingModal.style.zIndex = '1050';
+                            bookingModal.style.zIndex = '1055';
                             const backdrop = document.querySelector('.modal-backdrop');
                             if (backdrop) {
-                                backdrop.style.zIndex = '1049';
+                                backdrop.style.zIndex = '1050';
                             }
                         }
                     });
@@ -2938,11 +2946,11 @@
                 // Ensure proper z-index stacking
                 setTimeout(() => {
                     if (modalEl) {
-                        modalEl.style.zIndex = '1060';
+                        modalEl.style.zIndex = '1065';
                     }
                     const backdrops = document.querySelectorAll('.modal-backdrop');
                     if (backdrops.length > 0) {
-                        backdrops[backdrops.length - 1].style.zIndex = '1059';
+                        backdrops[backdrops.length - 1].style.zIndex = '1060';
                     }
                 }, 100);
             }
