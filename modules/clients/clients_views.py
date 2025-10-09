@@ -392,13 +392,13 @@ def api_unaki_quick_add_client():
         if not data:
             return jsonify({'success': False, 'error': 'No data provided'}), 400
 
-        # Validate required fields
+        # Validate required fields (email is optional)
         required_fields = ['first_name', 'last_name', 'phone', 'gender']
         for field in required_fields:
             if not data.get(field):
                 return jsonify({'success': False, 'error': f'{field} is required'}), 400
 
-        # Check for duplicates
+        # Check for phone duplicates only
         if data.get('phone'):
             existing = get_customer_by_phone(data['phone'])
             if existing:
@@ -411,26 +411,18 @@ def api_unaki_quick_add_client():
                     }
                 }), 409
 
-        if data.get('email'):
-            existing = get_customer_by_email(data['email'])
-            if existing:
-                return jsonify({
-                    'success': False, 
-                    'error': 'A customer with this email address already exists',
-                    'existing_customer': {
-                        'id': existing.id,
-                        'name': f"{existing.first_name} {existing.last_name}"
-                    }
-                }), 409
-
-        # Create customer
+        # Create customer (email is optional, can be None)
         customer_data = {
             'first_name': data.get('first_name', '').strip().title(),
             'last_name': data.get('last_name', '').strip().title(),
             'phone': data.get('phone', '').strip(),
-            'email': data.get('email', '').strip().lower() or None,
             'gender': data.get('gender', '').strip() or None
         }
+        
+        # Only add email if it's provided and not empty
+        email = data.get('email', '').strip()
+        if email:
+            customer_data['email'] = email.lower()
 
         new_customer = create_customer_query(customer_data)
 
