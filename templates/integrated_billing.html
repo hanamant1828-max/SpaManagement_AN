@@ -1124,7 +1124,7 @@ function initializeSearchableDropdowns() {
         allowClear: true,
         width: '100%'
     });
-    
+
     // Service dropdowns - use regular HTML select (no Select2)
     $('select[name="service_ids[]"]').each(function() {
         // Just attach change handler, no Select2
@@ -1505,1481 +1505,1480 @@ function resetCustomerAppointments() {
 }
 
 
-// Track which appointments have been added to bill
-const addedAppointmentIds = new Set();
+    // Track which appointments have been added to bill
+    const addedAppointmentIds = new Set();
 
-function displayCustomerAppointments(appointments) {
-    const appointmentsDiv = document.getElementById('customerAppointments');
+    function displayCustomerAppointments(appointments) {
+        const appointmentsDiv = document.getElementById('customerAppointments');
 
-    if (!appointments || !appointments.length) {
-        appointmentsDiv.innerHTML = `
-            <div style="padding: var(--spacing-xl); text-align: center; color: var(--gray-500);">
-                <i class="fas fa-calendar-times fa-2x mb-2" style="opacity: 0.5;"></i>
-                <p class="mb-0"><strong>No Booked Appointments</strong></p>
-                <small>This customer has no confirmed appointments ready for billing</small>
-            </div>`;
-        return;
-    }
+        if (!appointments || !appointments.length) {
+            appointmentsDiv.innerHTML = `
+                <div style="padding: var(--spacing-xl); text-align: center; color: var(--gray-500);">
+                    <i class="fas fa-calendar-times fa-2x mb-2" style="opacity: 0.5;"></i>
+                    <p class="mb-0"><strong>No Booked Appointments</strong></p>
+                    <small>This customer has no confirmed appointments ready for billing</small>
+                </div>`;
+            return;
+        }
 
-    let html = `
-        <div style="padding: 0;">
-            <div style="background: var(--gray-50); padding: 8px 12px; border-bottom: 1px solid var(--gray-300);">
-                <small style="color: var(--gray-600);"><i class="fas fa-info-circle me-1"></i>Click "Add to Bill" to include appointment in invoice</small>
-            </div>
-            <table class="table table-sm mb-0" style="font-size: 0.875rem;">
-                <thead style="background: var(--gray-100); position: sticky; top: 0; z-index: 1;">
-                    <tr>
-                        <th style="padding: 8px;">Service</th>
-                        <th style="padding: 8px;">Staff</th>
-                        <th style="padding: 8px;">Date & Time</th>
-                        <th style="padding: 8px; text-align: right;">Price</th>
-                        <th style="padding: 8px; width: 120px;">Action</th>
-                    </tr>
-                </thead>
-                <tbody>`;
+        let html = `
+            <div style="padding: 0;">
+                <div style="background: var(--gray-50); padding: 8px 12px; border-bottom: 1px solid var(--gray-300);">
+                    <small style="color: var(--gray-600);"><i class="fas fa-info-circle me-1"></i>Click "Add to Bill" to include appointment in invoice</small>
+                </div>
+                <table class="table table-sm mb-0" style="font-size: 0.875rem;">
+                    <thead style="background: var(--gray-100); position: sticky; top: 0; z-index: 1;">
+                        <tr>
+                            <th style="padding: 8px;">Service</th>
+                            <th style="padding: 8px;">Staff</th>
+                            <th style="padding: 8px;">Date & Time</th>
+                            <th style="padding: 8px; text-align: right;">Price</th>
+                            <th style="padding: 8px; width: 120px;">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>`;
 
-    appointments.forEach(apt => {
-        const aptDate = new Date(apt.appointment_date);
-        const dateStr = aptDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-        const timeStr = apt.start_time || aptDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+        appointments.forEach(apt => {
+            const aptDate = new Date(apt.appointment_date);
+            const dateStr = aptDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            const timeStr = apt.start_time || aptDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
 
-        const statusBadge = apt.status === 'completed' ?
-            '<span class="badge bg-success" style="font-size: 0.7rem;">Done</span>' :
-            apt.status === 'confirmed' ?
-            '<span class="badge bg-info" style="font-size: 0.7rem;">Confirmed</span>' :
-            '<span class="badge bg-warning" style="font-size: 0.7rem;">Scheduled</span>';
+            const statusBadge = apt.status === 'completed' ?
+                '<span class="badge bg-success" style="font-size: 0.7rem;">Done</span>' :
+                apt.status === 'confirmed' ?
+                '<span class="badge bg-info" style="font-size: 0.7rem;">Confirmed</span>' :
+                '<span class="badge bg-warning" style="font-size: 0.7rem;">Scheduled</span>';
 
-        const isAdded = addedAppointmentIds.has(apt.id);
+            const isAdded = addedAppointmentIds.has(apt.id);
 
-        // Safely escape service and staff names
-        const serviceName = (apt.service_name || 'Service not specified').replace(/'/g, "\\'").replace(/"/g, '\\"');
-        const staffName = (apt.staff_name || 'Not assigned').replace(/'/g, "\\'").replace(/"/g, '\\"');
+            // Safely escape service and staff names
+            const serviceName = (apt.service_name || 'Service not specified').replace(/'/g, "\\'").replace(/"/g, '\\"');
+            const staffName = (apt.staff_name || 'Not assigned').replace(/'/g, "\\'").replace(/"/g, '\\"');
+
+            html += `
+                <tr style="border-bottom: 1px solid var(--gray-200); ${isAdded ? 'background: #f0f0f0;' : ''}">
+                    <td style="padding: 8px;">
+                        <div style="font-weight: 600; color: var(--gray-900);">${apt.service_name || 'Service not specified'}</div>
+                        <small style="color: var(--gray-500);">${apt.service_duration ? apt.service_duration + ' min' : ''} ${statusBadge}</small>
+                    </td>
+                    <td style="padding: 8px;">
+                        <small style="color: var(--gray-700);">${apt.staff_name || 'Not assigned'}</small>
+                    </td>
+                    <td style="padding: 8px;">
+                        <small style="color: var(--gray-700);">${dateStr}<br>${timeStr}</small>
+                    </td>
+                    <td style="padding: 8px; text-align: right;">
+                        <strong style="color: var(--primary);">₹${(apt.service_price || 0).toFixed(2)}</strong>
+                    </td>
+                    <td style="padding: 8px;">
+                        <button type="button"
+                                class="btn btn-sm ${isAdded ? 'btn-success' : 'btn-primary'} w-100"
+                                onclick="addAppointmentToBill(${apt.id}, '${serviceName}', ${apt.service_id || 'null'}, ${apt.staff_id || 'null'}, ${apt.service_price || 0}, ${apt.service_duration || 60})"
+                                ${isAdded ? 'disabled' : ''}
+                                style="font-size: 0.75rem; padding: 4px 8px;">
+                            ${isAdded ? '<i class="fas fa-check"></i> Added' : '<i class="fas fa-plus"></i> Add'}
+                        </button>
+                    </td>
+                </tr>`;
+        });
 
         html += `
-            <tr style="border-bottom: 1px solid var(--gray-200); ${isAdded ? 'background: #f0f0f0;' : ''}">
-                <td style="padding: 8px;">
-                    <div style="font-weight: 600; color: var(--gray-900);">${apt.service_name || 'Service not specified'}</div>
-                    <small style="color: var(--gray-500);">${apt.service_duration ? apt.service_duration + ' min' : ''} ${statusBadge}</small>
-                </td>
-                <td style="padding: 8px;">
-                    <small style="color: var(--gray-700);">${apt.staff_name || 'Not assigned'}</small>
-                </td>
-                <td style="padding: 8px;">
-                    <small style="color: var(--gray-700);">${dateStr}<br>${timeStr}</small>
-                </td>
-                <td style="padding: 8px; text-align: right;">
-                    <strong style="color: var(--primary);">₹${(apt.service_price || 0).toFixed(2)}</strong>
-                </td>
-                <td style="padding: 8px;">
-                    <button type="button"
-                            class="btn btn-sm ${isAdded ? 'btn-success' : 'btn-primary'} w-100"
-                            onclick="addAppointmentToBill(${apt.id}, '${serviceName}', ${apt.service_id || 'null'}, ${apt.staff_id || 'null'}, ${apt.service_price || 0}, ${apt.service_duration || 60})"
-                            ${isAdded ? 'disabled' : ''}
-                            style="font-size: 0.75rem; padding: 4px 8px;">
-                        ${isAdded ? '<i class="fas fa-check"></i> Added' : '<i class="fas fa-plus"></i> Add'}
-                    </button>
-                </td>
-            </tr>`;
-    });
+                    </tbody>
+                </table>
+            </div>`;
 
-    html += `
-                </tbody>
-            </table>
-        </div>`;
+        appointmentsDiv.innerHTML = html;
+    }
 
-    appointmentsDiv.innerHTML = html;
-}
-
-function resetCustomerPackages() {
-    BillingState.customerPackages = null; // Clear from state
-    addedAppointmentIds.clear(); // Also clear added appointments tracking
-    updateCalculations();
-    displayCustomerPackagesTable([]); // Clear the display table
-}
-
-
-    function addAppointmentToBill(appointmentId, serviceName, serviceId, staffId, servicePrice, serviceDuration) {
-      console.log(`Adding appointment ${appointmentId} to bill`, { serviceName, serviceId, staffId, servicePrice, serviceDuration });
-
-      const container = document.getElementById('servicesContainer');
-      if (!container) {
-        console.error('Services container not found');
-        return null;
-      }
-
-      // normalize inputs
-      const norm = v => (v === undefined || v === null || v === 'null' || v === '' ? null : v);
-      const aId   = norm(appointmentId);
-      const sId   = norm(serviceId);
-      const stId  = norm(staffId);
-      const sPrice= typeof servicePrice === 'number' && !Number.isNaN(servicePrice) ? servicePrice : null;
-      const sDur  = typeof serviceDuration === 'number' && !Number.isNaN(serviceDuration) ? serviceDuration : null;
-
-      // Try to find an existing row for this appointment or add a new one
-      let targetRow = null;
-      for (const row of container.querySelectorAll('.service-row')) {
-        const apptInput = row.querySelector('input[name="appointment_ids[]"]');
-        if (apptInput && apptInput.dataset.appointmentId == aId) {
-          targetRow = row;
-          break;
-        }
-      }
-      if (!targetRow) {
-        addServiceRow(); // appends a new .service-row at the end
-        targetRow = container.lastElementChild;
-      }
-
-      // Grab controls
-      const serviceSelect     = targetRow.querySelector('select[name="service_ids[]"]');
-      const staffSelect       = targetRow.querySelector('select[name="staff_ids[]"]');
-      const qtyInput          = targetRow.querySelector('input[name="service_quantities[]"]');
-      const apptInput         = targetRow.querySelector('input[name="appointment_ids[]"]');
-      const hiddenPriceInput  = targetRow.querySelector('input[name="service_prices[]"]'); // make sure you added this hidden input
-      const removeBtn         = targetRow.querySelector('.btn-danger');
-
-      // Set values
-      if (qtyInput) qtyInput.value = 1;
-
-      if (apptInput) {
-        apptInput.value = aId ?? '';
-        apptInput.dataset.appointmentId   = aId ?? '';
-        if (sPrice !== null) apptInput.dataset.servicePrice  = String(sPrice);
-        if (sDur   !== null) apptInput.dataset.serviceDuration = String(sDur);
-      }
-        debugger; // ex
-      // Assign service & staff (supports raw selects or Select2)
-      if (serviceSelect && sId !== null) {
-          const setSelectValue = (el, val) => {
-            if (window.jQuery && jQuery.fn.select2 && jQuery(el).hasClass('select2-hidden-accessible')) {
-              jQuery(el).val(String(val)).trigger('change');
-            } else {
-              el.value = String(val);
-              el.dispatchEvent(new Event('change', { bubbles: true }));
-            }
-          };
-
-        setSelectValue(serviceSelect, sId);
-      }
-
-      if (staffSelect && stId !== null) {
-        if (window.jQuery && jQuery.fn && jQuery.fn.select2 && jQuery(staffSelect).hasClass('select2-hidden-accessible')) {
-          jQuery(staffSelect).val(String(stId)).trigger('change');
-        } else {
-          staffSelect.value = String(stId);
-        }
-      }
-
-      // Mark as added
-      addedAppointmentIds.add(aId);
-      if (removeBtn) removeBtn.style.display = 'block';
-
-      // If appointment price missing, fall back to the service base price for this row
-      if (hiddenPriceInput) {
-        let price = sPrice;
-        if (price === null && serviceSelect && serviceSelect.selectedOptions.length) {
-          price = parseFloat(serviceSelect.selectedOptions[0].dataset.price) || 0;
-        }
-        hiddenPriceInput.value = (price ?? 0).toFixed(2);
-      }
-
-      // Defer calculations until Select2/value updates have flushed
-      requestAnimationFrame(() => {
-        if (serviceSelect) {
-          // Keep handleServiceChange minimal: it should just set row data; real math happens in updateCalculations()
-          handleServiceChange(serviceSelect);
-        }
+    function resetCustomerPackages() {
+        BillingState.customerPackages = null; // Clear from state
+        addedAppointmentIds.clear(); // Also clear added appointments tracking
         updateCalculations();
-      });
-
-      // Refresh appointments display to show "Added" state (non-blocking)
-      const clientId = document.getElementById('client_id')?.value;
-      if (clientId) loadCustomerAppointments(clientId);
-
-      return targetRow;
+        displayCustomerPackagesTable([]); // Clear the display table
     }
 
 
-function removeAppointmentFromBill(appointmentId) {
-    const container = document.getElementById('servicesContainer');
-    if (!container) return;
+        function addAppointmentToBill(appointmentId, serviceName, serviceId, staffId, servicePrice, serviceDuration) {
+          console.log(`Adding appointment ${appointmentId} to bill`, { serviceName, serviceId, staffId, servicePrice, serviceDuration });
 
-    // Find and remove the row with this appointment ID
-    const rows = container.querySelectorAll('.service-row');
-    let rowToRemove = null;
-    for (const row of rows) {
-        const appointmentInput = row.querySelector('input[name="appointment_ids[]"]');
-        if (appointmentInput && appointmentInput.dataset.appointmentId == appointmentId) {
-            rowToRemove = row;
-            break;
-        }
-    }
+          const container = document.getElementById('servicesContainer');
+          if (!container) {
+            console.error('Services container not found');
+            return null;
+          }
 
-    if (rowToRemove) {
-        // If it's the only row and it contains this appointment, clear it instead of removing
-        if (rows.length === 1 && rowToRemove.querySelector('input[name="appointment_ids[]"]')?.dataset.appointmentId == appointmentId) {
-            // Clear inputs but keep the row structure
-            rowToRemove.querySelectorAll('select, input').forEach(input => {
-                input.value = ''; // Clear all values
-                if (input.name?.includes('appointment_ids[]')) {
-                    delete input.dataset.appointmentId; // Remove tracking attribute
-                    delete input.dataset.servicePrice;
-                    delete input.dataset.serviceDuration;
+          // normalize inputs
+          const norm = v => (v === undefined || v === null || v === 'null' || v === '' ? null : v);
+          const aId   = norm(appointmentId);
+          const sId   = norm(serviceId);
+          const stId  = norm(staffId);
+          const sPrice= typeof servicePrice === 'number' && !Number.isNaN(servicePrice) ? servicePrice : null;
+          const sDur  = typeof serviceDuration === 'number' && !Number.isNaN(serviceDuration) ? serviceDuration : null;
+
+          // Try to find an existing row for this appointment or add a new one
+          let targetRow = null;
+          for (const row of container.querySelectorAll('.service-row')) {
+            const apptInput = row.querySelector('input[name="appointment_ids[]"]');
+            if (apptInput && apptInput.dataset.appointmentId == aId) {
+              targetRow = row;
+              break;
+            }
+          }
+          if (!targetRow) {
+            addServiceRow(); // appends a new .service-row at the end
+            targetRow = container.lastElementChild;
+          }
+
+          // Grab controls
+          const serviceSelect     = targetRow.querySelector('select[name="service_ids[]"]');
+          const staffSelect       = targetRow.querySelector('select[name="staff_ids[]"]');
+          const qtyInput          = targetRow.querySelector('input[name="service_quantities[]"]');
+          const apptInput         = targetRow.querySelector('input[name="appointment_ids[]"]');
+          const hiddenPriceInput  = targetRow.querySelector('input[name="service_prices[]"]'); // make sure you added this hidden input
+          const removeBtn         = targetRow.querySelector('.btn-danger');
+
+          // Set values
+          if (qtyInput) qtyInput.value = 1;
+
+          if (apptInput) {
+            apptInput.value = aId ?? '';
+            apptInput.dataset.appointmentId   = aId ?? '';
+            if (sPrice !== null) apptInput.dataset.servicePrice  = String(sPrice);
+            if (sDur   !== null) apptInput.dataset.serviceDuration = String(sDur);
+          }
+            debugger; // ex
+          // Assign service & staff (supports raw selects or Select2)
+          if (serviceSelect && sId !== null) {
+              const setSelectValue = (el, val) => {
+                if (window.jQuery && jQuery.fn.select2 && jQuery(el).hasClass('select2-hidden-accessible')) {
+                  jQuery(el).val(String(val)).trigger('change');
+                } else {
+                  el.value = String(val);
+                  el.dispatchEvent(new Event('change', { bubbles: true }));
                 }
-            });
-            // Also reset quantity to 1 if it exists
-            const qtyInput = rowToRemove.querySelector('input[name="service_quantities[]"]');
-            if (qtyInput) qtyInput.value = 1;
+              };
 
-            console.log(`Cleared inputs in existing row for appointment ID ${appointmentId}`);
-        } else {
-            rowToRemove.remove(); // Remove the entire row
-            console.log(`Removed row associated with appointment ID ${appointmentId}`);
-        }
-    }
+            setSelectValue(serviceSelect, sId);
+          }
 
-    // Remove from tracking set
-    addedAppointmentIds.delete(appointmentId);
-    console.log('Removed appointment ID from tracking:', appointmentId);
-
-    updateCalculations();
-
-    // Refresh appointments display to show "Add" button state
-    const clientId = document.getElementById('client_id').value;
-    if (clientId) {
-        loadCustomerAppointments(clientId);
-    }
-}
-
-// ==========================================
-// BATCH MANAGEMENT
-// ==========================================
-function loadBatches(productSelect) {
-    const row = productSelect.closest('.item-row');
-    const batchSelect = row.querySelector('.batch-select');
-    const batchInfo = row.querySelector('.batch-info');
-    const priceInput = row.querySelector('input[name="product_prices[]"]');
-    const productId = parseInt(productSelect.value);
-
-    console.log('🔄 loadBatches called for product:', productId);
-
-    if (!productId) {
-        batchSelect.innerHTML = '<option value="">Select Product</option>';
-        batchSelect.disabled = true;
-        batchInfo.innerHTML = '';
-        if (priceInput) priceInput.value = '';
-        updateCalculations(); // Recalculate in case product was deselected
-        return;
-    }
-
-    // Check cache first
-    if (BillingState.batchCache[productId]) {
-        console.log('🗄️ Cache hit for product ID:', productId);
-        populateBatchSelect(BillingState.batchCache[productId], batchSelect, batchInfo, priceInput);
-        return;
-    }
-
-    // Load from API
-    console.log('🗄️ Cache miss for product ID:', productId, 'Fetching batches...');
-    batchSelect.innerHTML = '<option value="">Loading...</option>';
-    batchSelect.disabled = true;
-    if (priceInput) priceInput.value = '';
-
-    fetch(`/api/inventory/batches/for-product/${productId}`)
-        .then(res => {
-            console.log('📡 Batch API response status:', res.status);
-            if (!res.ok) throw new Error(`HTTP error ${res.status}`);
-            return res.json();
-        })
-        .then(data => {
-            console.log('📦 Batch API response data:', data);
-            if (data.success && data.batches) {
-                const batches = data.batches || [];
-                BillingState.batchCache[productId] = batches; // Cache the result
-                populateBatchSelect(batches, batchSelect, batchInfo, priceInput);
+          if (staffSelect && stId !== null) {
+            if (window.jQuery && jQuery.fn && jQuery.fn.select2 && jQuery(staffSelect).hasClass('select2-hidden-accessible')) {
+              jQuery(staffSelect).val(String(stId)).trigger('change');
             } else {
-                throw new Error(data.message || 'Failed to load batches from API');
+              staffSelect.value = String(stId);
             }
-        })
-        .catch(err => {
-            console.error('❌ Error loading batches:', err);
-            console.error('❌ Error stack:', err.stack);
-            batchSelect.innerHTML = '<option value="">Error loading batches</option>';
-            batchInfo.innerHTML = '<span class="text-danger">Failed to load batches</span>';
-        });
-}
+          }
 
-function populateBatchSelect(batches, batchSelect, batchInfo, priceInput) {
-    // Filter available batches and sort by expiry (FIFO)
-    const availableBatches = batches
-        .filter(b => b.qty_available > 0)
-        .sort((a, b) => {
-            // Prioritize batches with expiry dates, sort by date
-            if (a.expiry_date && b.expiry_date) {
-                return new Date(a.expiry_date) - new Date(b.expiry_date);
-            } else if (a.expiry_date) {
-                return -1; // a has expiry, b doesn't, so a comes first
-            } else if (b.expiry_date) {
-                return 1; // b has expiry, a doesn't, so b comes first
+          // Mark as added
+          addedAppointmentIds.add(aId);
+          if (removeBtn) removeBtn.style.display = 'block';
+
+          // If appointment price missing, fall back to the service base price for this row
+          if (hiddenPriceInput) {
+            let price = sPrice;
+            if (price === null && serviceSelect && serviceSelect.selectedOptions.length) {
+              price = parseFloat(serviceSelect.selectedOptions[0].dataset.price) || 0;
             }
-            return 0; // Both have no expiry, order doesn't matter
-        });
+            hiddenPriceInput.value = (price ?? 0).toFixed(2);
+          }
 
-    console.log('🔢 Available batches after filtering and sorting:', availableBatches);
-
-    // Destroy existing Select2 instance if it exists
-    if ($(batchSelect).hasClass('select2-hidden-accessible')) {
-        $(batchSelect).select2('destroy');
-    }
-
-    if (!availableBatches.length) {
-        batchSelect.innerHTML = '<option value="">Out of Stock</option>';
-        batchSelect.disabled = true;
-        batchInfo.innerHTML = '<span class="text-danger">Out of stock</span>';
-        if (priceInput) priceInput.value = '';
-        updateCalculations(); // Recalculate
-        return;
-    }
-
-    batchSelect.innerHTML = availableBatches.map((b, i) =>
-        `<option value="${b.id}" data-price="${b.selling_price || b.unit_price || 0}" data-qty="${b.qty_available}" ${i === 0 ? 'selected' : ''}>
-            ${b.batch_name} - ${b.qty_available} available
-        </option>`
-    ).join('');
-    batchSelect.disabled = false;
-
-    // Reinitialize Select2 on batch dropdown
-    $(batchSelect).select2({
-        theme: 'bootstrap-5',
-        placeholder: 'Select batch...',
-        allowClear: true,
-        width: '100%'
-    });
-
-    // Display first batch info
-    const firstBatch = availableBatches[0];
-    const expiry = firstBatch.expiry_date ?
-        new Date(firstBatch.expiry_date).toLocaleDateString() : 'No expiry';
-    const expiryClass = firstBatch.is_near_expiry ? 'text-warning' : '';
-    batchInfo.innerHTML = `<small>Avail: ${firstBatch.qty_available} | <span class="${expiryClass}">Exp: ${expiry}</span></small>`;
-
-    // Set price from batch
-    if (priceInput && (firstBatch.selling_price || firstBatch.unit_price)) {
-        priceInput.value = parseFloat(firstBatch.selling_price || firstBatch.unit_price).toFixed(2);
-    } else if (priceInput) {
-        priceInput.value = '0.00'; // Default to 0 if no price found
-    }
-
-    // Add event listener for batch change (only if not already added to prevent duplicates)
-    if (!batchSelect.dataset.changeListenerAdded) {
-        $(batchSelect).on('change', function() {
-            const selectedOption = this.options[this.selectedIndex];
-            const qty = selectedOption.dataset.qty;
-            const price = selectedOption.dataset.price;
-            const batch = availableBatches.find(b => b.id == this.value);
-
-            console.log('▶️ Batch selection changed:', { value: this.value, price, qty });
-
-            if (batch) {
-                const exp = batch.expiry_date ? new Date(batch.expiry_date).toLocaleDateString() : 'No expiry';
-                const expClass = batch.is_near_expiry ? 'text-warning' : '';
-                batchInfo.innerHTML = `<small>Avail: ${qty} | <span class="${expClass}">Exp: ${exp}</span></small>`;
-
-                if (priceInput && price) {
-                    priceInput.value = parseFloat(price).toFixed(2);
-                } else if (priceInput) {
-                    priceInput.value = '0.00'; // Default if price is missing
-                }
+          // Defer calculations until Select2/value updates have flushed
+          requestAnimationFrame(() => {
+            if (serviceSelect) {
+              // Keep handleServiceChange minimal: it should just set row data; real math happens in updateCalculations()
+              handleServiceChange(serviceSelect);
             }
             updateCalculations();
-        });
-        batchSelect.dataset.changeListenerAdded = 'true'; // Mark as added
-    }
+          });
 
-    updateCalculations();
-}
+          // Refresh appointments display to show "Added" state (non-blocking)
+          const clientId = document.getElementById('client_id')?.value;
+          if (clientId) loadCustomerAppointments(clientId);
 
-// ==========================================
-// ROW MANAGEMENT
-// ==========================================
-    function addServiceRow() {
-      console.log('➕ addServiceRow called');
-      const container = document.getElementById('servicesContainer');
-      const firstRow = container.querySelector('.service-row');
-      if (!firstRow) return;
-
-      const newRow = firstRow.cloneNode(true);
-
-      // Clear select values
-      newRow.querySelectorAll('select').forEach(sel => {
-        sel.value = '';
-      });
-
-      // Clear inputs except Qty default
-      newRow.querySelectorAll('input').forEach(inp => {
-        if (inp.name?.includes('quantities')) { inp.value = '1'; }
-        else { inp.value = ''; }
-        if (inp.name === 'appointment_ids[]') {
-          delete inp.dataset.appointmentId;
-          delete inp.dataset.servicePrice;
-          delete inp.dataset.serviceDuration;
+          return targetRow;
         }
-        inp.classList.remove('is-invalid');
-      });
-
-      const removeButton = newRow.querySelector('.btn-danger');
-      if (removeButton) removeButton.style.display = 'block';
-
-      container.appendChild(newRow);
-
-      // Attach change handler to service dropdown (no Select2)
-      $(newRow).find('select[name="service_ids[]"]').on('change', function() {
-        handleServiceChange(this);
-      });
-
-      console.log('✅ New service row added with regular dropdowns');
-    }
 
 
-function addProductRow() {
-    console.log('➕ addProductRow called');
-    const container = document.getElementById('productsContainer');
-    const firstRow = container.querySelector('.product-row'); // Get the template row
+    function removeAppointmentFromBill(appointmentId) {
+        const container = document.getElementById('servicesContainer');
+        if (!container) return;
 
-    if (!firstRow) {
-        console.error('Template product row not found!');
-        return;
-    }
-
-    const newRow = firstRow.cloneNode(true); // Clone the template row
-
-    // Destroy Select2 instances in the cloned row if they exist
-    $(newRow).find('.select2-hidden-accessible').each(function() {
-        $(this).select2('destroy');
-    });
-
-    // Clear values in the new row
-    newRow.querySelectorAll('select, input').forEach(input => {
-        input.value = '';
-        input.classList.remove('is-invalid');
-
-        if (input.type === 'number' && input.name.includes('quantities')) {
-            input.value = '1';
+        // Find and remove the row with this appointment ID
+        const rows = container.querySelectorAll('.service-row');
+        let rowToRemove = null;
+        for (const row of rows) {
+            const appointmentInput = row.querySelector('input[name="appointment_ids[]"]');
+            if (appointmentInput && appointmentInput.dataset.appointmentId == appointmentId) {
+                rowToRemove = row;
+                break;
+            }
         }
-    });
 
-    // Reset batch select to default state
-    const batchSelect = newRow.querySelector('.batch-select');
-    batchSelect.innerHTML = '<option value="">Select Product</option>';
-    batchSelect.disabled = true;
-    newRow.querySelector('.batch-info').innerHTML = '';
-    if (newRow.querySelector('input[name="product_prices[]"]')) {
-        newRow.querySelector('input[name="product_prices[]"]').value = '';
-    }
+        if (rowToRemove) {
+            // If it's the only row and it contains this appointment, clear it instead of removing
+            if (rows.length === 1 && rowToRemove.querySelector('input[name="appointment_ids[]"]')?.dataset.appointmentId == appointmentId) {
+                // Clear inputs but keep the row structure
+                rowToRemove.querySelectorAll('select, input').forEach(input => {
+                    input.value = ''; // Clear all values
+                    if (input.name?.includes('appointment_ids[]')) {
+                        delete input.dataset.appointmentId; // Remove tracking attribute
+                        delete input.dataset.servicePrice;
+                        delete input.dataset.serviceDuration;
+                    }
+                });
+                // Also reset quantity to 1 if it exists
+                const qtyInput = rowToRemove.querySelector('input[name="service_quantities[]"]');
+                if (qtyInput) qtyInput.value = 1;
 
-    // Ensure remove button is visible
-    const removeButton = newRow.querySelector('.btn-danger');
-    if (removeButton) removeButton.style.display = 'block';
+                console.log(`Cleared inputs in existing row for appointment ID ${appointmentId}`);
+            } else {
+                rowToRemove.remove(); // Remove the entire row
+                console.log(`Removed row associated with appointment ID ${appointmentId}`);
+            }
+        }
 
-    container.appendChild(newRow);
+        // Remove from tracking set
+        addedAppointmentIds.delete(appointmentId);
+        console.log('Removed appointment ID from tracking:', appointmentId);
 
-    // Initialize Select2 on the new row's dropdowns
-    $(newRow).find('select[name="product_ids[]"]').select2({
-        theme: 'bootstrap-5',
-        placeholder: 'Search for product...',
-        allowClear: true,
-        width: '100%'
-    });
-
-    // Product staff dropdown - use regular HTML select (no Select2)
-
-    $(newRow).find('.batch-select').select2({
-        theme: 'bootstrap-5',
-        placeholder: 'Select batch...',
-        allowClear: true,
-        width: '100%'
-    });
-
-    console.log('✅ New product row added with searchable dropdowns');
-}
-
-function removeRow(button) {
-    console.log('🗑️ removeRow called for button:', button);
-    const row = button.closest('.item-row');
-    if (row) {
-        row.remove();
-        console.log('✅ Row removed');
-        updateCalculations(); // Recalculate totals after removing a row
-    } else {
-        console.error('Could not find closest .item-row to remove');
-    }
-}
-
-// Helper to clear all service and product rows
-function clearBillingRows() {
-    console.log('🧹 Clearing all service and product rows');
-    document.getElementById('servicesContainer').innerHTML = '';
-    document.getElementById('productsContainer').innerHTML = '';
-
-    // Re-add the template row for services
-    const servicesContainer = document.getElementById('servicesContainer');
-    const serviceTemplateHtml = `
-        <div class="item-row service-row">
-            <div class="row g-3">
-                <div class="col-md-4">
-                    <div class="form-group">
-                        <label class="form-label">Service</label>
-                        <select class="form-select" name="service_ids[]" onchange="handleServiceChange(this)">
-                            <option value="">Select Service</option>
-                            {% for service in services %}
-                            <option value="{{ service.id }}" data-price="{{ "%.2f"|format(service.price|float) }}">
-                                {{ service.name }} - ₹{{ "{:,.2f}".format(service.price) }}
-                            </option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="form-group">
-                        <label class="form-label required">Staff</label>
-                        <select class="form-select" name="staff_ids[]">
-                            <option value="">Select Staff</option>
-                            {% for staff in staff_members %}
-                            <option value="{{ staff.id }}">{{ staff.full_name }}</option>
-                            {% endfor %}
-                        </select>
-                        <div class="invalid-feedback">Staff required</div>
-                    </div>
-                </div>
-                <div class="col-md-2">
-                    <div class="form-group">
-                        <label class="form-label">Qty</label>
-                        <input type="number" class="form-control" name="service_quantities[]" value="1" min="0.5" step="0.5" oninput="updateCalculations()">
-                    </div>
-                </div>
-                <div class="col-md-2">
-                    <div class="form-group">
-                        <label class="form-label">Apt ID</label>
-                        <input type="number" class="form-control" name="appointment_ids[]" placeholder="Optional">
-                    </div>
-                </div>
-                <div class="col-md-1">
-                    <button type="button" class="btn btn-danger btn-sm w-100" onclick="removeRow(this)" style="display:none;">
-                        <i class="fas fa-trash"></i>
-                    </button>
-                </div>
-            </div>
-        </div>
-    `;
-    servicesContainer.innerHTML = serviceTemplateHtml;
-
-    // Re-add the template row for products
-    const productsContainer = document.getElementById('productsContainer');
-    const productTemplateHtml = `
-        <div class="item-row product-row">
-            <div class="row g-3">
-                <div class="col-md-3">
-                    <div class="form-group">
-                        <label class="form-label">Product</label>
-                        <select class="form-select" name="product_ids[]" onchange="loadBatches(this)">
-                            <option value="">Select Product</option>
-                            {% for product in inventory_items %}
-                            <option value="{{ product.id }}">{{ product.name }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                </div>
-                <div class="col-md-2">
-                    <div class="form-group">
-                        <label class="form-label">Batch</label>
-                        <select class="form-select batch-select" name="batch_ids[]" disabled>
-                            <option value="">Select Product</option>
-                        </select>
-                        <div class="batch-info"></div>
-                        <div class="invalid-feedback">Batch required</div>
-                    </div>
-                </div>
-                <div class="col-md-2">
-                    <div class="form-group">
-                        <label class="form-label required">Staff</label>
-                        <select class="form-select" name="product_staff_ids[]">
-                            <option value="">Select Staff</option>
-                            {% for staff in staff_members %}
-                            <option value="{{ staff.id }}">{{ staff.full_name }}</option>
-                            {% endfor %}
-                        </select>
-                        <div class="invalid-feedback">Staff required</div>
-                    </div>
-                </div>
-                <div class="col-md-2">
-                    <div class="form-group">
-                        <label class="form-label">Qty</label>
-                        <input type="number" class="form-control" name="product_quantities[]" value="1" min="0.01" step="0.01" oninput="updateCalculations()">
-                    </div>
-                </div>
-                <div class="col-md-2">
-                    <div class="form-group">
-                        <label class="form-label">Price</label>
-                        <input type="number" class="form-control" name="product_prices[]" placeholder="₹0.00" min="0" step="0.01" oninput="updateCalculations()">
-                    </div>
-                </div>
-                <div class="col-md-1">
-                    <button type="button" class="btn btn-danger btn-sm w-100" onclick="removeRow(this)" style="display:none;">
-                        <i class="fas fa-trash"></i>
-                    </button>
-                </div>
-            </div>
-        </div>
-    `;
-    productsContainer.innerHTML = productTemplateHtml;
-
-    // Reset tracking for added appointments
-    addedAppointmentIds.clear();
-    console.log('✅ Billing rows cleared and template rows re-added.');
-}
-
-
-// ==========================================
-// CALCULATIONS
-// ==========================================
-function handleServiceChange(selectElement) {
-    console.log('▶️ handleServiceChange triggered for select:', selectElement);
-
-    const row = selectElement.closest('.service-row');
-    if (!row) return;
-
-    const selectedOption = selectElement.options[selectElement.selectedIndex];
-    if (!selectedOption || !selectedOption.value) {
-        // Clear package benefits if service is deselected
-        row.querySelector('.package-benefit')?.remove();
         updateCalculations();
-        return;
-    }
 
-    const serviceId = parseInt(selectedOption.value); // Convert to number
-    const servicePrice = parseFloat(selectedOption.getAttribute('data-price')) || 0;
-
-    console.log('🔍 Service selected:', {
-        serviceId,
-        servicePrice,
-        optionText: selectedOption.text,
-        dataPrice: selectedOption.getAttribute('data-price')
-    });
-
-    // Set the service price in a data attribute for calculations
-    row.dataset.serviceId = serviceId;
-    row.dataset.basePrice = servicePrice;
-
-    console.log('🔄 Service changed - checking for package benefits:', { serviceId, servicePrice });
-
-    // Check and apply package benefits for this service
-    const qtyInput = row.querySelector('input[name="service_quantities[]"]');
-    const quantity = parseFloat(qtyInput?.value) || 1;
-
-    // Check if customer is selected
-    const customerId = BillingState.selectedCustomerId;
-    if (customerId && BillingState.customerPackages && BillingState.customerPackages.length > 0) {
-        console.log('🎁 Customer selected with packages - applying benefits');
-
-        // Apply package benefit check
-        const benefit = checkPackageBenefit(serviceId, servicePrice, quantity);
-
-        // Visual feedback for package application
-        if (benefit && benefit.discount > 0) {
-            let benefitDiv = row.querySelector('.package-benefit');
-            if (!benefitDiv) {
-                benefitDiv = document.createElement('div');
-                row.appendChild(benefitDiv);
-            }
-
-            if (benefit.benefitType === 'student_discount') {
-                benefitDiv.className = 'package-benefit student-discount';
-                benefitDiv.innerHTML = `<i class="fas fa-graduation-cap"></i> ${benefit.packageUsed}: -₹${benefit.discount.toFixed(2)}`;
-            } else {
-                benefitDiv.className = 'package-benefit';
-                benefitDiv.innerHTML = `<i class="fas fa-gift"></i> ${benefit.packageUsed}: -₹${benefit.discount.toFixed(2)}`;
-            }
-        } else {
-            // Remove benefit indicator if no benefit applies
-            row.querySelector('.package-benefit')?.remove();
+        // Refresh appointments display to show "Add" button state
+        const clientId = document.getElementById('client_id').value;
+        if (clientId) {
+            loadCustomerAppointments(clientId);
         }
     }
 
-    // Update calculations immediately to apply package benefits
-    updateCalculations();
-}
+    // ==========================================
+    // BATCH MANAGEMENT
+    // ==========================================
+    function loadBatches(productSelect) {
+        const row = productSelect.closest('.item-row');
+        const batchSelect = row.querySelector('.batch-select');
+        const batchInfo = row.querySelector('.batch-info');
+        const priceInput = row.querySelector('input[name="product_prices[]"]');
+        const productId = parseInt(productSelect.value);
 
-function updateCalculations() {
-    console.log('💰 updateCalculations called');
+        console.log('🔄 loadBatches called for product:', productId);
 
-    let servicesSubtotal = 0;
-    let productsSubtotal = 0;
-    let packageDeductions = 0;
-
-    // CRITICAL: Track cumulative package usage across all services in this invoice
-    const cumulativePackageUsage = {};
-
-    // --- Calculate Services Subtotal ---
-    console.log('🔄 Calculating services subtotal...');
-    document.querySelectorAll('.service-row').forEach((row, index) => {
-        const serviceSelect = row.querySelector('select[name="service_ids[]"]');
-        const qtyInput = row.querySelector('input[name="service_quantities[]"]');
-        const appointmentIdInput = row.querySelector('input[name="appointment_ids[]"]');
-        const priceInput = row.querySelector('input[name="service_prices[]"]'); // Assuming a hidden price input
-
-        const serviceId = serviceSelect?.value;
-        const quantity = parseFloat(qtyInput?.value) || 0;
-        let basePrice = parseFloat(serviceSelect.selectedOptions[0]?.dataset.price) || 0; // Get base price from dataset initially
-
-        // If a price input exists, use its value as it might be updated by package benefits or explicitly set
-        if (priceInput && priceInput.value) {
-             basePrice = parseFloat(priceInput.value);
+        if (!productId) {
+            batchSelect.innerHTML = '<option value="">Select Product</option>';
+            batchSelect.disabled = true;
+            batchInfo.innerHTML = '';
+            if (priceInput) priceInput.value = '';
+            updateCalculations(); // Recalculate in case product was deselected
+            return;
         }
 
-        let effectivePrice = basePrice; // Start with the base price
-        let itemTotal = 0;
-        let benefitApplied = { discount: 0, packageUsed: null, packageId: null, benefitType: null };
-
-        // Check if it's an appointment row
-        const isAppointmentRow = appointmentIdInput && appointmentIdInput.value;
-        if (isAppointmentRow) {
-            const appointmentPrice = parseFloat(appointmentIdInput.dataset.servicePrice);
-            const appointmentDuration = parseFloat(appointmentIdInput.dataset.serviceDuration);
-
-            if (!isNaN(appointmentPrice)) {
-                basePrice = appointmentPrice; // Use the price from the appointment as base price
-                console.log('➕ Appointment row detected - Base price from appointment:', basePrice);
-            } else {
-                console.warn('⚠️ Appointment row detected but price is missing.');
-                basePrice = 0;
-            }
+        // Check cache first
+        if (BillingState.batchCache[productId]) {
+            console.log('🗄️ Cache hit for product ID:', productId);
+            populateBatchSelect(BillingState.batchCache[productId], batchSelect, batchInfo, priceInput);
+            return;
         }
 
-        // Apply package benefits for ALL service rows (including appointments)
-        if (serviceId && quantity > 0) {
-            // Check for applicable package benefits with cumulative usage tracking
-            benefitApplied = checkPackageBenefit(serviceId, basePrice, quantity, cumulativePackageUsage);
-            console.log('🎁 Package benefit check for service row:', { serviceId, basePrice, quantity, isAppointmentRow, benefitApplied });
+        // Load from API
+        console.log('🗄️ Cache miss for product ID:', productId, 'Fetching batches...');
+        batchSelect.innerHTML = '<option value="">Loading...</option>';
+        batchSelect.disabled = true;
+        if (priceInput) priceInput.value = '';
 
-            if (benefitApplied.discount > 0) {
-                const discountAmount = Math.min(benefitApplied.discount, basePrice * quantity); // Ensure discount doesn't exceed item total
-                packageDeductions += discountAmount;
-
-                // Calculate effective price after benefit per unit
-                effectivePrice = Math.max(0, basePrice - discountAmount / quantity);
-                itemTotal = effectivePrice * quantity; // Item total after applying benefit
-
-                if (priceInput) {
-                    priceInput.value = effectivePrice.toFixed(2);
-                    console.log(`⬆️ Updated priceInput in row due to package benefit: ${priceInput.value}`);
+        fetch(`/api/inventory/batches/for-product/${productId}`)
+            .then(res => {
+                console.log('📡 Batch API response status:', res.status);
+                if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+                return res.json();
+            })
+            .then(data => {
+                console.log('📦 Batch API response data:', data);
+                if (data.success && data.batches) {
+                    const batches = data.batches || [];
+                    BillingState.batchCache[productId] = batches; // Cache the result
+                    populateBatchSelect(batches, batchSelect, batchInfo, priceInput);
+                } else {
+                    throw new Error(data.message || 'Failed to load batches from API');
                 }
+            })
+            .catch(err => {
+                console.error('❌ Error loading batches:', err);
+                console.error('❌ Error stack:', err.stack);
+                batchSelect.innerHTML = '<option value="">Error loading batches</option>';
+                batchInfo.innerHTML = '<span class="text-danger">Failed to load batches</span>';
+            });
+    }
 
-                // Show package benefit indicator on the row
+    function populateBatchSelect(batches, batchSelect, batchInfo, priceInput) {
+        // Filter available batches and sort by expiry (FIFO)
+        const availableBatches = batches
+            .filter(b => b.qty_available > 0)
+            .sort((a, b) => {
+                // Prioritize batches with expiry dates, sort by date
+                if (a.expiry_date && b.expiry_date) {
+                    return new Date(a.expiry_date) - new Date(b.expiry_date);
+                } else if (a.expiry_date) {
+                    return -1; // a has expiry, b doesn't, so a comes first
+                } else if (b.expiry_date) {
+                    return 1; // b has expiry, a doesn't, so b comes first
+                }
+                return 0; // Both have no expiry, order doesn't matter
+            });
+
+        console.log('🔢 Available batches after filtering and sorting:', availableBatches);
+
+        // Destroy existing Select2 instance if it exists
+        if ($(batchSelect).hasClass('select2-hidden-accessible')) {
+            $(batchSelect).select2('destroy');
+        }
+
+        if (!availableBatches.length) {
+            batchSelect.innerHTML = '<option value="">Out of Stock</option>';
+            batchSelect.disabled = true;
+            batchInfo.innerHTML = '<span class="text-danger">Out of stock</span>';
+            if (priceInput) priceInput.value = '';
+            updateCalculations(); // Recalculate
+            return;
+        }
+
+        batchSelect.innerHTML = availableBatches.map((b, i) =>
+            `<option value="${b.id}" data-price="${b.selling_price || b.unit_price || 0}" data-qty="${b.qty_available}" ${i === 0 ? 'selected' : ''}>
+                ${b.batch_name} - ${b.qty_available} available
+            </option>`
+        ).join('');
+        batchSelect.disabled = false;
+
+        // Reinitialize Select2 on batch dropdown
+        $(batchSelect).select2({
+            theme: 'bootstrap-5',
+            placeholder: 'Select batch...',
+            allowClear: true,
+            width: '100%'
+        });
+
+        // Display first batch info
+        const firstBatch = availableBatches[0];
+        const expiry = firstBatch.expiry_date ?
+            new Date(firstBatch.expiry_date).toLocaleDateString() : 'No expiry';
+        const expiryClass = firstBatch.is_near_expiry ? 'text-warning' : '';
+        batchInfo.innerHTML = `<small>Avail: ${firstBatch.qty_available} | <span class="${expiryClass}">Exp: ${expiry}</span></small>`;
+
+        // Set price from batch
+        if (priceInput && (firstBatch.selling_price || firstBatch.unit_price)) {
+            priceInput.value = parseFloat(firstBatch.selling_price || firstBatch.unit_price).toFixed(2);
+        } else if (priceInput) {
+            priceInput.value = '0.00'; // Default to 0 if no price found
+        }
+
+        // Add event listener for batch change (only if not already added to prevent duplicates)
+        if (!batchSelect.dataset.changeListenerAdded) {
+            $(batchSelect).on('change', function() {
+                const selectedOption = this.options[this.selectedIndex];
+                const qty = selectedOption.dataset.qty;
+                const price = selectedOption.dataset.price;
+                const batch = availableBatches.find(b => b.id == this.value);
+
+                console.log('▶️ Batch selection changed:', { value: this.value, price, qty });
+
+                if (batch) {
+                    const exp = batch.expiry_date ? new Date(batch.expiry_date).toLocaleDateString() : 'No expiry';
+                    const expClass = batch.is_near_expiry ? 'text-warning' : '';
+                    batchInfo.innerHTML = `<small>Avail: ${qty} | <span class="${expClass}">Exp: ${exp}</span></small>`;
+
+                    if (priceInput && price) {
+                        priceInput.value = parseFloat(price).toFixed(2);
+                    } else if (priceInput) {
+                        priceInput.value = '0.00'; // Default if price is missing
+                    }
+                }
+                updateCalculations();
+            });
+            batchSelect.dataset.changeListenerAdded = 'true'; // Mark as added
+        }
+
+        updateCalculations();
+    }
+
+    // ==========================================
+    // ROW MANAGEMENT
+    // ==========================================
+        function addServiceRow() {
+          console.log('➕ addServiceRow called');
+          const container = document.getElementById('servicesContainer');
+          const firstRow = container.querySelector('.service-row');
+          if (!firstRow) return;
+
+          const newRow = firstRow.cloneNode(true);
+
+          // Clear select values
+          newRow.querySelectorAll('select').forEach(sel => {
+            sel.value = '';
+          });
+
+          // Clear inputs except Qty default
+          newRow.querySelectorAll('input').forEach(inp => {
+            if (inp.name?.includes('quantities')) { inp.value = '1'; }
+            else { inp.value = ''; }
+            if (inp.name === 'appointment_ids[]') {
+              delete inp.dataset.appointmentId;
+              delete inp.dataset.servicePrice;
+              delete inp.dataset.serviceDuration;
+            }
+            inp.classList.remove('is-invalid');
+          });
+
+          const removeButton = newRow.querySelector('.btn-danger');
+          if (removeButton) removeButton.style.display = 'block';
+
+          container.appendChild(newRow);
+
+          // Attach change handler to service dropdown (no Select2)
+          $(newRow).find('select[name="service_ids[]"]').on('change', function() {
+            handleServiceChange(this);
+          });
+
+          console.log('✅ New service row added with regular dropdowns');
+        }
+
+
+    function addProductRow() {
+        console.log('➕ addProductRow called');
+        const container = document.getElementById('productsContainer');
+        const firstRow = container.querySelector('.product-row'); // Get the template row
+
+        if (!firstRow) {
+            console.error('Template product row not found!');
+            return;
+        }
+
+        const newRow = firstRow.cloneNode(true); // Clone the template row
+
+        // Destroy Select2 instances in the cloned row if they exist
+        $(newRow).find('.select2-hidden-accessible').each(function() {
+            $(this).select2('destroy');
+        });
+
+        // Clear values in the new row
+        newRow.querySelectorAll('select, input').forEach(input => {
+            input.value = '';
+            input.classList.remove('is-invalid');
+
+            if (input.type === 'number' && input.name.includes('quantities')) {
+                input.value = '1';
+            }
+        });
+
+        // Reset batch select to default state
+        const batchSelect = newRow.querySelector('.batch-select');
+        batchSelect.innerHTML = '<option value="">Select Product</option>';
+        batchSelect.disabled = true;
+        newRow.querySelector('.batch-info').innerHTML = '';
+        if (newRow.querySelector('input[name="product_prices[]"]')) {
+            newRow.querySelector('input[name="product_prices[]"]').value = '';
+        }
+
+        // Ensure remove button is visible
+        const removeButton = newRow.querySelector('.btn-danger');
+        if (removeButton) removeButton.style.display = 'block';
+
+        container.appendChild(newRow);
+
+        // Initialize Select2 on the new row's dropdowns
+        $(newRow).find('select[name="product_ids[]"]').select2({
+            theme: 'bootstrap-5',
+            placeholder: 'Search for product...',
+            allowClear: true,
+            width: '100%'
+        });
+
+        // Product staff dropdown - use regular HTML select (no Select2)
+
+        $(newRow).find('.batch-select').select2({
+            theme: 'bootstrap-5',
+            placeholder: 'Select batch...',
+            allowClear: true,
+            width: '100%'
+        });
+
+        console.log('✅ New product row added with searchable dropdowns');
+    }
+
+    function removeRow(button) {
+        console.log('🗑️ removeRow called for button:', button);
+        const row = button.closest('.item-row');
+        if (row) {
+            row.remove();
+            console.log('✅ Row removed');
+            updateCalculations(); // Recalculate totals after removing a row
+        } else {
+            console.error('Could not find closest .item-row to remove');
+        }
+    }
+
+    // Helper to clear all service and product rows
+    function clearBillingRows() {
+        console.log('🧹 Clearing all service and product rows');
+        document.getElementById('servicesContainer').innerHTML = '';
+        document.getElementById('productsContainer').innerHTML = '';
+
+        // Re-add the template row for services
+        const servicesContainer = document.getElementById('servicesContainer');
+        const serviceTemplateHtml = `
+            <div class="item-row service-row">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label class="form-label">Service</label>
+                            <select class="form-select" name="service_ids[]" onchange="handleServiceChange(this)">
+                                <option value="">Select Service</option>
+                                {% for service in services %}
+                                <option value="{{ service.id }}" data-price="{{ "%.2f"|format(service.price|float) }}">
+                                    {{ service.name }} - ₹{{ "{:,.2f}".format(service.price) }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label class="form-label required">Staff</label>
+                            <select class="form-select" name="staff_ids[]">
+                                <option value="">Select Staff</option>
+                                {% for staff in staff_members %}
+                                <option value="{{ staff.id }}">{{ staff.full_name }}</option>
+                                {% endfor %}
+                            </select>
+                            <div class="invalid-feedback">Staff required</div>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="form-group">
+                            <label class="form-label">Qty</label>
+                            <input type="number" class="form-control" name="service_quantities[]" value="1" min="0.5" step="0.5" oninput="updateCalculations()">
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="form-group">
+                            <label class="form-label">Apt ID</label>
+                            <input type="number" class="form-control" name="appointment_ids[]" placeholder="Optional">
+                        </div>
+                    </div>
+                    <div class="col-md-1">
+                        <button type="button" class="btn btn-danger btn-sm w-100" onclick="removeRow(this)" style="display:none;">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+        servicesContainer.innerHTML = serviceTemplateHtml;
+
+        // Re-add the template row for products
+        const productsContainer = document.getElementById('productsContainer');
+        const productTemplateHtml = `
+            <div class="item-row product-row">
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label class="form-label">Product</label>
+                            <select class="form-select" name="product_ids[]" onchange="loadBatches(this)">
+                                <option value="">Select Product</option>
+                                {% for product in inventory_items %}
+                                <option value="{{ product.id }}">{{ product.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="form-group">
+                            <label class="form-label">Batch</label>
+                            <select class="form-select batch-select" name="batch_ids[]" disabled>
+                                <option value="">Select Product</option>
+                            </select>
+                            <div class="batch-info"></div>
+                            <div class="invalid-feedback">Batch required</div>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="form-group">
+                            <label class="form-label required">Staff</label>
+                            <select class="form-select" name="product_staff_ids[]">
+                                <option value="">Select Staff</option>
+                                {% for staff in staff_members %}
+                                <option value="{{ staff.id }}">{{ staff.full_name }}</option>
+                                {% endfor %}
+                            </select>
+                            <div class="invalid-feedback">Staff required</div>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="form-group">
+                            <label class="form-label">Qty</label>
+                            <input type="number" class="form-control" name="product_quantities[]" value="1" min="0.01" step="0.01" oninput="updateCalculations()">
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="form-group">
+                            <label class="form-label">Price</label>
+                            <input type="number" class="form-control" name="product_prices[]" placeholder="₹0.00" min="0" step="0.01" oninput="updateCalculations()">
+                        </div>
+                    </div>
+                    <div class="col-md-1">
+                        <button type="button" class="btn btn-danger btn-sm w-100" onclick="removeRow(this)" style="display:none;">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+        productsContainer.innerHTML = productTemplateHtml;
+
+        // Reset tracking for added appointments
+        addedAppointmentIds.clear();
+        console.log('✅ Billing rows cleared and template rows re-added.');
+    }
+
+    // ==========================================
+    // CALCULATIONS
+    // ==========================================
+    function handleServiceChange(selectElement) {
+        console.log('▶️ handleServiceChange triggered for select:', selectElement);
+
+        const row = selectElement.closest('.service-row');
+        if (!row) return;
+
+        const selectedOption = selectElement.options[selectElement.selectedIndex];
+        if (!selectedOption || !selectedOption.value) {
+            // Clear package benefits if service is deselected
+            row.querySelector('.package-benefit')?.remove();
+            updateCalculations();
+            return;
+        }
+
+        const serviceId = parseInt(selectedOption.value); // Convert to number
+        const servicePrice = parseFloat(selectedOption.getAttribute('data-price')) || 0;
+
+        console.log('🔍 Service selected:', {
+            serviceId,
+            servicePrice,
+            optionText: selectedOption.text,
+            dataPrice: selectedOption.getAttribute('data-price')
+        });
+
+        // Set the service price in a data attribute for calculations
+        row.dataset.serviceId = serviceId;
+        row.dataset.basePrice = servicePrice;
+
+        console.log('🔄 Service changed - checking for package benefits:', { serviceId, servicePrice });
+
+        // Check and apply package benefits for this service
+        const qtyInput = row.querySelector('input[name="service_quantities[]"]');
+        const quantity = parseFloat(qtyInput?.value) || 1;
+
+        // Check if customer is selected
+        const customerId = BillingState.selectedCustomerId;
+        if (customerId && BillingState.customerPackages && BillingState.customerPackages.length > 0) {
+            console.log('🎁 Customer selected with packages - applying benefits');
+
+            // Apply package benefit check
+            const benefit = checkPackageBenefit(serviceId, servicePrice, quantity);
+
+            // Visual feedback for package application
+            if (benefit && benefit.discount > 0) {
                 let benefitDiv = row.querySelector('.package-benefit');
                 if (!benefitDiv) {
                     benefitDiv = document.createElement('div');
-                    benefitDiv.className = 'package-benefit';
                     row.appendChild(benefitDiv);
                 }
 
-                // Apply special styling for student offers
-                if (benefitApplied.benefitType === 'student_discount') {
+                if (benefit.benefitType === 'student_discount') {
                     benefitDiv.className = 'package-benefit student-discount';
-                    benefitDiv.innerHTML = `<i class="fas fa-graduation-cap"></i> ${benefitApplied.packageUsed}: -₹${discountAmount.toFixed(2)}`;
+                    benefitDiv.innerHTML = `<i class="fas fa-graduation-cap"></i> ${benefit.packageUsed}: -₹${benefit.discount.toFixed(2)}`;
                 } else {
                     benefitDiv.className = 'package-benefit';
-                    benefitDiv.innerHTML = `<i class="fas fa-gift"></i> ${benefitApplied.packageUsed || benefitApplied.benefitType}: -₹${discountAmount.toFixed(2)}`;
+                    benefitDiv.innerHTML = `<i class="fas fa-gift"></i> ${benefit.packageUsed || benefit.benefitType}: -₹${benefit.discount.toFixed(2)}`;
                 }
             } else {
-                // No benefit applied, ensure price input is updated with base price if it exists
-                if (priceInput) {
-                    priceInput.value = basePrice.toFixed(2);
+                // Remove benefit indicator if no benefit applies
+                row.querySelector('.package-benefit')?.remove();
+            }
+        }
+
+        // Update calculations immediately to apply package benefits
+        updateCalculations();
+    }
+
+    function updateCalculations() {
+        console.log('💰 updateCalculations called');
+
+        let servicesSubtotal = 0;
+        let productsSubtotal = 0;
+        let packageDeductions = 0;
+
+        // CRITICAL: Track cumulative package usage across all services in this invoice
+        const cumulativePackageUsage = {};
+
+        // --- Calculate Services Subtotal ---
+        console.log('🔄 Calculating services subtotal...');
+        document.querySelectorAll('.service-row').forEach((row, index) => {
+            const serviceSelect = row.querySelector('select[name="service_ids[]"]');
+            const qtyInput = row.querySelector('input[name="service_quantities[]"]');
+            const appointmentIdInput = row.querySelector('input[name="appointment_ids[]"]');
+            const priceInput = row.querySelector('input[name="service_prices[]"]'); // Assuming a hidden price input
+
+            const serviceId = serviceSelect?.value;
+            const quantity = parseFloat(qtyInput?.value) || 0;
+            let basePrice = parseFloat(serviceSelect.selectedOptions[0]?.dataset.price) || 0; // Get base price from dataset initially
+
+            // If a price input exists, use its value as it might be updated by package benefits or explicitly set
+            if (priceInput && priceInput.value) {
+                 basePrice = parseFloat(priceInput.value);
+            }
+
+            let effectivePrice = basePrice; // Start with the base price
+            let itemTotal = 0;
+            let benefitApplied = { discount: 0, packageUsed: null, packageId: null, benefitType: null };
+
+            // Check if it's an appointment row
+            const isAppointmentRow = appointmentIdInput && appointmentIdInput.value;
+            if (isAppointmentRow) {
+                const appointmentPrice = parseFloat(appointmentIdInput.dataset.servicePrice);
+                const appointmentDuration = parseFloat(appointmentIdInput.dataset.serviceDuration);
+
+                if (!isNaN(appointmentPrice)) {
+                    basePrice = appointmentPrice; // Use the price from the appointment as base price
+                    console.log('➕ Appointment row detected - Base price from appointment:', basePrice);
+                } else {
+                    console.warn('⚠️ Appointment row detected but price is missing.');
+                    basePrice = 0;
                 }
-                row.querySelector('.package-benefit')?.remove(); // Remove benefit indicator if no benefit
-                itemTotal = basePrice * quantity; // Item total is just base price * quantity
             }
-            console.log('➕ Service row added to subtotal:', { serviceId, quantity, basePrice, effectivePrice, itemTotal, benefitApplied });
-        } else if (serviceSelect && !serviceId) {
-            // If serviceSelect is empty, clear related fields and remove benefit
-            row.querySelector('.package-benefit')?.remove();
-            if (priceInput) priceInput.value = ''; // Clear price input if service is deselected
+
+            // Apply package benefits for ALL service rows (including appointments)
+            if (serviceId && quantity > 0) {
+                // Check for applicable package benefits with cumulative usage tracking
+                benefitApplied = checkPackageBenefit(serviceId, basePrice, quantity, cumulativePackageUsage);
+                console.log('🎁 Package benefit check for service row:', { serviceId, basePrice, quantity, isAppointmentRow, benefitApplied });
+
+                if (benefitApplied.discount > 0) {
+                    const discountAmount = Math.min(benefitApplied.discount, basePrice * quantity); // Ensure discount doesn't exceed item total
+                    packageDeductions += discountAmount;
+
+                    // Calculate effective price after benefit per unit
+                    effectivePrice = Math.max(0, basePrice - discountAmount / quantity);
+                    itemTotal = effectivePrice * quantity; // Item total after applying benefit
+
+                    if (priceInput) {
+                        priceInput.value = effectivePrice.toFixed(2);
+                        console.log(`⬆️ Updated priceInput in row due to package benefit: ${priceInput.value}`);
+                    }
+
+                    // Show package benefit indicator on the row
+                    let benefitDiv = row.querySelector('.package-benefit');
+                    if (!benefitDiv) {
+                        benefitDiv = document.createElement('div');
+                        benefitDiv.className = 'package-benefit';
+                        row.appendChild(benefitDiv);
+                    }
+
+                    // Apply special styling for student offers
+                    if (benefitApplied.benefitType === 'student_discount') {
+                        benefitDiv.className = 'package-benefit student-discount';
+                        benefitDiv.innerHTML = `<i class="fas fa-graduation-cap"></i> ${benefitApplied.packageUsed}: -₹${discountAmount.toFixed(2)}`;
+                    } else {
+                        benefitDiv.className = 'package-benefit';
+                        benefitDiv.innerHTML = `<i class="fas fa-gift"></i> ${benefitApplied.packageUsed || benefitApplied.benefitType}: -₹${discountAmount.toFixed(2)}`;
+                    }
+                } else {
+                    // No benefit applied, ensure price input is updated with base price if it exists
+                    if (priceInput) {
+                        priceInput.value = basePrice.toFixed(2);
+                    }
+                    row.querySelector('.package-benefit')?.remove(); // Remove benefit indicator if no benefit
+                    itemTotal = basePrice * quantity; // Item total is just base price * quantity
+                }
+                console.log('➕ Service row added to subtotal:', { serviceId, quantity, basePrice, effectivePrice, itemTotal, benefitApplied });
+            } else if (serviceSelect && !serviceId) {
+                // If serviceSelect is empty, clear related fields and remove benefit
+                row.querySelector('.package-benefit')?.remove();
+                if (priceInput) priceInput.value = ''; // Clear price input if service is deselected
+            }
+
+            // Only add to subtotal if it's a valid item and not an appointment row that couldn't be priced
+            if (serviceId && quantity > 0 && !isNaN(itemTotal) && itemTotal >= 0) {
+                 servicesSubtotal += itemTotal;
+            } else if (isAppointmentRow && !isNaN(itemTotal) && itemTotal >= 0) {
+                // Add to subtotal even if it's an appointment row, as long as it's calculable
+                servicesSubtotal += itemTotal;
+            }
+        });
+
+        // --- Calculate Products Subtotal ---
+        console.log('🔄 Calculating products subtotal...');
+        document.querySelectorAll('.product-row').forEach((row, index) => {
+            const qtyInput = row.querySelector('input[name="product_quantities[]"]');
+            const priceInput = row.querySelector('input[name="product_prices[]"]');
+            const quantity = parseFloat(qtyInput?.value) || 0;
+            const price = parseFloat(priceInput?.value) || 0; // Price entered by user or from batch
+
+            if (quantity > 0 && price > 0) {
+                const itemTotal = price * quantity;
+                productsSubtotal += itemTotal;
+                console.log('➕ Product row added to subtotal:', { quantity, price, itemTotal });
+            } else if (qtyInput && priceInput && (quantity <= 0 || price <= 0)) {
+                 console.log('⚠️ Product row skipped due to zero quantity or price:', { quantity, price });
+            }
+        });
+
+        const subtotal = servicesSubtotal + productsSubtotal;
+
+        // --- Discount Calculation ---
+        const discountType = document.querySelector('select[name="discount_type"]')?.value || 'percentage';
+        const discountValue = parseFloat(document.querySelector('input[name="discount_value"]')?.value) || 0;
+        let discountAmount = 0;
+
+        // Discount applies after package benefits
+        // Note: Package benefits are already applied to itemTotal, so subtotal already reflects the reduced prices
+        const taxableAmountBeforeDiscount = Math.max(0, subtotal);
+
+        if (discountType === 'percentage') {
+            discountAmount = (taxableAmountBeforeDiscount * discountValue) / 100;
+        } else { // 'amount'
+            discountAmount = discountValue;
         }
+        discountAmount = Math.max(0, discountAmount); // Ensure discount is not negative
 
-        // Only add to subtotal if it's a valid item and not an appointment row that couldn't be priced
-        if (serviceId && quantity > 0 && !isNaN(itemTotal) && itemTotal >= 0) {
-             servicesSubtotal += itemTotal;
-        } else if (isAppointmentRow && !isNaN(itemTotal) && itemTotal >= 0) {
-            // Add to subtotal even if it's an appointment row, as long as it's calculable
-            servicesSubtotal += itemTotal;
-        }
-    });
+        // --- Calculate Taxable Amount ---
+        const taxableAmountAfterTax = Math.max(0, taxableAmountBeforeDiscount - discountAmount);
 
-    // --- Calculate Products Subtotal ---
-    console.log('🔄 Calculating products subtotal...');
-    document.querySelectorAll('.product-row').forEach((row, index) => {
-        const qtyInput = row.querySelector('input[name="product_quantities[]"]');
-        const priceInput = row.querySelector('input[name="product_prices[]"]');
-        const quantity = parseFloat(qtyInput?.value) || 0;
-        const price = parseFloat(priceInput?.value) || 0; // Price entered by user or from batch
+        // --- Tax Calculation ---
+        const cgstRate = parseFloat(document.querySelector('input[name="cgst_rate"]')?.value) || 0;
+        const sgstRate = parseFloat(document.querySelector('input[name="sgst_rate"]')?.value) || 0;
+        const cgst = (taxableAmountAfterTax * cgstRate) / 100;
+        const sgst = (taxableAmountAfterTax * sgstRate) / 100;
 
-        if (quantity > 0 && price > 0) {
-            const itemTotal = price * quantity;
-            productsSubtotal += itemTotal;
-            console.log('➕ Product row added to subtotal:', { quantity, price, itemTotal });
-        } else if (qtyInput && priceInput && (quantity <= 0 || price <= 0)) {
-             console.log('⚠️ Product row skipped due to zero quantity or price:', { quantity, price });
-        }
-    });
+        // --- Additional Charges & Tips ---
+        const additionalCharges = parseFloat(document.querySelector('input[name="additional_charges"]')?.value) || 0;
+        const tips = parseFloat(document.querySelector('input[name="tips_amount"]')?.value) || 0;
 
-    const subtotal = servicesSubtotal + productsSubtotal;
+        // --- Grand Total ---
+        const grandTotal = taxableAmountAfterTax + cgst + sgst + additionalCharges + tips;
 
-    // --- Discount Calculation ---
-    const discountType = document.querySelector('select[name="discount_type"]')?.value || 'percentage';
-    const discountValue = parseFloat(document.querySelector('input[name="discount_value"]')?.value) || 0;
-    let discountAmount = 0;
+        // --- Update Display ---
+        document.getElementById('servicesSubtotal').textContent = `₹${servicesSubtotal.toFixed(2)}`;
+        document.getElementById('productsSubtotal').textContent = `₹${productsSubtotal.toFixed(2)}`;
+        document.getElementById('subtotalAmount').textContent = `₹${subtotal.toFixed(2)}`;
+        document.getElementById('packageDeductions').textContent = `-₹${packageDeductions.toFixed(2)}`;
+        document.getElementById('discountAmount').textContent = `-₹${discountAmount.toFixed(2)}`;
+        document.getElementById('cgstAmount').textContent = `₹${cgst.toFixed(2)}`;
+        document.getElementById('sgstAmount').textContent = `₹${sgst.toFixed(2)}`;
+        document.getElementById('additionalCharges').textContent = `₹${additionalCharges.toFixed(2)}`;
+        document.getElementById('tipsDisplay').textContent = `₹${tips.toFixed(2)}`;
+        document.getElementById('grandTotal').textContent = `₹${grandTotal.toFixed(2)}`;
 
-    // Discount applies after package benefits
-    // Note: Package benefits are already applied to itemTotal, so subtotal already reflects the reduced prices
-    const taxableAmountBeforeDiscount = Math.max(0, subtotal);
-
-    if (discountType === 'percentage') {
-        discountAmount = (taxableAmountBeforeDiscount * discountValue) / 100;
-    } else { // 'amount'
-        discountAmount = discountValue;
+        console.log('📊 Totals Updated:', {
+            servicesSubtotal: servicesSubtotal.toFixed(2),
+            productsSubtotal: productsSubtotal.toFixed(2),
+            subtotal: subtotal.toFixed(2),
+            packageDeductions: packageDeductions.toFixed(2),
+            discountAmount: discountAmount.toFixed(2),
+            taxableAmountAfterTax: taxableAmountAfterTax.toFixed(2),
+            cgst: cgst.toFixed(2),
+            sgst: sgst.toFixed(2),
+            additionalCharges: additionalCharges.toFixed(2),
+            tips: tips.toFixed(2),
+            grandTotal: grandTotal.toFixed(2)
+        });
+        console.log('✅ Calculations complete');
     }
-    discountAmount = Math.max(0, discountAmount); // Ensure discount is not negative
 
-    // --- Calculate Taxable Amount ---
-    const taxableAmountAfterTax = Math.max(0, taxableAmountBeforeDiscount - discountAmount);
+    // Function to check package benefits for a given service
+    // IMPORTANT: This now calls the backend API for real-time benefit calculation
+    function checkPackageBenefit(serviceId, servicePrice, quantity = 1, cumulativePackageUsage = {}) {
+        // CRITICAL: Convert serviceId to number for proper comparison
+        const numericServiceId = parseInt(serviceId);
 
-    // --- Tax Calculation ---
-    const cgstRate = parseFloat(document.querySelector('input[name="cgst_rate"]')?.value) || 0;
-    const sgstRate = parseFloat(document.querySelector('input[name="sgst_rate"]')?.value) || 0;
-    const cgst = (taxableAmountAfterTax * cgstRate) / 100;
-    const sgst = (taxableAmountAfterTax * sgstRate) / 100;
+        console.log('🔍 checkPackageBenefit called:', {serviceId: numericServiceId, servicePrice, quantity});
+        console.log('📊 Input validation:', {
+            serviceIdType: typeof numericServiceId,
+            servicePriceType: typeof servicePrice,
+            quantityType: typeof quantity,
+            serviceIdValue: numericServiceId,
+            servicePriceValue: servicePrice,
+            quantityValue: quantity
+        });
 
-    // --- Additional Charges & Tips ---
-    const additionalCharges = parseFloat(document.querySelector('input[name="additional_charges"]')?.value) || 0;
-    const tips = parseFloat(document.querySelector('input[name="tips_amount"]')?.value) || 0;
-
-    // --- Grand Total ---
-    const grandTotal = taxableAmountAfterTax + cgst + sgst + additionalCharges + tips;
-
-    // --- Update Display ---
-    document.getElementById('servicesSubtotal').textContent = `₹${servicesSubtotal.toFixed(2)}`;
-    document.getElementById('productsSubtotal').textContent = `₹${productsSubtotal.toFixed(2)}`;
-    document.getElementById('subtotalAmount').textContent = `₹${subtotal.toFixed(2)}`;
-    document.getElementById('packageDeductions').textContent = `-₹${packageDeductions.toFixed(2)}`;
-    document.getElementById('discountAmount').textContent = `-₹${discountAmount.toFixed(2)}`;
-    document.getElementById('cgstAmount').textContent = `₹${cgst.toFixed(2)}`;
-    document.getElementById('sgstAmount').textContent = `₹${sgst.toFixed(2)}`;
-    document.getElementById('additionalCharges').textContent = `₹${additionalCharges.toFixed(2)}`;
-    document.getElementById('tipsDisplay').textContent = `₹${tips.toFixed(2)}`;
-    document.getElementById('grandTotal').textContent = `₹${grandTotal.toFixed(2)}`;
-
-    console.log('📊 Totals Updated:', {
-        servicesSubtotal: servicesSubtotal.toFixed(2),
-        productsSubtotal: productsSubtotal.toFixed(2),
-        subtotal: subtotal.toFixed(2),
-        packageDeductions: packageDeductions.toFixed(2),
-        discountAmount: discountAmount.toFixed(2),
-        taxableAmountAfterTax: taxableAmountAfterTax.toFixed(2),
-        cgst: cgst.toFixed(2),
-        sgst: sgst.toFixed(2),
-        additionalCharges: additionalCharges.toFixed(2),
-        tips: tips.toFixed(2),
-        grandTotal: grandTotal.toFixed(2)
-    });
-    console.log('✅ Calculations complete');
-}
-
-// Function to check package benefits for a given service
-// IMPORTANT: This now calls the backend API for real-time benefit calculation
-function checkPackageBenefit(serviceId, servicePrice, quantity = 1, cumulativePackageUsage = {}) {
-    // CRITICAL: Convert serviceId to number for proper comparison
-    const numericServiceId = parseInt(serviceId);
-
-    console.log('🔍 checkPackageBenefit called:', {serviceId: numericServiceId, servicePrice, quantity});
-    console.log('📊 Input validation:', {
-        serviceIdType: typeof numericServiceId,
-        servicePriceType: typeof servicePrice,
-        quantityType: typeof quantity,
-        serviceIdValue: numericServiceId,
-        servicePriceValue: servicePrice,
-        quantityValue: quantity
-    });
-
-    // Quick check: if no customer selected, no benefits apply
-    if (!BillingState.selectedCustomerId) {
-        console.log('ℹ️ No customer selected - no benefits');
-        return { discount: 0, packageUsed: null, packageId: null, benefitType: null };
-    }
-
-    // Use cached packages for quick client-side display
-    const customerPackages = BillingState.customerPackages;
-
-    if (!customerPackages || customerPackages.length === 0) {
-        console.log('ℹ️ No packages available for customer');
-        console.log('📦 customerPackages state:', customerPackages);
-        return { discount: 0, packageUsed: null, packageId: null, benefitType: null };
-    }
-
-    console.log('📦 Total packages to check:', customerPackages.length);
-
-    let totalBenefit = 0;
-    let appliedPackage = null;
-    let appliedPackageId = null;
-    let benefitType = null;
-
-    // Check each package
-    for (const pkg of customerPackages) {
-        console.log(`🔍 Checking package: ${pkg.name} (type: ${pkg.package_type})`);
-
-        // Skip packages that are explicitly inactive or expired
-        if (pkg.status === 'expired' || pkg.status === 'completed' || pkg.is_active === false) {
-             console.log('⏭️ Package skipped (expired/completed):', pkg.name);
-             continue;
+        // Quick check: if no customer selected, no benefits apply
+        if (!BillingState.selectedCustomerId) {
+            console.log('ℹ️ No customer selected - no benefits');
+            return { discount: 0, packageUsed: null, packageId: null, benefitType: null };
         }
 
-        // Check if package has remaining benefits based on package_type
-        if (pkg.package_type === 'service_package') {
-            const remaining = pkg.sessions?.remaining || 0;
-            if (remaining <= 0) {
-                console.log('⏭️ Package skipped (no sessions):', pkg.name);
-                continue;
-            }
-        } else if (pkg.package_type === 'prepaid') {
-            const remaining = pkg.credit?.remaining || 0;
-            if (remaining <= 0) {
-                console.log('⏭️ Package skipped (no credit):', pkg.name);
-                continue;
-            }
+        // Use cached packages for quick client-side display
+        const customerPackages = BillingState.customerPackages;
+
+        if (!customerPackages || customerPackages.length === 0) {
+            console.log('ℹ️ No packages available for customer');
+            console.log('📦 customerPackages state:', customerPackages);
+            return { discount: 0, packageUsed: null, packageId: null, benefitType: null };
         }
 
-        // --- PRIORITY 1: Yearly membership - applies percentage discount to ALL services ---
-        if (pkg.package_type === 'yearly') {
-            // Extract discount percentage from package name (e.g., "Gold Membership - 20% Discount")
-            const discountMatch = pkg.name.match(/(\d+)%/);
-            if (discountMatch) {
-                const discountPercent = parseInt(discountMatch[1]);
-                const totalServiceCost = servicePrice * quantity;
-                totalBenefit = (totalServiceCost * discountPercent) / 100;
-                appliedPackage = pkg.name;
-                benefitType = 'yearly_discount';
-                console.log(`✅ Yearly membership discount applied: ${pkg.name}, ${discountPercent}% off = ₹${totalBenefit.toFixed(2)}`);
-                break; // Use first matching yearly package
-            } else {
-                console.log('⏭️ Yearly package found but no percentage in name:', pkg.name);
+        console.log('📦 Total packages to check:', customerPackages.length);
+
+        let totalBenefit = 0;
+        let appliedPackage = null;
+        let appliedPackageId = null;
+        let benefitType = null;
+
+        // Check each package
+        for (const pkg of customerPackages) {
+            console.log(`🔍 Checking package: ${pkg.name} (type: ${pkg.package_type})`);
+
+            // Skip packages that are explicitly inactive or expired
+            if (pkg.status === 'expired' || pkg.status === 'completed' || pkg.is_active === false) {
+                 console.log('⏭️ Package skipped (expired/completed):', pkg.name);
+                 continue;
             }
-        }
 
-        // --- PRIORITY 2: Service Package / Free Session Logic ---
-        else if (pkg.package_type === 'service_package') {
-            // CRITICAL: Convert package service_id to number for comparison
-            const packageServiceId = parseInt(pkg.service_id);
+            // Check if package has remaining benefits based on package_type
+            if (pkg.package_type === 'service_package') {
+                const remaining = pkg.sessions?.remaining || 0;
+                if (remaining <= 0) {
+                    console.log('⏭️ Package skipped (no sessions):', pkg.name);
+                    continue;
+                }
+            } else if (pkg.package_type === 'prepaid') {
+                const remaining = pkg.credit?.remaining || 0;
+                if (remaining <= 0) {
+                    console.log('⏭️ Package skipped (no credit):', pkg.name);
+                    continue;
+                }
+            }
 
-            console.log(`🔍 Service package match check:`, {
-                packageServiceId: packageServiceId,
-                requestedServiceId: numericServiceId,
-                match: packageServiceId === numericServiceId,
-                remainingSessions: pkg.sessions?.remaining || 0
-            });
+            // --- PRIORITY 1: Yearly membership - applies percentage discount to ALL services ---
+            if (pkg.package_type === 'yearly') {
+                // Extract discount percentage from package name (e.g., "Gold Membership - 20% Discount")
+                const discountMatch = pkg.name.match(/(\d+)%/);
+                if (discountMatch) {
+                    const discountPercent = parseInt(discountMatch[1]);
+                    const totalServiceCost = servicePrice * quantity;
+                    totalBenefit = (totalServiceCost * discountPercent) / 100;
+                    appliedPackage = pkg.name;
+                    benefitType = 'yearly_discount';
+                    console.log(`✅ Yearly membership discount applied: ${pkg.name}, ${discountPercent}% off = ₹${totalBenefit.toFixed(2)}`);
+                    break; // Use first matching yearly package
+                } else {
+                    console.log('⏭️ Yearly package found but no percentage in name:', pkg.name);
+                }
+            }
 
-            if (packageServiceId === numericServiceId && pkg.sessions && pkg.sessions.remaining > 0) {
-                const sessionsToUse = Math.min(quantity, pkg.sessions.remaining);
-                const pricePerSession = servicePrice;
-                const benefitAmount = pricePerSession * sessionsToUse;
+            // --- PRIORITY 2: Service Package / Free Session Logic ---
+            else if (pkg.package_type === 'service_package') {
+                // CRITICAL: Convert package service_id to number for comparison
+                const packageServiceId = parseInt(pkg.service_id);
 
-                totalBenefit += benefitAmount;
-                appliedPackage = pkg.name;
-                appliedPackageId = pkg.assignment_id || pkg.id;
-                benefitType = 'free_sessions';
-
-                console.log('   Benefit Details:', {
-                    sessionsToUse,
-                    benefitAmount: benefitAmount.toFixed(2),
-                    remainingAfter: pkg.sessions.remaining - sessionsToUse
+                console.log(`🔍 Service package match check:`, {
+                    packageServiceId: packageServiceId,
+                    requestedServiceId: numericServiceId,
+                    match: packageServiceId === numericServiceId,
+                    remainingSessions: pkg.sessions?.remaining || 0
                 });
 
-                break; // First matching package wins
-            } else {
-                console.log('❌ Service package NOT applied (no sessions):', {
-                    packageService: packageServiceId,
-                    selectedService: numericServiceId,
-                    remaining: pkg.sessions?.remaining || 0
-                });
+                if (packageServiceId === numericServiceId && pkg.sessions && pkg.sessions.remaining > 0) {
+                    const sessionsToUse = Math.min(quantity, pkg.sessions.remaining);
+                    const pricePerSession = servicePrice;
+                    const benefitAmount = pricePerSession * sessionsToUse;
+
+                    totalBenefit += benefitAmount;
+                    appliedPackage = pkg.name;
+                    appliedPackageId = pkg.assignment_id || pkg.id;
+                    benefitType = 'free_sessions';
+
+                    console.log('   Benefit Details:', {
+                        sessionsToUse,
+                        benefitAmount: benefitAmount.toFixed(2),
+                        remainingAfter: pkg.sessions.remaining - sessionsToUse
+                    });
+
+                    break; // First matching package wins
+                } else {
+                    console.log('❌ Service package NOT applied (no sessions):', {
+                        packageService: packageServiceId,
+                        selectedService: numericServiceId,
+                        remaining: pkg.sessions?.remaining || 0
+                    });
+                }
             }
-        }
-        // --- PRIORITY 3: Prepaid / Credit Package Logic ---
-        else if (pkg.package_type === 'prepaid') {
-            const packageKey = `${pkg.assignment_id || pkg.id}`;
-            const alreadyUsed = cumulativePackageUsage[packageKey] || 0;
-            const originalRemaining = pkg.credit?.remaining || 0;
-            const adjustedRemaining = Math.max(0, originalRemaining - alreadyUsed);
-            const serviceCost = servicePrice * quantity;
-
-            console.log('📊 Prepaid package cumulative check:', {
-                packageName: pkg.name,
-                originalRemaining: originalRemaining.toFixed(2),
-                alreadyUsedInInvoice: alreadyUsed.toFixed(2),
-                adjustedRemaining: adjustedRemaining.toFixed(2),
-                serviceCost: serviceCost.toFixed(2)
-            });
-
-            if (adjustedRemaining > 0 && serviceCost > 0) {
-                const creditToUse = Math.min(serviceCost, adjustedRemaining);
-                console.log('✅ Prepaid credit APPLIED:', {
-                    packageId: pkg.assignment_id,
-                    packageName: pkg.name,
-                    creditRemaining: originalRemaining,
-                    adjustedRemaining: adjustedRemaining.toFixed(2),
-                    serviceCost: serviceCost.toFixed(2),
-                    creditToUse: creditToUse.toFixed(2)
-                });
-
-                totalBenefit += creditToUse;
-                appliedPackage = pkg.name;
-                appliedPackageId = pkg.assignment_id || pkg.id;
-                benefitType = 'prepaid_credit';
-
-                // Track cumulative usage for this invoice
-                cumulativePackageUsage[packageKey] = alreadyUsed + creditToUse;
-
-                break; // First matching package wins
-            } else {
-                console.log('❌ Prepaid credit NOT applied:', {
-                    hasAdjustedRemaining: adjustedRemaining > 0,
-                    serviceCostPositive: serviceCost > 0,
-                    reason: adjustedRemaining <= 0 ? 'Package exhausted by previous services' : 'Invalid service cost'
-                });
-            }
-        }
-        // --- PRIORITY 4: Membership Package Logic ---
-        else if (pkg.package_type === 'membership' && pkg.status === 'active') {
-            // Memberships provide unlimited access ONLY to specific services
-            const includedServices = pkg.services || [];
-            const includedServiceIds = includedServices.map(s => s.service_id);
-
-            console.log('🎫 Checking membership:', {
-                packageName: pkg.name,
-                includedServiceIds: includedServiceIds,
-                requestedServiceId: numericServiceId,
-                isServiceIncluded: includedServiceIds.includes(numericServiceId)
-            });
-
-            // Check if the requested service is included in the membership
-            if (includedServiceIds.includes(numericServiceId)) {
+            // --- PRIORITY 3: Prepaid / Credit Package Logic ---
+            else if (pkg.package_type === 'prepaid') {
+                const packageKey = `${pkg.assignment_id || pkg.id}`;
+                const alreadyUsed = cumulativePackageUsage[packageKey] || 0;
+                const originalRemaining = pkg.credit?.remaining || 0;
+                const adjustedRemaining = Math.max(0, originalRemaining - alreadyUsed);
                 const serviceCost = servicePrice * quantity;
 
-                console.log('✅ Membership APPLIED (unlimited access):', {
-                    packageId: pkg.assignment_id || pkg.id,
+                console.log('📊 Prepaid package cumulative check:', {
                     packageName: pkg.name,
-                    serviceName: includedServices.find(s => s.service_id == numericServiceId)?.service_name || 'Unknown',
-                    serviceCost: serviceCost.toFixed(2),
-                    quantity: quantity
+                    originalRemaining: originalRemaining.toFixed(2),
+                    alreadyUsedInInvoice: alreadyUsed.toFixed(2),
+                    adjustedRemaining: adjustedRemaining.toFixed(2),
+                    serviceCost: serviceCost.toFixed(2)
                 });
 
-                totalBenefit += serviceCost;
-                appliedPackage = pkg.name;
-                appliedPackageId = pkg.assignment_id || pkg.id;
-                benefitType = 'membership_unlimited';
+                if (adjustedRemaining > 0 && serviceCost > 0) {
+                    const creditToUse = Math.min(serviceCost, adjustedRemaining);
+                    console.log('✅ Prepaid credit APPLIED:', {
+                        packageId: pkg.assignment_id,
+                        packageName: pkg.name,
+                        creditRemaining: originalRemaining,
+                        adjustedRemaining: adjustedRemaining.toFixed(2),
+                        serviceCost: serviceCost.toFixed(2),
+                        creditToUse: creditToUse.toFixed(2)
+                    });
 
-                break; // First matching package wins
-            } else {
-                console.log('⏭️ Membership skipped (service not included):', {
-                    packageName: pkg.name,
-                    requestedServiceId: numericServiceId,
-                    includedServices: includedServices.map(s => s.service_name)
-                });
-            }
-        }
-        // --- PRIORITY 5: Student Offer packages ---
-        else if (pkg.package_type === 'student_offer' && pkg.discount_percentage > 0) {
-            // Validate student offer dates and valid days
-            const validFrom = pkg.valid_from || '';
-            const validTo = pkg.valid_to || '';
-            const validDays = pkg.valid_days || '';
+                    totalBenefit += creditToUse;
+                    appliedPackage = pkg.name;
+                    appliedPackageId = pkg.assignment_id || pkg.id;
+                    benefitType = 'prepaid_credit';
 
-            if (!isStudentOfferValid(validFrom, validTo, validDays)) {
-                console.log(`❌ Student offer ${pkg.name} is not valid today (expired or wrong day)`);
-                continue; // Skip this offer
-            }
+                    // Track cumulative usage for this invoice
+                    cumulativePackageUsage[packageKey] = alreadyUsed + creditToUse;
 
-            console.log(`✅ Student offer ${pkg.name} is valid today`);
-
-            // Student offers only apply to specific services that were selected when creating the offer
-            const applicableServiceIds = pkg.applicable_service_ids || [];
-            // CRITICAL: Ensure numeric comparison
-            const numericApplicableIds = applicableServiceIds.map(id => parseInt(id));
-
-            const appliesToThisService = applicableServiceIds.length === 0 || numericApplicableIds.includes(numericServiceId);
-
-            if (appliesToThisService) {
-                const totalServiceCost = servicePrice * quantity;
-                const discountAmount = (totalServiceCost * pkg.discount_percentage) / 100;
-
-                totalBenefit += discountAmount;
-                appliedPackage = pkg.name;
-                appliedPackageId = pkg.assignment_id;
-                benefitType = 'student_discount';
-                console.log(`✅ Student offer discount applied: ${pkg.name}, ${pkg.discount_percentage}% off = ₹${discountAmount.toFixed(2)} (service ${numericServiceId} is in applicable list: ${numericApplicableIds})`);
-                break; // Use first matching valid student offer
-            } else {
-                console.log(`⏭️ Student offer ${pkg.name} skipped - service ${numericServiceId} not in applicable list: ${numericApplicableIds}`);
-            }
-        }
-    }
-
-    if (totalBenefit === 0) {
-        console.log('ℹ️ No package benefit applied for serviceId:', numericServiceId);
-    }
-
-    console.log('💰 Total benefit calculated:', totalBenefit.toFixed(2));
-    console.log('📦 Package applied:', appliedPackage ? `${appliedPackage} (${benefitType})` : 'None');
-
-    return { discount: totalBenefit, packageUsed: appliedPackage, packageId: appliedPackageId, benefitType: benefitType };
-}
-
-
-// ==========================================
-// VALIDATION
-// ==========================================
-function setupInputValidation() { // Renamed from validateForm to setupInputValidation for clarity
-    console.log('⚙️ Setting up input validation listeners');
-    document.getElementById('billingForm').addEventListener('input', function(e) {
-        // Remove 'is-invalid' class when user starts typing/changing input
-        if (e.target.matches('select, input, textarea')) {
-            e.target.classList.remove('is-invalid');
-            // Also clear associated feedback if it exists
-            const feedbackElement = e.target.nextElementSibling;
-            if (feedbackElement && feedbackElement.classList.contains('invalid-feedback')) {
-                feedbackElement.style.display = 'none';
-            }
-        }
-    });
-}
-
-function validateAndSubmitForm() {
-    console.log('🔍 Validating form before submission...');
-
-    const errors = [];
-
-    // Clear previous validation states
-    document.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
-    document.querySelectorAll('.invalid-feedback').forEach(el => el.style.display = 'none');
-
-    // 1. Check customer selection
-    const clientSelect = document.getElementById('client_id');
-    if (!clientSelect || !clientSelect.value) {
-        errors.push('❌ Please select a customer');
-        if (clientSelect) {
-            clientSelect.classList.add('is-invalid');
-            // Scroll to the element if it's visible
-            clientSelect.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }
-    }
-
-    // 2. Check if at least one service or product is added and their details
-    const serviceRows = document.querySelectorAll('.service-row');
-    const productRows = document.querySelectorAll('.product-row');
-
-    let hasValidService = false;
-    let hasValidProduct = false;
-
-    // Validate services
-    serviceRows.forEach((row, index) => {
-        const serviceSelect = row.querySelector('select[name="service_ids[]"]');
-        const staffSelect = row.querySelector('select[name="staff_ids[]"]');
-        const qtyInput = row.querySelector('input[name="service_quantities[]"]');
-        const appointmentIdInput = row.querySelector('input[name="appointment_ids[]"]');
-
-        // Only validate if a service is actually selected
-        if (serviceSelect && serviceSelect.value) {
-            hasValidService = true; // Mark that at least one service is present
-
-            // Check if staff is assigned for a selected service
-            if (!staffSelect || !staffSelect.value) {
-                errors.push(`❌ Service #${index + 1}: Please assign a staff member`);
-                if (staffSelect) {
-                    staffSelect.classList.add('is-invalid');
-                    staffSelect.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    break; // First matching package wins
+                } else {
+                    console.log('❌ Prepaid credit NOT applied:', {
+                        hasAdjustedRemaining: adjustedRemaining > 0,
+                        serviceCostPositive: serviceCost > 0,
+                        reason: adjustedRemaining <= 0 ? 'Package exhausted by previous services' : 'Invalid service cost'
+                    });
                 }
             }
+            // --- PRIORITY 4: Membership Package Logic ---
+            else if (pkg.package_type === 'membership' && pkg.status === 'active') {
+                // Memberships provide unlimited access ONLY to specific services
+                const includedServices = pkg.services || [];
+                const includedServiceIds = includedServices.map(s => s.service_id);
 
-            // Check quantity for non-appointment services
-            if (!appointmentIdInput || !appointmentIdInput.value) {
+                console.log('🎫 Checking membership:', {
+                    packageName: pkg.name,
+                    includedServiceIds: includedServiceIds,
+                    requestedServiceId: numericServiceId,
+                    isServiceIncluded: includedServiceIds.includes(numericServiceId)
+                });
+
+                // Check if the requested service is included in the membership
+                if (includedServiceIds.includes(numericServiceId)) {
+                    const serviceCost = servicePrice * quantity;
+
+                    console.log('✅ Membership APPLIED (unlimited access):', {
+                        packageId: pkg.assignment_id || pkg.id,
+                        packageName: pkg.name,
+                        serviceName: includedServices.find(s => s.service_id == numericServiceId)?.service_name || 'Unknown',
+                        serviceCost: serviceCost.toFixed(2),
+                        quantity: quantity
+                    });
+
+                    totalBenefit += serviceCost;
+                    appliedPackage = pkg.name;
+                    appliedPackageId = pkg.assignment_id || pkg.id;
+                    benefitType = 'membership_unlimited';
+
+                    break; // First matching package wins
+                } else {
+                    console.log('⏭️ Membership skipped (service not included):', {
+                        packageName: pkg.name,
+                        requestedServiceId: numericServiceId,
+                        includedServices: includedServices.map(s => s.service_name)
+                    });
+                }
+            }
+            // --- PRIORITY 5: Student Offer packages ---
+            else if (pkg.package_type === 'student_offer' && pkg.discount_percentage > 0) {
+                // Validate student offer dates and valid days
+                const validFrom = pkg.valid_from || '';
+                const validTo = pkg.valid_to || '';
+                const validDays = pkg.valid_days || '';
+
+                if (!isStudentOfferValid(validFrom, validTo, validDays)) {
+                    console.log(`❌ Student offer ${pkg.name} is not valid today (expired or wrong day)`);
+                    continue; // Skip this offer
+                }
+
+                console.log(`✅ Student offer ${pkg.name} is valid today`);
+
+                // Student offers only apply to specific services that were selected when creating the offer
+                const applicableServiceIds = pkg.applicable_service_ids || [];
+                // CRITICAL: Ensure numeric comparison
+                const numericApplicableIds = applicableServiceIds.map(id => parseInt(id));
+
+                const appliesToThisService = applicableServiceIds.length === 0 || numericApplicableIds.includes(numericServiceId);
+
+                if (appliesToThisService) {
+                    const totalServiceCost = servicePrice * quantity;
+                    const discountAmount = (totalServiceCost * pkg.discount_percentage) / 100;
+
+                    totalBenefit += discountAmount;
+                    appliedPackage = pkg.name;
+                    appliedPackageId = pkg.assignment_id;
+                    benefitType = 'student_discount';
+                    console.log(`✅ Student offer discount applied: ${pkg.name}, ${pkg.discount_percentage}% off = ₹${discountAmount.toFixed(2)} (service ${numericServiceId} is in applicable list: ${numericApplicableIds})`);
+                    break; // Use first matching valid student offer
+                } else {
+                    console.log(`⏭️ Student offer ${pkg.name} skipped - service ${numericServiceId} not in applicable list: ${numericApplicableIds}`);
+                }
+            }
+        }
+
+        if (totalBenefit === 0) {
+            console.log('ℹ️ No package benefit applied for serviceId:', numericServiceId);
+        }
+
+        console.log('💰 Total benefit calculated:', totalBenefit.toFixed(2));
+        console.log('📦 Package applied:', appliedPackage ? `${appliedPackage} (${benefitType})` : 'None');
+
+        return { discount: totalBenefit, packageUsed: appliedPackage, packageId: appliedPackageId, benefitType: benefitType };
+    }
+
+
+    // ==========================================
+    // VALIDATION
+    // ==========================================
+    function setupInputValidation() { // Renamed from validateForm to setupInputValidation for clarity
+        console.log('⚙️ Setting up input validation listeners');
+        document.getElementById('billingForm').addEventListener('input', function(e) {
+            // Remove 'is-invalid' class when user starts typing/changing input
+            if (e.target.matches('select, input, textarea')) {
+                e.target.classList.remove('is-invalid');
+                // Also clear associated feedback if it exists
+                const feedbackElement = e.target.nextElementSibling;
+                if (feedbackElement && feedbackElement.classList.contains('invalid-feedback')) {
+                    feedbackElement.style.display = 'none';
+                }
+            }
+        });
+    }
+
+    function validateAndSubmitForm() {
+        console.log('🔍 Validating form before submission...');
+
+        const errors = [];
+
+        // Clear previous validation states
+        document.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
+        document.querySelectorAll('.invalid-feedback').forEach(el => el.style.display = 'none');
+
+        // 1. Check customer selection
+        const clientSelect = document.getElementById('client_id');
+        if (!clientSelect || !clientSelect.value) {
+            errors.push('❌ Please select a customer');
+            if (clientSelect) {
+                clientSelect.classList.add('is-invalid');
+                // Scroll to the element if it's visible
+                clientSelect.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        }
+
+        // 2. Check if at least one service or product is added and their details
+        const serviceRows = document.querySelectorAll('.service-row');
+        const productRows = document.querySelectorAll('.product-row');
+
+        let hasValidService = false;
+        let hasValidProduct = false;
+
+        // Validate services
+        serviceRows.forEach((row, index) => {
+            const serviceSelect = row.querySelector('select[name="service_ids[]"]');
+            const staffSelect = row.querySelector('select[name="staff_ids[]"]');
+            const qtyInput = row.querySelector('input[name="service_quantities[]"]');
+            const appointmentIdInput = row.querySelector('input[name="appointment_ids[]"]');
+
+            // Only validate if a service is actually selected
+            if (serviceSelect && serviceSelect.value) {
+                hasValidService = true; // Mark that at least one service is present
+
+                // Check if staff is assigned for a selected service
+                if (!staffSelect || !staffSelect.value) {
+                    errors.push(`❌ Service #${index + 1}: Please assign a staff member`);
+                    if (staffSelect) {
+                        staffSelect.classList.add('is-invalid');
+                        staffSelect.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                }
+
+                // Check quantity for non-appointment services
+                if (!appointmentIdInput || !appointmentIdInput.value) {
+                    const qty = parseFloat(qtyInput?.value);
+                    if (isNaN(qty) || qty <= 0) {
+                        errors.push(`❌ Service #${index + 1}: Please enter a valid quantity`);
+                        if (qtyInput) {
+                            qtyInput.classList.add('is-invalid');
+                            qtyInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        }
+                    }
+                }
+            }
+        });
+
+        // Validate products
+        productRows.forEach((row, index) => {
+            const productSelect = row.querySelector('select[name="product_ids[]"]');
+            const batchSelect = row.querySelector('select[name="batch_ids[]"]');
+            const staffSelect = row.querySelector('select[name="product_staff_ids[]"]');
+            const qtyInput = row.querySelector('input[name="product_quantities[]"]');
+            const priceInput = row.querySelector('input[name="product_prices[]"]');
+
+            // Only validate if a product is actually selected
+            if (productSelect && productSelect.value) {
+                hasValidProduct = true; // Mark that at least one product is present
+
+                // Check if batch is selected for a selected product
+                if (!batchSelect || !batchSelect.value) {
+                    errors.push(`❌ Product #${index + 1}: Please select a batch`);
+                    if (batchSelect) {
+                        batchSelect.classList.add('is-invalid');
+                        batchSelect.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                }
+
+                // Check if staff is assigned for a selected product
+                if (!staffSelect || !staffSelect.value) {
+                    errors.push(`❌ Product #${index + 1}: Please assign a staff member`);
+                    if (staffSelect) {
+                        staffSelect.classList.add('is-invalid');
+                        staffSelect.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                }
+
+                // Check quantity for a selected product
                 const qty = parseFloat(qtyInput?.value);
                 if (isNaN(qty) || qty <= 0) {
-                    errors.push(`❌ Service #${index + 1}: Please enter a valid quantity`);
+                    errors.push(`❌ Product #${index + 1}: Please enter a valid quantity`);
                     if (qtyInput) {
                         qtyInput.classList.add('is-invalid');
                         qtyInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
                     }
                 }
-            }
-        }
-    });
 
-    // Validate products
-    productRows.forEach((row, index) => {
-        const productSelect = row.querySelector('select[name="product_ids[]"]');
-        const batchSelect = row.querySelector('select[name="batch_ids[]"]');
-        const staffSelect = row.querySelector('select[name="product_staff_ids[]"]');
-        const qtyInput = row.querySelector('input[name="product_quantities[]"]');
-        const priceInput = row.querySelector('input[name="product_prices[]"]');
-
-        // Only validate if a product is actually selected
-        if (productSelect && productSelect.value) {
-            hasValidProduct = true; // Mark that at least one product is present
-
-            // Check if batch is selected for a selected product
-            if (!batchSelect || !batchSelect.value) {
-                errors.push(`❌ Product #${index + 1}: Please select a batch`);
-                if (batchSelect) {
-                    batchSelect.classList.add('is-invalid');
-                    batchSelect.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                // Check price for a selected product (can be 0, but not negative)
+                const price = parseFloat(priceInput?.value);
+                if (isNaN(price) || price < 0) {
+                    errors.push(`❌ Product #${index + 1}: Please enter a valid price`);
+                    if (priceInput) {
+                        priceInput.classList.add('is-invalid');
+                        priceInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
                 }
             }
+        });
 
-            // Check if staff is assigned for a selected product
-            if (!staffSelect || !staffSelect.value) {
-                errors.push(`❌ Product #${index + 1}: Please assign a staff member`);
-                if (staffSelect) {
-                    staffSelect.classList.add('is-invalid');
-                    staffSelect.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                }
+        // Check if at least one item (service or product) is added
+        if (!hasValidService && !hasValidProduct) {
+            errors.push('❌ Please add at least one service or product to the invoice');
+            // Scroll to the top of the form to guide user
+            document.getElementById('billingForm')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        // 3. Check payment method selection
+        const paymentMethodRadios = document.querySelectorAll('input[name="payment_method"]');
+        let paymentMethodSelected = false;
+        paymentMethodRadios.forEach(radio => {
+            if (radio.checked) {
+                paymentMethodSelected = true;
             }
-
-            // Check quantity for a selected product
-            const qty = parseFloat(qtyInput?.value);
-            if (isNaN(qty) || qty <= 0) {
-                errors.push(`❌ Product #${index + 1}: Please enter a valid quantity`);
-                if (qtyInput) {
-                    qtyInput.classList.add('is-invalid');
-                    qtyInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                }
-            }
-
-            // Check price for a selected product (can be 0, but not negative)
-            const price = parseFloat(priceInput?.value);
-            if (isNaN(price) || price < 0) {
-                errors.push(`❌ Product #${index + 1}: Please enter a valid price`);
-                if (priceInput) {
-                    priceInput.classList.add('is-invalid');
-                    priceInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                }
+        });
+        if (!paymentMethodSelected) {
+            errors.push('❌ Please select a payment method');
+            const paymentContainer = document.querySelector('.payment-method-options');
+            if (paymentContainer) {
+                paymentContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
             }
         }
-    });
 
-    // Check if at least one item (service or product) is added
-    if (!hasValidService && !hasValidProduct) {
-        errors.push('❌ Please add at least one service or product to the invoice');
-        // Scroll to the top of the form to guide user
-        document.getElementById('billingForm')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-
-    // 3. Check payment method selection
-    const paymentMethodRadios = document.querySelectorAll('input[name="payment_method"]');
-    let paymentMethodSelected = false;
-    paymentMethodRadios.forEach(radio => {
-        if (radio.checked) {
-            paymentMethodSelected = true;
+        // Show errors or submit
+        if (errors.length > 0) {
+            const errorMessage = `<strong>Please fix the following issues:</strong><br><br>${errors.join('<br>')}`;
+            showNotification(errorMessage, 'error', 8000);
+            console.log('❌ Validation failed:', errors);
+            return false;
         }
-    });
-    if (!paymentMethodSelected) {
-        errors.push('❌ Please select a payment method');
-        const paymentContainer = document.querySelector('.payment-method-options');
-        if (paymentContainer) {
-            paymentContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+        // All validations passed - submit the form
+        console.log('✅ Validation passed, submitting form...');
+        const form = document.getElementById('billingForm');
+        if (form) {
+            const saveBtn = document.getElementById('saveBtn');
+            if (saveBtn) {
+                saveBtn.disabled = true;
+                saveBtn.classList.add('btn-loading');
+            }
+            form.submit();
+        }
+
+        return true;
+    }
+
+    // ==========================================
+    // FORM SUBMISSION
+    // ==========================================
+    function handleFormSubmit(event) {
+        event.preventDefault();
+        console.log('🚀 Form submit event caught.');
+
+        // The actual validation and submission logic is now in validateAndSubmitForm
+        // We call it here, and it will handle the form submission if validation passes.
+        validateAndSubmitForm();
+    }
+
+    // Save and print function
+    function saveAndPrint() {
+        console.log('🚀 saveAndPrint called');
+        const form = document.getElementById('billingForm');
+
+        if (!form) {
+            console.error('Form not found');
+            return;
+        }
+
+        // Validate form first using the new validation function
+        if (validateAndSubmitForm()) {
+            console.log('✅ Form valid, submitting for print...');
+
+            // Add hidden input to indicate print request
+            const printInput = document.createElement('input');
+            printInput.type = 'hidden';
+            printInput.name = 'print_after_save';
+            printInput.value = 'true';
+            form.appendChild(printInput);
+
+            // Form will be submitted by validateAndSubmitForm
         }
     }
 
-    // Show errors or submit
-    if (errors.length > 0) {
-        const errorMessage = `<strong>Please fix the following issues:</strong><br><br>${errors.join('<br>')}`;
-        showNotification(errorMessage, 'error', 8000);
-        console.log('❌ Validation failed:', errors);
-        return false;
-    }
-
-    // All validations passed - submit the form
-    console.log('✅ Validation passed, submitting form...');
-    const form = document.getElementById('billingForm');
-    if (form) {
-        const saveBtn = document.getElementById('saveBtn');
-        if (saveBtn) {
-            saveBtn.disabled = true;
-            saveBtn.classList.add('btn-loading');
-        }
-        form.submit();
-    }
-
-    return true;
-}
-
-// ==========================================
-// FORM SUBMISSION
-// ==========================================
-function handleFormSubmit(event) {
-    event.preventDefault();
-    console.log('🚀 Form submit event caught.');
-
-    // The actual validation and submission logic is now in validateAndSubmitForm
-    // We call it here, and it will handle the form submission if validation passes.
-    validateAndSubmitForm();
-}
-
-// Save and print function
-function saveAndPrint() {
-    console.log('🚀 saveAndPrint called');
-    const form = document.getElementById('billingForm');
-
-    if (!form) {
-        console.error('Form not found');
-        return;
-    }
-
-    // Validate form first using the new validation function
-    if (validateAndSubmitForm()) {
-        console.log('✅ Form valid, submitting for print...');
-
-        // Add hidden input to indicate print request
-        const printInput = document.createElement('input');
-        printInput.type = 'hidden';
-        printInput.name = 'print_after_save';
-        printInput.value = 'true';
-        form.appendChild(printInput);
-
-        // Form will be submitted by validateAndSubmitForm
-    }
-}
-
-// ==========================================
-// STUDENT OFFER UTILITIES
-// ==========================================
-function showStudentOfferDetails(name, discount, services, validFrom, validTo, validDays, conditions) {
-    const modal = document.createElement('div');
-    modal.className = 'modal fade show';
-    modal.style.display = 'block';
-    modal.style.backgroundColor = 'rgba(0,0,0,0.5)';
-    modal.setAttribute('tabindex', '-1');
-    modal.innerHTML = `
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
-                    <h5 class="modal-title"><i class="fas fa-graduation-cap me-2"></i>${name}</h5>
-                    <button type="button" class="btn-close btn-close-white" onclick="this.closest('.modal').remove()"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <h6 class="text-muted mb-2"><i class="fas fa-tag me-2"></i>Discount</h6>
-                        <div class="alert alert-success mb-3">
-                            <h4 class="mb-0"><strong>${discount}% OFF</strong></h4>
+    // ==========================================
+    // STUDENT OFFER UTILITIES
+    // ==========================================
+    function showStudentOfferDetails(name, discount, services, validFrom, validTo, validDays, conditions) {
+        const modal = document.createElement('div');
+        modal.className = 'modal fade show';
+        modal.style.display = 'block';
+        modal.style.backgroundColor = 'rgba(0,0,0,0.5)';
+        modal.setAttribute('tabindex', '-1');
+        modal.innerHTML = `
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                        <h5 class="modal-title"><i class="fas fa-graduation-cap me-2"></i>${name}</h5>
+                        <button type="button" class="btn-close btn-close-white" onclick="this.closest('.modal').remove()"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <h6 class="text-muted mb-2"><i class="fas fa-tag me-2"></i>Discount</h6>
+                            <div class="alert alert-success mb-3">
+                                <h4 class="mb-0"><strong>${discount}% OFF</strong></h4>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <h6 class="text-muted mb-2"><i class="fas fa-spa me-2"></i>Applicable Services</h6>
+                            <p class="mb-0">${services}</p>
+                        </div>
+                        <div class="mb-3">
+                            <h6 class="text-muted mb-2"><i class="fas fa-calendar me-2"></i>Validity Period</h6>
+                            <p class="mb-0"><strong>${validFrom}</strong> to <strong>${validTo}</strong></p>
+                        </div>
+                        <div class="mb-3">
+                            <h6 class="text-muted mb-2"><i class="fas fa-calendar-check me-2"></i>Valid Days</h6>
+                            <p class="mb-0">${validDays}</p>
+                        </div>
+                        <div class="mb-0">
+                            <h6 class="text-muted mb-2"><i class="fas fa-info-circle me-2"></i>Terms & Conditions</h6>
+                            <p class="mb-0 text-muted small">${conditions}</p>
                         </div>
                     </div>
-                    <div class="mb-3">
-                        <h6 class="text-muted mb-2"><i class="fas fa-spa me-2"></i>Applicable Services</h6>
-                        <p class="mb-0">${services}</p>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" onclick="this.closest('.modal').remove()">Close</button>
                     </div>
-                    <div class="mb-3">
-                        <h6 class="text-muted mb-2"><i class="fas fa-calendar me-2"></i>Validity Period</h6>
-                        <p class="mb-0"><strong>${validFrom}</strong> to <strong>${validTo}</strong></p>
-                    </div>
-                    <div class="mb-3">
-                        <h6 class="text-muted mb-2"><i class="fas fa-calendar-check me-2"></i>Valid Days</h6>
-                        <p class="mb-0">${validDays}</p>
-                    </div>
-                    <div class="mb-0">
-                        <h6 class="text-muted mb-2"><i class="fas fa-info-circle me-2"></i>Terms & Conditions</h6>
-                        <p class="mb-0 text-muted small">${conditions}</p>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" onclick="this.closest('.modal').remove()">Close</button>
                 </div>
             </div>
-        </div>
-    `;
-    document.body.appendChild(modal);
-}
-
-function isStudentOfferValid(validFrom, validTo, validDays) {
-    // Check date validity
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    if (validFrom) {
-        const fromDate = new Date(validFrom);
-        fromDate.setHours(0, 0, 0, 0);
-        if (today < fromDate) {
-            console.log(`❌ Student offer not yet valid. Starts: ${validFrom}`);
-            return false;
-        }
+        `;
+        document.body.appendChild(modal);
     }
 
-    if (validTo) {
-        const toDate = new Date(validTo);
-        toDate.setHours(23, 59, 59, 999);
-        if (today > toDate) {
-            console.log(`❌ Student offer expired. Ended: ${validTo}`);
-            return false;
+    function isStudentOfferValid(validFrom, validTo, validDays) {
+        // Check date validity
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        if (validFrom) {
+            const fromDate = new Date(validFrom);
+            fromDate.setHours(0, 0, 0, 0);
+            if (today < fromDate) {
+                console.log(`❌ Student offer not yet valid. Starts: ${validFrom}`);
+                return false;
+            }
         }
+
+        if (validTo) {
+            const toDate = new Date(validTo);
+            toDate.setHours(23, 59, 59, 999);
+            if (today > toDate) {
+                console.log(`❌ Student offer expired. Ended: ${validTo}`);
+                return false;
+            }
+        }
+
+        // Check valid days
+        if (validDays && validDays !== 'All Days' && validDays !== '') {
+            const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+            const todayDay = daysOfWeek[today.getDay()];
+
+            // Parse valid days (e.g., "Mon-Fri", "Weekends Only", "Mon,Wed,Fri")
+            let isValidDay = false;
+
+            if (validDays === 'Mon-Fri') {
+                isValidDay = today.getDay() >= 1 && today.getDay() <= 5;
+            } else if (validDays === 'Mon-Sat') {
+                isValidDay = today.getDay() >= 1 && today.getDay() <= 6;
+            } else if (validDays === 'Weekends Only') {
+                isValidDay = today.getDay() === 0 || today.getDay() === 6;
+            } else if (validDays.includes(todayDay)) {
+                isValidDay = true;
+            }
+
+            if (!isValidDay) {
+                console.log(`❌ Student offer not valid today (${todayDay}). Valid days: ${validDays}`);
+                return false;
+            }
+        }
+
+        console.log(`✅ Student offer is valid for today`);
+        return true;
     }
 
-    // Check valid days
-    if (validDays && validDays !== 'All Days' && validDays !== '') {
-        const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-        const todayDay = daysOfWeek[today.getDay()];
+    // ==========================================
+    // UTILITIES
+    // ==========================================
+    function showNotification(message, type = 'info', duration = 5000) {
+        console.log(`🔔 Showing notification: [${type}] ${message}`);
+        const alertClass = {
+            success: 'alert-success',
+            danger: 'alert-danger',
+            warning: 'alert-warning',
+            info: 'alert-info'
+        }[type] || 'alert-info';
 
-        // Parse valid days (e.g., "Mon-Fri", "Weekends Only", "Mon,Wed,Fri")
-        let isValidDay = false;
+        const notification = document.createElement('div');
+        notification.className = `toast-notification alert ${alertClass}`;
+        notification.innerHTML = `
+            <div style="white-space: pre-line;">${message}</div>
+            <button type="button" class="btn-close" onclick="this.parentElement.remove()"></button>
+        `;
 
-        if (validDays === 'Mon-Fri') {
-            isValidDay = today.getDay() >= 1 && today.getDay() <= 5;
-        } else if (validDays === 'Mon-Sat') {
-            isValidDay = today.getDay() >= 1 && today.getDay() <= 6;
-        } else if (validDays === 'Weekends Only') {
-            isValidDay = today.getDay() === 0 || today.getDay() === 6;
-        } else if (validDays.includes(todayDay)) {
-            isValidDay = true;
-        }
+        document.body.appendChild(notification);
 
-        if (!isValidDay) {
-            console.log(`❌ Student offer not valid today (${todayDay}). Valid days: ${validDays}`);
-            return false;
-        }
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.remove();
+            }
+        }, duration);
     }
-
-    console.log(`✅ Student offer is valid for today`);
-    return true;
-}
-
-// ==========================================
-// UTILITIES
-// ==========================================
-function showNotification(message, type = 'info', duration = 5000) {
-    console.log(`🔔 Showing notification: [${type}] ${message}`);
-    const alertClass = {
-        success: 'alert-success',
-        danger: 'alert-danger',
-        warning: 'alert-warning',
-        info: 'alert-info'
-    }[type] || 'alert-info';
-
-    const notification = document.createElement('div');
-    notification.className = `toast-notification alert ${alertClass}`;
-    notification.innerHTML = `
-        <div style="white-space: pre-line;">${message}</div>
-        <button type="button" class="btn-close" onclick="this.parentElement.remove()"></button>
-    `;
-
-    document.body.appendChild(notification);
-
-    setTimeout(() => {
-        if (notification.parentNode) {
-            notification.remove();
-        }
-    }, duration);
-}
 </script>
 {% endblock %}
