@@ -1,4 +1,3 @@
-
 """
 Customer/Client Management Routes
 Compatible with your app.py structure
@@ -176,7 +175,7 @@ def create_customer_route():
     """Create a new customer with validation"""
     # Handle API requests differently
     is_api_request = request.path.startswith('/api/')
-    
+
     if not current_user.has_permission('clients_create'):
         if is_api_request:
             return jsonify({'success': False, 'error': 'Permission denied'}), 403
@@ -210,7 +209,7 @@ def create_customer_route():
         # Create customer
         new_customer = create_customer_query(customer_data)
         full_name = f"{new_customer.first_name} {new_customer.last_name}"
-        
+
         if is_api_request:
             return jsonify({
                 'success': True,
@@ -223,16 +222,16 @@ def create_customer_route():
                     'email': getattr(new_customer, 'email', '') or ''
                 }
             }), 200
-        
+
         flash(f'Customer "{full_name}" created successfully!', 'success')
 
     except Exception as e:
         db.session.rollback()
         app.logger.error(f"Customer creation error: {str(e)}")
-        
+
         if is_api_request:
             return jsonify({'success': False, 'error': str(e)}), 500
-        
+
         flash('Error creating customer. Please try again.', 'danger')
 
     return redirect(url_for('customers'))
@@ -324,18 +323,18 @@ def api_quick_create_client():
     """Quick client creation API endpoint for booking forms"""
     if not current_user.has_permission('clients_create'):
         return jsonify({'success': False, 'error': 'Permission denied'}), 403
-    
+
     try:
         data = request.get_json()
         if not data:
             return jsonify({'success': False, 'error': 'No data provided'}), 400
-        
+
         # Validate required fields
         required_fields = ['first_name', 'last_name', 'phone', 'gender']
         for field in required_fields:
             if not data.get(field):
                 return jsonify({'success': False, 'error': f'{field} is required'}), 400
-        
+
         # Check for duplicates
         if data.get('phone'):
             existing = get_customer_by_phone(data['phone'])
@@ -348,7 +347,7 @@ def api_quick_create_client():
                         'name': f"{existing.first_name} {existing.last_name}"
                     }
                 }), 409
-        
+
         # Create customer
         customer_data = {
             'first_name': data.get('first_name', '').strip().title(),
@@ -357,9 +356,9 @@ def api_quick_create_client():
             'email': data.get('email', '').strip().lower() or None,
             'gender': data.get('gender', '').strip() or None
         }
-        
+
         new_customer = create_customer_query(customer_data)
-        
+
         return jsonify({
             'success': True,
             'message': f'Customer created successfully',
@@ -373,7 +372,7 @@ def api_quick_create_client():
                 'gender': getattr(new_customer, 'gender', '') or ''
             }
         }), 201
-        
+
     except Exception as e:
         db.session.rollback()
         app.logger.error(f"Quick client creation error: {str(e)}")
@@ -387,18 +386,18 @@ def api_unaki_quick_add_client():
     # Reuse the same logic as api_quick_create_client
     if not current_user.has_permission('clients_create'):
         return jsonify({'success': False, 'error': 'Permission denied'}), 403
-    
+
     try:
         data = request.get_json()
         if not data:
             return jsonify({'success': False, 'error': 'No data provided'}), 400
-        
+
         # Validate required fields
         required_fields = ['first_name', 'last_name', 'phone', 'gender']
         for field in required_fields:
             if not data.get(field):
                 return jsonify({'success': False, 'error': f'{field} is required'}), 400
-        
+
         # Check for duplicates
         if data.get('phone'):
             existing = get_customer_by_phone(data['phone'])
@@ -411,7 +410,19 @@ def api_unaki_quick_add_client():
                         'name': f"{existing.first_name} {existing.last_name}"
                     }
                 }), 409
-        
+
+        if data.get('email'):
+            existing = get_customer_by_email(data['email'])
+            if existing:
+                return jsonify({
+                    'success': False, 
+                    'error': 'A customer with this email address already exists',
+                    'existing_customer': {
+                        'id': existing.id,
+                        'name': f"{existing.first_name} {existing.last_name}"
+                    }
+                }), 409
+
         # Create customer
         customer_data = {
             'first_name': data.get('first_name', '').strip().title(),
@@ -420,9 +431,9 @@ def api_unaki_quick_add_client():
             'email': data.get('email', '').strip().lower() or None,
             'gender': data.get('gender', '').strip() or None
         }
-        
+
         new_customer = create_customer_query(customer_data)
-        
+
         return jsonify({
             'success': True,
             'message': f'Client added successfully!',
@@ -443,7 +454,7 @@ def api_unaki_quick_add_client():
                 'email': getattr(new_customer, 'email', '') or ''
             }
         }), 201
-        
+
     except Exception as e:
         db.session.rollback()
         app.logger.error(f"Unaki quick client creation error: {str(e)}")
@@ -637,7 +648,7 @@ def api_save_face():
         import io
         from PIL import Image
         import cv2
-        
+
         data = request.get_json()
         if not data:
             return jsonify({'success': False, 'error': 'No data provided'}), 400
@@ -657,12 +668,12 @@ def api_save_face():
             face_image_data = face_image.split(',')[1]
         else:
             face_image_data = face_image
-        
+
         # Decode and validate face
         image_bytes = base64.b64decode(face_image_data)
         image = Image.open(io.BytesIO(image_bytes))
         image_array = np.array(image)
-        
+
         # Convert to BGR for OpenCV/InsightFace (handle both RGB and RGBA)
         if len(image_array.shape) == 3:
             if image_array.shape[2] == 4:
@@ -675,20 +686,20 @@ def api_save_face():
                 image_bgr = image_array
         else:
             image_bgr = image_array
-        
+
         # Initialize InsightFace
         face_app = FaceAnalysis(providers=['CPUExecutionProvider'])
         face_app.prepare(ctx_id=0, det_size=(640, 640))
-        
+
         # Detect faces
         faces = face_app.get(image_bgr)
-        
+
         if len(faces) == 0:
             return jsonify({
                 'success': False,
                 'error': 'No face detected in image. Please capture a clear photo of your face.'
             }), 400
-        
+
         if len(faces) > 1:
             return jsonify({
                 'success': False,
@@ -701,7 +712,7 @@ def api_save_face():
             db.session.commit()
 
             app.logger.info(f"Face data saved for customer {customer.id}: {customer.first_name} {customer.last_name}")
-            
+
             return jsonify({
                 'success': True,
                 'message': 'Face data saved successfully',
@@ -739,7 +750,7 @@ def api_recognize_face():
         import io
         from PIL import Image
         import cv2
-        
+
         data = request.get_json()
         if not data:
             return jsonify({'success': False, 'error': 'No data provided'}), 400
@@ -770,12 +781,12 @@ def api_recognize_face():
             face_image_data = face_image.split(',')[1]
         else:
             face_image_data = face_image
-        
+
         # Decode the incoming image
         incoming_image_bytes = base64.b64decode(face_image_data)
         incoming_image = Image.open(io.BytesIO(incoming_image_bytes))
         incoming_image_array = np.array(incoming_image)
-        
+
         # Convert to BGR for OpenCV/InsightFace (handle both RGB and RGBA)
         if len(incoming_image_array.shape) == 3:
             if incoming_image_array.shape[2] == 4:
@@ -788,14 +799,14 @@ def api_recognize_face():
                 incoming_image_bgr = incoming_image_array
         else:
             incoming_image_bgr = incoming_image_array
-        
+
         # Initialize InsightFace
         face_app = FaceAnalysis(providers=['CPUExecutionProvider'])
         face_app.prepare(ctx_id=0, det_size=(640, 640))
-        
+
         # Detect faces in incoming image
         incoming_faces = face_app.get(incoming_image_bgr)
-        
+
         if len(incoming_faces) == 0:
             app.logger.warning("No face detected in incoming image")
             return jsonify({
@@ -803,23 +814,23 @@ def api_recognize_face():
                 'recognized': False,
                 'message': 'No face detected. Please position your face clearly in the camera.'
             }), 200
-        
+
         incoming_embedding = incoming_faces[0].embedding
         app.logger.info(f"Face embedding extracted from incoming image")
-        
+
         # Compare with stored faces
         matched_customer = None
         best_similarity = 0.0  # Higher is better for cosine similarity
         MATCH_THRESHOLD = 0.3  # InsightFace similarity threshold (typically 0.25-0.4)
         DUPLICATE_WARNING_THRESHOLD = 0.05  # Warn if multiple matches within 5% similarity
-        
+
         # Track all potential matches
         potential_matches = []
-        
+
         for customer in customers_with_faces:
             if not customer.face_image_url:
                 continue
-            
+
             try:
                 # Extract stored image data
                 stored_image = customer.face_image_url
@@ -827,12 +838,12 @@ def api_recognize_face():
                     stored_image_data = stored_image.split(',')[1]
                 else:
                     stored_image_data = stored_image
-                
+
                 # Decode stored image
                 stored_image_bytes = base64.b64decode(stored_image_data)
                 stored_image_pil = Image.open(io.BytesIO(stored_image_bytes))
                 stored_image_array = np.array(stored_image_pil)
-                
+
                 # Convert to BGR for OpenCV/InsightFace (handle both RGB and RGBA)
                 if len(stored_image_array.shape) == 3:
                     if stored_image_array.shape[2] == 4:
@@ -845,55 +856,55 @@ def api_recognize_face():
                         stored_image_bgr = stored_image_array
                 else:
                     stored_image_bgr = stored_image_array
-                
+
                 # Get face embeddings from stored image
                 stored_faces = face_app.get(stored_image_bgr)
-                
+
                 if len(stored_faces) == 0:
                     app.logger.warning(f"No face embedding in stored image for customer {customer.id}")
                     continue
-                
+
                 stored_embedding = stored_faces[0].embedding
-                
+
                 # Calculate cosine similarity
                 similarity = np.dot(incoming_embedding, stored_embedding) / (
                     np.linalg.norm(incoming_embedding) * np.linalg.norm(stored_embedding)
                 )
-                
+
                 app.logger.info(f"Customer {customer.first_name} {customer.last_name}: similarity={similarity:.4f}")
-                
+
                 # Track all matches above threshold
                 if similarity > MATCH_THRESHOLD:
                     potential_matches.append({
                         'customer': customer,
                         'similarity': similarity
                     })
-                
+
                 # Check if this is the best match so far
                 if similarity > best_similarity:
                     best_similarity = similarity
                     matched_customer = customer
-                    
+
             except Exception as customer_error:
                 app.logger.error(f"Error processing customer {customer.id}: {str(customer_error)}")
                 continue
 
         if matched_customer:
             confidence = best_similarity * 100
-            
+
             # Check for duplicate/similar faces
             duplicate_warning = False
             similar_customers = []
-            
+
             if len(potential_matches) > 1:
                 # Sort by similarity (highest first)
                 sorted_matches = sorted(potential_matches, key=lambda x: x['similarity'], reverse=True)
-                
+
                 # Check if top 2 matches are very close in similarity
                 if len(sorted_matches) >= 2:
                     top_similarity = sorted_matches[0]['similarity']
                     second_similarity = sorted_matches[1]['similarity']
-                    
+
                     if (top_similarity - second_similarity) < DUPLICATE_WARNING_THRESHOLD:
                         duplicate_warning = True
                         similar_customers = [
@@ -905,9 +916,9 @@ def api_recognize_face():
                             for match in sorted_matches[:3]  # Show top 3 matches
                         ]
                         app.logger.warning(f"DUPLICATE FACE DETECTED: Multiple customers with similar faces: {similar_customers}")
-            
+
             app.logger.info(f"Customer recognized: {matched_customer.first_name} {matched_customer.last_name} (confidence: {confidence:.1f}%)")
-            
+
             response = {
                 'success': True,
                 'recognized': True,
@@ -923,13 +934,13 @@ def api_recognize_face():
                 'confidence': f"{confidence:.1f}%",
                 'message': f'Welcome back, {matched_customer.first_name}!'
             }
-            
+
             # Add duplicate warning if detected
             if duplicate_warning:
                 response['duplicate_warning'] = True
                 response['similar_customers'] = similar_customers
                 response['message'] = f'Face matched to {matched_customer.first_name}, but similar faces detected. Please verify customer identity.'
-            
+
             return jsonify(response), 200
         else:
             app.logger.info("No matching face found")
@@ -1087,7 +1098,7 @@ def api_detect_duplicate_faces():
         import io
         from PIL import Image
         import cv2
-        
+
         # Get all customers with face data
         customers_with_faces = Customer.query.filter(
             Customer.face_image_url.isnot(None),
@@ -1104,7 +1115,7 @@ def api_detect_duplicate_faces():
         # Initialize face analysis
         face_app = FaceAnalysis(providers=['CPUExecutionProvider'])
         face_app.prepare(ctx_id=0, det_size=(640, 640))
-        
+
         # Extract embeddings for all customers
         customer_embeddings = []
         for customer in customers_with_faces:
@@ -1114,11 +1125,11 @@ def api_detect_duplicate_faces():
                     stored_image_data = stored_image.split(',')[1]
                 else:
                     stored_image_data = stored_image
-                
+
                 stored_image_bytes = base64.b64decode(stored_image_data)
                 stored_image_pil = Image.open(io.BytesIO(stored_image_bytes))
                 stored_image_array = np.array(stored_image_pil)
-                
+
                 # Convert to BGR
                 if len(stored_image_array.shape) == 3:
                     if stored_image_array.shape[2] == 4:
@@ -1129,7 +1140,7 @@ def api_detect_duplicate_faces():
                         stored_image_bgr = stored_image_array
                 else:
                     stored_image_bgr = stored_image_array
-                
+
                 faces = face_app.get(stored_image_bgr)
                 if len(faces) > 0:
                     customer_embeddings.append({
@@ -1139,20 +1150,20 @@ def api_detect_duplicate_faces():
             except Exception as e:
                 app.logger.warning(f"Could not process face for customer {customer.id}: {e}")
                 continue
-        
+
         # Find duplicates
         duplicates = []
         DUPLICATE_THRESHOLD = 0.6  # High similarity threshold for duplicates
-        
+
         for i in range(len(customer_embeddings)):
             for j in range(i + 1, len(customer_embeddings)):
                 customer1 = customer_embeddings[i]
                 customer2 = customer_embeddings[j]
-                
+
                 similarity = np.dot(customer1['embedding'], customer2['embedding']) / (
                     np.linalg.norm(customer1['embedding']) * np.linalg.norm(customer2['embedding'])
                 )
-                
+
                 if similarity > DUPLICATE_THRESHOLD:
                     duplicates.append({
                         'customer1': {
@@ -1167,7 +1178,7 @@ def api_detect_duplicate_faces():
                         },
                         'similarity': f"{similarity*100:.1f}%"
                     })
-        
+
         return jsonify({
             'success': True,
             'duplicates': duplicates,
