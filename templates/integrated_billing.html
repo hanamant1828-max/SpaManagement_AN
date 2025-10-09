@@ -1125,27 +1125,15 @@ function initializeSearchableDropdowns() {
         width: '100%'
     });
 
-    // Initialize Select2 on all service dropdowns
+    // Service dropdowns - use regular HTML select (no Select2)
     $('select[name="service_ids[]"]').each(function() {
-        $(this).select2({
-            theme: 'bootstrap-5',
-            placeholder: 'Search for service...',
-            allowClear: true,
-            width: '100%'
-        }).on('change', function() {
+        // Just attach change handler, no Select2
+        $(this).on('change', function() {
             handleServiceChange(this);
         });
     });
 
-    // Initialize Select2 on all staff dropdowns
-    $('select[name="staff_ids[]"], select[name="product_staff_ids[]"]').each(function() {
-        $(this).select2({
-            theme: 'bootstrap-5',
-            placeholder: 'Search for staff...',
-            allowClear: true,
-            width: '100%'
-        });
-    });
+    // Staff dropdowns - use regular HTML select (no Select2)
 
     // Initialize Select2 on product dropdowns
     $('select[name="product_ids[]"]').each(function() {
@@ -1921,12 +1909,8 @@ function populateBatchSelect(batches, batchSelect, batchInfo, priceInput) {
 
       const newRow = firstRow.cloneNode(true);
 
-      // 1) Remove any Select2 DOM that was cloned
-      newRow.querySelectorAll('.select2').forEach(el => el.remove());
-      // 2) Restore the selects to a clean state
+      // Clear select values
       newRow.querySelectorAll('select').forEach(sel => {
-        sel.classList.remove('select2-hidden-accessible');
-        sel.removeAttribute('data-select2-id');
         sel.value = '';
       });
 
@@ -1947,18 +1931,12 @@ function populateBatchSelect(batches, batchSelect, batchInfo, priceInput) {
 
       container.appendChild(newRow);
 
-      // Re-init Select2 on the fresh selects in THIS row only
-      $(newRow).find('select[name="service_ids[]"]').select2({
-        theme: 'bootstrap-5', placeholder: 'Search for service...', allowClear: true, width: '100%'
-      }).on('change', function() {
+      // Attach change handler to service dropdown (no Select2)
+      $(newRow).find('select[name="service_ids[]"]').on('change', function() {
         handleServiceChange(this);
       });
-      
-      $(newRow).find('select[name="staff_ids[]"]').select2({
-        theme: 'bootstrap-5', placeholder: 'Search for staff...', allowClear: true, width: '100%'
-      });
 
-      console.log('✅ New service row added without duplicated dropdowns');
+      console.log('✅ New service row added with regular dropdowns');
     }
 
 
@@ -2012,12 +1990,7 @@ function addProductRow() {
         width: '100%'
     });
 
-    $(newRow).find('select[name="product_staff_ids[]"]').select2({
-        theme: 'bootstrap-5',
-        placeholder: 'Search for staff...',
-        allowClear: true,
-        width: '100%'
-    });
+    // Product staff dropdown - use regular HTML select (no Select2)
 
     $(newRow).find('.batch-select').select2({
         theme: 'bootstrap-5',
