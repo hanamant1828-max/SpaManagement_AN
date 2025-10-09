@@ -297,6 +297,25 @@ def delete_client_route(id):
         return redirect(url_for('customers'))
 
     try:
+        customer = get_customer_by_id(id)
+        if not customer:
+            flash('Customer not found.', 'danger')
+            return redirect(url_for('customers'))
+
+        customer_name = f"{customer.first_name} {customer.last_name}"
+
+        # Soft delete
+        customer.is_active = False
+        db.session.commit()
+
+        flash(f'Customer "{customer_name}" deleted successfully.', 'success')
+
+    except Exception as e:
+        db.session.rollback()
+        app.logger.error(f"Customer deletion error: {str(e)}")
+        flash('Error deleting customer. Please try again.', 'danger')
+
+    return redirect(url_for('customers'))
 
 
 @app.route('/api/quick-client', methods=['POST'])
