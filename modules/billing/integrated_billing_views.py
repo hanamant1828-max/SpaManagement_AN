@@ -1248,7 +1248,9 @@ def create_professional_invoice():
             invoice = EnhancedInvoice()
             invoice.invoice_number = invoice_number
             invoice.client_id = int(client_id)
-            invoice.invoice_date = datetime.combine(invoice_date_only, time.min)  # Store as midnight on invoice date
+            # Use datetime class from the import to combine date and time
+            from datetime import datetime as dt
+            invoice.invoice_date = dt.combine(invoice_date_only, time.min)  # Store as midnight on invoice date
             invoice.created_at = ist_now.replace(tzinfo=None)  # Store as naive IST datetime
 
             # Professional billing fields
