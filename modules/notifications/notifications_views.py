@@ -4,6 +4,7 @@ Notifications views and routes
 from flask import render_template, request, redirect, url_for, flash, jsonify
 from flask_login import login_required, current_user
 from app import app
+from models import Communication
 from .notifications_queries import (
     get_recent_communications, get_pending_notifications,
     create_notification, mark_notification_sent, get_clients_for_reminders
