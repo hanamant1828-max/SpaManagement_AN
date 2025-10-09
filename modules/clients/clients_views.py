@@ -379,26 +379,6 @@ def api_quick_create_client():
         app.logger.error(f"Quick client creation error: {str(e)}")
         return jsonify({'success': False, 'error': 'Failed to create customer'}), 500
 
-        customer = get_customer_by_id(id)
-        if not customer:
-            flash('Customer not found.', 'danger')
-            return redirect(url_for('customers'))
-
-        customer_name = f"{customer.first_name} {customer.last_name}"
-
-        # Soft delete
-        customer.is_active = False
-        db.session.commit()
-
-        flash(f'Customer "{customer_name}" deleted successfully.', 'success')
-
-    except Exception as e:
-        db.session.rollback()
-        app.logger.error(f"Customer deletion error: {str(e)}")
-        flash('Error deleting customer. Please try again.', 'danger')
-
-    return redirect(url_for('customers'))
-
 
 @app.route('/clients/<int:id>')
 @login_required
