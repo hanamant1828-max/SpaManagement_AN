@@ -1,0 +1,160 @@
+Here's a **clear prompt for Replit Agent** to fix your multi-booking form:
+
+---
+
+## 🎯 Prompt for Replit Agent
+
+```
+TASK: Redesign the multi-appointment booking form layout
+
+CURRENT ISSUE:
+- Appointments are in a fixed-height scrollable container (.appointments-container)
+- Users must scroll to see multiple appointments
+- Container has max-height: 400px with overflow-y: auto
+
+REQUIRED CHANGES:
+
+1. REMOVE CONTAINER WRAPPER:
+   - Remove the div with class "appointments-container" 
+   - Remove all styling for .appointments-container including:
+     * max-height: 400px
+     * overflow-y: auto
+     * border and padding
+   - Place appointment cards directly in the modal body
+
+2. LAYOUT STRUCTURE:
+   - Appointments should flow naturally without fixed height
+   - No scrollbar should appear
+   - Modal height can increase automatically to fit all appointments
+   - Keep the "Add Another Appointment" button below all cards
+
+3. STYLING REQUIREMENTS:
+   - Remove card-like container background
+   - Keep individual appointment cards with their styling
+   - Maintain spacing between appointment cards (margin-bottom: 16px)
+   - Keep the rounded borders and shadows on individual cards
+   - Ensure modal is scrollable if content exceeds viewport height (body scroll, not container scroll)
+
+4. PRESERVE FUNCTIONALITY:
+   - Keep all existing JavaScript functionality
+   - Maintain dynamic add/remove appointment features
+   - Keep validation and conflict checking
+   - Preserve Select2 dropdowns
+
+VISUAL GOAL:
+- Clean, vertical stack of appointment cards
+- Natural page flow without nested scrolling
+- Modal grows with content
+- Professional appearance with proper spacing
+
+CODE LOCATION:
+Look for:
+- <div class="appointments-container" id="appointmentsContainer">
+- CSS: .appointments-container { max-height: 400px; overflow-y: auto; }
+
+Replace with direct placement of appointment cards without wrapper.
+```
+
+---
+
+## 📋 Specific Instructions for the Developer
+
+If you want to manually make the changes, here's what to modify:
+
+### In HTML (Multi-Book Modal):
+
+**FIND THIS:**
+```html
+<div class="appointments-container" id="appointmentsContainer">
+    <div class="appointment-card">
+        <!-- appointment fields -->
+    </div>
+</div>
+```
+
+**REPLACE WITH:**
+```html
+<div id="appointmentsContainer">
+    <div class="appointment-card">
+        <!-- appointment fields -->
+    </div>
+</div>
+```
+
+### In CSS:
+
+**REMOVE THIS:**
+```css
+.appointments-container {
+    max-height: 400px;
+    overflow-y: auto;
+    border: 2px solid var(--border-color);
+    border-radius: 12px;
+    padding: 16px;
+    background: #fafbfc;
+}
+```
+
+**KEEP ONLY:**
+```css
+#appointmentsContainer {
+    /* No special styling needed - just a container for cards */
+}
+```
+
+### Ensure Modal Can Grow:
+
+**ADD TO MODAL:**
+```css
+.modal-dialog {
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.modal-body {
+    padding: 28px;
+    background: #f8fafc;
+    /* Remove any max-height constraints */
+}
+```
+
+---
+
+## 🎨 Visual Result Expected:
+
+```
+┌─────────────────────────────────────────┐
+│         📅 Book Appointments            │
+├─────────────────────────────────────────┤
+│                                         │
+│  [Select Client dropdown]               │
+│                                         │
+│  ┌──────────────────────────────────┐  │
+│  │ ① Service | Staff | Date | Time  │  │
+│  └──────────────────────────────────┘  │
+│                                         │
+│  ┌──────────────────────────────────┐  │
+│  │ ② Service | Staff | Date | Time  │  │
+│  └──────────────────────────────────┘  │
+│                                         │
+│  ┌──────────────────────────────────┐  │
+│  │ ③ Service | Staff | Date | Time  │  │
+│  └──────────────────────────────────┘  │
+│                                         │
+│  [➕ Add Another Appointment]          │
+│                                         │
+│  Summary: Duration | Price | Staff     │
+│                                         │
+└─────────────────────────────────────────┘
+    [Cancel]  [Book All Appointments]
+```
+
+**No scroll bar inside the modal body - just natural card stacking!**
+
+---
+
+Copy this entire prompt to Replit Agent and it should understand exactly what you need. The key points are:
+- Remove container wrapper
+- No fixed height
+- Natural vertical flow
+- Modal scrolls if needed (not nested container)

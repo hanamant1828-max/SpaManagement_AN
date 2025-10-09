@@ -808,13 +808,24 @@
             }
 
             /* ==================== MODAL STYLES ==================== */
-            .appointments-container {
-                max-height: 400px;
+            .modal-dialog {
+                max-height: 90vh;
+            }
+
+            .modal-dialog.modal-xl {
+                max-width: 1200px;
+            }
+
+            .modal-body {
+                max-height: calc(90vh - 120px);
                 overflow-y: auto;
-                border: 2px solid var(--border-color);
-                border-radius: 12px;
-                padding: 16px;
-                background: #fafbfc;
+            }
+
+            #appointmentsContainer {
+                /* Container for appointment cards - no height restrictions */
+                display: flex;
+                flex-direction: column;
+                gap: 0;
             }
 
             .appointment-card {
@@ -1933,10 +1944,7 @@
                                 >
                             </div>
 
-                            <div
-                                class="appointments-container"
-                                id="appointmentsContainer"
-                            >
+                            <div id="appointmentsContainer">
                                 <div
                                     class="appointment-card multi-appointment-row"
                                     data-appointment-index="0"
