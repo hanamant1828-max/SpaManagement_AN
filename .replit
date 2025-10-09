@@ -2,7 +2,7 @@ modules = ["web", "python-3.11", "nodejs-20", "postgresql-16", "python3"]
 
 [nix]
 channel = "stable-25_05"
-packages = ["boost", "cmake", "fontconfig", "freetype", "gcc", "ghostscript", "glib", "glibcLocales", "harfbuzz", "lapack", "lcms2", "libGL", "libGLU", "libimagequant", "libjpeg", "libpng", "libtiff", "libwebp", "libxcrypt", "oneDNN", "openblas", "openjpeg", "openssl", "pango", "postgresql", "re2", "sqlite", "tcl", "tk", "zlib"]
+packages = ["boost", "cmake", "fontconfig", "freetype", "gcc", "ghostscript", "glib", "glibcLocales", "harfbuzz", "lapack", "lcms2", "libGL", "libGLU", "libimagequant", "libjpeg", "libpng", "libtiff", "libwebp", "libxcrypt", "oneDNN", "openblas", "openjpeg", "openssl", "pango", "postgresql", "re2", "sqlite", "tcl", "tk", "zlib", "pkg-config"]
 
 [deployment]
 deploymentTarget = "autoscale"
