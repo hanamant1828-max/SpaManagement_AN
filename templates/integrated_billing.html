@@ -661,7 +661,7 @@ textarea.form-control {
                         </div>
                         <div class="col-md-6">
                             <div class="form-group">
-                                <label class="form-label">Booked Appointments</label>
+                                <label class="form-label">Booked Appointments111</label>
                                 <div id="customerAppointments" style="max-height: 300px; overflow-y: auto; border: 1px solid var(--gray-300); border-radius: var(--radius); background: white;">
                                     <div style="padding: var(--spacing-md); text-align: center; color: var(--gray-500);">
                                         <small><i class="fas fa-info-circle me-1"></i>Select customer to view appointments</small>
@@ -1608,80 +1608,106 @@ function resetCustomerPackages() {
 }
 
 
-function addAppointmentToBill(appointmentId, serviceName, serviceId, staffId, servicePrice, serviceDuration) {
-    console.log(`Adding appointment ${appointmentId} to bill - Service: ${serviceName}, ServiceID: ${serviceId}, StaffID: ${staffId}, Price: ${servicePrice}`);
+    function addAppointmentToBill(appointmentId, serviceName, serviceId, staffId, servicePrice, serviceDuration) {
+      console.log(`Adding appointment ${appointmentId} to bill`, { serviceName, serviceId, staffId, servicePrice, serviceDuration });
 
-    const container = document.getElementById('servicesContainer');
-    if (!container) {
+      const container = document.getElementById('servicesContainer');
+      if (!container) {
         console.error('Services container not found');
-        return;
-    }
+        return null;
+      }
 
-    // Try to find an existing row for this appointment or add a new one
-    let targetRow = null;
-    const existingRows = container.querySelectorAll('.service-row');
-    for (const row of existingRows) {
-        const appointmentInput = row.querySelector('input[name="appointment_ids[]"]');
-        if (appointmentInput && appointmentInput.dataset.appointmentId == appointmentId) {
-            targetRow = row;
-            break;
+      // normalize inputs
+      const norm = v => (v === undefined || v === null || v === 'null' || v === '' ? null : v);
+      const aId   = norm(appointmentId);
+      const sId   = norm(serviceId);
+      const stId  = norm(staffId);
+      const sPrice= typeof servicePrice === 'number' && !Number.isNaN(servicePrice) ? servicePrice : null;
+      const sDur  = typeof serviceDuration === 'number' && !Number.isNaN(serviceDuration) ? serviceDuration : null;
+
+      // Try to find an existing row for this appointment or add a new one
+      let targetRow = null;
+      for (const row of container.querySelectorAll('.service-row')) {
+        const apptInput = row.querySelector('input[name="appointment_ids[]"]');
+        if (apptInput && apptInput.dataset.appointmentId == aId) {
+          targetRow = row;
+          break;
         }
-    }
+      }
+      if (!targetRow) {
+        addServiceRow(); // appends a new .service-row at the end
+        targetRow = container.lastElementChild;
+      }
 
-    if (!targetRow) {
-        // If no existing row, add a new one
-        addServiceRow(); // This adds a new row at the end
-        targetRow = container.lastElementChild; // Get the newly added row
-    }
+      // Grab controls
+      const serviceSelect     = targetRow.querySelector('select[name="service_ids[]"]');
+      const staffSelect       = targetRow.querySelector('select[name="staff_ids[]"]');
+      const qtyInput          = targetRow.querySelector('input[name="service_quantities[]"]');
+      const apptInput         = targetRow.querySelector('input[name="appointment_ids[]"]');
+      const hiddenPriceInput  = targetRow.querySelector('input[name="service_prices[]"]'); // make sure you added this hidden input
+      const removeBtn         = targetRow.querySelector('.btn-danger');
 
-    // Populate the target row
-    const serviceSelect = targetRow.querySelector('select[name="service_ids[]"]');
-    const staffSelect = targetRow.querySelector('select[name="staff_ids[]"]');
-    const qtyInput = targetRow.querySelector('input[name="service_quantities[]"]');
-    const appointmentInput = targetRow.querySelector('input[name="appointment_ids[]"]');
+      // Set values
+      if (qtyInput) qtyInput.value = 1;
 
-    // Set values from appointment data
-    if (serviceId !== 'null' && serviceSelect) { // Check if serviceId is not null
-        serviceSelect.value = serviceId;
-    }
+      if (apptInput) {
+        apptInput.value = aId ?? '';
+        apptInput.dataset.appointmentId   = aId ?? '';
+        if (sPrice !== null) apptInput.dataset.servicePrice  = String(sPrice);
+        if (sDur   !== null) apptInput.dataset.serviceDuration = String(sDur);
+      }
+        debugger; // ex
+      // Assign service & staff (supports raw selects or Select2)
+      if (serviceSelect && sId !== null) {
+          const setSelectValue = (el, val) => {
+            if (window.jQuery && jQuery.fn.select2 && jQuery(el).hasClass('select2-hidden-accessible')) {
+              jQuery(el).val(String(val)).trigger('change');
+            } else {
+              el.value = String(val);
+              el.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+          };
 
-    if (staffId !== 'null' && staffSelect) { // Check if staffId is not null
-        staffSelect.value = staffId;
-    }
+        setSelectValue(serviceSelect, sId);
+      }
 
-    if (qtyInput) {
-        qtyInput.value = 1; // Default quantity to 1 for appointment
-    }
-
-    if (appointmentInput) {
-        appointmentInput.value = appointmentId;
-        appointmentInput.dataset.appointmentId = appointmentId; // Store ID for tracking
-        appointmentInput.dataset.servicePrice = servicePrice; // Store price for accurate calculation
-        appointmentInput.dataset.serviceDuration = serviceDuration; // Store duration
-        console.log(`✅ Set appointment ID ${appointmentId} in row`);
-    }
-
-    // Mark as added
-    addedAppointmentIds.add(appointmentId);
-    console.log('Tracking added appointment ID:', appointmentId);
-
-    // CRITICAL: Use setTimeout to ensure DOM is fully updated before triggering package calculation
-    setTimeout(() => {
-        if (serviceId !== 'null' && serviceSelect) {
-            console.log('🎯 Triggering service change to apply package benefits for appointment', appointmentId);
-            // Manually trigger handleServiceChange instead of just dispatching event
-            handleServiceChange(serviceSelect);
+      if (staffSelect && stId !== null) {
+        if (window.jQuery && jQuery.fn && jQuery.fn.select2 && jQuery(staffSelect).hasClass('select2-hidden-accessible')) {
+          jQuery(staffSelect).val(String(stId)).trigger('change');
+        } else {
+          staffSelect.value = String(stId);
         }
-        // Force recalculation after package benefits are applied
+      }
+
+      // Mark as added
+      addedAppointmentIds.add(aId);
+      if (removeBtn) removeBtn.style.display = 'block';
+
+      // If appointment price missing, fall back to the service base price for this row
+      if (hiddenPriceInput) {
+        let price = sPrice;
+        if (price === null && serviceSelect && serviceSelect.selectedOptions.length) {
+          price = parseFloat(serviceSelect.selectedOptions[0].dataset.price) || 0;
+        }
+        hiddenPriceInput.value = (price ?? 0).toFixed(2);
+      }
+
+      // Defer calculations until Select2/value updates have flushed
+      requestAnimationFrame(() => {
+        if (serviceSelect) {
+          // Keep handleServiceChange minimal: it should just set row data; real math happens in updateCalculations()
+          handleServiceChange(serviceSelect);
+        }
         updateCalculations();
-    }, 100);
+      });
 
-    // Refresh appointments display to show "Added" button state
-    const clientId = document.getElementById('client_id').value;
-    if (clientId) {
-        loadCustomerAppointments(clientId);
+      // Refresh appointments display to show "Added" state (non-blocking)
+      const clientId = document.getElementById('client_id')?.value;
+      if (clientId) loadCustomerAppointments(clientId);
+
+      return targetRow;
     }
-}
+
 
 function removeAppointmentFromBill(appointmentId) {
     const container = document.getElementById('servicesContainer');
@@ -1885,63 +1911,51 @@ function populateBatchSelect(batches, batchSelect, batchInfo, priceInput) {
 // ==========================================
 // ROW MANAGEMENT
 // ==========================================
-function addServiceRow() {
-    console.log('➕ addServiceRow called');
-    const container = document.getElementById('servicesContainer');
-    const firstRow = container.querySelector('.service-row'); // Get the template row
+    function addServiceRow() {
+      console.log('➕ addServiceRow called');
+      const container = document.getElementById('servicesContainer');
+      const firstRow = container.querySelector('.service-row');
+      if (!firstRow) return;
 
-    if (!firstRow) {
-        console.error('Template service row not found!');
-        return;
+      const newRow = firstRow.cloneNode(true);
+
+      // 1) Remove any Select2 DOM that was cloned
+      newRow.querySelectorAll('.select2').forEach(el => el.remove());
+      // 2) Restore the selects to a clean state
+      newRow.querySelectorAll('select').forEach(sel => {
+        sel.classList.remove('select2-hidden-accessible');
+        sel.removeAttribute('data-select2-id');
+        sel.value = '';
+      });
+
+      // Clear inputs except Qty default
+      newRow.querySelectorAll('input').forEach(inp => {
+        if (inp.name?.includes('quantities')) { inp.value = '1'; }
+        else { inp.value = ''; }
+        if (inp.name === 'appointment_ids[]') {
+          delete inp.dataset.appointmentId;
+          delete inp.dataset.servicePrice;
+          delete inp.dataset.serviceDuration;
+        }
+        inp.classList.remove('is-invalid');
+      });
+
+      const removeButton = newRow.querySelector('.btn-danger');
+      if (removeButton) removeButton.style.display = 'block';
+
+      container.appendChild(newRow);
+
+      // Re-init Select2 on the fresh selects in THIS row only
+      $(newRow).find('select[name="service_ids[]"]').select2({
+        theme: 'bootstrap-5', placeholder: 'Search for service...', allowClear: true, width: '100%'
+      });
+      $(newRow).find('select[name="staff_ids[]"]').select2({
+        theme: 'bootstrap-5', placeholder: 'Search for staff...', allowClear: true, width: '100%'
+      });
+
+      console.log('✅ New service row added without duplicated dropdowns');
     }
 
-    const newRow = firstRow.cloneNode(true); // Clone the template row
-
-    // Destroy Select2 instances in the cloned row if they exist
-    $(newRow).find('.select2-hidden-accessible').each(function() {
-        $(this).select2('destroy');
-    });
-
-    // Clear values in the new row, except for quantity which should default to 1
-    newRow.querySelectorAll('select, input').forEach(input => {
-        input.value = ''; // Clear all select and input values
-        input.classList.remove('is-invalid'); // Remove validation classes
-
-        // Reset quantity input to default value
-        if (input.type === 'number' && input.name.includes('quantities')) {
-            input.value = '1';
-        }
-        // Remove appointment tracking data if present
-        if (input.name.includes('appointment_ids[]')) {
-            delete input.dataset.appointmentId;
-            delete input.dataset.servicePrice;
-            delete input.dataset.serviceDuration;
-        }
-    });
-
-    // Ensure remove button is visible on new rows
-    const removeButton = newRow.querySelector('.btn-danger');
-    if (removeButton) removeButton.style.display = 'block';
-
-    container.appendChild(newRow); // Append the new row
-
-    // Initialize Select2 on the new row's dropdowns
-    $(newRow).find('select[name="service_ids[]"]').select2({
-        theme: 'bootstrap-5',
-        placeholder: 'Search for service...',
-        allowClear: true,
-        width: '100%'
-    });
-
-    $(newRow).find('select[name="staff_ids[]"]').select2({
-        theme: 'bootstrap-5',
-        placeholder: 'Search for staff...',
-        allowClear: true,
-        width: '100%'
-    });
-
-    console.log('✅ New service row added with searchable dropdowns');
-}
 
 function addProductRow() {
     console.log('➕ addProductRow called');
