@@ -432,7 +432,7 @@ function getPackagePrice(packageType, packageData) {
     if (!packageData) return 0;
 
     let price = 0;
-    
+
     switch(packageType) {
         case 'prepaid':
             // Prepaid: actual_price or price or after_value
@@ -464,11 +464,11 @@ function getPackagePrice(packageType, packageData) {
             // Generic fallback: try common field names
             price = parseFloat(packageData.price || packageData.actual_price || packageData.amount || 0);
     }
-    
+
     if (price === 0 && packageData) {
         console.warn(`Warning: Package price is 0 for type ${packageType}. Package data:`, packageData);
     }
-    
+
     return price;
 }
 
@@ -518,30 +518,49 @@ function recalculateTotals() {
 // FORM VALIDATION
 // ============================================================================
 
+// Enable assign button when all required fields are filled
 function validateAssignForm() {
-    const customerId = document.getElementById('customerId').value;
+    const customerSelect = document.getElementById('customerId');
+    const customer = customerSelect?.value;
     const packageType = document.getElementById('packageType').value;
     const packageId = document.getElementById('packageId').value;
     const serviceId = document.getElementById('serviceId').value;
 
+    const btn = document.getElementById('btnAssignAndPay');
+    if (!btn) return;
+
+    console.log('Validation Check:', {
+        customer: customer,
+        packageType: packageType,
+        packageId: packageId,
+        serviceId: serviceId
+    });
+
+    // Customer must be selected and not be the placeholder option
+    const hasValidCustomer = customer && customer !== '' && customer !== 'Select Customer...';
+
     // Base validation: must have customer and package type
-    let isValid = customerId && packageType;
+    let isValid = hasValidCustomer && packageType;
 
     // Package type specific validation - student offers need package ID too
-    if (packageType) {
+    if (packageType && packageType !== 'student_offer') { // Student offers might not need a specific package ID if it's a general type
         isValid = isValid && packageId;
+    } else if (packageType === 'student_offer' && !packageId) {
+        // If student offer is selected, and no specific package ID is required, then packageId check can be skipped for this type
+        // However, if a specific student offer package exists and is selectable, it should be required.
+        // For now, we assume student_offer is a general type and doesn't require a specific package selection from the dropdown.
+        // If a specific student offer package *is* selected, then packageId will be present and isValid will be true for this part.
+        // If packageType is 'student_offer' and no packageId is selected, this part is skipped, and isValid depends on other fields.
     }
+
 
     // Service packages need a service selected
     if (packageType === 'service_package') {
         isValid = isValid && serviceId;
     }
 
-    // Enable/disable submit button
-    const btn = document.getElementById('btnAssignAndPay');
-    if (btn) {
-        btn.disabled = !isValid;
-    }
+    console.log('Form Valid:', isValid);
+    btn.disabled = !isValid;
 }
 
 // ============================================================================
@@ -582,7 +601,7 @@ document.getElementById('btnAssignAndPay').addEventListener('click', async funct
             package_type: packageType,
             // For student offers, package_id might not be directly applicable if it's a general type.
             // Backend should handle this, potentially by not requiring package_id for student_offer type.
-            package_id: (packageType === 'student_offer' && !packageId) ? null : parseInt(packageId),
+            package_id: (packageType === 'student_offer' && !packageId) ? null : (packageId ? parseInt(packageId) : null),
             service_id: serviceId ? parseInt(serviceId) : null,
             price_paid: grandTotal,
             discount: discount,
