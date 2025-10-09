@@ -2680,7 +2680,7 @@
                             <div class="d-flex justify-content-between align-items-start">
                                 <div class="flex-grow-1">
                                     <div class="fw-semibold" style="font-size: 0.9rem;">
-                                        <i class="fas fa-spa me-1" style="color: var(--primary-color);"></i>${apt.service_names}
+                                        <i class="fas fa-spa me-1" style="color: var(--primary-color);"></i>${apt.service_names || apt.service_name || 'Service'}
                                     </div>
                                     <small class="text-muted">
                                         <i class="fas fa-calendar me-1"></i>${formattedDate}
@@ -2737,7 +2737,7 @@
                             <div class="appointment-client">${booking.client_name}</div>
                             <div class="appointment-status"></div>
                         </div>
-                        <div class="appointment-service">${booking.service_names}</div>
+                        <div class="appointment-service">${booking.service_names || booking.service_name || 'Service'}</div>
                         <div class="appointment-footer">
                             <div class="appointment-time">
                                 <i class="fas fa-clock"></i>${booking.start_time}
