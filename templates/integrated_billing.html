@@ -1695,21 +1695,43 @@ function addAppointmentToBill(appointmentId, serviceName, serviceId, staffId, se
         return;
     }
 
-    // Try to find an existing row for this appointment or add a new one
     let targetRow = null;
     const existingRows = container.querySelectorAll('.service-row');
-    for (const row of existingRows) {
-        const appointmentInput = row.querySelector('input[name="appointment_ids[]"]');
-        if (appointmentInput && appointmentInput.dataset.appointmentId == appointmentId) {
-            targetRow = row;
-            break;
+    
+    // ✅ FIX 1: Handle empty container or check if first row is empty
+    if (existingRows.length === 0) {
+        // No rows exist, create the first one
+        addServiceRow();
+        targetRow = container.lastElementChild;
+        console.log('✅ Created first service row (container was empty)');
+    } else {
+        const firstRow = existingRows[0];
+        const firstRowServiceSelect = firstRow.querySelector('select[name="service_ids[]"]');
+        const firstRowAppointmentInput = firstRow.querySelector('input[name="appointment_ids[]"]');
+        const isFirstRowEmpty = !firstRowServiceSelect?.value && !firstRowAppointmentInput?.dataset.appointmentId;
+        
+        if (isFirstRowEmpty) {
+            // ✅ Use the existing empty first row
+            targetRow = firstRow;
+            console.log('✅ Using existing empty first row');
+        } else {
+        // ✅ Check if this appointment is already added
+        for (const row of existingRows) {
+            const appointmentInput = row.querySelector('input[name="appointment_ids[]"]');
+            if (appointmentInput && appointmentInput.dataset.appointmentId == appointmentId) {
+                targetRow = row;
+                console.log('✅ Appointment already in row, updating it');
+                break;
+            }
         }
-    }
-
-    if (!targetRow) {
-        // If no existing row, add a new one
-        addServiceRow(); // This adds a new row at the end
-        targetRow = container.lastElementChild; // Get the newly added row
+        
+        // ✅ Create new row only if appointment not found and first row is filled
+        if (!targetRow) {
+            addServiceRow();
+            targetRow = container.lastElementChild;
+            console.log('✅ Created new service row');
+        }
+        }
     }
 
     // Populate the target row
@@ -1718,39 +1740,66 @@ function addAppointmentToBill(appointmentId, serviceName, serviceId, staffId, se
     const qtyInput = targetRow.querySelector('input[name="service_quantities[]"]');
     const appointmentInput = targetRow.querySelector('input[name="appointment_ids[]"]');
 
+    // ✅ FIX 2: Destroy existing Select2 before setting values to prevent duplicates
+    if ($(serviceSelect).hasClass('select2-hidden-accessible')) {
+        $(serviceSelect).select2('destroy');
+    }
+    if ($(staffSelect).hasClass('select2-hidden-accessible')) {
+        $(staffSelect).select2('destroy');
+    }
+
     // Set values from appointment data
-    if (serviceId !== 'null' && serviceSelect) { // Check if serviceId is not null
+    if (serviceId !== 'null' && serviceSelect) {
         serviceSelect.value = serviceId;
     }
 
-    if (staffId !== 'null' && staffSelect) { // Check if staffId is not null
+    if (staffId !== 'null' && staffSelect) {
         staffSelect.value = staffId;
     }
 
     if (qtyInput) {
-        qtyInput.value = 1; // Default quantity to 1 for appointment
+        qtyInput.value = 1;
     }
 
     if (appointmentInput) {
         appointmentInput.value = appointmentId;
-        appointmentInput.dataset.appointmentId = appointmentId; // Store ID for tracking
-        appointmentInput.dataset.servicePrice = servicePrice; // Store price for accurate calculation
-        appointmentInput.dataset.serviceDuration = serviceDuration; // Store duration
+        appointmentInput.dataset.appointmentId = appointmentId;
+        appointmentInput.dataset.servicePrice = servicePrice;
+        appointmentInput.dataset.serviceDuration = serviceDuration;
         console.log(`✅ Set appointment ID ${appointmentId} in row`);
     }
+
+    // ✅ FIX 3: Re-initialize Select2 AFTER setting values
+    $(serviceSelect).select2({
+        theme: 'bootstrap-5',
+        placeholder: 'Search for service...',
+        allowClear: true,
+        width: '100%'
+    });
+    
+    $(staffSelect).select2({
+        theme: 'bootstrap-5',
+        placeholder: 'Search for staff...',
+        allowClear: true,
+        width: '100%'
+    });
 
     // Mark as added
     addedAppointmentIds.add(appointmentId);
     console.log('Tracking added appointment ID:', appointmentId);
 
+    // ✅ FIX 4: Show/hide remove button appropriately
+    const removeBtn = targetRow.querySelector('.btn-danger');
+    if (removeBtn) {
+        removeBtn.style.display = existingRows.length > 1 || !isFirstRowEmpty ? 'inline-block' : 'none';
+    }
+
     // CRITICAL: Use setTimeout to ensure DOM is fully updated before triggering package calculation
     setTimeout(() => {
         if (serviceId !== 'null' && serviceSelect) {
             console.log('🎯 Triggering service change to apply package benefits for appointment', appointmentId);
-            // Manually trigger handleServiceChange instead of just dispatching event
             handleServiceChange(serviceSelect);
         }
-        // Force recalculation after package benefits are applied
         updateCalculations();
     }, 100);
 
@@ -2221,6 +2270,12 @@ function clearBillingRows() {
     // Reset tracking for added appointments
     addedAppointmentIds.clear();
     console.log('✅ Billing rows cleared and template rows re-added.');
+    
+    // ✅ FIX: Reinitialize Select2 on the new template rows
+    setTimeout(() => {
+        initializeSearchableDropdowns();
+        console.log('✅ Select2 reinitialized after clearing rows');
+    }, 100);
 }
 
 

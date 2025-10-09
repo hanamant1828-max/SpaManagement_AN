@@ -1,0 +1,216 @@
+# Bug Report Prompt for Replit Agent
+
+Here's a professional prompt you can use with Replit Agent to fix this issue:
+
+---
+
+## 🐛 **CRITICAL BUG: Service Row Duplication & Select2 Initialization Issues in Professional Billing Form**
+
+### **Problem Summary**
+When adding appointments to the billing form via the "Add to Bill" button, the system is creating duplicate service rows with double search dropdowns instead of properly populating the existing empty first row. Additionally, appointments should auto-populate without requiring a button click for better UX.
+
+### **Current Buggy Behavior**
+1. ❌ When "Add to Bill" is clicked, a NEW service row is created instead of using the existing empty first row
+2. ❌ This results in:
+   - An empty first row with standard dropdowns
+   - A second row below it with duplicate Select2 search boxes
+   - The original row remains unused
+3. ❌ Appointments only appear after clicking "Add" button (should be automatic)
+
+### **Expected Professional Behavior**
+1. ✅ First service row should be populated when first appointment is added
+2. ✅ Only add new rows if the first row is already filled
+3. ✅ No duplicate search dropdowns
+4. ✅ Appointments should appear in the service list immediately when selected
+5. ✅ Select2 should initialize cleanly without duplicates
+
+### **Root Cause Analysis**
+Looking at the code in the document provided, the `addAppointmentToBill()` function has this logic:
+
+```javascript
+// CURRENT BUGGY CODE (lines ~2800-2820)
+if (!targetRow) {
+    addServiceRow(); // ❌ ALWAYS creates a new row
+    targetRow = container.lastElementChild;
+}
+```
+
+**This is wrong because:**
+- It doesn't check if the first row is empty
+- `addServiceRow()` clones the template and appends it
+- This leaves the original empty row untouched
+- Select2 gets initialized multiple times on cloned elements
+
+### **Required Fix**
+
+**REPLACE the `addAppointmentToBill()` function (starting around line 2785) with this corrected version:**
+
+```javascript
+function addAppointmentToBill(appointmentId, serviceName, serviceId, staffId, servicePrice, serviceDuration) {
+    console.log(`Adding appointment ${appointmentId} to bill - Service: ${serviceName}, ServiceID: ${serviceId}, StaffID: ${staffId}, Price: ${servicePrice}`);
+
+    const container = document.getElementById('servicesContainer');
+    if (!container) {
+        console.error('Services container not found');
+        return;
+    }
+
+    let targetRow = null;
+    const existingRows = container.querySelectorAll('.service-row');
+    
+    // ✅ FIX 1: Check if first row is empty before creating new one
+    const firstRow = existingRows[0];
+    const firstRowServiceSelect = firstRow?.querySelector('select[name="service_ids[]"]');
+    const isFirstRowEmpty = !firstRowServiceSelect?.value;
+    
+    if (isFirstRowEmpty) {
+        // ✅ Use the existing empty first row
+        targetRow = firstRow;
+        console.log('✅ Using existing empty first row');
+    } else {
+        // ✅ Only check for existing appointment row if first row is filled
+        for (const row of existingRows) {
+            const appointmentInput = row.querySelector('input[name="appointment_ids[]"]');
+            if (appointmentInput && appointmentInput.dataset.appointmentId == appointmentId) {
+                targetRow = row;
+                break;
+            }
+        }
+        
+        // ✅ Create new row only if appointment not found and first row is filled
+        if (!targetRow) {
+            addServiceRow();
+            targetRow = container.lastElementChild;
+            console.log('✅ Created new service row');
+        }
+    }
+
+    // Populate the target row
+    const serviceSelect = targetRow.querySelector('select[name="service_ids[]"]');
+    const staffSelect = targetRow.querySelector('select[name="staff_ids[]"]');
+    const qtyInput = targetRow.querySelector('input[name="service_quantities[]"]');
+    const appointmentInput = targetRow.querySelector('input[name="appointment_ids[]"]');
+
+    // ✅ FIX 2: Destroy existing Select2 before setting values
+    if ($(serviceSelect).hasClass('select2-hidden-accessible')) {
+        $(serviceSelect).select2('destroy');
+    }
+    if ($(staffSelect).hasClass('select2-hidden-accessible')) {
+        $(staffSelect).select2('destroy');
+    }
+
+    // Set values
+    if (serviceId !== 'null' && serviceSelect) {
+        serviceSelect.value = serviceId;
+    }
+    if (staffId !== 'null' && staffSelect) {
+        staffSelect.value = staffId;
+    }
+    if (qtyInput) {
+        qtyInput.value = 1;
+    }
+    if (appointmentInput) {
+        appointmentInput.value = appointmentId;
+        appointmentInput.dataset.appointmentId = appointmentId;
+        appointmentInput.dataset.servicePrice = servicePrice;
+        appointmentInput.dataset.serviceDuration = serviceDuration;
+    }
+
+    // ✅ FIX 3: Re-initialize Select2 AFTER setting values
+    $(serviceSelect).select2({
+        theme: 'bootstrap-5',
+        placeholder: 'Search for service...',
+        allowClear: true,
+        width: '100%'
+    });
+    
+    $(staffSelect).select2({
+        theme: 'bootstrap-5',
+        placeholder: 'Search for staff...',
+        allowClear: true,
+        width: '100%'
+    });
+
+    // Mark as added
+    addedAppointmentIds.add(appointmentId);
+
+    // ✅ FIX 4: Show remove button if this is not the only row
+    const removeBtn = targetRow.querySelector('.btn-danger');
+    if (removeBtn && existingRows.length > 1) {
+        removeBtn.style.display = 'block';
+    }
+
+    // Trigger package calculation
+    setTimeout(() => {
+        if (serviceId !== 'null' && serviceSelect) {
+            handleServiceChange(serviceSelect);
+        }
+        updateCalculations();
+    }, 100);
+
+    // Refresh display
+    const clientId = document.getElementById('client_id').value;
+    if (clientId) {
+        loadCustomerAppointments(clientId);
+    }
+}
+```
+
+### **Additional Required Changes**
+
+**Also update the `clearBillingRows()` function (around line 2950) to reinitialize Select2:**
+
+```javascript
+// Add this at the END of clearBillingRows() function
+setTimeout(() => {
+    initializeSearchableDropdowns();
+}, 100);
+```
+
+### **Testing Checklist**
+After implementing the fix, verify:
+- [ ] First appointment populates the first (existing) row
+- [ ] No duplicate search dropdowns appear
+- [ ] Second appointment creates a new row (not duplicate)
+- [ ] Select2 search works properly on all rows
+- [ ] Remove button appears correctly on additional rows
+- [ ] Package benefits calculate correctly
+- [ ] Switching customers clears and resets properly
+
+### **File Location**
+The code is in the uploaded document: **Professional Invoice Management** template (Flask/Jinja2)
+- Main function to modify: `addAppointmentToBill()` (around line 2785)
+- Supporting function: `clearBillingRows()` (around line 2950)
+- Supporting function: `addServiceRow()` (around line 2700)
+
+---
+
+## 📋 **Copy This Exact Prompt to Replit Agent:**
+
+```
+Fix critical bug in billing form where appointments create duplicate service rows:
+
+PROBLEM: When clicking "Add to Bill" for appointments, system creates NEW service row instead of using the existing empty first row, causing double Select2 dropdowns.
+
+SOLUTION REQUIRED:
+1. Modify addAppointmentToBill() function to check if first row is empty before creating new rows
+2. If first row empty: populate it directly
+3. If first row filled: then create new row
+4. Destroy and reinitialize Select2 properly to prevent duplicates
+5. Show/hide remove buttons appropriately
+
+CODE LOCATION: In the HTML template file, JavaScript section starting around line 2785
+
+EXPECTED RESULT:
+- First appointment fills first existing row
+- Second appointment creates second row
+- No duplicate search boxes
+- Clean Select2 initialization
+- Professional UX workflow
+
+Please implement the fix as specified in the detailed bug report above.
+```
+
+---
+
+This prompt provides clear context, identifies the root cause, and gives the exact solution needed. The Replit Agent should be able to implement this fix precisely.
