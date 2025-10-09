@@ -135,7 +135,7 @@ function initializeApp() {
     const isFacePage = window.location.pathname.includes('/staff') || 
                        window.location.pathname.includes('/customers') ||
                        window.location.pathname.includes('/face');
-    
+
     if (isFacePage) {
         initializeFaceCapture();
     }
@@ -186,7 +186,7 @@ function initializeFaceCapture() {
                            window.location.pathname.includes('/clients') ||
                            window.location.pathname.includes('/staff') ||
                            window.location.pathname.includes('/comprehensive_staff');
-    
+
     if (!isRelevantPage) {
         return; // Not on a relevant page, skip initialization
     }
@@ -196,25 +196,25 @@ function initializeFaceCapture() {
     // Set up event listeners for tab switching - only initialize when Face Recognition tab is shown
     document.addEventListener('shown.bs.tab', function(event) {
         const targetTab = event.target.getAttribute('data-bs-target') || event.target.getAttribute('href');
-        
+
         if (targetTab === '#face-capture') {
             console.log('Face capture tab activated');
-            
+
             // Small delay to ensure DOM is ready
             setTimeout(() => {
                 const faceVideo = document.getElementById('faceVideo');
                 const faceCanvas = document.getElementById('faceCanvas');
                 const startBtn = document.getElementById('startFaceCamera');
-                
+
                 if (faceVideo && faceCanvas && startBtn) {
                     console.log('✅ Face capture elements found, initializing...');
-                    
+
                     // Set up the start camera button click handler
                     startBtn.onclick = function() {
                         console.log('Start face camera button clicked');
                         startFaceCameraForTab();
                     };
-                    
+
                     console.log('✅ Face capture initialized successfully');
                 } else {
                     console.warn('❌ Face capture elements not found:', {
@@ -2915,18 +2915,6 @@ function handleStaffFormSubmit(event) {
     });
 }
 
-// Face recognition functionality
-let video, canvas, context;
-let isRecognizing = false;
-
-// Make bookAppointmentFromModal globally available immediately
-window.bookAppointmentFromModal = bookAppointmentFromModal;
-
-// Export functions globally to avoid conflicts
-window.editCustomer = editCustomer;
-window.viewCustomer = viewCustomer;
-window.bookAppointment = bookAppointment;
-
 // Service management functions
 function editService(serviceId) {
     console.log('Editing service:', serviceId);
@@ -3126,4 +3114,18 @@ function addUnakiAppointmentToBill(appointmentId, serviceName, servicePrice, sta
 
     updateTaxCalculations();
     showNotification(`Service added to bill! Appointment ID: ${appointmentId}`, 'success');
+}
+
+function handleCustomerChange(customerId) {
+    console.log('Customer changed to:', customerId);
+
+    // Reset appointment tracking when customer changes
+    window.addedAppointmentIds = [];
+    console.log('🔄 Reset appointment tracking for new customer');
+
+    // Clear existing appointment appointments when customer changes
+    const appointmentsList = document.getElementById('customerAppointments');
+    if (appointmentsList) {
+        appointmentsList.innerHTML = '<div class="text-center text-muted py-3"><i class="fas fa-spinner fa-spin me-2"></i>Loading appointments...</div>';
+    }
 }
