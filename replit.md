@@ -11,8 +11,21 @@ This is a comprehensive **Spa & Salon Management System** built with Flask and P
 - Use Bootstrap for UI components
 - Implement proper error handling and logging
 
+## Recent Changes (October 9, 2025)
+### Integrated Billing Form - Critical Bug Fixes ✅ (Latest)
+- **Duplicate Service Rows Fix**: Fixed appointment-to-bill feature that always created new rows instead of reusing empty first row
+- **Double Select2 Dropdowns Fix**: Properly destroy and reinitialize Select2 on cloned rows to prevent duplicate dropdown rendering
+- **JavaScript Injection Vulnerability Fix**: Migrated from inline onclick strings to secure data attributes for appointment buttons - fixes service names with quotes/special chars (e.g., "Women's Spa")
+- **Empty Container Edge Case**: addServiceRow() now synthesizes template row from scratch when container is completely empty (no UI deadlock)
+- **Last Row Protection**: removeRow() prevents deletion of last row by clearing it instead, maintaining form usability
+- **Variable Scope Bug Fix**: Fixed ReferenceError in addAppointmentToBill() where isFirstRowEmpty variable was accessed outside its scope
+- **Smart Row Reuse**: addAppointmentToBill() intelligently detects empty rows and reuses them before creating new ones
+- **Architect Review**: All 7 bugs fixed and approved - complete edge case coverage, security vulnerability closed, no regressions
+- **Production Ready**: Billing form fully functional with robust error handling and security improvements
+- **Documentation**: Comprehensive bug report created in `BILLING_FORM_BUG_FIXES.md` with testing scenarios
+
 ## Recent Changes (October 8, 2025)
-### InsightFace-Based Face Recognition System Migration ✅ (Latest)
+### InsightFace-Based Face Recognition System Migration ✅
 - **Technology Migration**: Migrated from dlib/face_recognition to InsightFace + ONNXRuntime for improved accuracy and easier installation
 - **RGBA Color Channel Support**: Fixed critical color conversion bug - browser webcam captures send RGBA (4-channel) images, now properly converted to BGR for InsightFace processing
 - **Face Registration**: Updated `/api/save_face` endpoint to use InsightFace FaceAnalysis for face detection and embedding extraction

@@ -1797,7 +1797,11 @@ function addAppointmentToBill(appointmentId, serviceName, serviceId, staffId, se
     // ✅ FIX 4: Show/hide remove button appropriately
     const removeBtn = targetRow.querySelector('.btn-danger');
     if (removeBtn) {
-        removeBtn.style.display = existingRows.length > 1 || !isFirstRowEmpty ? 'inline-block' : 'none';
+        // Check if this is the only row and if it's now filled (has appointment ID or service selected)
+        const updatedRows = container.querySelectorAll('.service-row');
+        const rowHasData = targetRow.querySelector('select[name="service_ids[]"]')?.value || 
+                          targetRow.querySelector('input[name="appointment_ids[]"]')?.dataset.appointmentId;
+        removeBtn.style.display = updatedRows.length > 1 || rowHasData ? 'inline-block' : 'none';
     }
 
     // CRITICAL: Use setTimeout to ensure DOM is fully updated before triggering package calculation
