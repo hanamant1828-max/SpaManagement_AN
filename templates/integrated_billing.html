@@ -1117,14 +1117,14 @@ document.addEventListener('DOMContentLoaded', function() {
 // SEARCHABLE DROPDOWNS (SELECT2)
 // ==========================================
 function initializeSearchableDropdowns() {
-    // Initialize Select2 on customer dropdown
+    // Customer dropdown - use Select2 for search by name/phone
     $('#client_id').select2({
         theme: 'bootstrap-5',
-        placeholder: 'Search for customer...',
+        placeholder: 'Search customer by name or phone...',
         allowClear: true,
         width: '100%'
     });
-
+    
     // Service dropdowns - use regular HTML select (no Select2)
     $('select[name="service_ids[]"]').each(function() {
         // Just attach change handler, no Select2
