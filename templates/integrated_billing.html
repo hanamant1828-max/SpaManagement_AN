@@ -1696,6 +1696,13 @@ function resetCustomerPackages() {
 function addAppointmentToBill(appointmentId, serviceName, serviceId, staffId, servicePrice, serviceDuration) {
     console.log(`Adding appointment ${appointmentId} to bill - Service: ${serviceName}, ServiceID: ${serviceId}, StaffID: ${staffId}, Price: ${servicePrice}`);
 
+    // ✅ CRITICAL: Check if appointment is already added FIRST
+    if (addedAppointmentIds.has(appointmentId)) {
+        console.log('⚠️ Appointment already added, skipping:', appointmentId);
+        showNotification(`Appointment #${appointmentId} is already in the bill`, 'warning', 3000);
+        return; // Exit early to prevent duplicate
+    }
+
     const container = document.getElementById('servicesContainer');
     if (!container) {
         console.error('Services container not found');
@@ -1705,39 +1712,30 @@ function addAppointmentToBill(appointmentId, serviceName, serviceId, staffId, se
     let targetRow = null;
     const existingRows = container.querySelectorAll('.service-row');
 
-    // ✅ FIX 1: Handle empty container or check if first row is empty
+    // Strategy: Find first truly empty row, or create a new one
     if (existingRows.length === 0) {
-        // No rows exist, create the first one
         addServiceRow();
         targetRow = container.lastElementChild;
         console.log('✅ Created first service row (container was empty)');
     } else {
-        const firstRow = existingRows[0];
-        const firstRowServiceSelect = firstRow.querySelector('select[name="service_ids[]"]');
-        const firstRowAppointmentInput = firstRow.querySelector('input[name="appointment_ids[]"]');
-        const isFirstRowEmpty = !firstRowServiceSelect?.value && !firstRowAppointmentInput?.dataset.appointmentId;
-
-        if (isFirstRowEmpty) {
-            // ✅ Use the existing empty first row
-            targetRow = firstRow;
-            console.log('✅ Using existing empty first row');
-        } else {
-        // ✅ Check if this appointment is already added
+        // Look for an empty row (no service AND no appointment ID)
         for (const row of existingRows) {
+            const serviceSelect = row.querySelector('select[name="service_ids[]"]');
             const appointmentInput = row.querySelector('input[name="appointment_ids[]"]');
-            if (appointmentInput && appointmentInput.dataset.appointmentId == appointmentId) {
+            const isEmpty = !serviceSelect?.value && !appointmentInput?.dataset.appointmentId;
+            
+            if (isEmpty) {
                 targetRow = row;
-                console.log('✅ Appointment already in row, updating it');
+                console.log('✅ Found empty row, reusing it');
                 break;
             }
         }
-
-        // ✅ Create new row only if appointment not found and first row is filled
+        
+        // If no empty row found, create a new one
         if (!targetRow) {
             addServiceRow();
             targetRow = container.lastElementChild;
-            console.log('✅ Created new service row');
-        }
+            console.log('✅ Created new service row (all existing rows filled)');
         }
     }
 
@@ -1747,7 +1745,7 @@ function addAppointmentToBill(appointmentId, serviceName, serviceId, staffId, se
     const qtyInput = targetRow.querySelector('input[name="service_quantities[]"]');
     const appointmentInput = targetRow.querySelector('input[name="appointment_ids[]"]');
 
-    // ✅ FIX 2: Destroy existing Select2 before setting values to prevent duplicates
+    // ✅ Destroy existing Select2 to prevent duplicates
     if ($(serviceSelect).hasClass('select2-hidden-accessible')) {
         $(serviceSelect).select2('destroy');
     }
@@ -1776,7 +1774,7 @@ function addAppointmentToBill(appointmentId, serviceName, serviceId, staffId, se
         console.log(`✅ Set appointment ID ${appointmentId} in row`);
     }
 
-    // ✅ FIX 3: Re-initialize Select2 AFTER setting values
+    // ✅ Re-initialize Select2 AFTER setting values
     $(serviceSelect).select2({
         theme: 'bootstrap-5',
         placeholder: 'Search for service...',
@@ -1791,34 +1789,36 @@ function addAppointmentToBill(appointmentId, serviceName, serviceId, staffId, se
         width: '100%'
     });
 
-    // Mark as added
+    // ✅ Mark as added BEFORE updating UI (prevents race conditions)
     addedAppointmentIds.add(appointmentId);
-    console.log('Tracking added appointment ID:', appointmentId);
+    console.log('✅ Marked appointment as added:', appointmentId);
 
-    // ✅ FIX 4: Show/hide remove button appropriately
+    // Show/hide remove button
     const removeBtn = targetRow.querySelector('.btn-danger');
     if (removeBtn) {
-        // Check if this is the only row and if it's now filled (has appointment ID or service selected)
-        const updatedRows = container.querySelectorAll('.service-row');
-        const rowHasData = targetRow.querySelector('select[name="service_ids[]"]')?.value ||
+        const allRows = container.querySelectorAll('.service-row');
+        const rowHasData = targetRow.querySelector('select[name="service_ids[]"]')?.value || 
                           targetRow.querySelector('input[name="appointment_ids[]"]')?.dataset.appointmentId;
-        removeBtn.style.display = updatedRows.length > 1 || rowHasData ? 'inline-block' : 'none';
+        removeBtn.style.display = allRows.length > 1 || rowHasData ? 'inline-block' : 'none';
     }
 
-    // CRITICAL: Use setTimeout to ensure DOM is fully updated before triggering package calculation
+    // Apply package benefits and update calculations
     setTimeout(() => {
         if (serviceId !== 'null' && serviceSelect) {
-            console.log('🎯 Triggering service change to apply package benefits for appointment', appointmentId);
+            console.log('🎯 Triggering service change for appointment', appointmentId);
             handleServiceChange(serviceSelect);
         }
         updateCalculations();
     }, 100);
 
-    // Refresh appointments display to show "Added" button state
+    // ✅ Refresh appointments display to show "Added" button state
     const clientId = document.getElementById('client_id').value;
     if (clientId) {
         loadCustomerAppointments(clientId);
     }
+    
+    // ✅ Show success notification
+    showNotification(`Appointment #${appointmentId} added to bill`, 'success', 2000);
 }
 
 function removeAppointmentFromBill(appointmentId) {
