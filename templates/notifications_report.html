@@ -140,29 +140,19 @@
                                 <tr>
                                     <td>{{ msg.created_at.strftime('%Y-%m-%d %I:%M %p') if msg.created_at else 'N/A' }}</td>
                                     <td>
-                                        {% if msg.client_id %}
-                                            {% set client = namespace(obj=None) %}
-                                            {% for c in messages %}
-                                                {% if c.client_id == msg.client_id and c.client %}
-                                                    {% set client.obj = c.client %}
-                                                    {% break %}
-                                                {% endif %}
-                                            {% endfor %}
-                                            {{ client.obj.full_name if client.obj else 'N/A' }}
+                                        {% if msg.client_first_name and msg.client_last_name %}
+                                            {{ msg.client_first_name }} {{ msg.client_last_name }}
+                                        {% elif msg.client %}
+                                            {{ msg.client.full_name }}
                                         {% else %}
                                             N/A
                                         {% endif %}
                                     </td>
                                     <td>
-                                        {% if msg.client_id %}
-                                            {% set client = namespace(obj=None) %}
-                                            {% for c in messages %}
-                                                {% if c.client_id == msg.client_id and c.client %}
-                                                    {% set client.obj = c.client %}
-                                                    {% break %}
-                                                {% endif %}
-                                            {% endfor %}
-                                            {{ client.obj.phone if client.obj and client.obj.phone else 'N/A' }}
+                                        {% if msg.client_phone %}
+                                            {{ msg.client_phone }}
+                                        {% elif msg.client and msg.client.phone %}
+                                            {{ msg.client.phone }}
                                         {% else %}
                                             N/A
                                         {% endif %}
