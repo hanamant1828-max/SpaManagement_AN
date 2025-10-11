@@ -39,8 +39,17 @@ class AppointmentContextMenu {
                     <li class="context-menu-item" data-action="billing">
                         <i class="fas fa-dollar-sign"></i> Go to Billing
                     </li>
+                    <li class="context-menu-item" data-action="book_new">
+                        <i class="fas fa-calendar-plus"></i> Book New Appointment
+                    </li>
+                    <li class="context-menu-item" data-action="assign_pay">
+                        <i class="fas fa-handshake"></i> Assign & Pay
+                    </li>
+                    <li class="context-menu-item" data-action="client_management">
+                        <i class="fas fa-users"></i> View Client Management
+                    </li>
                     <li class="context-menu-divider"></li>
-                    <li class="context-menu-item" data-action="cancel">
+                    <li class="context-menu-item danger" data-action="cancel">
                         <i class="fas fa-times-circle"></i> Cancel Appointment
                     </li>
                 </ul>
@@ -241,6 +250,15 @@ class AppointmentContextMenu {
             case 'billing':
                 this.goToBilling(this.currentAppointmentId);
                 break;
+            case 'book_new':
+                this.bookNewAppointment(this.currentAppointmentId);
+                break;
+            case 'assign_pay':
+                this.goToAssignAndPay(this.currentAppointmentId);
+                break;
+            case 'client_management':
+                this.goToClientManagement(this.currentAppointmentId);
+                break;
             case 'delete':
                 this.deleteAppointment(this.currentAppointmentId);
                 break;
@@ -339,7 +357,7 @@ class AppointmentContextMenu {
 
         // Use the Unaki-specific API endpoint to get booking details
         fetch(`/api/unaki/bookings/${appointmentId}`)
-            .then(response => response.json())
+            .then(r=>r.json())
             .then(data => {
                 if (data.success && data.booking) {
                     const booking = data.booking;
@@ -361,6 +379,87 @@ class AppointmentContextMenu {
             .catch(error => {
                 console.error('Error getting booking details:', error);
                 this.showToast('Error loading booking details. Please try again.', 'error');
+            });
+    }
+
+    bookNewAppointment(appointmentId) {
+        console.log(`Opening booking page from appointment ${appointmentId}`);
+
+        // Fetch appointment details to pre-fill customer info
+        fetch(`/api/unaki/bookings/${appointmentId}`)
+            .then(r=>r.json())
+            .then(data => {
+                if (data.success && data.booking) {
+                    const booking = data.booking;
+                    // Redirect to booking page with customer pre-selected
+                    if (booking.client_id) {
+                        window.location.href = `/unaki-booking?customer_id=${booking.client_id}`;
+                    } else {
+                        window.location.href = `/unaki-booking`;
+                    }
+                } else {
+                    window.location.href = `/unaki-booking`;
+                }
+            })
+            .catch(error => {
+                console.error('Error loading booking page:', error);
+                window.location.href = `/unaki-booking`;
+            });
+    }
+
+    goToAssignAndPay(appointmentId) {
+        console.log(`Redirecting to Assign & Pay for appointment ${appointmentId}`);
+
+        // Fetch appointment details to get customer ID
+        fetch(`/api/unaki/bookings/${appointmentId}`)
+            .then(r=>r.json())
+            .then(data => {
+                if (data.success && data.booking) {
+                    const booking = data.booking;
+                    if (booking.client_id) {
+                        // Redirect to assign packages page with customer pre-selected
+                        window.location.href = `/packages/assign?customer_id=${booking.client_id}`;
+                    } else {
+                        this.showToast('Customer information not available. Please assign from packages page.', 'warning');
+                        window.location.href = `/packages/assign`;
+                    }
+                } else {
+                    this.showToast('Failed to load appointment details.', 'error');
+                    window.location.href = `/packages/assign`;
+                }
+            })
+            .catch(error => {
+                console.error('Error loading assign & pay:', error);
+                this.showToast('Error loading assign & pay page.', 'error');
+                window.location.href = `/packages/assign`;
+            });
+    }
+
+    goToClientManagement(appointmentId) {
+        console.log(`Redirecting to Client Management for appointment ${appointmentId}`);
+
+        // Fetch appointment details to get customer ID
+        fetch(`/api/unaki/bookings/${appointmentId}`)
+            .then(r=>r.json())
+            .then(data => {
+                if (data.success && data.booking) {
+                    const booking = data.booking;
+                    if (booking.client_id) {
+                        // Redirect to customers page with customer highlighted
+                        window.location.href = `/clients?customer_id=${booking.client_id}`;
+                    } else {
+                        this.showToast('Customer information not available.', 'warning');
+                        window.location.href = `/clients`;
+                    }
+                } else {
+                    this.showToast('Failed to load appointment details.', 'error');
+                    window.location.href = `/clients`;
+                }
+            })
+            .catch(error => {
+                console.error('Error loading client management:', error);
+                this.showToast('Error loading client management page.', 'error');
+                window.location.href = `/clients`;
             });
     }
 
