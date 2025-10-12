@@ -188,6 +188,21 @@ def alerts():
             InventoryBatch.qty_available > 0
         ).order_by(InventoryBatch.expiry_date.asc()).all()
 
+        # Get low stock items (products with total_stock <= 10)
+        all_products = InventoryProduct.query.filter_by(is_active=True).all()
+        low_stock_items = []
+        for product in all_products:
+            if 0 < product.total_stock <= 10:
+                low_stock_items.append({
+                    'name': product.name,
+                    'description': product.description,
+                    'category': product.category.name if product.category else 'Uncategorized',
+                    'current_stock': product.total_stock,
+                    'min_stock_level': 10,  # Default threshold
+                    'supplier_name': None,
+                    'supplier_contact': None
+                })
+
         # Get low stock items (product-wise)
         low_stock_items = []
         products = InventoryProduct.query.filter(InventoryProduct.is_active == True).all()
