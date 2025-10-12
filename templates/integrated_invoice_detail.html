@@ -309,6 +309,11 @@
                     </div>
                     <div class="card-body">
                         <div class="d-grid gap-2">
+                            <!-- Edit Invoice -->
+                            <a href="{{ url_for('edit_integrated_invoice', invoice_id=invoice.id) }}" class="btn btn-warning">
+                                <i class="fas fa-edit me-2"></i>Edit Invoice
+                            </a>
+                            
                             <!-- Print Invoice -->
                             <a href="{{ url_for('print_professional_invoice', invoice_id=invoice.id) }}" target="_blank" class="btn btn-primary">
                                 <i class="fas fa-print me-2"></i>Print Invoice
