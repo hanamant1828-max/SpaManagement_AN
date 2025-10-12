@@ -191,6 +191,14 @@
 
                     {% if true %}
                     <li class="nav-item">
+                        <a class="nav-link text-white" href="{{ url_for('inventory_reports') }}">
+                            <i class="fas fa-chart-line me-2"></i><span>Inventory Reports</span>
+                        </a>
+                    </li>
+                    {% endif %}
+
+                    {% if true %}
+                    <li class="nav-item">
                         <a class="nav-link text-white" href="{{ url_for('alerts') }}">
                             <i class="fas fa-bell me-2"></i><span>Product Alerts</span>
                         </a>
