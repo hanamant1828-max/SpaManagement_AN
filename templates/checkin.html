@@ -22,6 +22,7 @@
 .camera-container {
     background: #f8f9fa;
     min-height: 400px;
+    height: 400px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -33,6 +34,7 @@
     width: 100%;
     height: 400px;
     object-fit: cover;
+    display: block;
 }
 
 .camera-overlay {
@@ -252,7 +254,7 @@
                                             {% elif appointment.status == 'confirmed' %}
                                             <span class="badge bg-info">Confirmed</span>
                                             {% elif appointment.status == 'in_progress' %}
-                                            <span class="badge bg-success">In Progress</span>
+                                            <span class="badge bg-primary">In Progress</span>
                                             {% elif appointment.status == 'completed' %}
                                             <span class="badge bg-success">Completed</span>
                                             {% endif %}
@@ -265,8 +267,10 @@
                                                     Check In
                                                 </button>
                                             </form>
+                                            {% elif appointment.status == 'in_progress' %}
+                                            <span class="badge bg-primary">Checked In</span>
                                             {% else %}
-                                            <span class="badge bg-success">Checked In</span>
+                                            <span class="badge bg-secondary">{{ appointment.status.title() }}</span>
                                             {% endif %}
                                         </td>
                                     </tr>
@@ -362,20 +366,28 @@ async function startFaceRecognition() {
         console.log('Step 1: Checking camera API availability...');
 
         if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-            throw new Error('Camera API not available in this browser');
+            throw new Error('Camera API not available in this browser. Please use Chrome, Firefox, or Safari.');
         }
         console.log('✅ Camera API available');
 
         console.log('Step 2: Requesting camera access...');
 
-        // Request camera access
-        checkinStream = await navigator.mediaDevices.getUserMedia({ 
-            video: { 
-                width: { ideal: 640 },
-                height: { ideal: 480 },
-                facingMode: 'user'
-            } 
-        });
+        // Request camera access with fallback
+        try {
+            checkinStream = await navigator.mediaDevices.getUserMedia({ 
+                video: { 
+                    width: { ideal: 640 },
+                    height: { ideal: 480 },
+                    facingMode: 'user'
+                } 
+            });
+        } catch (videoError) {
+            // Try with basic constraints if ideal fails
+            console.log('Trying basic camera constraints...');
+            checkinStream = await navigator.mediaDevices.getUserMedia({ 
+                video: true 
+            });
+        }
 
         console.log('✅ Camera access granted!');
         console.log('Stream details:', checkinStream);

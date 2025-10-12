@@ -10,6 +10,9 @@ from .checkin_queries import (
     get_client_by_phone, get_client_appointments_today
 )
 
+# Import face recognition API
+from . import face_recognition_api
+
 @app.route('/checkin')
 @login_required
 def checkin():

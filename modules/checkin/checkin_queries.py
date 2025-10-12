@@ -22,8 +22,15 @@ def check_in_appointment(appointment_id):
     """Check in an appointment"""
     appointment = Appointment.query.get(appointment_id)
     if appointment:
-        appointment.status = 'checked_in'
-        appointment.checked_in_at = datetime.utcnow()
+        # Update status to in_progress when checking in
+        appointment.status = 'in_progress'
+        # Store check-in time in notes if no dedicated field
+        if not hasattr(appointment, 'checked_in_at'):
+            current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            if appointment.notes:
+                appointment.notes += f"\nChecked in at: {current_time}"
+            else:
+                appointment.notes = f"Checked in at: {current_time}"
         db.session.commit()
     return appointment
 

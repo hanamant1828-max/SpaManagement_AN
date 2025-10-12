@@ -11,5 +11,9 @@ print("✅ Billing reports views imported")
 from modules.clients.clients_views import *
 print("✅ Clients views imported")
 
+from modules.checkin import checkin_views
+from modules.checkin import face_recognition_api
+print("✅ Checkin views imported")
+
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)
