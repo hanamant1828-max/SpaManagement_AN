@@ -195,32 +195,13 @@ def alerts():
             if 0 < product.total_stock <= 10:
                 low_stock_items.append({
                     'name': product.name,
-                    'description': product.description,
+                    'description': product.description or '',
                     'category': product.category.name if product.category else 'Uncategorized',
                     'current_stock': product.total_stock,
                     'min_stock_level': 10,  # Default threshold
                     'supplier_name': None,
                     'supplier_contact': None
                 })
-
-        # Get low stock items (product-wise)
-        low_stock_items = []
-        products = InventoryProduct.query.filter(InventoryProduct.is_active == True).all()
-        for product in products:
-            total_stock = sum(float(batch.qty_available or 0) for batch in product.batches if batch.status == 'active')
-            if total_stock <= product.min_stock_level and total_stock > 0:  # Low stock threshold
-                # Create a simple object with the required attributes
-                class LowStockItem:
-                    def __init__(self, product, stock):
-                        self.name = product.name
-                        self.description = product.description
-                        self.category = product.category or 'general'
-                        self.current_stock = stock
-                        self.min_stock_level = product.min_stock_level or 10
-                        self.supplier_name = product.supplier_name
-                        self.supplier_contact = product.supplier_contact
-                
-                low_stock_items.append(LowStockItem(product, total_stock))
 
         return render_template('alerts.html', 
                              expired_items=expired_batches,
