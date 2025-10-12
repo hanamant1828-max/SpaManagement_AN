@@ -1096,7 +1096,7 @@ document.addEventListener('DOMContentLoaded', function() {
 // ==========================================
 function initializeSearchableDropdowns() {
     // All dropdowns use regular HTML select (no Select2)
-    
+
     // Service dropdowns - attach change handler
     $('select[name="service_ids[]"]').each(function() {
         $(this).on('change', function() {
@@ -1598,7 +1598,7 @@ function resetCustomerAppointments() {
             if (sPrice !== null) apptInput.dataset.servicePrice  = String(sPrice);
             if (sDur   !== null) apptInput.dataset.serviceDuration = String(sDur);
           }
-            debugger; // ex
+            //debugger; // ex
           // Assign service & staff (supports raw selects or Select2)
           if (serviceSelect && sId !== null) {
               const setSelectValue = (el, val) => {
@@ -2092,17 +2092,13 @@ function resetCustomerAppointments() {
 
         console.log('🔄 Service changed - checking for package benefits:', { serviceId, servicePrice });
 
-        // Check and apply package benefits for this service
-        const qtyInput = row.querySelector('input[name="service_quantities[]"]');
-        const quantity = parseFloat(qtyInput?.value) || 1;
-
         // Check if customer is selected
         const customerId = BillingState.selectedCustomerId;
         if (customerId && BillingState.customerPackages && BillingState.customerPackages.length > 0) {
             console.log('🎁 Customer selected with packages - applying benefits');
 
             // Apply package benefit check
-            const benefit = checkPackageBenefit(serviceId, servicePrice, quantity);
+            const benefit = checkPackageBenefit(serviceId, servicePrice); // Removed quantity as it's not needed here
 
             // Visual feedback for package application
             if (benefit && benefit.discount > 0) {
@@ -2152,11 +2148,11 @@ function resetCustomerAppointments() {
             let basePrice = parseFloat(serviceSelect.selectedOptions[0]?.dataset.price) || 0; // Get base price from dataset initially
 
             // If a price input exists, use its value as it might be updated by package benefits or explicitly set
-            if (priceInput && priceInput.value) {
-                 basePrice = parseFloat(priceInput.value);
-            }
+            // However, for services, this price input might not be present or intended for user input.
+            // The base price is usually derived from the service select's data-price.
+            // Let's ensure we're using the correct price source.
 
-            let effectivePrice = basePrice; // Start with the base price
+            let effectivePrice = basePrice; // Start with the base price from the service option
             let itemTotal = 0;
             let benefitApplied = { discount: 0, packageUsed: null, packageId: null, benefitType: null };
 
@@ -2171,8 +2167,9 @@ function resetCustomerAppointments() {
                     console.log('➕ Appointment row detected - Base price from appointment:', basePrice);
                 } else {
                     console.warn('⚠️ Appointment row detected but price is missing.');
-                    basePrice = 0;
+                    basePrice = 0; // Set basePrice to 0 if missing
                 }
+                effectivePrice = basePrice; // Ensure effective price is also based on appointment price
             }
 
             // Apply package benefits for ALL service rows (including appointments)
@@ -2189,6 +2186,7 @@ function resetCustomerAppointments() {
                     effectivePrice = Math.max(0, basePrice - discountAmount / quantity);
                     itemTotal = effectivePrice * quantity; // Item total after applying benefit
 
+                    // Update the hidden price input if it exists, for accurate submission
                     if (priceInput) {
                         priceInput.value = effectivePrice.toFixed(2);
                         console.log(`⬆️ Updated priceInput in row due to package benefit: ${priceInput.value}`);

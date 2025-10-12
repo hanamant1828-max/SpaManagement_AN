@@ -1138,18 +1138,19 @@ def create_professional_invoice():
         is_interstate = request.form.get('is_interstate') == 'on'
         total_gst_rate = igst_rate if is_interstate else (cgst_rate + sgst_rate)
 
-        # IMPORTANT: Service prices are GST-INCLUSIVE
-        # Extract base amount and GST from service prices
-        if total_gst_rate > 0:
-            service_base_amount = services_subtotal / (1 + total_gst_rate)
-            service_gst_amount = services_subtotal - service_base_amount
-        else:
-            service_base_amount = services_subtotal
-            service_gst_amount = 0
+        # IMPORTANT: Service prices are GST-EXCLUSIVE (tax added on top)
+        # Calculate GST to be added to service prices
+        service_base_amount = services_subtotal
+        service_gst_amount = services_subtotal * total_gst_rate if total_gst_rate > 0 else 0
 
-        # For inventory, GST is exclusive (added on top)
-        inventory_base_amount = inventory_subtotal
-        inventory_gst_amount = inventory_subtotal * total_gst_rate if total_gst_rate > 0 else 0
+        # For inventory/products, GST is INCLUSIVE (MRP prices already include tax)
+        # Extract base amount and GST from product MRP prices
+        if total_gst_rate > 0:
+            inventory_base_amount = inventory_subtotal / (1 + total_gst_rate)
+            inventory_gst_amount = inventory_subtotal - inventory_base_amount
+        else:
+            inventory_base_amount = inventory_subtotal
+            inventory_gst_amount = 0
 
         # Total base amounts (before tax)
         total_base_amount = service_base_amount + inventory_base_amount
