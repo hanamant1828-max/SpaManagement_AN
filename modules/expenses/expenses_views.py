@@ -49,11 +49,22 @@ def expenses():
     
     # Get petty cash account info
     account_summary = get_account_summary()
-    transactions = get_all_transactions()
     
-    # Add current month and year for template filters
-    from datetime import datetime
-    current_date = datetime.now()
+    # Get transactions for the selected month/year
+    month = request.args.get('month', type=int) or datetime.now().month
+    year = request.args.get('year', type=int) or datetime.now().year
+    
+    # Filter transactions by month/year
+    from calendar import monthrange
+    last_day = monthrange(year, month)[1]
+    month_start = datetime(year, month, 1).date()
+    month_end = datetime(year, month, last_day).date()
+    
+    from models import PettyCashTransaction
+    transactions = PettyCashTransaction.query.filter(
+        PettyCashTransaction.transaction_date >= month_start,
+        PettyCashTransaction.transaction_date <= month_end
+    ).order_by(PettyCashTransaction.transaction_date.asc()).all()
     
     return render_template('expenses.html', 
                          expenses=expenses_list,
@@ -61,8 +72,8 @@ def expenses():
                          stats=stats,
                          form=form,
                          total_expenses=total_expenses,
-                         current_month=current_date.month,
-                         current_year=current_date.year,
+                         current_month=month,
+                         current_year=year,
                          datetime=datetime,
                          account_summary=account_summary,
                          transactions=transactions)
