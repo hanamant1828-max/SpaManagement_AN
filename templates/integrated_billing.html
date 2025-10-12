@@ -1013,6 +1013,21 @@ textarea.form-control {
                         <span class="summary-value" id="discountAmount">-₹0.00</span>
                     </div>
 
+                    <div class="summary-row" style="border-top: 1px solid rgba(255,255,255,0.3); margin-top: 0.5rem; padding-top: 0.5rem;">
+                        <span class="summary-label">Taxable Amount:</span>
+                        <span class="summary-value" id="taxableAmount">₹0.00</span>
+                    </div>
+
+                    <div class="summary-row" style="font-size: 0.875rem; opacity: 0.95;">
+                        <span class="summary-label">CGST (9%):</span>
+                        <span class="summary-value" id="cgstAmount">₹0.00</span>
+                    </div>
+
+                    <div class="summary-row" style="font-size: 0.875rem; opacity: 0.95;">
+                        <span class="summary-label">SGST (9%):</span>
+                        <span class="summary-value" id="sgstAmount">₹0.00</span>
+                    </div>
+
                     <div class="summary-row">
                         <span class="summary-label">Additional Charges:</span>
                         <span class="summary-value" id="additionalCharges">₹0.00</span>
@@ -2270,12 +2285,35 @@ function resetCustomerAppointments() {
         // --- Calculate Taxable Amount ---
         const taxableAmountAfterTax = Math.max(0, taxableAmountBeforeDiscount - discountAmount);
 
+        // --- Calculate GST (Services are GST-exclusive, Products are GST-inclusive MRP) ---
+        const gstRate = 0.18; // 18% total (9% CGST + 9% SGST)
+        
+        // For services: GST is added on top (exclusive)
+        const serviceGst = servicesSubtotal * gstRate;
+        
+        // For products (MRP): Extract GST from inclusive price
+        const productBase = productsSubtotal / (1 + gstRate);
+        const productGst = productsSubtotal - productBase;
+        
+        // Total GST before discount adjustment
+        let totalGst = serviceGst + productGst;
+        
+        // Adjust GST proportionally if discount is applied
+        if (discountAmount > 0 && taxableAmountBeforeDiscount > 0) {
+            const discountFactor = taxableAmountAfterTax / taxableAmountBeforeDiscount;
+            totalGst = totalGst * discountFactor;
+        }
+        
+        // Split into CGST and SGST (equal split)
+        const cgstAmount = totalGst / 2;
+        const sgstAmount = totalGst / 2;
+
         // --- Additional Charges & Tips ---
         const additionalCharges = parseFloat(document.querySelector('input[name="additional_charges"]')?.value) || 0;
         const tips = parseFloat(document.querySelector('input[name="tips_amount"]')?.value) || 0;
 
-        // --- Grand Total (prices are GST inclusive) ---
-        const grandTotal = taxableAmountAfterTax + additionalCharges + tips;
+        // --- Grand Total (base + tax + charges + tips) ---
+        const grandTotal = taxableAmountAfterTax + totalGst + additionalCharges + tips;
 
         // --- Update Display ---
         document.getElementById('servicesSubtotal').textContent = `₹${servicesSubtotal.toFixed(2)}`;
@@ -2283,6 +2321,9 @@ function resetCustomerAppointments() {
         document.getElementById('subtotalAmount').textContent = `₹${subtotal.toFixed(2)}`;
         document.getElementById('packageDeductions').textContent = `-₹${packageDeductions.toFixed(2)}`;
         document.getElementById('discountAmount').textContent = `-₹${discountAmount.toFixed(2)}`;
+        document.getElementById('taxableAmount').textContent = `₹${taxableAmountAfterTax.toFixed(2)}`;
+        document.getElementById('cgstAmount').textContent = `₹${cgstAmount.toFixed(2)}`;
+        document.getElementById('sgstAmount').textContent = `₹${sgstAmount.toFixed(2)}`;
         document.getElementById('additionalCharges').textContent = `₹${additionalCharges.toFixed(2)}`;
         document.getElementById('tipsDisplay').textContent = `₹${tips.toFixed(2)}`;
         document.getElementById('grandTotal').textContent = `₹${grandTotal.toFixed(2)}`;
