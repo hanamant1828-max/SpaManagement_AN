@@ -2121,7 +2121,9 @@
                                                     border-radius: 10px;
                                                     padding: 12px;
                                                 "
+                                                oninput="updateTimeDisplay12Hour(this)"
                                             />
+                                            <small class="text-muted mt-1 d-block time-display-12hr" style="font-weight: 500;"></small>
                                         </div>
                                         <div class="col-md-4 mb-3">
                                             <label
@@ -2149,7 +2151,9 @@
                                                     font-weight: 600;
                                                     color: var(--success-color);
                                                 "
+                                                oninput="updateTimeDisplay12Hour(this)"
                                             />
+                                            <small class="text-muted mt-1 d-block time-display-12hr" style="font-weight: 500;"></small>
                                         </div>
                                     </div>
 
@@ -2387,6 +2391,29 @@
             let appointmentCounter = 1;
 
             // ==========================================
+            // TIME FORMAT CONVERSION - 12-HOUR AM/PM
+            // ==========================================
+            function convertTo12Hour(time24) {
+                if (!time24) return '';
+                
+                const [hours, minutes] = time24.split(':');
+                let hour = parseInt(hours);
+                const ampm = hour >= 12 ? 'PM' : 'AM';
+                
+                hour = hour % 12 || 12;
+                
+                return `${hour}:${minutes} ${ampm}`;
+            }
+
+            function updateTimeDisplay12Hour(inputElement) {
+                const displayElement = inputElement.nextElementSibling;
+                if (displayElement && displayElement.classList.contains('time-display-12hr')) {
+                    const time12hr = convertTo12Hour(inputElement.value);
+                    displayElement.textContent = time12hr ? `🕐 ${time12hr}` : '';
+                }
+            }
+
+            // ==========================================
             // INITIALIZATION
             // ==========================================
             document.addEventListener("DOMContentLoaded", function() {
@@ -2395,6 +2422,11 @@
                 setupTooltips();
                 setupScrollSync();
                 initializeSearchableDropdowns();
+                
+                // Initialize 12-hour time displays on page load
+                document.querySelectorAll('input[type="time"]').forEach(input => {
+                    updateTimeDisplay12Hour(input);
+                });
             });
 
             function initializeApp() {
