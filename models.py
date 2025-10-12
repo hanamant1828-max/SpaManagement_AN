@@ -162,7 +162,7 @@ class User(UserMixin, db.Model):
 
     # Relationships
     appointments = db.relationship('Appointment', backref='assigned_staff', lazy=True)
-    expenses = db.relationship('Expense', backref='created_by_user', lazy=True)
+    expenses = db.relationship('Expense', backref='created_by_user', lazy=True, foreign_keys='Expense.created_by')
 
     def set_password(self, password):
         """Set password with proper hashing"""
