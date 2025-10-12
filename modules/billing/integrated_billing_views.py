@@ -1876,6 +1876,41 @@ def get_customer_packages(customer_id):
         }), 500
 
 
+@app.route('/integrated-billing/invoice/<int:invoice_id>')
+@login_required
+def integrated_invoice_detail(invoice_id):
+    """View invoice details"""
+    # Allow all authenticated users to view invoices
+    if not current_user.is_active:
+        flash('Access denied', 'danger')
+        return redirect(url_for('dashboard'))
+
+    try:
+        # Get the invoice
+        invoice = EnhancedInvoice.query.get_or_404(invoice_id)
+        
+        # Get invoice items
+        invoice_items = InvoiceItem.query.filter_by(invoice_id=invoice_id).all()
+        
+        # Get tax details from notes if available
+        import json
+        tax_details = {}
+        try:
+            tax_details = json.loads(invoice.notes) if invoice.notes else {}
+        except:
+            pass
+        
+        return render_template('integrated_invoice_detail.html',
+                             invoice=invoice,
+                             invoice_items=invoice_items,
+                             tax_details=tax_details)
+                             
+    except Exception as e:
+        app.logger.error(f"Error loading invoice details: {str(e)}")
+        flash(f'Error loading invoice: {str(e)}', 'danger')
+        return redirect(url_for('list_integrated_invoices'))
+
+
 @app.route('/integrated-billing/edit/<int:invoice_id>')
 @login_required
 def edit_integrated_invoice(invoice_id):

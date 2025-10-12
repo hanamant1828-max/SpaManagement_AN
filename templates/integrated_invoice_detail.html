@@ -1,4 +1,3 @@
-
 {% extends "base.html" %}
 
 {% block title %}Invoice Details - {{ invoice.invoice_number }}{% endblock %}
@@ -231,19 +230,19 @@
                             <div class="col-8">Gross Subtotal:</div>
                             <div class="col-4 text-end">₹{{ "{:.2f}".format(invoice.gross_subtotal) }}</div>
                         </div>
-                        
+
                         {% if invoice.discount_amount > 0 %}
                         <div class="row mb-2 text-danger">
                             <div class="col-8">Discount:</div>
                             <div class="col-4 text-end">-₹{{ "{:.2f}".format(invoice.discount_amount) }}</div>
                         </div>
                         {% endif %}
-                        
+
                         <div class="row mb-2">
                             <div class="col-8">Net Subtotal:</div>
                             <div class="col-4 text-end">₹{{ "{:.2f}".format(invoice.net_subtotal) }}</div>
                         </div>
-                        
+
                         <!-- Tax Details -->
                         {% if invoice.cgst_amount > 0 %}
                         <div class="row mb-1">
@@ -251,46 +250,46 @@
                             <div class="col-4 text-end">₹{{ "{:.2f}".format(invoice.cgst_amount) }}</div>
                         </div>
                         {% endif %}
-                        
+
                         {% if invoice.sgst_amount > 0 %}
                         <div class="row mb-1">
                             <div class="col-8">SGST ({{ "%.1f"|format(invoice.sgst_rate) }}%):</div>
                             <div class="col-4 text-end">₹{{ "{:.2f}".format(invoice.sgst_amount) }}</div>
                         </div>
                         {% endif %}
-                        
+
                         {% if invoice.igst_amount > 0 %}
                         <div class="row mb-1">
                             <div class="col-8">IGST ({{ "%.1f"|format(invoice.igst_rate) }}%):</div>
                             <div class="col-4 text-end">₹{{ "{:.2f}".format(invoice.igst_amount) }}</div>
                         </div>
                         {% endif %}
-                        
+
                         {% if invoice.additional_charges > 0 %}
                         <div class="row mb-2">
                             <div class="col-8">Additional Charges:</div>
                             <div class="col-4 text-end">₹{{ "{:.2f}".format(invoice.additional_charges) }}</div>
                         </div>
                         {% endif %}
-                        
+
                         {% if invoice.tips_amount > 0 %}
                         <div class="row mb-2">
                             <div class="col-8">Tips:</div>
                             <div class="col-4 text-end">₹{{ "{:.2f}".format(invoice.tips_amount) }}</div>
                         </div>
                         {% endif %}
-                        
+
                         <hr>
                         <div class="row mb-2">
                             <div class="col-8"><strong>Total Amount:</strong></div>
                             <div class="col-4 text-end"><strong>₹{{ "{:.2f}".format(invoice.total_amount) }}</strong></div>
                         </div>
-                        
+
                         <div class="row mb-2">
                             <div class="col-8">Amount Paid:</div>
                             <div class="col-4 text-end text-success">₹{{ "{:.2f}".format(invoice.amount_paid) }}</div>
                         </div>
-                        
+
                         <div class="row">
                             <div class="col-8"><strong>Balance Due:</strong></div>
                             <div class="col-4 text-end {{ 'text-success' if invoice.balance_due <= 0 else 'text-danger' }}">
@@ -313,32 +312,14 @@
                             <a href="{{ url_for('edit_integrated_invoice', invoice_id=invoice.id) }}" class="btn btn-warning">
                                 <i class="fas fa-edit me-2"></i>Edit Invoice
                             </a>
-                            
+
                             <!-- Print Invoice -->
                             <a href="{{ url_for('print_professional_invoice', invoice_id=invoice.id) }}" target="_blank" class="btn btn-primary">
-                                <i class="fas fa-print me-2"></i>Print Invoice
-                            </a>
-                            
-                            <!-- Process Payment (if balance due) -->
-                            {% if invoice.balance_due > 0 %}
-                            <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#paymentModal">
-                                <i class="fas fa-credit-card me-2"></i>Process Payment
-                            </button>
-                            {% endif %}
-                            
-                            <!-- Email Invoice -->
-                            <button type="button" class="btn btn-info" onclick="emailInvoice({{ invoice.id }})">
-                                <i class="fas fa-envelope me-2"></i>Email Invoice
-                            </button>
-                            
-                            <!-- WhatsApp Invoice -->
-                            <button type="button" class="btn btn-warning" onclick="whatsappInvoice({{ invoice.id }})">
-                                <i class="fab fa-whatsapp me-2"></i>WhatsApp Invoice
-                            </button>
-                            
-                            <!-- Back to Billing -->
-                            <a href="{{ url_for('integrated_billing') }}" class="btn btn-outline-secondary">
-                                <i class="fas fa-arrow-left me-2"></i>Back to Billing
+                                <i class="fas fa-print me-2"></i>Print Invoice</a>
+
+                            <!-- Back to Invoices List -->
+                            <a href="{{ url_for('list_integrated_invoices') }}" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left me-2"></i>Back to Invoices
                             </a>
                         </div>
                     </div>
@@ -362,7 +343,7 @@
                     <div class="alert alert-info">
                         <strong>Outstanding Balance: ₹{{ "{:.2f}".format(invoice.balance_due) }}</strong>
                     </div>
-                    
+
                     <div id="paymentMethodsContainer">
                         <div class="payment-method-row mb-3">
                             <div class="row">
@@ -388,7 +369,7 @@
                             </div>
                         </div>
                     </div>
-                    
+
                     <button type="button" class="btn btn-outline-primary btn-sm" onclick="addPaymentMethod()">
                         <i class="fas fa-plus me-1"></i>Add Another Payment Method
                     </button>
@@ -445,9 +426,9 @@ function removePaymentMethod(button) {
 // Payment form submission
 document.getElementById('paymentForm')?.addEventListener('submit', function(e) {
     e.preventDefault();
-    
+
     const formData = new FormData(this);
-    
+
     fetch(`/integrated-billing/payment/{{ invoice.id }}`, {
         method: 'POST',
         body: formData
