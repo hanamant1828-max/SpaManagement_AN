@@ -1876,6 +1876,273 @@ def get_customer_packages(customer_id):
         }), 500
 
 
+@app.route('/integrated-billing/edit/<int:invoice_id>')
+@login_required
+def edit_integrated_invoice(invoice_id):
+    """Edit an existing invoice"""
+    # Allow all authenticated users to edit invoices
+    if not current_user.is_active:
+        flash('Access denied', 'danger')
+        return redirect(url_for('dashboard'))
+
+    try:
+        # Get the invoice
+        invoice = EnhancedInvoice.query.get_or_404(invoice_id)
+        
+        # Get invoice items
+        invoice_items = InvoiceItem.query.filter_by(invoice_id=invoice_id).all()
+        
+        # Get data for form
+        customers = Customer.query.filter_by(is_active=True).order_by(Customer.first_name, Customer.last_name).all()
+        services = Service.query.filter_by(is_active=True).order_by(Service.name).all()
+        staff_members = User.query.filter_by(is_active=True).order_by(User.first_name, User.last_name).all()
+        
+        # Get inventory items
+        inventory_items = []
+        if InventoryProduct is not None:
+            inventory_products = InventoryProduct.query.filter_by(is_active=True).all()
+            for product in inventory_products:
+                if product.total_stock > 0:
+                    inventory_items.append(product)
+        
+        # Prepare invoice items data
+        service_items = []
+        product_items = []
+        
+        for item in invoice_items:
+            if item.item_type == 'service':
+                service_items.append({
+                    'service_id': item.item_id,
+                    'quantity': item.quantity,
+                    'appointment_id': item.appointment_id,
+                    'staff_id': item.staff_id,
+                    'unit_price': item.unit_price,
+                    'deduction_amount': item.deduction_amount or 0
+                })
+            elif item.item_type == 'inventory':
+                product_items.append({
+                    'product_id': item.product_id,
+                    'batch_id': item.batch_id,
+                    'quantity': item.quantity,
+                    'unit_price': item.unit_price,
+                    'staff_id': item.staff_id
+                })
+        
+        # Get tax details from notes if available
+        import json
+        tax_details = {}
+        try:
+            tax_details = json.loads(invoice.notes) if invoice.notes else {}
+        except:
+            pass
+        
+        return render_template('edit_integrated_invoice.html',
+                             invoice=invoice,
+                             service_items=service_items,
+                             product_items=product_items,
+                             customers=customers,
+                             services=services,
+                             staff_members=staff_members,
+                             inventory_items=inventory_items,
+                             tax_details=tax_details)
+                             
+    except Exception as e:
+        app.logger.error(f"Error loading invoice for edit: {str(e)}")
+        flash(f'Error loading invoice: {str(e)}', 'danger')
+        return redirect(url_for('integrated_billing'))
+
+
+@app.route('/integrated-billing/update/<int:invoice_id>', methods=['POST'])
+@login_required
+def update_integrated_invoice(invoice_id):
+    """Update an existing invoice"""
+    # Allow all authenticated users to update invoices
+    if not current_user.is_active:
+        return jsonify({'success': False, 'message': 'Access denied'}), 403
+
+    try:
+        # Get the invoice
+        invoice = EnhancedInvoice.query.get_or_404(invoice_id)
+        
+        # Delete existing invoice items
+        InvoiceItem.query.filter_by(invoice_id=invoice_id).delete()
+        
+        # Parse services data (same as create)
+        services_data = []
+        service_ids = request.form.getlist('service_ids[]')
+        service_quantities = request.form.getlist('service_quantities[]')
+        appointment_ids = request.form.getlist('appointment_ids[]')
+        staff_ids = request.form.getlist('staff_ids[]')
+
+        for i, service_id in enumerate(service_ids):
+            if service_id and str(service_id).strip():
+                staff_id = staff_ids[i] if i < len(staff_ids) and staff_ids[i] and str(staff_ids[i]).strip() else None
+                if not staff_id:
+                    return jsonify({
+                        'success': False,
+                        'message': f'Staff member is required for service #{i+1}. Please assign staff to all services.'
+                    }), 400
+
+                services_data.append({
+                    'service_id': int(service_id),
+                    'quantity': float(service_quantities[i]) if i < len(service_quantities) else 1,
+                    'appointment_id': int(appointment_ids[i]) if i < len(appointment_ids) and appointment_ids[i] else None,
+                    'staff_id': int(staff_id)
+                })
+
+        # Parse inventory data (same as create)
+        inventory_data = []
+        product_ids = request.form.getlist('product_ids[]')
+        product_staff_ids = request.form.getlist('product_staff_ids[]')
+        batch_ids = request.form.getlist('batch_ids[]')
+        product_quantities = request.form.getlist('product_quantities[]')
+        product_prices = request.form.getlist('product_prices[]')
+
+        for i, product_id in enumerate(product_ids):
+            if product_id and i < len(batch_ids) and batch_ids[i]:
+                if i >= len(product_staff_ids) or not product_staff_ids[i]:
+                    return jsonify({
+                        'success': False,
+                        'message': f'Staff member is required for product #{i+1}. Please assign staff to all products.'
+                    }), 400
+
+                inventory_data.append({
+                    'product_id': int(product_id),
+                    'batch_id': int(batch_ids[i]),
+                    'quantity': float(product_quantities[i]) if i < len(product_quantities) else 1,
+                    'unit_price': float(product_prices[i]) if i < len(product_prices) and product_prices[i] else 0,
+                    'staff_id': int(product_staff_ids[i])
+                })
+
+        # Recalculate amounts (same logic as create)
+        services_subtotal = sum(
+            Service.query.get(s['service_id']).price * s['quantity'] 
+            for s in services_data if Service.query.get(s['service_id'])
+        )
+        
+        inventory_subtotal = sum(
+            item['unit_price'] * item['quantity'] 
+            for item in inventory_data
+        )
+        
+        gross_subtotal = services_subtotal + inventory_subtotal
+        
+        # Update invoice fields
+        invoice.services_subtotal = services_subtotal
+        invoice.inventory_subtotal = inventory_subtotal
+        invoice.gross_subtotal = gross_subtotal
+        
+        # Recalculate tax and totals
+        cgst_rate = float(request.form.get('cgst_rate', 9)) / 100
+        sgst_rate = float(request.form.get('sgst_rate', 9)) / 100
+        igst_rate = float(request.form.get('igst_rate', 0)) / 100
+        is_interstate = request.form.get('is_interstate') == 'on'
+        
+        discount_type = request.form.get('discount_type', 'amount')
+        discount_value = float(request.form.get('discount_value', 0))
+        
+        if discount_type == 'percentage':
+            discount_amount = (gross_subtotal * discount_value) / 100
+        else:
+            discount_amount = discount_value
+            
+        net_subtotal = max(0, gross_subtotal - discount_amount)
+        
+        total_gst_rate = igst_rate if is_interstate else (cgst_rate + sgst_rate)
+        tax_amount = net_subtotal * total_gst_rate
+        
+        additional_charges = float(request.form.get('additional_charges', 0))
+        tips_amount = float(request.form.get('tips_amount', 0))
+        
+        total_amount = net_subtotal + tax_amount + additional_charges + tips_amount
+        
+        # Update invoice
+        invoice.net_subtotal = net_subtotal
+        invoice.discount_amount = discount_amount
+        invoice.tax_amount = tax_amount
+        invoice.additional_charges = additional_charges
+        invoice.tips_amount = tips_amount
+        invoice.total_amount = total_amount
+        invoice.balance_due = total_amount - invoice.amount_paid
+        
+        # Re-create invoice items
+        for service_data in services_data:
+            service = Service.query.get(service_data['service_id'])
+            if service:
+                staff_id = service_data.get('staff_id')
+                staff_name = None
+                if staff_id:
+                    staff = User.query.get(staff_id)
+                    if staff:
+                        staff_name = staff.full_name
+                
+                original_price = service.price * service_data['quantity']
+                item = InvoiceItem(
+                    invoice_id=invoice.id,
+                    item_type='service',
+                    item_id=service.id,
+                    appointment_id=service_data.get('appointment_id'),
+                    item_name=service.name,
+                    description=service.description or '',
+                    quantity=service_data['quantity'],
+                    unit_price=service.price,
+                    original_amount=original_price,
+                    final_amount=original_price,
+                    staff_revenue_price=original_price,
+                    staff_id=staff_id,
+                    staff_name=staff_name
+                )
+                db.session.add(item)
+        
+        for item_data in inventory_data:
+            batch = InventoryBatch.query.get(item_data['batch_id'])
+            product = InventoryProduct.query.get(item_data['product_id'])
+            
+            if batch and product:
+                staff_id = item_data.get('staff_id')
+                staff_name = None
+                if staff_id:
+                    staff = User.query.get(staff_id)
+                    if staff:
+                        staff_name = staff.full_name
+                
+                product_amount = item_data['unit_price'] * item_data['quantity']
+                item = InvoiceItem(
+                    invoice_id=invoice.id,
+                    item_type='inventory',
+                    item_id=product.id,
+                    product_id=product.id,
+                    batch_id=batch.id,
+                    item_name=product.name,
+                    description=f"Batch: {batch.batch_name}",
+                    batch_name=batch.batch_name,
+                    quantity=item_data['quantity'],
+                    unit_price=item_data['unit_price'],
+                    original_amount=product_amount,
+                    final_amount=product_amount,
+                    staff_revenue_price=product_amount,
+                    staff_id=staff_id,
+                    staff_name=staff_name
+                )
+                db.session.add(item)
+        
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Invoice updated successfully',
+            'invoice_id': invoice.id,
+            'invoice_number': invoice.invoice_number
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        app.logger.error(f"Error updating invoice: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'message': f'Error updating invoice: {str(e)}'}), 500
+
+
 @app.route('/integrated-billing/print-invoice/<int:invoice_id>')
 @login_required
 def print_professional_invoice(invoice_id):

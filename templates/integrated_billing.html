@@ -1156,10 +1156,11 @@ function initializeBillingSystem() {
     // Input validation setup
     setupInputValidation();
 
-    // Initialize cart rendering if data is pre-loaded
-    // (Assuming selectedServices and selectedProducts might be populated from backend for edits)
-    if (selectedServices.length > 0) renderServiceCart();
-    if (selectedProducts.length > 0) renderProductCart();
+    // Initialize cart rendering if data is pre-populated (for editing)
+    // This part needs to be more robust if editing existing bills with services/products.
+    // For now, assuming it's only for new bills.
+    // if (selectedServices.length > 0) renderServiceCart();
+    // if (selectedProducts.length > 0) renderProductCart();
 }
 
 // ==========================================
@@ -2287,23 +2288,23 @@ function resetCustomerAppointments() {
 
         // --- Calculate GST (Services are GST-exclusive, Products are GST-inclusive MRP) ---
         const gstRate = 0.18; // 18% total (9% CGST + 9% SGST)
-        
+
         // For services: GST is added on top (exclusive)
         const serviceGst = servicesSubtotal * gstRate;
-        
+
         // For products (MRP): Extract GST from inclusive price
         const productBase = productsSubtotal / (1 + gstRate);
         const productGst = productsSubtotal - productBase;
-        
+
         // Total GST before discount adjustment
         let totalGst = serviceGst + productGst;
-        
+
         // Adjust GST proportionally if discount is applied
         if (discountAmount > 0 && taxableAmountBeforeDiscount > 0) {
             const discountFactor = taxableAmountAfterTax / taxableAmountBeforeDiscount;
             totalGst = totalGst * discountFactor;
         }
-        
+
         // Split into CGST and SGST (equal split)
         const cgstAmount = totalGst / 2;
         const sgstAmount = totalGst / 2;
