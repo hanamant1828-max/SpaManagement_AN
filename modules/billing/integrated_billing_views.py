@@ -1984,7 +1984,7 @@ def edit_integrated_invoice(invoice_id):
     except Exception as e:
         app.logger.error(f"Error loading invoice for edit: {str(e)}")
         flash(f'Error loading invoice: {str(e)}', 'danger')
-        return redirect(url_for('integrated_billing'))
+        return redirect(url_for('list_integrated_invoices'))
 
 
 @app.route('/integrated-billing/update/<int:invoice_id>', methods=['POST'])
