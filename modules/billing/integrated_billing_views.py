@@ -2269,6 +2269,68 @@ def generate_invoice_preview():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
 
+@app.route('/invoices')
+@app.route('/invoices/list')
+@login_required
+def list_integrated_invoices():
+    """List all invoices with filters and search"""
+    if not current_user.is_active:
+        flash('Access denied', 'danger')
+        return redirect(url_for('dashboard'))
+    
+    # Get filter parameters
+    status_filter = request.args.get('status', 'all')
+    search_query = request.args.get('search', '')
+    date_from = request.args.get('date_from', '')
+    date_to = request.args.get('date_to', '')
+    
+    # Base query
+    query = EnhancedInvoice.query
+    
+    # Apply filters
+    if status_filter != 'all':
+        query = query.filter_by(payment_status=status_filter)
+    
+    if search_query:
+        query = query.join(Customer).filter(
+            db.or_(
+                EnhancedInvoice.invoice_number.ilike(f'%{search_query}%'),
+                Customer.first_name.ilike(f'%{search_query}%'),
+                Customer.last_name.ilike(f'%{search_query}%'),
+                Customer.phone.ilike(f'%{search_query}%')
+            )
+        )
+    
+    if date_from:
+        from datetime import datetime
+        date_from_obj = datetime.strptime(date_from, '%Y-%m-%d')
+        query = query.filter(EnhancedInvoice.invoice_date >= date_from_obj)
+    
+    if date_to:
+        from datetime import datetime
+        date_to_obj = datetime.strptime(date_to, '%Y-%m-%d')
+        query = query.filter(EnhancedInvoice.invoice_date <= date_to_obj)
+    
+    # Order by date descending
+    invoices = query.order_by(EnhancedInvoice.invoice_date.desc()).all()
+    
+    # Calculate summary stats
+    total_invoices = len(invoices)
+    total_amount = sum(inv.total_amount for inv in invoices)
+    total_paid = sum(inv.amount_paid for inv in invoices)
+    total_pending = sum(inv.balance_due for inv in invoices)
+    
+    return render_template('invoices_list.html',
+                         invoices=invoices,
+                         total_invoices=total_invoices,
+                         total_amount=total_amount,
+                         total_paid=total_paid,
+                         total_pending=total_pending,
+                         status_filter=status_filter,
+                         search_query=search_query,
+                         date_from=date_from,
+                         date_to=date_to)
+
 # Legacy billing compatibility route
 @app.route('/billing/integrated')
 @login_required
