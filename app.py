@@ -512,6 +512,12 @@ try:
 except Exception as e:
     print(f"⚠️ Inventory views import error: {e}")
 
+try:
+    from modules.inventory.inventory_reports_views import *
+    print("✅ Inventory reports views imported")
+except Exception as e:
+    print(f"⚠️ Inventory reports views import error: {e}")
+
 # Import bookings views last to ensure no conflicts
 try:
     from modules.bookings.bookings_views import *
