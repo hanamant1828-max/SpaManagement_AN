@@ -19,7 +19,25 @@
 
     <!-- Summary Cards -->
     <div class="row mb-4">
-        <div class="col-md-4">
+        <div class="col-md-3">
+            <div class="card border-left-success shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                Current Balance
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold">₹{{ "%.2f"|format(account_summary.current_balance) }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-wallet fa-2x text-success"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
             <div class="card border-left-primary shadow h-100 py-2">
                 <div class="card-body">
                     <div class="row no-gutters align-items-center">
@@ -37,40 +55,54 @@
             </div>
         </div>
 
-        <div class="col-md-4">
-            <div class="card border-left-success shadow h-100 py-2">
+        <div class="col-md-3">
+            <div class="card border-left-warning shadow h-100 py-2">
                 <div class="card-body">
                     <div class="row no-gutters align-items-center">
                         <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
-                                Total Entries
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                Total Added
                             </div>
-                            <div class="h5 mb-0 font-weight-bold">{{ expenses|length }}</div>
+                            <div class="h5 mb-0 font-weight-bold">₹{{ "%.2f"|format(account_summary.total_added) }}</div>
                         </div>
                         <div class="col-auto">
-                            <i class="fas fa-list fa-2x text-success"></i>
+                            <i class="fas fa-plus-circle fa-2x text-warning"></i>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <div class="col-md-4">
-            <div class="card border-left-info shadow h-100 py-2">
+        <div class="col-md-3">
+            <div class="card border-left-danger shadow h-100 py-2">
                 <div class="card-body">
                     <div class="row no-gutters align-items-center">
                         <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
-                                Average Daily
+                            <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">
+                                Total Spent
                             </div>
-                            <div class="h5 mb-0 font-weight-bold">
-                                {{ utils.format_currency(stats.avg_expense) }}
-                            </div>
+                            <div class="h5 mb-0 font-weight-bold">₹{{ "%.2f"|format(account_summary.total_spent) }}</div>
                         </div>
                         <div class="col-auto">
-                            <i class="fas fa-chart-line fa-2x text-info"></i>
+                            <i class="fas fa-minus-circle fa-2x text-danger"></i>
                         </div>
                     </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Money Section -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                    <h6 class="m-0 font-weight-bold text-success">
+                        <i class="fas fa-money-bill-wave me-2"></i>Petty Cash Management
+                    </h6>
+                    <button type="button" class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#addMoneyModal">
+                        <i class="fas fa-plus me-1"></i>Add Money
+                    </button>
                 </div>
             </div>
         </div>
@@ -182,12 +214,18 @@
                                                         onclick="viewExpense({{ expense.id }})">
                                                     <i class="fas fa-eye"></i>
                                                 </button>
-                                                <button class="btn btn-sm btn-outline-secondary" 
-                                                        data-bs-toggle="modal" 
-                                                        data-bs-target="#editExpenseModal" 
-                                                        onclick="editExpense({{ expense.id }})">
-                                                    <i class="fas fa-edit"></i>
+                                                {% if not expense.deducted_from_account %}
+                                                <form method="POST" action="{{ url_for('deduct_expense_from_petty_cash', expense_id=expense.id) }}" style="display: inline;">
+                                                    <button type="submit" class="btn btn-sm btn-outline-danger" 
+                                                            onclick="return confirm('Deduct ₹{{ expense.amount }} from account?')">
+                                                        <i class="fas fa-minus-circle"></i>
+                                                    </button>
+                                                </form>
+                                                {% else %}
+                                                <button class="btn btn-sm btn-success" disabled title="Already deducted">
+                                                    <i class="fas fa-check"></i>
                                                 </button>
+                                                {% endif %}
                                             </div>
                                         </td>
                                     </tr>
@@ -265,6 +303,48 @@
                             <strong>{{ utils.format_currency(expenses|min(attribute='amount')|attr('amount') if expenses else 0) }}</strong>
                         </div>
                         <div class="list-group-item d-flex justify-content-between align-items-center">
+
+<!-- Add Money Modal -->
+<div class="modal fade" id="addMoneyModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-plus-circle me-2"></i>Add Money to Account
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('add_money_to_petty_cash') }}">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="amount" class="form-label">Amount *</label>
+                        <div class="input-group">
+                            <span class="input-group-text">₹</span>
+                            <input type="number" class="form-control" id="amount" name="amount" step="0.01" required>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Description *</label>
+                        <input type="text" class="form-control" id="description" name="description" placeholder="e.g., Initial deposit, Bank withdrawal" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="notes" class="form-label">Notes (Optional)</label>
+                        <textarea class="form-control" id="notes" name="notes" rows="2"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-save me-2"></i>Add Money
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
                             <span>Average Expense</span>
                             <strong>{{ utils.format_currency((total_expenses / expenses|length) if expenses|length > 0 else 0) }}</strong>
                         </div>

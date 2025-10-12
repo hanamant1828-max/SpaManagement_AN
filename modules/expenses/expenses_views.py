@@ -9,7 +9,9 @@ from forms import ExpenseForm
 from .expenses_queries import (
     get_all_expenses, get_expenses_by_date_range, get_expenses_by_category,
     get_expense_by_id, get_expense_categories, create_expense, 
-    update_expense, delete_expense, get_expense_stats
+    update_expense, delete_expense, get_expense_stats,
+    get_or_create_main_account, add_money_to_account, deduct_expense_from_account,
+    get_account_balance, get_all_transactions, get_account_summary
 )
 
 @app.route('/expenses')
@@ -45,6 +47,10 @@ def expenses():
     # Calculate total expenses for template
     total_expenses = sum(expense.amount for expense in expenses_list) if expenses_list else 0
     
+    # Get petty cash account info
+    account_summary = get_account_summary()
+    transactions = get_all_transactions()
+    
     # Add current month and year for template filters
     from datetime import datetime
     current_date = datetime.now()
@@ -57,7 +63,9 @@ def expenses():
                          total_expenses=total_expenses,
                          current_month=current_date.month,
                          current_year=current_date.year,
-                         datetime=datetime)
+                         datetime=datetime,
+                         account_summary=account_summary,
+                         transactions=transactions)
 
 @app.route('/expenses/create', methods=['POST'])
 @login_required
@@ -189,5 +197,53 @@ def add_expense():
             flash('Expense added successfully', 'success')
         else:
             flash('Failed to add expense', 'danger')
+    
+    return redirect(url_for('expenses'))
+@app.route('/expenses/add-money', methods=['POST'])
+@login_required
+def add_money_to_petty_cash():
+    if not current_user.can_access('expenses'):
+        flash('Access denied', 'danger')
+        return redirect(url_for('expenses'))
+    
+    try:
+        amount = float(request.form.get('amount', 0))
+        description = request.form.get('description', '').strip()
+        notes = request.form.get('notes', '').strip()
+        
+        if amount <= 0:
+            flash('Amount must be greater than 0', 'danger')
+            return redirect(url_for('expenses'))
+        
+        if not description:
+            flash('Description is required', 'danger')
+            return redirect(url_for('expenses'))
+        
+        add_money_to_account(amount, description, current_user.id, notes)
+        flash(f'Successfully added ₹{amount:,.2f} to account', 'success')
+    except Exception as e:
+        flash(f'Error adding money: {str(e)}', 'danger')
+    
+    return redirect(url_for('expenses'))
+
+@app.route('/expenses/deduct/<int:expense_id>', methods=['POST'])
+@login_required
+def deduct_expense_from_petty_cash(expense_id):
+    if not current_user.can_access('expenses'):
+        flash('Access denied', 'danger')
+        return redirect(url_for('expenses'))
+    
+    expense = get_expense_by_id(expense_id)
+    if not expense:
+        flash('Expense not found', 'danger')
+        return redirect(url_for('expenses'))
+    
+    try:
+        deduct_expense_from_account(expense)
+        flash(f'Deducted ₹{expense.amount:,.2f} from account for: {expense.description}', 'success')
+    except ValueError as e:
+        flash(str(e), 'danger')
+    except Exception as e:
+        flash(f'Error deducting expense: {str(e)}', 'danger')
     
     return redirect(url_for('expenses'))

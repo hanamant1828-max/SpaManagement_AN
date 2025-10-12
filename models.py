@@ -1017,6 +1017,42 @@ class PackageUsage(db.Model):
         return f'<PackageUsage {self.id}: {self.change_type} {self.qty} - Package {self.customer_package_id}>'
 
 
+class PettyCashAccount(db.Model):
+    """Track petty cash/bank account balance"""
+    __tablename__ = 'petty_cash_account'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    account_name = db.Column(db.String(100), nullable=False, default='Main Account')
+    current_balance = db.Column(db.Float, nullable=False, default=0.0)
+    total_added = db.Column(db.Float, nullable=False, default=0.0)
+    total_spent = db.Column(db.Float, nullable=False, default=0.0)
+    is_active = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationships
+    transactions = db.relationship('PettyCashTransaction', backref='account', lazy=True, cascade='all, delete-orphan')
+
+class PettyCashTransaction(db.Model):
+    """Track all cash account transactions (deposits and expenses)"""
+    __tablename__ = 'petty_cash_transaction'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    account_id = db.Column(db.Integer, db.ForeignKey('petty_cash_account.id'), nullable=False)
+    transaction_type = db.Column(db.String(20), nullable=False)  # 'deposit' or 'expense'
+    amount = db.Column(db.Float, nullable=False)
+    balance_before = db.Column(db.Float, nullable=False)
+    balance_after = db.Column(db.Float, nullable=False)
+    description = db.Column(db.String(200), nullable=False)
+    expense_id = db.Column(db.Integer, db.ForeignKey('expense.id'), nullable=True)  # Link to expense if type is 'expense'
+    created_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    transaction_date = db.Column(db.DateTime, default=datetime.utcnow)
+    notes = db.Column(db.Text)
+    
+    # Relationships
+    creator = db.relationship('User', backref='cash_transactions')
+    expense = db.relationship('Expense', backref='cash_transaction')
+
 class Expense(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     description = db.Column(db.String(200), nullable=False)
@@ -1031,6 +1067,7 @@ class Expense(db.Model):
     receipt_path = db.Column(db.String(255))  # Path to receipt file
     notes = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    deducted_from_account = db.Column(db.Boolean, default=False)  # Track if expense was deducted from petty cash
 
 class Invoice(db.Model):
     id = db.Column(db.Integer, primary_key=True)

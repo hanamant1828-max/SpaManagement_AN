@@ -4,7 +4,7 @@ Expenses-related database queries
 from datetime import datetime, date
 from sqlalchemy import func, and_
 from app import db
-from models import Expense, Category
+from models import Expense, Category, PettyCashAccount, PettyCashTransaction
 
 def get_all_expenses():
     """Get all expenses"""
@@ -72,3 +72,98 @@ def get_expense_stats():
     }
     
     return stats
+def get_or_create_main_account():
+    """Get or create the main petty cash account"""
+    account = PettyCashAccount.query.filter_by(account_name='Main Account').first()
+    if not account:
+        account = PettyCashAccount(
+            account_name='Main Account',
+            current_balance=0.0,
+            total_added=0.0,
+            total_spent=0.0
+        )
+        db.session.add(account)
+        db.session.commit()
+    return account
+
+def add_money_to_account(amount, description, user_id, notes=None):
+    """Add money to petty cash account"""
+    account = get_or_create_main_account()
+    
+    balance_before = account.current_balance
+    balance_after = balance_before + amount
+    
+    # Create transaction record
+    transaction = PettyCashTransaction(
+        account_id=account.id,
+        transaction_type='deposit',
+        amount=amount,
+        balance_before=balance_before,
+        balance_after=balance_after,
+        description=description,
+        created_by=user_id,
+        notes=notes
+    )
+    
+    # Update account balance
+    account.current_balance = balance_after
+    account.total_added += amount
+    
+    db.session.add(transaction)
+    db.session.commit()
+    
+    return transaction
+
+def deduct_expense_from_account(expense):
+    """Deduct expense amount from petty cash account"""
+    if expense.deducted_from_account:
+        return None  # Already deducted
+    
+    account = get_or_create_main_account()
+    
+    if account.current_balance < expense.amount:
+        raise ValueError(f"Insufficient balance. Available: ₹{account.current_balance}, Required: ₹{expense.amount}")
+    
+    balance_before = account.current_balance
+    balance_after = balance_before - expense.amount
+    
+    # Create transaction record
+    transaction = PettyCashTransaction(
+        account_id=account.id,
+        transaction_type='expense',
+        amount=expense.amount,
+        balance_before=balance_before,
+        balance_after=balance_after,
+        description=expense.description,
+        expense_id=expense.id,
+        created_by=expense.created_by
+    )
+    
+    # Update account balance
+    account.current_balance = balance_after
+    account.total_spent += expense.amount
+    expense.deducted_from_account = True
+    
+    db.session.add(transaction)
+    db.session.commit()
+    
+    return transaction
+
+def get_account_balance():
+    """Get current account balance"""
+    account = get_or_create_main_account()
+    return account.current_balance
+
+def get_all_transactions():
+    """Get all petty cash transactions"""
+    return PettyCashTransaction.query.order_by(PettyCashTransaction.transaction_date.desc()).all()
+
+def get_account_summary():
+    """Get account summary"""
+    account = get_or_create_main_account()
+    return {
+        'current_balance': account.current_balance,
+        'total_added': account.total_added,
+        'total_spent': account.total_spent,
+        'account_name': account.account_name
+    }
