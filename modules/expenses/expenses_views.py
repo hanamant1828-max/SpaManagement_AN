@@ -124,6 +124,7 @@ def create_expense_route():
             'description': description,
             'category_id': form.category_id.data if form.category_id.data else None,
             'category': request.form.get('category', 'general'),  # Fallback category
+            'vendor_name': (form.vendor_name.data or '').strip(),
             'expense_date': form.expense_date.data or date.today(),
             'expense_time': expense_time,
             'payment_method': request.form.get('payment_method', 'cash'),
@@ -258,3 +259,97 @@ def deduct_expense_from_petty_cash(expense_id):
         flash(f'Error deducting expense: {str(e)}', 'danger')
     
     return redirect(url_for('expenses'))
+
+
+
+@app.route('/expenses/approve/<int:expense_id>', methods=['POST'])
+@login_required
+def approve_expense_route(expense_id):
+    if not current_user.has_role('manager') and not current_user.has_role('admin'):
+        flash('Access denied. Only managers and admins can approve expenses.', 'danger')
+        return redirect(url_for('expenses'))
+    
+    expense = get_expense_by_id(expense_id)
+    if not expense:
+        flash('Expense not found', 'danger')
+        return redirect(url_for('expenses'))
+    
+    # Check approval authority based on amount
+    if expense.amount > 2000 and not current_user.has_role('admin'):
+        flash('Only owner can approve expenses above ₹2,000', 'danger')
+        return redirect(url_for('expenses'))
+    
+    approve_expense(expense_id, current_user.id)
+    flash(f'Expense approved successfully! ₹{expense.amount:,.2f} - {expense.description}', 'success')
+    return redirect(url_for('expenses'))
+
+@app.route('/expenses/reject/<int:expense_id>', methods=['POST'])
+@login_required
+def reject_expense_route(expense_id):
+    if not current_user.has_role('manager') and not current_user.has_role('admin'):
+        flash('Access denied', 'danger')
+        return redirect(url_for('expenses'))
+    
+    reason = request.form.get('reason', '').strip()
+    if not reason:
+        flash('Rejection reason is required', 'danger')
+        return redirect(url_for('expenses'))
+    
+    reject_expense(expense_id, current_user.id, reason)
+    flash('Expense rejected successfully', 'warning')
+    return redirect(url_for('expenses'))
+
+@app.route('/expenses/reconcile', methods=['GET', 'POST'])
+@login_required
+def daily_reconciliation():
+    if not current_user.has_role('manager') and not current_user.has_role('admin'):
+        flash('Access denied. Only managers can perform reconciliation.', 'danger')
+        return redirect(url_for('expenses'))
+    
+    if request.method == 'POST':
+        try:
+            actual_counted = float(request.form.get('actual_counted', 0))
+            notes = request.form.get('notes', '').strip()
+            
+            account = get_or_create_main_account()
+            reconciliation = create_daily_reconciliation(
+                account.id, 
+                actual_counted, 
+                current_user.id, 
+                notes
+            )
+            
+            if reconciliation.status == 'balanced':
+                flash('✓ Cash reconciled successfully! Counts match perfectly.', 'success')
+            elif reconciliation.status == 'shortage':
+                flash(f'⚠ Shortage detected: ₹{abs(reconciliation.difference):,.2f}', 'warning')
+            else:
+                flash(f'⚠ Excess detected: ₹{reconciliation.difference:,.2f}', 'info')
+            
+            return redirect(url_for('daily_reconciliation'))
+        except Exception as e:
+            flash(f'Error during reconciliation: {str(e)}', 'danger')
+    
+    account_summary = get_account_summary()
+    today_reconciliation = get_reconciliations(start_date=date.today(), end_date=date.today())
+    recent_reconciliations = get_reconciliations()[:7]  # Last 7 days
+    
+    return render_template('daily_reconciliation.html',
+                         account_summary=account_summary,
+                         today_reconciliation=today_reconciliation,
+                         recent_reconciliations=recent_reconciliations)
+
+@app.route('/expenses/pending-approvals')
+@login_required
+def pending_approvals():
+    if not current_user.has_role('manager') and not current_user.has_role('admin'):
+        flash('Access denied', 'danger')
+        return redirect(url_for('expenses'))
+    
+    # Get pending expenses based on user role
+    if current_user.has_role('admin'):
+        pending = get_pending_approvals(user_role='admin')
+    else:
+        pending = get_pending_approvals(user_role='manager')
+    
+    return render_template('pending_approvals.html', pending_expenses=pending)

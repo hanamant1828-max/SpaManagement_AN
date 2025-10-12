@@ -1053,6 +1053,31 @@ class PettyCashTransaction(db.Model):
     creator = db.relationship('User', backref='cash_transactions')
     expense = db.relationship('Expense', backref='cash_transaction')
 
+class DailyReconciliation(db.Model):
+    """Track daily cash reconciliation"""
+    __tablename__ = 'daily_reconciliation'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    account_id = db.Column(db.Integer, db.ForeignKey('petty_cash_account.id'), nullable=False)
+    reconciliation_date = db.Column(db.Date, nullable=False, default=date.today)
+    
+    # Cash counting
+    system_balance = db.Column(db.Float, nullable=False)  # What system shows
+    actual_counted = db.Column(db.Float, nullable=False)  # What was physically counted
+    difference = db.Column(db.Float, nullable=False)  # Shortage/Excess
+    
+    # Status
+    status = db.Column(db.String(20), default='balanced')  # balanced, shortage, excess
+    
+    # Reconciled by
+    reconciled_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    reconciled_at = db.Column(db.DateTime, default=datetime.utcnow)
+    notes = db.Column(db.Text)
+    
+    # Relationships
+    account = db.relationship('PettyCashAccount', backref='reconciliations')
+    reconciler = db.relationship('User', backref='reconciliations')
+
 class Expense(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     description = db.Column(db.String(200), nullable=False)
@@ -1064,10 +1089,21 @@ class Expense(db.Model):
     payment_method = db.Column(db.String(20), default='cash')  # cash, card, upi, petty_cash, reimbursement
     created_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     receipt_number = db.Column(db.String(50))
-    receipt_path = db.Column(db.String(255))  # Path to receipt file
+    receipt_path = db.Column(db.String(255))  # Path to receipt file (OPTIONAL)
+    receipt_image = db.Column(db.String(255))  # Receipt photo path (OPTIONAL)
     notes = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     deducted_from_account = db.Column(db.Boolean, default=False)  # Track if expense was deducted from petty cash
+    
+    # NEW: Approval workflow fields
+    vendor_name = db.Column(db.String(100))  # Where they bought it
+    approval_status = db.Column(db.String(20), default='pending')  # pending, approved, rejected, auto_approved
+    approved_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
+    approved_at = db.Column(db.DateTime, nullable=True)
+    rejection_reason = db.Column(db.Text, nullable=True)
+    
+    # Relationships
+    approver = db.relationship('User', foreign_keys=[approved_by], backref='approved_expenses')
 
 class Invoice(db.Model):
     id = db.Column(db.Integer, primary_key=True)
