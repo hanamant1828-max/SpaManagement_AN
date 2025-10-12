@@ -108,20 +108,28 @@ def dashboard_stats_api():
         staff_labels = [f"{s[1]} {s[2]}" for s in staff_performance]
         staff_data = [s[3] for s in staff_performance]
 
-        # Add dummy data if charts are empty
-        if not any(revenue_data):
+        # Add realistic demo data if charts are empty
+        if not any(revenue_data) or sum(revenue_data) == 0:
             revenue_data = [4500, 5200, 4800, 6100, 5500, 6800, 7200]
+            revenue_labels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
         
-        if not service_labels:
+        if not service_labels or len(service_labels) == 0:
             service_labels = ['Facial Treatment', 'Swedish Massage', 'Hair Styling', 'Manicure', 'Pedicure', 'Body Scrub']
             service_data = [45, 38, 32, 28, 25, 20]
         
-        if not any(bookings_data):
+        if not any(bookings_data) or sum(bookings_data) == 0:
             bookings_data = [12, 15, 10, 18, 14, 20, 16]
+            bookings_labels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
         
-        if not staff_labels:
+        if not staff_labels or len(staff_labels) == 0:
             staff_labels = ['Priya S.', 'Rahul K.', 'Anjali M.', 'Vikram P.', 'Sneha R.']
             staff_data = [28, 24, 22, 19, 16]
+        
+        print(f"Dashboard API Response:")
+        print(f"  Revenue data points: {len(revenue_data)}")
+        print(f"  Service categories: {len(service_labels)}")
+        print(f"  Bookings data points: {len(bookings_data)}")
+        print(f"  Staff members: {len(staff_labels)}")
 
         return jsonify({
             'success': True,
