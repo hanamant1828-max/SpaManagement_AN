@@ -113,6 +113,10 @@ def integrated_billing(customer_id=None):
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
 
+    # Check if we're in edit mode
+    edit_invoice_id = request.args.get('edit_invoice_id', '')
+    edit_mode = bool(edit_invoice_id)
+    
     # Extract client parameters from URL for auto-selection
     client_name = request.args.get('client_name', '')
     client_phone = request.args.get('client_phone', '')
@@ -498,6 +502,65 @@ def integrated_billing(customer_id=None):
 
             print(f"DEBUG: Customer {customer_id} has {len(customer_appointments)} ready-to-bill Unaki appointments and {len(customer_services)} services ready for billing")
 
+    # Handle edit mode - load existing invoice data
+    edit_invoice_data = None
+    if edit_mode and edit_invoice_id:
+        try:
+            invoice = EnhancedInvoice.query.get(int(edit_invoice_id))
+            if invoice:
+                # Get invoice items
+                invoice_items = InvoiceItem.query.filter_by(invoice_id=invoice.id).all()
+                
+                # Prepare service and product items
+                service_items = []
+                product_items = []
+                
+                for item in invoice_items:
+                    if item.item_type == 'service':
+                        service_items.append({
+                            'service_id': item.item_id,
+                            'quantity': item.quantity,
+                            'appointment_id': item.appointment_id,
+                            'staff_id': item.staff_id,
+                            'unit_price': item.unit_price,
+                            'deduction_amount': item.deduction_amount or 0
+                        })
+                    elif item.item_type == 'inventory':
+                        product_items.append({
+                            'product_id': item.product_id,
+                            'batch_id': item.batch_id,
+                            'quantity': item.quantity,
+                            'unit_price': item.unit_price,
+                            'staff_id': item.staff_id
+                        })
+                
+                edit_invoice_data = {
+                    'id': invoice.id,
+                    'invoice_number': invoice.invoice_number,
+                    'client_id': invoice.client_id,
+                    'service_items': service_items,
+                    'product_items': product_items,
+                    'discount_amount': invoice.discount_amount,
+                    'discount_type': invoice.discount_type,
+                    'additional_charges': invoice.additional_charges,
+                    'tips_amount': invoice.tips_amount,
+                    'cgst_rate': invoice.cgst_rate,
+                    'sgst_rate': invoice.sgst_rate,
+                    'igst_rate': invoice.igst_rate,
+                    'is_interstate': invoice.is_interstate,
+                    'payment_terms': invoice.payment_terms,
+                    'notes': invoice.notes
+                }
+                
+                # Override customer_id for edit mode
+                if not customer_id:
+                    customer_id = invoice.client_id
+                    selected_customer = Customer.query.get(customer_id)
+                    
+        except Exception as e:
+            app.logger.error(f"Error loading invoice for edit: {str(e)}")
+            flash(f'Error loading invoice: {str(e)}', 'danger')
+
     return render_template('integrated_billing.html',
                          customers=customers,
                          services=services,
@@ -514,7 +577,9 @@ def integrated_billing(customer_id=None):
                          preselected_client_id=customer_id,
                          preselected_client_name=client_name,
                          preselected_client_phone=client_phone,
-                         appointment_id=appointment_id)
+                         appointment_id=appointment_id,
+                         edit_mode=edit_mode,
+                         edit_invoice_data=edit_invoice_data)
 
 @app.route('/appointment/<int:appointment_id>/go-to-billing')
 @login_required
@@ -1914,72 +1979,20 @@ def integrated_invoice_detail(invoice_id):
 @app.route('/integrated-billing/edit/<int:invoice_id>')
 @login_required
 def edit_integrated_invoice(invoice_id):
-    """Edit an existing invoice"""
+    """Edit an existing invoice - redirect to integrated billing with edit mode"""
     # Allow all authenticated users to edit invoices
     if not current_user.is_active:
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
 
     try:
-        # Get the invoice
+        # Get the invoice to verify it exists
         invoice = EnhancedInvoice.query.get_or_404(invoice_id)
         
-        # Get invoice items
-        invoice_items = InvoiceItem.query.filter_by(invoice_id=invoice_id).all()
-        
-        # Get data for form
-        customers = Customer.query.filter_by(is_active=True).order_by(Customer.first_name, Customer.last_name).all()
-        services = Service.query.filter_by(is_active=True).order_by(Service.name).all()
-        staff_members = User.query.filter_by(is_active=True).order_by(User.first_name, User.last_name).all()
-        
-        # Get inventory items
-        inventory_items = []
-        if InventoryProduct is not None:
-            inventory_products = InventoryProduct.query.filter_by(is_active=True).all()
-            for product in inventory_products:
-                if product.total_stock > 0:
-                    inventory_items.append(product)
-        
-        # Prepare invoice items data
-        service_items = []
-        product_items = []
-        
-        for item in invoice_items:
-            if item.item_type == 'service':
-                service_items.append({
-                    'service_id': item.item_id,
-                    'quantity': item.quantity,
-                    'appointment_id': item.appointment_id,
-                    'staff_id': item.staff_id,
-                    'unit_price': item.unit_price,
-                    'deduction_amount': item.deduction_amount or 0
-                })
-            elif item.item_type == 'inventory':
-                product_items.append({
-                    'product_id': item.product_id,
-                    'batch_id': item.batch_id,
-                    'quantity': item.quantity,
-                    'unit_price': item.unit_price,
-                    'staff_id': item.staff_id
-                })
-        
-        # Get tax details from notes if available
-        import json
-        tax_details = {}
-        try:
-            tax_details = json.loads(invoice.notes) if invoice.notes else {}
-        except:
-            pass
-        
-        return render_template('edit_integrated_invoice.html',
-                             invoice=invoice,
-                             service_items=service_items,
-                             product_items=product_items,
-                             customers=customers,
-                             services=services,
-                             staff_members=staff_members,
-                             inventory_items=inventory_items,
-                             tax_details=tax_details)
+        # Redirect to integrated billing with edit mode
+        return redirect(url_for('integrated_billing', 
+                               customer_id=invoice.client_id,
+                               edit_invoice_id=invoice_id))
                              
     except Exception as e:
         app.logger.error(f"Error loading invoice for edit: {str(e)}")

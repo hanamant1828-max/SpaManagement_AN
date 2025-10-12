@@ -624,7 +624,11 @@ textarea.form-control {
     <div class="page-header">
         <h1 class="page-title">
             <i class="fas fa-file-invoice-dollar"></i>
+            {% if edit_mode and edit_invoice_data %}
+            Edit Invoice {{ edit_invoice_data.invoice_number }}
+            {% else %}
             Create Professional Invoice
+            {% endif %}
         </h1>
         <p class="page-subtitle">
             Comprehensive billing with package benefits, inventory tracking, and staff management
@@ -632,7 +636,7 @@ textarea.form-control {
     </div>
 
     <!-- Main Billing Form -->
-    <form id="billingForm" method="POST" action="/integrated-billing/create-professional">
+    <form id="billingForm" method="POST" action="{% if edit_mode and edit_invoice_data %}/integrated-billing/update/{{ edit_invoice_data.id }}{% else %}/integrated-billing/create-professional{% endif %}">
         <div class="row">
             <!-- Left Column: Form Inputs -->
             <div class="col-lg-8">
@@ -1103,6 +1107,14 @@ document.addEventListener('DOMContentLoaded', function() {
     // Ensure to use the correct function name and pass ID as string or number based on API
     loadCustomerPackages({{ selected_customer.id }});
     loadCustomerAppointments({{ selected_customer.id }});
+    {% endif %}
+    
+    {% if edit_mode and edit_invoice_data %}
+    // Edit mode: Pre-populate invoice data
+    console.log('📝 Edit mode activated - loading invoice data');
+    setTimeout(() => {
+        loadInvoiceEditData({{ edit_invoice_data|tojson }});
+    }, 500); // Delay to ensure customer packages are loaded first
     {% endif %}
 });
 
@@ -2914,6 +2926,102 @@ function resetCustomerAppointments() {
 
         console.log(`✅ Student offer is valid for today`);
         return true;
+    }
+
+    // ==========================================
+    // EDIT MODE - LOAD INVOICE DATA
+    // ==========================================
+    function loadInvoiceEditData(invoiceData) {
+        console.log('📝 Loading invoice data for editing:', invoiceData);
+        
+        // Pre-populate services
+        if (invoiceData.service_items && invoiceData.service_items.length > 0) {
+            console.log(`Adding ${invoiceData.service_items.length} service items`);
+            invoiceData.service_items.forEach((item, index) => {
+                if (index > 0) addServiceRow(); // Add new row for items after the first
+                
+                const serviceRows = document.querySelectorAll('.service-row');
+                const row = serviceRows[index];
+                
+                if (row) {
+                    const serviceSelect = row.querySelector('select[name="service_ids[]"]');
+                    const qtyInput = row.querySelector('input[name="service_quantities[]"]');
+                    const staffSelect = row.querySelector('select[name="staff_ids[]"]');
+                    const aptIdInput = row.querySelector('input[name="appointment_ids[]"]');
+                    
+                    if (serviceSelect) {
+                        serviceSelect.value = item.service_id;
+                        // Trigger change event to recalculate pricing and package benefits
+                        $(serviceSelect).trigger('change');
+                    }
+                    if (qtyInput) qtyInput.value = item.quantity;
+                    if (staffSelect) staffSelect.value = item.staff_id;
+                    if (aptIdInput) aptIdInput.value = item.appointment_id || '';
+                }
+            });
+        }
+        
+        // Pre-populate products
+        if (invoiceData.product_items && invoiceData.product_items.length > 0) {
+            console.log(`Adding ${invoiceData.product_items.length} product items`);
+            invoiceData.product_items.forEach((item, index) => {
+                if (index > 0 || document.querySelectorAll('.product-row').length === 0) {
+                    addProductRow(); // Add new row
+                }
+                
+                const productRows = document.querySelectorAll('.product-row');
+                const row = productRows[index];
+                
+                if (row) {
+                    const productSelect = row.querySelector('select[name="product_ids[]"]');
+                    const qtyInput = row.querySelector('input[name="product_quantities[]"]');
+                    const priceInput = row.querySelector('input[name="product_prices[]"]');
+                    const staffSelect = row.querySelector('select[name="product_staff_ids[]"]');
+                    const batchInput = row.querySelector('input[name="batch_ids[]"]');
+                    
+                    if (productSelect) {
+                        productSelect.value = item.product_id;
+                        // Trigger change event to load batches and set pricing
+                        $(productSelect).trigger('change');
+                    }
+                    // Set quantity and price after product selection loads batches
+                    setTimeout(() => {
+                        if (qtyInput) qtyInput.value = item.quantity;
+                        if (priceInput) priceInput.value = item.unit_price;
+                        if (staffSelect) staffSelect.value = item.staff_id;
+                        if (batchInput) batchInput.value = item.batch_id || '';
+                    }, 200);
+                }
+            });
+        }
+        
+        // Pre-populate discount, charges, tips
+        if (invoiceData.discount_amount) {
+            const discountInput = document.getElementById('discount_amount');
+            if (discountInput) discountInput.value = invoiceData.discount_amount;
+        }
+        
+        if (invoiceData.additional_charges) {
+            const chargesInput = document.getElementById('additional_charges');
+            if (chargesInput) chargesInput.value = invoiceData.additional_charges;
+        }
+        
+        if (invoiceData.tips_amount) {
+            const tipsInput = document.getElementById('tips_amount');
+            if (tipsInput) tipsInput.value = invoiceData.tips_amount;
+        }
+        
+        // Pre-populate tax settings
+        if (invoiceData.is_interstate) {
+            const interstateCheckbox = document.getElementById('is_interstate');
+            if (interstateCheckbox) interstateCheckbox.checked = true;
+        }
+        
+        // Trigger full recalculation after all items are loaded
+        setTimeout(() => {
+            updateCalculations();
+            console.log('✅ Invoice data loaded and calculations updated');
+        }, 500); // Increased delay to ensure all product batches are loaded
     }
 
     // ==========================================
