@@ -1737,17 +1737,30 @@ function forceCleanupModals() {
 }
 
 // Add click handler for modal close buttons
-document.addEventListener('click', function(event) {
-    // Handle close button clicks
-    if (event.target.matches('[data-bs-dismiss="modal"]') ||
-        event.target.closest('[data-bs-dismiss="modal"]')) {
-        setTimeout(forceCleanupModals, 200);
-    }
+// Handle modal cleanup - only for stuck modals
+document.addEventListener('hidden.bs.modal', function(event) {
+    // Small delay to ensure Bootstrap has finished its cleanup
+    setTimeout(() => {
+        // Only clean up if there are orphaned backdrops (more backdrops than open modals)
+        const openModals = document.querySelectorAll('.modal.show').length;
+        const backdrops = document.querySelectorAll('.modal-backdrop').length;
 
-    // Handle backdrop clicks
-    if (event.target.classList.contains('modal')) {
-        setTimeout(forceCleanupModals, 200);
-    }
+        if (backdrops > openModals) {
+            const extraBackdrops = document.querySelectorAll('.modal-backdrop');
+            for (let i = openModals; i < backdrops; i++) {
+                if (extraBackdrops[i] && extraBackdrops[i].parentNode) {
+                    extraBackdrops[i].parentNode.removeChild(extraBackdrops[i]);
+                }
+            }
+        }
+
+        // Clean up body classes only if no modals are open
+        if (openModals === 0) {
+            document.body.classList.remove('modal-open');
+            document.body.style.overflow = '';
+            document.body.style.paddingRight = '';
+        }
+    }, 150);
 });
 
 // Connection status handlers
