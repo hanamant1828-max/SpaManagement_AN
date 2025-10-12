@@ -33,77 +33,11 @@ def get_expense_categories():
     ).order_by(Category.display_name).all()
 
 def create_expense(expense_data):
-    """Create a new expense with auto-approval logic"""
-    from models import User
-    
-    amount = expense_data.get('amount', 0)
-    
-    # Auto-approval rules based on amount
-    if amount < 500:
-        expense_data['approval_status'] = 'auto_approved'
-        expense_data['approved_at'] = datetime.utcnow()
-        # Auto-deduct from petty cash for small amounts
-        expense_data['deducted_from_account'] = False  # Will be handled separately
-    else:
-        expense_data['approval_status'] = 'pending'
-    
+    """Create a new expense"""
     expense = Expense(**expense_data)
     db.session.add(expense)
     db.session.commit()
-    
-    # Auto-deduct if approved
-    if expense.approval_status == 'auto_approved':
-        try:
-            deduct_expense_from_account(expense)
-        except Exception as e:
-            print(f"Auto-deduction failed: {e}")
-    
     return expense
-
-def approve_expense(expense_id, approver_id):
-    """Approve an expense"""
-    expense = Expense.query.get(expense_id)
-    if not expense:
-        return None
-    
-    expense.approval_status = 'approved'
-    expense.approved_by = approver_id
-    expense.approved_at = datetime.utcnow()
-    db.session.commit()
-    
-    # Deduct from account after approval
-    if not expense.deducted_from_account:
-        try:
-            deduct_expense_from_account(expense)
-        except Exception as e:
-            print(f"Deduction failed after approval: {e}")
-    
-    return expense
-
-def reject_expense(expense_id, approver_id, reason):
-    """Reject an expense"""
-    expense = Expense.query.get(expense_id)
-    if not expense:
-        return None
-    
-    expense.approval_status = 'rejected'
-    expense.approved_by = approver_id
-    expense.approved_at = datetime.utcnow()
-    expense.rejection_reason = reason
-    db.session.commit()
-    return expense
-
-def get_pending_approvals(user_role=None, amount_range=None):
-    """Get pending expenses for approval"""
-    query = Expense.query.filter_by(approval_status='pending')
-    
-    # Filter by amount range based on user role
-    if user_role == 'manager':
-        query = query.filter(Expense.amount.between(500, 2000))
-    elif user_role == 'admin':
-        query = query.filter(Expense.amount > 2000)
-    
-    return query.order_by(Expense.expense_date.desc()).all()
 
 def update_expense(expense_id, expense_data):
     """Update an existing expense"""
@@ -233,50 +167,3 @@ def get_account_summary():
         'total_spent': account.total_spent,
         'account_name': account.account_name
     }
-
-
-
-def create_daily_reconciliation(account_id, actual_counted, reconciled_by, notes=None):
-    """Create daily reconciliation record"""
-    from models import DailyReconciliation
-    
-    account = get_or_create_main_account()
-    system_balance = account.current_balance
-    difference = actual_counted - system_balance
-    
-    # Determine status
-    if difference == 0:
-        status = 'balanced'
-    elif difference < 0:
-        status = 'shortage'
-    else:
-        status = 'excess'
-    
-    reconciliation = DailyReconciliation(
-        account_id=account_id,
-        reconciliation_date=date.today(),
-        system_balance=system_balance,
-        actual_counted=actual_counted,
-        difference=difference,
-        status=status,
-        reconciled_by=reconciled_by,
-        notes=notes
-    )
-    
-    db.session.add(reconciliation)
-    db.session.commit()
-    
-    return reconciliation
-
-def get_reconciliations(start_date=None, end_date=None):
-    """Get reconciliation records"""
-    from models import DailyReconciliation
-    
-    query = DailyReconciliation.query
-    
-    if start_date:
-        query = query.filter(DailyReconciliation.reconciliation_date >= start_date)
-    if end_date:
-        query = query.filter(DailyReconciliation.reconciliation_date <= end_date)
-    
-    return query.order_by(DailyReconciliation.reconciliation_date.desc()).all()
