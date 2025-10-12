@@ -11,18 +11,23 @@
                     <h2><i class="fas fa-exclamation-triangle me-2"></i>Product Alerts</h2>
                     <p class="text-muted mb-0">Monitor expired, expiring, and low stock items</p>
                 </div>
-                <div class="btn-group" role="group">
-                    <button type="button" class="btn btn-outline-primary active" onclick="filterAlerts('all')">
-                        <i class="fas fa-list me-2"></i>All Alerts
-                    </button>
-                    <button type="button" class="btn btn-outline-danger" onclick="filterAlerts('expired')">
-                        <i class="fas fa-times-circle me-2"></i>Expired
-                    </button>
-                    <button type="button" class="btn btn-outline-warning" onclick="filterAlerts('expiring')">
-                        <i class="fas fa-clock me-2"></i>Expiring Soon
-                    </button>
-                    <button type="button" class="btn btn-outline-info" onclick="filterAlerts('low-stock')">
-                        <i class="fas fa-box me-2"></i>Low Stock
+                <div class="d-flex gap-2">
+                    <div class="btn-group" role="group">
+                        <button type="button" class="btn btn-outline-primary active" onclick="filterAlerts('all')">
+                            <i class="fas fa-list me-2"></i>All Alerts
+                        </button>
+                        <button type="button" class="btn btn-outline-danger" onclick="filterAlerts('expired')">
+                            <i class="fas fa-times-circle me-2"></i>Expired
+                        </button>
+                        <button type="button" class="btn btn-outline-warning" onclick="filterAlerts('expiring')">
+                            <i class="fas fa-clock me-2"></i>Expiring Soon
+                        </button>
+                        <button type="button" class="btn btn-outline-info" onclick="filterAlerts('low-stock')">
+                            <i class="fas fa-box me-2"></i>Low Stock
+                        </button>
+                    </div>
+                    <button type="button" class="btn btn-success" onclick="exportAlertsToExcel()">
+                        <i class="fas fa-file-excel me-2"></i>Export to Excel
                     </button>
                 </div>
             </div>
@@ -339,5 +344,114 @@ setInterval(function() {
         location.reload();
     }
 }, 600000);
+
+// Export alerts to Excel
+function exportAlertsToExcel() {
+    // Load SheetJS library if not already loaded
+    if (typeof XLSX === 'undefined') {
+        const script = document.createElement('script');
+        script.src = 'https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js';
+        script.onload = function() {
+            performExport();
+        };
+        document.head.appendChild(script);
+    } else {
+        performExport();
+    }
+}
+
+function performExport() {
+    // Create workbook
+    const wb = XLSX.utils.book_new();
+
+    // Prepare Expired Items data
+    const expiredData = [];
+    {% if expired_items %}
+    {% for batch in expired_items %}
+    expiredData.push({
+        'Batch Name': '{{ batch.batch_name }}',
+        'Product Name': '{{ batch.product.name if batch.product else "Unassigned Product" }}',
+        'Location': '{{ batch.location.name if batch.location else "No Location" }}',
+        'Qty Available': {{ batch.qty_available or 0 }},
+        'Unit': '{{ batch.product.unit_of_measure if batch.product else "pcs" }}',
+        'Expiry Date': '{{ batch.expiry_date.strftime("%d-%m-%Y") if batch.expiry_date else "N/A" }}',
+        'Days Expired': {{ (today - batch.expiry_date).days if batch.expiry_date else 0 }}
+    });
+    {% endfor %}
+    {% endif %}
+
+    // Prepare Expiring Soon data
+    const expiringSoonData = [];
+    {% if expiring_soon %}
+    {% for batch in expiring_soon %}
+    expiringSoonData.push({
+        'Batch Name': '{{ batch.batch_name }}',
+        'Product Name': '{{ batch.product.name if batch.product else "Unassigned Product" }}',
+        'Location': '{{ batch.location.name if batch.location else "No Location" }}',
+        'Qty Available': {{ batch.qty_available or 0 }},
+        'Unit': '{{ batch.product.unit_of_measure if batch.product else "pcs" }}',
+        'Expiry Date': '{{ batch.expiry_date.strftime("%d-%m-%Y") if batch.expiry_date else "N/A" }}',
+        'Days Left': {{ batch.days_to_expiry }},
+        'Status': '{% if batch.days_to_expiry <= 7 %}Critical{% elif batch.days_to_expiry <= 30 %}Warning{% else %}Monitor{% endif %}'
+    });
+    {% endfor %}
+    {% endif %}
+
+    // Prepare Low Stock data
+    const lowStockData = [];
+    {% if low_stock_items %}
+    {% for item in low_stock_items %}
+    lowStockData.push({
+        'Item Name': '{{ item.name }}',
+        'Description': '{{ item.description or "" }}',
+        'Category': '{{ item.category }}',
+        'Current Stock': {{ item.current_stock }},
+        'Minimum Level': {{ item.min_stock_level }},
+        'Supplier': '{{ item.supplier_name or "N/A" }}',
+        'Contact': '{{ item.supplier_contact or "N/A" }}'
+    });
+    {% endfor %}
+    {% endif %}
+
+    // Add sheets to workbook
+    if (expiredData.length > 0) {
+        const ws1 = XLSX.utils.json_to_sheet(expiredData);
+        XLSX.utils.book_append_sheet(wb, ws1, 'Expired Batches');
+    }
+
+    if (expiringSoonData.length > 0) {
+        const ws2 = XLSX.utils.json_to_sheet(expiringSoonData);
+        XLSX.utils.book_append_sheet(wb, ws2, 'Expiring Soon');
+    }
+
+    if (lowStockData.length > 0) {
+        const ws3 = XLSX.utils.json_to_sheet(lowStockData);
+        XLSX.utils.book_append_sheet(wb, ws3, 'Low Stock Items');
+    }
+
+    // Generate filename with current date
+    const today = new Date();
+    const dateStr = today.getFullYear() + '-' + 
+                    String(today.getMonth() + 1).padStart(2, '0') + '-' + 
+                    String(today.getDate()).padStart(2, '0');
+    const filename = `Product_Alerts_${dateStr}.xlsx`;
+
+    // Save file
+    XLSX.writeFile(wb, filename);
+
+    // Show success message
+    const alertDiv = document.createElement('div');
+    alertDiv.className = 'alert alert-success alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3';
+    alertDiv.style.zIndex = '9999';
+    alertDiv.innerHTML = `
+        <i class="fas fa-check-circle me-2"></i>Alerts exported successfully to ${filename}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    document.body.appendChild(alertDiv);
+    
+    setTimeout(() => {
+        alertDiv.remove();
+    }, 3000);
+}
 </script>
 {% endblock %}
