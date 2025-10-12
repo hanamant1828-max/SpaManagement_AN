@@ -305,7 +305,7 @@
                         <div class="list-group-item d-flex justify-content-between align-items-center">
 
 <!-- Add Money Modal -->
-<div class="modal fade" id="addMoneyModal" tabindex="-1" aria-labelledby="addMoneyModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+<div class="modal fade" id="addMoneyModal" tabindex="-1" aria-labelledby="addMoneyModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header bg-success text-white">
@@ -468,23 +468,40 @@
 {% block extra_scripts %}
 <script>
 function viewExpense(expenseId) {
-    // In a real implementation, this would fetch expense details via AJAX
-    document.getElementById('expenseDetails').innerHTML = `
-        <div class="text-center">
-            <div class="spinner-border" role="status">
-                <span class="visually-hidden">Loading...</span>
-            </div>
-        </div>
-    `;
+    // Fetch expense details via AJAX
+    fetch(`/api/expenses/${expenseId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const expense = data.expense;
+                document.getElementById('expenseDetails').innerHTML = `
+                    <table class="table">
+                        <tr><th>Description:</th><td>${expense.description}</td></tr>
+                        <tr><th>Amount:</th><td>₹${expense.amount}</td></tr>
+                        <tr><th>Category:</th><td>${expense.category}</td></tr>
+                        <tr><th>Date:</th><td>${expense.expense_date}</td></tr>
+                        <tr><th>Payment Method:</th><td>${expense.payment_method || 'N/A'}</td></tr>
+                        <tr><th>Notes:</th><td>${expense.notes || 'N/A'}</td></tr>
+                    </table>
+                `;
+            }
+        })
+        .catch(error => {
+            document.getElementById('expenseDetails').innerHTML = `
+                <div class="alert alert-danger">Error loading expense details</div>
+            `;
+        });
 }
 
 function editExpense(expenseId) {
     console.log('Edit expense:', expenseId);
+    // Could implement edit functionality here
 }
 
 function exportExpenses() {
-    // In a real implementation, this would generate and download a CSV/Excel file
-    alert('Export functionality would be implemented here');
+    const month = document.querySelector('select[name="month"]').value;
+    const year = document.querySelector('select[name="year"]').value;
+    window.location.href = `/expenses/export?month=${month}&year=${year}`;
 }
 
 function printExpenses() {
