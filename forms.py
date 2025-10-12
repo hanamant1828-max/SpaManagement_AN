@@ -113,7 +113,6 @@ class ExpenseForm(FlaskForm):
     amount = FloatField('Amount', validators=[DataRequired(), NumberRange(min=0)])
     category = StringField('Category', validators=[Optional(), Length(max=50)])
     category_id = SelectField('Category', coerce=int, validators=[Optional()])
-    vendor_name = StringField('Vendor/Shop Name', validators=[Optional(), Length(max=200)])
     expense_date = DateField('Expense Date', validators=[DataRequired()])
     receipt_path = StringField('Receipt Path', validators=[Optional(), Length(max=500)])
     notes = TextAreaField('Notes', validators=[Optional()])
