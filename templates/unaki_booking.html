@@ -2440,6 +2440,35 @@
                 return `${hours.toString().padStart(2, '0')}:${minutes}`;
             }
 
+            // Validate time input (HH:MM format with proper ranges)
+            function validateTimeInput(timeStr, ampm) {
+                // Regex: H:MM or HH:MM format
+                const timeRegex = /^([0-9]|0[0-9]|1[0-2]):([0-5][0-9])$/;
+                
+                if (!timeRegex.test(timeStr)) {
+                    return { valid: false, error: 'Invalid time format. Use HH:MM (e.g., 2:30)' };
+                }
+                
+                const [hours, minutes] = timeStr.split(':').map(Number);
+                
+                // Validate hours (1-12 for 12-hour format)
+                if (hours < 1 || hours > 12) {
+                    return { valid: false, error: 'Hours must be between 1 and 12' };
+                }
+                
+                // Validate minutes (0-59)
+                if (minutes < 0 || minutes > 59) {
+                    return { valid: false, error: 'Minutes must be between 0 and 59' };
+                }
+                
+                // Validate AM/PM
+                if (ampm !== 'AM' && ampm !== 'PM') {
+                    return { valid: false, error: 'Please specify AM or PM' };
+                }
+                
+                return { valid: true };
+            }
+
             // Show custom time picker for 12-hour format selection
             function showTimePicker(displayInput) {
                 const card = displayInput.closest('.appointment-card');
@@ -2448,37 +2477,70 @@
                 
                 // Convert current time to 12-hour format
                 const time12 = convertTo12Hour(currentTime);
-                const [timePart, ampmPart] = time12.split(' ');
-                const [hours, minutes] = timePart.split(':');
                 
-                // Create time picker modal (simplified version)
-                const newTime = prompt(`Enter time (format: HH:MM AM/PM)\nCurrent: ${time12}`, time12);
-                
-                if (newTime) {
-                    const parts = newTime.trim().split(' ');
-                    if (parts.length === 2) {
-                        const [time, ampm] = parts;
-                        const time24 = convertTo24Hour(time, ampm.toUpperCase());
-                        
-                        // Update hidden 24-hour input
-                        hiddenInput.value = time24;
-                        
-                        // Update visible 12-hour display
-                        displayInput.value = convertTo12Hour(time24);
-                        
-                        // Trigger change events
-                        hiddenInput.dispatchEvent(new Event('change'));
-                        
-                        // Recalculate end time
-                        const index = parseInt(card.dataset.appointmentIndex);
-                        calculateEndTime(index);
-                        checkConflicts(index);
-                        updateSummary();
-                        updateSubmitButton();
-                    } else {
-                        alert('Invalid format. Please use HH:MM AM/PM (e.g., 2:30 PM)');
+                // Create time picker with validation loop
+                let attempts = 0;
+                while (attempts < 3) {
+                    const newTime = prompt(
+                        `Enter time in 12-hour format:\nFormat: HH:MM AM/PM (e.g., 2:30 PM)\nCurrent: ${time12}`,
+                        time12
+                    );
+                    
+                    // User cancelled
+                    if (newTime === null) {
+                        return;
                     }
+                    
+                    // Parse and validate
+                    const parts = newTime.trim().toUpperCase().split(' ');
+                    
+                    if (parts.length !== 2) {
+                        alert('Invalid format. Please use HH:MM AM/PM (e.g., 2:30 PM)');
+                        attempts++;
+                        continue;
+                    }
+                    
+                    const [time, ampm] = parts;
+                    
+                    // Validate the input
+                    const validation = validateTimeInput(time, ampm);
+                    
+                    if (!validation.valid) {
+                        alert(validation.error);
+                        attempts++;
+                        continue;
+                    }
+                    
+                    // Convert to 24-hour format
+                    const time24 = convertTo24Hour(time, ampm);
+                    
+                    // Double-check the 24-hour format is valid
+                    const [h24, m24] = time24.split(':').map(Number);
+                    if (isNaN(h24) || isNaN(m24) || h24 < 0 || h24 > 23 || m24 < 0 || m24 > 59) {
+                        alert('Time conversion error. Please try again.');
+                        attempts++;
+                        continue;
+                    }
+                    
+                    // All validations passed - update the inputs
+                    hiddenInput.value = time24;
+                    displayInput.value = convertTo12Hour(time24);
+                    
+                    // Trigger change events
+                    hiddenInput.dispatchEvent(new Event('change'));
+                    
+                    // Recalculate end time
+                    const index = parseInt(card.dataset.appointmentIndex);
+                    calculateEndTime(index);
+                    checkConflicts(index);
+                    updateSummary();
+                    updateSubmitButton();
+                    
+                    return; // Success
                 }
+                
+                // Max attempts reached
+                alert('Too many invalid attempts. Please try again later.');
             }
 
             // Update all 12-hour displays when page loads or times change
