@@ -116,7 +116,7 @@ def integrated_billing(customer_id=None):
     # Check if we're in edit mode
     edit_invoice_id = request.args.get('edit_invoice_id', '')
     edit_mode = bool(edit_invoice_id)
-    
+
     # Extract client parameters from URL for auto-selection
     client_name = request.args.get('client_name', '')
     client_phone = request.args.get('client_phone', '')
@@ -510,11 +510,11 @@ def integrated_billing(customer_id=None):
             if invoice:
                 # Get invoice items
                 invoice_items = InvoiceItem.query.filter_by(invoice_id=invoice.id).all()
-                
+
                 # Prepare service and product items
                 service_items = []
                 product_items = []
-                
+
                 for item in invoice_items:
                     if item.item_type == 'service':
                         service_items.append({
@@ -533,7 +533,7 @@ def integrated_billing(customer_id=None):
                             'unit_price': item.unit_price,
                             'staff_id': item.staff_id
                         })
-                
+
                 edit_invoice_data = {
                     'id': invoice.id,
                     'invoice_number': invoice.invoice_number,
@@ -551,12 +551,12 @@ def integrated_billing(customer_id=None):
                     'payment_terms': invoice.payment_terms,
                     'notes': invoice.notes
                 }
-                
+
                 # Override customer_id for edit mode
                 if not customer_id:
                     customer_id = invoice.client_id
                     selected_customer = Customer.query.get(customer_id)
-                    
+
         except Exception as e:
             app.logger.error(f"Error loading invoice for edit: {str(e)}")
             flash(f'Error loading invoice: {str(e)}', 'danger')
@@ -1953,10 +1953,10 @@ def integrated_invoice_detail(invoice_id):
     try:
         # Get the invoice
         invoice = EnhancedInvoice.query.get_or_404(invoice_id)
-        
+
         # Get invoice items
         invoice_items = InvoiceItem.query.filter_by(invoice_id=invoice_id).all()
-        
+
         # Get tax details from notes if available
         import json
         tax_details = {}
@@ -1964,12 +1964,12 @@ def integrated_invoice_detail(invoice_id):
             tax_details = json.loads(invoice.notes) if invoice.notes else {}
         except:
             pass
-        
+
         return render_template('integrated_invoice_detail.html',
                              invoice=invoice,
                              invoice_items=invoice_items,
                              tax_details=tax_details)
-                             
+
     except Exception as e:
         app.logger.error(f"Error loading invoice details: {str(e)}")
         flash(f'Error loading invoice: {str(e)}', 'danger')
@@ -1988,12 +1988,12 @@ def edit_integrated_invoice(invoice_id):
     try:
         # Get the invoice to verify it exists
         invoice = EnhancedInvoice.query.get_or_404(invoice_id)
-        
+
         # Redirect to integrated billing with edit mode
-        return redirect(url_for('integrated_billing', 
+        return redirect(url_for('integrated_billing',
                                customer_id=invoice.client_id,
                                edit_invoice_id=invoice_id))
-                             
+
     except Exception as e:
         app.logger.error(f"Error loading invoice for edit: {str(e)}")
         flash(f'Error loading invoice: {str(e)}', 'danger')
@@ -2011,10 +2011,10 @@ def update_integrated_invoice(invoice_id):
     try:
         # Get the invoice
         invoice = EnhancedInvoice.query.get_or_404(invoice_id)
-        
+
         # Delete existing invoice items
         InvoiceItem.query.filter_by(invoice_id=invoice_id).delete()
-        
+
         # Parse services data (same as create)
         services_data = []
         service_ids = request.form.getlist('service_ids[]')
@@ -2064,46 +2064,46 @@ def update_integrated_invoice(invoice_id):
 
         # Recalculate amounts (same logic as create)
         services_subtotal = sum(
-            Service.query.get(s['service_id']).price * s['quantity'] 
+            Service.query.get(s['service_id']).price * s['quantity']
             for s in services_data if Service.query.get(s['service_id'])
         )
-        
+
         inventory_subtotal = sum(
-            item['unit_price'] * item['quantity'] 
+            item['unit_price'] * item['quantity']
             for item in inventory_data
         )
-        
+
         gross_subtotal = services_subtotal + inventory_subtotal
-        
+
         # Update invoice fields
         invoice.services_subtotal = services_subtotal
         invoice.inventory_subtotal = inventory_subtotal
         invoice.gross_subtotal = gross_subtotal
-        
+
         # Recalculate tax and totals
         cgst_rate = float(request.form.get('cgst_rate', 9)) / 100
         sgst_rate = float(request.form.get('sgst_rate', 9)) / 100
         igst_rate = float(request.form.get('igst_rate', 0)) / 100
         is_interstate = request.form.get('is_interstate') == 'on'
-        
+
         discount_type = request.form.get('discount_type', 'amount')
         discount_value = float(request.form.get('discount_value', 0))
-        
+
         if discount_type == 'percentage':
             discount_amount = (gross_subtotal * discount_value) / 100
         else:
             discount_amount = discount_value
-            
+
         net_subtotal = max(0, gross_subtotal - discount_amount)
-        
+
         total_gst_rate = igst_rate if is_interstate else (cgst_rate + sgst_rate)
         tax_amount = net_subtotal * total_gst_rate
-        
+
         additional_charges = float(request.form.get('additional_charges', 0))
         tips_amount = float(request.form.get('tips_amount', 0))
-        
+
         total_amount = net_subtotal + tax_amount + additional_charges + tips_amount
-        
+
         # Update invoice
         invoice.net_subtotal = net_subtotal
         invoice.discount_amount = discount_amount
@@ -2112,7 +2112,7 @@ def update_integrated_invoice(invoice_id):
         invoice.tips_amount = tips_amount
         invoice.total_amount = total_amount
         invoice.balance_due = total_amount - invoice.amount_paid
-        
+
         # Re-create invoice items
         for service_data in services_data:
             service = Service.query.get(service_data['service_id'])
@@ -2123,7 +2123,7 @@ def update_integrated_invoice(invoice_id):
                     staff = User.query.get(staff_id)
                     if staff:
                         staff_name = staff.full_name
-                
+
                 original_price = service.price * service_data['quantity']
                 item = InvoiceItem(
                     invoice_id=invoice.id,
@@ -2141,11 +2141,11 @@ def update_integrated_invoice(invoice_id):
                     staff_name=staff_name
                 )
                 db.session.add(item)
-        
+
         for item_data in inventory_data:
             batch = InventoryBatch.query.get(item_data['batch_id'])
             product = InventoryProduct.query.get(item_data['product_id'])
-            
+
             if batch and product:
                 staff_id = item_data.get('staff_id')
                 staff_name = None
@@ -2153,7 +2153,7 @@ def update_integrated_invoice(invoice_id):
                     staff = User.query.get(staff_id)
                     if staff:
                         staff_name = staff.full_name
-                
+
                 product_amount = item_data['unit_price'] * item_data['quantity']
                 item = InvoiceItem(
                     invoice_id=invoice.id,
@@ -2173,16 +2173,16 @@ def update_integrated_invoice(invoice_id):
                     staff_name=staff_name
                 )
                 db.session.add(item)
-        
+
         db.session.commit()
-        
+
         return jsonify({
             'success': True,
             'message': 'Invoice updated successfully',
             'invoice_id': invoice.id,
             'invoice_number': invoice.invoice_number
         })
-        
+
     except Exception as e:
         db.session.rollback()
         app.logger.error(f"Error updating invoice: {str(e)}")
@@ -2325,20 +2325,20 @@ def list_integrated_invoices():
     if not current_user.is_active:
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
-    
+
     # Get filter parameters
     status_filter = request.args.get('status', 'all')
     search_query = request.args.get('search', '')
     date_from = request.args.get('date_from', '')
     date_to = request.args.get('date_to', '')
-    
+
     # Base query
     query = EnhancedInvoice.query
-    
+
     # Apply filters
     if status_filter != 'all':
         query = query.filter_by(payment_status=status_filter)
-    
+
     if search_query:
         query = query.join(Customer).filter(
             db.or_(
@@ -2348,26 +2348,26 @@ def list_integrated_invoices():
                 Customer.phone.ilike(f'%{search_query}%')
             )
         )
-    
+
     if date_from:
         from datetime import datetime
         date_from_obj = datetime.strptime(date_from, '%Y-%m-%d')
         query = query.filter(EnhancedInvoice.invoice_date >= date_from_obj)
-    
+
     if date_to:
         from datetime import datetime
         date_to_obj = datetime.strptime(date_to, '%Y-%m-%d')
         query = query.filter(EnhancedInvoice.invoice_date <= date_to_obj)
-    
+
     # Order by date descending
     invoices = query.order_by(EnhancedInvoice.invoice_date.desc()).all()
-    
+
     # Calculate summary stats
     total_invoices = len(invoices)
     total_amount = sum(inv.total_amount for inv in invoices)
     total_paid = sum(inv.amount_paid for inv in invoices)
     total_pending = sum(inv.balance_due for inv in invoices)
-    
+
     return render_template('invoices_list.html',
                          invoices=invoices,
                          total_invoices=total_invoices,

@@ -1,4 +1,3 @@
-
 {% extends "base.html" %}
 
 {% block title %}All Invoices{% endblock %}
@@ -149,9 +148,9 @@
                             <td>{{ invoice.customer.full_name if invoice.customer else 'Unknown' }}</td>
                             <td>{{ invoice.customer.phone if invoice.customer else 'N/A' }}</td>
                             <td class="text-end">₹{{ "{:,.2f}".format(invoice.total_amount) }}</td>
-                            <td class="text-end text-success">₹{{ "{:,.2f}".format(invoice.amount_paid) }}</td>
+                            <td class="text-end text-success">₹{{ "{:,.2f}".format(invoice.amount_paid|default(0)) }}</td>
                             <td class="text-end {{ 'text-danger' if invoice.balance_due > 0 else 'text-success' }}">
-                                ₹{{ "{:,.2f}".format(invoice.balance_due) }}
+                                ₹{{ "{:,.2f}".format(invoice.balance_due|default(invoice.total_amount)) }}
                             </td>
                             <td>
                                 <span class="status-badge status-{{ invoice.payment_status }}">
