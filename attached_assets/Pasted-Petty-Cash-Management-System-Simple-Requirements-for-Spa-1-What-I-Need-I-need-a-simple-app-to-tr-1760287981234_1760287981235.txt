@@ -1,0 +1,87 @@
+Petty Cash Management System
+Simple Requirements for Spa
+1. What I Need
+I need a simple app to track petty cash in my spa. Staff should be able to record expenses on mobile/computer, I should be able to approve them, and see reports.
+2. Users & Access
+User Type	What They Can Do
+Owner (Me)	See everything, approve/reject expenses, view reports, manage settings
+Manager	Approve expenses, view reports, do daily reconciliation
+Staff	Add expenses, view their own expenses only
+
+3. Main Features
+A. Cash Float Setup
+•	Set opening cash amount (e.g., ₹10,000)
+•	Add money when needed (replenishment)
+B. Recording Expenses
+When staff spends money, they enter:
+•	Amount
+•	Category (Office Supplies, Spa Products, Cleaning, etc.)
+•	What they bought (description)
+•	Where they bought it (vendor name)
+•	Receipt photo (OPTIONAL - can skip)
+C. Approval System
+•	Small expenses (below ₹500) - Auto approved
+•	Medium expenses (₹500 to ₹2,000) - Manager approves
+•	Large expenses (above ₹2,000) - Owner approves
+D. Daily Reconciliation
+•	At end of day, count actual cash in box
+•	Enter the counted amount in system
+•	System shows if there's shortage or excess
+E. Reports
+•	Daily report - Total spent today
+•	Weekly report - Spending trends
+•	Monthly report - Complete details for accounting
+•	Export to Excel/PDF
+4. Expense Categories
+•	Office Supplies
+•	Spa Products
+•	Cleaning Supplies
+•	Refreshments
+•	Maintenance
+•	Transportation
+•	Utilities
+•	Staff Welfare
+•	Miscellaneous
+Note: I should be able to add or remove categories later.
+
+5. Dashboard (Home Screen)
+When I login, I should see:
+•	Current cash balance (big number on top)
+•	Today's total expenses
+•	Number of pending approvals
+•	Chart showing last 7 days spending
+•	Recent transactions list
+6. Technical Requirements
+Platform
+•	Web-based (works on any browser)
+•	Mobile-friendly (responsive design)
+Security
+•	Login with username & password
+•	Different access levels for owner/manager/staff
+•	All actions tracked (who did what & when)
+Notifications
+•	Email when expense needs approval
+•	Email when expense approved/rejected
+•	Alert when cash is running low
+7. Simple Workflow Example
+Staff buys supplies for ₹350:
+1.	Staff opens app on phone
+2.	Clicks 'Add Expense'
+3.	Enters: ₹350, Cleaning Supplies, bought mops and cleaner
+4.	Skips receipt (optional)
+5.	Clicks Submit
+6.	System auto-approves (below ₹500)
+7.	Cash balance updates automatically
+8. Important Points
+•	Receipt upload is OPTIONAL - staff can submit without receipt
+•	Keep interface simple and clean
+•	Big buttons for mobile use
+•	Fast loading (under 3 seconds)
+•	Daily automatic backup of all data
+9. Timeline
+•	Week 1-2: Design screens & database
+•	Week 3-8: Build the system
+•	Week 9-10: Testing
+•	Week 11: Training & Go live
+
+*** That's it! Keep it simple and easy to use ***
