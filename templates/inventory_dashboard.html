@@ -11,12 +11,7 @@
     <!-- Navigation Tabs -->
     <ul class="nav nav-tabs mb-4" id="inventoryTabs" role="tablist">
         <li class="nav-item" role="presentation">
-            <button class="nav-link active" id="dashboard-tab" data-bs-toggle="tab" data-bs-target="#dashboard" type="button">
-                <i class="fas fa-chart-line me-1"></i>Dashboard
-            </button>
-        </li>
-        <li class="nav-item" role="presentation">
-            <button class="nav-link" id="product-master-tab" data-bs-toggle="tab" data-bs-target="#product-master" type="button">
+            <button class="nav-link active" id="product-master-tab" data-bs-toggle="tab" data-bs-target="#product-master" type="button">
                 <i class="fas fa-box me-1"></i>Product Master
             </button>
         </li>
@@ -64,13 +59,8 @@
 
     <!-- Tab Content -->
     <div class="tab-content" id="inventoryTabContent">
-        <!-- Dashboard Tab -->
-        <div class="tab-pane fade show active" id="dashboard" role="tabpanel">
-            <div id="dashboard-content">Loading dashboard...</div>
-        </div>
-
         <!-- Product Master Tab -->
-        <div class="tab-pane fade" id="product-master" role="tabpanel">
+        <div class="tab-pane fade show active" id="product-master" role="tabpanel">
             <div id="product-master-content">Loading products...</div>
         </div>
 
@@ -177,8 +167,8 @@ document.addEventListener('DOMContentLoaded', function() {
             });
     }
 
-    // Load dashboard content immediately
-    loadTabContent('dashboard', 'dashboard-content');
+    // Load product master content immediately
+    loadTabContent('product-master', 'product-master-content');
 
     // Add event listeners for tab switching
     const tabTriggerList = [].slice.call(document.querySelectorAll('#inventoryTabs button'));
@@ -194,7 +184,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Map tab names to file names
                 const fileMap = {
                     'product_master': 'product-master',
-                    'dashboard': 'dashboard',
                     'categories': 'categories',
                     'locations': 'locations',
                     'adjustments': 'adjustments',
