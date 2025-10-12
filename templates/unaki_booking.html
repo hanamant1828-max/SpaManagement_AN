@@ -831,7 +831,7 @@
             .modal-backdrop.show {
                 z-index: 1050;
             }
-            
+
             /* When second modal opens */
             .modal.show ~ .modal.show {
                 z-index: 1065 !important;
@@ -2127,14 +2127,8 @@
                                                 value="9:00 AM"
                                                 readonly
                                                 onclick="showTimePicker(this)"
-                                                style="
-                                                    border-radius: 10px;
-                                                    padding: 12px;
-                                                    cursor: pointer;
-                                                    background: white;
-                                                    font-weight: 500;
-                                                "
-                                                placeholder="Select time"
+                                                style="cursor: pointer; background: white; font-weight: 600; color: var(--primary-color); border-radius: 10px; padding: 12px;"
+                                                placeholder="Click to select time"
                                             />
                                         </div>
                                         <div class="col-md-4 mb-3">
@@ -2164,13 +2158,7 @@
                                                 type="text"
                                                 class="form-control end-time-display"
                                                 readonly
-                                                style="
-                                                    border-radius: 10px;
-                                                    padding: 12px;
-                                                    background: #f0fdf4;
-                                                    font-weight: 600;
-                                                    color: var(--success-color);
-                                                "
+                                                style="background: #f0fdf4; color: var(--success-color); font-weight: 600; border-radius: 10px; padding: 12px;"
                                                 placeholder="Auto-calculated"
                                             />
                                         </div>
@@ -2299,7 +2287,7 @@
                                     "
                                 >
                                     <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
-                                        <div style="width: 40px; height: 40px; background: #fffbeb; border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+                                        <div style="width: 40px; height: 40px; background: #ffedd5; border-radius: 10px; display: flex; align-items: center; justify-content: center;">
                                             <i class="fas fa-users" style="color: #f59e0b; font-size: 18px;"></i>
                                         </div>
                                         <label
@@ -2412,17 +2400,17 @@
             // ==========================================
             // TIME FORMAT CONVERSION - 12-HOUR AM/PM ONLY
             // ==========================================
-            
+
             // Convert 24-hour time to 12-hour AM/PM format
             function convertTo12Hour(time24) {
                 if (!time24) return '';
-                
+
                 const [hours, minutes] = time24.split(':');
                 let hour = parseInt(hours);
                 const ampm = hour >= 12 ? 'PM' : 'AM';
-                
+
                 hour = hour % 12 || 12;
-                
+
                 return `${hour}:${minutes} ${ampm}`;
             }
 
@@ -2430,13 +2418,13 @@
             function convertTo24Hour(time12, ampm) {
                 let [hours, minutes] = time12.split(':');
                 hours = parseInt(hours);
-                
+
                 if (ampm === 'PM' && hours !== 12) {
                     hours += 12;
                 } else if (ampm === 'AM' && hours === 12) {
                     hours = 0;
                 }
-                
+
                 return `${hours.toString().padStart(2, '0')}:${minutes}`;
             }
 
@@ -2444,28 +2432,28 @@
             function validateTimeInput(timeStr, ampm) {
                 // Regex: H:MM or HH:MM format
                 const timeRegex = /^([0-9]|0[0-9]|1[0-2]):([0-5][0-9])$/;
-                
+
                 if (!timeRegex.test(timeStr)) {
                     return { valid: false, error: 'Invalid time format. Use HH:MM (e.g., 2:30)' };
                 }
-                
+
                 const [hours, minutes] = timeStr.split(':').map(Number);
-                
+
                 // Validate hours (1-12 for 12-hour format)
                 if (hours < 1 || hours > 12) {
                     return { valid: false, error: 'Hours must be between 1 and 12' };
                 }
-                
+
                 // Validate minutes (0-59)
                 if (minutes < 0 || minutes > 59) {
                     return { valid: false, error: 'Minutes must be between 0 and 59' };
                 }
-                
+
                 // Validate AM/PM
                 if (ampm !== 'AM' && ampm !== 'PM') {
                     return { valid: false, error: 'Please specify AM or PM' };
                 }
-                
+
                 return { valid: true };
             }
 
@@ -2474,10 +2462,10 @@
                 const card = displayInput.closest('.appointment-card');
                 const hiddenInput = card.querySelector('.start-time-24h');
                 const currentTime = hiddenInput.value || '09:00';
-                
+
                 // Convert current time to 12-hour format
                 const time12 = convertTo12Hour(currentTime);
-                
+
                 // Create time picker with validation loop
                 let attempts = 0;
                 while (attempts < 3) {
@@ -2485,35 +2473,35 @@
                         `Enter time in 12-hour format:\nFormat: HH:MM AM/PM (e.g., 2:30 PM)\nCurrent: ${time12}`,
                         time12
                     );
-                    
+
                     // User cancelled
                     if (newTime === null) {
                         return;
                     }
-                    
+
                     // Parse and validate
                     const parts = newTime.trim().toUpperCase().split(' ');
-                    
+
                     if (parts.length !== 2) {
                         alert('Invalid format. Please use HH:MM AM/PM (e.g., 2:30 PM)');
                         attempts++;
                         continue;
                     }
-                    
+
                     const [time, ampm] = parts;
-                    
+
                     // Validate the input
                     const validation = validateTimeInput(time, ampm);
-                    
+
                     if (!validation.valid) {
                         alert(validation.error);
                         attempts++;
                         continue;
                     }
-                    
+
                     // Convert to 24-hour format
                     const time24 = convertTo24Hour(time, ampm);
-                    
+
                     // Double-check the 24-hour format is valid
                     const [h24, m24] = time24.split(':').map(Number);
                     if (isNaN(h24) || isNaN(m24) || h24 < 0 || h24 > 23 || m24 < 0 || m24 > 59) {
@@ -2521,24 +2509,24 @@
                         attempts++;
                         continue;
                     }
-                    
+
                     // All validations passed - update the inputs
                     hiddenInput.value = time24;
                     displayInput.value = convertTo12Hour(time24);
-                    
+
                     // Trigger change events
                     hiddenInput.dispatchEvent(new Event('change'));
-                    
+
                     // Recalculate end time
                     const index = parseInt(card.dataset.appointmentIndex);
                     calculateEndTime(index);
                     checkConflicts(index);
                     updateSummary();
                     updateSubmitButton();
-                    
+
                     return; // Success
                 }
-                
+
                 // Max attempts reached
                 alert('Too many invalid attempts. Please try again later.');
             }
@@ -2554,7 +2542,7 @@
                         }
                     }
                 });
-                
+
                 document.querySelectorAll('.end-time-24h').forEach(hiddenInput => {
                     const card = hiddenInput.closest('.appointment-card');
                     if (card) {
@@ -2575,7 +2563,7 @@
                 setupTooltips();
                 setupScrollSync();
                 initializeSearchableDropdowns();
-                
+
                 // Initialize 12-hour time displays on page load
                 setTimeout(() => {
                     syncAll12HourDisplays();
@@ -2627,7 +2615,7 @@
                             }
                         }, 50);
                     });
-                    
+
                     quickAddModal.addEventListener('hidden.bs.modal', function() {
                         const bookingModal = document.getElementById('multiBookModal');
                         if (bookingModal && bookingModal.classList.contains('show')) {
@@ -2639,7 +2627,7 @@
                         }
                     });
                 }
-                
+
                 // Multi-booking form changes
                 document.addEventListener("change", function(e) {
                     if (e.target.matches('.service-select, .start-time, .appointment-date, .staff-select')) {
@@ -3128,7 +3116,7 @@
                 });
                 document.getElementById('quickAddClientForm').reset();
                 modal.show();
-                
+
                 // Ensure proper z-index stacking
                 setTimeout(() => {
                     if (modalEl) {
@@ -3143,7 +3131,7 @@
 
             async function saveQuickClient() {
                 console.log('🔵 saveQuickClient() called');
-                
+
                 // Get form values
                 const firstName = document.getElementById('quickFirstName').value.trim();
                 const lastName = document.getElementById('quickLastName').value.trim();
@@ -3171,12 +3159,12 @@
 
                 // Get save button by ID
                 const submitBtn = document.getElementById('saveQuickClientBtn');
-                
+
                 if (!submitBtn) {
                     console.error('❌ Save button not found!');
                     return;
                 }
-                
+
                 const originalText = submitBtn.innerHTML;
                 submitBtn.disabled = true;
                 submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Saving...';
@@ -3211,16 +3199,16 @@
 
                     if (result.success) {
                         console.log('✅ Client saved successfully:', result.client);
-                        
+
                         showNotification(result.message || 'Client added successfully!', 'success');
-                        
+
                         // Close modal
                         const modalEl = document.getElementById('quickAddClientModal');
                         const modal = bootstrap.Modal.getInstance(modalEl);
                         if (modal) {
                             modal.hide();
                         }
-                        
+
                         quickAddForm.reset();
 
                         // Auto-select the newly added client in the multi-booking form
@@ -3239,7 +3227,7 @@
 
                             // Trigger change event for Select2
                             $(clientSelect).trigger('change');
-                            
+
                             console.log('✅ Client added to dropdown');
                         }
                     } else {
@@ -3325,64 +3313,96 @@
             }
 
             function addAppointment() {
-                const container = document.getElementById("appointmentsContainer");
-                const newIndex = appointmentCounter++;
-                const html = `
-                    <div class="appointment-card multi-appointment-row" data-appointment-index="${newIndex}">
-                        <div class="appointment-number">${newIndex + 1}</div>
-                        <button type="button" class="remove-appointment" onclick="removeAppointment(${newIndex})">
+                appointmentCounter++;
+                const newAppointment = `
+                    <div class="appointment-card multi-appointment-row" data-appointment-index="${appointmentCounter}">
+                        <div class="appointment-number">${appointmentCounter + 1}</div>
+                        <button type="button" class="remove-appointment" onclick="removeAppointment(${appointmentCounter})">
                             <i class="fas fa-times"></i>
                         </button>
+
                         <div class="row">
                             <div class="col-md-6 mb-3">
-                                <label class="form-label fw-semibold"><i class="fas fa-concierge-bell me-2" style="color: var(--primary-color);"></i>Service</label>
+                                <label class="form-label fw-semibold">
+                                    <i class="fas fa-concierge-bell me-2" style="color: var(--primary-color);"></i>Service
+                                </label>
                                 <select name="service_id" class="form-select service-select select2-dropdown" required style="border-radius: 10px; padding: 12px; width: 100%;">
                                     <option value="">Select service...</option>
-                                    {% if services %}{% for service in services %}
-                                    <option value="{{ service.id }}" data-duration="{{ service.duration or 60 }}" data-price="{{ service.price }}">
-                                        {{ service.name }} ({{ service.duration or 60 }} min - ₹{{ "%.2f"|format(service.price) }})
-                                    </option>
-                                    {% endfor %}{% endif %}
+                                    {% if services %}
+                                        {% for service in services %}
+                                        <option value="{{ service.id }}" data-duration="{{ service.duration or 60 }}" data-price="{{ service.price }}">
+                                            {{ service.name }} ({{ service.duration or 60 }} min - ₹{{ "%.2f"|format(service.price) }})
+                                        </option>
+                                        {% endfor %}
+                                    {% endif %}
                                 </select>
                             </div>
                             <div class="col-md-6 mb-3">
-                                <label class="form-label fw-semibold"><i class="fas fa-user-md me-2" style="color: var(--primary-color);"></i>Staff Member</label>
+                                <label class="form-label fw-semibold">
+                                    <i class="fas fa-user-md me-2" style="color: var(--primary-color);"></i>Staff Member
+                                </label>
                                 <select name="staff_id" class="form-select staff-select select2-dropdown" required style="border-radius: 10px; padding: 12px;">
                                     <option value="">Select staff member...</option>
-                                    {% if staff_members %}{% for staff in staff_members %}
-                                    <option value="{{ staff.id }}">{{ staff.first_name }} {{ staff.last_name if staff.last_name else '' }}</option>
-                                    {% endfor %}{% endif %}
+                                    {% if staff_members %}
+                                        {% for staff in staff_members %}
+                                        <option value="{{ staff.id }}">{{ staff.first_name }} {{ staff.last_name if staff.last_name else '' }}</option>
+                                        {% endfor %}
+                                    {% endif %}
                                 </select>
                             </div>
                         </div>
+
                         <div class="row">
                             <div class="col-md-4 mb-3">
-                                <label class="form-label fw-semibold"><i class="fas fa-calendar me-2" style="color: var(--primary-color);"></i>Date</label>
+                                <label class="form-label fw-semibold">
+                                    <i class="fas fa-calendar me-2" style="color: var(--primary-color);"></i>Date
+                                </label>
                                 <input type="date" name="date" class="form-control appointment-date" value="{{ today }}" required style="border-radius: 10px; padding: 12px;">
                             </div>
                             <div class="col-md-4 mb-3">
-                                <label class="form-label fw-semibold"><i class="fas fa-clock me-2" style="color: var(--primary-color);"></i>Start Time</label>
-                                <input type="time" name="start_time" class="form-control start-time" value="09:00" required style="border-radius: 10px; padding: 12px;">
+                                <label class="form-label fw-semibold">
+                                    <i class="fas fa-clock me-2" style="color: var(--primary-color);"></i>Start Time
+                                </label>
+                                <!-- Hidden 24-hour input for backend -->
+                                <input type="time" name="start_time" class="form-control start-time start-time-24h" value="09:00" required style="display: none;">
+                                <!-- Visible 12-hour display -->
+                                <input type="text" class="form-control start-time-display" value="9:00 AM" readonly onclick="showTimePicker(this)" style="cursor: pointer; background: white; font-weight: 600; color: var(--primary-color); border-radius: 10px; padding: 12px;" placeholder="Click to select time">
                             </div>
                             <div class="col-md-4 mb-3">
-                                <label class="form-label fw-semibold"><i class="fas fa-clock me-2" style="color: var(--success-color);"></i>End Time</label>
-                                <input type="time" name="end_time" class="form-control end-time" readonly style="border-radius: 10px; padding: 12px; background: #f0fdf4; font-weight: 600; color: var(--success-color);">
+                                <label class="form-label fw-semibold">
+                                    <i class="fas fa-clock me-2" style="color: var(--success-color);"></i>End Time
+                                </label>
+                                <!-- Hidden 24-hour input for backend -->
+                                <input type="time" name="end_time" class="form-control end-time end-time-24h" readonly style="display: none;">
+                                <!-- Visible 12-hour display -->
+                                <input type="text" class="form-control end-time-display" readonly style="border-radius: 10px; padding: 12px; background: #f0fdf4; font-weight: 600; color: var(--success-color);" placeholder="Auto-calculated">
                             </div>
                         </div>
-                        <div class="row">
-                            <div class="col-md-12">
-                                <div id="conflictAlert${newIndex}" class="alert alert-warning d-none" style="border-radius: 10px">
-                                    <i class="fas fa-exclamation-triangle me-2"></i><span class="conflict-message"></span>
-                                </div>
-                            </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">
+                                <i class="fas fa-sticky-note me-2" style="color: var(--primary-color);"></i>Notes
+                            </label>
+                            <textarea name="notes" class="form-control" rows="2" style="border-radius: 10px; padding: 12px;" placeholder="Optional notes..."></textarea>
+                        </div>
+
+                        <div class="alert alert-danger conflict-warning" style="display: none; border-radius: 10px;">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            <span class="conflict-message"></span>
                         </div>
                     </div>
                 `;
-                container.insertAdjacentHTML('beforeend', html);
+
+                document.getElementById('appointmentsContainer').insertAdjacentHTML('beforeend', newAppointment);
                 updateAppointmentCount();
-                updateRemoveButtonsVisibility();
-                updateSummary();
-                updateSubmitButton();
+                initializeSearchableDropdowns();
+
+                // Add event listeners for the new appointment
+                const newCard = document.querySelector(`[data-appointment-index="${appointmentCounter}"]`);
+                setupAppointmentEventListeners(newCard, appointmentCounter);
+
+                // Initialize 12-hour time display for the new card
+                syncAll12HourDisplays();
             }
 
             function removeAppointment(index) {
@@ -3433,7 +3453,7 @@
                 const card = document.querySelector(`[data-appointment-index="${index}"]`);
                 if (!card) return;
                 updateAppointmentEndTime(card);
-                
+
                 // Sync 12-hour displays after calculation
                 setTimeout(() => {
                     syncAll12HourDisplays();
