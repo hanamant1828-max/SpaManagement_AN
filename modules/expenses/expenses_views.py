@@ -132,8 +132,17 @@ def create_expense_route():
             'created_by': current_user.id
         }
         
-        create_expense(expense_data)
-        flash('Expense created successfully!', 'success')
+        expense = create_expense(expense_data)
+        
+        # Auto-deduct from petty cash account
+        try:
+            deduct_expense_from_account(expense)
+            flash(f'Expense of ₹{amount:,.2f} created and deducted from petty cash successfully!', 'success')
+        except ValueError as e:
+            # If insufficient balance, still create expense but warn user
+            flash(f'Expense created but not deducted: {str(e)}', 'warning')
+        except Exception as e:
+            flash(f'Expense created but deduction failed: {str(e)}', 'warning')
     else:
         flash('Error creating expense. Please check your input.', 'danger')
     

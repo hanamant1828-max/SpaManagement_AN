@@ -1068,6 +1068,13 @@ class Expense(db.Model):
     notes = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     deducted_from_account = db.Column(db.Boolean, default=False)  # Track if expense was deducted from petty cash
+    
+    # Approval workflow fields
+    vendor_name = db.Column(db.String(200))  # Where was it purchased
+    approval_status = db.Column(db.String(20), default='pending')  # pending, approved, rejected, auto_approved
+    approved_by = db.Column(db.Integer, db.ForeignKey('user.id'))
+    approved_at = db.Column(db.DateTime)
+    rejection_reason = db.Column(db.Text)
 
 class Invoice(db.Model):
     id = db.Column(db.Integer, primary_key=True)
