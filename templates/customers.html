@@ -1573,7 +1573,7 @@ function renderFaceTable(customers, container) {
                     <button class="btn btn-sm btn-outline-warning me-1" onclick="updateFace(${customer.id})" title="Update Face">
                         <i class="fas fa-sync-alt"></i>
                     </button>
-                    <button class="btn btn-sm btn-outline-danger" onclick="removeFace(${customer.id})" title="Remove Face">
+                    <button class="btn btn-sm btn-outline-danger" onclick="deleteFaceData(${customer.id}, '${customer.full_name}')" title="Delete Face Data">
                         <i class="fas fa-trash"></i>
                     </button>
                 </td>
@@ -1629,9 +1629,27 @@ function updateFace(customerId) {
     }
 }
 
-function removeFace(customerId) {
-    if (confirm('Remove face data for this customer?')) {
-        showNotification('Face removal feature coming soon', 'info');
+function deleteFaceData(customerId, customerName) {
+    if (confirm(`Are you sure you want to delete face data for ${customerName}?\n\nThis will remove their facial recognition data permanently.`)) {
+        fetch(`/api/delete_face/${customerId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showNotification(data.message, 'success');
+                loadFaceDataTable(); // Refresh the table
+            } else {
+                showNotification('Error: ' + data.error, 'danger');
+            }
+        })
+        .catch(error => {
+            console.error('Delete error:', error);
+            showNotification('Error deleting face data. Please try again.', 'danger');
+        });
     }
 }
 

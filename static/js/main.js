@@ -2379,6 +2379,37 @@ window.viewCustomer = viewCustomer;
 window.bookAppointmentFromModal = bookAppointmentFromModal;
 window.showContextMenu = showContextMenu;
 window.hideContextMenu = hideContextMenu;
+window.deleteFaceData = deleteFaceData;
+
+// Face data deletion function
+function deleteFaceData(customerId, customerName) {
+    if (confirm(`Are you sure you want to delete face data for ${customerName}?\n\nThis will remove their facial recognition data permanently.`)) {
+        fetch(`/api/delete_face/${customerId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showNotification(data.message, 'success');
+                // Reload page or refresh table if function exists
+                if (typeof loadFaceDataTable === 'function') {
+                    loadFaceDataTable();
+                } else {
+                    setTimeout(() => location.reload(), 1000);
+                }
+            } else {
+                showNotification('Error: ' + data.error, 'danger');
+            }
+        })
+        .catch(error => {
+            console.error('Delete error:', error);
+            showNotification('Error deleting face data. Please try again.', 'danger');
+        });
+    }
+}
 // window.handleEditCustomerSubmit = handleEditCustomerSubmit; // Not needed globally if called by form submission
 
 

@@ -1059,6 +1059,45 @@ def format_appointment(apt):
     }
 
 
+@app.route('/api/delete_face/<int:customer_id>', methods=['POST', 'DELETE'])
+@login_required
+def api_delete_face(customer_id):
+    """Delete face recognition data for a customer"""
+    if not current_user.can_access('clients'):
+        return jsonify({'success': False, 'error': 'Access denied'}), 403
+
+    try:
+        customer = Customer.query.get(customer_id)
+        if not customer:
+            return jsonify({'success': False, 'error': 'Customer not found'}), 404
+
+        # Check if customer has face data
+        if not customer.face_encoding and not customer.face_image_url:
+            return jsonify({
+                'success': False,
+                'error': 'No face data found for this customer'
+            }), 404
+
+        customer_name = f"{customer.first_name} {customer.last_name}"
+
+        # Delete face data
+        customer.face_encoding = None
+        customer.face_image_url = None
+        db.session.commit()
+
+        app.logger.info(f"Face data deleted for customer {customer_name} (ID: {customer_id})")
+
+        return jsonify({
+            'success': True,
+            'message': f'Face data deleted successfully for {customer_name}'
+        }), 200
+
+    except Exception as e:
+        db.session.rollback()
+        app.logger.error(f"Face delete error: {str(e)}")
+        return jsonify({'success': False, 'error': 'Failed to delete face data'}), 500
+
+
 @app.route('/api/detect_duplicate_faces', methods=['GET'])
 @login_required
 def api_detect_duplicate_faces():
