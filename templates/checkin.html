@@ -166,10 +166,14 @@
                         Recognition Status
                     </h5>
 
-                    <div id="statusAlert" class="alert alert-info">
-                        <i data-feather="info" class="me-2"></i>
-                        <strong>Ready for check-in</strong><br>
-                        Click "Start Recognition" and position your face in the circle for automatic check-in.
+                    <div id="statusAlert" class="alert alert-info d-flex align-items-start">
+                        <div class="me-3" style="font-size: 2rem;">
+                            <i data-feather="info"></i>
+                        </div>
+                        <div class="flex-grow-1">
+                            <h5 class="alert-heading mb-1">Ready for Check-In</h5>
+                            <p class="mb-0">Click "Start Recognition" and position your face in the circle for automatic check-in.</p>
+                        </div>
                     </div>
 
                     <div id="scanningProgress" class="progress mt-3" style="display: none; height: 25px;">
@@ -472,18 +476,20 @@ async function startFaceRecognition() {
         console.error('Error name:', error.name);
         console.error('Error message:', error.message);
 
-        let errorMessage = 'Unable to access camera. ';
+        let errorTitle = 'Camera Access Error';
+        let errorMessage = '';
+        
         if (error.name === 'NotAllowedError') {
-            errorMessage += 'Please allow camera access and try again.';
+            errorMessage = 'Camera permission was denied. Please click the camera icon in your browser\'s address bar and allow camera access, then try again.';
         } else if (error.name === 'NotFoundError') {
-            errorMessage += 'No camera found on this device.';
+            errorMessage = 'No camera detected on this device. Please ensure a camera is connected and try again.';
         } else if (error.name === 'NotReadableError') {
-            errorMessage += 'Camera is already in use by another application.';
+            errorMessage = 'Camera is currently being used by another application. Please close other apps using the camera and try again.';
         } else {
-            errorMessage += 'Please check your camera and permissions. Error: ' + error.message;
+            errorMessage = 'Unable to access camera. Please check your camera settings and permissions, then try again.';
         }
 
-        updateStatus('danger', 'Camera Error', errorMessage);
+        updateStatus('danger', errorTitle, errorMessage);
     }
 }
 
@@ -674,11 +680,11 @@ async function performRecognition(video) {
             // Check if it's an authentication error
             if (response.status === 401 || result.error === 'Access denied' || result.error === 'Please log in to access this feature') {
                 updateStatus('warning', 'Authentication Required', 
-                    'Your session may have expired. Please refresh the page and log in again.');
+                    'Your session may have expired. Please refresh the page and log in again to continue.');
                 stopRecognition();
             } else {
                 updateStatus('danger', 'Recognition Error', 
-                    result.error || 'Unable to process face recognition. Please try again.');
+                    result.error || 'Unable to process face recognition. Please ensure your face is clearly visible and try again.');
             }
         }
 
@@ -692,7 +698,7 @@ async function performRecognition(video) {
         }
 
         updateStatus('danger', 'Connection Error', 
-            'Unable to connect to face recognition service. Please check your internet connection and try again.');
+            'Unable to connect to face recognition service. Please check your internet connection and try again. If the problem persists, contact support.');
     }
 }
 
@@ -793,17 +799,25 @@ function updateStatus(type, title, message) {
         return;
     }
 
-    statusAlert.className = `alert alert-${type}`;
+    // Map alert types to Bootstrap classes and icons
+    const alertConfig = {
+        'info': { icon: 'info', iconSize: '2rem' },
+        'success': { icon: 'check-circle', iconSize: '2.5rem' },
+        'danger': { icon: 'x-circle', iconSize: '2.5rem' },
+        'warning': { icon: 'alert-triangle', iconSize: '2.5rem' }
+    };
 
-    let icon = 'info';
-    if (type === 'success') icon = 'check-circle';
-    else if (type === 'danger') icon = 'x-circle';
-    else if (type === 'warning') icon = 'alert-triangle';
-
+    const config = alertConfig[type] || alertConfig['info'];
+    
+    statusAlert.className = `alert alert-${type} d-flex align-items-start`;
     statusAlert.innerHTML = `
-        <i data-feather="${icon}" class="me-2"></i>
-        <strong>${title}</strong><br>
-        ${message}
+        <div class="me-3" style="font-size: ${config.iconSize};">
+            <i data-feather="${config.icon}"></i>
+        </div>
+        <div class="flex-grow-1">
+            <h5 class="alert-heading mb-1">${title}</h5>
+            <p class="mb-0">${message}</p>
+        </div>
     `;
 
     // Re-initialize feather icons if available
