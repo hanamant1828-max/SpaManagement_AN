@@ -425,47 +425,65 @@ function getPackagePrice(packageType, packageData) {
 function recalculateTotals() {
     let subtotal = 0;
     let discount = 0;
+    let gstAmount = 0;
+    let grandTotal = 0;
 
     if (currentPackage) {
         const packageType = document.getElementById('packageType').value;
 
         // Calculate based on package type
         if (packageType === 'service_package') {
-            // Service packages: MUST have a service selected to calculate price
+            // Service packages: GST-EXCLUSIVE (tax added on top)
             if (currentService) {
                 const payFor = parseInt(currentPackage.pay_for || 0);
                 const free = parseInt(currentPackage.free_services || 0);
                 const servicePrice = parseFloat(currentService.price || 0);
                 
-                // Total package price = sessions you pay for × service price
+                // Base price = sessions you pay for × service price (GST-exclusive)
                 subtotal = payFor * servicePrice;
                 // Discount = free sessions × service price
                 discount = free * servicePrice;
                 
-                console.log('Service package calculation:', {
+                // Calculate GST on net amount (after discount)
+                const taxable = Math.max(subtotal - discount, 0);
+                gstAmount = taxable * 0.18; // 18% GST added on top
+                grandTotal = taxable + gstAmount;
+                
+                console.log('Service package calculation (GST-EXCLUSIVE):', {
                     payFor,
                     free,
                     servicePrice,
                     subtotal,
-                    discount
+                    discount,
+                    taxable,
+                    gstAmount,
+                    grandTotal
                 });
             } else {
                 console.warn('Service package selected but no service chosen yet');
             }
         } else {
-            // All other package types: use helper function
+            // Amount-based packages (prepaid, membership, etc.): GST-INCLUSIVE
             subtotal = getPackagePrice(packageType, currentPackage);
+            
+            // Extract GST from inclusive price
+            const netPrice = subtotal / 1.18; // Remove 18% GST
+            gstAmount = subtotal - netPrice;
+            grandTotal = subtotal; // Already includes GST
+            
+            console.log('Amount-based package calculation (GST-INCLUSIVE):', {
+                packageType,
+                subtotal,
+                netPrice,
+                gstAmount,
+                grandTotal
+            });
         }
     }
 
-    // Calculate tax and totals
-    const taxable = Math.max(subtotal - discount, 0);
-    const gstAmount = taxable * 0.18;
-    const grandTotal = taxable + gstAmount;
-
-    // Update display - show package price BEFORE tax, then add tax
+    // Update display
     document.getElementById('displaySubtotal').textContent = `₹${grandTotal.toFixed(2)}`;
-    document.getElementById('displayNetPrice').textContent = `₹${taxable.toFixed(2)}`;
+    document.getElementById('displayNetPrice').textContent = `₹${(grandTotal - gstAmount).toFixed(2)}`;
     document.getElementById('displayTax').textContent = `₹${gstAmount.toFixed(2)}`;
     document.getElementById('displayDiscount').textContent = `₹${discount.toFixed(2)}`;
     document.getElementById('displayGrandTotal').textContent = `₹${grandTotal.toFixed(2)}`;
