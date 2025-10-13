@@ -1,0 +1,375 @@
+📸 Face image received, proceeding with recognition.
+📐 Image array shape: (480, 640, 3), dtype: uint8
+⚠️ Error comparing with customer 4: 'utf-8' codec can't decode byte 0xf8 in position 0: invalid start byte
+⚠️ Error comparing with customer 77: 'utf-8' codec can't decode byte 0xa2 in position 2: invalid start byte
+❌ No matching face found.
+🔐 Authenticated user for face recognition: admin
+✅ User: admin (ID: 11) is authenticated.
+📸 Face image received, proceeding with recognition.
+📐 Image array shape: (480, 640, 3), dtype: uint8
+⚠️ Error comparing with customer 4: 'utf-8' codec can't decode byte 0xf8 in position 0: invalid start byte
+⚠️ Error comparing with customer 77: 'utf-8' codec can't decode byte 0xa2 in position 2: invalid start byte
+❌ No matching face found.
+🔐 Authenticated user for face recognition: admin
+✅ User: admin (ID: 11) is authenticated.
+📸 Face image received, proceeding with recognition.
+📐 Image array shape: (480, 640, 3), dtype: uint8
+⚠️ Error comparing with customer 4: 'utf-8' codec can't decode byte 0xf8 in position 0: invalid start byte
+⚠️ Error comparing with customer 77: 'utf-8' codec can't decode byte 0xa2 in position 2: invalid start byte
+❌ No matching face found.
+🔐 Authenticated user for face recognition: admin
+✅ User: admin (ID: 11) is authenticated.
+📸 Face image received, proceeding with recognition.
+📐 Image array shape: (480, 640, 3), dtype: uint8
+⚠️ Error comparing with customer 4: 'utf-8' codec can't decode byte 0xf8 in position 0: invalid start byte
+⚠️ Error comparing with customer 77: 'utf-8' codec can't decode byte 0xa2 in position 2: invalid start byte
+❌ No matching face found.
+🔐 Authenticated user for face recognition: admin
+✅ User: admin (ID: 11) is authenticated.
+📸 Face image received, proceeding with recognition.
+📐 Image array shape: (480, 640, 3), dtype: uint8
+⚠️ Error comparing with customer 4: 'utf-8' codec can't decode byte 0xf8 in position 0: invalid start byte
+⚠️ Error comparing with customer 77: 'utf-8' codec can't decode byte 0xa2 in position 2: invalid start byte
+❌ No matching face found.
+🔐 Authenticated user for face recognition: admin
+✅ User: admin (ID: 11) is authenticated.
+📸 Face image received, proceeding with recognition.
+📐 Image array shape: (480, 640, 3), dtype: uint8
+⚠️ Error comparing with customer 4: 'utf-8' codec can't decode byte 0xf8 in position 0: invalid start byte
+⚠️ Error comparing with customer 77: 'utf-8' codec can't decode byte 0xa2 in position 2: invalid start byte
+❌ No matching face found.
+🔐 Authenticated user for face recognition: admin
+✅ User: admin (ID: 11) is authenticated.
+📸 Face image received, proceeding with recognition.
+📐 Image array shape: (480, 640, 3), dtype: uint8
+❌ No face detected in the image.
+🔐 Authenticated user for face recognition: admin
+✅ User: admin (ID: 11) is authenticated.
+📸 Face image received, proceeding with recognition.
+📐 Image array shape: (480, 640, 3), dtype: uint8
+❌ No face detected in the image.
+🔐 Authenticated user for face recognition: admin
+✅ User: admin (ID: 11) is authenticated.
+📸 Face image received, proceeding with recognition.
+📐 Image array shape: (480, 640, 3), dtype: uint8
+❌ No face detected in the image.
+🔐 Authenticated user for face recognition: admin
+✅ User: admin (ID: 11) is authenticated.
+📸 Face image received, proceeding with recognition.
+📐 Image array shape: (480, 640, 3), dtype: uint8
+❌ No face detected in the image.
+🔐 Authenticated user for face recognition: admin
+✅ User: admin (ID: 11) is authenticated.
+📸 Face image received, proceeding with recognition.
+📐 Image array shape: (480, 640, 3), dtype: uint8
+❌ No face detected in the image.
+🔐 Authenticated user for face recognition: admin
+✅ User: admin (ID: 11) is authenticated.
+📸 Face image received, proceeding with recognition.
+📐 Image array shape: (480, 640, 3), dtype: uint8
+❌ No face detected in the image.
+🔐 Authenticated user for face recognition: admin
+✅ User: admin (ID: 11) is authenticated.
+📸 Face image received, proceeding with recognition.
+📐 Image array shape: (480, 640, 3), dtype: uint8
+❌ No face detected in the image.
+🔐 Authenticated user for face recognition: admin
+✅ User: admin (ID: 11) is authenticated.
+📸 Face image received, proceeding with recognition.
+📐 Image array shape: (480, 640, 3), dtype: uint8
+❌ No face detected in the image.
+🔐 Authenticated user for face recognition: admin
+✅ User: admin (ID: 11) is authenticated.
+📸 Face image received, proceeding with recognition.
+📐 Image array shape: (480, 640, 3), dtype: uint8
+❌ No face detected in the image.
+🔐 Authenticated user for face recognition: admin
+✅ User: admin (ID: 11) is authenticated.
+📸 Face image received, proceeding with recognition.
+📐 Image array shape: (480, 640, 3), dtype: uint8
+❌ No face detected in the image.
+🔐 Authenticated user for face recognition: admin
+✅ User: admin (ID: 11) is authenticated.
+📸 Face image received, proceeding with recognition.
+📐 Image array shape: (480, 640, 3), dtype: uint8
+❌ No face detected in the image.
+🔐 Authenticated user for face recognition: admin
+✅ User: admin (ID: 11) is authenticated.
+📸 Face image received, proceeding with recognition.
+📐 Image array shape: (480, 640, 3), dtype: uint8
+❌ No face detected in the image.
+🔐 Authenticated user for face recognition: admin
+✅ User: admin (ID: 11) is authenticated.
+📸 Face image received, proceeding with recognition.
+📐 Image array shape: (480, 640, 3), dtype: uint8
+❌ No face detected in the image.
+🔐 Authenticated user for face recognition: admin
+✅ User: admin (ID: 11) is authenticated.
+📸 Face image received, proceeding with recognition.
+📐 Image array shape: (480, 640, 3), dtype: uint8
+❌ No face detected in the image.
+🔐 Authenticated user for face recognition: admin
+✅ User: admin (ID: 11) is authenticated.
+📸 Face image received, proceeding with recognition.
+📐 Image array shape: (480, 640, 3), dtype: uint8
+❌ No face detected in the image.
+🔐 Authenticated user for face recognition: admin
+✅ User: admin (ID: 11) is authenticated.
+📸 Face image received, proceeding with recognition.
+📐 Image array shape: (480, 640, 3), dtype: uint8
+❌ No face detected in the image.
+🔐 Authenticated user for face recognition: admin
+✅ User: admin (ID: 11) is authenticated.
+📸 Face image received, proceeding with recognition.
+📐 Image array shape: (480, 640, 3), dtype: uint8
+❌ No face detected in the image.
+🔐 Authenticated user for face recognition: admin
+✅ User: admin (ID: 11) is authenticated.
+📸 Face image received, proceeding with recognition.
+📐 Image array shape: (480, 640, 3), dtype: uint8
+❌ No face detected in the image.
+🔐 Authenticated user for face recognition: admin
+✅ User: admin (ID: 11) is authenticated.
+📸 Face image received, proceeding with recognition.
+📐 Image array shape: (480, 640, 3), dtype: uint8
+❌ No face detected in the image.
+🔐 Authenticated user for face recognition: admin
+✅ User: admin (ID: 11) is authenticated.
+📸 Face image received, proceeding with recognition.
+📐 Image array shape: (480, 640, 3), dtype: uint8
+❌ No face detected in the image.
+DEBUG Dashboard Stats (IST):
+  IST Now: 2025-10-13 16:16:32 IST
+  Today (IST): 2025-10-13
+  Month filter: 2025-10
+  Today's appointments: 0
+  Total clients: 75
+  Today's revenue: ₹0.0
+    - From appointments: ₹0.0
+    - From invoices: ₹0.0
+    - From enhanced invoices: ₹0.0
+  Month's revenue: ₹994409.511682
+DEBUG Dashboard Stats (IST):
+  IST Now: 2025-10-13 16:16:39 IST
+  Today (IST): 2025-10-13
+  Month filter: 2025-10
+  Today's appointments: 0
+  Total clients: 75
+  Today's revenue: ₹0.0
+    - From appointments: ₹0.0
+    - From invoices: ₹0.0
+    - From enhanced invoices: ₹0.0
+  Month's revenue: ₹994409.511682
+DEBUG Dashboard Stats (IST):
+  IST Now: 2025-10-13 16:19:45 IST
+  Today (IST): 2025-10-13
+  Month filter: 2025-10
+  Today's appointments: 0
+  Total clients: 75
+  Today's revenue: ₹0.0
+    - From appointments: ₹0.0
+    - From invoices: ₹0.0
+    - From enhanced invoices: ₹0.0
+  Month's revenue: ₹994409.511682
+🔐 Authenticated user for face recognition: admin
+✅ User: admin (ID: 11) is authenticated.
+📸 Face image received, proceeding with recognition.
+📐 Image array shape: (480, 640, 3), dtype: uint8
+⚠️ Error comparing with customer 4: 'utf-8' codec can't decode byte 0xf8 in position 0: invalid start byte
+⚠️ Error comparing with customer 77: 'utf-8' codec can't decode byte 0xa2 in position 2: invalid start byte
+❌ No matching face found.
+🔐 Authenticated user for face recognition: admin
+✅ User: admin (ID: 11) is authenticated.
+📸 Face image received, proceeding with recognition.
+📐 Image array shape: (480, 640, 3), dtype: uint8
+⚠️ Error comparing with customer 4: 'utf-8' codec can't decode byte 0xf8 in position 0: invalid start byte
+⚠️ Error comparing with customer 77: 'utf-8' codec can't decode byte 0xa2 in position 2: invalid start byte
+❌ No matching face found.
+🔐 Authenticated user for face recognition: admin
+✅ User: admin (ID: 11) is authenticated.
+📸 Face image received, proceeding with recognition.
+📐 Image array shape: (480, 640, 3), dtype: uint8
+⚠️ Error comparing with customer 4: 'utf-8' codec can't decode byte 0xf8 in position 0: invalid start byte
+⚠️ Error comparing with customer 77: 'utf-8' codec can't decode byte 0xa2 in position 2: invalid start byte
+❌ No matching face found.
+🔐 Authenticated user for face recognition: admin
+✅ User: admin (ID: 11) is authenticated.
+📸 Face image received, proceeding with recognition.
+📐 Image array shape: (480, 640, 3), dtype: uint8
+⚠️ Error comparing with customer 4: 'utf-8' codec can't decode byte 0xf8 in position 0: invalid start byte
+⚠️ Error comparing with customer 77: 'utf-8' codec can't decode byte 0xa2 in position 2: invalid start byte
+❌ No matching face found.
+🔐 Authenticated user for face recognition: admin
+✅ User: admin (ID: 11) is authenticated.
+📸 Face image received, proceeding with recognition.
+📐 Image array shape: (480, 640, 3), dtype: uint8
+⚠️ Error comparing with customer 4: 'utf-8' codec can't decode byte 0xf8 in position 0: invalid start byte
+⚠️ Error comparing with customer 77: 'utf-8' codec can't decode byte 0xa2 in position 2: invalid start byte
+❌ No matching face found.
+🔐 Authenticated user for face recognition: admin
+✅ User: admin (ID: 11) is authenticated.
+📸 Face image received, proceeding with recognition.
+📐 Image array shape: (480, 640, 3), dtype: uint8
+⚠️ Error comparing with customer 4: 'utf-8' codec can't decode byte 0xf8 in position 0: invalid start byte
+⚠️ Error comparing with customer 77: 'utf-8' codec can't decode byte 0xa2 in position 2: invalid start byte
+❌ No matching face found.
+DEBUG Dashboard Stats (IST):
+  IST Now: 2025-10-13 16:25:04 IST
+  Today (IST): 2025-10-13
+  Month filter: 2025-10
+  Today's appointments: 0
+  Total clients: 75
+  Today's revenue: ₹0.0
+    - From appointments: ₹0.0
+    - From invoices: ₹0.0
+    - From enhanced invoices: ₹0.0
+  Month's revenue: ₹994409.511682
+📸 Processing face image for customer Aelfknwehhh 1 Eflknwef (ID: 75)
+   Image shape: (480, 640, 3)
+Applied providers: ['CPUExecutionProvider'], with options: {'CPUExecutionProvider': {}}
+find model: /home/runner/.insightface/models/buffalo_l/1k3d68.onnx landmark_3d_68 ['None', 3, 192, 192] 0.0 1.0
+Applied providers: ['CPUExecutionProvider'], with options: {'CPUExecutionProvider': {}}
+find model: /home/runner/.insightface/models/buffalo_l/2d106det.onnx landmark_2d_106 ['None', 3, 192, 192] 0.0 1.0
+Applied providers: ['CPUExecutionProvider'], with options: {'CPUExecutionProvider': {}}
+find model: /home/runner/.insightface/models/buffalo_l/det_10g.onnx detection [1, 3, '?', '?'] 127.5 128.0
+Applied providers: ['CPUExecutionProvider'], with options: {'CPUExecutionProvider': {}}
+find model: /home/runner/.insightface/models/buffalo_l/genderage.onnx genderage ['None', 3, 96, 96] 0.0 1.0
+Applied providers: ['CPUExecutionProvider'], with options: {'CPUExecutionProvider': {}}
+find model: /home/runner/.insightface/models/buffalo_l/w600k_r50.onnx recognition ['None', 3, 112, 112] 127.5 127.5
+set det-size: (640, 640)
+✅ Face data saved for Aelfknwehhh 1 Eflknwef
+   Has face_encoding: True
+   Has face_image_url: True
+🔐 Authenticated user for face recognition: admin
+✅ User: admin (ID: 11) is authenticated.
+📸 Face image received, proceeding with recognition.
+📐 Image array shape: (480, 640, 3), dtype: uint8
+⚠️ Error comparing with customer 4: 'utf-8' codec can't decode byte 0xf8 in position 0: invalid start byte
+⚠️ Error comparing with customer 75: 'utf-8' codec can't decode bytes in position 0-1: invalid continuation byte
+⚠️ Error comparing with customer 77: 'utf-8' codec can't decode byte 0xa2 in position 2: invalid start byte
+❌ No matching face found.
+🔐 Authenticated user for face recognition: admin
+✅ User: admin (ID: 11) is authenticated.
+📸 Face image received, proceeding with recognition.
+📐 Image array shape: (480, 640, 3), dtype: uint8
+⚠️ Error comparing with customer 4: 'utf-8' codec can't decode byte 0xf8 in position 0: invalid start byte
+⚠️ Error comparing with customer 75: 'utf-8' codec can't decode bytes in position 0-1: invalid continuation byte
+⚠️ Error comparing with customer 77: 'utf-8' codec can't decode byte 0xa2 in position 2: invalid start byte
+❌ No matching face found.
+🔐 Authenticated user for face recognition: admin
+✅ User: admin (ID: 11) is authenticated.
+📸 Face image received, proceeding with recognition.
+📐 Image array shape: (480, 640, 3), dtype: uint8
+⚠️ Error comparing with customer 4: 'utf-8' codec can't decode byte 0xf8 in position 0: invalid start byte
+⚠️ Error comparing with customer 75: 'utf-8' codec can't decode bytes in position 0-1: invalid continuation byte
+⚠️ Error comparing with customer 77: 'utf-8' codec can't decode byte 0xa2 in position 2: invalid start byte
+❌ No matching face found.
+🔐 Authenticated user for face recognition: admin
+✅ User: admin (ID: 11) is authenticated.
+📸 Face image received, proceeding with recognition.
+📐 Image array shape: (480, 640, 3), dtype: uint8
+⚠️ Error comparing with customer 4: 'utf-8' codec can't decode byte 0xf8 in position 0: invalid start byte
+⚠️ Error comparing with customer 75: 'utf-8' codec can't decode bytes in position 0-1: invalid continuation byte
+⚠️ Error comparing with customer 77: 'utf-8' codec can't decode byte 0xa2 in position 2: invalid start byte
+❌ No matching face found.
+🔐 Authenticated user for face recognition: admin
+✅ User: admin (ID: 11) is authenticated.
+📸 Face image received, proceeding with recognition.
+📐 Image array shape: (480, 640, 3), dtype: uint8
+⚠️ Error comparing with customer 4: 'utf-8' codec can't decode byte 0xf8 in position 0: invalid start byte
+⚠️ Error comparing with customer 75: 'utf-8' codec can't decode bytes in position 0-1: invalid continuation byte
+⚠️ Error comparing with customer 77: 'utf-8' codec can't decode byte 0xa2 in position 2: invalid start byte
+❌ No matching face found.
+🔐 Authenticated user for face recognition: admin
+✅ User: admin (ID: 11) is authenticated.
+📸 Face image received, proceeding with recognition.
+📐 Image array shape: (480, 640, 3), dtype: uint8
+⚠️ Error comparing with customer 4: 'utf-8' codec can't decode byte 0xf8 in position 0: invalid start byte
+⚠️ Error comparing with customer 75: 'utf-8' codec can't decode bytes in position 0-1: invalid continuation byte
+⚠️ Error comparing with customer 77: 'utf-8' codec can't decode byte 0xa2 in position 2: invalid start byte
+❌ No matching face found.
+🔐 Authenticated user for face recognition: admin
+✅ User: admin (ID: 11) is authenticated.
+📸 Face image received, proceeding with recognition.
+📐 Image array shape: (480, 640, 3), dtype: uint8
+⚠️ Error comparing with customer 4: 'utf-8' codec can't decode byte 0xf8 in position 0: invalid start byte
+⚠️ Error comparing with customer 75: 'utf-8' codec can't decode bytes in position 0-1: invalid continuation byte
+⚠️ Error comparing with customer 77: 'utf-8' codec can't decode byte 0xa2 in position 2: invalid start byte
+❌ No matching face found.
+🔐 Authenticated user for face recognition: admin
+✅ User: admin (ID: 11) is authenticated.
+📸 Face image received, proceeding with recognition.
+📐 Image array shape: (480, 640, 3), dtype: uint8
+⚠️ Error comparing with customer 4: 'utf-8' codec can't decode byte 0xf8 in position 0: invalid start byte
+⚠️ Error comparing with customer 75: 'utf-8' codec can't decode bytes in position 0-1: invalid continuation byte
+⚠️ Error comparing with customer 77: 'utf-8' codec can't decode byte 0xa2 in position 2: invalid start byte
+❌ No matching face found.
+🔐 Authenticated user for face recognition: admin
+✅ User: admin (ID: 11) is authenticated.
+📸 Face image received, proceeding with recognition.
+📐 Image array shape: (480, 640, 3), dtype: uint8
+⚠️ Error comparing with customer 4: 'utf-8' codec can't decode byte 0xf8 in position 0: invalid start byte
+⚠️ Error comparing with customer 75: 'utf-8' codec can't decode bytes in position 0-1: invalid continuation byte
+⚠️ Error comparing with customer 77: 'utf-8' codec can't decode byte 0xa2 in position 2: invalid start byte
+❌ No matching face found.
+🔐 Authenticated user for face recognition: admin
+✅ User: admin (ID: 11) is authenticated.
+📸 Face image received, proceeding with recognition.
+📐 Image array shape: (480, 640, 3), dtype: uint8
+⚠️ Error comparing with customer 4: 'utf-8' codec can't decode byte 0xf8 in position 0: invalid start byte
+⚠️ Error comparing with customer 75: 'utf-8' codec can't decode bytes in position 0-1: invalid continuation byte
+⚠️ Error comparing with customer 77: 'utf-8' codec can't decode byte 0xa2 in position 2: invalid start byte
+❌ No matching face found.
+🔐 Authenticated user for face recognition: admin
+✅ User: admin (ID: 11) is authenticated.
+📸 Face image received, proceeding with recognition.
+📐 Image array shape: (480, 640, 3), dtype: uint8
+⚠️ Error comparing with customer 4: 'utf-8' codec can't decode byte 0xf8 in position 0: invalid start byte
+⚠️ Error comparing with customer 75: 'utf-8' codec can't decode bytes in position 0-1: invalid continuation byte
+⚠️ Error comparing with customer 77: 'utf-8' codec can't decode byte 0xa2 in position 2: invalid start byte
+❌ No matching face found.
+🔐 Authenticated user for face recognition: admin
+✅ User: admin (ID: 11) is authenticated.
+📸 Face image received, proceeding with recognition.
+📐 Image array shape: (480, 640, 3), dtype: uint8
+⚠️ Error comparing with customer 4: 'utf-8' codec can't decode byte 0xf8 in position 0: invalid start byte
+⚠️ Error comparing with customer 75: 'utf-8' codec can't decode bytes in position 0-1: invalid continuation byte
+⚠️ Error comparing with customer 77: 'utf-8' codec can't decode byte 0xa2 in position 2: invalid start byte
+❌ No matching face found.
+🔐 Authenticated user for face recognition: admin
+✅ User: admin (ID: 11) is authenticated.
+📸 Face image received, proceeding with recognition.
+📐 Image array shape: (480, 640, 3), dtype: uint8
+⚠️ Error comparing with customer 4: 'utf-8' codec can't decode byte 0xf8 in position 0: invalid start byte
+⚠️ Error comparing with customer 75: 'utf-8' codec can't decode bytes in position 0-1: invalid continuation byte
+⚠️ Error comparing with customer 77: 'utf-8' codec can't decode byte 0xa2 in position 2: invalid start byte
+❌ No matching face found.
+🔐 Authenticated user for face recognition: admin
+✅ User: admin (ID: 11) is authenticated.
+📸 Face image received, proceeding with recognition.
+📐 Image array shape: (480, 640, 3), dtype: uint8
+⚠️ Error comparing with customer 4: 'utf-8' codec can't decode byte 0xf8 in position 0: invalid start byte
+⚠️ Error comparing with customer 75: 'utf-8' codec can't decode bytes in position 0-1: invalid continuation byte
+⚠️ Error comparing with customer 77: 'utf-8' codec can't decode byte 0xa2 in position 2: invalid start byte
+❌ No matching face found.
+🔐 Authenticated user for face recognition: admin
+✅ User: admin (ID: 11) is authenticated.
+📸 Face image received, proceeding with recognition.
+📐 Image array shape: (480, 640, 3), dtype: uint8
+⚠️ Error comparing with customer 4: 'utf-8' codec can't decode byte 0xf8 in position 0: invalid start byte
+⚠️ Error comparing with customer 75: 'utf-8' codec can't decode bytes in position 0-1: invalid continuation byte
+⚠️ Error comparing with customer 77: 'utf-8' codec can't decode byte 0xa2 in position 2: invalid start byte
+❌ No matching face found.
+🔐 Authenticated user for face recognition: admin
+✅ User: admin (ID: 11) is authenticated.
+📸 Face image received, proceeding with recognition.
+📐 Image array shape: (480, 640, 3), dtype: uint8
+⚠️ Error comparing with customer 4: 'utf-8' codec can't decode byte 0xf8 in position 0: invalid start byte
+⚠️ Error comparing with customer 75: 'utf-8' codec can't decode bytes in position 0-1: invalid continuation byte
+⚠️ Error comparing with customer 77: 'utf-8' codec can't decode byte 0xa2 in position 2: invalid start byte
+❌ No matching face found.
+🔐 Authenticated user for face recognition: admin
+✅ User: admin (ID: 11) is authenticated.
+📸 Face image received, proceeding with recognition.
+📐 Image array shape: (480, 640, 3), dtype: uint8
+❌ No face detected in the image.
