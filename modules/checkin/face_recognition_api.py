@@ -11,7 +11,7 @@ import io
 from PIL import Image
 import numpy as np
 
-@app.route('/api/recognize_face', methods=['POST'])
+@app.route('/api/face-recognition/recognize', methods=['POST'])
 @login_required
 def recognize_face():
     """
@@ -56,7 +56,7 @@ def recognize_face():
                 'success': True,
                 'recognized': False,
                 'message': 'No registered faces in database'
-            })
+            }), 200
 
         # Mock recognition - return first customer for demo
         # In production, implement actual face matching
@@ -81,11 +81,11 @@ def recognize_face():
                 'is_vip': customer.is_vip,
                 'total_visits': total_visits
             }
-        })
+        }), 200
 
     except Exception as e:
-        print(f"Face recognition error: {e}")
+        app.logger.error(f"Face recognition error: {e}")
         return jsonify({
             'success': False,
-            'error': str(e)
+            'error': 'Face recognition service encountered an error. Please try again.'
         }), 500

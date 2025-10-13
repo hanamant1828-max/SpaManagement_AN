@@ -581,9 +581,15 @@ async function performRecognition(video) {
                         'Content-Type': 'application/json',
                         'X-Requested-With': 'XMLHttpRequest'
                     },
-                    credentials: 'same-origin', // Include session cookies
+                    credentials: 'same-origin',
                     body: JSON.stringify({ image: imageData })
                 });
+
+        // Check if response is JSON
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+            throw new Error('Server returned non-JSON response. The API endpoint may not be available.');
+        }
 
         const result = await response.json();
         console.log('Recognition result:', result);
@@ -697,8 +703,20 @@ async function performRecognition(video) {
             overlay.style.border = '6px solid #dc3545';
         }
 
-        updateStatus('danger', 'Connection Error', 
-            'Unable to connect to face recognition service. Please check your internet connection and try again. If the problem persists, contact support.');
+        // Determine error type and show appropriate message
+        let errorTitle = 'Connection Error';
+        let errorMessage = 'Unable to connect to face recognition service.';
+        
+        if (err.message && err.message.includes('non-JSON response')) {
+            errorTitle = 'Service Unavailable';
+            errorMessage = 'The face recognition service is not available. Please refresh the page and try again.';
+        } else if (err.message && err.message.includes('NetworkError')) {
+            errorMessage = 'Network connection failed. Please check your internet connection and try again.';
+        } else {
+            errorMessage = 'An unexpected error occurred. Please try again or contact support if the problem persists.';
+        }
+
+        updateStatus('danger', errorTitle, errorMessage);
     }
 }
 
