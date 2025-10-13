@@ -10,8 +10,12 @@ from .checkin_queries import (
     get_client_by_phone, get_client_appointments_today
 )
 
-# Import face recognition API
-from . import face_recognition_api
+# Import face recognition API (optional)
+try:
+    from . import face_recognition_api
+except ImportError as e:
+    print(f"⚠️ Face recognition not available: {e}")
+    face_recognition_api = None
 
 @app.route('/checkin')
 @login_required
