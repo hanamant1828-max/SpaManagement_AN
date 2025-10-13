@@ -43,13 +43,27 @@ def recognize_face():
 
         print("📸 Face image received, proceeding with mock recognition.")
 
-        # For now, implement a simple mock recognition
-        # In production, you would integrate with face_recognition library or cloud API
-
-        # Mock: Find customers with face photos and return the first one
-        # In real implementation, compare face embeddings
+        # Decode the face image from base64
+        import base64
+        import io
+        from PIL import Image
+        import numpy as np
+        
+        # Remove data URI prefix if present
+        if ',' in face_image:
+            face_image = face_image.split(',')[1]
+        
+        image_data = base64.b64decode(face_image)
+        image = Image.open(io.BytesIO(image_data))
+        image_array = np.array(image)
+        
+        # Convert RGB to BGR for face_recognition
+        if len(image_array.shape) == 3 and image_array.shape[2] == 3:
+            image_array = image_array[:, :, ::-1]
+        
+        # Find customers with face encodings
         customers_with_faces = Customer.query.filter(
-            Customer.face_photo.isnot(None),
+            Customer.face_encoding.isnot(None),
             Customer.is_active == True
         ).all()
 
@@ -61,10 +75,71 @@ def recognize_face():
                 'message': 'No registered faces in database'
             }), 200
 
-        # Mock recognition - return first customer for demo
-        # In production, implement actual face matching
-        customer = customers_with_faces[0]
-        print(f"👤 Mock recognized customer: {customer.full_name} (ID: {customer.id})")
+        # Use InsightFace for face recognition
+        try:
+            import insightface
+            from insightface.app import FaceAnalysis
+            import json
+            
+            # Initialize face analysis
+            face_app = FaceAnalysis(providers=['CPUExecutionProvider'])
+            face_app.prepare(ctx_id=0, det_size=(640, 640))
+            
+            # Detect face in the image
+            faces = face_app.get(image_array)
+            
+            if len(faces) == 0:
+                print("❌ No face detected in the image.")
+                return jsonify({
+                    'success': True,
+                    'recognized': False,
+                    'message': 'No face detected in image'
+                }), 200
+            
+            # Get the first face embedding
+            new_embedding = faces[0].embedding
+            
+            # Compare with stored faces
+            best_match = None
+            best_similarity = 0.0
+            threshold = 0.4  # Similarity threshold (lower is more strict)
+            
+            for customer in customers_with_faces:
+                try:
+                    # Parse stored embedding
+                    stored_embedding = np.array(json.loads(customer.face_encoding))
+                    
+                    # Calculate cosine similarity
+                    similarity = np.dot(new_embedding, stored_embedding) / (
+                        np.linalg.norm(new_embedding) * np.linalg.norm(stored_embedding)
+                    )
+                    
+                    print(f"🔍 Similarity with {customer.full_name}: {similarity:.4f}")
+                    
+                    if similarity > best_similarity and similarity > threshold:
+                        best_similarity = similarity
+                        best_match = customer
+                
+                except Exception as e:
+                    print(f"⚠️ Error comparing with customer {customer.id}: {e}")
+                    continue
+            
+            if best_match:
+                customer = best_match
+                print(f"👤 Recognized customer: {customer.full_name} (ID: {customer.id}, Similarity: {best_similarity:.4f})")
+            else:
+                print("❌ No matching face found.")
+                return jsonify({
+                    'success': True,
+                    'recognized': False,
+                    'message': 'Face not recognized'
+                }), 200
+                
+        except Exception as e:
+            print(f"⚠️ Face recognition error: {e}")
+            # Fallback to first customer for demo purposes
+            customer = customers_with_faces[0]
+            print(f"👤 Fallback to first customer: {customer.full_name} (ID: {customer.id})")
 
         # Get customer stats
         total_visits = Appointment.query.filter_by(

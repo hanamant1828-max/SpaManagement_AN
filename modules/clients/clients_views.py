@@ -340,7 +340,7 @@ def api_quick_create_client():
             existing = get_customer_by_phone(data['phone'])
             if existing:
                 return jsonify({
-                    'success': False, 
+                    'success': False,
                     'error': 'A customer with this phone number already exists',
                     'existing_customer': {
                         'id': existing.id,
@@ -403,7 +403,7 @@ def api_unaki_quick_add_client():
             existing = get_customer_by_phone(data['phone'])
             if existing:
                 return jsonify({
-                    'success': False, 
+                    'success': False,
                     'error': 'A customer with this phone number already exists',
                     'existing_customer': {
                         'id': existing.id,
@@ -418,7 +418,7 @@ def api_unaki_quick_add_client():
             'phone': data.get('phone', '').strip(),
             'gender': data.get('gender', '').strip() or None
         }
-        
+
         # Only add email if it's provided and not empty
         email = data.get('email', '').strip()
         if email:
@@ -666,6 +666,13 @@ def api_save_face():
         image = Image.open(io.BytesIO(image_bytes))
         image_array = np.array(image)
 
+        # Convert image to numpy array
+        image = Image.open(io.BytesIO(image_bytes))
+        image_array = np.array(image)
+
+        print(f"📸 Processing face image for customer {customer.full_name} (ID: {client_id})")
+        print(f"   Image shape: {image_array.shape}")
+
         # Convert to BGR for OpenCV/InsightFace (handle both RGB and RGBA)
         if len(image_array.shape) == 3:
             if image_array.shape[2] == 4:
@@ -701,9 +708,15 @@ def api_save_face():
         # Save face image
         if hasattr(customer, 'face_image_url'):
             customer.face_image_url = face_image
+            # Save face encoding
+            customer.face_encoding = faces[0].embedding.tobytes() # Store embedding as bytes
             db.session.commit()
 
-            app.logger.info(f"Face data saved for customer {customer.id}: {customer.first_name} {customer.last_name}")
+            # Verify the data was saved
+            saved_customer = Customer.query.get(client_id)
+            print(f"✅ Face data saved for {saved_customer.full_name}")
+            print(f"   Has face_encoding: {saved_customer.face_encoding is not None}")
+            print(f"   Has face_image_url: {saved_customer.face_image_url is not None}")
 
             return jsonify({
                 'success': True,
@@ -755,7 +768,7 @@ def api_recognize_face():
 
         # Get all customers with face data
         customers_with_faces = Customer.query.filter(
-            Customer.face_image_url.isnot(None),
+            Customer.face_encoding.isnot(None), # Check for encoding presence
             Customer.is_active == True
         ).all()
 
@@ -812,7 +825,7 @@ def api_recognize_face():
 
         # Compare with stored faces
         matched_customer = None
-        best_similarity = 0.0  # Higher is better for cosine similarity
+        best_similarity = -1.0  # Initialize with a value lower than any possible cosine similarity
         MATCH_THRESHOLD = 0.3  # InsightFace similarity threshold (typically 0.25-0.4)
         DUPLICATE_WARNING_THRESHOLD = 0.05  # Warn if multiple matches within 5% similarity
 
@@ -820,43 +833,13 @@ def api_recognize_face():
         potential_matches = []
 
         for customer in customers_with_faces:
-            if not customer.face_image_url:
+            if not customer.face_encoding: # Ensure encoding exists
+                app.logger.warning(f"Customer {customer.id} has no face_encoding stored, skipping.")
                 continue
 
             try:
-                # Extract stored image data
-                stored_image = customer.face_image_url
-                if ',' in stored_image:
-                    stored_image_data = stored_image.split(',')[1]
-                else:
-                    stored_image_data = stored_image
-
-                # Decode stored image
-                stored_image_bytes = base64.b64decode(stored_image_data)
-                stored_image_pil = Image.open(io.BytesIO(stored_image_bytes))
-                stored_image_array = np.array(stored_image_pil)
-
-                # Convert to BGR for OpenCV/InsightFace (handle both RGB and RGBA)
-                if len(stored_image_array.shape) == 3:
-                    if stored_image_array.shape[2] == 4:
-                        # RGBA from browser canvas
-                        stored_image_bgr = cv2.cvtColor(stored_image_array, cv2.COLOR_RGBA2BGR)
-                    elif stored_image_array.shape[2] == 3:
-                        # RGB
-                        stored_image_bgr = cv2.cvtColor(stored_image_array, cv2.COLOR_RGB2BGR)
-                    else:
-                        stored_image_bgr = stored_image_array
-                else:
-                    stored_image_bgr = stored_image_array
-
-                # Get face embeddings from stored image
-                stored_faces = face_app.get(stored_image_bgr)
-
-                if len(stored_faces) == 0:
-                    app.logger.warning(f"No face embedding in stored image for customer {customer.id}")
-                    continue
-
-                stored_embedding = stored_faces[0].embedding
+                # Decode stored face encoding
+                stored_embedding = np.frombuffer(customer.face_encoding, dtype=np.float32)
 
                 # Calculate cosine similarity
                 similarity = np.dot(incoming_embedding, stored_embedding) / (
@@ -878,10 +861,10 @@ def api_recognize_face():
                     matched_customer = customer
 
             except Exception as customer_error:
-                app.logger.error(f"Error processing customer {customer.id}: {str(customer_error)}")
+                app.logger.error(f"Error processing customer {customer.id} face encoding: {str(customer_error)}")
                 continue
 
-        if matched_customer:
+        if matched_customer and best_similarity > MATCH_THRESHOLD: # Ensure best_similarity meets threshold
             confidence = best_similarity * 100
 
             # Check for duplicate/similar faces
@@ -921,7 +904,7 @@ def api_recognize_face():
                     'email': getattr(matched_customer, 'email', '') or '',
                     'total_visits': getattr(matched_customer, 'total_visits', 0) or 0,
                     'is_vip': getattr(matched_customer, 'is_vip', False),
-                    'face_image_url': matched_customer.face_image_url
+                    'face_image_url': matched_customer.face_image_url # Include URL for frontend display if needed
                 },
                 'confidence': f"{confidence:.1f}%",
                 'message': f'Welcome back, {matched_customer.first_name}!'
@@ -935,7 +918,7 @@ def api_recognize_face():
 
             return jsonify(response), 200
         else:
-            app.logger.info("No matching face found")
+            app.logger.info("No matching face found above threshold")
             return jsonify({
                 'success': True,
                 'recognized': False,
@@ -961,17 +944,17 @@ def api_get_customers_with_faces():
         return jsonify({'success': False, 'error': 'Access denied', 'customers': []}), 403
 
     try:
-        # Check if Customer model has face_image_url attribute
-        if not hasattr(Customer, 'face_image_url'):
+        # Check if Customer model has face_encoding attribute
+        if not hasattr(Customer, 'face_encoding'):
             return jsonify({
                 'success': True,
                 'customers': [],
                 'count': 0,
-                'message': 'Face recognition not enabled'
+                'message': 'Face recognition not enabled (missing face_encoding attribute)'
             }), 200
 
         customers_list = Customer.query.filter(
-            Customer.face_image_url.isnot(None),
+            Customer.face_encoding.isnot(None),
             Customer.is_active == True
         ).order_by(Customer.first_name).all()
 
@@ -1093,7 +1076,7 @@ def api_detect_duplicate_faces():
 
         # Get all customers with face data
         customers_with_faces = Customer.query.filter(
-            Customer.face_image_url.isnot(None),
+            Customer.face_encoding.isnot(None), # Check for encoding presence
             Customer.is_active == True
         ).all()
 
@@ -1112,35 +1095,13 @@ def api_detect_duplicate_faces():
         customer_embeddings = []
         for customer in customers_with_faces:
             try:
-                stored_image = customer.face_image_url
-                if ',' in stored_image:
-                    stored_image_data = stored_image.split(',')[1]
-                else:
-                    stored_image_data = stored_image
-
-                stored_image_bytes = base64.b64decode(stored_image_data)
-                stored_image_pil = Image.open(io.BytesIO(stored_image_bytes))
-                stored_image_array = np.array(stored_image_pil)
-
-                # Convert to BGR
-                if len(stored_image_array.shape) == 3:
-                    if stored_image_array.shape[2] == 4:
-                        stored_image_bgr = cv2.cvtColor(stored_image_array, cv2.COLOR_RGBA2BGR)
-                    elif stored_image_array.shape[2] == 3:
-                        stored_image_bgr = cv2.cvtColor(stored_image_array, cv2.COLOR_RGB2BGR)
-                    else:
-                        stored_image_bgr = stored_image_array
-                else:
-                    stored_image_bgr = stored_image_array
-
-                faces = face_app.get(stored_image_bgr)
-                if len(faces) > 0:
-                    customer_embeddings.append({
-                        'customer': customer,
-                        'embedding': faces[0].embedding
-                    })
+                stored_embedding = np.frombuffer(customer.face_encoding, dtype=np.float32) # Load embedding
+                customer_embeddings.append({
+                    'customer': customer,
+                    'embedding': stored_embedding
+                })
             except Exception as e:
-                app.logger.warning(f"Could not process face for customer {customer.id}: {e}")
+                app.logger.warning(f"Could not process face encoding for customer {customer.id}: {e}")
                 continue
 
         # Find duplicates

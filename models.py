@@ -423,8 +423,11 @@ class Customer(db.Model):
     preferences = db.Column(db.Text)
     allergies = db.Column(db.Text)
     notes = db.Column(db.Text)
+    
+    # Face recognition fields - MUST match what face_recognition_api.py expects
     face_encoding = db.Column(db.Text)  # Store face encoding as JSON string
     face_image_url = db.Column(db.String(255))  # Store face image path
+    # Note: face_photo is NOT a field - don't use it!
 
     # Loyalty status
     loyalty_points = db.Column(db.Integer, default=0)
