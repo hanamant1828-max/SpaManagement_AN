@@ -307,6 +307,10 @@ let checkinRecognitionInterval = null;
 let checkinIsRecognizing = false;
 let recognizedCustomerId = null; // Variable to store the recognized customer ID
 
+// Declare canvas and video globally within the script scope for easy access in multiple functions
+let video = null;
+let canvas = null;
+
 // Verify elements on page load
 // Initialize when DOM is ready
 document.addEventListener('DOMContentLoaded', function() {
@@ -315,14 +319,16 @@ document.addEventListener('DOMContentLoaded', function() {
     // Log all elements
     const startButton = document.getElementById('startRecognition');
     const stopButton = document.getElementById('stopRecognition');
-    const video = document.getElementById('checkinVideo');
+    video = document.getElementById('checkinVideo'); // Assign to global video variable
     const placeholder = document.getElementById('cameraPlaceholder');
+    canvas = document.createElement('canvas'); // Create canvas element dynamically
 
     console.log('Elements found:');
     console.log('- Start button:', startButton);
     console.log('- Stop button:', stopButton);
     console.log('- Video element:', video);
     console.log('- Placeholder:', placeholder);
+    console.log('- Canvas element:', canvas);
 
     // Attach event listeners - using addEventListener for better reliability
     if (startButton) {
@@ -398,13 +404,11 @@ async function startFaceRecognition() {
         console.log('Video tracks:', checkinStream.getVideoTracks());
 
         console.log('Step 3: Getting DOM elements...');
-        const video = document.getElementById('checkinVideo');
-        const placeholder = document.getElementById('cameraPlaceholder');
-        const overlay = document.getElementById('cameraOverlay');
+        // video and canvas are already declared and assigned in DOMContentLoaded
 
         console.log('Video element:', video);
-        console.log('Placeholder element:', placeholder);
-        console.log('Overlay element:', overlay);
+        console.log('Placeholder element:', document.getElementById('cameraPlaceholder'));
+        console.log('Overlay element:', document.getElementById('cameraOverlay'));
 
         console.log('Step 4: Setting up video stream...');
         if (!video) {
@@ -423,7 +427,9 @@ async function startFaceRecognition() {
         video.style.position = 'absolute';
         video.style.top = '0';
         video.style.left = '0';
+        const placeholder = document.getElementById('cameraPlaceholder');
         if (placeholder) placeholder.style.display = 'none';
+        const overlay = document.getElementById('cameraOverlay');
         if (overlay) {
             overlay.style.display = 'block';
             overlay.style.position = 'absolute';
@@ -465,7 +471,7 @@ async function startFaceRecognition() {
 
         console.log('Step 9: Starting recognition loop...');
         checkinIsRecognizing = true;
-        checkinRecognitionInterval = setInterval(() => performRecognition(video), 2000);
+        checkinRecognitionInterval = setInterval(() => performRecognition(video), 2000); // Pass video element to performRecognition
 
         console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
         console.log('✅ FACE RECOGNITION STARTED SUCCESSFULLY');
@@ -478,7 +484,7 @@ async function startFaceRecognition() {
 
         let errorTitle = 'Camera Access Error';
         let errorMessage = '';
-        
+
         if (error.name === 'NotAllowedError') {
             errorMessage = 'Camera permission was denied. Please click the camera icon in your browser\'s address bar and allow camera access, then try again.';
         } else if (error.name === 'NotFoundError') {
@@ -517,15 +523,16 @@ function stopRecognition() {
     checkinIsRecognizing = false;
 
     // Reset UI
-    const video = document.getElementById('checkinVideo');
-    const placeholder = document.getElementById('cameraPlaceholder');
-    const overlay = document.getElementById('cameraOverlay');
-
+    // video and canvas are global
     if (video) video.style.display = 'none';
+    const placeholder = document.getElementById('cameraPlaceholder');
     if (placeholder) placeholder.style.display = 'block';
+    const overlay = document.getElementById('cameraOverlay');
     if (overlay) {
         overlay.style.display = 'none';
         overlay.classList.remove('scanning-animation');
+        overlay.classList.remove('success'); // Remove success class
+        overlay.classList.remove('error');   // Remove error class
     }
 
     // Update button states
@@ -547,32 +554,19 @@ function stopRecognition() {
     console.log('Face recognition stopped - customer info remains visible');
 }
 
-async function performRecognition(video) {
-    if (!checkinIsRecognizing || !video || video.readyState !== video.HAVE_ENOUGH_DATA) {
+async function performRecognition(videoElement) { // Renamed parameter to avoid conflict with global 'video'
+    if (!checkinIsRecognizing || !videoElement || videoElement.readyState !== videoElement.HAVE_ENOUGH_DATA) {
         return;
     }
 
     try {
-        console.log('Capturing frame for recognition...');
+        // Capture frame using the globally declared canvas and video elements
+        const imageData = captureFaceImage(); // Use the updated captureFaceImage function
 
-        // Show scanning indicator
-        const overlay = document.getElementById('cameraOverlay');
-        if (overlay) {
-            overlay.style.border = '6px solid #667eea'; // Blue while scanning
-            overlay.style.display = 'block';
-            overlay.style.position = 'absolute';
-            overlay.style.zIndex = '100';
+        if (!imageData) {
+            console.warn('Failed to capture image, skipping recognition attempt.');
+            return;
         }
-
-        // Capture current video frame
-        const canvas = document.createElement('canvas');
-        canvas.width = video.videoWidth || 640;
-        canvas.height = video.videoHeight || 480;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-        // Convert to base64 image
-        const imageData = canvas.toDataURL('image/jpeg', 0.8);
 
         // Send to face recognition API
         const response = await fetch('/api/face-recognition/recognize', {
@@ -582,7 +576,7 @@ async function performRecognition(video) {
                         'X-Requested-With': 'XMLHttpRequest'
                     },
                     credentials: 'same-origin',
-                    body: JSON.stringify({ image: imageData })
+                    body: JSON.stringify({ image: imageData }) // Use 'image' as per API
                 });
 
         // Check if response is JSON
@@ -594,6 +588,8 @@ async function performRecognition(video) {
         const result = await response.json();
         console.log('Recognition result:', result);
 
+        const overlay = document.getElementById('cameraOverlay');
+
         if (response.ok && result.success) {
             if (result.recognized && result.customer) {
                 // Customer recognized successfully
@@ -604,6 +600,8 @@ async function performRecognition(video) {
 
                 // Show success indicator (yellow if duplicate warning, green otherwise)
                 if (overlay) {
+                    overlay.classList.remove('scanning-animation'); // Remove animation on recognition
+                    overlay.classList.add('success'); // Add success class
                     if (result.duplicate_warning) {
                         overlay.style.border = '6px solid #ffc107'; // Yellow/Orange for warning
                         overlay.style.boxShadow = '0 0 0 9999px rgba(0, 0, 0, 0.5), 0 0 30px rgba(255, 193, 7, 0.8)';
@@ -611,8 +609,6 @@ async function performRecognition(video) {
                         overlay.style.border = '6px solid #28a745'; // Green for success
                         overlay.style.boxShadow = '0 0 0 9999px rgba(0, 0, 0, 0.5), 0 0 30px rgba(40, 167, 69, 0.8)';
                     }
-                    overlay.classList.remove('scanning-animation');
-                    overlay.classList.add('success');
                 }
 
                 // Show duplicate warning if exists
@@ -634,6 +630,11 @@ async function performRecognition(video) {
                     // Insert warning after customer info
                     const customerInfo = document.getElementById('customerInfo');
                     if (customerInfo) {
+                        // Remove any previous warnings before adding a new one
+                        const existingWarning = customerInfo.nextElementSibling;
+                        if (existingWarning && existingWarning.classList.contains('alert-warning')) {
+                            existingWarning.remove();
+                        }
                         customerInfo.insertAdjacentHTML('afterend', warningHtml);
                     }
                 }
@@ -652,10 +653,16 @@ async function performRecognition(video) {
 
                 // Flash red briefly to show scan attempt
                 if (overlay) {
+                    overlay.classList.remove('scanning-animation'); // Ensure animation is off
+                    overlay.classList.add('error'); // Add error class
                     overlay.style.border = '6px solid #dc3545'; // Red for no match
+                    overlay.style.boxShadow = '0 0 0 9999px rgba(0, 0, 0, 0.5), 0 0 30px rgba(220, 53, 69, 0.8)';
                     setTimeout(() => {
                         if (checkinIsRecognizing && overlay) {
-                            overlay.style.border = '6px solid #667eea'; // Back to blue
+                            // Revert to default scanning style if still recognizing
+                            overlay.classList.remove('error');
+                            overlay.style.border = '6px solid #667eea';
+                            overlay.style.boxShadow = '0 0 0 9999px rgba(0, 0, 0, 0.5), 0 0 20px rgba(102, 126, 234, 0.6)';
                         }
                     }, 500);
                 }
@@ -680,7 +687,10 @@ async function performRecognition(video) {
 
             // Show error indicator
             if (overlay) {
+                overlay.classList.remove('scanning-animation');
+                overlay.classList.add('error');
                 overlay.style.border = '6px solid #dc3545';
+                overlay.style.boxShadow = '0 0 0 9999px rgba(0, 0, 0, 0.5), 0 0 30px rgba(220, 53, 69, 0.8)';
             }
 
             // Check if it's an authentication error
@@ -700,13 +710,16 @@ async function performRecognition(video) {
         // Show error indicator
         const overlay = document.getElementById('cameraOverlay');
         if (overlay) {
+            overlay.classList.remove('scanning-animation');
+            overlay.classList.add('error');
             overlay.style.border = '6px solid #dc3545';
+            overlay.style.boxShadow = '0 0 0 9999px rgba(0, 0, 0, 0.5), 0 0 30px rgba(220, 53, 69, 0.8)';
         }
 
         // Determine error type and show appropriate message
         let errorTitle = 'Connection Error';
-        let errorMessage = 'Unable to connect to face recognition service.';
-        
+        let errorMessage = '';
+
         if (err.message && err.message.includes('non-JSON response')) {
             errorTitle = 'Service Unavailable';
             errorMessage = 'The face recognition service is not available. Please refresh the page and try again.';
@@ -719,6 +732,155 @@ async function performRecognition(video) {
         updateStatus('danger', errorTitle, errorMessage);
     }
 }
+
+// Helper function to capture face image from video stream
+function captureFaceImage() {
+    console.log('Capturing frame for recognition...');
+
+    // Ensure video and canvas elements are available
+    if (!video || !canvas) {
+        console.error('Video or canvas element not found for image capture');
+        return null; // Return null if elements are not ready
+    }
+
+    // Check if video is actually playing and has enough data
+    if (video.readyState !== video.HAVE_ENOUGH_DATA) {
+        console.warn('Video not ready, skipping frame capture');
+        return null; // Return null if video is not ready
+    }
+
+    // Set canvas dimensions to match video dimensions
+    canvas.width = video.videoWidth || 640;
+    canvas.height = video.videoHeight || 480;
+
+    // Draw the current video frame onto the canvas
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+    // Convert the canvas content to a JPEG data URL
+    const imageData = canvas.toDataURL('image/jpeg', 0.8);
+
+    // Validate the captured image data
+    if (!imageData || imageData === 'data:,') {
+        console.error('Failed to capture valid image data from canvas');
+        return null; // Return null if image data is invalid
+    }
+
+    console.log('Image captured, size:', imageData.length, 'bytes');
+    return imageData; // Return the captured image data
+}
+
+// Function to handle successful recognition
+function handleSuccessfulRecognition(customer) {
+    console.log('Customer recognized, handling display:', customer);
+    displayRecognizedCustomer(customer);
+    highlightCustomerAppointment(customer.id);
+    addGoToBillingButton(); // Ensure billing button is added
+}
+
+// Function to recognize face (now calls captureFaceImage and then sends data)
+function recognizeFace(imageData) {
+    // Validate imageData before sending
+    if (!imageData || imageData.length < 100) { // Basic check for valid data
+        console.error('Invalid image data received, skipping recognition');
+        return;
+    }
+
+    console.log('Sending recognition request with image data (first 50 chars):', imageData.substring(0, 50) + '...');
+
+    fetch('/api/face-recognition/recognize', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest' // Important for some backend frameworks to identify AJAX requests
+        },
+        credentials: 'same-origin', // Ensure cookies are sent if needed
+        body: JSON.stringify({
+            face_image: imageData  // Corrected field name to 'face_image' as expected by the API
+        })
+    })
+    .then(response => {
+        // Check for non-JSON content type before parsing
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+            console.error('Non-JSON response received:', { status: response.status, contentType: contentType });
+            // Attempt to read as text if not JSON, to show potential server errors
+            return response.text().then(text => {
+                throw new Error(`Server returned non-JSON response. Status: ${response.status}. Body: ${text}`);
+            });
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log('Recognition API response:', data);
+
+        if (data.success && data.recognized && data.customer) {
+            // Successful recognition of a customer
+            handleSuccessfulRecognition(data.customer);
+        } else if (data.success && !data.recognized && data.message) {
+            // Successful API call, but no customer recognized
+            console.log('No customer recognized:', data.message);
+            // Update status to reflect scanning attempt and count
+            const attemptCount = (window.recognitionAttempts || 0) + 1;
+            window.recognitionAttempts = attemptCount;
+            updateStatus('warning', 'Scanning...', `Face detection attempt ${attemptCount}. Please ensure your face is clearly visible in the circle.`);
+
+            // Visual feedback for failed scan
+            const overlay = document.getElementById('cameraOverlay');
+            if (overlay) {
+                overlay.classList.remove('scanning-animation');
+                overlay.classList.add('error'); // Indicate a failed scan visually
+                overlay.style.border = '6px solid #ffc107'; // Use warning color (yellow) for failed scan
+                overlay.style.boxShadow = '0 0 0 9999px rgba(0, 0, 0, 0.5), 0 0 30px rgba(255, 193, 7, 0.8)';
+                setTimeout(() => {
+                    if (checkinIsRecognizing && overlay) {
+                        // Revert to default scanning style if still recognizing
+                        overlay.classList.remove('error');
+                        overlay.style.border = '6px solid #667eea'; // Back to blue
+                        overlay.style.boxShadow = '0 0 0 9999px rgba(0, 0, 0, 0.5), 0 0 20px rgba(102, 126, 234, 0.6)';
+                    }
+                }, 500);
+            }
+        } else if (data.duplicate_warning && data.similar_customers) {
+            // Handle duplicate face detection with a warning
+            console.warn('⚠️ Duplicate face detected!', data.similar_customers);
+            // The performRecognition function already handles displaying the warning HTML
+            // and updating the overlay color.
+            // We still need to call displayRecognizedCustomer for the *first* match if available,
+            // or handle it differently if we want to *prevent* auto-selection.
+            // For now, assume the first match in `similar_customers` is prioritized by the backend.
+            if (data.customer) { // If a primary customer is still returned for the duplicate warning
+                handleSuccessfulRecognition(data.customer);
+            }
+        } else {
+            // Handle general recognition errors or failure messages from the API
+            console.error('Recognition API reported failure:', data.message || 'Unknown error');
+            updateStatus('danger', 'Recognition Error', data.message || 'Unable to process face recognition. Please try again.');
+             // Visual feedback for API error
+            const overlay = document.getElementById('cameraOverlay');
+            if (overlay) {
+                overlay.classList.remove('scanning-animation');
+                overlay.classList.add('error');
+                overlay.style.border = '6px solid #dc3545'; // Red for error
+                overlay.style.boxShadow = '0 0 0 9999px rgba(0, 0, 0, 0.5), 0 0 30px rgba(220, 53, 69, 0.8)';
+            }
+        }
+    })
+    .catch(error => {
+        console.error('Error during fetch operation:', error);
+        // Handle network errors or issues during the fetch process
+        updateStatus('danger', 'Connection Error', 'Unable to connect to the recognition service. Please check your network connection and try again.');
+         // Visual feedback for network/connection error
+        const overlay = document.getElementById('cameraOverlay');
+        if (overlay) {
+            overlay.classList.remove('scanning-animation');
+            overlay.classList.add('error');
+            overlay.style.border = '6px solid #dc3545'; // Red for error
+            overlay.style.boxShadow = '0 0 0 9999px rgba(0, 0, 0, 0.5), 0 0 30px rgba(220, 53, 69, 0.8)';
+        }
+    });
+}
+
 
 function displayRecognizedCustomer(customer) {
     console.log('Displaying recognized customer:', customer);
@@ -735,7 +897,7 @@ function displayRecognizedCustomer(customer) {
 
     // Get initials for avatar
     const nameParts = customer.name.split(' ');
-    const initials = nameParts.map(n => n[0]).join('').toUpperCase();
+    const initials = nameParts.map(n => n.charAt(0)).join('').toUpperCase(); // Use charAt(0) for safety
 
     // Update customer info elements
     const avatarEl = document.getElementById('customerAvatar');
@@ -746,9 +908,9 @@ function displayRecognizedCustomer(customer) {
 
     if (avatarEl) avatarEl.textContent = initials;
     if (nameEl) nameEl.textContent = customer.name;
-    if (phoneEl) phoneEl.textContent = customer.phone || 'N/A';
-    if (visitsEl) visitsEl.textContent = customer.total_visits || 0;
-    if (statusEl) statusEl.textContent = customer.is_vip ? 'VIP' : 'Regular';
+    if (phoneEl) phoneEl.textContent = customer.phone || 'N/A'; // Handle potential null phone
+    if (visitsEl) visitsEl.textContent = customer.total_visits || 0; // Handle potential null visits
+    if (statusEl) statusEl.textContent = customer.is_vip ? 'VIP' : 'Regular'; // Handle potential null is_vip
 
     // Show the customer info card
     customerInfo.style.display = 'block';
@@ -770,7 +932,7 @@ function displayRecognizedCustomer(customer) {
         lastRecognitionEl.textContent = `${customer.name} - ${now.toLocaleTimeString()}`;
     }
 
-    // Clear any existing timeout
+    // Clear any existing timeout to prevent multiple timers running
     if (window.customerInfoTimeout) {
         clearTimeout(window.customerInfoTimeout);
     }
@@ -781,6 +943,7 @@ function displayRecognizedCustomer(customer) {
         if (billingButtonContainer) billingButtonContainer.style.display = 'none';
         updateStatus('info', 'Session expired', 'Customer information cleared. Please scan again to proceed to billing.');
         console.log('Customer info hidden after 10 minutes');
+        recognizedCustomerId = null; // Clear recognized customer ID when info is hidden
     }, 600000); // 10 minutes = 600000 milliseconds
 
     console.log('Customer info will remain visible for 10 minutes');
@@ -794,14 +957,17 @@ function highlightCustomerAppointment(customerId) {
     let found = false;
 
     rows.forEach(row => {
-        row.classList.remove('table-primary');
+        row.classList.remove('table-primary'); // Remove previous highlight
         const clientId = row.dataset.clientId;
 
-        if (clientId && parseInt(clientId) === parseInt(customerId)) {
-            row.classList.add('table-primary');
-            row.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-            found = true;
-            console.log('Appointment highlighted for customer:', customerId);
+        // Ensure clientId exists and is a number before comparison
+        if (clientId && !isNaN(parseInt(clientId)) && !isNaN(parseInt(customerId))) {
+            if (parseInt(clientId) === parseInt(customerId)) {
+                row.classList.add('table-primary'); // Apply highlight
+                row.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); // Scroll to the row
+                found = true;
+                console.log('Appointment highlighted for customer:', customerId);
+            }
         }
     });
 
@@ -825,9 +991,9 @@ function updateStatus(type, title, message) {
         'warning': { icon: 'alert-triangle', iconSize: '2.5rem' }
     };
 
-    const config = alertConfig[type] || alertConfig['info'];
-    
-    statusAlert.className = `alert alert-${type} d-flex align-items-start`;
+    const config = alertConfig[type] || alertConfig['info']; // Default to info if type is invalid
+
+    statusAlert.className = `alert alert-${type} d-flex align-items-start`; // Update classes
     statusAlert.innerHTML = `
         <div class="me-3" style="font-size: ${config.iconSize};">
             <i data-feather="${config.icon}"></i>
@@ -870,6 +1036,12 @@ function addGoToBillingButton() {
         } else {
             console.error('Customer info div not found, cannot add Go to Billing button.');
         }
+    } else {
+        // If button exists, ensure it's visible (e.g., if customer info was refreshed)
+        const button = document.getElementById('goToBillingButton');
+        if (button && button.parentElement && button.parentElement.style.display !== 'none') {
+            button.style.display = 'block'; // Ensure button is visible if customer info is visible
+        }
     }
 }
 
@@ -889,6 +1061,10 @@ window.addEventListener('beforeunload', function() {
     if (checkinStream) {
         console.log('Cleaning up camera stream on page unload');
         checkinStream.getTracks().forEach(track => track.stop());
+    }
+    // Clear any pending timeouts
+    if (window.customerInfoTimeout) {
+        clearTimeout(window.customerInfoTimeout);
     }
 });
 
