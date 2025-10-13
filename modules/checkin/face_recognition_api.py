@@ -92,6 +92,3 @@ def recognize_face():
             'success': False,
             'error': 'Face recognition service encountered an error. Please try again.'
         }), 500
-
-# Register the blueprint with the app
-app.register_blueprint(face_recognition_bp)
