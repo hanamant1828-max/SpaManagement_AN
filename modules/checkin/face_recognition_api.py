@@ -1,7 +1,7 @@
 """
 Face recognition API endpoints
 """
-from flask import request, jsonify
+from flask import request, jsonify, Blueprint
 from flask_login import login_required, current_user
 from app import app, db
 from models import Customer, Appointment
@@ -11,7 +11,10 @@ import io
 from PIL import Image
 import numpy as np
 
-@app.route('/api/face-recognition/recognize', methods=['POST'])
+# Create blueprint for face recognition routes
+face_recognition_bp = Blueprint('face_recognition', __name__, url_prefix='/api/face-recognition')
+
+@face_recognition_bp.route('/recognize', methods=['POST'])
 @login_required
 def recognize_face():
     """
@@ -89,3 +92,6 @@ def recognize_face():
             'success': False,
             'error': 'Face recognition service encountered an error. Please try again.'
         }), 500
+
+# Register the blueprint with the app
+app.register_blueprint(face_recognition_bp)
