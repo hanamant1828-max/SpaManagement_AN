@@ -42,13 +42,13 @@
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    border: 4px solid #667eea !important;
+    border: 6px solid #667eea !important;
     border-radius: 50%;
-    width: 250px;
-    height: 250px;
+    width: 280px;
+    height: 280px;
     pointer-events: none;
-    z-index: 10;
-    box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5);
+    z-index: 100;
+    box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5), 0 0 20px rgba(102, 126, 234, 0.6) !important;
 }
 
 .recognition-status {
@@ -423,14 +423,20 @@ async function startFaceRecognition() {
         if (overlay) {
             overlay.style.display = 'block';
             overlay.style.position = 'absolute';
-            overlay.style.zIndex = '10';
+            overlay.style.zIndex = '100';
             overlay.style.pointerEvents = 'none';
+            overlay.style.border = '6px solid #667eea';
+            overlay.style.borderRadius = '50%';
+            overlay.style.width = '280px';
+            overlay.style.height = '280px';
+            overlay.style.boxShadow = '0 0 0 9999px rgba(0, 0, 0, 0.5), 0 0 20px rgba(102, 126, 234, 0.6)';
             overlay.classList.add('scanning-animation');
             console.log('✅ Overlay displayed with styles:', {
                 display: overlay.style.display,
                 position: overlay.style.position,
                 zIndex: overlay.style.zIndex,
-                border: window.getComputedStyle(overlay).border
+                border: overlay.style.border,
+                borderRadius: overlay.style.borderRadius
             });
         }
         console.log('✅ UI updated');
@@ -546,9 +552,10 @@ async function performRecognition(video) {
         // Show scanning indicator
         const overlay = document.getElementById('cameraOverlay');
         if (overlay) {
-            overlay.style.borderColor = '#667eea'; // Blue while scanning
+            overlay.style.border = '6px solid #667eea'; // Blue while scanning
             overlay.style.display = 'block';
             overlay.style.position = 'absolute';
+            overlay.style.zIndex = '100';
         }
 
         // Capture current video frame
@@ -586,10 +593,10 @@ async function performRecognition(video) {
                 // Show success indicator (yellow if duplicate warning, green otherwise)
                 if (overlay) {
                     if (result.duplicate_warning) {
-                        overlay.style.borderColor = '#ffc107'; // Yellow/Orange for warning
+                        overlay.style.border = '6px solid #ffc107'; // Yellow/Orange for warning
                         overlay.style.boxShadow = '0 0 0 9999px rgba(0, 0, 0, 0.5), 0 0 30px rgba(255, 193, 7, 0.8)';
                     } else {
-                        overlay.style.borderColor = '#28a745'; // Green for success
+                        overlay.style.border = '6px solid #28a745'; // Green for success
                         overlay.style.boxShadow = '0 0 0 9999px rgba(0, 0, 0, 0.5), 0 0 30px rgba(40, 167, 69, 0.8)';
                     }
                     overlay.classList.remove('scanning-animation');
@@ -633,10 +640,10 @@ async function performRecognition(video) {
 
                 // Flash red briefly to show scan attempt
                 if (overlay) {
-                    overlay.style.borderColor = '#dc3545'; // Red for no match
+                    overlay.style.border = '6px solid #dc3545'; // Red for no match
                     setTimeout(() => {
                         if (checkinIsRecognizing && overlay) {
-                            overlay.style.borderColor = '#667eea'; // Back to blue
+                            overlay.style.border = '6px solid #667eea'; // Back to blue
                         }
                     }, 500);
                 }
@@ -661,11 +668,18 @@ async function performRecognition(video) {
 
             // Show error indicator
             if (overlay) {
-                overlay.style.borderColor = '#dc3545';
+                overlay.style.border = '6px solid #dc3545';
             }
 
-            updateStatus('danger', 'Recognition Error', 
-                result.error || 'Unable to process face recognition. Please try again.');
+            // Check if it's an authentication error
+            if (response.status === 401 || result.error === 'Access denied' || result.error === 'Please log in to access this feature') {
+                updateStatus('warning', 'Authentication Required', 
+                    'Your session may have expired. Please refresh the page and log in again.');
+                stopRecognition();
+            } else {
+                updateStatus('danger', 'Recognition Error', 
+                    result.error || 'Unable to process face recognition. Please try again.');
+            }
         }
 
     } catch (err) {
@@ -674,11 +688,11 @@ async function performRecognition(video) {
         // Show error indicator
         const overlay = document.getElementById('cameraOverlay');
         if (overlay) {
-            overlay.style.borderColor = '#dc3545';
+            overlay.style.border = '6px solid #dc3545';
         }
 
         updateStatus('danger', 'Connection Error', 
-            'Unable to connect to recognition service. Please check your connection and try again.');
+            'Unable to connect to face recognition service. Please check your internet connection and try again.');
     }
 }
 

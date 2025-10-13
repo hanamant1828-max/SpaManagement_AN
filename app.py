@@ -262,6 +262,23 @@ def load_user(user_id):
     from models import User
     return User.query.get(int(user_id))
 
+@login_manager.unauthorized_handler
+def unauthorized():
+    # Return JSON for AJAX requests - check multiple indicators
+    content_type = request.headers.get('Content-Type', '')
+    accept = request.headers.get('Accept', '')
+    
+    if (request.is_json or 
+        request.headers.get('X-Requested-With') == 'XMLHttpRequest' or 
+        'application/json' in content_type or
+        'application/json' in accept or
+        request.path.startswith('/api/')):
+        return jsonify({'success': False, 'error': 'Please log in to access this feature'}), 401
+    
+    # Redirect to login page for regular requests
+    flash('Please log in to access this page.', 'warning')
+    return redirect(url_for('login', next=request.url))
+
 # Make utils available in all templates
 @app.context_processor
 def utility_processor():
