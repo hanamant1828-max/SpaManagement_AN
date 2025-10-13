@@ -569,15 +569,15 @@ async function performRecognition(video) {
         const imageData = canvas.toDataURL('image/jpeg', 0.8);
 
         // Send to face recognition API
-        const response = await fetch('/api/recognize_face', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                face_image: imageData
-            })
-        });
+        const response = await fetch('/api/face-recognition/recognize', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    credentials: 'same-origin', // Include session cookies
+                    body: JSON.stringify({ image: imageData })
+                });
 
         const result = await response.json();
         console.log('Recognition result:', result);
@@ -606,19 +606,19 @@ async function performRecognition(video) {
                 // Show duplicate warning if exists
                 if (result.duplicate_warning && result.similar_customers) {
                     console.warn('⚠️ Duplicate face detected!', result.similar_customers);
-                    
+
                     let warningHtml = '<div class="alert alert-warning mt-3" role="alert">';
                     warningHtml += '<h6><i class="fas fa-exclamation-triangle me-2"></i>Multiple Similar Faces Detected</h6>';
                     warningHtml += '<p class="mb-2">This face matches multiple customers. Please verify:</p>';
                     warningHtml += '<ul class="mb-0">';
-                    
+
                     result.similar_customers.forEach(customer => {
                         warningHtml += `<li><strong>${customer.name}</strong> - ${customer.similarity} match</li>`;
                     });
-                    
+
                     warningHtml += '</ul>';
                     warningHtml += '</div>';
-                    
+
                     // Insert warning after customer info
                     const customerInfo = document.getElementById('customerInfo');
                     if (customerInfo) {
@@ -823,7 +823,7 @@ function addGoToBillingButton() {
             button.type = 'button';
             button.className = 'btn btn-primary btn-lg mt-3 w-100';
             button.innerHTML = '<i data-feather="dollar-sign" class="me-2"></i>Go to Billing';
-            
+
             // Append the button to the customer info div
             customerInfoDiv.appendChild(button);
 
