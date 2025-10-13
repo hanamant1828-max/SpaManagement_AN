@@ -276,7 +276,7 @@
                                             {% else %}
                                             <span class="badge bg-secondary">{{ appointment.status.title() }}</span>
                                             {% endif %}
-                                            
+
                                             {% if appointment.client.face_encoding or appointment.client.face_image_url %}
                                             <button type="button" class="btn btn-sm btn-danger ms-1" 
                                                     onclick="deleteFaceDataFromCheckin({{ appointment.client.id }}, '{{ appointment.client.full_name }}')"
@@ -469,7 +469,7 @@ async function startFaceRecognition() {
         console.log('Step 8: Updating status message...');
         window.recognitionAttempts = 0; // Reset attempt counter
         recognizedCustomerId = null; // Reset recognized customer ID
-        updateStatus('info', 'Scanning for faces...', 'Position your face in the circle for recognition.');
+        updateStatus('info', 'Ready for Check-In', 'Position your face in the circle for recognition.');
 
         // Show progress bar
         const progressBar = document.getElementById('scanningProgress');
@@ -556,7 +556,7 @@ function stopRecognition() {
     // Only reset status if no customer is recognized
     // Customer info and billing button will remain visible for 10 minutes
     if (!recognizedCustomerId) {
-        updateStatus('info', 'Ready for check-in', 'Click "Start Recognition" and position your face in the circle for automatic check-in.');
+        updateStatus('info', 'Ready for Check-In', 'Click "Start Recognition" and position your face in the circle for automatic check-in.');
     }
 
     console.log('Face recognition stopped - customer info remains visible');
@@ -665,8 +665,8 @@ async function performRecognition(videoElement) { // Renamed parameter to avoid 
                 if (overlay) {
                     overlay.classList.remove('scanning-animation'); // Ensure animation is off
                     overlay.classList.add('error'); // Add error class
-                    overlay.style.border = '6px solid #dc3545'; // Red for no match
-                    overlay.style.boxShadow = '0 0 0 9999px rgba(0, 0, 0, 0.5), 0 0 30px rgba(220, 53, 69, 0.8)';
+                    overlay.style.border = '6px solid #ffc107'; // Use warning color (yellow) for failed scan
+                    overlay.style.boxShadow = '0 0 0 9999px rgba(0, 0, 0, 0.5), 0 0 30px rgba(255, 193, 7, 0.8)';
                     setTimeout(() => {
                         if (checkinIsRecognizing && overlay) {
                             // Revert to default scanning style if still recognizing

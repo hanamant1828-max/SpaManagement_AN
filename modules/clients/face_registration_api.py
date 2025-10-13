@@ -11,8 +11,35 @@ import io
 from PIL import Image
 import numpy as np
 import json
+import threading
 
 face_registration_bp = Blueprint('face_registration', __name__, url_prefix='/api/face-registration')
+
+# Global face analysis model (singleton)
+_face_app = None
+_face_app_lock = threading.Lock()
+
+def get_face_app():
+    """Get or initialize the face analysis model (singleton pattern)"""
+    global _face_app
+    
+    if _face_app is None:
+        with _face_app_lock:
+            # Double-check pattern
+            if _face_app is None:
+                try:
+                    import insightface
+                    from insightface.app import FaceAnalysis
+                    
+                    print("🔄 Initializing InsightFace model for registration...")
+                    _face_app = FaceAnalysis(providers=['CPUExecutionProvider'])
+                    _face_app.prepare(ctx_id=0, det_size=(640, 640))
+                    print("✅ InsightFace model initialized successfully")
+                except Exception as e:
+                    print(f"❌ Failed to initialize InsightFace: {e}")
+                    raise
+    
+    return _face_app
 
 @face_registration_bp.route('/register', methods=['POST'])
 @login_required
@@ -50,13 +77,9 @@ def register_face():
         if len(image_array.shape) == 3 and image_array.shape[2] == 3:
             image_array = image_array[:, :, ::-1]
 
-        # Generate face encoding using InsightFace
+        # Get or initialize face analysis model
         try:
-            import insightface
-            from insightface.app import FaceAnalysis
-            
-            face_app = FaceAnalysis(providers=['CPUExecutionProvider'])
-            face_app.prepare(ctx_id=0, det_size=(640, 640))
+            face_app = get_face_app()
             
             faces = face_app.get(image_array)
             
