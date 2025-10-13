@@ -33,8 +33,8 @@ def get_face_app():
                     from insightface.app import FaceAnalysis
 
                     print("🔄 Initializing InsightFace model (first time only)...")
-                    _face_app = FaceAnalysis(providers=['CPUExecutionProvider'])
-                    _face_app.prepare(ctx_id=0, det_size=(640, 640))
+                    _face_app = FaceAnalysis(providers=['CPUExecutionProvider'], allowed_modules=['detection', 'recognition'])
+                    _face_app.prepare(ctx_id=0, det_size=(320, 320), det_thresh=0.5)
                     print("✅ InsightFace model initialized successfully")
                 except Exception as e:
                     print(f"❌ Failed to initialize InsightFace: {e}")
@@ -85,11 +85,21 @@ def recognize_face():
 
         image_data = base64.b64decode(face_image)
         image = Image.open(io.BytesIO(image_data))
+        
+        # Convert to RGB if needed
+        if image.mode != 'RGB':
+            image = image.convert('RGB')
+        
+        # Resize if image is too small (minimum 160x160 for face detection)
+        min_size = 160
+        if image.size[0] < min_size or image.size[1] < min_size:
+            ratio = max(min_size / image.size[0], min_size / image.size[1])
+            new_size = (int(image.size[0] * ratio), int(image.size[1] * ratio))
+            image = image.resize(new_size, Image.Resampling.LANCZOS)
+            print(f"📏 Resized image from {image.size} to {new_size}")
+        
         image_array = np.array(image)
-
-        # Convert RGB to BGR for face_recognition
-        if len(image_array.shape) == 3 and image_array.shape[2] == 3:
-            image_array = image_array[:, :, ::-1]
+        print(f"📐 Image array shape: {image_array.shape}, dtype: {image_array.dtype}")
 
         # Find customers with face encodings
         customers_with_faces = Customer.query.filter(

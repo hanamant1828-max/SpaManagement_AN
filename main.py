@@ -13,10 +13,8 @@ print("✅ Clients views imported")
 
 try:
     from modules.checkin import checkin_views
-    from modules.checkin.face_recognition_api import face_recognition_bp
-    app.register_blueprint(face_recognition_bp)
     print("✅ Checkin views imported")
-    print("✅ Face recognition API registered")
+    # Face recognition API is registered in app.py
 except ImportError as e:
     print(f"⚠️ Checkin views import error: {e}")
 

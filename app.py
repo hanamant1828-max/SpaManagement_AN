@@ -520,6 +520,10 @@ except Exception as e:
 try:
     from modules.checkin.checkin_views import *
     print("✅ Checkin views imported")
+    # Register face recognition blueprint
+    from modules.checkin.face_recognition_api import face_recognition_bp
+    app.register_blueprint(face_recognition_bp)
+    print("✅ Face recognition API registered")
 except Exception as e:
     print(f"⚠️ Checkin views import error: {e}")
 
