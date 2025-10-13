@@ -276,6 +276,14 @@
                                             {% else %}
                                             <span class="badge bg-secondary">{{ appointment.status.title() }}</span>
                                             {% endif %}
+                                            
+                                            {% if appointment.client.face_encoding or appointment.client.face_image_url %}
+                                            <button type="button" class="btn btn-sm btn-danger ms-1" 
+                                                    onclick="deleteFaceDataFromCheckin({{ appointment.client.id }}, '{{ appointment.client.full_name }}')"
+                                                    title="Delete Face Data">
+                                                <i data-feather="trash-2" style="width: 14px; height: 14px;"></i>
+                                            </button>
+                                            {% endif %}
                                         </td>
                                     </tr>
                                     {% endfor %}
@@ -1055,6 +1063,34 @@ function goToBillingWithCustomer() {
     } else {
         console.error('No customer ID available for billing');
         alert('Customer information not available. Please try again.');
+    }
+}
+
+// Function to delete face data from check-in page
+function deleteFaceDataFromCheckin(customerId, customerName) {
+    if (confirm(`Are you sure you want to delete face data for ${customerName}?\n\nThis will remove their facial recognition data permanently.`)) {
+        fetch(`/api/delete_face/${customerId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                updateStatus('success', 'Face Data Deleted', data.message);
+                // Reload the page to refresh the appointments table
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1500);
+            } else {
+                updateStatus('danger', 'Error', 'Error: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Delete error:', error);
+            updateStatus('danger', 'Error', 'Error deleting face data. Please try again.');
+        });
     }
 }
 
