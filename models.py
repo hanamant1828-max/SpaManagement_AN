@@ -422,7 +422,12 @@ class Customer(db.Model):
     # Customer preferences and notes
     preferences = db.Column(db.Text)
     allergies = db.Column(db.Text)
+    medical_conditions = db.Column(db.Text)
     notes = db.Column(db.Text)
+    
+    # Emergency contact information
+    emergency_contact = db.Column(db.String(100))
+    emergency_phone = db.Column(db.String(20))
     
     # Face recognition fields - MUST match what face_recognition_api.py expects
     face_encoding = db.Column(db.Text)  # Store face encoding as JSON string
