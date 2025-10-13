@@ -85,11 +85,11 @@ def recognize_face():
 
         image_data = base64.b64decode(face_image)
         image = Image.open(io.BytesIO(image_data))
-        
+
         # Convert to RGB if needed
         if image.mode != 'RGB':
             image = image.convert('RGB')
-        
+
         # Resize if image is too small (minimum 160x160 for face detection)
         min_size = 160
         if image.size[0] < min_size or image.size[1] < min_size:
@@ -97,7 +97,7 @@ def recognize_face():
             new_size = (int(image.size[0] * ratio), int(image.size[1] * ratio))
             image = image.resize(new_size, Image.Resampling.LANCZOS)
             print(f"📏 Resized image from {image.size} to {new_size}")
-        
+
         image_array = np.array(image)
         print(f"📐 Image array shape: {image_array.shape}, dtype: {image_array.dtype}")
 
@@ -140,8 +140,24 @@ def recognize_face():
 
             for customer in customers_with_faces:
                 try:
-                    # Parse stored embedding
-                    stored_embedding = np.array(json.loads(customer.face_encoding))
+                    # Handle both binary and JSON stored formats
+                    if isinstance(customer.face_encoding, bytes):
+                        # Legacy binary format
+                        stored_embedding = np.frombuffer(customer.face_encoding, dtype=np.float32)
+                    elif isinstance(customer.face_encoding, str):
+                        try:
+                            # Try JSON format first
+                            stored_embedding = np.array(json.loads(customer.face_encoding))
+                        except (json.JSONDecodeError, UnicodeDecodeError):
+                            # Fallback: try to decode as binary stored in text field
+                            try:
+                                stored_embedding = np.frombuffer(customer.face_encoding.encode('latin1'), dtype=np.float32)
+                            except:
+                                print(f"⚠️ Cannot decode face encoding for customer {customer.id}, skipping")
+                                continue
+                    else:
+                        print(f"⚠️ Unknown face encoding format for customer {customer.id}, skipping")
+                        continue
 
                     # Calculate cosine similarity
                     similarity = np.dot(new_embedding, stored_embedding) / (
@@ -170,7 +186,7 @@ def recognize_face():
                 }), 200
 
         except Exception as e:
-            print(f"⚠️ Face recognition error: {e}")
+            app.logger.error(f"Face recognition error: {e}")
             # Fallback to first customer for demo purposes
             if customers_with_faces:
                 customer = customers_with_faces[0]
