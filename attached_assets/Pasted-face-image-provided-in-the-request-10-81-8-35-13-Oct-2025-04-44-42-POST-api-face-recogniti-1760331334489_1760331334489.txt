@@ -1,0 +1,43 @@
+face image provided in the request.
+10.81.8.35 - - [13/Oct/2025 04:44:42] "POST /api/face-recognition/recognize HTTP/1.1" 400 -
+10.81.8.35 - - [13/Oct/2025 04:44:44] "GET /checkin HTTP/1.1" 200 -
+10.81.5.37 - - [13/Oct/2025 04:44:45] "GET /static/css/style.css HTTP/1.1" 200 -
+10.81.9.5 - - [13/Oct/2025 04:44:45] "GET /static/js/main.js HTTP/1.1" 200 -
+10.81.3.36 - - [13/Oct/2025 04:44:45] "GET /static/js/appointment_context_menu.js HTTP/1.1" 200 -
+10.81.9.5 - - [13/Oct/2025 04:44:46] "GET /favicon.ico HTTP/1.1" 204 -
+10.81.9.5 - - [13/Oct/2025 04:44:48] "GET /checkin HTTP/1.1" 200 -
+10.81.3.36 - - [13/Oct/2025 04:44:48] "GET /static/css/style.css HTTP/1.1" 200 -
+10.81.5.37 - - [13/Oct/2025 04:44:48] "GET /static/js/main.js HTTP/1.1" 200 -
+10.81.8.35 - - [13/Oct/2025 04:44:48] "GET /static/js/appointment_context_menu.js HTTP/1.1" 200 -
+10.81.5.37 - - [13/Oct/2025 04:44:50] "GET /favicon.ico HTTP/1.1" 204 -
+10.81.5.37 - - [13/Oct/2025 04:44:55] "GET /clients HTTP/1.1" 200 -
+10.81.8.35 - - [13/Oct/2025 04:44:55] "GET /static/css/style.css HTTP/1.1" 200 -
+10.81.5.37 - - [13/Oct/2025 04:44:57] "GET /static/js/main.js HTTP/1.1" 200 -
+10.81.8.35 - - [13/Oct/2025 04:44:57] "GET /static/js/appointment_context_menu.js HTTP/1.1" 200 -
+10.81.8.35 - - [13/Oct/2025 04:44:59] "GET /favicon.ico HTTP/1.1" 204 -
+[2025-10-13 04:45:22,831] ERROR in clients_views: Customer creation error: 'emergency_contact' is an invalid keyword argument for Customer
+10.81.6.3 - - [13/Oct/2025 04:45:22] "POST /api/customers/create HTTP/1.1" 500 -
+10.81.6.3 - - [13/Oct/2025 04:45:23] "GET /favicon.ico HTTP/1.1" 204 -
+10.81.5.37 - - [13/Oct/2025 04:46:05] "GET / HTTP/1.1" 302 -
+10.81.8.35 - - [13/Oct/2025 04:46:05] "GET /login HTTP/1.1" 200 -
+10.81.9.5 - - [13/Oct/2025 04:46:06] "GET /static/css/style.css HTTP/1.1" 200 -
+10.81.5.37 - - [13/Oct/2025 04:46:06] "GET /static/js/main.js HTTP/1.1" 200 -
+10.81.9.5 - - [13/Oct/2025 04:46:06] "GET /static/js/appointment_context_menu.js HTTP/1.1" 200 -
+10.81.8.35 - - [13/Oct/2025 04:47:47] "GET /clients HTTP/1.1" 200 -
+10.81.9.5 - - [13/Oct/2025 04:47:48] "GET /static/css/style.css HTTP/1.1" 200 -
+10.81.9.5 - - [13/Oct/2025 04:47:49] "GET /static/js/appointment_context_menu.js HTTP/1.1" 200 -
+10.81.8.35 - - [13/Oct/2025 04:47:49] "GET /static/js/main.js HTTP/1.1" 200 -
+10.81.9.5 - - [13/Oct/2025 04:47:51] "GET /favicon.ico HTTP/1.1" 204 -
+10.81.3.36 - - [13/Oct/2025 04:49:54] "GET / HTTP/1.1" 302 -
+10.81.3.36 - - [13/Oct/2025 04:49:55] "GET /login HTTP/1.1" 200 -
+10.81.3.36 - - [13/Oct/2025 04:49:55] "GET /static/css/style.css HTTP/1.1" 200 -
+10.81.3.36 - - [13/Oct/2025 04:49:55] "GET /static/js/main.js HTTP/1.1" 200 -
+10.81.8.35 - - [13/Oct/2025 04:49:56] "GET /static/js/appointment_context_menu.js HTTP/1.1" 200 -
+[2025-10-13 04:50:03,260] ERROR in clients_views: Customer creation error: 'emergency_contact' is an invalid keyword argument for Customer
+10.81.6.3 - - [13/Oct/2025 04:50:03] "POST /api/customers/create HTTP/1.1" 500 -
+10.81.6.3 - - [13/Oct/2025 04:50:04] "GET /favicon.ico HTTP/1.1" 204 -
+10.81.3.36 - - [13/Oct/2025 04:50:11] "GET /clients HTTP/1.1" 200 -
+10.81.8.35 - - [13/Oct/2025 04:50:12] "GET /static/css/style.css HTTP/1.1" 200 -
+10.81.3.36 - - [13/Oct/2025 04:50:14] "GET /static/js/main.js HTTP/1.1" 200 -
+10.81.8.35 - - [13/Oct/2025 04:50:14] "GET /static/js/appointment_context_menu.js HTTP/1.1" 200 -
+10.81.8.35 - - [13/Oct/2025 04:50:14] "GET /favicon.ico HTTP/1.1" 204 -
