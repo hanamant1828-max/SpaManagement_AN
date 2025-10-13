@@ -563,10 +563,12 @@ async function performRecognition(videoElement) { // Renamed parameter to avoid 
         // Capture frame using the globally declared canvas and video elements
         const imageData = captureFaceImage(); // Use the updated captureFaceImage function
 
-        if (!imageData) {
-            console.warn('Failed to capture image, skipping recognition attempt.');
+        if (!imageData || imageData.length < 100) {
+            console.warn('Failed to capture valid image, skipping recognition attempt. Image data length:', imageData ? imageData.length : 0);
             return;
         }
+
+        console.log('Sending image data (first 50 chars):', imageData.substring(0, 50) + '...');
 
         // Send to face recognition API
         const response = await fetch('/api/face-recognition/recognize', {
@@ -576,7 +578,7 @@ async function performRecognition(videoElement) { // Renamed parameter to avoid 
                         'X-Requested-With': 'XMLHttpRequest'
                     },
                     credentials: 'same-origin',
-                    body: JSON.stringify({ image: imageData }) // Use 'image' as per API
+                    body: JSON.stringify({ image: imageData })
                 });
 
         // Check if response is JSON

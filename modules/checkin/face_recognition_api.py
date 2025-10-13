@@ -32,10 +32,12 @@ def recognize_face():
         print(f"✅ User: {current_user.username} (ID: {current_user.id}) is authenticated.")
 
         data = request.get_json()
-        face_image = data.get('face_image')
+        # Accept both 'image' and 'face_image' keys for compatibility
+        face_image = data.get('image') or data.get('face_image')
 
         if not face_image:
             print("❌ No face image provided in the request.")
+            print(f"Request data keys: {list(data.keys())}")
             return jsonify({
                 'success': False,
                 'error': 'No face image provided'
