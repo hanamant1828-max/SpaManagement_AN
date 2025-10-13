@@ -289,6 +289,15 @@
                             <div class="col-8">Amount Paid:</div>
                             <div class="col-4 text-end text-success">₹{{ "{:.2f}".format(invoice.amount_paid) }}</div>
                         </div>
+                        
+                        {% if invoice.payment_method %}
+                        <div class="row mb-2">
+                            <div class="col-8">Payment Method:</div>
+                            <div class="col-4 text-end">
+                                <span class="badge bg-info">{{ invoice.payment_method.replace('_', ' ').title() }}</span>
+                            </div>
+                        </div>
+                        {% endif %}
 
                         <div class="row">
                             <div class="col-8"><strong>Balance Due:</strong></div>

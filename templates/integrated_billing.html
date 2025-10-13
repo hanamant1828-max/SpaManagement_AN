@@ -911,40 +911,30 @@ textarea.form-control {
                         </h6>
                     </div>
                     <div class="row g-3">
-                        <div class="col-md-12">
+                        <div class="col-md-6">
                             <div class="form-group">
-                                <label class="form-label required">Payment Method</label>
-                                <div class="payment-method-options" style="display: flex; gap: 1rem; flex-wrap: wrap; margin-top: 0.5rem;">
-                                    <label class="payment-radio-option" style="flex: 1; min-width: 150px; padding: 1rem; border: 2px solid var(--gray-300); border-radius: var(--radius); cursor: pointer; transition: var(--transition); display: flex; align-items: center; gap: 0.75rem;">
-                                        <input type="radio" name="payment_method" value="cash" checked required style="width: 20px; height: 20px; cursor: pointer;">
-                                        <div>
-                                            <i class="fas fa-money-bill-wave" style="font-size: 1.5rem; color: var(--success);"></i>
-                                            <div style="font-weight: 600; margin-top: 0.25rem;">Cash</div>
-                                        </div>
-                                    </label>
-                                    <label class="payment-radio-option" style="flex: 1; min-width: 150px; padding: 1rem; border: 2px solid var(--gray-300); border-radius: var(--radius); cursor: pointer; transition: var(--transition); display: flex; align-items: center; gap: 0.75rem;">
-                                        <input type="radio" name="payment_method" value="card" required style="width: 20px; height: 20px; cursor: pointer;">
-                                        <div>
-                                            <i class="fas fa-credit-card" style="font-size: 1.5rem; color: var(--primary);"></i>
-                                            <div style="font-weight: 600; margin-top: 0.25rem;">Card</div>
-                                        </div>
-                                    </label>
-                                    <label class="payment-radio-option" style="flex: 1; min-width: 150px; padding: 1rem; border: 2px solid var(--gray-300); border-radius: var(--radius); cursor: pointer; transition: var(--transition); display: flex; align-items: center; gap: 0.75rem;">
-                                        <input type="radio" name="payment_method" value="upi" required style="width: 20px; height: 20px; cursor: pointer;">
-                                        <div>
-                                            <i class="fas fa-mobile-alt" style="font-size: 1.5rem; color: var(--info);"></i>
-                                            <div style="font-weight: 600; margin-top: 0.25rem;">UPI</div>
-                                        </div>
-                                    </label>
-                                    <label class="payment-radio-option" style="flex: 1; min-width: 150px; padding: 1rem; border: 2px solid var(--gray-300); border-radius: var(--radius); cursor: pointer; transition: var(--transition); display: flex; align-items: center; gap: 0.75rem;">
-                                        <input type="radio" name="payment_method" value="bank_transfer" required style="width: 20px; height: 20px; cursor: pointer;">
-                                        <div>
-                                            <i class="fas fa-university" style="font-size: 1.5rem; color: var(--warning);"></i>
-                                            <div style="font-weight: 600; margin-top: 0.25rem;">Bank Transfer</div>
-                                        </div>
-                                    </label>
-                                </div>
-                                <div class="invalid-feedback">Payment method required</div>
+                                <label class="form-label">Payment Terms</label>
+                                <select class="form-control" id="paymentTerms" name="payment_terms">
+                                    <option value="immediate">Immediate Payment</option>
+                                    <option value="net_15">Net 15 Days</option>
+                                    <option value="net_30">Net 30 Days</option>
+                                    <option value="advance">Advance Payment</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="form-label">Payment Method <span class="text-danger">*</span></label>
+                                <select class="form-control" id="paymentMethod" name="payment_method" required>
+                                    <option value="">Select Payment Method</option>
+                                    <option value="cash">Cash</option>
+                                    <option value="card">Credit/Debit Card</option>
+                                    <option value="upi">UPI Payment</option>
+                                    <option value="bank_transfer">Bank Transfer</option>
+                                    <option value="cheque">Cheque</option>
+                                    <option value="wallet">Digital Wallet</option>
+                                    <option value="mixed">Mixed Payment</option>
+                                </select>
                             </div>
                         </div>
                         <div class="col-md-4">
@@ -1108,7 +1098,7 @@ document.addEventListener('DOMContentLoaded', function() {
     loadCustomerPackages({{ selected_customer.id }});
     loadCustomerAppointments({{ selected_customer.id }});
     {% endif %}
-    
+
     {% if edit_mode and edit_invoice_data %}
     // Edit mode: Pre-populate invoice data
     console.log('📝 Edit mode activated - loading invoice data');
@@ -2859,10 +2849,6 @@ function resetCustomerAppointments() {
                             <h6 class="text-muted mb-2"><i class="fas fa-calendar me-2"></i>Validity Period</h6>
                             <p class="mb-0"><strong>${validFrom}</strong> to <strong>${validTo}</strong></p>
                         </div>
-                        <div class="mb-3">
-                            <h6 class="text-muted mb-2"><i class="fas fa-calendar-check me-2"></i>Valid Days</h6>
-                            <p class="mb-0">${validDays}</p>
-                        </div>
                         <div class="mb-0">
                             <h6 class="text-muted mb-2"><i class="fas fa-info-circle me-2"></i>Terms & Conditions</h6>
                             <p class="mb-0 text-muted small">${conditions}</p>
@@ -2933,22 +2919,22 @@ function resetCustomerAppointments() {
     // ==========================================
     function loadInvoiceEditData(invoiceData) {
         console.log('📝 Loading invoice data for editing:', invoiceData);
-        
+
         // Pre-populate services
         if (invoiceData.service_items && invoiceData.service_items.length > 0) {
             console.log(`Adding ${invoiceData.service_items.length} service items`);
             invoiceData.service_items.forEach((item, index) => {
                 if (index > 0) addServiceRow(); // Add new row for items after the first
-                
+
                 const serviceRows = document.querySelectorAll('.service-row');
                 const row = serviceRows[index];
-                
+
                 if (row) {
                     const serviceSelect = row.querySelector('select[name="service_ids[]"]');
                     const qtyInput = row.querySelector('input[name="service_quantities[]"]');
                     const staffSelect = row.querySelector('select[name="staff_ids[]"]');
                     const aptIdInput = row.querySelector('input[name="appointment_ids[]"]');
-                    
+
                     if (serviceSelect) {
                         serviceSelect.value = item.service_id;
                         // Trigger change event to recalculate pricing and package benefits
@@ -2960,7 +2946,7 @@ function resetCustomerAppointments() {
                 }
             });
         }
-        
+
         // Pre-populate products
         if (invoiceData.product_items && invoiceData.product_items.length > 0) {
             console.log(`Adding ${invoiceData.product_items.length} product items`);
@@ -2968,17 +2954,17 @@ function resetCustomerAppointments() {
                 if (index > 0 || document.querySelectorAll('.product-row').length === 0) {
                     addProductRow(); // Add new row
                 }
-                
+
                 const productRows = document.querySelectorAll('.product-row');
                 const row = productRows[index];
-                
+
                 if (row) {
                     const productSelect = row.querySelector('select[name="product_ids[]"]');
                     const qtyInput = row.querySelector('input[name="product_quantities[]"]');
                     const priceInput = row.querySelector('input[name="product_prices[]"]');
                     const staffSelect = row.querySelector('select[name="product_staff_ids[]"]');
                     const batchInput = row.querySelector('input[name="batch_ids[]"]');
-                    
+
                     if (productSelect) {
                         productSelect.value = item.product_id;
                         // Trigger change event to load batches and set pricing
@@ -2994,29 +2980,29 @@ function resetCustomerAppointments() {
                 }
             });
         }
-        
+
         // Pre-populate discount, charges, tips
         if (invoiceData.discount_amount) {
             const discountInput = document.getElementById('discount_amount');
             if (discountInput) discountInput.value = invoiceData.discount_amount;
         }
-        
+
         if (invoiceData.additional_charges) {
             const chargesInput = document.getElementById('additional_charges');
             if (chargesInput) chargesInput.value = invoiceData.additional_charges;
         }
-        
+
         if (invoiceData.tips_amount) {
             const tipsInput = document.getElementById('tips_amount');
             if (tipsInput) tipsInput.value = invoiceData.tips_amount;
         }
-        
+
         // Pre-populate tax settings
         if (invoiceData.is_interstate) {
             const interstateCheckbox = document.getElementById('is_interstate');
             if (interstateCheckbox) interstateCheckbox.checked = true;
         }
-        
+
         // Trigger full recalculation after all items are loaded
         setTimeout(() => {
             updateCalculations();

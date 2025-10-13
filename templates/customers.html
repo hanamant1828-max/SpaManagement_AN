@@ -575,7 +575,8 @@
                                                 <span class="badge bg-success">
                                                     <i class="fas fa-check-circle me-1"></i>Registered
                                                 </span>
-                                                <button class="btn btn-sm btn-danger ms-2" onclick="deleteFaceData({{ customer.id }}, '{{ customer.full_name }}')" title="Delete face data">
+                                                <button class="btn btn-sm btn-danger ms-2" onclick="deleteFaceImage({{ customer.id }}, '{{ (customer.first_name ~ ' ' ~ customer.last_name)|replace("'", "\\'") }}')"
+                                                        title="Delete Face Image">
                                                     <i class="fas fa-trash"></i>
                                                 </button>
                                             {% else %}
@@ -1576,7 +1577,8 @@ function renderFaceTable(customers, container) {
                     <button class="btn btn-sm btn-outline-warning me-1" onclick="updateFace(${customer.id})" title="Update Face">
                         <i class="fas fa-sync-alt"></i>
                     </button>
-                    <button class="btn btn-sm btn-outline-danger" onclick="deleteFaceData(${customer.id}, '${customer.full_name}')" title="Delete Face Data">
+                    <button class="btn btn-sm btn-outline-danger" onclick="deleteFaceData(${customer.id})"
+                            title="Delete Face Data">
                         <i class="fas fa-trash"></i>
                     </button>
                 </td>
@@ -1632,8 +1634,8 @@ function updateFace(customerId) {
     }
 }
 
-function deleteFaceData(customerId, customerName) {
-    if (confirm(`Are you sure you want to delete face data for ${customerName}?\n\nThis will remove their facial recognition data permanently.`)) {
+function deleteFaceData(customerId) {
+    if (confirm(`Are you sure you want to delete face data for this customer?\n\nThis will remove their facial recognition data permanently.`)) {
         fetch(`/api/delete_face/${customerId}`, {
             method: 'POST',
             headers: {
