@@ -423,10 +423,13 @@ async function startFaceRecognition() {
         if (overlay) {
             overlay.style.display = 'block';
             overlay.style.position = 'absolute';
+            overlay.style.zIndex = '10';
+            overlay.style.pointerEvents = 'none';
             overlay.classList.add('scanning-animation');
             console.log('✅ Overlay displayed with styles:', {
                 display: overlay.style.display,
                 position: overlay.style.position,
+                zIndex: overlay.style.zIndex,
                 border: window.getComputedStyle(overlay).border
             });
         }
@@ -543,7 +546,9 @@ async function performRecognition(video) {
         // Show scanning indicator
         const overlay = document.getElementById('cameraOverlay');
         if (overlay) {
-            overlay.style.borderColor = '#ffc107'; // Yellow while scanning
+            overlay.style.borderColor = '#667eea'; // Blue while scanning
+            overlay.style.display = 'block';
+            overlay.style.position = 'absolute';
         }
 
         // Capture current video frame
@@ -582,9 +587,13 @@ async function performRecognition(video) {
                 if (overlay) {
                     if (result.duplicate_warning) {
                         overlay.style.borderColor = '#ffc107'; // Yellow/Orange for warning
+                        overlay.style.boxShadow = '0 0 0 9999px rgba(0, 0, 0, 0.5), 0 0 30px rgba(255, 193, 7, 0.8)';
                     } else {
                         overlay.style.borderColor = '#28a745'; // Green for success
+                        overlay.style.boxShadow = '0 0 0 9999px rgba(0, 0, 0, 0.5), 0 0 30px rgba(40, 167, 69, 0.8)';
                     }
+                    overlay.classList.remove('scanning-animation');
+                    overlay.classList.add('success');
                 }
 
                 // Show duplicate warning if exists
@@ -616,9 +625,8 @@ async function performRecognition(video) {
                 // Add a button to go to billing
                 addGoToBillingButton();
 
-
-                // Stop recognition after successful match
-                setTimeout(() => stopRecognition(), 1000);
+                // Keep the green circle visible for 3 seconds before stopping
+                setTimeout(() => stopRecognition(), 3000);
             } else if (result.message) {
                 // No match found - show visual feedback
                 console.log('No match:', result.message);
