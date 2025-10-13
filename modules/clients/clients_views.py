@@ -9,6 +9,11 @@ from datetime import datetime
 
 # Import app and db from your main app module
 from app import app, db
+# Import face registration blueprint
+from .face_registration_api import face_registration_bp
+
+# Register face registration blueprint
+app.register_blueprint(face_registration_bp)
 
 # Import models - these should be available after app initialization
 from models import Customer, Appointment, ServicePackageAssignment
