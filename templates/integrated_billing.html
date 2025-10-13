@@ -925,16 +925,19 @@ textarea.form-control {
                         <div class="col-md-6">
                             <div class="form-group">
                                 <label class="form-label">Payment Method <span class="text-danger">*</span></label>
-                                <select class="form-control" id="paymentMethod" name="payment_method" required>
+                                <select class="form-control" id="paymentMethod" name="payment_method" required onchange="toggleChequeNumber()">
                                     <option value="" selected>Select Payment Method</option>
                                     <option value="cash">Cash</option>
                                     <option value="card">Credit/Debit Card</option>
                                     <option value="upi">UPI Payment</option>
-                                    <option value="bank_transfer">Bank Transfer</option>
                                     <option value="cheque">Cheque</option>
                                     <option value="wallet">Digital Wallet</option>
                                     <option value="mixed">Mixed Payment</option>
                                 </select>
+                            </div>
+                            <div class="form-group" id="chequeNumberField" style="display: none;">
+                                <label class="form-label">Cheque Number <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="chequeNumber" name="cheque_number" placeholder="Enter cheque number">
                             </div>
                         </div>
                         <div class="col-md-4">
@@ -2743,18 +2746,22 @@ function resetCustomerAppointments() {
         }
 
         // 3. Check payment method selection
-        const paymentMethodRadios = document.querySelectorAll('input[name="payment_method"]');
-        let paymentMethodSelected = false;
-        paymentMethodRadios.forEach(radio => {
-            if (radio.checked) {
-                paymentMethodSelected = true;
-            }
-        });
-        if (!paymentMethodSelected) {
+        const paymentMethodSelect = document.getElementById('paymentMethod');
+        if (!paymentMethodSelect || !paymentMethodSelect.value) {
             errors.push('❌ Please select a payment method');
-            const paymentContainer = document.querySelector('.payment-method-options');
-            if (paymentContainer) {
-                paymentContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            if (paymentMethodSelect) {
+                paymentMethodSelect.classList.add('is-invalid');
+                paymentMethodSelect.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        } else if (paymentMethodSelect.value === 'cheque') {
+            // Validate cheque number if payment method is cheque
+            const chequeNumberInput = document.getElementById('chequeNumber');
+            if (!chequeNumberInput || !chequeNumberInput.value.trim()) {
+                errors.push('❌ Please enter the cheque number');
+                if (chequeNumberInput) {
+                    chequeNumberInput.classList.add('is-invalid');
+                    chequeNumberInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
             }
         }
 
@@ -3013,6 +3020,21 @@ function resetCustomerAppointments() {
     // ==========================================
     // UTILITIES
     // ==========================================
+    function toggleChequeNumber() {
+        const paymentMethod = document.getElementById('paymentMethod').value;
+        const chequeField = document.getElementById('chequeNumberField');
+        const chequeInput = document.getElementById('chequeNumber');
+        
+        if (paymentMethod === 'cheque') {
+            chequeField.style.display = 'block';
+            chequeInput.required = true;
+        } else {
+            chequeField.style.display = 'none';
+            chequeInput.required = false;
+            chequeInput.value = '';
+        }
+    }
+
     function showNotification(message, type = 'info', duration = 5000) {
         console.log(`🔔 Showing notification: [${type}] ${message}`);
         const alertClass = {
