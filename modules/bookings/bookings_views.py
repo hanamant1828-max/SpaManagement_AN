@@ -1596,6 +1596,7 @@ def api_get_customer_appointments_unaki(customer_id):
     """API endpoint to get all appointments for a specific customer"""
     try:
         from models import UnakiBooking, Customer
+        from app import db
         
         # Try to get customer
         customer = Customer.query.get(customer_id)
