@@ -682,8 +682,8 @@ textarea.form-control {
                                             <tr>
                                                 <th>PACKAGE NAME</th>
                                                 <th>TYPE</th>
-                                                <th>STATUS</th>
                                                 <th>BALANCE</th>
+                                                <th>STATUS</th>
                                                 <th>EXPIRY</th>
                                             </tr>
                                         </thead>
@@ -718,7 +718,6 @@ textarea.form-control {
                                                             <span class="badge bg-{{ 'warning' if package.benefit_type == 'free' else 'info' }}">{{ package.benefit_type|title }}</span>
                                                         {% endif %}
                                                     </td>
-                                                    <td><span class="badge bg-{{ 'success' if package.is_active else 'secondary' }}">{{ 'Active' if package.is_active else 'Inactive' }}</span></td>
                                                     <td>
                                                         {% if package.package_type == 'student_offer' %}
                                                             <div class="d-flex align-items-center">
@@ -739,6 +738,7 @@ textarea.form-control {
                                                             <span class="badge bg-success">Unlimited</span>
                                                         {% endif %}
                                                     </td>
+                                                    <td><span class="badge bg-{{ 'success' if package.is_active else 'secondary' }}">{{ 'Active' if package.is_active else 'Inactive' }}</span></td>
                                                     <td>
                                                         {% if package.package_type == 'student_offer' and package.valid_to %}
                                                             <small>{{ package.valid_from }} to<br>{{ package.valid_to }}</small>
@@ -1301,8 +1301,8 @@ function displayCustomerPackagesTable(packages) {
                     <tr>
                         <th style="padding: 0.5rem;">Package Name</th>
                         <th style="padding: 0.5rem;">Type</th>
-                        <th style="padding: 0.5rem;">Status</th>
                         <th style="padding: 0.5rem;">Balance/Services</th>
+                        <th style="padding: 0.5rem;">Status</th>
                         <th style="padding: 0.5rem;">Expiry</th>
                     </tr>
                 </thead>
@@ -1324,8 +1324,8 @@ function displayCustomerPackagesTable(packages) {
                 <tr>
                     <th style="padding: 0.5rem;">Package Name</th>
                     <th style="padding: 0.5rem;">Type</th>
-                    <th style="padding: 0.5rem;">Status</th>
                     <th style="padding: 0.5rem;">Balance/Services</th>
+                    <th style="padding: 0.5rem;">Status</th>
                     <th style="padding: 0.5rem;">Expiry</th>
                 </tr>
             </thead>
@@ -1344,6 +1344,8 @@ function displayCustomerPackagesTable(packages) {
             statusBadge = '<span style="background: #fee2e2; color: #991b1b; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.75rem;">Expired</span>';
         } else if (status === 'completed') {
             statusBadge = '<span style="background: #e5e7eb; color: #374151; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.75rem;">Completed</span>';
+        } else if (status === 'inactive') {
+            statusBadge = '<span style="background: #fef3c7; color: #92400e; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.75rem;">Inactive</span>';
         }
 
         // Display balance based on package type - USE EXACT FIELD NAMES FROM BACKEND
@@ -1447,11 +1449,11 @@ function displayCustomerPackagesTable(packages) {
                     ${serviceNameDisplay}
                 </td>
                 <td style="padding: 0.5rem;">${typeBadge}</td>
-                <td style="padding: 0.5rem;">${statusBadge}</td>
                 <td style="padding: 0.5rem;">
                     <strong style="font-size: 1.1em;">${balanceText}</strong>
                     ${balanceDetails}
                 </td>
+                <td style="padding: 0.5rem;">${statusBadge}</td>
                 <td style="padding: 0.5rem;">
                     <small>${expiryDate}</small>
                 </td>

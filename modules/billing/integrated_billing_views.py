@@ -433,6 +433,27 @@ def integrated_billing(customer_id=None):
 
 
                 # Add type-specific fields matching template expectations
+                # Determine package status
+                is_expired = tracker.valid_to and tracker.valid_to < datetime.utcnow()
+                is_depleted = False
+
+                if tracker.benefit_type == 'free':
+                    is_depleted = tracker.remaining_count is not None and tracker.remaining_count <= 0
+                elif tracker.benefit_type == 'prepaid':
+                    is_depleted = tracker.balance_remaining is not None and tracker.balance_remaining <= 0
+
+                # Set status
+                if not tracker.is_active:
+                    package_status = 'inactive'
+                elif is_expired:
+                    package_status = 'expired'
+                elif is_depleted:
+                    package_status = 'completed'
+                else:
+                    package_status = 'active'
+
+                package_info['status'] = package_status # Add status to all package types
+
                 if tracker.benefit_type in ['free', 'discount']:
                     # Service-based packages - ensure we're getting the RIGHT data
                     total = tracker.total_allocated or 0
@@ -470,7 +491,8 @@ def integrated_billing(customer_id=None):
                 elif tracker.benefit_type == 'unlimited':
                     # Unlimited/membership packages
                     package_info.update({
-                        'access_type': 'unlimited'
+                        'access_type': 'unlimited',
+                        'usage_percentage': 0  # N/A for unlimited
                     })
 
                 customer_active_packages.append(package_info)
@@ -1233,6 +1255,7 @@ def create_professional_invoice():
         # Recalculate GST proportionally after discount
         if total_base_amount > 0 and total_gst_rate > 0:
             # Apply discount factor to service GST (already extracted)
+            discount_factor = (net_base_amount / total_base_amount) if total_base_amount > 0 else 0
             final_service_gst = service_gst_amount * discount_factor
 
             # For inventory, NO GST recalculation (MRP is final price)
@@ -1672,6 +1695,25 @@ def get_customer_packages(customer_id):
                 app.logger.warning(f"Tracker {tracker.id} has no assignment")
                 continue
 
+            # Determine package status
+            is_expired = tracker.valid_to and tracker.valid_to < datetime.utcnow()
+            is_depleted = False
+
+            if tracker.benefit_type == 'free':
+                is_depleted = tracker.remaining_count is not None and tracker.remaining_count <= 0
+            elif tracker.benefit_type == 'prepaid':
+                is_depleted = tracker.balance_remaining is not None and tracker.balance_remaining <= 0
+
+            # Set status
+            if not tracker.is_active:
+                package_status = 'inactive'
+            elif is_expired:
+                package_status = 'expired'
+            elif is_depleted:
+                package_status = 'completed'
+            else:
+                package_status = 'active'
+
             r = assignment  # Use assignment variable for compatibility
             # Get package name with comprehensive fallback logic
             package_name = None
@@ -1729,7 +1771,7 @@ def get_customer_packages(customer_id):
                 "name": package_name,
                 "service_name": service_name,  # Fetched from Service table
                 "service_id": service_id,  # CRITICAL: Integer service_id for matching
-                "status": r.status,
+                "status": package_status,
                 "assigned_on": r.assigned_on.isoformat() if r.assigned_on else None,
                 "expires_on": r.expires_on.isoformat() if r.expires_on else None,
             }
