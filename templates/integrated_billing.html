@@ -647,6 +647,15 @@ textarea.form-control {
                             <i class="fas fa-user-circle"></i>
                             Customer Information
                         </h6>
+                        <!-- Add the new button here -->
+                        <div class="d-flex gap-2">
+                            <button type="button" class="btn btn-primary" onclick="openBookingModal()">
+                                <i class="fas fa-calendar-plus me-2"></i>Book Appointment
+                            </button>
+                            <button type="button" class="btn btn-danger" onclick="cancelAllCustomerAppointmentsFromBilling()">
+                                <i class="fas fa-times-circle me-2"></i>Cancel All Appointments
+                            </button>
+                        </div>
                     </div>
                     <div class="row">
                         <div class="col-md-6">
@@ -1565,113 +1574,113 @@ function resetCustomerAppointments() {
         appointmentsDiv.innerHTML = html;
     }
 
-    function resetCustomerPackages() {
-        BillingState.customerPackages = null; // Clear from state
-        addedAppointmentIds.clear(); // Also clear added appointments tracking
-        updateCalculations();
-        displayCustomerPackagesTable([]); // Clear the display table
-    }
+function resetCustomerPackages() {
+    BillingState.customerPackages = null; // Clear from state
+    addedAppointmentIds.clear(); // Also clear added appointments tracking
+    updateCalculations();
+    displayCustomerPackagesTable([]); // Clear the display table
+}
 
 
-        function addAppointmentToBill(appointmentId, serviceName, serviceId, staffId, servicePrice, serviceDuration) {
-          console.log(`Adding appointment ${appointmentId} to bill`, { serviceName, serviceId, staffId, servicePrice, serviceDuration });
+    function addAppointmentToBill(appointmentId, serviceName, serviceId, staffId, servicePrice, serviceDuration) {
+      console.log(`Adding appointment ${appointmentId} to bill`, { serviceName, serviceId, staffId, servicePrice, serviceDuration });
 
-          const container = document.getElementById('servicesContainer');
-          if (!container) {
-            console.error('Services container not found');
-            return null;
-          }
+      const container = document.getElementById('servicesContainer');
+      if (!container) {
+        console.error('Services container not found');
+        return null;
+      }
 
-          // normalize inputs
-          const norm = v => (v === undefined || v === null || v === 'null' || v === '' ? null : v);
-          const aId   = norm(appointmentId);
-          const sId   = norm(serviceId);
-          const stId  = norm(staffId);
-          const sPrice= typeof servicePrice === 'number' && !Number.isNaN(servicePrice) ? servicePrice : null;
-          const sDur  = typeof serviceDuration === 'number' && !Number.isNaN(serviceDuration) ? serviceDuration : null;
+      // normalize inputs
+      const norm = v => (v === undefined || v === null || v === 'null' || v === '' ? null : v);
+      const aId   = norm(appointmentId);
+      const sId   = norm(serviceId);
+      const stId  = norm(staffId);
+      const sPrice= typeof servicePrice === 'number' && !Number.isNaN(servicePrice) ? servicePrice : null;
+      const sDur  = typeof serviceDuration === 'number' && !Number.isNaN(serviceDuration) ? serviceDuration : null;
 
-          // Try to find an existing row for this appointment or add a new one
-          let targetRow = null;
-          for (const row of container.querySelectorAll('.service-row')) {
-            const apptInput = row.querySelector('input[name="appointment_ids[]"]');
-            if (apptInput && apptInput.dataset.appointmentId == aId) {
-              targetRow = row;
-              break;
-            }
-          }
-          if (!targetRow) {
-            addServiceRow(); // appends a new .service-row at the end
-            targetRow = container.lastElementChild;
-          }
-
-          // Grab controls
-          const serviceSelect     = targetRow.querySelector('select[name="service_ids[]"]');
-          const staffSelect       = targetRow.querySelector('select[name="staff_ids[]"]');
-          const qtyInput          = targetRow.querySelector('input[name="service_quantities[]"]');
-          const apptInput         = targetRow.querySelector('input[name="appointment_ids[]"]');
-          const hiddenPriceInput  = targetRow.querySelector('input[name="service_prices[]"]'); // make sure you added this hidden input
-          const removeBtn         = targetRow.querySelector('.btn-danger');
-
-          // Set values
-          if (qtyInput) qtyInput.value = 1;
-
-          if (apptInput) {
-            apptInput.value = aId ?? '';
-            apptInput.dataset.appointmentId   = aId ?? '';
-            if (sPrice !== null) apptInput.dataset.servicePrice  = String(sPrice);
-            if (sDur   !== null) apptInput.dataset.serviceDuration = String(sDur);
-          }
-            //debugger; // ex
-          // Assign service & staff (supports raw selects or Select2)
-          if (serviceSelect && sId !== null) {
-              const setSelectValue = (el, val) => {
-                if (window.jQuery && jQuery.fn.select2 && jQuery(el).hasClass('select2-hidden-accessible')) {
-                  jQuery(el).val(String(val)).trigger('change');
-                } else {
-                  el.value = String(val);
-                  el.dispatchEvent(new Event('change', { bubbles: true }));
-                }
-              };
-
-            setSelectValue(serviceSelect, sId);
-          }
-
-          if (staffSelect && stId !== null) {
-            if (window.jQuery && jQuery.fn && jQuery.fn.select2 && jQuery(staffSelect).hasClass('select2-hidden-accessible')) {
-              jQuery(staffSelect).val(String(stId)).trigger('change');
-            } else {
-              staffSelect.value = String(stId);
-            }
-          }
-
-          // Mark as added
-          addedAppointmentIds.add(aId);
-          if (removeBtn) removeBtn.style.display = 'block';
-
-          // If appointment price missing, fall back to the service base price for this row
-          if (hiddenPriceInput) {
-            let price = sPrice;
-            if (price === null && serviceSelect && serviceSelect.selectedOptions.length) {
-              price = parseFloat(serviceSelect.selectedOptions[0].dataset.price) || 0;
-            }
-            hiddenPriceInput.value = (price ?? 0).toFixed(2);
-          }
-
-          // Defer calculations until Select2/value updates have flushed
-          requestAnimationFrame(() => {
-            if (serviceSelect) {
-              // Keep handleServiceChange minimal: it should just set row data; real math happens in updateCalculations()
-              handleServiceChange(serviceSelect);
-            }
-            updateCalculations();
-          });
-
-          // Refresh appointments display to show "Added" state (non-blocking)
-          const clientId = document.getElementById('client_id')?.value;
-          if (clientId) loadCustomerAppointments(clientId);
-
-          return targetRow;
+      // Try to find an existing row for this appointment or add a new one
+      let targetRow = null;
+      for (const row of container.querySelectorAll('.service-row')) {
+        const apptInput = row.querySelector('input[name="appointment_ids[]"]');
+        if (apptInput && apptInput.dataset.appointmentId == aId) {
+          targetRow = row;
+          break;
         }
+      }
+      if (!targetRow) {
+        addServiceRow(); // appends a new .service-row at the end
+        targetRow = container.lastElementChild;
+      }
+
+      // Grab controls
+      const serviceSelect     = targetRow.querySelector('select[name="service_ids[]"]');
+      const staffSelect       = targetRow.querySelector('select[name="staff_ids[]"]');
+      const qtyInput          = targetRow.querySelector('input[name="service_quantities[]"]');
+      const apptInput         = targetRow.querySelector('input[name="appointment_ids[]"]');
+      const hiddenPriceInput  = targetRow.querySelector('input[name="service_prices[]"]'); // make sure you added this hidden input
+      const removeBtn         = targetRow.querySelector('.btn-danger');
+
+      // Set values
+      if (qtyInput) qtyInput.value = 1;
+
+      if (apptInput) {
+        apptInput.value = aId ?? '';
+        apptInput.dataset.appointmentId   = aId ?? '';
+        if (sPrice !== null) apptInput.dataset.servicePrice  = String(sPrice);
+        if (sDur   !== null) apptInput.dataset.serviceDuration = String(sDur);
+      }
+        //debugger; // ex
+      // Assign service & staff (supports raw selects or Select2)
+      if (serviceSelect && sId !== null) {
+          const setSelectValue = (el, val) => {
+            if (window.jQuery && jQuery.fn.select2 && jQuery(el).hasClass('select2-hidden-accessible')) {
+              jQuery(el).val(String(val)).trigger('change');
+            } else {
+              el.value = String(val);
+              el.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+          };
+
+        setSelectValue(serviceSelect, sId);
+      }
+
+      if (staffSelect && stId !== null) {
+        if (window.jQuery && jQuery.fn && jQuery.fn.select2 && jQuery(staffSelect).hasClass('select2-hidden-accessible')) {
+          jQuery(staffSelect).val(String(stId)).trigger('change');
+        } else {
+          staffSelect.value = String(stId);
+        }
+      }
+
+      // Mark as added
+      addedAppointmentIds.add(aId);
+      if (removeBtn) removeBtn.style.display = 'block';
+
+      // If appointment price missing, fall back to the service base price for this row
+      if (hiddenPriceInput) {
+        let price = sPrice;
+        if (price === null && serviceSelect && serviceSelect.selectedOptions.length) {
+          price = parseFloat(serviceSelect.selectedOptions[0].dataset.price) || 0;
+        }
+        hiddenPriceInput.value = (price ?? 0).toFixed(2);
+      }
+
+      // Defer calculations until Select2/value updates have flushed
+      requestAnimationFrame(() => {
+        if (serviceSelect) {
+          // Keep handleServiceChange minimal: it should just set row data; real math happens in updateCalculations()
+          handleServiceChange(serviceSelect);
+        }
+        updateCalculations();
+      });
+
+      // Refresh appointments display to show "Added" state (non-blocking)
+      const clientId = document.getElementById('client_id')?.value;
+      if (clientId) loadCustomerAppointments(clientId);
+
+      return targetRow;
+    }
 
 
     function removeAppointmentFromBill(appointmentId) {
@@ -2219,7 +2228,6 @@ function resetCustomerAppointments() {
                     let benefitDiv = row.querySelector('.package-benefit');
                     if (!benefitDiv) {
                         benefitDiv = document.createElement('div');
-                        benefitDiv.className = 'package-benefit';
                         row.appendChild(benefitDiv);
                     }
 
@@ -3061,6 +3069,113 @@ function resetCustomerAppointments() {
                 notification.remove();
             }
         }, duration);
+    }
+
+    // ==========================================
+    // APPOINTMENT CANCELLATION
+    // ==========================================
+    function goToUnakiBooking() {
+        const customerId = document.getElementById('customer_id').value;
+        if (customerId) {
+            window.location.href = `/unaki-booking?customer_id=${customerId}`;
+        } else {
+            window.location.href = '/unaki-booking';
+        }
+    }
+
+    function cancelAllCustomerAppointmentsFromBilling() {
+        // Get customer ID from the selected customer in the billing form
+        const customerId = document.getElementById('client_id').value;
+        const customerSelect = document.getElementById('client_id');
+        const customerName = customerSelect.options[customerSelect.selectedIndex]?.text || 'this customer';
+
+        if (!customerId) {
+            showNotification('Please select a customer first to cancel their appointments.', 'warning');
+            return;
+        }
+
+        // Fetch all appointments for this customer
+        fetch(`/api/customer/${customerId}/appointments`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success && data.appointments) {
+                    // Filter for active appointments (scheduled or confirmed)
+                    const activeAppointments = data.appointments.filter(
+                        apt => apt.status === 'scheduled' || apt.status === 'confirmed'
+                    );
+
+                    if (activeAppointments.length === 0) {
+                        showNotification('No active appointments found for this customer.', 'info');
+                        return;
+                    }
+
+                    const appointmentsList = activeAppointments.map(apt =>
+                        `- ${apt.service_name || 'Unknown Service'} on ${new Date(apt.appointment_date).toLocaleDateString()} at ${apt.start_time || 'Unknown Time'}`
+                    ).join('\n');
+
+                    const confirmMessage = `Are you sure you want to cancel ALL ${activeAppointments.length} active appointment(s) for ${customerName}?\n\nAppointments:\n${appointmentsList}`;
+
+                    if (confirm(confirmMessage)) {
+                        // Show loading indicator or disable button
+                        const cancelButton = document.querySelector('button[onclick="cancelAllCustomerAppointmentsFromBilling()"]');
+                        if (cancelButton) {
+                            cancelButton.innerHTML = '<i class="fas fa-spinner spinner"></i> Cancelling...';
+                            cancelButton.disabled = true;
+                        }
+
+                        // Cancel all appointments using the booking update endpoint
+                        const cancelPromises = activeAppointments.map(apt =>
+                            fetch(`/api/unaki/bookings/${apt.id}`, {
+                                method: 'PATCH',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                },
+                                body: JSON.stringify({ status: 'cancelled' })
+                            }).then(r => r.json())
+                        );
+
+                        Promise.all(cancelPromises)
+                            .then(results => {
+                                const successCount = results.filter(r => r.success).length;
+                                const failCount = results.length - successCount;
+
+                                if (failCount === 0) {
+                                    showNotification(`✅ Successfully cancelled all ${successCount} appointments for ${customerName}`, 'success');
+                                    // Refresh appointments list after successful cancellation
+                                    loadCustomerAppointments(customerId);
+                                    // Optionally reload page if needed, or clear rows
+                                    // location.reload();
+                                } else {
+                                    showNotification(`⚠️ Cancelled ${successCount} appointments, ${failCount} failed for ${customerName}. Please check individual statuses.`, 'warning');
+                                    // Refresh appointments list
+                                    loadCustomerAppointments(customerId);
+                                }
+                            })
+                            .catch(error => {
+                                console.error('Error cancelling appointments:', error);
+                                showNotification('An error occurred while cancelling appointments. Please try again.', 'danger');
+                            })
+                            .finally(() => {
+                                // Re-enable button if it exists
+                                if (cancelButton) {
+                                    cancelButton.innerHTML = '<i class="fas fa-times-circle me-2"></i>Cancel All Appointments';
+                                    cancelButton.disabled = false;
+                                }
+                            });
+                    }
+                } else {
+                    showNotification('Failed to load customer appointments. Please try again.', 'danger');
+                }
+            })
+            .catch(error => {
+                console.error('Error loading appointments:', error);
+                showNotification('An error occurred while fetching appointments. Please check your connection.', 'danger');
+            });
     }
 </script>
 {% endblock %}

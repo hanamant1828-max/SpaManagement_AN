@@ -21,6 +21,9 @@
                     <button type="button" class="btn btn-success" onclick="editClient({{ client.id }})">
                         <i class="fas fa-edit me-2"></i>Edit Client
                     </button>
+                    <button type="button" class="btn btn-danger" onclick="cancelAllCustomerAppointments({{ client.id }}, '{{ client.full_name }}')">
+                        <i class="fas fa-times-circle me-2"></i>Cancel All Appointments
+                    </button>
                 </div>
             </div>
         </div>
@@ -339,6 +342,67 @@ function editAppointment(appointmentId) {
     // Redirect to appointment edit page
     window.location.href = `/appointments/edit/${appointmentId}`;
 }
+
+function cancelAllCustomerAppointments(customerId, customerName) {
+    // Get all appointments for this customer
+    fetch(`/api/unaki/customer-appointments/${customerId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && data.bookings) {
+                const activeAppointments = data.bookings.filter(
+                    apt => apt.status === 'scheduled' || apt.status === 'confirmed'
+                );
+
+                if (activeAppointments.length === 0) {
+                    alert('No active appointments found for this customer');
+                    return;
+                }
+
+                const appointmentsList = activeAppointments.map(apt => 
+                    `- ${apt.service_name} on ${apt.appointment_date} at ${apt.start_time}`
+                ).join('\n');
+
+                const confirmMessage = `Are you sure you want to cancel ALL ${activeAppointments.length} appointment(s) for ${customerName}?\n\nAppointments:\n${appointmentsList}`;
+
+                if (confirm(confirmMessage)) {
+                    // Cancel all appointments using PATCH endpoint
+                    const cancelPromises = activeAppointments.map(apt => 
+                        fetch(`/api/unaki/bookings/${apt.id}`, {
+                            method: 'PATCH',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({ status: 'cancelled' })
+                        }).then(r => r.json())
+                    );
+
+                    Promise.all(cancelPromises)
+                        .then(results => {
+                            const successCount = results.filter(r => r.success).length;
+                            const failCount = results.length - successCount;
+
+                            if (failCount === 0) {
+                                alert(`✅ Successfully cancelled all ${successCount} appointments for ${customerName}`);
+                                location.reload();
+                            } else {
+                                alert(`⚠️ Cancelled ${successCount} appointments, ${failCount} failed`);
+                                location.reload();
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error cancelling appointments:', error);
+                            alert('Error cancelling appointments. Please try again.');
+                        });
+                }
+            } else {
+                alert('Failed to load customer appointments');
+            }
+        })
+        .catch(error => {
+            console.error('Error loading appointments:', error);
+            alert('Error loading customer appointments');
+        });
+}</script>
 
 function submitBooking() {
     const formData = {
