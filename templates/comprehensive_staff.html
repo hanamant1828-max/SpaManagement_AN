@@ -192,7 +192,6 @@ Management Suite{% endblock %} {% block content %}
                                         <th>Contact</th>
                                         <th>Work Details</th>
                                         <th>Performance</th>
-                                        <th>Status</th>
                                         <th>Actions</th>
                                     </tr>
                                 </thead>
@@ -1163,13 +1162,6 @@ Management Suite{% endblock %} {% block content %}
             <div><strong>Revenue:</strong> $${staff.total_revenue_generated.toFixed(2)}</div>
             <div><small>Clients: ${staff.total_clients_served}</small></div>
             ${staff.average_rating > 0 ? `<div><small>Rating: ⭐${staff.average_rating.toFixed(1)}</small></div>` : ""}
-        </td>
-        <td>
-            <span class="badge bg-${staff.is_active ? "success" : "danger"}">
-                ${staff.is_active ? "Active" : "Inactive"}
-            </span>
-            ${staff.verification_status ? '<br><span class="badge bg-info mt-1">Verified</span>' : ""}
-            ${staff.enable_face_checkin ? '<br><span class="badge bg-primary mt-1">Face ID</span>' : ""}
         </td>
         <td>
             <div class="btn-group-vertical btn-group-sm">
