@@ -599,11 +599,7 @@
                                                         title="View Details">
                                                     <i class="fas fa-eye"></i>
                                                 </button>
-                                                <button class="btn btn-action btn-outline-success"
-                                                        onclick="bookAppointment({{ customer.id }})"
-                                                        title="Book Appointment">
-                                                    <i class="fas fa-calendar-plus"></i>
-                                                </button>
+                                                {# The "Book Appointment" button has been removed as requested #}
                                                 {% if current_user.has_permission('clients_edit') %}
                                                 <button class="btn btn-action btn-outline-warning"
                                                         data-bs-toggle="modal"
