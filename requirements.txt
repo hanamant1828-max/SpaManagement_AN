@@ -94,3 +94,10 @@ Pillow
 Pillow
 pillow
 pillow
+insightface
+onnxruntime
+opencv-python
+Pillow
+python-dotenv
+pytz
+weasyprint
