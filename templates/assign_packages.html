@@ -99,6 +99,14 @@
                                     <td>Discount:</td>
                                     <td class="text-right text-danger" id="displayDiscount">₹0.00</td>
                                 </tr>
+                                <tr>
+                                    <td>Net Price:</td>
+                                    <td class="text-right" id="displayNetPrice">₹0.00</td>
+                                </tr>
+                                <tr>
+                                    <td>GST (18%):</td>
+                                    <td class="text-right" id="displayGST">₹0.00</td>
+                                </tr>
                                 <tr class="font-weight-bold border-top">
                                     <td>Grand Total:</td>
                                     <td class="text-right text-success" id="displayGrandTotal">₹0.00</td>
@@ -417,6 +425,8 @@ function getPackagePrice(packageType, packageData) {
 function recalculateTotals() {
     let subtotal = 0;
     let discount = 0;
+    let netPrice = 0;
+    let tax = 0;
     let grandTotal = 0;
 
     if (currentPackage) {
@@ -424,27 +434,33 @@ function recalculateTotals() {
 
         // Calculate based on package type
         if (packageType === 'service_package') {
-            // Service packages: Calculate package price without GST
+            // Service packages: Calculate price per session, apply discount, then add GST
             if (currentService) {
                 const payFor = parseInt(currentPackage.pay_for || 0);
                 const free = parseInt(currentPackage.free_services || 0);
                 const servicePrice = parseFloat(currentService.price || 0);
 
-                // Base price = sessions you pay for × service price
-                subtotal = payFor * servicePrice;
-                // Discount = free sessions × service price
-                discount = free * servicePrice;
+                const pricePerSession = servicePrice;
+                const paidSessionsPrice = payFor * pricePerSession;
+                const discountAmount = free * pricePerSession;
 
-                // Grand total = subtotal (no GST added)
-                grandTotal = Math.max(subtotal - discount, 0);
+                netPrice = Math.max(paidSessionsPrice - discountAmount, 0);
+                tax = netPrice * 0.18; // 18% GST
+                grandTotal = netPrice + tax;
+                subtotal = paidSessionsPrice; // This would be the total value before discount and GST
+                discount = discountAmount;
 
-                console.log('Service package calculation (NO GST):', {
+
+                console.log('Service package calculation (with GST):', {
                     packageType,
                     payFor,
                     free,
                     servicePrice,
-                    subtotal,
-                    discount,
+                    pricePerSession,
+                    paidSessionsPrice,
+                    discountAmount,
+                    netPrice,
+                    tax,
                     grandTotal
                 });
             } else {
@@ -453,11 +469,16 @@ function recalculateTotals() {
         } else {
             // Amount-based packages (prepaid, membership, etc.): Use package price as-is
             subtotal = getPackagePrice(packageType, currentPackage);
-            grandTotal = subtotal;
+            netPrice = subtotal; // No discount applied here
+            tax = netPrice * 0.18; // 18% GST
+            grandTotal = netPrice + tax;
+            discount = 0; // No discount for these types in this context
 
-            console.log('Amount-based package calculation (NO GST):', {
+            console.log('Amount-based package calculation (with GST):', {
                 packageType,
                 subtotal,
+                netPrice,
+                tax,
                 grandTotal
             });
         }
@@ -466,6 +487,8 @@ function recalculateTotals() {
     // Update display
     document.getElementById('displaySubtotal').textContent = `₹${subtotal.toFixed(2)}`;
     document.getElementById('displayDiscount').textContent = `₹${discount.toFixed(2)}`;
+    document.getElementById('displayNetPrice').textContent = `₹${netPrice.toFixed(2)}`;
+    document.getElementById('displayGST').textContent = `₹${tax.toFixed(2)}`;
     document.getElementById('displayGrandTotal').textContent = `₹${grandTotal.toFixed(2)}`;
 
     // Update hidden payment amount field
@@ -545,7 +568,8 @@ document.getElementById('btnAssignAndPay').addEventListener('click', async funct
     const grandTotal = parseFloat(document.getElementById('displayGrandTotal').textContent.replace('₹', ''));
     const discount = parseFloat(document.getElementById('displayDiscount').textContent.replace('₹', ''));
     const netPrice = parseFloat(document.getElementById('displayNetPrice').textContent.replace('₹', ''));
-    const gstAmount = parseFloat(document.getElementById('displayTax').textContent.replace('₹', ''));
+    const gstAmount = parseFloat(document.getElementById('displayGST').textContent.replace('₹', ''));
+
 
     const payload = {
         assignment: {
@@ -555,7 +579,7 @@ document.getElementById('btnAssignAndPay').addEventListener('click', async funct
             // Backend should handle this, potentially by not requiring package_id for student_offer type.
             package_id: (packageType === 'student_offer' && !packageId) ? null : (packageId ? parseInt(packageId) : null),
             service_id: serviceId ? parseInt(serviceId) : null,
-            price_paid: grandTotal,
+            price_paid: grandTotal, // This should be the final amount paid, including GST
             discount: discount,
             expires_on: expiresOn || null,
             notes: notes,
@@ -571,7 +595,7 @@ document.getElementById('btnAssignAndPay').addEventListener('click', async funct
         },
         invoice: {
             create: true,
-            tax_rate: 18.0,
+            tax_rate: 18.0, // Assuming a fixed tax rate for simplicity, adjust if dynamic
             rounding: 'nearest'
         },
         receipt: {
@@ -805,12 +829,12 @@ function updatePaymentSummary(packagePrice = 0, discount = 0, netPrice = 0) {
 
     const displaySubtotal = document.getElementById('displaySubtotal');
     const displayNetPrice = document.getElementById('displayNetPrice');
-    const displayTax = document.getElementById('displayTax');
+    const displayTax = document.getElementById('displayGST'); // Corrected ID
     const displayDiscount = document.getElementById('displayDiscount');
     const displayGrandTotal = document.getElementById('displayGrandTotal');
     const paymentAmountInput = document.getElementById('paymentAmount');
 
-    if (displaySubtotal) displaySubtotal.textContent = `₹${grandTotal.toFixed(2)}`;
+    if (displaySubtotal) displaySubtotal.textContent = `₹${packagePrice.toFixed(2)}`; // Display original package price
     if (displayNetPrice) displayNetPrice.textContent = `₹${taxable.toFixed(2)}`;
     if (displayTax) displayTax.textContent = `₹${tax.toFixed(2)}`;
     if (displayDiscount) displayDiscount.textContent = `₹${discount.toFixed(2)}`;

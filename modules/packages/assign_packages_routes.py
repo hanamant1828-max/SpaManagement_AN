@@ -161,18 +161,29 @@ def api_assign_and_pay():
             app.logger.info(f"   - After value: {getattr(package, 'after_value', 'NOT SET')}")
             app.logger.info(f"   - Actual price: {getattr(package, 'actual_price', 'NOT SET')}")
 
-        # Calculate pricing (NO GST)
+        # Calculate pricing - GST ONLY for service packages
         subtotal = float(assignment_data.get('price_paid', 0))
         discount = float(assignment_data.get('discount', 0))
 
-        # No tax calculation - GST removed from package assignments
-        tax_rate = 0
+        # Calculate taxable amount
         taxable_amount = max(subtotal - discount, 0)
-        tax_amount = 0
-        cgst_amount = 0
-        sgst_amount = 0
 
-        grand_total = taxable_amount
+        # Apply 18% GST ONLY for service packages
+        if package_type == 'service_package':
+            tax_rate = 0.18
+            tax_amount = taxable_amount * tax_rate
+            cgst_amount = tax_amount / 2
+            sgst_amount = tax_amount / 2
+            grand_total = taxable_amount + tax_amount
+            app.logger.info(f"✅ Service package GST applied: Base=₹{taxable_amount}, GST=₹{tax_amount}, Total=₹{grand_total}")
+        else:
+            # No GST for other package types
+            tax_rate = 0
+            tax_amount = 0
+            cgst_amount = 0
+            sgst_amount = 0
+            grand_total = taxable_amount
+            app.logger.info(f"✅ No GST for {package_type}: Total=₹{grand_total}")
 
         # Create package assignment
         expires_on = None
