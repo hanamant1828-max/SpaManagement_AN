@@ -366,13 +366,20 @@ class AppointmentContextMenu {
                 if (data.success && data.booking) {
                     const customerName = data.booking.client_name;
                     const customerId = data.booking.client_id;
+                    const customerPhone = data.booking.client_phone;
 
-                    // Get all appointments for this customer
-                    fetch(`/api/unaki/customer-appointments/${customerId || appointmentId}`)
+                    // If no client_id, we need to search by name/phone
+                    if (!customerId) {
+                        this.showToast('Cannot cancel all appointments: Customer ID not found. Please try canceling appointments individually.', 'warning');
+                        return;
+                    }
+
+                    // Get all appointments for this customer using the correct endpoint
+                    fetch(`/api/unaki/customer-appointments/${customerId}`)
                         .then(response => response.json())
                         .then(appointmentsData => {
-                            if (appointmentsData.success && appointmentsData.appointments) {
-                                const activeAppointments = appointmentsData.appointments.filter(
+                            if (appointmentsData.success && appointmentsData.bookings) {
+                                const activeAppointments = appointmentsData.bookings.filter(
                                     apt => apt.status === 'scheduled' || apt.status === 'confirmed'
                                 );
 
@@ -386,10 +393,10 @@ class AppointmentContextMenu {
                                 if (confirm(confirmMessage)) {
                                     console.log(`Cancelling all appointments for customer: ${customerName}`);
 
-                                    // Cancel all appointments
+                                    // Cancel all appointments using PATCH endpoint
                                     const cancelPromises = activeAppointments.map(apt => 
-                                        fetch(`/api/unaki/bookings/${apt.id}/update-status`, {
-                                            method: 'PUT',
+                                        fetch(`/api/unaki/bookings/${apt.id}`, {
+                                            method: 'PATCH',
                                             headers: {
                                                 'Content-Type': 'application/json',
                                             },
