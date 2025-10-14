@@ -48,3 +48,6 @@ The application uses Flask and SQLAlchemy, following a modular design with featu
 - **Face Recognition:** InsightFace 0.7.3, ONNXRuntime 1.20.1, OpenCV-Python 4.10.0.84
 - **Timezone:** pytz
 - **Utility Libraries:** Pandas, OpenAI, BeautifulSoup4, Requests
+
+## Pending Integrations
+- **WhatsApp Notifications (Twilio):** To enable WhatsApp notifications for appointment bookings, the Twilio integration needs to be set up through Replit's integration system. This will allow automatic WhatsApp messages to be sent to clients with their booking details (appointment time, service, staff, etc.). The integration setup was dismissed and needs to be completed for this feature to work.
