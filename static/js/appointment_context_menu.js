@@ -513,20 +513,20 @@ class AppointmentContextMenu {
                     const booking = data.booking;
                     if (booking.client_id) {
                         // Redirect to assign packages page with customer pre-selected
-                        window.location.href = `/packages/assign?customer_id=${booking.client_id}`;
+                        window.location.href = `/assign-packages?customer_id=${booking.client_id}`;
                     } else {
                         this.showToast('Customer information not available. Please assign from packages page.', 'warning');
-                        window.location.href = `/packages/assign`;
+                        window.location.href = `/assign-packages`;
                     }
                 } else {
                     this.showToast('Failed to load appointment details.', 'error');
-                    window.location.href = `/packages/assign`;
+                    window.location.href = `/assign-packages`;
                 }
             })
             .catch(error => {
                 console.error('Error loading assign & pay:', error);
                 this.showToast('Error loading assign & pay page.', 'error');
-                window.location.href = `/packages/assign`;
+                window.location.href = `/assign-packages`;
             });
     }
 
