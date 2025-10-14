@@ -140,6 +140,12 @@ except ImportError:
 @app.route('/clients')
 @login_required
 def customers():
+    # Check if user has permission to view clients
+    if not (current_user.has_permission('clients_view') or 
+            current_user.has_role('admin') or 
+            current_user.role == 'admin'):
+        flash('You do not have permission to view the customer directory.', 'danger')
+        return redirect(url_for('dashboard'))
     """Display customer listing page with search functionality"""
     if not current_user.can_access('clients'):
         flash('Access denied. You do not have permission to view customers.', 'danger')
