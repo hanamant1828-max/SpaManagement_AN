@@ -445,7 +445,7 @@ function recalculateTotals() {
                 const discountAmount = free * pricePerSession;
 
                 netPrice = Math.max(paidSessionsPrice - discountAmount, 0);
-                tax = netPrice * 0.18; // 18% GST
+                tax = netPrice * 0.18; // 18% GST - ONLY for service packages
                 grandTotal = netPrice + tax;
                 subtotal = paidSessionsPrice; // This would be the total value before discount and GST
                 discount = discountAmount;
@@ -467,14 +467,14 @@ function recalculateTotals() {
                 console.warn('Service package selected but no service chosen yet');
             }
         } else {
-            // Amount-based packages (prepaid, membership, etc.): Use package price as-is
+            // Amount-based packages (prepaid, membership, etc.): NO GST
             subtotal = getPackagePrice(packageType, currentPackage);
             netPrice = subtotal; // No discount applied here
-            tax = netPrice * 0.18; // 18% GST
-            grandTotal = netPrice + tax;
+            tax = 0; // NO GST for other package types
+            grandTotal = netPrice; // Grand total = net price (no tax)
             discount = 0; // No discount for these types in this context
 
-            console.log('Amount-based package calculation (with GST):', {
+            console.log('Amount-based package calculation (NO GST):', {
                 packageType,
                 subtotal,
                 netPrice,

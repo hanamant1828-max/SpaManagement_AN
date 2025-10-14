@@ -177,12 +177,12 @@ def api_assign_and_pay():
             grand_total = taxable_amount + tax_amount
             app.logger.info(f"✅ Service package GST applied: Base=₹{taxable_amount}, GST=₹{tax_amount}, Total=₹{grand_total}")
         else:
-            # No GST for other package types
+            # NO GST for other package types (prepaid, membership, student_offer, yearly, kitty)
             tax_rate = 0
             tax_amount = 0
             cgst_amount = 0
             sgst_amount = 0
-            grand_total = taxable_amount
+            grand_total = taxable_amount  # Grand total equals net price (no tax added)
             app.logger.info(f"✅ No GST for {package_type}: Total=₹{grand_total}")
 
         # Create package assignment
