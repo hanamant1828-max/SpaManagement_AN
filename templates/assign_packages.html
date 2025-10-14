@@ -92,16 +92,8 @@
                         <div class="card-body">
                             <table class="table table-sm">
                                 <tr>
-                                    <td>Package Price (incl. GST):</td>
+                                    <td>Package Price:</td>
                                     <td class="text-right" id="displaySubtotal">₹0.00</td>
-                                </tr>
-                                <tr class="text-muted">
-                                    <td>&nbsp;&nbsp;└ Net Price (excl. GST):</td>
-                                    <td class="text-right" id="displayNetPrice">₹0.00</td>
-                                </tr>
-                                <tr class="text-muted">
-                                    <td>&nbsp;&nbsp;└ GST Amount (18%):</td>
-                                    <td class="text-right" id="displayTax">₹0.00</td>
                                 </tr>
                                 <tr>
                                     <td>Discount:</td>
@@ -425,7 +417,6 @@ function getPackagePrice(packageType, packageData) {
 function recalculateTotals() {
     let subtotal = 0;
     let discount = 0;
-    let gstAmount = 0;
     let grandTotal = 0;
 
     if (currentPackage) {
@@ -433,60 +424,51 @@ function recalculateTotals() {
 
         // Calculate based on package type
         if (packageType === 'service_package') {
-            // Service packages: GST-EXCLUSIVE (tax added on top)
+            // Service packages: Calculate package price without GST
             if (currentService) {
                 const payFor = parseInt(currentPackage.pay_for || 0);
                 const free = parseInt(currentPackage.free_services || 0);
                 const servicePrice = parseFloat(currentService.price || 0);
-                
-                // Base price = sessions you pay for × service price (GST-exclusive)
+
+                // Base price = sessions you pay for × service price
                 subtotal = payFor * servicePrice;
                 // Discount = free sessions × service price
                 discount = free * servicePrice;
-                
-                // Calculate GST on net amount (after discount)
-                const taxable = Math.max(subtotal - discount, 0);
-                gstAmount = taxable * 0.18; // 18% GST added on top
-                grandTotal = taxable + gstAmount;
-                
-                console.log('Service package calculation (GST-EXCLUSIVE):', {
+
+                // Grand total = subtotal (no GST added)
+                grandTotal = Math.max(subtotal - discount, 0);
+
+                console.log('Service package calculation (NO GST):', {
+                    packageType,
                     payFor,
                     free,
                     servicePrice,
                     subtotal,
                     discount,
-                    taxable,
-                    gstAmount,
                     grandTotal
                 });
             } else {
                 console.warn('Service package selected but no service chosen yet');
             }
         } else {
-            // Amount-based packages (prepaid, membership, etc.): GST-INCLUSIVE
+            // Amount-based packages (prepaid, membership, etc.): Use package price as-is
             subtotal = getPackagePrice(packageType, currentPackage);
-            
-            // Extract GST from inclusive price
-            const netPrice = subtotal / 1.18; // Remove 18% GST
-            gstAmount = subtotal - netPrice;
-            grandTotal = subtotal; // Already includes GST
-            
-            console.log('Amount-based package calculation (GST-INCLUSIVE):', {
+            grandTotal = subtotal;
+
+            console.log('Amount-based package calculation (NO GST):', {
                 packageType,
                 subtotal,
-                netPrice,
-                gstAmount,
                 grandTotal
             });
         }
     }
 
     // Update display
-    document.getElementById('displaySubtotal').textContent = `₹${grandTotal.toFixed(2)}`;
-    document.getElementById('displayNetPrice').textContent = `₹${(grandTotal - gstAmount).toFixed(2)}`;
-    document.getElementById('displayTax').textContent = `₹${gstAmount.toFixed(2)}`;
+    document.getElementById('displaySubtotal').textContent = `₹${subtotal.toFixed(2)}`;
     document.getElementById('displayDiscount').textContent = `₹${discount.toFixed(2)}`;
     document.getElementById('displayGrandTotal').textContent = `₹${grandTotal.toFixed(2)}`;
+
+    // Update hidden payment amount field
     document.getElementById('paymentAmount').value = grandTotal.toFixed(2);
 }
 
@@ -522,7 +504,7 @@ function validateAssignForm() {
     if (packageType) {
         // All package types need a package selected
         isValid = isValid && packageId;
-        
+
         // Service packages ALSO need a service selected
         if (packageType === 'service_package') {
             isValid = isValid && serviceId && serviceId !== '';

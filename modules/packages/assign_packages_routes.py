@@ -161,20 +161,18 @@ def api_assign_and_pay():
             app.logger.info(f"   - After value: {getattr(package, 'after_value', 'NOT SET')}")
             app.logger.info(f"   - Actual price: {getattr(package, 'actual_price', 'NOT SET')}")
 
-        # Calculate pricing
+        # Calculate pricing (NO GST)
         subtotal = float(assignment_data.get('price_paid', 0))
         discount = float(assignment_data.get('discount', 0))
 
-        # Tax calculation if invoice creation is enabled
-        tax_rate = float(invoice_config.get('tax_rate', 0))
+        # No tax calculation - GST removed from package assignments
+        tax_rate = 0
         taxable_amount = max(subtotal - discount, 0)
-        tax_amount = (taxable_amount * tax_rate / 100) if tax_rate > 0 else 0
+        tax_amount = 0
+        cgst_amount = 0
+        sgst_amount = 0
 
-        # Calculate CGST/SGST (split tax 50/50 for intra-state)
-        cgst_amount = tax_amount / 2
-        sgst_amount = tax_amount / 2
-
-        grand_total = taxable_amount + tax_amount
+        grand_total = taxable_amount
 
         # Create package assignment
         expires_on = None
