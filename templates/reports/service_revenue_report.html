@@ -1,4 +1,3 @@
-
 {% extends "base.html" %}
 
 {% block title %}Service Revenue Report - Spa & Salon Management{% endblock %}
@@ -41,6 +40,9 @@
                             <a href="{{ url_for('billing_reports') }}" class="btn btn-outline-secondary">
                                 <i class="fas fa-arrow-left me-1"></i>Back to Reports
                             </a>
+                            <button type="button" class="btn btn-outline-primary" onclick="exportToExcel()">
+                                <i class="fas fa-file-excel me-1"></i>Export to Excel
+                            </button>
                         </div>
                     </form>
                 </div>
@@ -173,4 +175,77 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
+<script>
+function exportToExcel() {
+    const wb = XLSX.utils.book_new();
+
+    // Category Summary
+    const categoryData = [
+        ['Service Revenue Report'],
+        ['Date Range', '{{ start_date.strftime("%d/%m/%Y") }} - {{ end_date.strftime("%d/%m/%Y") }}'],
+        [''],
+        ['Category Performance Summary'],
+        ['Category', 'Service Count', 'Total Bookings', 'Total Revenue', 'Avg per Booking']
+    ];
+    {% for cat in category_summary %}
+    categoryData.push([
+        '{{ cat.category or "Uncategorized" }}',
+        '{{ cat.service_count }}',
+        '{{ cat.total_bookings }}',
+        '{{ "{:,.2f}".format(cat.total_revenue or 0) }}',
+        '{{ "{:,.2f}".format((cat.total_revenue or 0) / cat.total_bookings if cat.total_bookings > 0 else 0) }}'
+    ]);
+    {% endfor %}
+
+    // Service Summary
+    const serviceData = [
+        [''],
+        ['Service Performance Summary'],
+        ['Service Name', 'Category', 'Price', 'Bookings', 'Quantity', 'Unique Clients', 'Total Revenue', 'Avg per Booking']
+    ];
+    {% for service in service_summary %}
+    serviceData.push([
+        '{{ service.name }}',
+        '{{ service.category or "N/A" }}',
+        '{{ "{:,.2f}".format(service.price or 0) }}',
+        '{{ service.total_bookings }}',
+        '{{ service.total_quantity }}',
+        '{{ service.unique_clients }}',
+        '{{ "{:,.2f}".format(service.total_revenue or 0) }}',
+        '{{ "{:,.2f}".format(service.avg_revenue_per_booking or 0) }}'
+    ]);
+    {% endfor %}
+
+    // Detailed Transactions
+    const detailsData = [
+        [''],
+        ['Detailed Service Transactions'],
+        ['Date', 'Invoice #', 'Service', 'Category', 'Client', 'Staff', 'Qty', 'Unit Price', 'Total Amount']
+    ];
+    {% for detail in service_transaction_details %}
+    detailsData.push([
+        '{{ detail.invoice_date.strftime("%d/%m/%Y") }}',
+        '{{ detail.invoice_number }}',
+        '{{ detail.name }}',
+        '{{ detail.category or "N/A" }}',
+        '{{ detail.client_first_name }} {{ detail.client_last_name }}',
+        '{{ detail.staff_first_name }} {{ detail.staff_last_name if detail.staff_first_name else "N/A" }}',
+        '{{ detail.quantity }}',
+        '{{ "{:,.2f}".format(detail.unit_price or 0) }}',
+        '{{ "{:,.2f}".format(detail.final_amount or 0) }}'
+    ]);
+    {% endfor %}
+
+    const allData = [...categoryData, ...serviceData, ...detailsData];
+    const ws = XLSX.utils.aoa_to_sheet(allData);
+    XLSX.utils.book_append_sheet(wb, ws, 'Service Revenue');
+
+    const fileName = `Service_Revenue_Report_{{ start_date.strftime("%Y%m%d") }}_{{ end_date.strftime("%Y%m%d") }}.xlsx`;
+    XLSX.writeFile(wb, fileName);
+}
+</script>
 {% endblock %}

@@ -185,3 +185,77 @@
     </div>
 </div>
 {% endblock %}
+
+{% block extra_scripts %}
+<script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
+<script>
+function exportToExcel() {
+    const wb = XLSX.utils.book_new();
+
+    // Department Summary
+    const deptData = [
+        ['Staff Revenue Report'],
+        ['Date Range', '{{ start_date.strftime("%d/%m/%Y") }} - {{ end_date.strftime("%d/%m/%Y") }}'],
+        [''],
+        ['Department Performance Summary'],
+        ['Department', 'Staff Count', 'Total Services', 'Total Revenue', 'Avg per Staff']
+    ];
+    {% for dept in department_summary %}
+    deptData.push([
+        '{{ dept.department or "Unassigned" }}',
+        '{{ dept.staff_count }}',
+        '{{ dept.total_services }}',
+        '{{ "{:,.2f}".format(dept.total_revenue or 0) }}',
+        '{{ "{:,.2f}".format((dept.total_revenue or 0) / dept.staff_count if dept.staff_count > 0 else 0) }}'
+    ]);
+    {% endfor %}
+
+    // Staff Summary
+    const staffSummaryData = [
+        [''],
+        ['Staff Performance Summary'],
+        ['Staff Code', 'Staff Name', 'Department', 'Unique Clients', 'Service Revenue', 'Product Revenue', 'Total Revenue', 'Services', 'Products']
+    ];
+    {% for staff in staff_summary %}
+    staffSummaryData.push([
+        '{{ staff.staff_code or "N/A" }}',
+        '{{ staff.first_name }} {{ staff.last_name }}',
+        '{{ staff.department or "Unassigned" }}',
+        '{{ staff.unique_clients }}',
+        '{{ "{:,.2f}".format(staff.service_revenue or 0) }}',
+        '{{ "{:,.2f}".format(staff.product_revenue or 0) }}',
+        '{{ "{:,.2f}".format(staff.total_revenue or 0) }}',
+        '{{ staff.service_count }}',
+        '{{ staff.product_count }}'
+    ]);
+    {% endfor %}
+
+    // Detailed Transactions
+    const detailsData = [
+        [''],
+        ['Detailed Staff Transactions'],
+        ['Date', 'Invoice #', 'Staff Member', 'Department', 'Client Name', 'Type', 'Item Name', 'Qty', 'Staff Revenue']
+    ];
+    {% for detail in staff_revenue_details %}
+    detailsData.push([
+        '{{ detail.invoice_date.strftime("%d/%m/%Y") }}',
+        '{{ detail.invoice_number }}',
+        '{{ detail.first_name }} {{ detail.last_name }}',
+        '{{ detail.department or "Unassigned" }}',
+        '{{ detail.customer_first_name }} {{ detail.customer_last_name }}',
+        '{{ "Service" if detail.item_type == "service" else "Product" if detail.item_type == "inventory" else "N/A" }}',
+        '{{ detail.item_name or detail.service_name or "N/A" }}',
+        '{{ detail.quantity }}',
+        '{{ "{:,.2f}".format(detail.staff_revenue_price or 0) }}'
+    ]);
+    {% endfor %}
+
+    const allData = [...deptData, ...staffSummaryData, ...detailsData];
+    const ws = XLSX.utils.aoa_to_sheet(allData);
+    XLSX.utils.book_append_sheet(wb, ws, 'Staff Revenue');
+
+    const fileName = `Staff_Revenue_Report_{{ start_date.strftime("%Y%m%d") }}_{{ end_date.strftime("%Y%m%d") }}.xlsx`;
+    XLSX.writeFile(wb, fileName);
+}
+</script>
+{% endblock %}
