@@ -1590,6 +1590,56 @@ def api_get_unaki_booking(booking_id):
         }), 500
 
 
+@app.route('/api/unaki/customer-appointments/<int:customer_id>')
+@login_required
+def api_get_customer_appointments_unaki(customer_id):
+    """API endpoint to get all appointments for a specific customer"""
+    try:
+        from models import UnakiBooking, Customer
+        
+        # Try to get customer
+        customer = Customer.query.get(customer_id)
+        
+        if customer:
+            # Get appointments by client_id
+            appointments = UnakiBooking.query.filter_by(client_id=customer_id).all()
+            
+            # Also try to match by name and phone if client_id doesn't return results
+            if not appointments:
+                full_name = f"{customer.first_name} {customer.last_name}".strip()
+                appointments = UnakiBooking.query.filter(
+                    db.or_(
+                        UnakiBooking.client_name.ilike(f'%{full_name}%'),
+                        UnakiBooking.client_phone == customer.phone
+                    )
+                ).all()
+        else:
+            # If customer not found, try to get appointments for this booking's customer
+            booking = UnakiBooking.query.get(customer_id)
+            if booking:
+                appointments = UnakiBooking.query.filter(
+                    db.or_(
+                        UnakiBooking.client_id == booking.client_id,
+                        UnakiBooking.client_name == booking.client_name,
+                        UnakiBooking.client_phone == booking.client_phone
+                    )
+                ).all()
+            else:
+                appointments = []
+
+        return jsonify({
+            'success': True,
+            'appointments': [apt.to_dict() for apt in appointments]
+        })
+
+    except Exception as e:
+        print(f"Error fetching customer appointments: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
 def validate_against_shift(staff_id, date_obj, start_time_str, end_time_str):
     """
     Validate booking against shift rules (hours, breaks, out-of-office).

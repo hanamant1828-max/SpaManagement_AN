@@ -52,6 +52,9 @@ class AppointmentContextMenu {
                     <li class="context-menu-item danger" data-action="cancel">
                         <i class="fas fa-times-circle"></i> Cancel Appointment
                     </li>
+                    <li class="context-menu-item danger" data-action="cancel_all">
+                        <i class="fas fa-trash-alt"></i> Cancel All Customer Appointments
+                    </li>
                 </ul>
             </div>
         `;
@@ -247,6 +250,9 @@ class AppointmentContextMenu {
             case 'cancel':
                 this.cancelAppointment(this.currentAppointmentId);
                 break;
+            case 'cancel_all':
+                this.cancelAllCustomerAppointments(this.currentAppointmentId);
+                break;
             case 'billing':
                 this.goToBilling(this.currentAppointmentId);
                 break;
@@ -350,6 +356,88 @@ class AppointmentContextMenu {
                 this.showToast('Error cancelling appointment. Please try again.', 'error');
             });
         }
+    }
+
+    cancelAllCustomerAppointments(appointmentId) {
+        // First, get the appointment details to find customer info
+        fetch(`/api/unaki/bookings/${appointmentId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.booking) {
+                    const customerName = data.booking.client_name;
+                    const customerId = data.booking.client_id;
+
+                    // Get all appointments for this customer
+                    fetch(`/api/unaki/customer-appointments/${customerId || appointmentId}`)
+                        .then(response => response.json())
+                        .then(appointmentsData => {
+                            if (appointmentsData.success && appointmentsData.appointments) {
+                                const activeAppointments = appointmentsData.appointments.filter(
+                                    apt => apt.status === 'scheduled' || apt.status === 'confirmed'
+                                );
+
+                                if (activeAppointments.length === 0) {
+                                    this.showToast('No active appointments found for this customer', 'info');
+                                    return;
+                                }
+
+                                const confirmMessage = `Are you sure you want to cancel ALL ${activeAppointments.length} appointment(s) for ${customerName}?\n\nAppointments:\n${activeAppointments.map(apt => `- ${apt.service_name} on ${apt.appointment_date} at ${apt.start_time}`).join('\n')}`;
+
+                                if (confirm(confirmMessage)) {
+                                    console.log(`Cancelling all appointments for customer: ${customerName}`);
+
+                                    // Cancel all appointments
+                                    const cancelPromises = activeAppointments.map(apt => 
+                                        fetch(`/api/unaki/bookings/${apt.id}/update-status`, {
+                                            method: 'PUT',
+                                            headers: {
+                                                'Content-Type': 'application/json',
+                                            },
+                                            body: JSON.stringify({ status: 'cancelled' })
+                                        }).then(r => r.json())
+                                    );
+
+                                    Promise.all(cancelPromises)
+                                        .then(results => {
+                                            const successCount = results.filter(r => r.success).length;
+                                            const failCount = results.length - successCount;
+
+                                            if (failCount === 0) {
+                                                this.showToast(`✅ Successfully cancelled all ${successCount} appointments for ${customerName}`, 'success');
+                                            } else {
+                                                this.showToast(`⚠️ Cancelled ${successCount} appointments, ${failCount} failed`, 'warning');
+                                            }
+
+                                            // Refresh the schedule
+                                            setTimeout(() => {
+                                                if (typeof refreshSchedule === 'function') {
+                                                    refreshSchedule();
+                                                } else {
+                                                    location.reload();
+                                                }
+                                            }, 1500);
+                                        })
+                                        .catch(error => {
+                                            console.error('Error cancelling appointments:', error);
+                                            this.showToast('Error cancelling appointments. Please try again.', 'error');
+                                        });
+                                }
+                            } else {
+                                this.showToast('Failed to load customer appointments', 'error');
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error loading customer appointments:', error);
+                            this.showToast('Error loading customer appointments', 'error');
+                        });
+                } else {
+                    this.showToast('Failed to load appointment details', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error loading appointment:', error);
+                this.showToast('Error loading appointment details', 'error');
+            });
     }
 
     goToBilling(appointmentId) {
