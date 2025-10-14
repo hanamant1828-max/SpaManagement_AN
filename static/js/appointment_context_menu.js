@@ -367,14 +367,83 @@ class AppointmentContextMenu {
                     const customerName = data.booking.client_name;
                     const customerId = data.booking.client_id;
                     const customerPhone = data.booking.client_phone;
+                    const appointmentDate = data.booking.appointment_date;
 
-                    // If no client_id, we need to search by name/phone
+                    console.log(`📋 Customer info - Name: ${customerName}, ID: ${customerId}, Phone: ${customerPhone}`);
+
+                    // If no client_id, find appointments by matching name and phone
                     if (!customerId) {
-                        this.showToast('Cannot cancel all appointments: Customer ID not found. Please try canceling appointments individually.', 'warning');
+                        console.log('⚠️ No client_id, searching by name and phone...');
+                        
+                        // Get all bookings for the date and filter by name/phone
+                        fetch(`/api/unaki/schedule?date=${appointmentDate}`)
+                            .then(response => response.json())
+                            .then(scheduleData => {
+                                if (scheduleData.success && scheduleData.appointments) {
+                                    // Filter appointments by matching name and/or phone
+                                    const activeAppointments = scheduleData.appointments.filter(apt => {
+                                        const nameMatch = apt.clientName === customerName;
+                                        const phoneMatch = customerPhone && apt.clientPhone === customerPhone;
+                                        const statusMatch = apt.status === 'scheduled' || apt.status === 'confirmed';
+                                        
+                                        return (nameMatch || phoneMatch) && statusMatch;
+                                    });
+
+                                    if (activeAppointments.length === 0) {
+                                        this.showToast('No active appointments found for this customer', 'info');
+                                        return;
+                                    }
+
+                                    const confirmMessage = `Are you sure you want to cancel ALL ${activeAppointments.length} appointment(s) for ${customerName}?\n\nAppointments:\n${activeAppointments.map(apt => `- ${apt.service} on ${apt.startTime}`).join('\n')}`;
+
+                                    if (confirm(confirmMessage)) {
+                                        // Cancel all appointments
+                                        const cancelPromises = activeAppointments.map(apt => 
+                                            fetch(`/api/unaki/bookings/${apt.id}`, {
+                                                method: 'PATCH',
+                                                headers: {
+                                                    'Content-Type': 'application/json',
+                                                },
+                                                body: JSON.stringify({ status: 'cancelled' })
+                                            }).then(r => r.json())
+                                        );
+
+                                        Promise.all(cancelPromises)
+                                            .then(results => {
+                                                const successCount = results.filter(r => r.success).length;
+                                                const failCount = results.length - successCount;
+
+                                                if (failCount === 0) {
+                                                    this.showToast(`✅ Successfully cancelled all ${successCount} appointments for ${customerName}`, 'success');
+                                                } else {
+                                                    this.showToast(`⚠️ Cancelled ${successCount} appointments, ${failCount} failed`, 'warning');
+                                                }
+
+                                                setTimeout(() => {
+                                                    if (typeof refreshSchedule === 'function') {
+                                                        refreshSchedule();
+                                                    } else {
+                                                        location.reload();
+                                                    }
+                                                }, 1500);
+                                            })
+                                            .catch(error => {
+                                                console.error('Error cancelling appointments:', error);
+                                                this.showToast('Error cancelling appointments. Please try again.', 'error');
+                                            });
+                                    }
+                                } else {
+                                    this.showToast('Failed to load schedule', 'error');
+                                }
+                            })
+                            .catch(error => {
+                                console.error('Error loading schedule:', error);
+                                this.showToast('Error loading schedule', 'error');
+                            });
                         return;
                     }
 
-                    // Get all appointments for this customer using the correct endpoint
+                    // If we have client_id, use the customer-appointments endpoint
                     fetch(`/api/unaki/customer-appointments/${customerId}`)
                         .then(response => response.json())
                         .then(appointmentsData => {
