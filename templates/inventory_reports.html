@@ -232,9 +232,14 @@
                     </div>
                 </div>
                 <div class="row mt-3">
-                    <div class="col-12">
+                    <div class="col-md-6">
                         <button class="btn btn-primary w-100" onclick="generateReport()">
                             <i class="fas fa-chart-line me-2"></i>Generate Report
+                        </button>
+                    </div>
+                    <div class="col-md-6">
+                        <button class="btn btn-success w-100" onclick="exportToExcel()" id="exportBtn" style="display: none;">
+                            <i class="fas fa-file-excel me-2"></i>Export to Excel
                         </button>
                     </div>
                 </div>
@@ -288,6 +293,7 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
     <script>
         // Set current date
         document.getElementById('currentDate').textContent = new Date().toLocaleDateString();
@@ -442,6 +448,7 @@
             }
 
             document.getElementById('reportResults').style.display = 'block';
+            document.getElementById('exportBtn').style.display = 'block';
         }
 
         // Show summary section
@@ -657,6 +664,32 @@
                 generateReport();
             }
         });
+
+        // Export to Excel function
+        function exportToExcel() {
+            const reportType = document.getElementById('reportType').value;
+            if (!reportType) {
+                alert('Please generate a report first');
+                return;
+            }
+
+            const wb = XLSX.utils.book_new();
+            const reportTitle = document.getElementById('reportTitle').textContent.replace('📊 ', '');
+            
+            // Get the table data
+            const table = document.getElementById('reportTable');
+            const ws = XLSX.utils.table_to_sheet(table);
+            
+            // Add the worksheet to workbook
+            XLSX.utils.book_append_sheet(wb, ws, reportTitle.substring(0, 30)); // Excel sheet name limit is 31 chars
+            
+            // Generate filename with timestamp
+            const timestamp = new Date().toISOString().slice(0, 10);
+            const filename = `Inventory_${reportType.replace('-', '_')}_Report_${timestamp}.xlsx`;
+            
+            // Save the file
+            XLSX.writeFile(wb, filename);
+        }
 
         function updateCurrentDate() {
             const now = new Date();
