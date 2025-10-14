@@ -2291,18 +2291,18 @@ function resetCustomerAppointments() {
         // --- Calculate Taxable Amount ---
         const taxableAmountAfterTax = Math.max(0, taxableAmountBeforeDiscount - discountAmount);
 
-        // --- Calculate GST (NEW LOGIC: Services INCLUSIVE, Products EXCLUSIVE) ---
+        // --- Calculate GST (Services INCLUSIVE, Products NO GST - MRP is final) ---
         const gstRate = 0.18; // 18% total (9% CGST + 9% SGST)
 
         // For services: GST is INCLUSIVE (extract from price)
         const serviceBase = servicesSubtotal / (1 + gstRate);
         const serviceGst = servicesSubtotal - serviceBase;
 
-        // For products: GST is EXCLUSIVE (add on top)
+        // For products: NO GST (MRP is final price, already includes all taxes)
         const productBase = productsSubtotal;
-        const productGst = productsSubtotal * gstRate;
+        const productGst = 0;
 
-        // Total GST before discount adjustment
+        // Total GST before discount adjustment (only from services)
         let totalGst = serviceGst + productGst;
 
         // Adjust GST proportionally if discount is applied
@@ -3025,7 +3025,7 @@ function resetCustomerAppointments() {
         const paymentMethod = document.getElementById('paymentMethod').value;
         const chequeField = document.getElementById('chequeNumberField');
         const chequeInput = document.getElementById('chequeNumber');
-        
+
         if (paymentMethod === 'cheque') {
             chequeField.style.display = 'block';
             chequeInput.required = true;

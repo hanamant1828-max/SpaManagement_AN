@@ -1182,10 +1182,7 @@ def create_professional_invoice():
                     'message': f'Insufficient stock in batch {batch.batch_name}. Available: {batch.qty_available}, Required: {item["quantity"]}'
                 })
 
-        # Calculate amounts with NEW GST LOGIC:
-        # Services: GST INCLUSIVE (extract GST from price)
-        # Products: GST EXCLUSIVE (add GST on top of price)
-        
+        # Calculate amounts - Service prices are GST INCLUSIVE
         services_subtotal = 0
         for service_data in services_data:
             service = Service.query.get(service_data['service_id'])
@@ -1214,11 +1211,12 @@ def create_professional_invoice():
             service_base_amount = services_subtotal
             service_gst_amount = 0
 
-        # For PRODUCTS: GST is EXCLUSIVE (add GST on top)
+        # For PRODUCTS: MRP is FINAL PRICE - No additional GST
+        # Product MRP already includes all taxes, so we don't add or extract GST
         inventory_base_amount = inventory_subtotal
-        inventory_gst_amount = inventory_subtotal * total_gst_rate if total_gst_rate > 0 else 0
+        inventory_gst_amount = 0  # No GST calculation for products
 
-        # Total base amounts (before tax for products, after extracting tax for services)
+        # Total base amounts
         total_base_amount = service_base_amount + inventory_base_amount
 
         # Calculate discount on base amount
@@ -1234,16 +1232,13 @@ def create_professional_invoice():
 
         # Recalculate GST proportionally after discount
         if total_base_amount > 0 and total_gst_rate > 0:
-            # Discount factor to apply proportionally
-            discount_factor = net_base_amount / total_base_amount
-
             # Apply discount factor to service GST (already extracted)
             final_service_gst = service_gst_amount * discount_factor
 
-            # For inventory, recalculate GST on discounted base (exclusive)
+            # For inventory, NO GST recalculation (MRP is final price)
             inventory_discount = discount_amount * (inventory_base_amount / total_base_amount) if total_base_amount > 0 else 0
             inventory_net_base = max(0, inventory_base_amount - inventory_discount)
-            final_inventory_gst = inventory_net_base * total_gst_rate
+            final_inventory_gst = 0  # No GST for products
         else:
             final_service_gst = 0
             final_inventory_gst = 0
