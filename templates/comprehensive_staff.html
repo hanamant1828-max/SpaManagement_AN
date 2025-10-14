@@ -357,7 +357,7 @@ Management Suite{% endblock %} {% block content %}
                                     id="designation"
                                 />
                             </div>
-                            
+
                         </div>
 
                         <!-- Personal Details -->
@@ -365,39 +365,53 @@ Management Suite{% endblock %} {% block content %}
                             <h6 class="text-primary border-bottom pb-2">
                                 Personal Details
                             </h6>
-                            <div class="mb-3">
-                                <label class="form-label">Gender</label>
-                                <select class="form-select" id="gender">
-                                    <option value="">Select Gender</option>
-                                    <option value="male">Male</option>
-                                    <option value="female">Female</option>
-                                    <option value="other">Other</option>
-                                </select>
-                            </div>
-                            <div class="row">
+                            <div class="row mb-3">
                                 <div class="col-6">
-                                    <div class="mb-3">
-                                        <label class="form-label"
-                                            >Date of Birth</label
-                                        >
-                                        <input
-                                            type="date"
-                                            class="form-control"
-                                            id="dateOfBirth"
-                                        />
-                                    </div>
+                                    <label class="form-label">Gender</label>
+                                    <select
+                                        class="form-select"
+                                        id="gender"
+                                    >
+                                        <option value="">Select...</option>
+                                        <option value="male">Male</option>
+                                        <option value="female">Female</option>
+                                        <option value="other">Other</option>
+                                    </select>
                                 </div>
                                 <div class="col-6">
-                                    <div class="mb-3">
-                                        <label class="form-label"
-                                            >Date of Joining</label
-                                        >
-                                        <input
-                                            type="date"
-                                            class="form-control"
-                                            id="dateOfJoining"
-                                        />
-                                    </div>
+                                    <label class="form-label"
+                                        >Date of Birth *</label
+                                    >
+                                    <input
+                                        type="date"
+                                        class="form-control"
+                                        id="dateOfBirth"
+                                        required
+                                    />
+                                </div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-6">
+                                    <label class="form-label"
+                                        >Date of Joining *</label
+                                    >
+                                    <input
+                                        type="date"
+                                        class="form-control"
+                                        id="dateOfJoining"
+                                        required
+                                    />
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label"
+                                        >Designation</label
+                                    >
+                                    <input
+                                        type="text"
+                                        class="form-control"
+                                        id="designation"
+                                        placeholder="e.g., Therapist"
+                                    />
                                 </div>
                             </div>
                         </div>
@@ -768,13 +782,13 @@ Management Suite{% endblock %} {% block content %}
 
         const submitBtn = document.getElementById("btnStaffSave");
         const formMode = document.getElementById("formMode");
-        
+
         if (!submitBtn || !formMode) {
             console.error("Required form elements not found");
             showNotification("Form elements not found. Please refresh the page.", "error");
             return;
         }
-        
+
         const originalText = submitBtn.innerHTML;
         const mode = formMode.value;
 
@@ -808,14 +822,14 @@ Management Suite{% endblock %} {% block content %}
                 // Authorize close from Save/Update button and close modal
                 authorizedCloseSource = mode === "edit" ? 'btnStaffUpdate' : 'btnStaffSave';
                 hasUnsavedChanges = false; // Clear unsaved changes flag
-                
+
                 // Close modal safely
                 if (staffModal) {
                     staffModal.hide();
                 } else {
                     console.error("Staff modal not available for closing");
                 }
-                
+
                 // Reload staff list with error handling
                 try {
                     await loadStaffData();
@@ -861,6 +875,20 @@ Management Suite{% endblock %} {% block content %}
                     message: "Please enter a valid email address",
                 };
             }
+        }
+
+        // Date of Birth and Date of Joining validation
+        if (!data.date_of_birth) {
+            return {
+                isValid: false,
+                message: "Date of Birth is required",
+            };
+        }
+        if (!data.date_of_joining) {
+            return {
+                isValid: false,
+                message: "Date of Joining is required",
+            };
         }
 
         return { isValid: true };
@@ -916,7 +944,7 @@ Management Suite{% endblock %} {% block content %}
             date_of_joining: getFieldValue("dateOfJoining") || null,
             shift_start_time: getFieldValue("shiftStart") || null,
             shift_end_time: getFieldValue("shiftEnd") || null,
-            
+
             notes_bio: getFieldValue("notesBio") || "",
             enable_face_checkin: getCheckboxValue("enableFaceCheckin"),
             is_active: true
@@ -958,11 +986,11 @@ Management Suite{% endblock %} {% block content %}
             showLoading(true);
 
             const response = await fetch("/api/staff");
-            
+
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
-            
+
             const data = await response.json();
 
             if (data.success) {
@@ -1000,7 +1028,7 @@ Management Suite{% endblock %} {% block content %}
             }
         } catch (error) {
             console.error("Error loading staff data:", error);
-            
+
             // Provide user-friendly error messages
             let errorMessage = "Error loading staff data";
             if (error.message.includes("fetch")) {
@@ -1010,16 +1038,16 @@ Management Suite{% endblock %} {% block content %}
             } else {
                 errorMessage = `Error: ${error.message}`;
             }
-            
+
             showNotification(errorMessage, "error");
             showEmptyState();
-            
+
             // Initialize with empty data to prevent null reference errors
             allStaff = [];
             filteredStaff = [];
             rolesData = [];
             departmentsData = [];
-            
+
         } finally {
             showLoading(false);
         }
@@ -1218,7 +1246,7 @@ Management Suite{% endblock %} {% block content %}
     // Render filtered staff with comprehensive null checks
     function renderFilteredStaff() {
         console.log("Starting renderFilteredStaff with", filteredStaff?.length || 0, "staff members");
-        
+
         const tbody = document.getElementById("staffTableBody");
         const loadingState = document.getElementById("loadingState");
         const tableContainer = document.getElementById("staffTableContainer");
@@ -1253,10 +1281,10 @@ Management Suite{% endblock %} {% block content %}
         }
 
         console.log("Rendering", filteredStaff.length, "staff members");
-        
+
         try {
             let successfulRenders = 0;
-            
+
             filteredStaff.forEach((staff, index) => {
                 try {
                     const row = createStaffRow(staff);
@@ -1278,7 +1306,7 @@ Management Suite{% endblock %} {% block content %}
                 console.error("No staff rows could be rendered");
                 showEmptyState();
             }
-            
+
         } catch (error) {
             console.error("Error in renderFilteredStaff:", error);
             showEmptyState();
@@ -1308,7 +1336,7 @@ Management Suite{% endblock %} {% block content %}
         const loadingState = document.getElementById("loadingState");
         const tableContainer = document.getElementById("staffTableContainer");
         const emptyState = document.getElementById("emptyState");
-        
+
         // Always hide loading state
         if (loadingState) {
             loadingState.style.display = "none";
@@ -1322,11 +1350,11 @@ Management Suite{% endblock %} {% block content %}
                 console.error("Table container not found - cannot show table");
                 return;
             }
-            
+
             if (emptyState) {
                 emptyState.style.display = "none";
             }
-            
+
             console.log("Staff table displayed successfully");
         } else {
             // Hide table, potentially show empty state
@@ -1345,12 +1373,12 @@ Management Suite{% endblock %} {% block content %}
         const loadingState = document.getElementById("loadingState");
         const tableContainer = document.getElementById("staffTableContainer");
         const emptyState = document.getElementById("emptyState");
-        
+
         // Hide other states
         if (loadingState) {
             loadingState.style.display = "none";
         }
-        
+
         if (tableContainer) {
             tableContainer.style.display = "none";
         }
@@ -1359,13 +1387,13 @@ Management Suite{% endblock %} {% block content %}
         if (emptyState) {
             emptyState.style.display = "block";
             console.log("Empty state displayed");
-            
+
             // Update empty state content to ensure it's helpful
             const emptyStateContent = emptyState.querySelector('h5');
             if (emptyStateContent && !emptyStateContent.textContent.includes('No staff')) {
                 emptyStateContent.textContent = 'No staff members found';
             }
-            
+
             const emptyStateDescription = emptyState.querySelector('p');
             if (emptyStateDescription && !emptyStateDescription.textContent.includes('available')) {
                 emptyStateDescription.textContent = 'No staff available. Please add new staff to get started.';
@@ -1374,7 +1402,7 @@ Management Suite{% endblock %} {% block content %}
             console.error("Empty state element not found - creating fallback");
             createFallbackEmptyMessage();
         }
-        
+
         // Always ensure navigation is visible
         ensureNavigationVisible();
     }
@@ -1418,7 +1446,7 @@ Management Suite{% endblock %} {% block content %}
                     <i class="fas fa-plus me-2"></i>Add Your First Staff Member
                 </button>
             `;
-            
+
             cardBody.appendChild(fallbackDiv);
             console.log("Fallback empty state created");
         }
@@ -1427,14 +1455,14 @@ Management Suite{% endblock %} {% block content %}
     // Show add modal
     function showAddModal() {
         isEditing = false; // Ensure we are in add mode
-        
+
         // Safe element updates with null checks
         const formMode = document.getElementById("formMode");
         const modalLabel = document.getElementById("staffModalLabel");
         const saveBtn = document.getElementById("btnStaffSave");
         const passwordHelp = document.getElementById("passwordHelp");
         const passwordField = document.getElementById("password");
-        
+
         if (formMode) formMode.value = "add";
         if (modalLabel) modalLabel.textContent = "Add New Staff Member";
         if (saveBtn) saveBtn.innerHTML = '<i class="fas fa-save me-1"></i>Add Staff';
@@ -1449,7 +1477,7 @@ Management Suite{% endblock %} {% block content %}
     async function editStaff(staffId) {
         try {
             console.log("Editing staff with ID:", staffId);
-            
+
             // Validate staff ID
             if (!staffId || staffId <= 0) {
                 throw new Error("Invalid staff ID provided");
@@ -1474,16 +1502,16 @@ Management Suite{% endblock %} {% block content %}
             // Load staff data from API first
             console.log(`Fetching staff data from /api/staff/${staffId}`);
             const response = await fetch(`/api/staff/${staffId}`);
-            
+
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
-            
+
             const data = await response.json();
 
             if (data.success && data.staff) {
                 populateForm(data.staff); // Populate form with fetched data
-                
+
                 // Show modal safely
                 if (staffModal) {
                     staffModal.show();
@@ -1508,7 +1536,7 @@ Management Suite{% endblock %} {% block content %}
             }
         } catch (error) {
             console.error("Error editing staff:", error);
-            
+
             // Provide user-friendly error message
             let errorMessage = "Error loading staff data for editing";
             if (error.message.includes("Invalid staff ID")) {
@@ -1520,7 +1548,7 @@ Management Suite{% endblock %} {% block content %}
             } else {
                 errorMessage = `Error: ${error.message}`;
             }
-            
+
             showNotification(errorMessage, "error");
         }
     }
@@ -1542,8 +1570,7 @@ Management Suite{% endblock %} {% block content %}
             "dateOfJoining": staff.date_of_joining || "",
             "shiftStart": staff.shift_start_time || "",
             "shiftEnd": staff.shift_end_time || "",
-            "workingDays": staff.working_days || "",
-            "notesBio": staff.notes_bio || ""
+            "workingDays": staff.working_days || ""
         };
 
         // Safely populate text fields
@@ -1572,7 +1599,7 @@ Management Suite{% endblock %} {% block content %}
         const saveBtn = document.getElementById("btnStaffSave");
         const passwordHelp = document.getElementById("passwordHelp");
         const passwordField = document.getElementById("password");
-        
+
         if (staffForm) {
             try {
                 staffForm.reset();
@@ -1580,14 +1607,14 @@ Management Suite{% endblock %} {% block content %}
                 console.warn("Error resetting form:", error);
             }
         }
-        
+
         if (staffId) staffId.value = "";
         if (formMode) formMode.value = "add";
         if (modalLabel) modalLabel.textContent = "Add New Staff Member";
         if (saveBtn) saveBtn.innerHTML = '<i class="fas fa-save me-1"></i>Add Staff';
         if (passwordHelp) passwordHelp.textContent = "Password is required for new staff";
         if (passwordField) passwordField.required = true;
-        
+
         // Clear any previous validation states
         if (staffForm) {
             const inputs = staffForm.querySelectorAll('input, select, textarea');
@@ -1695,7 +1722,7 @@ Management Suite{% endblock %} {% block content %}
         }
 
         console.log("Deleting staff member:", staffId);
-        
+
         try {
             const response = await fetch(`/api/staff/${staffId}`, {
                 method: "DELETE",
@@ -1731,7 +1758,7 @@ Management Suite{% endblock %} {% block content %}
                 }
 
                 currentDeleteId = null; // Clear the stored ID
-                
+
                 // Refresh data with error handling
                 try {
                     await loadStaffData();
@@ -1744,7 +1771,7 @@ Management Suite{% endblock %} {% block content %}
             }
         } catch (error) {
             console.error("Error deleting staff:", error);
-            
+
             let errorMessage = "Error deleting staff member";
             if (error.message.includes("HTTP 404")) {
                 errorMessage = "Staff member not found";
@@ -1755,7 +1782,7 @@ Management Suite{% endblock %} {% block content %}
             } else {
                 errorMessage = `Error: ${error.message}`;
             }
-            
+
             showNotification(errorMessage, "error");
         }
     }
@@ -1831,9 +1858,9 @@ Management Suite{% endblock %} {% block content %}
     // Show notification with comprehensive error handling
     function showNotification(message, type = "info", duration = 5000) {
         console.log(`Showing notification: ${message} (${type})`);
-        
+
         let alertContainer = document.getElementById("alertContainer");
-        
+
         // Create alert container if it doesn't exist
         if (!alertContainer) {
             console.log("Alert container not found, creating one");
@@ -1843,9 +1870,9 @@ Management Suite{% endblock %} {% block content %}
             alertContainer.style.zIndex = "1050";
             document.body.appendChild(alertContainer);
         }
-        
+
         const alertId = "alert-" + Date.now(); // Unique ID for each alert
-        
+
         // Map types for Bootstrap classes
         const typeMap = {
             'success': 'success',
@@ -1854,7 +1881,7 @@ Management Suite{% endblock %} {% block content %}
             'warning': 'warning',
             'info': 'info'
         };
-        
+
         const bootstrapType = typeMap[type] || 'info';
 
         const alertHtml = `
@@ -1919,7 +1946,7 @@ Management Suite{% endblock %} {% block content %}
             colno: event.colno,
             error: event.error
         });
-        
+
         // Show user-friendly message for critical errors
         if (event.message.includes('Cannot set properties of null') || 
             event.message.includes('Cannot read properties of null')) {
