@@ -1630,7 +1630,7 @@ def api_get_customer_appointments_unaki(customer_id):
 
         return jsonify({
             'success': True,
-            'appointments': [apt.to_dict() for apt in appointments]
+            'bookings': [apt.to_dict() for apt in appointments]
         })
 
     except Exception as e:
