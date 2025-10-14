@@ -208,16 +208,16 @@
                             </div>
                             <div class="col-md-4">
                                 <div class="mb-3">
-                                    {{ form.date_of_birth.label(class="form-label") }}
-                                    {{ form.date_of_birth(class="form-control") }}
-                                    <div class="help-text">Optional - for age verification</div>
+                                    {{ form.date_of_birth.label(class="form-label required") }}
+                                    {{ form.date_of_birth(class="form-control", required=true) }}
+                                    <div class="help-text">Date of birth is required</div>
                                 </div>
                             </div>
                             <div class="col-md-4">
                                 <div class="mb-3">
-                                    {{ form.date_of_joining.label(class="form-label") }}
-                                    {{ form.date_of_joining(class="form-control") }}
-                                    <div class="help-text">Leave blank for today's date</div>
+                                    {{ form.date_of_joining.label(class="form-label required") }}
+                                    {{ form.date_of_joining(class="form-control", required=true) }}
+                                    <div class="help-text">Date of joining is required</div>
                                 </div>
                             </div>
                         </div>

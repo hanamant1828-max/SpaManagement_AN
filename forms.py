@@ -301,9 +301,9 @@ class ComprehensiveStaffForm(FlaskForm):
     phone = StringField('Phone', validators=[Optional(), Length(max=20)])
 
     # Personal Details
-    gender = SelectField('Gender', choices=[('male', 'Male'), ('female', 'Female'), ('other', 'Other')])
-    date_of_birth = DateField('Date of Birth', validators=[Optional()])
-    date_of_joining = DateField('Date of Joining', validators=[Optional()])
+    gender = SelectField('Gender', choices=[('', 'Select Gender'), ('male', 'Male'), ('female', 'Female'), ('other', 'Other')], validators=[Optional()])
+    date_of_birth = DateField('Date of Birth', validators=[DataRequired(message='Date of Birth is required')])
+    date_of_joining = DateField('Date of Joining', validators=[DataRequired(message='Date of Joining is required')])
     designation = StringField('Designation', validators=[Optional(), Length(max=100)])
     staff_code = StringField('Staff Code', validators=[Optional(), Length(max=20)])
     notes_bio = TextAreaField('Notes/Bio', validators=[Optional()])
