@@ -2291,15 +2291,16 @@ function resetCustomerAppointments() {
         // --- Calculate Taxable Amount ---
         const taxableAmountAfterTax = Math.max(0, taxableAmountBeforeDiscount - discountAmount);
 
-        // --- Calculate GST (Services are GST-exclusive, Products are GST-inclusive MRP) ---
+        // --- Calculate GST (NEW LOGIC: Services INCLUSIVE, Products EXCLUSIVE) ---
         const gstRate = 0.18; // 18% total (9% CGST + 9% SGST)
 
-        // For services: GST is added on top (exclusive)
-        const serviceGst = servicesSubtotal * gstRate;
+        // For services: GST is INCLUSIVE (extract from price)
+        const serviceBase = servicesSubtotal / (1 + gstRate);
+        const serviceGst = servicesSubtotal - serviceBase;
 
-        // For products (MRP): Extract GST from inclusive price
-        const productBase = productsSubtotal / (1 + gstRate);
-        const productGst = productsSubtotal - productBase;
+        // For products: GST is EXCLUSIVE (add on top)
+        const productBase = productsSubtotal;
+        const productGst = productsSubtotal * gstRate;
 
         // Total GST before discount adjustment
         let totalGst = serviceGst + productGst;
