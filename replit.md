@@ -22,6 +22,8 @@ The application uses Flask and SQLAlchemy, following a modular design with featu
 - **Real-time Validation & Conflict Checking:** The bulk booking modal now features:
   - Modern dropdown time picker with 15-minute intervals (9 AM - 9 PM) replacing prompt-based selection
   - Real-time conflict checking that triggers immediately when users select service, staff, date, or time
+  - Smart end time calculation that only triggers after a service is selected (since duration depends on service)
+  - Dual conflict detection: Staff conflicts (same staff at same time) AND customer conflicts (same customer can't be in two places at once)
   - Visual validation indicators (green checkmarks for valid fields, red borders for conflicts)
   - Animated conflict alerts with shake effects for better user awareness
   - Instant feedback as users fill in fields, preventing booking conflicts before submission
