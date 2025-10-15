@@ -1,7 +1,7 @@
 {% extends "base.html" %} {% block title %}Staff Management - Spa & Salon
 Management Suite{% endblock %} {% block extra_css %}
 <!-- SheetJS library for Excel export -->
-<script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js" onload="console.log('SheetJS loaded successfully')" onerror="console.error('Failed to load SheetJS library')"></script>
+<script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
 {% endblock %}
 
 {% block content %}
@@ -1968,7 +1968,7 @@ Management Suite{% endblock %} {% block extra_css %}
     // Export staff data to Excel
     function exportStaffData() {
         console.log("Export button clicked");
-        
+
         // Check if XLSX library is loaded
         if (typeof XLSX === 'undefined') {
             console.error("SheetJS library not loaded");
@@ -2006,10 +2006,10 @@ Management Suite{% endblock %} {% block extra_css %}
 
             // Create worksheet from JSON data
             const ws = XLSX.utils.json_to_sheet(dataToExport);
-            
+
             // Create a new workbook
             const wb = XLSX.utils.book_new();
-            
+
             // Append worksheet to workbook
             XLSX.utils.book_append_sheet(wb, ws, "Staff Data");
 
@@ -2024,10 +2024,10 @@ Management Suite{% endblock %} {% block extra_css %}
 
             // Write file and trigger download
             XLSX.writeFile(wb, filename);
-            
+
             showNotification(`✓ Staff data exported successfully! Downloaded as ${filename}`, "success");
             console.log("Export completed successfully");
-            
+
         } catch (error) {
             console.error("Error exporting to Excel:", error);
             console.error("Error details:", {
@@ -2207,4 +2207,15 @@ Management Suite{% endblock %} {% block extra_css %}
     }
 </script>
 
+<script>
+    // Verify SheetJS is loaded
+    window.addEventListener('load', function() {
+        if (typeof XLSX !== 'undefined') {
+            console.log('✓ SheetJS library loaded successfully');
+        } else {
+            console.error('✗ SheetJS library failed to load');
+            showNotification("Excel export library not available. Please refresh the page.", "error");
+        }
+    });
+</script>
 {% endblock %}
