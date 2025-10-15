@@ -3710,6 +3710,10 @@
                 });
 
                 // Check against other appointments in the same booking session
+                // Note: In the bulk booking modal, all appointments are for the SAME customer (selected in multiClientSelect)
+                const bulkClientSelect = document.getElementById('multiClientSelect');
+                const isBulkBookingForSameCustomer = bulkClientSelect && bulkClientSelect.value;
+                
                 document.querySelectorAll('.appointment-card').forEach((otherCard, otherIndex) => {
                     if (parseInt(otherCard.dataset.appointmentIndex) === appointmentIndex) return;
 
@@ -3719,9 +3723,10 @@
                     const otherEndTimeInput = otherCard.querySelector('.end-time');
 
                     if (otherStaffSelect.value && otherDateInput.value && otherStartTimeInput.value && otherEndTimeInput.value) {
+                        // Check for STAFF conflicts (same staff, same time)
                         if (parseInt(otherStaffSelect.value) === staffId && otherDateInput.value === date) {
                             if (timesOverlap(startTime, endTime, otherStartTimeInput.value, otherEndTimeInput.value)) {
-                                const message = `⚠️ Conflict with Appointment #${otherIndex + 1}`;
+                                const message = `⚠️ Staff conflict with Appointment #${otherIndex + 1} - Same staff at same time`;
                                 if (conflictMessageSpan) conflictMessageSpan.textContent = message;
                                 if (conflictAlert) {
                                     conflictAlert.classList.remove('d-none');
@@ -3733,6 +3738,26 @@
                                 // Visual feedback
                                 staffSelect.style.borderColor = '#ef4444';
                                 dateInput.style.borderColor = '#ef4444';
+                            }
+                        }
+                        
+                        // Check for CUSTOMER conflicts (same customer can't have overlapping appointments)
+                        // Only check if we're in bulk booking mode where all appointments are for the same customer
+                        if (isBulkBookingForSameCustomer && otherDateInput.value === date) {
+                            if (timesOverlap(startTime, endTime, otherStartTimeInput.value, otherEndTimeInput.value)) {
+                                const message = `⚠️ Customer conflict with Appointment #${otherIndex + 1} - Customer can't be in two places at once`;
+                                if (conflictMessageSpan) conflictMessageSpan.textContent = message;
+                                if (conflictAlert) {
+                                    conflictAlert.classList.remove('d-none');
+                                    conflictAlert.style.animation = 'shake 0.5s';
+                                }
+                                appointment.classList.add('duplicate');
+                                hasConflict = true;
+                                
+                                // Visual feedback
+                                dateInput.style.borderColor = '#ef4444';
+                                const startTimeSelect = appointment.querySelector('.start-time-select');
+                                if (startTimeSelect) startTimeSelect.style.borderColor = '#ef4444';
                             }
                         }
                     }
