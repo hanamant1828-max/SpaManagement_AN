@@ -3512,6 +3512,12 @@
                     if (minuteInput) minuteInput.value = '00';
                     if (periodSelect) periodSelect.value = 'AM';
 
+                    // Populate the start time dropdown
+                    const startTimeDropdown = firstCard.querySelector('.start-time-select');
+                    if (startTimeDropdown) {
+                        populateTimeOptions(startTimeDropdown, 9, 21, '09:00');
+                    }
+
                     const alert = firstCard.querySelector(".alert");
                     if (alert) alert.classList.add("d-none");
                     firstCard.classList.remove("duplicate");
@@ -3631,6 +3637,12 @@
                 // Initialize the new appointment card
                 const newCard = document.querySelector(`[data-appointment-index="${appointmentCounter}"]`);
                 if (newCard) {
+                    // Populate time dropdown for the new appointment
+                    const startTimeDropdown = newCard.querySelector('.start-time-select');
+                    if (startTimeDropdown) {
+                        populateTimeOptions(startTimeDropdown, 9, 21, '09:00');
+                    }
+                    
                     initializeAppointmentCardValidation(newCard);
                 }
 
