@@ -3387,11 +3387,6 @@
                 if (hourInput && minuteInput && periodSelect && hiddenInput) {
                     const updateAndValidateTime = () => {
                         updateHiddenTimeInput(hourInput, minuteInput, periodSelect, hiddenInput);
-                        // Update 12-hour display
-                        const endTimeDisplay = card.querySelector('.end-time-display');
-                        if (endTimeDisplay) {
-                            endTimeDisplay.value = convertTo12Hour(hiddenInput.value);
-                        }
                         // Trigger validation and conflict check
                         calculateEndTime(index);
                         checkConflictsRealtime(index);
