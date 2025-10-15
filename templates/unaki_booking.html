@@ -1027,6 +1027,27 @@
                 }
             }
 
+            @keyframes shake {
+                0%, 100% { transform: translateX(0); }
+                10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+                20%, 40%, 60%, 80% { transform: translateX(5px); }
+            }
+
+            /* Enhanced validation states */
+            .form-control.is-valid, .form-select.is-valid {
+                border-color: #10b981 !important;
+                background-image: none;
+            }
+            
+            .form-control.is-invalid, .form-select.is-invalid {
+                border-color: #ef4444 !important;
+                background-image: none;
+            }
+
+            .validation-icon {
+                transition: all 0.3s ease;
+            }
+
             /* ==================== SCROLLBAR ==================== */
             ::-webkit-scrollbar {
                 width: 14px;
@@ -2085,6 +2106,9 @@
                                                     "
                                                 ></i
                                                 >Service
+                                                <span class="validation-icon ms-2" style="display: none;">
+                                                    <i class="fas fa-check-circle text-success"></i>
+                                                </span>
                                             </label>
                                             <select
                                                 name="service_id"
@@ -2094,6 +2118,8 @@
                                                     border-radius: 10px;
                                                     padding: 12px;
                                                     width: 100%;
+                                                    border: 2px solid #e2e8f0;
+                                                    transition: all 0.3s;
                                                 "
                                             >
                                                 <option value="">
@@ -2128,6 +2154,9 @@
                                                     "
                                                 ></i
                                                 >Staff Member
+                                                <span class="validation-icon ms-2" style="display: none;">
+                                                    <i class="fas fa-check-circle text-success"></i>
+                                                </span>
                                             </label>
                                             <select
                                                 name="staff_id"
@@ -2136,6 +2165,8 @@
                                                 style="
                                                     border-radius: 10px;
                                                     padding: 12px;
+                                                    border: 2px solid #e2e8f0;
+                                                    transition: all 0.3s;
                                                 "
                                             >
                                                 <option value="">
@@ -2167,6 +2198,9 @@
                                                     "
                                                 ></i
                                                 >Date
+                                                <span class="validation-icon ms-2" style="display: none;">
+                                                    <i class="fas fa-check-circle text-success"></i>
+                                                </span>
                                             </label>
                                             <input
                                                 type="date"
@@ -2177,6 +2211,8 @@
                                                 style="
                                                     border-radius: 10px;
                                                     padding: 12px;
+                                                    border: 2px solid #e2e8f0;
+                                                    transition: all 0.3s;
                                                 "
                                             />
                                         </div>
@@ -2193,6 +2229,9 @@
                                                     "
                                                 ></i
                                                 >Start Time
+                                                <span class="validation-icon ms-2" style="display: none;">
+                                                    <i class="fas fa-check-circle text-success"></i>
+                                                </span>
                                             </label>
                                             <!-- Hidden 24-hour input for backend -->
                                             <input
@@ -2203,16 +2242,13 @@
                                                 required
                                                 style="display: none;"
                                             />
-                                            <!-- Visible 12-hour display -->
-                                            <input
-                                                type="text"
-                                                class="form-control start-time-display"
-                                                value="9:00 AM"
-                                                readonly
-                                                onclick="showTimePicker(this)"
-                                                style="cursor: pointer; background: white; font-weight: 600; color: var(--primary-color); border-radius: 10px; padding: 12px;"
-                                                placeholder="Click to select time"
-                                            />
+                                            <!-- User-friendly time selector dropdown -->
+                                            <select
+                                                class="form-select start-time-select"
+                                                style="border-radius: 10px; padding: 12px; font-weight: 600; color: var(--primary-color); border: 2px solid #e2e8f0; transition: all 0.3s;"
+                                            >
+                                                <!-- Options will be populated by JavaScript -->
+                                            </select>
                                         </div>
                                         <div class="col-md-4 mb-3">
                                             <label
@@ -2540,78 +2576,47 @@
                 return { valid: true };
             }
 
-            // Show custom time picker for 12-hour format selection
-            function showTimePicker(displayInput) {
-                const card = displayInput.closest('.appointment-card');
-                const hiddenInput = card.querySelector('.start-time-24h');
-                const currentTime = hiddenInput.value || '09:00';
-
-                // Convert current time to 12-hour format
-                const time12 = convertTo12Hour(currentTime);
-
-                // Create time picker with validation loop
-                let attempts = 0;
-                while (attempts < 3) {
-                    const newTime = prompt(
-                        `Enter time in 12-hour format:\nFormat: HH:MM AM/PM (e.g., 2:30 PM)\nCurrent: ${time12}`,
-                        time12
-                    );
-
-                    // User cancelled
-                    if (newTime === null) {
-                        return;
+            // Populate time dropdown with 15-minute intervals
+            function populateTimeOptions(selectElement, startHour = 9, endHour = 21, selectedTime = '09:00') {
+                selectElement.innerHTML = '';
+                
+                for (let hour = startHour; hour <= endHour; hour++) {
+                    for (let minute = 0; minute < 60; minute += 15) {
+                        const time24 = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+                        const time12 = convertTo12Hour(time24);
+                        const option = document.createElement('option');
+                        option.value = time24;
+                        option.textContent = time12;
+                        if (time24 === selectedTime) {
+                            option.selected = true;
+                        }
+                        selectElement.appendChild(option);
                     }
-
-                    // Parse and validate
-                    const parts = newTime.trim().toUpperCase().split(' ');
-
-                    if (parts.length !== 2) {
-                        alert('Invalid format. Please use HH:MM AM/PM (e.g., 2:30 PM)');
-                        attempts++;
-                        continue;
-                    }
-
-                    const [time, ampm] = parts;
-
-                    // Validate the input
-                    const validation = validateTimeInput(time, ampm);
-
-                    if (!validation.valid) {
-                        alert(validation.error);
-                        attempts++;
-                        continue;
-                    }
-
-                    // Convert to 24-hour format
-                    const time24 = convertTo24Hour(time, ampm);
-
-                    // Double-check the 24-hour format is valid
-                    const [h24, m24] = time24.split(':').map(Number);
-                    if (isNaN(h24) || isNaN(m24) || h24 < 0 || h24 > 23 || m24 < 0 || m24 > 59) {
-                        alert('Time conversion error. Please try again.');
-                        attempts++;
-                        continue;
-                    }
-
-                    // All validations passed - update the inputs
-                    hiddenInput.value = time24;
-                    displayInput.value = convertTo12Hour(time24);
-
-                    // Trigger change events
-                    hiddenInput.dispatchEvent(new Event('change'));
-
-                    // Recalculate end time
-                    const index = parseInt(card.dataset.appointmentIndex);
-                    calculateEndTime(index);
-                    checkConflicts(index);
-                    updateSummary();
-                    updateSubmitButton();
-
-                    return; // Success
                 }
+            }
 
-                // Max attempts reached
-                alert('Too many invalid attempts. Please try again later.');
+            // Handle time selection change
+            function handleTimeChange(selectElement) {
+                const card = selectElement.closest('.appointment-card');
+                const hiddenInput = card.querySelector('.start-time-24h');
+                const time24 = selectElement.value;
+                
+                // Update hidden input
+                hiddenInput.value = time24;
+                
+                // Trigger validation and conflict check
+                const index = parseInt(card.dataset.appointmentIndex);
+                calculateEndTime(index);
+                checkConflictsRealtime(index);
+                updateSummary();
+                updateSubmitButton();
+                
+                // Show validation icon
+                const validationIcon = selectElement.closest('.col-md-4').querySelector('.validation-icon');
+                if (validationIcon && time24) {
+                    validationIcon.style.display = 'inline-block';
+                    selectElement.style.borderColor = '#10b981';
+                }
             }
 
             // Update all 12-hour displays when page loads or times change
@@ -3363,6 +3368,76 @@
                 modal.show();
             }
 
+            // Initialize real-time validation for an appointment card
+            function initializeAppointmentCardValidation(card) {
+                const index = parseInt(card.dataset.appointmentIndex);
+                
+                // Initialize time dropdown
+                const timeSelect = card.querySelector('.start-time-select');
+                if (timeSelect) {
+                    const hiddenTimeInput = card.querySelector('.start-time-24h');
+                    populateTimeOptions(timeSelect, 9, 21, hiddenTimeInput?.value || '09:00');
+                    
+                    // Add change event listener
+                    timeSelect.addEventListener('change', function() {
+                        handleTimeChange(this);
+                    });
+                }
+                
+                // Add real-time validation for service selection
+                const serviceSelect = card.querySelector('.service-select');
+                if (serviceSelect) {
+                    serviceSelect.addEventListener('change', function() {
+                        const validationIcon = this.closest('.col-md-6').querySelector('.validation-icon');
+                        if (this.value) {
+                            if (validationIcon) validationIcon.style.display = 'inline-block';
+                            this.style.borderColor = '#10b981';
+                            calculateEndTime(index);
+                            updateSummary();
+                            checkConflictsRealtime(index);
+                        } else {
+                            if (validationIcon) validationIcon.style.display = 'none';
+                            this.style.borderColor = '#e2e8f0';
+                        }
+                        updateSubmitButton();
+                    });
+                }
+                
+                // Add real-time validation for staff selection
+                const staffSelect = card.querySelector('.staff-select');
+                if (staffSelect) {
+                    staffSelect.addEventListener('change', function() {
+                        const validationIcon = this.closest('.col-md-6').querySelector('.validation-icon');
+                        if (this.value) {
+                            if (validationIcon) validationIcon.style.display = 'inline-block';
+                            this.style.borderColor = '#10b981';
+                            checkConflictsRealtime(index);
+                        } else {
+                            if (validationIcon) validationIcon.style.display = 'none';
+                            this.style.borderColor = '#e2e8f0';
+                        }
+                        updateSubmitButton();
+                    });
+                }
+                
+                // Add real-time validation for date selection
+                const dateInput = card.querySelector('.appointment-date');
+                if (dateInput) {
+                    dateInput.addEventListener('change', function() {
+                        const validationIcon = this.closest('.col-md-4').querySelector('.validation-icon');
+                        if (this.value) {
+                            if (validationIcon) validationIcon.style.display = 'inline-block';
+                            this.style.borderColor = '#10b981';
+                            checkConflictsRealtime(index);
+                        } else {
+                            if (validationIcon) validationIcon.style.display = 'none';
+                            this.style.borderColor = '#e2e8f0';
+                        }
+                        updateSubmitButton();
+                    });
+                }
+            }
+
             function resetMultiBookModal() {
                 // Destroy Select2 instances before resetting
                 $('.select2-dropdown').select2('destroy');
@@ -3385,8 +3460,12 @@
                     firstCard.querySelector(".appointment-date").value = "{{ today }}";
                     firstCard.querySelector(".start-time").value = "09:00";
                     firstCard.querySelector(".end-time").value = "";
-                    firstCard.querySelector(".alert").classList.add("d-none");
+                    const alert = firstCard.querySelector(".alert");
+                    if (alert) alert.classList.add("d-none");
                     firstCard.classList.remove("duplicate");
+                    
+                    // Initialize real-time validation for the first card
+                    initializeAppointmentCardValidation(firstCard);
                 }
 
                 // Reinitialize Select2
@@ -3410,8 +3489,11 @@
                             <div class="col-md-6 mb-3">
                                 <label class="form-label fw-semibold">
                                     <i class="fas fa-concierge-bell me-2" style="color: var(--primary-color);"></i>Service
+                                    <span class="validation-icon ms-2" style="display: none;">
+                                        <i class="fas fa-check-circle text-success"></i>
+                                    </span>
                                 </label>
-                                <select name="service_id" class="form-select service-select select2-dropdown" required style="border-radius: 10px; padding: 12px; width: 100%;">
+                                <select name="service_id" class="form-select service-select select2-dropdown" required style="border-radius: 10px; padding: 12px; width: 100%; border: 2px solid #e2e8f0; transition: all 0.3s;">
                                     <option value="">Select service...</option>
                                     {% if services %}
                                         {% for service in services %}
@@ -3425,8 +3507,11 @@
                             <div class="col-md-6 mb-3">
                                 <label class="form-label fw-semibold">
                                     <i class="fas fa-user-md me-2" style="color: var(--primary-color);"></i>Staff Member
+                                    <span class="validation-icon ms-2" style="display: none;">
+                                        <i class="fas fa-check-circle text-success"></i>
+                                    </span>
                                 </label>
-                                <select name="staff_id" class="form-select staff-select select2-dropdown" required style="border-radius: 10px; padding: 12px;">
+                                <select name="staff_id" class="form-select staff-select select2-dropdown" required style="border-radius: 10px; padding: 12px; border: 2px solid #e2e8f0; transition: all 0.3s;">
                                     <option value="">Select staff member...</option>
                                     {% if staff_members %}
                                         {% for staff in staff_members %}
@@ -3441,17 +3526,25 @@
                             <div class="col-md-4 mb-3">
                                 <label class="form-label fw-semibold">
                                     <i class="fas fa-calendar me-2" style="color: var(--primary-color);"></i>Date
+                                    <span class="validation-icon ms-2" style="display: none;">
+                                        <i class="fas fa-check-circle text-success"></i>
+                                    </span>
                                 </label>
-                                <input type="date" name="date" class="form-control appointment-date" value="{{ today }}" required style="border-radius: 10px; padding: 12px;">
+                                <input type="date" name="date" class="form-control appointment-date" value="{{ today }}" required style="border-radius: 10px; padding: 12px; border: 2px solid #e2e8f0; transition: all 0.3s;">
                             </div>
                             <div class="col-md-4 mb-3">
                                 <label class="form-label fw-semibold">
                                     <i class="fas fa-clock me-2" style="color: var(--primary-color);"></i>Start Time
+                                    <span class="validation-icon ms-2" style="display: none;">
+                                        <i class="fas fa-check-circle text-success"></i>
+                                    </span>
                                 </label>
                                 <!-- Hidden 24-hour input for backend -->
                                 <input type="time" name="start_time" class="form-control start-time start-time-24h" value="09:00" required style="display: none;">
-                                <!-- Visible 12-hour display -->
-                                <input type="text" class="form-control start-time-display" value="9:00 AM" readonly onclick="showTimePicker(this)" style="cursor: pointer; background: white; font-weight: 600; color: var(--primary-color); border-radius: 10px; padding: 12px;" placeholder="Click to select time">
+                                <!-- User-friendly time selector dropdown -->
+                                <select class="form-select start-time-select" style="border-radius: 10px; padding: 12px; font-weight: 600; color: var(--primary-color); border: 2px solid #e2e8f0; transition: all 0.3s;">
+                                    <!-- Options will be populated by JavaScript -->
+                                </select>
                             </div>
                             <div class="col-md-4 mb-3">
                                 <label class="form-label fw-semibold">
@@ -3464,27 +3557,27 @@
                             </div>
                         </div>
 
-                        <div class="mb-3">
-                            <label class="form-label fw-semibold">
-                                <i class="fas fa-sticky-note me-2" style="color: var(--primary-color);"></i>Notes
-                            </label>
-                            <textarea name="notes" class="form-control" rows="2" style="border-radius: 10px; padding: 12px;" placeholder="Optional notes..."></textarea>
-                        </div>
-
-                        <div class="alert alert-danger conflict-warning" style="display: none; border-radius: 10px;">
-                            <i class="fas fa-exclamation-triangle me-2"></i>
-                            <span class="conflict-message"></span>
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div id="conflictAlert${appointmentCounter}" class="alert alert-warning d-none" style="border-radius: 10px">
+                                    <i class="fas fa-exclamation-triangle me-2"></i>
+                                    <span class="conflict-message"></span>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 `;
 
                 document.getElementById('appointmentsContainer').insertAdjacentHTML('beforeend', newAppointment);
+                
+                // Initialize the new appointment card
+                const newCard = document.querySelector(`[data-appointment-index="${appointmentCounter}"]`);
+                if (newCard) {
+                    initializeAppointmentCardValidation(newCard);
+                }
+                
                 updateAppointmentCount();
                 initializeSearchableDropdowns();
-
-                // Add event listeners for the new appointment
-                const newCard = document.querySelector(`[data-appointment-index="${appointmentCounter}"]`);
-                setupAppointmentEventListeners(newCard, appointmentCounter);
 
                 // Initialize 12-hour time display for the new card
                 syncAll12HourDisplays();
@@ -3560,7 +3653,8 @@
                 endTimeInput.value = endTime;
             }
 
-            function checkConflicts(appointmentIndex) {
+            // Real-time conflict checking with visual feedback
+            function checkConflictsRealtime(appointmentIndex) {
                 const appointment = document.querySelector(`[data-appointment-index="${appointmentIndex}"]`);
                 if (!appointment) return;
 
@@ -3571,10 +3665,14 @@
                 const conflictAlert = appointment.querySelector(`#conflictAlert${appointmentIndex}`);
                 const conflictMessageSpan = conflictAlert?.querySelector('.conflict-message');
 
+                // Reset conflict state
                 if (conflictAlert) conflictAlert.classList.add('d-none');
                 appointment.classList.remove('duplicate');
 
-                if (!staffSelect.value || !dateInput.value || !startTimeInput.value || !endTimeInput.value) return;
+                // Don't check if any required field is missing
+                if (!staffSelect.value || !dateInput.value || !startTimeInput.value || !endTimeInput.value) {
+                    return;
+                }
 
                 const staffId = parseInt(staffSelect.value);
                 const date = dateInput.value;
@@ -3583,14 +3681,24 @@
 
                 const timesOverlap = (start1, end1, start2, end2) => start1 < end2 && end1 > start2;
 
+                let hasConflict = false;
+
                 // Check against existing bookings
                 bookingsData.forEach(booking => {
                     if (booking.staff_id == staffId && booking.appointment_date === date) {
                         if (timesOverlap(startTime, endTime, booking.start_time, booking.end_time)) {
-                            const message = `Staff member is already booked from ${booking.start_time} to ${booking.end_time}`;
+                            const message = `⚠️ Staff member is already booked from ${convertTo12Hour(booking.start_time)} to ${convertTo12Hour(booking.end_time)}`;
                             if (conflictMessageSpan) conflictMessageSpan.textContent = message;
-                            if (conflictAlert) conflictAlert.classList.remove('d-none');
+                            if (conflictAlert) {
+                                conflictAlert.classList.remove('d-none');
+                                conflictAlert.style.animation = 'shake 0.5s';
+                            }
                             appointment.classList.add('duplicate');
+                            hasConflict = true;
+                            
+                            // Visual feedback on fields
+                            staffSelect.style.borderColor = '#ef4444';
+                            dateInput.style.borderColor = '#ef4444';
                         }
                     }
                 });
@@ -3607,16 +3715,24 @@
                     if (otherStaffSelect.value && otherDateInput.value && otherStartTimeInput.value && otherEndTimeInput.value) {
                         if (parseInt(otherStaffSelect.value) === staffId && otherDateInput.value === date) {
                             if (timesOverlap(startTime, endTime, otherStartTimeInput.value, otherEndTimeInput.value)) {
-                                const message = `Conflict with Appointment #${otherIndex + 1}`;
+                                const message = `⚠️ Conflict with Appointment #${otherIndex + 1}`;
                                 if (conflictMessageSpan) conflictMessageSpan.textContent = message;
-                                if (conflictAlert) conflictAlert.classList.remove('d-none');
+                                if (conflictAlert) {
+                                    conflictAlert.classList.remove('d-none');
+                                    conflictAlert.style.animation = 'shake 0.5s';
+                                }
                                 appointment.classList.add('duplicate');
+                                hasConflict = true;
+                                
+                                // Visual feedback
+                                staffSelect.style.borderColor = '#ef4444';
+                                dateInput.style.borderColor = '#ef4444';
                             }
                         }
                     }
                 });
 
-                // Check shift constraints via backend
+                // Check shift constraints via backend (real-time)
                 fetch('/api/unaki/check-conflicts', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -3626,14 +3742,30 @@
                 .then(data => {
                     if (data.shift_violation || (data.has_conflicts && data.conflicts?.length)) {
                         const message = data.reason || (data.conflicts?.[0] ?
-                            `Conflicts with ${data.conflicts[0].client_name || 'booking'} (${data.conflicts[0].start_time} - ${data.conflicts[0].end_time})` :
-                            'Shift constraint violation');
+                            `⚠️ Conflicts with ${data.conflicts[0].client_name || 'booking'} (${convertTo12Hour(data.conflicts[0].start_time)} - ${convertTo12Hour(data.conflicts[0].end_time)})` :
+                            '⚠️ Shift constraint violation');
                         if (conflictMessageSpan) conflictMessageSpan.textContent = message;
-                        if (conflictAlert) conflictAlert.classList.remove('d-none');
+                        if (conflictAlert) {
+                            conflictAlert.classList.remove('d-none');
+                            conflictAlert.style.animation = 'shake 0.5s';
+                        }
                         appointment.classList.add('duplicate');
+                        
+                        // Visual feedback
+                        staffSelect.style.borderColor = '#ef4444';
+                        dateInput.style.borderColor = '#ef4444';
+                    } else if (!hasConflict) {
+                        // No conflicts - show success state
+                        staffSelect.style.borderColor = '#10b981';
+                        dateInput.style.borderColor = '#10b981';
                     }
                 })
                 .catch(error => console.error('Error checking conflicts:', error));
+            }
+
+            // Legacy function for backward compatibility
+            function checkConflicts(appointmentIndex) {
+                checkConflictsRealtime(appointmentIndex);
             }
 
             function updateSummary() {
