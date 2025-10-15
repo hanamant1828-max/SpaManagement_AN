@@ -3500,9 +3500,6 @@
                     
                     const endTimeHidden = firstCard.querySelector(".end-time-24h");
                     if (endTimeHidden) endTimeHidden.value = "";
-                    
-                    const endTimeDropdown = firstCard.querySelector(".end-time-select");
-                    if (endTimeDropdown) endTimeDropdown.value = ""; // Clear end time dropdown
 
                     // Populate the start time dropdown
                     const startTimeDropdown = firstCard.querySelector('.start-time-select');
@@ -3510,10 +3507,11 @@
                         populateTimeOptions(startTimeDropdown, 9, 21, '09:00');
                     }
 
-                    // Populate the end time dropdown
+                    // Populate and clear the end time dropdown
                     const endTimeDropdown = firstCard.querySelector('.end-time-select');
                     if (endTimeDropdown) {
                         populateTimeOptions(endTimeDropdown, 9, 21, '');
+                        endTimeDropdown.value = ""; // Clear selection
                     }
 
                     const alert = firstCard.querySelector(".alert");
