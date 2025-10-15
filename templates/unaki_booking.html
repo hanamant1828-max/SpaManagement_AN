@@ -2606,7 +2606,13 @@
                 
                 // Trigger validation and conflict check
                 const index = parseInt(card.dataset.appointmentIndex);
-                calculateEndTime(index);
+                
+                // Only calculate end time if a service is selected
+                const serviceSelect = card.querySelector('.service-select');
+                if (serviceSelect && serviceSelect.value) {
+                    calculateEndTime(index);
+                }
+                
                 checkConflictsRealtime(index);
                 updateSummary();
                 updateSubmitButton();
