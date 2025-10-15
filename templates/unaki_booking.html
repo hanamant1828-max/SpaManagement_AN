@@ -2729,18 +2729,10 @@
                                         <i class="fas fa-check-circle text-success"></i>
                                     </span>
                                 </label>
-                                <!-- Manual editable end time input fields -->
-                                <div class="d-flex align-items-center time-input-group" style="border: 2px solid #e2e8f0; border-radius: 10px; padding: 6px 12px; transition: all 0.3s;">
-                                    <input type="number" class="form-control end-time-hour border-0 shadow-none p-0" min="1" max="12" placeholder="12" style="width: 50px;">
-                                    <span class="text-muted">:</span>
-                                    <input type="number" class="form-control end-time-minute border-0 shadow-none p-0" min="0" max="59" placeholder="00" style="width: 50px;">
-                                    <select class="form-select end-time-period border-0 shadow-none p-0" style="width: 70px;">
-                                        <option value="AM">AM</option>
-                                        <option value="PM">PM</option>
-                                    </select>
-                                </div>
                                 <!-- Hidden 24-hour input for backend -->
-                                <input type="time" name="end_time" class="form-control end-time end-time-24h" required style="display: none;">
+                                <input type="time" name="end_time" class="form-control end-time end-time-24h" style="display: none;">
+                                <!-- Visible editable time display (read-only for now) -->
+                                <input type="text" class="form-control end-time-display" readonly style="border-radius: 10px; padding: 12px; font-weight: 600; color: var(--success-color); border: 2px solid #e2e8f0; transition: all 0.3s;">
                             </div>
                         </div>
 
@@ -2761,7 +2753,14 @@
                 const newCard = document.querySelector(`[data-appointment-index="${newAppointmentIndex}"]`);
                 if (newCard) {
                     initializeAppointmentCardValidation(newCard);
-                    // Ensure the end time select is cleared initially
+                    // Ensure the start time dropdown is populated if it's the first card being added
+                    if (newAppointmentIndex === 0) {
+                        const startTimeDropdown = newCard.querySelector('.start-time-select');
+                        if (startTimeDropdown) {
+                            populateTimeDropdown(startTimeDropdown, '09:00');
+                        }
+                    }
+                    // Clear end time dropdown initially
                     const endTimeDropdown = newCard.querySelector('.end-time-select');
                     if (endTimeDropdown) {
                         endTimeDropdown.innerHTML = '<option value="">Select time...</option>';
@@ -2854,18 +2853,10 @@
                                         <i class="fas fa-check-circle text-success"></i>
                                     </span>
                                 </label>
-                                <!-- Manual editable end time input fields -->
-                                <div class="d-flex align-items-center time-input-group" style="border: 2px solid #e2e8f0; border-radius: 10px; padding: 6px 12px; transition: all 0.3s;">
-                                    <input type="number" class="form-control end-time-hour border-0 shadow-none p-0" min="1" max="12" placeholder="12" style="width: 50px;">
-                                    <span class="text-muted">:</span>
-                                    <input type="number" class="form-control end-time-minute border-0 shadow-none p-0" min="0" max="59" placeholder="00" style="width: 50px;">
-                                    <select class="form-select end-time-period border-0 shadow-none p-0" style="width: 70px;">
-                                        <option value="AM">AM</option>
-                                        <option value="PM">PM</option>
-                                    </select>
-                                </div>
                                 <!-- Hidden 24-hour input for backend -->
-                                <input type="time" name="end_time" class="form-control end-time end-time-24h" required style="display: none;">
+                                <input type="time" name="end_time" class="form-control end-time end-time-24h" style="display: none;">
+                                <!-- Visible editable time display (read-only for now) -->
+                                <input type="text" class="form-control end-time-display" readonly style="border-radius: 10px; padding: 12px; font-weight: 600; color: var(--success-color); border: 2px solid #e2e8f0; transition: all 0.3s;">
                             </div>
                         </div>
 
