@@ -1028,18 +1028,34 @@
             }
 
             @keyframes shake {
-                0%, 100% { transform: translateX(0); }
-                10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
-                20%, 40%, 60%, 80% { transform: translateX(5px); }
+                0%,
+                100% {
+                    transform: translateX(0);
+                }
+                10%,
+                30%,
+                50%,
+                70%,
+                90% {
+                    transform: translateX(-5px);
+                }
+                20%,
+                40%,
+                60%,
+                80% {
+                    transform: translateX(5px);
+                }
             }
 
             /* Enhanced validation states */
-            .form-control.is-valid, .form-select.is-valid {
+            .form-control.is-valid,
+            .form-select.is-valid {
                 border-color: #10b981 !important;
                 background-image: none;
             }
-            
-            .form-control.is-invalid, .form-select.is-invalid {
+
+            .form-control.is-invalid,
+            .form-select.is-invalid {
                 border-color: #ef4444 !important;
                 background-image: none;
             }
@@ -1381,73 +1397,73 @@
         </div>
 
         <script>
-        // Cancel all appointments for a specific customer from Unaki booking view
-        function cancelAllCustomerAppointments(customerId, customerName) {
-            if (!customerId) {
-                alert('Please select a customer first');
-                return;
-            }
+            // Cancel all appointments for a specific customer from Unaki booking view
+            function cancelAllCustomerAppointments(customerId, customerName) {
+                if (!customerId) {
+                    alert('Please select a customer first');
+                    return;
+                }
 
-            // Get all appointments for this customer
-            fetch(`/api/unaki/customer-appointments/${customerId}`)
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success && data.bookings) {
-                        const activeAppointments = data.bookings.filter(
-                            apt => apt.status === 'scheduled' || apt.status === 'confirmed'
-                        );
-
-                        if (activeAppointments.length === 0) {
-                            alert('No active appointments found for this customer');
-                            return;
-                        }
-
-                        const appointmentsList = activeAppointments.map(apt => 
-                            `- ${apt.service_name} on ${apt.appointment_date} at ${apt.start_time}`
-                        ).join('\n');
-
-                        const confirmMessage = `Are you sure you want to cancel ALL ${activeAppointments.length} appointment(s) for ${customerName}?\n\nAppointments:\n${appointmentsList}`;
-
-                        if (confirm(confirmMessage)) {
-                            // Cancel all appointments using PATCH endpoint
-                            const cancelPromises = activeAppointments.map(apt => 
-                                fetch(`/api/unaki/bookings/${apt.id}`, {
-                                    method: 'PATCH',
-                                    headers: {
-                                        'Content-Type': 'application/json',
-                                    },
-                                    body: JSON.stringify({ status: 'cancelled' })
-                                }).then(r => r.json())
+                // Get all appointments for this customer
+                fetch(`/api/unaki/customer-appointments/${customerId}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success && data.bookings) {
+                            const activeAppointments = data.bookings.filter(
+                                apt => apt.status === 'scheduled' || apt.status === 'confirmed'
                             );
 
-                            Promise.all(cancelPromises)
-                                .then(results => {
-                                    const successCount = results.filter(r => r.success).length;
-                                    const failCount = results.length - successCount;
+                            if (activeAppointments.length === 0) {
+                                alert('No active appointments found for this customer');
+                                return;
+                            }
 
-                                    if (failCount === 0) {
-                                        alert(`✅ Successfully cancelled all ${successCount} appointments for ${customerName}`);
-                                        // Refresh the schedule
-                                        refreshSchedule();
-                                    } else {
-                                        alert(`⚠️ Cancelled ${successCount} appointments, ${failCount} failed`);
-                                        refreshSchedule();
-                                    }
-                                })
-                                .catch(error => {
-                                    console.error('Error cancelling appointments:', error);
-                                    alert('Error cancelling appointments. Please try again.');
-                                });
+                            const appointmentsList = activeAppointments.map(apt =>
+                                `- ${apt.service_name} on ${apt.appointment_date} at ${apt.start_time}`
+                            ).join('\n');
+
+                            const confirmMessage = `Are you sure you want to cancel ALL ${activeAppointments.length} appointment(s) for ${customerName}?\n\nAppointments:\n${appointmentsList}`;
+
+                            if (confirm(confirmMessage)) {
+                                // Cancel all appointments using PATCH endpoint
+                                const cancelPromises = activeAppointments.map(apt =>
+                                    fetch(`/api/unaki/bookings/${apt.id}`, {
+                                        method: 'PATCH',
+                                        headers: {
+                                            'Content-Type': 'application/json',
+                                        },
+                                        body: JSON.stringify({ status: 'cancelled' })
+                                    }).then(r => r.json())
+                                );
+
+                                Promise.all(cancelPromises)
+                                    .then(results => {
+                                        const successCount = results.filter(r => r.success).length;
+                                        const failCount = results.length - successCount;
+
+                                        if (failCount === 0) {
+                                            alert(`✅ Successfully cancelled all ${successCount} appointments for ${customerName}`);
+                                            // Refresh the schedule
+                                            refreshSchedule();
+                                        } else {
+                                            alert(`⚠️ Cancelled ${successCount} appointments, ${failCount} failed`);
+                                            refreshSchedule();
+                                        }
+                                    })
+                                    .catch(error => {
+                                        console.error('Error cancelling appointments:', error);
+                                        alert('Error cancelling appointments. Please try again.');
+                                    });
+                            }
+                        } else {
+                            alert('Failed to load customer appointments');
                         }
-                    } else {
-                        alert('Failed to load customer appointments');
-                    }
-                })
-                .catch(error => {
-                    console.error('Error loading appointments:', error);
-                    alert('Error loading customer appointments');
-                });
-        }
+                    })
+                    .catch(error => {
+                        console.error('Error loading appointments:', error);
+                        alert('Error loading customer appointments');
+                    });
+            }
         </script>
 
         <!-- Edit Appointment Modal -->
@@ -2579,7 +2595,7 @@
             // Populate time dropdown with 15-minute intervals
             function populateTimeOptions(selectElement, startHour = 9, endHour = 21, selectedTime = '09:00') {
                 selectElement.innerHTML = '';
-                
+
                 for (let hour = startHour; hour <= endHour; hour++) {
                     for (let minute = 0; minute < 60; minute += 15) {
                         const time24 = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
@@ -2595,57 +2611,41 @@
                 }
             }
 
-            // Handle time selection change
-            function handleTimeChange(selectElement) {
-                const card = selectElement.closest('.appointment-card');
-                const hiddenInput = card.querySelector('.start-time-24h');
-                const time24 = selectElement.value;
-                
-                // Update hidden input
-                hiddenInput.value = time24;
-                
-                // Trigger validation and conflict check
-                const index = parseInt(card.dataset.appointmentIndex);
-                
-                // Only calculate end time if a service is selected
-                const serviceSelect = card.querySelector('.service-select');
-                if (serviceSelect && serviceSelect.value) {
-                    calculateEndTime(index);
+            // Helper function to update the hidden 24-hour time input based on manual inputs
+            function updateHiddenTimeInput(hourInput, minuteInput, periodSelect, hiddenInput) {
+                const hour = parseInt(hourInput.value) || 9;
+                const minute = parseInt(minuteInput.value) || 0;
+                const period = periodSelect.value;
+
+                // Convert to 24-hour format
+                let hour24 = hour;
+                if (period === 'PM' && hour !== 12) {
+                    hour24 = hour + 12;
+                } else if (period === 'AM' && hour === 12) {
+                    hour24 = 0;
                 }
-                
-                checkConflictsRealtime(index);
-                updateSummary();
-                updateSubmitButton();
-                
-                // Show validation icon
-                const validationIcon = selectElement.closest('.col-md-4').querySelector('.validation-icon');
-                if (validationIcon && time24) {
-                    validationIcon.style.display = 'inline-block';
-                    selectElement.style.borderColor = '#10b981';
-                }
+
+                // Format as HH:MM
+                const timeString = `${String(hour24).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+                hiddenInput.value = timeString;
+
+                console.log(`Time updated: ${hour}:${String(minute).padStart(2, '0')} ${period} → ${timeString}`);
             }
 
-            // Update all 12-hour displays when page loads or times change
-            function syncAll12HourDisplays() {
-                document.querySelectorAll('.start-time-24h').forEach(hiddenInput => {
-                    const card = hiddenInput.closest('.appointment-card');
-                    if (card) {
-                        const displayInput = card.querySelector('.start-time-display');
-                        if (displayInput && hiddenInput.value) {
-                            displayInput.value = convertTo12Hour(hiddenInput.value);
-                        }
-                    }
-                });
 
-                document.querySelectorAll('.end-time-24h').forEach(hiddenInput => {
-                    const card = hiddenInput.closest('.appointment-card');
-                    if (card) {
-                        const displayInput = card.querySelector('.end-time-display');
-                        if (displayInput && hiddenInput.value) {
-                            displayInput.value = convertTo12Hour(hiddenInput.value);
-                        }
-                    }
-                });
+            // Handle time selection change
+            function handleTimeChange(selectElement) {
+                const card = selectElement.closest('[data-appointment-index]');
+                if (!card) return;
+
+                const index = parseInt(card.dataset.appointmentIndex);
+                const hiddenInput = card.querySelector('.start-time-24h');
+
+                if (hiddenInput) {
+                    hiddenInput.value = selectElement.value;
+                    updateAppointmentEndTime(card);
+                    checkConflictsRealtime(index);
+                }
             }
 
             // ==========================================
@@ -3377,19 +3377,55 @@
             // Initialize real-time validation for an appointment card
             function initializeAppointmentCardValidation(card) {
                 const index = parseInt(card.dataset.appointmentIndex);
-                
-                // Initialize time dropdown
-                const timeSelect = card.querySelector('.start-time-select');
-                if (timeSelect) {
-                    const hiddenTimeInput = card.querySelector('.start-time-24h');
-                    populateTimeOptions(timeSelect, 9, 21, hiddenTimeInput?.value || '09:00');
-                    
-                    // Add change event listener
-                    timeSelect.addEventListener('change', function() {
-                        handleTimeChange(this);
-                    });
+
+                // Initialize time input fields and event listeners
+                const hourInput = card.querySelector('.time-hour');
+                const minuteInput = card.querySelector('.time-minute');
+                const periodSelect = card.querySelector('.time-period');
+                const hiddenInput = card.querySelector('.start-time-24h');
+
+                if (hourInput && minuteInput && periodSelect && hiddenInput) {
+                    const updateAndValidateTime = () => {
+                        updateHiddenTimeInput(hourInput, minuteInput, periodSelect, hiddenInput);
+                        // Update 12-hour display
+                        const endTimeDisplay = card.querySelector('.end-time-display');
+                        if (endTimeDisplay) {
+                            endTimeDisplay.value = convertTo12Hour(hiddenInput.value);
+                        }
+                        // Trigger validation and conflict check
+                        calculateEndTime(index);
+                        checkConflictsRealtime(index);
+                        updateSummary();
+                        updateSubmitButton();
+
+                        // Show validation icon and color
+                        const parentCol = hourInput.closest('.col-md-3');
+                        if (parentCol) {
+                            const validationIcon = parentCol.querySelector('.validation-icon');
+                            if (validationIcon) validationIcon.style.display = 'inline-block';
+                            [hourInput, minuteInput, periodSelect].forEach(el => el.style.borderColor = '#10b981');
+                        }
+                    };
+
+                    hourInput.addEventListener('input', updateAndValidateTime);
+                    minuteInput.addEventListener('input', updateAndValidateTime);
+                    periodSelect.addEventListener('change', updateAndValidateTime);
+
+                    // Set initial value if available
+                    if (hiddenInput.value) {
+                        const [h24, m] = hiddenInput.value.split(':');
+                        const hour24 = parseInt(h24);
+                        const minute = parseInt(m);
+                        const period = hour24 >= 12 ? 'PM' : 'AM';
+                        const hour12 = hour24 % 12 || 12;
+
+                        hourInput.value = hour12;
+                        minuteInput.value = minute;
+                        periodSelect.value = period;
+                    }
                 }
-                
+
+
                 // Add real-time validation for service selection
                 const serviceSelect = card.querySelector('.service-select');
                 if (serviceSelect) {
@@ -3408,7 +3444,7 @@
                         updateSubmitButton();
                     });
                 }
-                
+
                 // Add real-time validation for staff selection
                 const staffSelect = card.querySelector('.staff-select');
                 if (staffSelect) {
@@ -3425,7 +3461,7 @@
                         updateSubmitButton();
                     });
                 }
-                
+
                 // Add real-time validation for date selection
                 const dateInput = card.querySelector('.appointment-date');
                 if (dateInput) {
@@ -3464,12 +3500,22 @@
                     firstCard.querySelector(".service-select").value = "";
                     firstCard.querySelector(".staff-select").value = "";
                     firstCard.querySelector(".appointment-date").value = "{{ today }}";
-                    firstCard.querySelector(".start-time").value = "09:00";
+                    firstCard.querySelector(".start-time-24h").value = "09:00"; // Set hidden input to default
                     firstCard.querySelector(".end-time").value = "";
+                    firstCard.querySelector(".end-time-display").value = ""; // Clear visible end time
+
+                    // Reset manual time inputs
+                    const hourInput = firstCard.querySelector('.time-hour');
+                    const minuteInput = firstCard.querySelector('.time-minute');
+                    const periodSelect = firstCard.querySelector('.time-period');
+                    if (hourInput) hourInput.value = '9';
+                    if (minuteInput) minuteInput.value = '00';
+                    if (periodSelect) periodSelect.value = 'AM';
+
                     const alert = firstCard.querySelector(".alert");
                     if (alert) alert.classList.add("d-none");
                     firstCard.classList.remove("duplicate");
-                    
+
                     // Initialize real-time validation for the first card
                     initializeAppointmentCardValidation(firstCard);
                 }
@@ -3545,12 +3591,18 @@
                                         <i class="fas fa-check-circle text-success"></i>
                                     </span>
                                 </label>
+                                <!-- Manual time input fields -->
+                                <div class="d-flex gap-1">
+                                    <input type="number" class="form-control time-hour" min="1" max="12" placeholder="HH" required style="width: 50px;">
+                                    <span class="align-self-center">:</span>
+                                    <input type="number" class="form-control time-minute" min="0" max="59" placeholder="MM" required style="width: 50px;">
+                                    <select class="form-select time-period" required style="width: 70px;">
+                                        <option value="AM">AM</option>
+                                        <option value="PM">PM</option>
+                                    </select>
+                                </div>
                                 <!-- Hidden 24-hour input for backend -->
-                                <input type="time" name="start_time" class="form-control start-time start-time-24h" value="09:00" required style="display: none;">
-                                <!-- User-friendly time selector dropdown -->
-                                <select class="form-select start-time-select" style="border-radius: 10px; padding: 12px; font-weight: 600; color: var(--primary-color); border: 2px solid #e2e8f0; transition: all 0.3s;">
-                                    <!-- Options will be populated by JavaScript -->
-                                </select>
+                                <input type="time" class="form-control start-time-24h" style="display: none;" required>
                             </div>
                             <div class="col-md-4 mb-3">
                                 <label class="form-label fw-semibold">
@@ -3575,13 +3627,13 @@
                 `;
 
                 document.getElementById('appointmentsContainer').insertAdjacentHTML('beforeend', newAppointment);
-                
+
                 // Initialize the new appointment card
                 const newCard = document.querySelector(`[data-appointment-index="${appointmentCounter}"]`);
                 if (newCard) {
                     initializeAppointmentCardValidation(newCard);
                 }
-                
+
                 updateAppointmentCount();
                 initializeSearchableDropdowns();
 
@@ -3602,8 +3654,8 @@
 
             function updateAppointmentEndTime(card) {
                 const serviceSelect = card.querySelector('.service-select');
-                const startTimeInput = card.querySelector('.start-time');
-                const endTimeInput = card.querySelector('.end-time');
+                const startTimeInput = card.querySelector('.start-time-24h'); // Use the hidden 24h input
+                const endTimeInput = card.querySelector('.end-time-24h');     // Use the hidden 24h input
 
                 if (!serviceSelect || !startTimeInput || !endTimeInput) return;
 
@@ -3612,12 +3664,21 @@
 
                 if (!selectedOption || !startTime) {
                     endTimeInput.value = "";
+                    // Update visible display as well
+                    const endTimeDisplay = card.querySelector('.end-time-display');
+                    if (endTimeDisplay) endTimeDisplay.value = "";
                     return;
                 }
 
                 const duration = parseInt(selectedOption.dataset.duration) || 60;
                 const endTime = calculateEndTimeFromDuration(startTime, duration);
                 endTimeInput.value = endTime;
+
+                // Update visible display
+                const endTimeDisplay = card.querySelector('.end-time-display');
+                if (endTimeDisplay) {
+                    endTimeDisplay.value = convertTo12Hour(endTime);
+                }
             }
 
             function updateAppointmentCount() {
@@ -3666,14 +3727,23 @@
 
                 const staffSelect = appointment.querySelector('.staff-select');
                 const dateInput = appointment.querySelector('.appointment-date');
-                const startTimeInput = appointment.querySelector('.start-time');
-                const endTimeInput = appointment.querySelector('.end-time');
+                const startTimeInput = appointment.querySelector('.start-time-24h'); // Use hidden 24h input
+                const endTimeInput = appointment.querySelector('.end-time-24h');     // Use hidden 24h input
                 const conflictAlert = appointment.querySelector(`#conflictAlert${appointmentIndex}`);
                 const conflictMessageSpan = conflictAlert?.querySelector('.conflict-message');
 
                 // Reset conflict state
                 if (conflictAlert) conflictAlert.classList.add('d-none');
                 appointment.classList.remove('duplicate');
+
+                // Reset visual feedback colors
+                staffSelect.style.borderColor = '#e2e8f0';
+                dateInput.style.borderColor = '#e2e8f0';
+                const startTimeCol = appointment.querySelector('.col-md-3:has(.start-time-24h)'); // Find the column containing time inputs
+                if (startTimeCol) {
+                    startTimeCol.querySelectorAll('input, select').forEach(el => el.style.borderColor = '#e2e8f0');
+                }
+
 
                 // Don't check if any required field is missing
                 if (!staffSelect.value || !dateInput.value || !startTimeInput.value || !endTimeInput.value) {
@@ -3701,10 +3771,14 @@
                             }
                             appointment.classList.add('duplicate');
                             hasConflict = true;
-                            
+
                             // Visual feedback on fields
                             staffSelect.style.borderColor = '#ef4444';
                             dateInput.style.borderColor = '#ef4444';
+                            const startTimeCol = appointment.querySelector('.col-md-3:has(.start-time-24h)');
+                            if (startTimeCol) {
+                                startTimeCol.querySelectorAll('input, select').forEach(el => el.style.borderColor = '#ef4444');
+                            }
                         }
                     }
                 });
@@ -3713,20 +3787,20 @@
                 // Note: In the bulk booking modal, all appointments are for the SAME customer (selected in multiClientSelect)
                 const bulkClientSelect = document.getElementById('multiClientSelect');
                 const isBulkBookingForSameCustomer = bulkClientSelect && bulkClientSelect.value;
-                
+
                 document.querySelectorAll('.appointment-card').forEach((otherCard, otherIndex) => {
                     if (parseInt(otherCard.dataset.appointmentIndex) === appointmentIndex) return;
 
                     const otherStaffSelect = otherCard.querySelector('.staff-select');
                     const otherDateInput = otherCard.querySelector('.appointment-date');
-                    const otherStartTimeInput = otherCard.querySelector('.start-time');
-                    const otherEndTimeInput = otherCard.querySelector('.end-time');
+                    const otherStartTimeInput = otherCard.querySelector('.start-time-24h'); // Use hidden 24h input
+                    const otherEndTimeInput = otherCard.querySelector('.end-time-24h');     // Use hidden 24h input
 
                     if (otherStaffSelect.value && otherDateInput.value && otherStartTimeInput.value && otherEndTimeInput.value) {
                         // Check for STAFF conflicts (same staff, same time)
                         if (parseInt(otherStaffSelect.value) === staffId && otherDateInput.value === date) {
                             if (timesOverlap(startTime, endTime, otherStartTimeInput.value, otherEndTimeInput.value)) {
-                                const message = `⚠️ Staff conflict with Appointment #${otherIndex + 1} - Same staff at same time`;
+                                const message = `⚠️ Conflict with Appointment #${otherIndex + 1} - Same staff at same time`;
                                 if (conflictMessageSpan) conflictMessageSpan.textContent = message;
                                 if (conflictAlert) {
                                     conflictAlert.classList.remove('d-none');
@@ -3734,18 +3808,22 @@
                                 }
                                 appointment.classList.add('duplicate');
                                 hasConflict = true;
-                                
+
                                 // Visual feedback
                                 staffSelect.style.borderColor = '#ef4444';
                                 dateInput.style.borderColor = '#ef4444';
+                                const startTimeCol = appointment.querySelector('.col-md-3:has(.start-time-24h)');
+                                if (startTimeCol) {
+                                    startTimeCol.querySelectorAll('input, select').forEach(el => el.style.borderColor = '#ef4444');
+                                }
                             }
                         }
-                        
+
                         // Check for CUSTOMER conflicts (same customer can't have overlapping appointments)
                         // Only check if we're in bulk booking mode where all appointments are for the same customer
                         if (isBulkBookingForSameCustomer && otherDateInput.value === date) {
                             if (timesOverlap(startTime, endTime, otherStartTimeInput.value, otherEndTimeInput.value)) {
-                                const message = `⚠️ Customer conflict with Appointment #${otherIndex + 1} - Customer can't be in two places at once`;
+                                const message = `⚠️ Conflict with Appointment #${otherIndex + 1} - Customer can't be in two places at once`;
                                 if (conflictMessageSpan) conflictMessageSpan.textContent = message;
                                 if (conflictAlert) {
                                     conflictAlert.classList.remove('d-none');
@@ -3753,11 +3831,13 @@
                                 }
                                 appointment.classList.add('duplicate');
                                 hasConflict = true;
-                                
+
                                 // Visual feedback
                                 dateInput.style.borderColor = '#ef4444';
-                                const startTimeSelect = appointment.querySelector('.start-time-select');
-                                if (startTimeSelect) startTimeSelect.style.borderColor = '#ef4444';
+                                const startTimeCol = appointment.querySelector('.col-md-3:has(.start-time-24h)');
+                                if (startTimeCol) {
+                                    startTimeCol.querySelectorAll('input, select').forEach(el => el.style.borderColor = '#ef4444');
+                                }
                             }
                         }
                     }
@@ -3781,14 +3861,23 @@
                             conflictAlert.style.animation = 'shake 0.5s';
                         }
                         appointment.classList.add('duplicate');
-                        
+                        hasConflict = true;
+
                         // Visual feedback
                         staffSelect.style.borderColor = '#ef4444';
                         dateInput.style.borderColor = '#ef4444';
+                        const startTimeCol = appointment.querySelector('.col-md-3:has(.start-time-24h)');
+                        if (startTimeCol) {
+                            startTimeCol.querySelectorAll('input, select').forEach(el => el.style.borderColor = '#ef4444');
+                        }
                     } else if (!hasConflict) {
                         // No conflicts - show success state
                         staffSelect.style.borderColor = '#10b981';
                         dateInput.style.borderColor = '#10b981';
+                        const startTimeCol = appointment.querySelector('.col-md-3:has(.start-time-24h)');
+                        if (startTimeCol) {
+                            startTimeCol.querySelectorAll('input, select').forEach(el => el.style.borderColor = '#10b981');
+                        }
                     }
                 })
                 .catch(error => console.error('Error checking conflicts:', error));
@@ -3833,17 +3922,16 @@
                 }
 
                 for (const appointment of appointments) {
-                    const clientSelect = appointment.querySelector('.client-select'); // This is not used in the current multi-book modal, but kept for potential future use or if it existed elsewhere
                     const serviceSelect = appointment.querySelector('.service-select');
                     const staffSelect = appointment.querySelector('.staff-select');
-                    const startTime = appointment.querySelector('.start-time');
-                    const endTime = appointment.querySelector('.end-time');
+                    const startTimeInput = appointment.querySelector('.start-time-24h'); // Use hidden 24h input
+                    const endTimeInput = appointment.querySelector('.end-time-24h');     // Use hidden 24h input
 
                     // Check if values exist and are not empty/default
                     if (!serviceSelect?.value || serviceSelect.value === '' ||
                         !staffSelect?.value || staffSelect.value === '' ||
-                        !startTime?.value || startTime.value === '' ||
-                        !endTime?.value || endTime.value === '') {
+                        !startTimeInput?.value || startTimeInput.value === '' ||
+                        !endTimeInput?.value || endTimeInput.value === '') {
                         return false;
                     }
                     // Also check for duplicates/conflicts
@@ -3913,20 +4001,24 @@
                     const serviceSelect = row.querySelector('.service-select');
                     const staffSelect = row.querySelector('.staff-select');
                     const dateInput = row.querySelector('.appointment-date');
-                    const startTimeInput = row.querySelector('.start-time');
-                    const endTimeInput = row.querySelector('.end-time');
+                    const startTimeInput = row.querySelector('.start-time-24h'); // Use hidden 24h input
+                    const endTimeInput = row.querySelector('.end-time-24h');     // Use hidden 24h input
                     const notesTextarea = document.getElementById('multiNotes');
+
+                    // Ensure to get the text of the selected option for names
+                    const staffOption = staffSelect.options[staffSelect.selectedIndex];
+                    const serviceOption = serviceSelect.options[serviceSelect.selectedIndex];
 
                     appointments.push({
                         client_name: clientDropdown.options[clientDropdown.selectedIndex].text.split(' - ')[0],
                         client_phone: clientDropdown.selectedOptions[0].dataset.phone || '',
                         client_email: clientDropdown.selectedOptions[0].dataset.email || '',
                         staff_id: staffSelect.value,
-                        staff_name: staffSelect.options[staffSelect.selectedIndex].text,
+                        staff_name: staffOption ? staffOption.text : '',
                         service_id: serviceSelect.value,
-                        service_name: serviceSelect.options[serviceSelect.selectedIndex].text.split(' (')[0],
-                        service_duration: parseInt(serviceSelect.selectedOptions[0].dataset.duration) || 60,
-                        service_price: parseFloat(serviceSelect.selectedOptions[0].dataset.price) || 0,
+                        service_name: serviceOption ? serviceOption.text.split(' (')[0].trim() : '',
+                        service_duration: parseInt(serviceOption.dataset.duration) || 60,
+                        service_price: parseFloat(serviceOption.dataset.price) || 0,
                         appointment_date: dateInput.value,
                         start_time: startTimeInput.value,
                         end_time: endTimeInput.value,
@@ -4030,10 +4122,35 @@
                 if (firstCard) {
                     firstCard.querySelector(".staff-select").value = staffId;
                     firstCard.querySelector(".appointment-date").value = currentDate;
-                    firstCard.querySelector(".start-time").value = time;
-                    calculateEndTime(0);
-                    checkConflicts(0);
-                    updateSubmitButton();
+
+                    // Set the time in the new manual input fields
+                    const hourInput = firstCard.querySelector('.time-hour');
+                    const minuteInput = firstCard.querySelector('.time-minute');
+                    const periodSelect = firstCard.querySelector('.time-period');
+                    const hiddenInput = firstCard.querySelector('.start-time-24h');
+
+                    if (hourInput && minuteInput && periodSelect && hiddenInput) {
+                        const [h24, m] = time.split(':');
+                        const hour24 = parseInt(h24);
+                        const minute = parseInt(m);
+                        const period = hour24 >= 12 ? 'PM' : 'AM';
+                        const hour12 = hour24 % 12 || 12;
+
+                        hourInput.value = hour12;
+                        minuteInput.value = minute;
+                        periodSelect.value = period;
+
+                        // Update the hidden input and other related fields
+                        updateHiddenTimeInput(hourInput, minuteInput, periodSelect, hiddenInput);
+                        updateAppointmentEndTime(firstCard); // Ensure end time is calculated
+                        const endTimeDisplay = firstCard.querySelector('.end-time-display');
+                        if (endTimeDisplay) {
+                            endTimeDisplay.value = convertTo12Hour(hiddenInput.value); // Update display
+                        }
+
+                        checkConflicts(0);
+                        updateSubmitButton();
+                    }
                 }
             }
 
@@ -4236,11 +4353,11 @@
 
             // Event delegation for dynamically added appointments
             document.getElementById('appointmentsContainer').addEventListener('change', function(e) {
-                if (e.target.matches('.service-select, .staff-select, .appointment-date, .start-time')) {
+                if (e.target.matches('.service-select, .staff-select, .appointment-date, .start-time-24h, .end-time-24h')) { // Trigger on change of hidden time inputs as well
                     const appointmentCard = e.target.closest('.appointment-card');
                     if (appointmentCard) {
                         // Update end time if service or start time changed
-                        if (e.target.matches('.service-select') || e.target.matches('.start-time')) {
+                        if (e.target.matches('.service-select') || e.target.matches('.start-time-24h')) {
                             updateAppointmentEndTime(appointmentCard);
                         }
                         // Re-check conflicts
@@ -4254,14 +4371,54 @@
 
             // Also trigger on input events for immediate feedback (e.g., time input)
             document.getElementById('appointmentsContainer').addEventListener('input', function(e) {
-                if (e.target.matches('.start-time')) {
+                if (e.target.matches('.time-hour, .time-minute, .time-period')) { // Listen to manual time inputs
                     const appointmentCard = e.target.closest('.appointment-card');
                     if (appointmentCard) {
+                        const index = parseInt(appointmentCard.dataset.appointmentIndex);
+                        const hourInput = appointmentCard.querySelector('.time-hour');
+                        const minuteInput = appointmentCard.querySelector('.time-minute');
+                        const periodSelect = appointmentCard.querySelector('.time-period');
+                        const hiddenInput = appointmentCard.querySelector('.start-time-24h');
+
+                        updateHiddenTimeInput(hourInput, minuteInput, periodSelect, hiddenInput);
                         updateAppointmentEndTime(appointmentCard);
                         updateSubmitButton(); // Update button state after changes
                     }
                 }
             });
+
+             // Sync 12-hour displays when page loads and after appointments are added/modified
+            function syncAll12HourDisplays() {
+                document.querySelectorAll('.appointment-card').forEach(card => {
+                    const startTime24h = card.querySelector('.start-time-24h')?.value;
+                    const endTime24h = card.querySelector('.end-time-24h')?.value;
+
+                    const startTimeDisplay = card.querySelector('.start-time-select'); // This is now the manual input group
+                    const endTimeDisplay = card.querySelector('.end-time-display');
+
+                    // Update manual input fields for start time
+                    if (startTime24h) {
+                        const [h24, m] = startTime24h.split(':');
+                        const hour24 = parseInt(h24);
+                        const minute = parseInt(m);
+                        const period = hour24 >= 12 ? 'PM' : 'AM';
+                        const hour12 = hour24 % 12 || 12;
+
+                        const hourInput = card.querySelector('.time-hour');
+                        const minuteInput = card.querySelector('.time-minute');
+                        const periodSelect = card.querySelector('.time-period');
+
+                        if (hourInput) hourInput.value = hour12;
+                        if (minuteInput) minuteInput.value = String(minute).padStart(2, '0'); // Ensure minute is two digits
+                        if (periodSelect) periodSelect.value = period;
+                    }
+
+                    // Update visible end time display
+                    if (endTimeDisplay) {
+                        endTimeDisplay.value = endTime24h ? convertTo12Hour(endTime24h) : '';
+                    }
+                });
+            }
 
         </script>
     </body>
