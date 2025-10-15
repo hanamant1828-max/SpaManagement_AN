@@ -190,7 +190,6 @@ Management Suite{% endblock %} {% block content %}
                                         <th>Staff Info</th>
                                         <th>Role & Department</th>
                                         <th>Contact</th>
-                                        <th>Performance</th>
                                         <th>Actions</th>
                                     </tr>
                                 </thead>
@@ -1149,11 +1148,6 @@ Management Suite{% endblock %} {% block content %}
             <div>${staff.email || "No email"}</div>
             <div><small class="text-muted">${staff.phone || "No phone"}</small></div>
             ${staff.gender ? `<div><small class="text-muted">${staff.gender.charAt(0).toUpperCase() + staff.gender.slice(1)}</small></div>` : ""}
-        </td>
-        <td>
-            <div><strong>Revenue:</strong> $${staff.total_revenue_generated.toFixed(2)}</div>
-            <div><small>Clients: ${staff.total_clients_served}</small></div>
-            ${staff.average_rating > 0 ? `<div><small>Rating: ⭐${staff.average_rating.toFixed(1)}</small></div>` : ""}
         </td>
         <td>
             <div class="btn-group-vertical btn-group-sm">
