@@ -1,5 +1,10 @@
 {% extends "base.html" %} {% block title %}Staff Management - Spa & Salon
-Management Suite{% endblock %} {% block content %}
+Management Suite{% endblock %} {% block extra_css %}
+<!-- SheetJS library for Excel export -->
+<script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
+{% endblock %}
+
+{% block content %}
 <div class="container-fluid">
     <!-- Header -->
     <div class="row mb-4">
@@ -815,7 +820,7 @@ Management Suite{% endblock %} {% block content %}
 
             if (response && response.success) {
                 // Show user-friendly success message
-                const successMsg = mode === "edit" 
+                const successMsg = mode === "edit"
                     ? `✓ Staff member updated successfully! Changes have been saved.`
                     : `✓ New staff member added successfully! Welcome to the team.`;
                 showNotification(successMsg, "success");
@@ -980,7 +985,7 @@ Management Suite{% endblock %} {% block content %}
             const [endHour, endMin] = data.shift_end_time.split(':').map(Number);
             const startMinutes = startHour * 60 + startMin;
             const endMinutes = endHour * 60 + endMin;
-            
+
             if (startMinutes >= endMinutes) {
                 return {
                     isValid: false,
@@ -1011,7 +1016,7 @@ Management Suite{% endblock %} {% block content %}
             if (!response.ok) {
                 // Provide user-friendly error messages based on HTTP status
                 let errorMsg = result.error || "Unable to add staff member";
-                
+
                 if (response.status === 409) {
                     errorMsg = "Username or email already exists. Please use a different one.";
                 } else if (response.status === 400) {
@@ -1021,7 +1026,7 @@ Management Suite{% endblock %} {% block content %}
                 } else if (response.status === 500) {
                     errorMsg = "Server error. Please try again or contact support.";
                 }
-                
+
                 throw new Error(errorMsg);
             }
 
@@ -1077,13 +1082,9 @@ Management Suite{% endblock %} {% block content %}
 
     // Load metadata (roles, departments, services)
     async function loadMetadata() {
-        try {
-            // This function loads dropdown data and is called from loadStaffData
-            // The actual loading is handled in loadStaffData for efficiency
-            console.log("Metadata loading handled in loadStaffData");
-        } catch (error) {
-            console.error("Error in loadMetadata:", error);
-        }
+        // This function loads dropdown data and is called from loadStaffData
+        // The actual loading is handled in loadStaffData for efficiency
+        console.log("Metadata loading handled in loadStaffData");
     }
 
     // Load all staff data from API with comprehensive error handling
@@ -1491,7 +1492,7 @@ Management Suite{% endblock %} {% block content %}
             createFallbackEmptyMessage();
         }
 
-        // Always ensure navigation is visible
+        // Ensure main navigation buttons are always visible
         ensureNavigationVisible();
     }
 
@@ -1964,9 +1965,52 @@ Management Suite{% endblock %} {% block content %}
         await loadStaffData();
     }
 
-    // Placeholder for export functionality
+    // Export staff data to Excel
     function exportStaffData() {
-        showAlert("Export functionality - Feature coming soon!", "info");
+        if (!filteredStaff || filteredStaff.length === 0) {
+            showNotification("No data available to export.", "warning");
+            return;
+        }
+
+        showNotification("Preparing data for export...", "info");
+
+        // Prepare data for Excel
+        const dataToExport = filteredStaff.map(staff => ({
+            "Staff ID": staff.id,
+            "Staff Code": staff.staff_code || "N/A",
+            "Username": staff.username,
+            "Full Name": staff.full_name,
+            "Email": staff.email || "N/A",
+            "Phone": staff.phone || "N/A",
+            "Role": staff.role_display,
+            "Department": staff.department_display,
+            "Designation": staff.designation || "N/A",
+            "Gender": staff.gender ? staff.gender.charAt(0).toUpperCase() + staff.gender.slice(1) : "N/A",
+            "Date of Birth": staff.date_of_birth ? new Date(staff.date_of_birth).toLocaleDateString() : "N/A",
+            "Date of Joining": staff.date_of_joining ? new Date(staff.date_of_joining).toLocaleDateString() : "N/A",
+            "Status": staff.is_active ? "Active" : "Inactive",
+            "Notes/Bio": staff.notes_bio || "N/A"
+        }));
+
+        // Use SheetJS to create workbook and export
+        try {
+            const ws = XLSX.utils.json_to_sheet(dataToExport);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Staff Data");
+
+            // Generate filename
+            const date = new Date();
+            const day = String(date.getDate()).padStart(2, '0');
+            const month = String(date.getMonth() + 1).padStart(2, '0'); // January is 0!
+            const year = date.getFullYear();
+            const filename = `staff_data_export_${year}-${month}-${day}.xlsx`;
+
+            XLSX.writeFile(wb, filename);
+            showNotification(`✓ Staff data exported successfully to ${filename}`, "success");
+        } catch (error) {
+            console.error("Error exporting to Excel:", error);
+            showNotification("✗ Error exporting data to Excel. Please try again.", "error");
+        }
     }
 
     // Show notification with comprehensive error handling
@@ -2062,7 +2106,7 @@ Management Suite{% endblock %} {% block content %}
         });
 
         // Show user-friendly message for critical errors
-        if (event.message.includes('Cannot set properties of null') || 
+        if (event.message.includes('Cannot set properties of null') ||
             event.message.includes('Cannot read properties of null')) {
             showNotification('Interface update error. Please refresh the page if issues persist.', 'warning');
         }
@@ -2106,7 +2150,7 @@ Management Suite{% endblock %} {% block content %}
             if (!response.ok) {
                 // Provide user-friendly error messages based on HTTP status
                 let errorMsg = result.error || "Unable to update staff member";
-                
+
                 if (response.status === 404) {
                     errorMsg = "Staff member not found. They may have been deleted.";
                 } else if (response.status === 409) {
@@ -2118,7 +2162,7 @@ Management Suite{% endblock %} {% block content %}
                 } else if (response.status === 500) {
                     errorMsg = "Server error. Please try again or contact support.";
                 }
-                
+
                 throw new Error(errorMsg);
             }
 
