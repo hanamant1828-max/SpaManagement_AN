@@ -1806,20 +1806,6 @@ Management Suite{% endblock %} {% block content %}
                 </div>
             </div>
         </div>
-        <div class="row mt-3">
-            <div class="col-12">
-                <div class="card border-secondary">
-                    <div class="card-header bg-secondary text-white">
-                        <h6 class="mb-0">Work Schedule</h6>
-                    </div>
-                    <div class="card-body">
-                        <div class="mb-2"><strong>Shift:</strong> ${staff.shift_start_time && staff.shift_end_time ? `${staff.shift_start_time} - ${staff.shift_end_time}` : "Not set"}</div>
-                        <div class="mb-2"><strong>Working Days:</strong> ${staff.working_days || "Not set"}</div>
-                        <div class="mb-2"><strong>Last Login:</strong> ${staff.last_login ? new Date(staff.last_login).toLocaleDateString() : "Never"}</div>
-                    </div>
-                </div>
-            </div>
-        </div>
         ${staff.notes_bio ? `
         <div class="row mt-3">
             <div class="col-12">
