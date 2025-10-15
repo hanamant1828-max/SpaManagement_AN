@@ -814,7 +814,11 @@ Management Suite{% endblock %} {% block content %}
             }
 
             if (response && response.success) {
-                showNotification(response.message, "success");
+                // Show user-friendly success message
+                const successMsg = mode === "edit" 
+                    ? `✓ Staff member updated successfully! Changes have been saved.`
+                    : `✓ New staff member added successfully! Welcome to the team.`;
+                showNotification(successMsg, "success");
 
                 // Authorize close from Save/Update button and close modal
                 authorizedCloseSource = mode === "edit" ? 'btnStaffUpdate' : 'btnStaffSave';
@@ -832,16 +836,15 @@ Management Suite{% endblock %} {% block content %}
                     await loadStaffData();
                 } catch (loadError) {
                     console.error("Error reloading staff data:", loadError);
-                    showNotification("Staff saved but list refresh failed. Please refresh the page.", "warning");
+                    showNotification("⚠ Staff saved successfully, but the list couldn't refresh. Please refresh the page to see updates.", "warning");
                 }
             } else {
-                const errorMsg =
-                    response?.error || "An error occurred while saving";
-                showNotification(errorMsg, "error");
+                const errorMsg = response?.error || "Unable to save staff member. Please try again.";
+                showNotification(`✗ Error: ${errorMsg}`, "error");
             }
         } catch (error) {
             console.error("Form submission error:", error);
-            showNotification("Network error: " + error.message, "error");
+            showNotification(`✗ Unable to save: ${error.message}. Please check your connection and try again.`, "error");
         } finally {
             // Reset button state safely
             if (submitBtn) {
@@ -852,13 +855,45 @@ Management Suite{% endblock %} {% block content %}
     }
 
     function validateFormData(data) {
-        const required = ["username", "first_name", "last_name"];
+        // Helper function to format field names properly
+        const formatFieldName = (field) => {
+            const names = {
+                'username': 'Username',
+                'first_name': 'First Name',
+                'last_name': 'Last Name',
+                'email': 'Email Address',
+                'phone': 'Phone Number',
+                'date_of_birth': 'Date of Birth',
+                'date_of_joining': 'Date of Joining',
+                'department_id': 'Department',
+                'designation': 'Designation'
+            };
+            return names[field] || field.replace("_", " ");
+        };
 
+        // Required fields validation
+        const required = ["username", "first_name", "last_name"];
         for (const field of required) {
             if (!data[field] || data[field].trim() === "") {
                 return {
                     isValid: false,
-                    message: `${field.replace("_", " ").toUpperCase()} is required`,
+                    message: `${formatFieldName(field)} is required. Please enter a ${formatFieldName(field).toLowerCase()}.`,
+                };
+            }
+        }
+
+        // Username format validation
+        if (data.username) {
+            if (data.username.length < 3) {
+                return {
+                    isValid: false,
+                    message: "Username must be at least 3 characters long.",
+                };
+            }
+            if (!/^[a-zA-Z0-9_]+$/.test(data.username)) {
+                return {
+                    isValid: false,
+                    message: "Username can only contain letters, numbers, and underscores.",
                 };
             }
         }
@@ -869,23 +904,89 @@ Management Suite{% endblock %} {% block content %}
             if (!emailRegex.test(data.email)) {
                 return {
                     isValid: false,
-                    message: "Please enter a valid email address",
+                    message: "Please enter a valid email address (e.g., name@example.com).",
                 };
             }
         }
 
-        // Date of Birth and Date of Joining validation
+        // Phone validation (only if phone is provided)
+        if (data.phone && data.phone.trim() !== "") {
+            const phoneRegex = /^[+]?[\d\s\-()]+$/;
+            if (!phoneRegex.test(data.phone)) {
+                return {
+                    isValid: false,
+                    message: "Please enter a valid phone number.",
+                };
+            }
+            if (data.phone.replace(/\D/g, '').length < 10) {
+                return {
+                    isValid: false,
+                    message: "Phone number must be at least 10 digits.",
+                };
+            }
+        }
+
+        // Date of Birth validation
         if (!data.date_of_birth) {
             return {
                 isValid: false,
-                message: "Date of Birth is required",
+                message: "Date of Birth is required. Please select the staff member's birth date.",
             };
+        } else {
+            const birthDate = new Date(data.date_of_birth);
+            const today = new Date();
+            const age = today.getFullYear() - birthDate.getFullYear();
+            if (age < 16) {
+                return {
+                    isValid: false,
+                    message: "Staff member must be at least 16 years old.",
+                };
+            }
+            if (age > 100) {
+                return {
+                    isValid: false,
+                    message: "Please enter a valid Date of Birth.",
+                };
+            }
         }
+
+        // Date of Joining validation
         if (!data.date_of_joining) {
             return {
                 isValid: false,
-                message: "Date of Joining is required",
+                message: "Date of Joining is required. Please select when the staff member joined.",
             };
+        } else {
+            const joiningDate = new Date(data.date_of_joining);
+            const today = new Date();
+            if (joiningDate > today) {
+                return {
+                    isValid: false,
+                    message: "Date of Joining cannot be in the future.",
+                };
+            }
+            const birthDate = new Date(data.date_of_birth);
+            if (joiningDate < birthDate) {
+                return {
+                    isValid: false,
+                    message: "Date of Joining cannot be before Date of Birth.",
+                };
+            }
+        }
+
+        // Shift time validation (if both are provided)
+        if (data.shift_start_time && data.shift_end_time) {
+            const [startHour, startMin] = data.shift_start_time.split(':').map(Number);
+            const [endHour, endMin] = data.shift_end_time.split(':').map(Number);
+            const startMinutes = startHour * 60 + startMin;
+            const endMinutes = endHour * 60 + endMin;
+            
+            if (startMinutes >= endMinutes) {
+                return {
+                    isValid: false,
+                    message: "Shift end time must be after shift start time.",
+                };
+            }
         }
 
         return { isValid: true };
@@ -908,10 +1009,20 @@ Management Suite{% endblock %} {% block content %}
             console.log("API Response:", result);
 
             if (!response.ok) {
-                throw new Error(
-                    result.error ||
-                        `HTTP ${response.status}: ${response.statusText}`,
-                );
+                // Provide user-friendly error messages based on HTTP status
+                let errorMsg = result.error || "Unable to add staff member";
+                
+                if (response.status === 409) {
+                    errorMsg = "Username or email already exists. Please use a different one.";
+                } else if (response.status === 400) {
+                    errorMsg = result.error || "Invalid data provided. Please check all fields.";
+                } else if (response.status === 403) {
+                    errorMsg = "You don't have permission to add staff members.";
+                } else if (response.status === 500) {
+                    errorMsg = "Server error. Please try again or contact support.";
+                }
+                
+                throw new Error(errorMsg);
             }
 
             return result;
@@ -919,7 +1030,7 @@ Management Suite{% endblock %} {% block content %}
             console.error("Error creating staff:", error);
             return {
                 success: false,
-                error: error.message || "Failed to create staff member",
+                error: error.message || "Failed to create staff member. Please try again.",
             };
         }
     }
@@ -1678,11 +1789,29 @@ Management Suite{% endblock %} {% block content %}
     // Show delete modal with confirmation message
     function showDeleteModal(staffId) {
         const staff = allStaff.find((s) => s.id === staffId);
-        if (!staff) return;
+        if (!staff) {
+            showNotification("✗ Staff member not found. Please refresh the page and try again.", "error");
+            return;
+        }
 
         currentDeleteId = staffId; // Store the ID for confirmation
-        document.getElementById("deleteMessage").textContent =
-            `Are you sure you want to delete ${staff.full_name} (${staff.username})? This action cannot be undone.`;
+        const deleteMsg = document.getElementById("deleteMessage");
+        if (deleteMsg) {
+            deleteMsg.innerHTML = `
+                <div class="alert alert-warning mb-0">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    <strong>Are you sure you want to delete this staff member?</strong>
+                    <div class="mt-2">
+                        <strong>Name:</strong> ${staff.full_name}<br>
+                        <strong>Username:</strong> ${staff.username}
+                    </div>
+                    <div class="mt-3 text-danger">
+                        <i class="fas fa-info-circle me-1"></i>
+                        <small>This action cannot be undone. All related data will be permanently removed.</small>
+                    </div>
+                </div>
+            `;
+        }
 
         const modal = new bootstrap.Modal(
             document.getElementById("deleteModal"),
@@ -1712,7 +1841,7 @@ Management Suite{% endblock %} {% block content %}
             const data = await response.json();
 
             if (data.success) {
-                showNotification(data.message, "success");
+                showNotification("✓ Staff member deleted successfully. The record has been permanently removed.", "success");
 
                 // Hide modal safely
                 const deleteModal = document.getElementById("deleteModal");
@@ -1741,23 +1870,25 @@ Management Suite{% endblock %} {% block content %}
                     await loadStaffData();
                 } catch (loadError) {
                     console.error("Error reloading data after delete:", loadError);
-                    showNotification("Staff deleted but list refresh failed. Please refresh the page.", "warning");
+                    showNotification("⚠ Staff member deleted, but the list couldn't refresh. Please reload the page to see updates.", "warning");
                 }
             } else {
-                throw new Error(data.error || "Failed to delete staff member");
+                throw new Error(data.error || "Unable to delete staff member. Please try again.");
             }
         } catch (error) {
             console.error("Error deleting staff:", error);
 
-            let errorMessage = "Error deleting staff member";
+            let errorMessage = "✗ Unable to delete staff member";
             if (error.message.includes("HTTP 404")) {
-                errorMessage = "Staff member not found";
+                errorMessage = "✗ Staff member not found. They may have already been deleted.";
             } else if (error.message.includes("HTTP 403")) {
-                errorMessage = "Access denied - insufficient permissions";
-            } else if (error.message.includes("HTTP")) {
-                errorMessage = "Server error - please try again";
+                errorMessage = "✗ Access denied. You don't have permission to delete this staff member.";
+            } else if (error.message.includes("HTTP 500")) {
+                errorMessage = "✗ Server error. The staff member might have active appointments or other data. Please contact support.";
+            } else if (error.message.includes("network") || error.message.includes("fetch")) {
+                errorMessage = "✗ Network error. Please check your connection and try again.";
             } else {
-                errorMessage = `Error: ${error.message}`;
+                errorMessage = `✗ Delete failed: ${error.message}`;
             }
 
             showNotification(errorMessage, "error");
@@ -1944,12 +2075,12 @@ Management Suite{% endblock %} {% block content %}
 
             // Validate staffId
             if (!staffId || staffId <= 0) {
-                throw new Error('Invalid staff ID provided');
+                throw new Error('Invalid staff ID. Please refresh the page and try again.');
             }
 
             // Ensure required fields are present
             if (!staffData.first_name || !staffData.last_name) {
-                throw new Error('First name and last name are required');
+                throw new Error('First name and last name are required to update staff member.');
             }
 
             const response = await fetch(`/api/staff/${staffId}`, {
@@ -1967,20 +2098,32 @@ Management Suite{% endblock %} {% block content %}
             try {
                 result = await response.json();
             } catch (jsonError) {
-                throw new Error(`Failed to parse server response: ${response.statusText}`);
+                throw new Error(`Server returned invalid response. Please try again.`);
             }
 
             console.log("Update API Response:", result);
 
             if (!response.ok) {
-                throw new Error(
-                    result.error ||
-                        `HTTP ${response.status}: ${response.statusText}`,
-                );
+                // Provide user-friendly error messages based on HTTP status
+                let errorMsg = result.error || "Unable to update staff member";
+                
+                if (response.status === 404) {
+                    errorMsg = "Staff member not found. They may have been deleted.";
+                } else if (response.status === 409) {
+                    errorMsg = "Username or email already exists. Please use a different one.";
+                } else if (response.status === 400) {
+                    errorMsg = result.error || "Invalid data provided. Please check all fields.";
+                } else if (response.status === 403) {
+                    errorMsg = "You don't have permission to update this staff member.";
+                } else if (response.status === 500) {
+                    errorMsg = "Server error. Please try again or contact support.";
+                }
+                
+                throw new Error(errorMsg);
             }
 
             if (!result.success) {
-                throw new Error(result.error || "Update failed");
+                throw new Error(result.error || "Update failed. Please try again.");
             }
 
             return result;
@@ -1988,7 +2131,7 @@ Management Suite{% endblock %} {% block content %}
             console.error("Error updating staff:", error);
             return {
                 success: false,
-                error: error.message || "Failed to update staff member",
+                error: error.message || "Failed to update staff member. Please try again.",
             };
         }
     }
