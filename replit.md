@@ -19,6 +19,12 @@ The application uses Flask and SQLAlchemy, following a modular design with featu
 - Utilizes distinct styling for student offers (purple gradient, graduation cap) and color-coded elements to differentiate package types.
 - Interactive modals are used for displaying detailed information.
 - The Unaki booking system visually highlights holidays and off-days on the calendar (Indigo for holidays, Gray for off-days).
+- **Real-time Validation & Conflict Checking:** The bulk booking modal now features:
+  - Modern dropdown time picker with 15-minute intervals (9 AM - 9 PM) replacing prompt-based selection
+  - Real-time conflict checking that triggers immediately when users select service, staff, date, or time
+  - Visual validation indicators (green checkmarks for valid fields, red borders for conflicts)
+  - Animated conflict alerts with shake effects for better user awareness
+  - Instant feedback as users fill in fields, preventing booking conflicts before submission
 
 **Technical Implementations:**
 - **Core Modules:** Dashboard, Client Management, Staff Management, Shift Scheduling, Appointment Booking (Unaki integration), Integrated Billing, Service Catalog, Package Management (Prepaid, Service, Memberships, Student Offers, Kitty Party), Inventory, Check-In, Reporting, Notifications, User Roles & Permissions, User Management, and a Face Recognition System.
