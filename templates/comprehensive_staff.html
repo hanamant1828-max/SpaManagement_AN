@@ -1154,8 +1154,8 @@ Management Suite{% endblock %} {% block content %}
                 <button type="button" class="btn btn-outline-primary btn-sm" onclick="editStaff(${staff.id})" title="Edit">
                     <i class="fas fa-edit"></i>
                 </button>
-                <button type="button" class="btn btn-outline-info btn-sm" onclick="viewPerformance(${staff.id})" title="Performance">
-                    <i class="fas fa-chart-line"></i>
+                <button type="button" class="btn btn-outline-info btn-sm" onclick="viewStaff(${staff.id})" title="View">
+                    <i class="fas fa-eye"></i>
                 </button>
                 <button type="button" class="btn btn-outline-danger btn-sm" onclick="showDeleteModal(${staff.id})" title="Delete">
                     <i class="fas fa-trash"></i>
@@ -1765,45 +1765,51 @@ Management Suite{% endblock %} {% block content %}
         }
     }
 
-    // View performance details
-    function viewPerformance(staffId) {
+    // View staff details
+    function viewStaff(staffId) {
         const staff = allStaff.find((s) => s.id === staffId);
         if (!staff) {
-            showAlert("Staff member not found.", "danger");
+            showNotification("Staff member not found.", "error");
             return;
         }
 
         document.getElementById("performanceModalLabel").textContent =
-            `${staff.full_name} - Performance`;
+            `${staff.full_name} - Staff Details`;
         document.getElementById("performanceContent").innerHTML = `
         <div class="row">
             <div class="col-md-6">
-                <div class="card border-success mb-3">
-                    <div class="card-header bg-success text-white">
-                        <h6 class="mb-0">Revenue Summary</h6>
+                <div class="card border-primary mb-3">
+                    <div class="card-header bg-primary text-white">
+                        <h6 class="mb-0">Basic Information</h6>
                     </div>
                     <div class="card-body">
-                        <div class="mb-2"><strong>Total Revenue:</strong> $${staff.total_revenue_generated?.toFixed(2) ?? "N/A"}</div>
+                        <div class="mb-2"><strong>Staff Code:</strong> ${staff.staff_code || "N/A"}</div>
+                        <div class="mb-2"><strong>Username:</strong> ${staff.username}</div>
+                        <div class="mb-2"><strong>Email:</strong> ${staff.email || "N/A"}</div>
+                        <div class="mb-2"><strong>Phone:</strong> ${staff.phone || "N/A"}</div>
+                        <div class="mb-2"><strong>Gender:</strong> ${staff.gender ? staff.gender.charAt(0).toUpperCase() + staff.gender.slice(1) : "N/A"}</div>
+                        <div class="mb-2"><strong>Status:</strong> <span class="badge bg-${staff.is_active ? "success" : "danger"}">${staff.is_active ? "Active" : "Inactive"}</span></div>
                     </div>
                 </div>
             </div>
             <div class="col-md-6">
-                <div class="card border-success mb-3">
-                    <div class="card-header bg-success text-white">
-                        <h6 class="mb-0">Client Service</h6>
+                <div class="card border-info mb-3">
+                    <div class="card-header bg-info text-white">
+                        <h6 class="mb-0">Role & Department</h6>
                     </div>
                     <div class="card-body">
-                        <div class="mb-2"><strong>Clients Served:</strong> ${staff.total_clients_served ?? "N/A"}</div>
-                        <div class="mb-2"><strong>Average Rating:</strong> ${staff.average_rating > 0 ? `⭐${staff.average_rating.toFixed(1)}` : "No rating yet"}</div>
-                        <div class="mb-2"><strong>Status:</strong> <span class="badge bg-${staff.is_active ? "success" : "danger"}">${staff.is_active ? "Active" : "Inactive"}</span></div>
+                        <div class="mb-2"><strong>Role:</strong> ${staff.role_display}</div>
+                        <div class="mb-2"><strong>Department:</strong> ${staff.department_display}</div>
+                        <div class="mb-2"><strong>Designation:</strong> ${staff.designation || "N/A"}</div>
+                        <div class="mb-2"><strong>Date of Joining:</strong> ${staff.date_of_joining ? new Date(staff.date_of_joining).toLocaleDateString() : "N/A"}</div>
                     </div>
                 </div>
             </div>
         </div>
         <div class="row mt-3">
             <div class="col-12">
-                <div class="card border-info">
-                    <div class="card-header bg-info text-white">
+                <div class="card border-secondary">
+                    <div class="card-header bg-secondary text-white">
                         <h6 class="mb-0">Work Schedule</h6>
                     </div>
                     <div class="card-body">
@@ -1814,6 +1820,20 @@ Management Suite{% endblock %} {% block content %}
                 </div>
             </div>
         </div>
+        ${staff.notes_bio ? `
+        <div class="row mt-3">
+            <div class="col-12">
+                <div class="card border-warning">
+                    <div class="card-header bg-warning text-dark">
+                        <h6 class="mb-0">Notes/Bio</h6>
+                    </div>
+                    <div class="card-body">
+                        <p>${staff.notes_bio}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        ` : ''}
     `;
 
         const modal = new bootstrap.Modal(
