@@ -2261,30 +2261,10 @@
             // MULTI-BOOKING MODAL
             // ==========================================
             function openMultiBookModal() {
-                try {
-                    const modalEl = document.getElementById("multiBookModal");
-                    if (!modalEl) {
-                        console.error("Modal element not found");
-                        return;
-                    }
-
-                    appointmentCounter = 0; // Reset counter for new bookings
-                    
-                    const modal = new bootstrap.Modal(modalEl, {
-                        backdrop: 'static',
-                        keyboard: true
-                    });
-                    
-                    modal.show();
-                    
-                    // Reset after modal is shown
-                    modalEl.addEventListener('shown.bs.modal', function() {
-                        resetMultiBookModal();
-                    }, { once: true });
-                } catch (error) {
-                    console.error("Error opening modal:", error);
-                    alert("There was an error opening the booking modal. Please refresh the page and try again.");
-                }
+                const modal = new bootstrap.Modal(document.getElementById("multiBookModal"));
+                appointmentCounter = 0; // Reset counter for new bookings
+                resetMultiBookModal();
+                modal.show();
             }
 
             // Initialize real-time validation for an appointment card
@@ -2394,77 +2374,58 @@
             }
 
             function resetMultiBookModal() {
-                // Wait for modal to be visible before manipulating elements
-                setTimeout(() => {
-                    // Destroy Select2 instances before resetting
-                    try {
-                        $('.select2-dropdown').select2('destroy');
-                    } catch(e) {
-                        // Ignore if Select2 not initialized
+                // Destroy Select2 instances before resetting
+                $('.select2-dropdown').select2('destroy');
+
+                document.getElementById("multiClientSelect").value = "";
+                document.getElementById("multiNotes").value = "";
+                document.getElementById("customerExistingAppointments").style.display = "none";
+
+                const container = document.getElementById("appointmentsContainer");
+                const firstCard = container.querySelector(".appointment-card");
+
+                // Remove all but the first card
+                container.querySelectorAll(".appointment-card:not(:first-child)").forEach(card => card.remove());
+
+                // Reset the first card
+                if (firstCard) {
+                    firstCard.dataset.appointmentIndex = "0"; // Index for the first card
+                    firstCard.querySelector(".appointment-number").textContent = "1"; // Display "1" for the first appointment
+                    firstCard.querySelector(".remove-appointment").classList.add("d-none"); // Hide remove button for the first appointment
+
+                    // Reset values
+                    firstCard.querySelector(".service-select").value = "";
+                    firstCard.querySelector(".staff-select").value = "";
+                    firstCard.querySelector(".appointment-date").value = "{{ today }}";
+                    firstCard.querySelector(".start-time-24h").value = "09:00"; // Default to 09:00
+
+                    // Populate start time dropdown for the first card
+                    const startTimeDropdown = firstCard.querySelector('.start-time-select');
+                    if (startTimeDropdown) {
+                        populateTimeDropdown(startTimeDropdown, '09:00');
                     }
 
-                    const clientSelect = document.getElementById("multiClientSelect");
-                    const notesField = document.getElementById("multiNotes");
-                    const existingAppts = document.getElementById("customerExistingAppointments");
-
-                    if (clientSelect) clientSelect.value = "";
-                    if (notesField) notesField.value = "";
-                    if (existingAppts) existingAppts.style.display = "none";
-
-                    const container = document.getElementById("appointmentsContainer");
-                    if (!container) return;
-
-                    const firstCard = container.querySelector(".appointment-card");
-
-                    // Remove all but the first card
-                    container.querySelectorAll(".appointment-card:not(:first-child)").forEach(card => card.remove());
-
-                    // Reset the first card
-                    if (firstCard) {
-                        firstCard.dataset.appointmentIndex = "0";
-                        
-                        const appointmentNumber = firstCard.querySelector(".appointment-number");
-                        const removeBtn = firstCard.querySelector(".remove-appointment");
-                        const serviceSelect = firstCard.querySelector(".service-select");
-                        const staffSelect = firstCard.querySelector(".staff-select");
-                        const dateInput = firstCard.querySelector(".appointment-date");
-                        const startTime24h = firstCard.querySelector(".start-time-24h");
-
-                        if (appointmentNumber) appointmentNumber.textContent = "1";
-                        if (removeBtn) removeBtn.classList.add("d-none");
-                        if (serviceSelect) serviceSelect.value = "";
-                        if (staffSelect) staffSelect.value = "";
-                        if (dateInput) dateInput.value = "{{ today }}";
-                        if (startTime24h) startTime24h.value = "09:00";
-
-                        // Populate start time dropdown for the first card
-                        const startTimeDropdown = firstCard.querySelector('.start-time-select');
-                        if (startTimeDropdown) {
-                            populateTimeDropdown(startTimeDropdown, '09:00');
-                        }
-
-                        // Clear and populate end time dropdown for the first card
-                        const endTimeDropdown = firstCard.querySelector('.end-time-select');
-                        if (endTimeDropdown) {
-                            endTimeDropdown.innerHTML = '<option value="">Select time...</option>';
-                        }
-
-                        // Reset conflict alert
-                        const alert = firstCard.querySelector(".alert");
-                        if (alert) alert.classList.add("d-none");
-                        firstCard.classList.remove("duplicate");
-
-                        // Initialize real-time validation for the first card
-                        initializeAppointmentCardValidation(firstCard);
+                    // Clear and populate end time dropdown for the first card
+                    const endTimeDropdown = firstCard.querySelector('.end-time-select');
+                    if (endTimeDropdown) {
+                        endTimeDropdown.innerHTML = '<option value="">Select time...</option>';
                     }
 
-                    // Reinitialize Select2 for all dropdowns
-                    initializeSearchableDropdowns();
+                    // Reset conflict alert
+                    const alert = firstCard.querySelector(".alert");
+                    if (alert) alert.classList.add("d-none");
+                    firstCard.classList.remove("duplicate");
 
-                    updateAppointmentCount();
-                    updateSummary();
-                    updateSubmitButton();
-                }, 100);
+                    // Initialize real-time validation for the first card
+                    initializeAppointmentCardValidation(firstCard);
+                }
+
+                // Reinitialize Select2 for all dropdowns
+                initializeSearchableDropdowns();
+
+                updateAppointmentCount();
+                updateSummary();
+                updateSubmitButton();
             }
 
             function addAppointment() {
