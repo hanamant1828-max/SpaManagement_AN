@@ -1,7 +1,5 @@
 {% extends "base.html" %} {% block title %}Staff Management - Spa & Salon
 Management Suite{% endblock %} {% block extra_css %}
-<!-- SheetJS library for Excel export -->
-<script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
 {% endblock %}
 
 {% block content %}
@@ -1976,30 +1974,38 @@ Management Suite{% endblock %} {% block extra_css %}
             return;
         }
 
-        if (!filteredStaff || filteredStaff.length === 0) {
-            showNotification("No data available to export.", "warning");
+        // Use allStaff if filteredStaff is empty
+        const dataSource = (filteredStaff && filteredStaff.length > 0) ? filteredStaff : allStaff;
+
+        if (!dataSource || dataSource.length === 0) {
+            showNotification("No staff data available to export.", "warning");
             return;
         }
 
-        showNotification("Preparing data for export...", "info");
+        showNotification("Preparing Excel export...", "info", 2000);
 
         try {
-            // Prepare data for Excel
-            const dataToExport = filteredStaff.map(staff => ({
-                "Staff ID": staff.id || "",
+            // Prepare data for Excel with comprehensive fields
+            const dataToExport = dataSource.map((staff, index) => ({
+                "Sr No": index + 1,
                 "Staff Code": staff.staff_code || "N/A",
                 "Username": staff.username || "",
-                "Full Name": staff.full_name || "",
+                "Full Name": staff.full_name || `${staff.first_name || ''} ${staff.last_name || ''}`.trim(),
                 "Email": staff.email || "N/A",
                 "Phone": staff.phone || "N/A",
-                "Role": staff.role_display || "N/A",
+                "Role": staff.role_display || staff.role || "N/A",
                 "Department": staff.department_display || "N/A",
                 "Designation": staff.designation || "N/A",
                 "Gender": staff.gender ? staff.gender.charAt(0).toUpperCase() + staff.gender.slice(1) : "N/A",
-                "Date of Birth": staff.date_of_birth ? new Date(staff.date_of_birth).toLocaleDateString() : "N/A",
-                "Date of Joining": staff.date_of_joining ? new Date(staff.date_of_joining).toLocaleDateString() : "N/A",
+                "Date of Birth": staff.date_of_birth ? new Date(staff.date_of_birth).toLocaleDateString('en-IN') : "N/A",
+                "Date of Joining": staff.date_of_joining ? new Date(staff.date_of_joining).toLocaleDateString('en-IN') : "N/A",
+                "Shift Start": staff.shift_start_time || "N/A",
+                "Shift End": staff.shift_end_time || "N/A",
+                "Working Days": staff.working_days || "N/A",
                 "Status": staff.is_active ? "Active" : "Inactive",
-                "Notes/Bio": staff.notes_bio || "N/A"
+                "Verified": staff.verification_status ? "Yes" : "No",
+                "Face Check-in": staff.enable_face_checkin ? "Enabled" : "Disabled",
+                "Notes": staff.notes_bio || "N/A"
             }));
 
             console.log("Data prepared for export:", dataToExport.length, "records");
@@ -2007,25 +2013,51 @@ Management Suite{% endblock %} {% block extra_css %}
             // Create worksheet from JSON data
             const ws = XLSX.utils.json_to_sheet(dataToExport);
 
+            // Auto-size columns
+            const columnWidths = [
+                { wch: 6 },  // Sr No
+                { wch: 12 }, // Staff Code
+                { wch: 15 }, // Username
+                { wch: 25 }, // Full Name
+                { wch: 30 }, // Email
+                { wch: 15 }, // Phone
+                { wch: 15 }, // Role
+                { wch: 20 }, // Department
+                { wch: 20 }, // Designation
+                { wch: 10 }, // Gender
+                { wch: 15 }, // DOB
+                { wch: 15 }, // DOJ
+                { wch: 12 }, // Shift Start
+                { wch: 12 }, // Shift End
+                { wch: 15 }, // Working Days
+                { wch: 10 }, // Status
+                { wch: 10 }, // Verified
+                { wch: 15 }, // Face Check-in
+                { wch: 40 }  // Notes
+            ];
+            ws['!cols'] = columnWidths;
+
             // Create a new workbook
             const wb = XLSX.utils.book_new();
 
             // Append worksheet to workbook
             XLSX.utils.book_append_sheet(wb, ws, "Staff Data");
 
-            // Generate filename with current date
-            const date = new Date();
-            const day = String(date.getDate()).padStart(2, '0');
-            const month = String(date.getMonth() + 1).padStart(2, '0');
-            const year = date.getFullYear();
-            const filename = `staff_data_export_${year}-${month}-${day}.xlsx`;
+            // Generate filename with current date and time
+            const now = new Date();
+            const day = String(now.getDate()).padStart(2, '0');
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const year = now.getFullYear();
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const filename = `Staff_Data_${year}${month}${day}_${hours}${minutes}.xlsx`;
 
-            console.log("Writing file:", filename);
+            console.log("Writing Excel file:", filename);
 
             // Write file and trigger download
             XLSX.writeFile(wb, filename);
 
-            showNotification(`✓ Staff data exported successfully! Downloaded as ${filename}`, "success");
+            showNotification(`✓ Staff data exported successfully!\n${dataToExport.length} records saved as ${filename}`, "success", 5000);
             console.log("Export completed successfully");
 
         } catch (error) {
@@ -2033,9 +2065,9 @@ Management Suite{% endblock %} {% block extra_css %}
             console.error("Error details:", {
                 message: error.message,
                 stack: error.stack,
-                filteredStaff: filteredStaff
+                dataSource: dataSource
             });
-            showNotification(`✗ Export failed: ${error.message}. Please try again.`, "error");
+            showNotification(`✗ Export failed: ${error.message}.\nPlease try refreshing the page.`, "error");
         }
     }
 
@@ -2207,15 +2239,24 @@ Management Suite{% endblock %} {% block extra_css %}
     }
 </script>
 
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 <script>
-    // Verify SheetJS is loaded
-    window.addEventListener('load', function() {
+    // Verify SheetJS is loaded with retry mechanism
+    function checkXLSXLibrary(retries = 3) {
         if (typeof XLSX !== 'undefined') {
             console.log('✓ SheetJS library loaded successfully');
+            return true;
+        } else if (retries > 0) {
+            console.log('Waiting for SheetJS library... retries left:', retries);
+            setTimeout(() => checkXLSXLibrary(retries - 1), 500);
         } else {
-            console.error('✗ SheetJS library failed to load');
+            console.error('✗ SheetJS library failed to load after multiple attempts');
             showNotification("Excel export library not available. Please refresh the page.", "error");
         }
+    }
+
+    window.addEventListener('load', function() {
+        setTimeout(() => checkXLSXLibrary(), 100);
     });
 </script>
 {% endblock %}
