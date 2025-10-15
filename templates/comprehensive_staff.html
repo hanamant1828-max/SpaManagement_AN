@@ -250,7 +250,7 @@ Management Suite{% endblock %} {% block content %}
                 </h5>
                 <!-- Header X button disabled - only Close/Save/Update buttons can close modal -->
             </div>
-            <form id="staffForm">
+            <form id="staffFormComprehensive">
                 <div class="modal-body">
                     <input type="hidden" id="staffId" value="" />
                     <input type="hidden" id="formMode" value="add" />
@@ -650,7 +650,7 @@ Management Suite{% endblock %} {% block content %}
             loadMetadata();
 
             // Setup form submission
-            const staffForm = document.getElementById("staffForm");
+            const staffForm = document.getElementById("staffFormComprehensive");
             if (staffForm) {
                 staffForm.addEventListener("submit", handleFormSubmission);
                 // Track form changes for unsaved changes detection
@@ -932,7 +932,6 @@ Management Suite{% endblock %} {% block content %}
             email: getFieldValue("email") || '',  // Use empty string instead of null
             phone: getFieldValue("phone") || null,
             password: getFieldValue("password"),
-            role: getFieldValue("role") || "staff",
             role_id: getFieldValue("roleId") || null,
             department_id: getFieldValue("departmentId") || null,
             designation: getFieldValue("designation") || "Staff Member",
@@ -1570,7 +1569,7 @@ Management Suite{% endblock %} {% block content %}
 
     // Clear form fields and reset state
     function clearForm() {
-        const staffForm = document.getElementById("staffForm");
+        const staffForm = document.getElementById("staffFormComprehensive");
         const staffId = document.getElementById("staffId");
         const formMode = document.getElementById("formMode");
         const modalLabel = document.getElementById("staffModalLabel");
