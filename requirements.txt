@@ -44,3 +44,4 @@ gunicorn>=23.0.0
 replit>=4.1.2
 pillow
 pytz
+Pillow
