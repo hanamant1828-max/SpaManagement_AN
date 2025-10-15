@@ -1653,10 +1653,9 @@ def api_unaki_get_bookings():
         # Get today's date for comparison
         today = date.today()
 
-        # Get all bookings for the date, excluding completed appointments unless it's today
+        # Get all bookings for the date (including paid ones)
         bookings = UnakiBooking.query.filter(
-            UnakiBooking.appointment_date == booking_date,
-            UnakiBooking.payment_status != 'paid'  # 👈 ADD THIS LINE
+            UnakiBooking.appointment_date == booking_date
         ).all()
 
 
@@ -1693,7 +1692,8 @@ def api_unaki_get_bookings():
                 'start_hour': start_hour,
                 'start_minute': start_minute,
                 'duration': booking.service_duration,
-                'status': booking.status
+                'status': booking.status,
+                'payment_status': booking.payment_status
             })
 
         return jsonify({'success': True, 'bookings': bookings_data})
