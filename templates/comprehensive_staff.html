@@ -190,7 +190,6 @@ Management Suite{% endblock %} {% block content %}
                                         <th>Staff Info</th>
                                         <th>Role & Department</th>
                                         <th>Contact</th>
-                                        <th>Work Details</th>
                                         <th>Performance</th>
                                         <th>Actions</th>
                                     </tr>
@@ -1150,13 +1149,6 @@ Management Suite{% endblock %} {% block content %}
             <div>${staff.email || "No email"}</div>
             <div><small class="text-muted">${staff.phone || "No phone"}</small></div>
             ${staff.gender ? `<div><small class="text-muted">${staff.gender.charAt(0).toUpperCase() + staff.gender.slice(1)}</small></div>` : ""}
-        </td>
-        <td>
-            ${
-                staff.shift_start_time && staff.shift_end_time
-                    ? `<div><small>Shift: ${staff.shift_start_time} - ${staff.shift_end_time}</small></div>`
-                    : "<div><small>No shift set</small></div>"
-            }
         </td>
         <td>
             <div><strong>Revenue:</strong> $${staff.total_revenue_generated.toFixed(2)}</div>
