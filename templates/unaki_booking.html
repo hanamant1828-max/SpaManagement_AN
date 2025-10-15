@@ -2394,13 +2394,17 @@
                     firstCard.querySelector(".staff-select").value = "";
                     firstCard.querySelector(".appointment-date").value = "{{ today }}";
                     firstCard.querySelector(".start-time-24h").value = "09:00";
-                    firstCard.querySelector(".end-time").value = "";
-                    firstCard.querySelector(".end-time-display").value = "";
-
-                    // Populate time dropdown
-                    const timeDropdown = firstCard.querySelector('.start-time-select');
-                    if (timeDropdown) {
-                        populateTimeDropdown(timeDropdown, '09:00');
+                    
+                    // Populate start time dropdown
+                    const startTimeDropdown = firstCard.querySelector('.start-time-select');
+                    if (startTimeDropdown) {
+                        populateTimeDropdown(startTimeDropdown, '09:00');
+                    }
+                    
+                    // Clear and populate end time dropdown
+                    const endTimeDropdown = firstCard.querySelector('.end-time-select');
+                    if (endTimeDropdown) {
+                        endTimeDropdown.innerHTML = '<option value="">Select time...</option>';
                     }
 
                     const alert = firstCard.querySelector(".alert");
