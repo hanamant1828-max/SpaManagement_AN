@@ -2285,17 +2285,16 @@
                                                 type="time"
                                                 name="end_time"
                                                 class="form-control end-time end-time-24h"
-                                                readonly
                                                 style="display: none;"
                                             />
-                                            <!-- Visible 12-hour display -->
-                                            <input
-                                                type="text"
-                                                class="form-control end-time-display"
-                                                readonly
-                                                style="background: #f0fdf4; color: var(--success-color); font-weight: 600; border-radius: 10px; padding: 12px;"
-                                                placeholder="Auto-calculated"
-                                            />
+                                            <!-- User-friendly time selector dropdown -->
+                                            <select
+                                                class="form-select end-time-select"
+                                                style="border-radius: 10px; padding: 12px; font-weight: 600; color: var(--success-color); border: 2px solid #e2e8f0; transition: all 0.3s; background: #f0fdf4;"
+                                            >
+                                                <option value="">Select end time...</option>
+                                                <!-- Options will be populated by JavaScript -->
+                                            </select>
                                         </div>
                                     </div>
 
@@ -3378,14 +3377,14 @@
             function initializeAppointmentCardValidation(card) {
                 const index = parseInt(card.dataset.appointmentIndex);
 
-                // Initialize time dropdown and event listener
+                // Initialize start time dropdown and event listener
                 const startTimeDropdown = card.querySelector('.start-time-select');
-                const hiddenInput = card.querySelector('.start-time-24h');
+                const startTimeHiddenInput = card.querySelector('.start-time-24h');
 
-                if (startTimeDropdown && hiddenInput) {
+                if (startTimeDropdown && startTimeHiddenInput) {
                     startTimeDropdown.addEventListener('change', function() {
                         // Update hidden input with selected time
-                        hiddenInput.value = this.value;
+                        startTimeHiddenInput.value = this.value;
                         
                         // Trigger validation and conflict check
                         calculateEndTime(index);
@@ -3400,6 +3399,25 @@
                             if (validationIcon) validationIcon.style.display = 'inline-block';
                             this.style.borderColor = '#10b981';
                         }
+                    });
+                }
+
+                // Initialize end time dropdown and event listener
+                const endTimeDropdown = card.querySelector('.end-time-select');
+                const endTimeHiddenInput = card.querySelector('.end-time-24h');
+
+                if (endTimeDropdown && endTimeHiddenInput) {
+                    endTimeDropdown.addEventListener('change', function() {
+                        // Update hidden input with selected time
+                        endTimeHiddenInput.value = this.value;
+                        
+                        // Trigger validation and conflict check
+                        checkConflictsRealtime(index);
+                        updateSummary();
+                        updateSubmitButton();
+
+                        // Update visual feedback
+                        this.style.borderColor = '#10b981';
                     });
                 }
 
@@ -3479,13 +3497,23 @@
                     firstCard.querySelector(".staff-select").value = "";
                     firstCard.querySelector(".appointment-date").value = "{{ today }}";
                     firstCard.querySelector(".start-time-24h").value = "09:00"; // Set hidden input to default
-                    firstCard.querySelector(".end-time").value = "";
-                    firstCard.querySelector(".end-time-display").value = ""; // Clear visible end time
+                    
+                    const endTimeHidden = firstCard.querySelector(".end-time-24h");
+                    if (endTimeHidden) endTimeHidden.value = "";
+                    
+                    const endTimeDropdown = firstCard.querySelector(".end-time-select");
+                    if (endTimeDropdown) endTimeDropdown.value = ""; // Clear end time dropdown
 
                     // Populate the start time dropdown
                     const startTimeDropdown = firstCard.querySelector('.start-time-select');
                     if (startTimeDropdown) {
                         populateTimeOptions(startTimeDropdown, 9, 21, '09:00');
+                    }
+
+                    // Populate the end time dropdown
+                    const endTimeDropdown = firstCard.querySelector('.end-time-select');
+                    if (endTimeDropdown) {
+                        populateTimeOptions(endTimeDropdown, 9, 21, '');
                     }
 
                     const alert = firstCard.querySelector(".alert");
@@ -3579,9 +3607,12 @@
                                     <i class="fas fa-clock me-2" style="color: var(--success-color);"></i>End Time
                                 </label>
                                 <!-- Hidden 24-hour input for backend -->
-                                <input type="time" name="end_time" class="form-control end-time end-time-24h" readonly style="display: none;">
-                                <!-- Visible 12-hour display -->
-                                <input type="text" class="form-control end-time-display" readonly style="border-radius: 10px; padding: 12px; background: #f0fdf4; font-weight: 600; color: var(--success-color);" placeholder="Auto-calculated">
+                                <input type="time" name="end_time" class="form-control end-time end-time-24h" style="display: none;">
+                                <!-- User-friendly time selector dropdown -->
+                                <select class="form-select end-time-select" style="border-radius: 10px; padding: 12px; font-weight: 600; color: var(--success-color); border: 2px solid #e2e8f0; transition: all 0.3s; background: #f0fdf4;">
+                                    <option value="">Select end time...</option>
+                                    <!-- Options will be populated by JavaScript -->
+                                </select>
                             </div>
                         </div>
 
@@ -3601,10 +3632,16 @@
                 // Initialize the new appointment card
                 const newCard = document.querySelector(`[data-appointment-index="${appointmentCounter}"]`);
                 if (newCard) {
-                    // Populate time dropdown for the new appointment
+                    // Populate start time dropdown for the new appointment
                     const startTimeDropdown = newCard.querySelector('.start-time-select');
                     if (startTimeDropdown) {
                         populateTimeOptions(startTimeDropdown, 9, 21, '09:00');
+                    }
+
+                    // Populate end time dropdown for the new appointment
+                    const endTimeDropdown = newCard.querySelector('.end-time-select');
+                    if (endTimeDropdown) {
+                        populateTimeOptions(endTimeDropdown, 9, 21, '');
                     }
                     
                     initializeAppointmentCardValidation(newCard);
@@ -3632,6 +3669,7 @@
                 const serviceSelect = card.querySelector('.service-select');
                 const startTimeInput = card.querySelector('.start-time-24h'); // Use the hidden 24h input
                 const endTimeInput = card.querySelector('.end-time-24h');     // Use the hidden 24h input
+                const endTimeDropdown = card.querySelector('.end-time-select'); // Dropdown selector
 
                 if (!serviceSelect || !startTimeInput || !endTimeInput) return;
 
@@ -3640,9 +3678,8 @@
 
                 if (!selectedOption || !startTime) {
                     endTimeInput.value = "";
-                    // Update visible display as well
-                    const endTimeDisplay = card.querySelector('.end-time-display');
-                    if (endTimeDisplay) endTimeDisplay.value = "";
+                    // Update dropdown as well
+                    if (endTimeDropdown) endTimeDropdown.value = "";
                     return;
                 }
 
@@ -3650,10 +3687,9 @@
                 const endTime = calculateEndTimeFromDuration(startTime, duration);
                 endTimeInput.value = endTime;
 
-                // Update visible display
-                const endTimeDisplay = card.querySelector('.end-time-display');
-                if (endTimeDisplay) {
-                    endTimeDisplay.value = convertTo12Hour(endTime);
+                // Update dropdown selector
+                if (endTimeDropdown) {
+                    endTimeDropdown.value = endTime;
                 }
             }
 
