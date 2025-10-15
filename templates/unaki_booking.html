@@ -2509,52 +2509,55 @@
                 const index = parseInt(card.dataset.appointmentIndex);
 
                 // Initialize time input fields and event listeners
-                const hourInput = card.querySelector('.time-hour');
-                const minuteInput = card.querySelector('.time-minute');
-                const periodSelect = card.querySelector('.time-period');
-                const hiddenInput = card.querySelector('.start-time-24h');
+                const startTimeSelect = card.querySelector('.start-time-select');
+                const hiddenStartTimeInput = card.querySelector('.start-time-24h');
+                const endTimeSelect = card.querySelector('.end-time-select'); // The visible dropdown
+                const endTimeDisplay = card.querySelector('.end-time-display'); // The read-only display input
+                const hiddenEndTimeInput = card.querySelector('.end-time-24h'); // Hidden input for end time
 
-                if (hourInput && minuteInput && periodSelect && hiddenInput) {
+                if (startTimeSelect && hiddenStartTimeInput && endTimeSelect && endTimeDisplay && hiddenEndTimeInput) {
                     const updateAndValidateTime = () => {
-                        updateHiddenTimeInput(hourInput, minuteInput, periodSelect, hiddenInput);
-                        // Update 12-hour display
-                        const endTimeDisplay = card.querySelector('.end-time-display');
-                        if (endTimeDisplay) {
-                            // Use the updated hidden input value to calculate end time
-                            updateAppointmentEndTime(card); // This will update the hidden end_time and the select
+                        // Update hidden start time input from the selected value
+                        if (startTimeSelect.value) {
+                            hiddenStartTimeInput.value = startTimeSelect.value;
                         }
+
+                        // Update end time based on service and updated start time
+                        updateAppointmentEndTime(card);
+
                         // Trigger validation and conflict check
                         checkConflictsRealtime(index);
                         updateSummary();
                         updateSubmitButton();
 
-                        // Show validation icon and color
-                        const parentCol = hourInput.closest('.col-md-4'); // Use the correct column for start time
+                        // Show validation icon and color for start time select
+                        const parentCol = startTimeSelect.closest('.col-md-4');
                         if (parentCol) {
                             const validationIcon = parentCol.querySelector('.validation-icon');
                             if (validationIcon) validationIcon.style.display = 'inline-block';
-                            [hourInput, minuteInput, periodSelect, hiddenInput].forEach(el => el.style.borderColor = '#10b981'); // Apply to all relevant time inputs
+                            startTimeSelect.style.borderColor = '#10b981';
                         }
                     };
 
-                    hourInput.addEventListener('input', updateAndValidateTime);
-                    minuteInput.addEventListener('input', updateAndValidateTime);
-                    periodSelect.addEventListener('change', updateAndValidateTime);
+                    startTimeSelect.addEventListener('change', updateAndValidateTime);
 
-                    // Set initial value if available
-                    if (hiddenInput.value) {
-                        const [h24, m] = hiddenInput.value.split(':');
+                    // Set initial value if available (e.g., when card is first created)
+                    if (hiddenStartTimeInput.value && startTimeSelect.value === "") { // Only if not already set by populateTimeDropdown
+                        const [h24, m] = hiddenStartTimeInput.value.split(':');
                         const hour24 = parseInt(h24);
-                        const minute = parseInt(m);
                         const period = hour24 >= 12 ? 'PM' : 'AM';
                         const hour12 = hour24 % 12 || 12;
+                        const minutes = m;
 
-                        hourInput.value = hour12;
-                        minuteInput.value = minute;
-                        periodSelect.value = period;
+                        // Find the correct option in the dropdown
+                        const optionToSelect = Array.from(startTimeSelect.options).find(option => option.value === hiddenStartTimeInput.value);
+                        if (optionToSelect) {
+                            startTimeSelect.value = hiddenStartTimeInput.value;
+                            // Trigger the updateAndValidateTime function after setting the value
+                            setTimeout(updateAndValidateTime, 0);
+                        }
                     }
                 }
-
 
                 // Add real-time validation for service selection
                 const serviceSelect = card.querySelector('.service-select');
@@ -2564,7 +2567,7 @@
                         if (this.value) {
                             if (validationIcon) validationIcon.style.display = 'inline-block';
                             this.style.borderColor = '#10b981';
-                            calculateEndTime(index);
+                            calculateEndTime(index); // Recalculate end time based on new service duration
                             updateSummary();
                             checkConflictsRealtime(index);
                         } else {
@@ -2635,6 +2638,15 @@
                     if (summary) {
                         summary.style.display = 'none';
                     }
+
+                    // Reset client selection
+                    const clientSelect = document.getElementById('multiClientSelect');
+                    if (clientSelect) {
+                        $(clientSelect).val(null).trigger('change'); // Clear and re-initialize Select2
+                    }
+
+                    // Reset notes
+                    document.getElementById('multiNotes').value = '';
 
                     console.log('✅ Multi-book modal reset complete');
                 } catch (error) {
@@ -2709,18 +2721,10 @@
                                         <i class="fas fa-check-circle text-success"></i>
                                     </span>
                                 </label>
-                                <!-- Manual time input fields -->
-                                <div class="d-flex align-items-center time-input-group" style="border: 2px solid #e2e8f0; border-radius: 10px; padding: 6px 12px; transition: all 0.3s;">
-                                    <input type="number" class="form-control time-hour border-0 shadow-none p-0" min="1" max="12" placeholder="12" style="width: 50px;">
-                                    <span class="text-muted">:</span>
-                                    <input type="number" class="form-control time-minute border-0 shadow-none p-0" min="0" max="59" placeholder="00" style="width: 50px;">
-                                    <select class="form-select time-period border-0 shadow-none p-0" style="width: 70px;">
-                                        <option value="AM">AM</option>
-                                        <option value="PM">PM</option>
-                                    </select>
-                                </div>
-                                <!-- Hidden 24-hour input for backend -->
-                                <input type="time" name="start_time" class="form-control start-time start-time-24h" value="09:00" required style="display: none;">
+                                <select name="start_time" class="form-select start-time-select" required onchange="handleStartTimeChange(this)" style="border-radius: 10px; padding: 12px; border: 2px solid #e2e8f0; transition: all 0.3s;">
+                                    <option value="">Select time...</option>
+                                </select>
+                                <input type="hidden" name="start_time_24h" class="start-time-24h" value="09:00">
                             </div>
                             <div class="col-md-4 mb-3">
                                 <label class="form-label fw-semibold">
@@ -2729,10 +2733,10 @@
                                         <i class="fas fa-check-circle text-success"></i>
                                     </span>
                                 </label>
-                                <!-- Hidden 24-hour input for backend -->
-                                <input type="time" name="end_time" class="form-control end-time end-time-24h" style="display: none;">
-                                <!-- Visible editable time display (read-only for now) -->
-                                <input type="text" class="form-control end-time-display" readonly style="border-radius: 10px; padding: 12px; font-weight: 600; color: var(--success-color); border: 2px solid #e2e8f0; transition: all 0.3s;">
+                                <select name="end_time" class="form-select end-time-select" style="border-radius: 10px; padding: 12px; font-weight: 600; color: var(--success-color); border: 2px solid #e2e8f0; transition: all 0.3s;">
+                                    <option value="">Auto-calculated...</option>
+                                </select>
+                                <input type="hidden" name="end_time_24h" class="end-time-24h">
                             </div>
                         </div>
 
@@ -2753,17 +2757,10 @@
                 const newCard = document.querySelector(`[data-appointment-index="${newAppointmentIndex}"]`);
                 if (newCard) {
                     initializeAppointmentCardValidation(newCard);
-                    // Ensure the start time dropdown is populated if it's the first card being added
-                    if (newAppointmentIndex === 0) {
-                        const startTimeDropdown = newCard.querySelector('.start-time-select');
-                        if (startTimeDropdown) {
-                            populateTimeDropdown(startTimeDropdown, '09:00');
-                        }
-                    }
-                    // Clear end time dropdown initially
-                    const endTimeDropdown = newCard.querySelector('.end-time-select');
-                    if (endTimeDropdown) {
-                        endTimeDropdown.innerHTML = '<option value="">Select time...</option>';
+                    // Ensure the end time select is cleared initially
+                    const endTimeSelect = newCard.querySelector('.end-time-select');
+                    if (endTimeSelect) {
+                        endTimeSelect.innerHTML = '<option value="">Auto-calculated...</option>';
                     }
                 }
             }
@@ -2833,18 +2830,10 @@
                                         <i class="fas fa-check-circle text-success"></i>
                                     </span>
                                 </label>
-                                <!-- Manual time input fields -->
-                                <div class="d-flex align-items-center time-input-group" style="border: 2px solid #e2e8f0; border-radius: 10px; padding: 6px 12px; transition: all 0.3s;">
-                                    <input type="number" class="form-control time-hour border-0 shadow-none p-0" min="1" max="12" placeholder="12" style="width: 50px;">
-                                    <span class="text-muted">:</span>
-                                    <input type="number" class="form-control time-minute border-0 shadow-none p-0" min="0" max="59" placeholder="00" style="width: 50px;">
-                                    <select class="form-select time-period border-0 shadow-none p-0" style="width: 70px;">
-                                        <option value="AM">AM</option>
-                                        <option value="PM">PM</option>
-                                    </select>
-                                </div>
-                                <!-- Hidden 24-hour input for backend -->
-                                <input type="time" name="start_time" class="form-control start-time start-time-24h" value="09:00" required style="display: none;">
+                                <select name="start_time" class="form-select start-time-select" required onchange="handleStartTimeChange(this)" style="border-radius: 10px; padding: 12px; border: 2px solid #e2e8f0; transition: all 0.3s;">
+                                    <option value="">Select time...</option>
+                                </select>
+                                <input type="hidden" name="start_time_24h" class="start-time-24h" value="09:00">
                             </div>
                             <div class="col-md-4 mb-3">
                                 <label class="form-label fw-semibold">
@@ -2853,10 +2842,10 @@
                                         <i class="fas fa-check-circle text-success"></i>
                                     </span>
                                 </label>
-                                <!-- Hidden 24-hour input for backend -->
-                                <input type="time" name="end_time" class="form-control end-time end-time-24h" style="display: none;">
-                                <!-- Visible editable time display (read-only for now) -->
-                                <input type="text" class="form-control end-time-display" readonly style="border-radius: 10px; padding: 12px; font-weight: 600; color: var(--success-color); border: 2px solid #e2e8f0; transition: all 0.3s;">
+                                <select name="end_time" class="form-select end-time-select" style="border-radius: 10px; padding: 12px; font-weight: 600; color: var(--success-color); border: 2px solid #e2e8f0; transition: all 0.3s;">
+                                    <option value="">Auto-calculated...</option>
+                                </select>
+                                <input type="hidden" name="end_time_24h" class="end-time-24h">
                             </div>
                         </div>
 
@@ -2879,9 +2868,9 @@
                     // Initialize the manual time input fields and their listeners
                     initializeAppointmentCardValidation(newCard);
                     // Also ensure the end time select is cleared initially
-                    const endTimeDropdown = newCard.querySelector('.end-time-select');
-                    if (endTimeDropdown) {
-                        endTimeDropdown.innerHTML = '<option value="">Select time...</option>';
+                    const endTimeSelect = newCard.querySelector('.end-time-select');
+                    if (endTimeSelect) {
+                        endTimeSelect.innerHTML = '<option value="">Auto-calculated...</option>';
                     }
                 }
 
@@ -3403,31 +3392,16 @@
                     firstCard.querySelector(".staff-select").value = staffId;
                     firstCard.querySelector(".appointment-date").value = currentDate;
 
-                    // Update manual time inputs
-                    const hourInput = firstCard.querySelector('.time-hour');
-                    const minuteInput = firstCard.querySelector('.time-minute');
-                    const periodSelect = firstCard.querySelector('.time-period');
-                    const hiddenInput = firstCard.querySelector('.start-time-24h');
-
-                    if (hourInput && minuteInput && periodSelect && hiddenInput) {
-                        const [h24, m] = time.split(':');
-                        const hour24 = parseInt(h24);
-                        const minute = parseInt(m);
-                        const period = hour24 >= 12 ? 'PM' : 'AM';
-                        const hour12 = hour24 % 12 || 12;
-
-                        hourInput.value = hour12;
-                        minuteInput.value = String(minute).padStart(2, '0');
-                        periodSelect.value = period;
-
-                        // Trigger update of hidden input, end time, and validation
-                        const updateAndValidateTime = () => {
-                            updateHiddenTimeInput(hourInput, minuteInput, periodSelect, hiddenInput);
-                            updateAppointmentEndTime(firstCard);
-                            checkConflicts(0); // Check conflicts for the first card
-                            updateSubmitButton();
-                        };
-                        updateAndValidateTime(); // Call immediately to set the values
+                    // Update start time dropdown
+                    const startTimeSelect = firstCard.querySelector('.start-time-select');
+                    if (startTimeSelect) {
+                        // Find and select the correct option, then trigger change
+                        const optionToSelect = Array.from(startTimeSelect.options).find(option => option.value === time);
+                        if (optionToSelect) {
+                            startTimeSelect.value = time;
+                            // Manually trigger the onchange event to update hidden fields and end time
+                            startTimeSelect.dispatchEvent(new Event('change'));
+                        }
                     }
                 }
             }
@@ -3622,11 +3596,11 @@
                         // Find the first card, which should have index 0 after reset
                         const firstCard = document.querySelector('.appointment-card[data-appointment-index="0"]');
                         if (firstCard) {
-                            const startTimeDropdown = firstCard.querySelector('.start-time-select');
+                            const startTimeSelect = firstCard.querySelector('.start-time-select');
                             // Check if the dropdown needs population (e.g., has only the default option)
-                            if (startTimeDropdown && startTimeDropdown.options.length <= 1) {
+                            if (startTimeSelect && startTimeSelect.options.length <= 1) {
                                 console.log('🔄 Re-populating start time dropdown on modal show');
-                                populateTimeDropdown(startTimeDropdown, '09:00');
+                                populateTimeDropdown(startTimeSelect, '09:00');
                             }
                         }
                     });
@@ -3646,11 +3620,11 @@
 
             // Event delegation for dynamically added appointments
             document.getElementById('appointmentsContainer').addEventListener('change', function(e) {
-                if (e.target.matches('.service-select, .staff-select, .appointment-date, .start-time-24h, .end-time-24h')) { // Trigger on change of hidden time inputs as well
+                if (e.target.matches('.service-select, .staff-select, .appointment-date, .start-time-select')) { // Trigger on change of start time select
                     const appointmentCard = e.target.closest('.appointment-card');
                     if (appointmentCard) {
                         // Update end time if service or start time changed
-                        if (e.target.matches('.service-select') || e.target.matches('.start-time-24h')) {
+                        if (e.target.matches('.service-select') || e.target.matches('.start-time-select')) {
                             updateAppointmentEndTime(appointmentCard);
                         }
                         // Re-check conflicts
