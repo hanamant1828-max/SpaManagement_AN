@@ -1397,1136 +1397,6 @@
         </div>
 
         <script>
-            // Cancel all appointments for a specific customer from Unaki booking view
-            function cancelAllCustomerAppointments(customerId, customerName) {
-                if (!customerId) {
-                    alert('Please select a customer first');
-                    return;
-                }
-
-                // Get all appointments for this customer
-                fetch(`/api/unaki/customer-appointments/${customerId}`)
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success && data.bookings) {
-                            const activeAppointments = data.bookings.filter(
-                                apt => apt.status === 'scheduled' || apt.status === 'confirmed'
-                            );
-
-                            if (activeAppointments.length === 0) {
-                                alert('No active appointments found for this customer');
-                                return;
-                            }
-
-                            const appointmentsList = activeAppointments.map(apt =>
-                                `- ${apt.service_name} on ${apt.appointment_date} at ${apt.start_time}`
-                            ).join('\n');
-
-                            const confirmMessage = `Are you sure you want to cancel ALL ${activeAppointments.length} appointment(s) for ${customerName}?\n\nAppointments:\n${appointmentsList}`;
-
-                            if (confirm(confirmMessage)) {
-                                // Cancel all appointments using PATCH endpoint
-                                const cancelPromises = activeAppointments.map(apt =>
-                                    fetch(`/api/unaki/bookings/${apt.id}`, {
-                                        method: 'PATCH',
-                                        headers: {
-                                            'Content-Type': 'application/json',
-                                        },
-                                        body: JSON.stringify({ status: 'cancelled' })
-                                    }).then(r => r.json())
-                                );
-
-                                Promise.all(cancelPromises)
-                                    .then(results => {
-                                        const successCount = results.filter(r => r.success).length;
-                                        const failCount = results.length - successCount;
-
-                                        if (failCount === 0) {
-                                            alert(`✅ Successfully cancelled all ${successCount} appointments for ${customerName}`);
-                                            // Refresh the schedule
-                                            refreshSchedule();
-                                        } else {
-                                            alert(`⚠️ Cancelled ${successCount} appointments, ${failCount} failed`);
-                                            refreshSchedule();
-                                        }
-                                    })
-                                    .catch(error => {
-                                        console.error('Error cancelling appointments:', error);
-                                        alert('Error cancelling appointments. Please try again.');
-                                    });
-                            }
-                        } else {
-                            alert('Failed to load customer appointments');
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error loading appointments:', error);
-                        alert('Error loading customer appointments');
-                    });
-            }
-        </script>
-
-        <!-- Edit Appointment Modal -->
-        <div class="modal fade" id="editAppointmentModal" tabindex="-1">
-            <div class="modal-dialog modal-lg modal-dialog-centered">
-                <div
-                    class="modal-content"
-                    style="
-                        border-radius: 16px;
-                        border: none;
-                        box-shadow: var(--shadow-xl);
-                    "
-                >
-                    <div
-                        class="modal-header"
-                        style="
-                            border-bottom: 2px solid var(--border-color);
-                            padding: 20px 24px;
-                        "
-                    >
-                        <h5
-                            class="modal-title"
-                            style="font-weight: 700; font-size: 18px"
-                        >
-                            <i
-                                class="fas fa-edit me-2"
-                                style="color: var(--warning-color)"
-                            ></i
-                            >Edit Appointment
-                        </h5>
-                        <button
-                            type="button"
-                            class="btn-close"
-                            data-bs-dismiss="modal"
-                        ></button>
-                    </div>
-                    <div class="modal-body" style="padding: 24px">
-                        <input type="hidden" id="editAppointmentId" />
-
-                        <div class="row mb-4">
-                            <div class="col-md-12">
-                                <label class="form-label fw-semibold">
-                                    <i
-                                        class="fas fa-user me-2"
-                                        style="color: var(--primary-color)"
-                                    ></i
-                                    >Client Name
-                                </label>
-                                <input
-                                    type="text"
-                                    id="editClientName"
-                                    class="form-control"
-                                    readonly
-                                    style="
-                                        background: #f9fafb;
-                                        border-radius: 10px;
-                                        padding: 12px;
-                                    "
-                                />
-                            </div>
-                        </div>
-
-                        <div class="row mb-4">
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label class="form-label fw-semibold">
-                                        <i
-                                            class="fas fa-concierge-bell me-2"
-                                            style="color: var(--primary-color)"
-                                        ></i
-                                        >Service
-                                    </label>
-                                    <select
-                                        id="editServiceSelect"
-                                        class="form-select service-select"
-                                        required
-                                        style="
-                                            border-radius: 10px;
-                                            padding: 12px;
-                                            width: 100%;
-                                        "
-                                    >
-                                        <option value="">
-                                            Select service...
-                                        </option>
-                                        {% if services %} {% for service in
-                                        services %}
-                                        <option
-                                            value="{{ service.id }}"
-                                            data-duration="{{ service.duration or 60 }}"
-                                            data-price="{{ service.price }}"
-                                        >
-                                            {{ service.name }} ({{
-                                            service.duration or 60 }} min - ₹{{
-                                            "%.2f"|format(service.price) }})
-                                        </option>
-                                        {% endfor %} {% endif %}
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label class="form-label fw-semibold">
-                                        <i
-                                            class="fas fa-user-md me-2"
-                                            style="color: var(--primary-color)"
-                                        ></i
-                                        >Staff Member
-                                    </label>
-                                    <select
-                                        id="editStaffSelect"
-                                        class="form-select"
-                                        required
-                                        style="
-                                            border-radius: 10px;
-                                            padding: 12px;
-                                        "
-                                    >
-                                        <option value="">
-                                            Select staff member...
-                                        </option>
-                                        {% if staff_members %} {% for staff in
-                                        staff_members %}
-                                        <option value="{{ staff.id }}">
-                                            {{ staff.first_name }} {{
-                                            staff.last_name if staff.last_name
-                                            else '' }}
-                                        </option>
-                                        {% endfor %} {% endif %}
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="row mb-4">
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label class="form-label fw-semibold">
-                                        <i
-                                            class="fas fa-info-circle me-2"
-                                            style="color: var(--primary-color)"
-                                        ></i
-                                        >Status
-                                    </label>
-                                    <select
-                                        id="editStatus"
-                                        class="form-select"
-                                        required
-                                        style="
-                                            border-radius: 10px;
-                                            padding: 12px;
-                                        "
-                                    >
-                                        <option value="scheduled">
-                                            Scheduled
-                                        </option>
-                                        <option value="confirmed">
-                                            Confirmed
-                                        </option>
-                                        <option value="in_progress">
-                                            In Progress
-                                        </option>
-                                        <option value="completed">
-                                            Completed
-                                        </option>
-                                        <option value="cancelled">
-                                            Cancelled
-                                        </option>
-                                        <option value="no_show">No Show</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label class="form-label fw-semibold">
-                                        <i
-                                            class="fas fa-money-bill-wave me-2"
-                                            style="color: var(--success-color)"
-                                        ></i
-                                        >Payment Status
-                                    </label>
-                                    <select
-                                        id="editPaymentStatus"
-                                        class="form-select"
-                                        required
-                                        style="
-                                            border-radius: 10px;
-                                            padding: 12px;
-                                        "
-                                    >
-                                        <option value="pending">Pending</option>
-                                        <option value="partial">Partial</option>
-                                        <option value="paid">Paid</option>
-                                        <option value="cancelled">
-                                            Cancelled
-                                        </option>
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="row mb-4">
-                            <div class="col-md-4">
-                                <label class="form-label fw-semibold">
-                                    <i
-                                        class="fas fa-calendar me-2"
-                                        style="color: var(--primary-color)"
-                                    ></i
-                                    >Date
-                                </label>
-                                <input
-                                    type="date"
-                                    id="editAppointmentDate"
-                                    class="form-control"
-                                    required
-                                    style="border-radius: 10px; padding: 12px"
-                                />
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label fw-semibold">
-                                    <i
-                                        class="fas fa-clock me-2"
-                                        style="color: var(--primary-color)"
-                                    ></i
-                                    >Start Time
-                                </label>
-                                <input
-                                    type="time"
-                                    id="editStartTime"
-                                    class="form-control"
-                                    required
-                                    style="border-radius: 10px; padding: 12px"
-                                />
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label fw-semibold">
-                                    <i
-                                        class="fas fa-clock me-2"
-                                        style="color: var(--success-color)"
-                                    ></i
-                                    >End Time
-                                </label>
-                                <input
-                                    type="time"
-                                    id="editEndTime"
-                                    class="form-control"
-                                    readonly
-                                    style="
-                                        border-radius: 10px;
-                                        padding: 12px;
-                                        background: #f0fdf4;
-                                        font-weight: 600;
-                                        color: var(--success-color);
-                                    "
-                                />
-                            </div>
-                        </div>
-
-                        <div class="mb-3">
-                            <label class="form-label fw-semibold">
-                                <i
-                                    class="fas fa-sticky-note me-2"
-                                    style="color: var(--primary-color)"
-                                ></i
-                                >Notes
-                            </label>
-                            <textarea
-                                id="editNotes"
-                                class="form-control"
-                                rows="3"
-                                style="border-radius: 10px; padding: 12px"
-                            ></textarea>
-                        </div>
-                    </div>
-                    <div
-                        class="modal-footer"
-                        style="
-                            border-top: 2px solid var(--border-color);
-                            padding: 16px 24px;
-                        "
-                    >
-                        <button
-                            type="button"
-                            class="btn btn-secondary"
-                            data-bs-dismiss="modal"
-                            style="border-radius: 10px; padding: 10px 20px"
-                        >
-                            <i class="fas fa-times me-2"></i>Cancel
-                        </button>
-                        <button
-                            type="button"
-                            class="btn btn-primary"
-                            onclick="saveEditedAppointment()"
-                            style="
-                                border-radius: 10px;
-                                padding: 10px 20px;
-                                background: var(--warning-color);
-                                border: none;
-                            "
-                        >
-                            <i class="fas fa-save me-2"></i>Save Changes
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Quick Add Client Modal -->
-        <div class="modal fade" id="quickAddClientModal" tabindex="-1">
-            <div class="modal-dialog modal-dialog-centered">
-                <div
-                    class="modal-content"
-                    style="
-                        border-radius: 16px;
-                        border: none;
-                        box-shadow: var(--shadow-xl);
-                    "
-                >
-                    <div
-                        class="modal-header"
-                        style="
-                            border-bottom: 2px solid var(--border-color);
-                            padding: 20px 24px;
-                        "
-                    >
-                        <h5
-                            class="modal-title"
-                            style="font-weight: 700; font-size: 18px"
-                        >
-                            <i
-                                class="fas fa-user-plus me-2"
-                                style="color: var(--primary-color)"
-                            ></i
-                            >Quick Add New Client
-                        </h5>
-                        <button
-                            type="button"
-                            class="btn-close"
-                            data-bs-dismiss="modal"
-                        ></button>
-                    </div>
-                    <div class="modal-body" style="padding: 24px">
-                        <form id="quickAddClientForm">
-                            <div class="row mb-3">
-                                <div class="col-md-6">
-                                    <label class="form-label fw-semibold">
-                                        <i
-                                            class="fas fa-user me-2"
-                                            style="color: var(--primary-color)"
-                                        ></i
-                                        >First Name *
-                                    </label>
-                                    <input
-                                        type="text"
-                                        id="quickFirstName"
-                                        class="form-control"
-                                        required
-                                        style="
-                                            border-radius: 10px;
-                                            padding: 12px;
-                                        "
-                                    />
-                                </div>
-                                <div class="col-md-6">
-                                    <label class="form-label fw-semibold">
-                                        <i
-                                            class="fas fa-user me-2"
-                                            style="color: var(--primary-color)"
-                                        ></i
-                                        >Last Name *
-                                    </label>
-                                    <input
-                                        type="text"
-                                        id="quickLastName"
-                                        class="form-control"
-                                        required
-                                        style="
-                                            border-radius: 10px;
-                                            padding: 12px;
-                                        "
-                                    />
-                                </div>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label fw-semibold">
-                                    <i
-                                        class="fas fa-phone me-2"
-                                        style="color: var(--primary-color)"
-                                    ></i
-                                    >Phone Number *
-                                </label>
-                                <input
-                                    type="tel"
-                                    id="quickPhone"
-                                    class="form-control"
-                                    required
-                                    style="border-radius: 10px; padding: 12px"
-                                />
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label fw-semibold">
-                                    <i
-                                        class="fas fa-envelope me-2"
-                                        style="color: var(--primary-color)"
-                                    ></i
-                                    >Email
-                                </label>
-                                <input
-                                    type="email"
-                                    id="quickEmail"
-                                    class="form-control"
-                                    style="border-radius: 10px; padding: 12px"
-                                />
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label fw-semibold">
-                                    <i
-                                        class="fas fa-venus-mars me-2"
-                                        style="color: var(--primary-color)"
-                                    ></i
-                                    >Gender *
-                                </label>
-                                <select
-                                    id="quickGender"
-                                    class="form-select"
-                                    required
-                                    style="border-radius: 10px; padding: 12px"
-                                >
-                                    <option value="">Select gender...</option>
-                                    <option value="male">Male</option>
-                                    <option value="female">Female</option>
-                                    <option value="other">Other</option>
-                                </select>
-                            </div>
-                        </form>
-                    </div>
-                    <div
-                        class="modal-footer"
-                        style="
-                            border-top: 2px solid var(--border-color);
-                            padding: 16px 24px;
-                        "
-                    >
-                        <button
-                            type="button"
-                            class="btn btn-secondary"
-                            data-bs-dismiss="modal"
-                            style="border-radius: 10px; padding: 10px 20px"
-                        >
-                            <i class="fas fa-times me-2"></i>Cancel
-                        </button>
-                        <button
-                            type="button"
-                            class="btn btn-primary"
-                            id="saveQuickClientBtn"
-                            onclick="saveQuickClient()"
-                            style="
-                                border-radius: 10px;
-                                padding: 10px 20px;
-                                background: var(--primary-color);
-                                border: none;
-                            "
-                        >
-                            <i class="fas fa-save me-2"></i>Save Client
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Multi-Appointment Booking Modal -->
-        <div class="modal fade" id="multiBookModal" tabindex="-1">
-            <div class="modal-dialog modal-xl modal-dialog-centered">
-                <div
-                    class="modal-content"
-                    style="
-                        border-radius: 16px;
-                        border: none;
-                        box-shadow: var(--shadow-xl);
-                    "
-                >
-                    <div
-                        class="modal-header"
-                        style="
-                            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                            border-bottom: none;
-                            padding: 24px 28px;
-                        "
-                    >
-                        <h5
-                            class="modal-title"
-                            style="font-weight: 700; font-size: 22px; color: white; display: flex; align-items: center; gap: 12px;"
-                        >
-                            <div style="background: rgba(255,255,255,0.2); padding: 10px; border-radius: 12px; display: flex; align-items: center; justify-content: center;">
-                                <i class="fas fa-calendar-check" style="color: white; font-size: 20px;"></i>
-                            </div>
-                            <span>Book Multiple Appointments</span>
-                        </h5>
-                        <button
-                            type="button"
-                            class="btn-close btn-close-white"
-                            data-bs-dismiss="modal"
-                            style="filter: brightness(0) invert(1);"
-                        ></button>
-                    </div>
-                    <div class="modal-body" style="padding: 28px; background: #f8fafc;">
-                        <!-- Client Selection Section -->
-                        <div class="mb-4" style="background: white; padding: 24px; border-radius: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
-                            <label class="form-label fw-semibold mb-3" style="font-size: 15px; color: #334155; display: flex; align-items: center; gap: 8px;">
-                                <div style="width: 32px; height: 32px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 8px; display: flex; align-items: center; justify-content: center;">
-                                    <i class="fas fa-user" style="color: white; font-size: 14px;"></i>
-                                </div>
-                                <span>Select Client</span>
-                            </label>
-                            <div class="d-flex gap-3 align-items-center">
-                                <select
-                                    id="multiClientSelect"
-                                    class="form-select select2-dropdown flex-grow-1"
-                                    required
-                                    style="
-                                        border-radius: 12px;
-                                        padding: 14px 16px;
-                                        border: 2px solid #e2e8f0;
-                                        font-size: 15px;
-                                        transition: all 0.2s;
-                                    "
-                                >
-                                    <option value="">
-                                        Choose a client...
-                                    </option>
-                                    {% if clients %} {% for client in
-                                    clients %}
-                                    <option
-                                        value="{{ client.id }}"
-                                        data-phone="{{ client.phone }}"
-                                        data-email="{{ client.email or '' }}"
-                                    >
-                                        {{ client.first_name }} {{
-                                        client.last_name }} - {{
-                                        client.phone }}
-                                    </option>
-                                    {% endfor %} {% endif %}
-                                </select>
-                                <button
-                                    type="button"
-                                    class="btn btn-primary"
-                                    onclick="openQuickAddClient()"
-                                    style="
-                                        border-radius: 12px;
-                                        padding: 14px 24px;
-                                        white-space: nowrap;
-                                        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                                        border: none;
-                                        font-weight: 600;
-                                        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
-                                        transition: all 0.2s;
-                                    "
-                                    onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 16px rgba(102, 126, 234, 0.5)'"
-                                    onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(102, 126, 234, 0.4)'"
-                                >
-                                    <i class="fas fa-plus me-2"></i>Add New Client
-                                </button>
-                            </div>
-                        </div>
-
-                        <div
-                            id="customerExistingAppointments"
-                            class="mb-4"
-                            style="display: none"
-                        >
-                            <div
-                                class="alert alert-info"
-                                style="border-radius: 10px"
-                            >
-                                <div
-                                    class="d-flex justify-content-between align-items-center mb-2"
-                                >
-                                    <strong
-                                        ><i
-                                            class="fas fa-calendar-check me-2"
-                                        ></i
-                                        >Customer's Booked Appointments</strong
-                                    >
-                                    <small
-                                        id="customerAppointmentsCount"
-                                        class="badge bg-primary"
-                                        >0</small
-                                    >
-                                </div>
-                                <div
-                                    id="customerAppointmentsList"
-                                    style="max-height: 200px; overflow-y: auto"
-                                ></div>
-                            </div>
-                        </div>
-
-                        <!-- Appointments Section -->
-                        <div class="mb-4" style="background: white; padding: 24px; border-radius: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
-                            <div
-                                style="
-                                    display: flex;
-                                    justify-content: space-between;
-                                    align-items: center;
-                                    margin-bottom: 20px;
-                                "
-                            >
-                                <label
-                                    class="form-label fw-semibold mb-0"
-                                    style="font-size: 16px; color: #334155; display: flex; align-items: center; gap: 8px;"
-                                >
-                                    <div style="width: 32px; height: 32px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 8px; display: flex; align-items: center; justify-content: center;">
-                                        <i class="fas fa-calendar-alt" style="color: white; font-size: 14px;"></i>
-                                    </div>
-                                    <span>Appointments</span>
-                                </label>
-                                <span
-                                    id="appointmentCount"
-                                    style="
-                                        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                                        color: white;
-                                        padding: 6px 16px;
-                                        border-radius: 20px;
-                                        font-size: 13px;
-                                        font-weight: 600;
-                                        box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
-                                    "
-                                    >1 Appointment</span
-                                >
-                            </div>
-
-                            <div id="appointmentsContainer">
-                                <div
-                                    class="appointment-card multi-appointment-row"
-                                    data-appointment-index="0"
-                                >
-                                    <div class="appointment-number">1</div>
-                                    <button
-                                        type="button"
-                                        class="remove-appointment d-none"
-                                        onclick="removeAppointment(0)"
-                                    >
-                                        <i class="fas fa-times"></i>
-                                    </button>
-
-                                    <div class="row">
-                                        <div class="col-md-6 mb-3">
-                                            <label
-                                                class="form-label fw-semibold"
-                                            >
-                                                <i
-                                                    class="fas fa-concierge-bell me-2"
-                                                    style="
-                                                        color: var(
-                                                            --primary-color
-                                                        );
-                                                    "
-                                                ></i
-                                                >Service
-                                                <span class="validation-icon ms-2" style="display: none;">
-                                                    <i class="fas fa-check-circle text-success"></i>
-                                                </span>
-                                            </label>
-                                            <select
-                                                name="service_id"
-                                                class="form-select service-select select2-dropdown"
-                                                required
-                                                style="
-                                                    border-radius: 10px;
-                                                    padding: 12px;
-                                                    width: 100%;
-                                                    border: 2px solid #e2e8f0;
-                                                    transition: all 0.3s;
-                                                "
-                                            >
-                                                <option value="">
-                                                    Select service...
-                                                </option>
-                                                {% if services %} {% for service
-                                                in services %}
-                                                <option
-                                                    value="{{ service.id }}"
-                                                    data-duration="{{ service.duration or 60 }}"
-                                                    data-price="{{ service.price }}"
-                                                >
-                                                    {{ service.name }} ({{
-                                                    service.duration or 60 }}
-                                                    min - ₹{{
-                                                    "%.2f"|format(service.price)
-                                                    }})
-                                                </option>
-                                                {% endfor %} {% endif %}
-                                            </select>
-                                        </div>
-                                        <div class="col-md-6 mb-3">
-                                            <label
-                                                class="form-label fw-semibold"
-                                            >
-                                                <i
-                                                    class="fas fa-user-md me-2"
-                                                    style="
-                                                        color: var(
-                                                            --primary-color
-                                                        );
-                                                    "
-                                                ></i
-                                                >Staff Member
-                                                <span class="validation-icon ms-2" style="display: none;">
-                                                    <i class="fas fa-check-circle text-success"></i>
-                                                </span>
-                                            </label>
-                                            <select
-                                                name="staff_id"
-                                                class="form-select staff-select select2-dropdown"
-                                                required
-                                                style="
-                                                    border-radius: 10px;
-                                                    padding: 12px;
-                                                    border: 2px solid #e2e8f0;
-                                                    transition: all 0.3s;
-                                                "
-                                            >
-                                                <option value="">
-                                                    Select staff member...
-                                                </option>
-                                                {% if staff_members %} {% for
-                                                staff in staff_members %}
-                                                <option value="{{ staff.id }}">
-                                                    {{ staff.first_name }} {{
-                                                    staff.last_name if
-                                                    staff.last_name else '' }}
-                                                </option>
-                                                {% endfor %} {% endif %}
-                                            </select>
-                                        </div>
-                                    </div>
-
-                                    <div class="row">
-                                        <div class="col-md-4 mb-3">
-                                            <label
-                                                class="form-label fw-semibold"
-                                            >
-                                                <i
-                                                    class="fas fa-calendar me-2"
-                                                    style="
-                                                        color: var(
-                                                            --primary-color
-                                                        );
-                                                    "
-                                                ></i
-                                                >Date
-                                                <span class="validation-icon ms-2" style="display: none;">
-                                                    <i class="fas fa-check-circle text-success"></i>
-                                                </span>
-                                            </label>
-                                            <input
-                                                type="date"
-                                                name="date"
-                                                class="form-control appointment-date"
-                                                value="{{ today }}"
-                                                required
-                                                style="
-                                                    border-radius: 10px;
-                                                    padding: 12px;
-                                                    border: 2px solid #e2e8f0;
-                                                    transition: all 0.3s;
-                                                "
-                                            />
-                                        </div>
-                                        <div class="col-md-4 mb-3">
-                                            <label
-                                                class="form-label fw-semibold"
-                                            >
-                                                <i
-                                                    class="fas fa-clock me-2"
-                                                    style="
-                                                        color: var(
-                                                            --primary-color
-                                                        );
-                                                    "
-                                                ></i
-                                                >Start Time
-                                                <span class="validation-icon ms-2" style="display: none;">
-                                                    <i class="fas fa-check-circle text-success"></i>
-                                                </span>
-                                            </label>
-                                            <!-- Hidden 24-hour input for backend -->
-                                            <input
-                                                type="time"
-                                                name="start_time"
-                                                class="form-control start-time start-time-24h"
-                                                value="09:00"
-                                                required
-                                                style="display: none;"
-                                            />
-                                            <!-- User-friendly time selector dropdown -->
-                                            <select
-                                                class="form-select start-time-select"
-                                                onchange="handleTimeChange(this)"
-                                                style="border-radius: 10px; padding: 12px; font-weight: 600; color: var(--primary-color); border: 2px solid #e2e8f0; transition: all 0.3s;"
-                                            >
-                                                <!-- Options will be populated by JavaScript -->
-                                            </select>
-                                        </div>
-                                        <div class="col-md-4 mb-3">
-                                            <label
-                                                class="form-label fw-semibold"
-                                            >
-                                                <i
-                                                    class="fas fa-clock me-2"
-                                                    style="
-                                                        color: var(
-                                                            --success-color
-                                                        );
-                                                    "
-                                                ></i
-                                                >End Time
-                                                <span class="validation-icon ms-2" style="display: none;">
-                                                    <i class="fas fa-check-circle text-success"></i>
-                                                </span>
-                                            </label>
-                                            <!-- Hidden 24-hour input for backend -->
-                                            <input
-                                                type="time"
-                                                name="end_time"
-                                                class="form-control end-time end-time-24h"
-                                                style="display: none;"
-                                            />
-                                            <!-- Visible editable time dropdown -->
-                                            <select
-                                                class="form-select end-time-select"
-                                                onchange="handleEndTimeChange(this)"
-                                                style="border-radius: 10px; padding: 12px; font-weight: 600; color: var(--success-color); border: 2px solid #e2e8f0; transition: all 0.3s;"
-                                            >
-                                                <!-- Options will be populated by JavaScript -->
-                                            </select>
-                                        </div>
-                                    </div>
-
-                                    <div class="row">
-                                        <div class="col-md-12">
-                                            <div
-                                                id="conflictAlert0"
-                                                class="alert alert-warning d-none"
-                                                style="border-radius: 10px"
-                                            >
-                                                <i
-                                                    class="fas fa-exclamation-triangle me-2"
-                                                ></i>
-                                                <span
-                                                    class="conflict-message"
-                                                ></span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <button
-                                type="button"
-                                class="add-appointment-btn"
-                                onclick="addAppointment()"
-                                style="
-                                    width: 100%;
-                                    padding: 14px;
-                                    border: 2px dashed #cbd5e1;
-                                    background: #f8fafc;
-                                    border-radius: 12px;
-                                    color: #667eea;
-                                    font-weight: 600;
-                                    font-size: 15px;
-                                    cursor: pointer;
-                                    transition: all 0.2s;
-                                    margin-top: 16px;
-                                    display: flex;
-                                    align-items: center;
-                                    justify-content: center;
-                                    gap: 8px;
-                                "
-                                onmouseover="this.style.background='#ede9fe'; this.style.borderColor='#667eea'; this.style.transform='translateY(-1px)'"
-                                onmouseout="this.style.background='#f8fafc'; this.style.borderColor='#cbd5e1'; this.style.transform='translateY(0)'"
-                            >
-                                <i class="fas fa-plus-circle"></i>Add Another
-                                Appointment
-                            </button>
-                        </div>
-
-                        <!-- Summary Cards -->
-                        <div class="row mb-4" style="gap: 16px 0;">
-                            <div class="col-md-4">
-                                <div
-                                    style="
-                                        background: white;
-                                        padding: 20px;
-                                        border-radius: 16px;
-                                        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-                                        border-left: 4px solid #3b82f6;
-                                    "
-                                >
-                                    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
-                                        <div style="width: 40px; height: 40px; background: #eff6ff; border-radius: 10px; display: flex; align-items: center; justify-content: center;">
-                                            <i class="fas fa-hourglass-half" style="color: #3b82f6; font-size: 18px;"></i>
-                                        </div>
-                                        <label
-                                            class="form-label fw-semibold mb-0"
-                                            style="color: #64748b; font-size: 14px;"
-                                        >Total Duration</label>
-                                    </div>
-                                    <div
-                                        style="
-                                            font-size: 32px;
-                                            font-weight: 700;
-                                            color: #1e293b;
-                                        "
-                                        id="multiTotalDuration"
-                                    >
-                                        60 min
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-md-4">
-                                <div
-                                    style="
-                                        background: white;
-                                        padding: 20px;
-                                        border-radius: 16px;
-                                        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-                                        border-left: 4px solid #10b981;
-                                    "
-                                >
-                                    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
-                                        <div style="width: 40px; height: 40px; background: #f0fdf4; border-radius: 10px; display: flex; align-items: center; justify-content: center;">
-                                            <i class="fas fa-rupee-sign" style="color: #10b981; font-size: 18px;"></i>
-                                        </div>
-                                        <label
-                                            class="form-label fw-semibold mb-0"
-                                            style="color: #64748b; font-size: 14px;"
-                                        >Total Price</label>
-                                    </div>
-                                    <div
-                                        style="
-                                            font-size: 32px;
-                                            font-weight: 700;
-                                            color: #1e293b;
-                                        "
-                                        id="multiTotalPrice"
-                                    >
-                                        ₹65.00
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-md-4">
-                                <div
-                                    style="
-                                        background: white;
-                                        padding: 20px;
-                                        border-radius: 16px;
-                                        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-                                        border-left: 4px solid #f59e0b;
-                                    "
-                                >
-                                    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
-                                        <div style="width: 40px; height: 40px; background: #ffedd5; border-radius: 10px; display: flex; align-items: center; justify-content: center;">
-                                            <i class="fas fa-users" style="color: #f59e0b; font-size: 18px;"></i>
-                                        </div>
-                                        <label
-                                            class="form-label fw-semibold mb-0"
-                                            style="color: #64748b; font-size: 14px;"
-                                        >Staff Required</label>
-                                    </div>
-                                    <div
-                                        style="
-                                            font-size: 32px;
-                                            font-weight: 700;
-                                            color: #1e293b;
-                                        "
-                                        id="multiStaffCount"
-                                    >
-                                        1
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Notes Section -->
-                        <div class="mb-3" style="background: white; padding: 24px; border-radius: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
-                            <label class="form-label fw-semibold mb-3" style="font-size: 15px; color: #334155; display: flex; align-items: center; gap: 8px;">
-                                <div style="width: 32px; height: 32px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 8px; display: flex; align-items: center; justify-content: center;">
-                                    <i class="fas fa-sticky-note" style="color: white; font-size: 14px;"></i>
-                                </div>
-                                <span>Notes</span>
-                            </label>
-                            <textarea
-                                id="multiNotes"
-                                class="form-control"
-                                rows="4"
-                                placeholder="Add any special instructions or notes for these appointments..."
-                                style="
-                                    border-radius: 12px;
-                                    padding: 14px 16px;
-                                    border: 2px solid #e2e8f0;
-                                    font-size: 15px;
-                                    transition: all 0.2s;
-                                    resize: vertical;
-                                "
-                                onfocus="this.style.borderColor='#667eea'; this.style.boxShadow='0 0 0 3px rgba(102, 126, 234, 0.1)'"
-                                onblur="this.style.borderColor='#e2e8f0'; this.style.boxShadow='none'"
-                            ></textarea>
-                        </div>
-                    </div>
-                    <div
-                        class="modal-footer"
-                        style="
-                            border-top: none;
-                            background: #f8fafc;
-                            padding: 20px 28px;
-                            gap: 12px;
-                            display: flex;
-                            justify-content: flex-end;
-                        "
-                    >
-                        <button
-                            type="button"
-                            class="btn btn-secondary"
-                            data-bs-dismiss="modal"
-                            style="
-                                border-radius: 12px;
-                                padding: 12px 24px;
-                                background: white;
-                                color: #64748b;
-                                border: 2px solid #e2e8f0;
-                                font-weight: 600;
-                                transition: all 0.2s;
-                            "
-                            onmouseover="this.style.background='#f8fafc'; this.style.borderColor='#cbd5e1'"
-                            onmouseout="this.style.background='white'; this.style.borderColor='#e2e8f0'"
-                        >
-                            <i class="fas fa-times me-2"></i>Cancel
-                        </button>
-                        <button
-                            type="button"
-                            class="btn btn-success btn-book-all"
-                            onclick="submitMultiAppointment()"
-                            style="
-                                border-radius: 12px;
-                                padding: 12px 32px;
-                                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                                border: none;
-                                font-weight: 600;
-                                box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
-                                transition: all 0.2s;
-                            "
-                            onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 16px rgba(102, 126, 234, 0.5)'"
-                            onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(102, 126, 234, 0.4)'"
-                            id="bookAllAppointments"
-                        >
-                            <i class="fas fa-check-circle me-2"></i>Book All Appointments
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <script>
             // ==========================================
             // GLOBAL VARIABLES & STATE
             // ==========================================
@@ -2596,22 +1466,31 @@
             }
 
             // Populate time dropdown with 15-minute intervals
-            function populateTimeOptions(selectElement, startHour = 9, endHour = 21, selectedTime = '09:00') {
-                selectElement.innerHTML = '';
+            function populateTimeDropdown(selectElement, selectedTime = '09:00') {
+                const times = [];
 
-                for (let hour = startHour; hour <= endHour; hour++) {
+                // Generate times from 9:00 AM to 9:00 PM
+                for (let hour = 9; hour <= 21; hour++) {
                     for (let minute = 0; minute < 60; minute += 15) {
                         const time24 = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
                         const time12 = convertTo12Hour(time24);
-                        const option = document.createElement('option');
-                        option.value = time24;
-                        option.textContent = time12;
-                        if (time24 === selectedTime) {
-                            option.selected = true;
-                        }
-                        selectElement.appendChild(option);
+                        times.push({ value: time24, label: time12 });
                     }
                 }
+
+                // Clear existing options except the first one
+                selectElement.innerHTML = '<option value="">Select time...</option>';
+
+                // Add time options
+                times.forEach(time => {
+                    const option = document.createElement('option');
+                    option.value = time.value;
+                    option.textContent = time.label;
+                    if (time.value === selectedTime) {
+                        option.selected = true;
+                    }
+                    selectElement.appendChild(option);
+                });
             }
 
             // Helper function to update the hidden 24-hour time input based on manual inputs
@@ -2635,50 +1514,31 @@
                 console.log(`Time updated: ${hour}:${String(minute).padStart(2, '0')} ${period} → ${timeString}`);
             }
 
-            // Handler for start time select changes
-            function handleTimeChange(selectElement) {
+            // Handle start time selection change
+            function handleStartTimeChange(selectElement) {
                 const card = selectElement.closest('[data-appointment-index]');
                 if (!card) return;
 
                 const index = parseInt(card.dataset.appointmentIndex);
                 const hiddenInput = card.querySelector('.start-time-24h');
 
-                if (hiddenInput) {
+                if (hiddenInput && selectElement.value) {
                     hiddenInput.value = selectElement.value;
                     updateAppointmentEndTime(card);
                     checkConflictsRealtime(index);
+                    updateSummary();
+                    updateSubmitButton();
+
+                    // Show validation icon
+                    const validationIcon = selectElement.closest('.col-md-4').querySelector('.validation-icon');
+                    if (validationIcon) validationIcon.style.display = 'inline-block';
+                    selectElement.style.borderColor = '#10b981';
                 }
             }
 
-            // Handler for end time select changes
-            function handleEndTimeChange(selectElement) {
-                const card = selectElement.closest('[data-appointment-index]');
-                if (!card) return;
-
-                const index = parseInt(card.dataset.appointmentIndex);
-                const hiddenInput = card.querySelector('.end-time-24h');
-
-                if (hiddenInput) {
-                    hiddenInput.value = selectElement.value;
-                    // Also update the start time if it's now after the end time
-                    const startTimeInput = card.querySelector('.start-time-24h');
-                    if (startTimeInput.value > hiddenInput.value) {
-                        startTimeInput.value = hiddenInput.value;
-                        // Trigger update for start time select and other related fields
-                        const startTimeSelect = card.querySelector('.start-time-select');
-                        if (startTimeSelect) {
-                            startTimeSelect.value = hiddenInput.value; // Set the select to the new value
-                            handleTimeChange(startTimeSelect); // This will re-calculate end time and trigger conflicts
-                        } else {
-                            // If start time select is not yet initialized, just update end time and re-check conflicts
-                            updateAppointmentEndTime(card);
-                            checkConflictsRealtime(index);
-                        }
-                    } else {
-                         updateAppointmentEndTime(card); // Recalculate duration, etc.
-                         checkConflictsRealtime(index);
-                    }
-                }
+            // Handle time selection change (legacy function for compatibility)
+            function handleTimeChange(selectElement) {
+                handleStartTimeChange(selectElement);
             }
 
             // ==========================================
@@ -2757,7 +1617,7 @@
 
                 // Multi-booking form changes
                 document.addEventListener("change", function(e) {
-                    if (e.target.matches('.service-select, .start-time, .appointment-date, .staff-select')) {
+                    if (e.target.matches('.service-select, .appointment-date, .staff-select')) {
                         const card = e.target.closest(".appointment-card");
                         if (card) {
                             const index = parseInt(card.dataset.appointmentIndex);
@@ -3432,11 +2292,11 @@
                         updateSubmitButton();
 
                         // Show validation icon and color
-                        const parentCol = hourInput.closest('.col-md-3');
+                        const parentCol = hourInput.closest('.col-md-4'); // Use the correct column for start time
                         if (parentCol) {
                             const validationIcon = parentCol.querySelector('.validation-icon');
                             if (validationIcon) validationIcon.style.display = 'inline-block';
-                            [hourInput, minuteInput, periodSelect].forEach(el => el.style.borderColor = '#10b981');
+                            [hourInput, minuteInput, periodSelect, hiddenInput].forEach(el => el.style.borderColor = '#10b981'); // Apply to all relevant time inputs
                         }
                     };
 
@@ -3533,21 +2393,15 @@
                     firstCard.querySelector(".service-select").value = "";
                     firstCard.querySelector(".staff-select").value = "";
                     firstCard.querySelector(".appointment-date").value = "{{ today }}";
-                    firstCard.querySelector(".start-time-24h").value = "09:00"; // Set hidden input to default
-                    firstCard.querySelector(".end-time-24h").value = ""; // Clear hidden end time
-                    firstCard.querySelector(".end-time-display").value = ""; // Clear visible end time
+                    firstCard.querySelector(".start-time-24h").value = "09:00";
+                    firstCard.querySelector(".end-time").value = "";
+                    firstCard.querySelector(".end-time-display").value = "";
 
-                    // Reset manual time inputs
-                    const hourInput = firstCard.querySelector('.time-hour');
-                    const minuteInput = firstCard.querySelector('.time-minute');
-                    const periodSelect = firstCard.querySelector('.time-period');
-                    if (hourInput) hourInput.value = '9';
-                    if (minuteInput) minuteInput.value = '00';
-                    if (periodSelect) periodSelect.value = 'AM';
-
-                    // Reset end time dropdown
-                    const endTimeSelect = firstCard.querySelector('.end-time-select');
-                    if (endTimeSelect) endTimeSelect.innerHTML = ''; // Clear options
+                    // Populate time dropdown
+                    const timeDropdown = firstCard.querySelector('.start-time-select');
+                    if (timeDropdown) {
+                        populateTimeDropdown(timeDropdown, '09:00');
+                    }
 
                     const alert = firstCard.querySelector(".alert");
                     if (alert) alert.classList.add("d-none");
@@ -3631,8 +2485,12 @@
                                 <!-- Hidden 24-hour input for backend -->
                                 <input type="time" name="start_time" class="form-control start-time start-time-24h" value="09:00" required style="display: none;">
                                 <!-- User-friendly time selector dropdown -->
-                                <select class="form-select start-time-select" onchange="handleTimeChange(this)" style="border-radius: 10px; padding: 12px; font-weight: 600; color: var(--primary-color); border: 2px solid #e2e8f0; transition: all 0.3s;">
-                                    <!-- Options will be populated by JavaScript -->
+                                <select
+                                    class="form-select start-time-select"
+                                    style="border-radius: 10px; padding: 12px; font-weight: 600; color: var(--primary-color); border: 2px solid #e2e8f0; transition: all 0.3s;"
+                                    onchange="handleStartTimeChange(this)"
+                                >
+                                    <option value="">Select time...</option>
                                 </select>
                             </div>
                             <div class="col-md-4 mb-3">
@@ -3664,22 +2522,24 @@
 
                 document.getElementById('appointmentsContainer').insertAdjacentHTML('beforeend', newAppointment);
 
-                // Initialize the new appointment card
+                // Populate time dropdown for new card
                 const newCard = document.querySelector(`[data-appointment-index="${appointmentCounter}"]`);
                 if (newCard) {
-                    initializeAppointmentCardValidation(newCard);
-                    // Populate end time dropdown for the new appointment
-                    const endTimeSelect = newCard.querySelector('.end-time-select');
-                    if (endTimeSelect) {
-                        populateTimeOptions(endTimeSelect, 9, 22); // Populate with appropriate hours
+                    const timeDropdown = newCard.querySelector('.start-time-select');
+                    if (timeDropdown) {
+                        populateTimeDropdown(timeDropdown, '09:00');
                     }
+
+                    // Initialize real-time validation for the new card
+                    initializeAppointmentCardValidation(newCard);
                 }
 
-                updateAppointmentCount();
+                // Reinitialize Select2 for new dropdowns
                 initializeSearchableDropdowns();
 
-                // Initialize 12-hour time display for the new card
-                syncAll12HourDisplays();
+                updateAppointmentCount();
+                updateSummary();
+                updateSubmitButton();
             }
 
             function removeAppointment(index) {
@@ -3803,7 +2663,7 @@
                 // Reset visual feedback colors
                 staffSelect.style.borderColor = '#e2e8f0';
                 dateInput.style.borderColor = '#e2e8f0';
-                const startTimeCol = appointment.querySelector('.col-md-3:has(.start-time-24h)'); // Find the column containing time inputs
+                const startTimeCol = appointment.querySelector('.col-md-4:has(.start-time-24h)'); // Find the column containing time inputs
                 if (startTimeCol) {
                     startTimeCol.querySelectorAll('input, select').forEach(el => el.style.borderColor = '#e2e8f0');
                 }
@@ -3839,7 +2699,7 @@
                             // Visual feedback on fields
                             staffSelect.style.borderColor = '#ef4444';
                             dateInput.style.borderColor = '#ef4444';
-                            const startTimeCol = appointment.querySelector('.col-md-3:has(.start-time-24h)');
+                            const startTimeCol = appointment.querySelector('.col-md-4:has(.start-time-24h)');
                             if (startTimeCol) {
                                 startTimeCol.querySelectorAll('input, select').forEach(el => el.style.borderColor = '#ef4444');
                             }
@@ -3876,7 +2736,7 @@
                                 // Visual feedback
                                 staffSelect.style.borderColor = '#ef4444';
                                 dateInput.style.borderColor = '#ef4444';
-                                const startTimeCol = appointment.querySelector('.col-md-3:has(.start-time-24h)');
+                                const startTimeCol = appointment.querySelector('.col-md-4:has(.start-time-24h)');
                                 if (startTimeCol) {
                                     startTimeCol.querySelectorAll('input, select').forEach(el => el.style.borderColor = '#ef4444');
                                 }
@@ -3898,7 +2758,7 @@
 
                                 // Visual feedback
                                 dateInput.style.borderColor = '#ef4444';
-                                const startTimeCol = appointment.querySelector('.col-md-3:has(.start-time-24h)');
+                                const startTimeCol = appointment.querySelector('.col-md-4:has(.start-time-24h)');
                                 if (startTimeCol) {
                                     startTimeCol.querySelectorAll('input, select').forEach(el => el.style.borderColor = '#ef4444');
                                 }
@@ -3930,7 +2790,7 @@
                         // Visual feedback
                         staffSelect.style.borderColor = '#ef4444';
                         dateInput.style.borderColor = '#ef4444';
-                        const startTimeCol = appointment.querySelector('.col-md-3:has(.start-time-24h)');
+                        const startTimeCol = appointment.querySelector('.col-md-4:has(.start-time-24h)');
                         if (startTimeCol) {
                             startTimeCol.querySelectorAll('input, select').forEach(el => el.style.borderColor = '#ef4444');
                         }
@@ -3938,7 +2798,7 @@
                         // No conflicts - show success state
                         staffSelect.style.borderColor = '#10b981';
                         dateInput.style.borderColor = '#10b981';
-                        const startTimeCol = appointment.querySelector('.col-md-3:has(.start-time-24h)');
+                        const startTimeCol = appointment.querySelector('.col-md-4:has(.start-time-24h)');
                         if (startTimeCol) {
                             startTimeCol.querySelectorAll('input, select').forEach(el => el.style.borderColor = '#10b981');
                         }
@@ -4483,7 +3343,6 @@
                     }
                 });
             }
-
         </script>
     </body>
 </html>
