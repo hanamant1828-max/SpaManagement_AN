@@ -1225,6 +1225,10 @@ def create_professional_invoice():
         is_interstate = request.form.get('is_interstate') == 'on'
         total_gst_rate = igst_rate if is_interstate else (cgst_rate + sgst_rate)
 
+        # GST CALCULATION RULES FOR BILLING:
+        # 1. SERVICES: GST is INCLUSIVE in price (extract 18% GST from total)
+        # 2. PRODUCTS: MRP is final price (NO GST calculation - already included in MRP)
+        
         # For SERVICES: GST is INCLUSIVE (extract GST from price)
         if total_gst_rate > 0:
             service_base_amount = services_subtotal / (1 + total_gst_rate)

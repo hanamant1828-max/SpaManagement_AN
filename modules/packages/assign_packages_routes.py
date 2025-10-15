@@ -161,29 +161,40 @@ def api_assign_and_pay():
             app.logger.info(f"   - After value: {getattr(package, 'after_value', 'NOT SET')}")
             app.logger.info(f"   - Actual price: {getattr(package, 'actual_price', 'NOT SET')}")
 
-        # Calculate pricing - GST ONLY for service packages
+        # Calculate pricing with consistent GST logic
         subtotal = float(assignment_data.get('price_paid', 0))
         discount = float(assignment_data.get('discount', 0))
 
-        # Calculate taxable amount
+        # Calculate taxable amount (subtotal - discount)
         taxable_amount = max(subtotal - discount, 0)
 
-        # Apply 18% GST ONLY for service packages
+        # GST Application Rules:
+        # 1. Service Packages: 18% GST (9% CGST + 9% SGST) on net amount
+        # 2. All Other Packages: NO GST (price is final)
         if package_type == 'service_package':
-            tax_rate = 0.18
+            tax_rate = 0.18  # 18% total GST
             tax_amount = taxable_amount * tax_rate
-            cgst_amount = tax_amount / 2
-            sgst_amount = tax_amount / 2
+            cgst_amount = tax_amount / 2  # 9% CGST
+            sgst_amount = tax_amount / 2  # 9% SGST
             grand_total = taxable_amount + tax_amount
-            app.logger.info(f"✅ Service package GST applied: Base=₹{taxable_amount}, GST=₹{tax_amount}, Total=₹{grand_total}")
+            
+            app.logger.info(f"✅ Service Package GST Applied:")
+            app.logger.info(f"   - Base Amount: ₹{taxable_amount:.2f}")
+            app.logger.info(f"   - CGST (9%): ₹{cgst_amount:.2f}")
+            app.logger.info(f"   - SGST (9%): ₹{sgst_amount:.2f}")
+            app.logger.info(f"   - Total GST: ₹{tax_amount:.2f}")
+            app.logger.info(f"   - Grand Total: ₹{grand_total:.2f}")
         else:
-            # NO GST for other package types (prepaid, membership, student_offer, yearly, kitty)
+            # NO GST for: prepaid, membership, student_offer, yearly_membership, kitty_party
             tax_rate = 0
             tax_amount = 0
             cgst_amount = 0
             sgst_amount = 0
-            grand_total = taxable_amount  # Grand total equals net price (no tax added)
-            app.logger.info(f"✅ No GST for {package_type}: Total=₹{grand_total}")
+            grand_total = taxable_amount  # Price is final, no tax added
+            
+            app.logger.info(f"✅ No GST for {package_type.upper()}:")
+            app.logger.info(f"   - Net Amount: ₹{taxable_amount:.2f}")
+            app.logger.info(f"   - Grand Total: ₹{grand_total:.2f} (No GST)")
 
         # Create package assignment
         expires_on = None

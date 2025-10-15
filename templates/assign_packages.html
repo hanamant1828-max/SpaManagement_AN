@@ -432,56 +432,62 @@ function recalculateTotals() {
     if (currentPackage) {
         const packageType = document.getElementById('packageType').value;
 
-        // Calculate based on package type
-        if (packageType === 'service_package') {
-            // Service packages: Calculate price per session, apply discount, then add GST
-            if (currentService) {
-                const payFor = parseInt(currentPackage.pay_for || 0);
-                const free = parseInt(currentPackage.free_services || 0);
-                const servicePrice = parseFloat(currentService.price || 0);
+        // GST Calculation Rules (Must Match Backend):
+    // 1. Service Packages: 18% GST on net amount (after discount)
+    // 2. All Other Packages: NO GST (price is final)
 
-                const pricePerSession = servicePrice;
-                const paidSessionsPrice = payFor * pricePerSession;
-                const discountAmount = free * pricePerSession;
+    if (packageType === 'service_package') {
+        // Service packages: Calculate price, apply discount, then add 18% GST
+        if (currentService) {
+            const payFor = parseInt(currentPackage.payFor || 0);
+            const free = parseInt(currentPackage.freeServices || 0);
+            const servicePrice = parseFloat(currentService.price || 0);
 
-                netPrice = Math.max(paidSessionsPrice - discountAmount, 0);
-                tax = netPrice * 0.18; // 18% GST - ONLY for service packages
-                grandTotal = netPrice + tax;
-                subtotal = paidSessionsPrice; // This would be the total value before discount and GST
-                discount = discountAmount;
+            // Calculate gross and discount
+            const pricePerSession = servicePrice;
+            const paidSessionsPrice = payFor * pricePerSession;
+            const discountAmount = free * pricePerSession;
 
+            // Net price after discount
+            netPrice = Math.max(paidSessionsPrice - discountAmount, 0);
 
-                console.log('Service package calculation (with GST):', {
-                    packageType,
-                    payFor,
-                    free,
-                    servicePrice,
-                    pricePerSession,
-                    paidSessionsPrice,
-                    discountAmount,
-                    netPrice,
-                    tax,
-                    grandTotal
-                });
-            } else {
-                console.warn('Service package selected but no service chosen yet');
-            }
-        } else {
-            // Amount-based packages (prepaid, membership, etc.): NO GST
-            subtotal = getPackagePrice(packageType, currentPackage);
-            netPrice = subtotal; // No discount applied here
-            tax = 0; // NO GST for other package types
-            grandTotal = netPrice; // Grand total = net price (no tax)
-            discount = 0; // No discount for these types in this context
+            // Apply 18% GST (9% CGST + 9% SGST)
+            tax = netPrice * 0.18;
+            grandTotal = netPrice + tax;
 
-            console.log('Amount-based package calculation (NO GST):', {
+            subtotal = paidSessionsPrice;
+            discount = discountAmount;
+
+            console.log('✅ Service Package (WITH 18% GST):', {
                 packageType,
-                subtotal,
-                netPrice,
-                tax,
-                grandTotal
+                payFor,
+                free,
+                servicePrice,
+                subtotal: subtotal.toFixed(2),
+                discount: discount.toFixed(2),
+                netPrice: netPrice.toFixed(2),
+                gst: tax.toFixed(2),
+                grandTotal: grandTotal.toFixed(2)
             });
+        } else {
+            console.warn('⚠️ Service package selected but no service chosen yet');
         }
+    } else {
+        // All other packages: NO GST (prepaid, membership, student_offer, yearly, kitty)
+        subtotal = getPackagePrice(packageType, currentPackage);
+        netPrice = subtotal;
+        tax = 0;  // NO GST
+        grandTotal = netPrice;  // Final price = net price (no tax)
+        discount = 0;
+
+        console.log(`✅ ${packageType.toUpperCase()} Package (NO GST):`, {
+            packageType,
+            subtotal: subtotal.toFixed(2),
+            netPrice: netPrice.toFixed(2),
+            gst: '0.00',
+            grandTotal: grandTotal.toFixed(2)
+        });
+    }
     }
 
     // Update display
