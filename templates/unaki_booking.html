@@ -2262,7 +2262,7 @@
             // ==========================================
             function openMultiBookModal() {
                 const modal = new bootstrap.Modal(document.getElementById("multiBookModal"));
-                appointmentCounter = 0; // Reset counter for new bookings
+                appointmentCounter = 1;
                 resetMultiBookModal();
                 modal.show();
             }
@@ -2283,10 +2283,10 @@
                         // Update 12-hour display
                         const endTimeDisplay = card.querySelector('.end-time-display');
                         if (endTimeDisplay) {
-                            // Use the updated hidden input value to calculate end time
-                            updateAppointmentEndTime(card); // This will update the hidden end_time and the select
+                            endTimeDisplay.value = convertTo12Hour(hiddenInput.value);
                         }
                         // Trigger validation and conflict check
+                        calculateEndTime(index);
                         checkConflictsRealtime(index);
                         updateSummary();
                         updateSubmitButton();
@@ -2384,34 +2384,29 @@
                 const container = document.getElementById("appointmentsContainer");
                 const firstCard = container.querySelector(".appointment-card");
 
-                // Remove all but the first card
                 container.querySelectorAll(".appointment-card:not(:first-child)").forEach(card => card.remove());
 
-                // Reset the first card
                 if (firstCard) {
-                    firstCard.dataset.appointmentIndex = "0"; // Index for the first card
-                    firstCard.querySelector(".appointment-number").textContent = "1"; // Display "1" for the first appointment
-                    firstCard.querySelector(".remove-appointment").classList.add("d-none"); // Hide remove button for the first appointment
-
-                    // Reset values
+                    firstCard.dataset.appointmentIndex = "0";
+                    firstCard.querySelector(".appointment-number").textContent = "1";
+                    firstCard.querySelector(".remove-appointment").classList.add("d-none");
                     firstCard.querySelector(".service-select").value = "";
                     firstCard.querySelector(".staff-select").value = "";
                     firstCard.querySelector(".appointment-date").value = "{{ today }}";
-                    firstCard.querySelector(".start-time-24h").value = "09:00"; // Default to 09:00
-
-                    // Populate start time dropdown for the first card
+                    firstCard.querySelector(".start-time-24h").value = "09:00";
+                    
+                    // Populate start time dropdown
                     const startTimeDropdown = firstCard.querySelector('.start-time-select');
                     if (startTimeDropdown) {
                         populateTimeDropdown(startTimeDropdown, '09:00');
                     }
-
-                    // Clear and populate end time dropdown for the first card
+                    
+                    // Clear and populate end time dropdown
                     const endTimeDropdown = firstCard.querySelector('.end-time-select');
                     if (endTimeDropdown) {
                         endTimeDropdown.innerHTML = '<option value="">Select time...</option>';
                     }
 
-                    // Reset conflict alert
                     const alert = firstCard.querySelector(".alert");
                     if (alert) alert.classList.add("d-none");
                     firstCard.classList.remove("duplicate");
@@ -2420,7 +2415,7 @@
                     initializeAppointmentCardValidation(firstCard);
                 }
 
-                // Reinitialize Select2 for all dropdowns
+                // Reinitialize Select2
                 initializeSearchableDropdowns();
 
                 updateAppointmentCount();
@@ -2429,13 +2424,11 @@
             }
 
             function addAppointment() {
-                appointmentCounter++; // Increment counter for new appointment index
-                const newAppointmentIndex = appointmentCounter; // Use the incremented counter as index
-
+                appointmentCounter++;
                 const newAppointment = `
-                    <div class="appointment-card multi-appointment-row" data-appointment-index="${newAppointmentIndex}">
-                        <div class="appointment-number">${newAppointmentIndex + 1}</div>
-                        <button type="button" class="remove-appointment" onclick="removeAppointment(${newAppointmentIndex})">
+                    <div class="appointment-card multi-appointment-row" data-appointment-index="${appointmentCounter}">
+                        <div class="appointment-number">${appointmentCounter + 1}</div>
+                        <button type="button" class="remove-appointment" onclick="removeAppointment(${appointmentCounter})">
                             <i class="fas fa-times"></i>
                         </button>
 
@@ -2493,18 +2486,16 @@
                                         <i class="fas fa-check-circle text-success"></i>
                                     </span>
                                 </label>
-                                <!-- Manual time input fields -->
-                                <div class="d-flex align-items-center" style="border: 2px solid #e2e8f0; border-radius: 10px; padding: 6px 12px; transition: all 0.3s;">
-                                    <input type="number" class="form-control time-hour" min="1" max="12" placeholder="12" style="width: 50px; border: none; box-shadow: none; padding: 0; margin-right: 4px;">
-                                    <span class="text-muted">:</span>
-                                    <input type="number" class="form-control time-minute" min="0" max="59" placeholder="00" style="width: 50px; border: none; box-shadow: none; padding: 0; margin-left: 4px; margin-right: 4px;">
-                                    <select class="form-select time-period" style="width: 70px; border: none; box-shadow: none; padding: 0;">
-                                        <option value="AM">AM</option>
-                                        <option value="PM">PM</option>
-                                    </select>
-                                </div>
                                 <!-- Hidden 24-hour input for backend -->
                                 <input type="time" name="start_time" class="form-control start-time start-time-24h" value="09:00" required style="display: none;">
+                                <!-- User-friendly time selector dropdown -->
+                                <select
+                                    class="form-select start-time-select"
+                                    style="border-radius: 10px; padding: 12px; font-weight: 600; color: var(--primary-color); border: 2px solid #e2e8f0; transition: all 0.3s;"
+                                    onchange="handleStartTimeChange(this)"
+                                >
+                                    <option value="">Select time...</option>
+                                </select>
                             </div>
                             <div class="col-md-4 mb-3">
                                 <label class="form-label fw-semibold">
@@ -2515,14 +2506,16 @@
                                 </label>
                                 <!-- Hidden 24-hour input for backend -->
                                 <input type="time" name="end_time" class="form-control end-time end-time-24h" style="display: none;">
-                                <!-- Visible editable time display (read-only for now) -->
-                                <input type="text" class="form-control end-time-display" readonly style="border-radius: 10px; padding: 12px; font-weight: 600; color: var(--success-color); border: 2px solid #e2e8f0; transition: all 0.3s;">
+                                <!-- Visible editable time dropdown -->
+                                <select class="form-select end-time-select" onchange="handleEndTimeChange(this)" style="border-radius: 10px; padding: 12px; font-weight: 600; color: var(--success-color); border: 2px solid #e2e8f0; transition: all 0.3s;">
+                                    <!-- Options will be populated by JavaScript -->
+                                </select>
                             </div>
                         </div>
 
                         <div class="row">
                             <div class="col-md-12">
-                                <div id="conflictAlert${newAppointmentIndex}" class="alert alert-warning d-none" style="border-radius: 10px">
+                                <div id="conflictAlert${appointmentCounter}" class="alert alert-warning d-none" style="border-radius: 10px">
                                     <i class="fas fa-exclamation-triangle me-2"></i>
                                     <span class="conflict-message"></span>
                                 </div>
@@ -2533,23 +2526,22 @@
 
                 document.getElementById('appointmentsContainer').insertAdjacentHTML('beforeend', newAppointment);
 
-                // Populate time dropdown for the newly added card
-                const newCard = document.querySelector(`[data-appointment-index="${newAppointmentIndex}"]`);
+                // Populate time dropdown for new card
+                const newCard = document.querySelector(`[data-appointment-index="${appointmentCounter}"]`);
                 if (newCard) {
-                    // Initialize the manual time input fields and their listeners
-                    initializeAppointmentCardValidation(newCard);
-                    // Also ensure the end time select is cleared initially
-                    const endTimeDropdown = newCard.querySelector('.end-time-select');
-                    if (endTimeDropdown) {
-                        endTimeDropdown.innerHTML = '<option value="">Select time...</option>';
+                    const timeDropdown = newCard.querySelector('.start-time-select');
+                    if (timeDropdown) {
+                        populateTimeDropdown(timeDropdown, '09:00');
                     }
+
+                    // Initialize real-time validation for the new card
+                    initializeAppointmentCardValidation(newCard);
                 }
 
-                // Reinitialize Select2 for the new dropdowns
+                // Reinitialize Select2 for new dropdowns
                 initializeSearchableDropdowns();
 
                 updateAppointmentCount();
-                updateRemoveButtonsVisibility(); // Ensure remove buttons are shown correctly
                 updateSummary();
                 updateSubmitButton();
             }
@@ -2570,31 +2562,28 @@
                 const startTimeInput = card.querySelector('.start-time-24h'); // Use hidden 24h input
                 const endTimeInput = card.querySelector('.end-time-24h');     // Use hidden 24h input
                 const endTimeSelect = card.querySelector('.end-time-select'); // The visible dropdown
-                const endTimeDisplay = card.querySelector('.end-time-display'); // The read-only display input
 
-                if (!serviceSelect || !startTimeInput || !endTimeInput || !endTimeSelect || !endTimeDisplay) return;
+                if (!serviceSelect || !startTimeInput || !endTimeInput || !endTimeSelect) return;
 
                 const selectedOption = serviceSelect.selectedOptions[0];
                 const startTime = startTimeInput.value;
 
                 if (!selectedOption || !startTime) {
                     endTimeInput.value = "";
-                    endTimeDisplay.value = "";
-                    endTimeSelect.innerHTML = '<option value="">Select time...</option>'; // Clear options
+                    endTimeSelect.innerHTML = ""; // Clear options
                     return;
                 }
 
                 const duration = parseInt(selectedOption.dataset.duration) || 60;
                 const endTime = calculateEndTimeFromDuration(startTime, duration);
                 endTimeInput.value = endTime;
-                endTimeDisplay.value = convertTo12Hour(endTime); // Update the display
 
-                // Update the visible end time dropdown to reflect the calculated end time
-                // and provide options after it.
+                // Update the visible end time dropdown
                 endTimeSelect.innerHTML = ""; // Clear existing options
+                const endTime12 = convertTo12Hour(endTime);
                 const endTimeOption = document.createElement('option');
                 endTimeOption.value = endTime;
-                endTimeOption.textContent = endTimeDisplay.value; // Use the formatted 12-hour time
+                endTimeOption.textContent = endTime12;
                 endTimeOption.selected = true;
                 endTimeSelect.appendChild(endTimeOption);
 
@@ -2619,6 +2608,7 @@
                 }
             }
 
+
             function updateAppointmentCount() {
                 const count = document.querySelectorAll(".appointment-card").length;
                 document.getElementById("appointmentCount").textContent = `${count} Appointment${count !== 1 ? "s" : ""}`;
@@ -2642,6 +2632,7 @@
                     syncAll12HourDisplays();
                 }, 50);
             }
+
 
             function calculateEditEndTime() {
                 const serviceSelect = document.getElementById('editServiceSelect');
@@ -2673,17 +2664,17 @@
                 if (conflictAlert) conflictAlert.classList.add('d-none');
                 appointment.classList.remove('duplicate');
 
-                // Reset visual feedback colors for relevant fields
+                // Reset visual feedback colors
                 staffSelect.style.borderColor = '#e2e8f0';
                 dateInput.style.borderColor = '#e2e8f0';
-                const timeInputsContainer = appointment.querySelector('.col-md-4:has(.start-time-24h)'); // Find the column containing time inputs
-                if (timeInputsContainer) {
-                    timeInputsContainer.querySelectorAll('input, select').forEach(el => el.style.borderColor = '#e2e8f0');
+                const startTimeCol = appointment.querySelector('.col-md-4:has(.start-time-24h)'); // Find the column containing time inputs
+                if (startTimeCol) {
+                    startTimeCol.querySelectorAll('input, select').forEach(el => el.style.borderColor = '#e2e8f0');
                 }
 
 
-                // Don't check if any required field is missing or invalid
-                if (!staffSelect.value || !dateInput.value || !startTimeInput.value || !endTimeInput.value || endTimeInput.value <= startTimeInput.value) {
+                // Don't check if any required field is missing
+                if (!staffSelect.value || !dateInput.value || !startTimeInput.value || !endTimeInput.value) {
                     return;
                 }
 
@@ -2712,19 +2703,20 @@
                             // Visual feedback on fields
                             staffSelect.style.borderColor = '#ef4444';
                             dateInput.style.borderColor = '#ef4444';
-                            if (timeInputsContainer) {
-                                timeInputsContainer.querySelectorAll('input, select').forEach(el => el.style.borderColor = '#ef4444');
+                            const startTimeCol = appointment.querySelector('.col-md-4:has(.start-time-24h)');
+                            if (startTimeCol) {
+                                startTimeCol.querySelectorAll('input, select').forEach(el => el.style.borderColor = '#ef4444');
                             }
                         }
                     }
                 });
 
                 // Check against other appointments in the same booking session
+                // Note: In the bulk booking modal, all appointments are for the SAME customer (selected in multiClientSelect)
                 const bulkClientSelect = document.getElementById('multiClientSelect');
                 const isBulkBookingForSameCustomer = bulkClientSelect && bulkClientSelect.value;
 
                 document.querySelectorAll('.appointment-card').forEach((otherCard, otherIndex) => {
-                    // Skip checking against self
                     if (parseInt(otherCard.dataset.appointmentIndex) === appointmentIndex) return;
 
                     const otherStaffSelect = otherCard.querySelector('.staff-select');
@@ -2732,8 +2724,7 @@
                     const otherStartTimeInput = otherCard.querySelector('.start-time-24h'); // Use hidden 24h input
                     const otherEndTimeInput = otherCard.querySelector('.end-time-24h');     // Use hidden 24h input
 
-                    // Ensure other card has valid data before checking
-                    if (otherStaffSelect.value && otherDateInput.value && otherStartTimeInput.value && otherEndTimeInput.value && otherEndTimeInput.value > otherStartTimeInput.value) {
+                    if (otherStaffSelect.value && otherDateInput.value && otherStartTimeInput.value && otherEndTimeInput.value) {
                         // Check for STAFF conflicts (same staff, same time)
                         if (parseInt(otherStaffSelect.value) === staffId && otherDateInput.value === date) {
                             if (timesOverlap(startTime, endTime, otherStartTimeInput.value, otherEndTimeInput.value)) {
@@ -2749,13 +2740,15 @@
                                 // Visual feedback
                                 staffSelect.style.borderColor = '#ef4444';
                                 dateInput.style.borderColor = '#ef4444';
-                                if (timeInputsContainer) {
-                                    timeInputsContainer.querySelectorAll('input, select').forEach(el => el.style.borderColor = '#ef4444');
+                                const startTimeCol = appointment.querySelector('.col-md-4:has(.start-time-24h)');
+                                if (startTimeCol) {
+                                    startTimeCol.querySelectorAll('input, select').forEach(el => el.style.borderColor = '#ef4444');
                                 }
                             }
                         }
 
                         // Check for CUSTOMER conflicts (same customer can't have overlapping appointments)
+                        // Only check if we're in bulk booking mode where all appointments are for the same customer
                         if (isBulkBookingForSameCustomer && otherDateInput.value === date) {
                             if (timesOverlap(startTime, endTime, otherStartTimeInput.value, otherEndTimeInput.value)) {
                                 const message = `⚠️ Conflict with Appointment #${otherIndex + 1} - Customer can't be in two places at once`;
@@ -2769,8 +2762,9 @@
 
                                 // Visual feedback
                                 dateInput.style.borderColor = '#ef4444';
-                                if (timeInputsContainer) {
-                                    timeInputsContainer.querySelectorAll('input, select').forEach(el => el.style.borderColor = '#ef4444');
+                                const startTimeCol = appointment.querySelector('.col-md-4:has(.start-time-24h)');
+                                if (startTimeCol) {
+                                    startTimeCol.querySelectorAll('input, select').forEach(el => el.style.borderColor = '#ef4444');
                                 }
                             }
                         }
@@ -2787,9 +2781,9 @@
                 .then(data => {
                     if (data.shift_violation || (data.has_conflicts && data.conflicts?.length)) {
                         const message = data.reason || (data.conflicts?.[0] ?
-                            `Conflicts with ${data.conflicts[0].client_name || 'booking'} (${convertTo12Hour(data.conflicts[0].start_time)} - ${convertTo12Hour(data.conflicts[0].end_time)})` :
-                            'Shift constraint violation');
-                        if (conflictMessageSpan) conflictMessageSpan.textContent = `⚠️ ${message}`;
+                            `⚠️ Conflicts with ${data.conflicts[0].client_name || 'booking'} (${convertTo12Hour(data.conflicts[0].start_time)} - ${convertTo12Hour(data.conflicts[0].end_time)})` :
+                            '⚠️ Shift constraint violation');
+                        if (conflictMessageSpan) conflictMessageSpan.textContent = message;
                         if (conflictAlert) {
                             conflictAlert.classList.remove('d-none');
                             conflictAlert.style.animation = 'shake 0.5s';
@@ -2800,15 +2794,17 @@
                         // Visual feedback
                         staffSelect.style.borderColor = '#ef4444';
                         dateInput.style.borderColor = '#ef4444';
-                        if (timeInputsContainer) {
-                            timeInputsContainer.querySelectorAll('input, select').forEach(el => el.style.borderColor = '#ef4444');
+                        const startTimeCol = appointment.querySelector('.col-md-4:has(.start-time-24h)');
+                        if (startTimeCol) {
+                            startTimeCol.querySelectorAll('input, select').forEach(el => el.style.borderColor = '#ef4444');
                         }
                     } else if (!hasConflict) {
-                        // No conflicts found by any check, reset to valid state
+                        // No conflicts - show success state
                         staffSelect.style.borderColor = '#10b981';
                         dateInput.style.borderColor = '#10b981';
-                        if (timeInputsContainer) {
-                            timeInputsContainer.querySelectorAll('input, select').forEach(el => el.style.borderColor = '#10b981');
+                        const startTimeCol = appointment.querySelector('.col-md-4:has(.start-time-24h)');
+                        if (startTimeCol) {
+                            startTimeCol.querySelectorAll('input, select').forEach(el => el.style.borderColor = '#10b981');
                         }
                     }
                 })
@@ -2863,11 +2859,10 @@
                     if (!serviceSelect?.value || serviceSelect.value === '' ||
                         !staffSelect?.value || staffSelect.value === '' ||
                         !startTimeInput?.value || startTimeInput.value === '' ||
-                        !endTimeInput?.value || endTimeInput.value === '' ||
-                        endTimeInput.value <= startTimeInput.value) { // Also check if end time is not before start time
+                        !endTimeInput?.value || endTimeInput.value === '') {
                         return false;
                     }
-                    // Also check for duplicates/conflicts (visual indicator)
+                    // Also check for duplicates/conflicts
                     if (appointment.classList.contains('duplicate')) {
                         return false;
                     }
@@ -2944,8 +2939,8 @@
 
                     appointments.push({
                         client_name: clientDropdown.options[clientDropdown.selectedIndex].text.split(' - ')[0],
-                        client_phone: clientDropdown.selectedOptions[0]?.dataset.phone || '', // Use optional chaining
-                        client_email: clientDropdown.selectedOptions[0]?.dataset.email || '', // Use optional chaining
+                        client_phone: clientDropdown.selectedOptions[0].dataset.phone || '',
+                        client_email: clientDropdown.selectedOptions[0].dataset.email || '',
                         staff_id: staffSelect.value,
                         staff_name: staffOption ? staffOption.text : '',
                         service_id: serviceSelect.value,
@@ -3013,7 +3008,7 @@
                     loadBookings();
                 } else if (successCount > 0) {
                     showNotification(`⚠️ ${successCount} of ${appointments.length} appointments booked.\n\nErrors:\n${errorMessages.join('\n')}`, 'warning');
-                    loadBookings(); // Reload to show successful bookings
+                    loadBookings();
                 } else {
                     showNotification(`❌ Booking failed:\n${errorMessages.join('\n')}`, 'error');
                 }
@@ -3047,23 +3042,16 @@
                 const slot = event.currentTarget;
                 const rect = slot.getBoundingClientRect();
                 const clickX = event.clientX - rect.left;
-                // Calculate minute offset based on click position within the slot
-                const slotWidth = rect.width; // Width of the time slot (should be 140px)
-                const timeFraction = clickX / slotWidth; // Fraction of the hour clicked
-                const totalMinutes = Math.floor(timeFraction * 60); // Total minutes from the start of the hour
-                const roundedMinutes = Math.floor(totalMinutes / 15) * 15; // Round to nearest 15 minutes
-
-                const time = `${String(hour).padStart(2, "0")}:${String(roundedMinutes).padStart(2, "0")}`;
+                const minuteOffset = Math.floor(((clickX / rect.width) * 60) / 15) * 15;
+                const time = `${String(hour).padStart(2, "0")}:${String(minuteOffset).padStart(2, "0")}`;
 
                 openMultiBookModal();
-
-                // Set values in the first appointment card
-                const firstCard = document.querySelector('.appointment-card[data-appointment-index="0"]'); // Assuming first card has index 0 after reset
+                const firstCard = document.querySelector(".appointment-card");
                 if (firstCard) {
                     firstCard.querySelector(".staff-select").value = staffId;
                     firstCard.querySelector(".appointment-date").value = currentDate;
 
-                    // Update manual time inputs
+                    // Set the time in the new manual input fields
                     const hourInput = firstCard.querySelector('.time-hour');
                     const minuteInput = firstCard.querySelector('.time-minute');
                     const periodSelect = firstCard.querySelector('.time-period');
@@ -3077,17 +3065,19 @@
                         const hour12 = hour24 % 12 || 12;
 
                         hourInput.value = hour12;
-                        minuteInput.value = String(minute).padStart(2, '0');
+                        minuteInput.value = minute;
                         periodSelect.value = period;
 
-                        // Trigger update of hidden input, end time, and validation
-                        const updateAndValidateTime = () => {
-                            updateHiddenTimeInput(hourInput, minuteInput, periodSelect, hiddenInput);
-                            updateAppointmentEndTime(firstCard);
-                            checkConflicts(0); // Check conflicts for the first card
-                            updateSubmitButton();
-                        };
-                        updateAndValidateTime(); // Call immediately to set the values
+                        // Update the hidden input and other related fields
+                        updateHiddenTimeInput(hourInput, minuteInput, periodSelect, hiddenInput);
+                        updateAppointmentEndTime(firstCard); // Ensure end time is calculated
+                        const endTimeDisplay = firstCard.querySelector('.end-time-display');
+                        if (endTimeDisplay) {
+                            endTimeDisplay.value = convertTo12Hour(hiddenInput.value); // Update display
+                        }
+
+                        checkConflicts(0);
+                        updateSubmitButton();
                     }
                 }
             }
@@ -3274,21 +3264,6 @@
                 if (multiBookModal) {
                     multiBookModal.addEventListener('shown.bs.modal', function() {
                         updateBookAllButton();
-                        // Handle Select2 integration
-                        console.log('📋 Multi-book modal shown, initializing dropdowns...');
-                        initializeSearchableDropdowns();
-
-                        // Ensure first card's time dropdown is populated
-                        // Find the first card, which should have index 0 after reset
-                        const firstCard = document.querySelector('.appointment-card[data-appointment-index="0"]');
-                        if (firstCard) {
-                            const startTimeDropdown = firstCard.querySelector('.start-time-select');
-                            // Check if the dropdown needs population (e.g., has only the default option)
-                            if (startTimeDropdown && startTimeDropdown.options.length <= 1) {
-                                console.log('🔄 Re-populating start time dropdown on modal show');
-                                populateTimeDropdown(startTimeDropdown, '09:00');
-                            }
-                        }
                     });
                 }
 
@@ -3322,7 +3297,7 @@
                 }
             });
 
-             // Also trigger on input events for immediate feedback (e.g., time input)
+            // Also trigger on input events for immediate feedback (e.g., time input)
             document.getElementById('appointmentsContainer').addEventListener('input', function(e) {
                 if (e.target.matches('.time-hour, .time-minute, .time-period')) { // Listen to manual time inputs
                     const appointmentCard = e.target.closest('.appointment-card');
@@ -3346,6 +3321,9 @@
                     const startTime24h = card.querySelector('.start-time-24h')?.value;
                     const endTime24h = card.querySelector('.end-time-24h')?.value;
 
+                    const startTimeDisplay = card.querySelector('.start-time-select'); // This is now the manual input group
+                    const endTimeDisplay = card.querySelector('.end-time-display');
+
                     // Update manual input fields for start time
                     if (startTime24h) {
                         const [h24, m] = startTime24h.split(':');
@@ -3364,7 +3342,6 @@
                     }
 
                     // Update visible end time display
-                    const endTimeDisplay = card.querySelector('.end-time-display');
                     if (endTimeDisplay) {
                         endTimeDisplay.value = endTime24h ? convertTo12Hour(endTime24h) : '';
                     }
