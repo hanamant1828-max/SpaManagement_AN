@@ -1,0 +1,224 @@
+# 📋 PROMPT FOR REPLIT AGENT:
+
+---
+
+## Task: Enhance Multi-Booking Page to Match All Features from Modal Version
+
+### Context:
+You have a separate multi-booking page at `/multi-appointment-booking`. Compare it with the original modal-based booking and ensure ALL features are present and working.
+
+### Missing Features to Add:
+
+#### 1. **TIME DROPDOWNS (15-minute intervals)**
+**Current:** Uses simple `<input type="time">`  
+**Required:** Replace with dropdown showing 15-minute intervals from 9:00 AM to 9:00 PM
+
+**Implementation:**
+- Add `<select>` dropdown for start time with options: 9:00 AM, 9:15 AM, 9:30 AM... 9:00 PM
+- Keep hidden `<input type="time">` for backend (24-hour format)
+- When dropdown changes → update hidden input → recalculate end time
+- Show 12-hour format in dropdown, store 24-hour format in hidden field
+
+---
+
+#### 2. **DEBOUNCED CONFLICT CHECKING (300ms delay)**
+**Current:** Checks conflicts immediately  
+**Required:** Wait 300ms after user stops typing/selecting before making API call
+
+**Implementation:**
+```javascript
+const clientConflictTimers = {};
+
+function checkConflicts(index) {
+    clearTimeout(clientConflictTimers[index]);
+    clientConflictTimers[index] = setTimeout(() => {
+        performConflictCheck(index); // Actual API call
+    }, 300);
+}
+```
+
+---
+
+#### 3. **REAL-TIME CLIENT CONFLICT VALIDATION**
+**Current:** Checks on change but no visual loading state  
+**Required:** Show "Checking availability..." while validating
+
+**Add:**
+- Loading state: Show spinner + blue info alert "Checking availability..."
+- Success state: Green borders + hide alert
+- Error state: Red borders + red alert with conflict details
+- Check on EVERY change: client, date, start time, end time
+
+---
+
+#### 4. **COMPREHENSIVE VISUAL FEEDBACK**
+**Current:** Basic validation  
+**Required:** Color-coded borders and icons
+
+**States:**
+- **Empty field:** Gray border (#e2e8f0)
+- **Validating:** Blue border (#3b82f6) + spinner
+- **Success:** Green border (#10b981) + checkmark icon
+- **Error:** Red border (#ef4444) + error icon
+
+Apply to: Service dropdown, Staff dropdown, Date input, Start time, End time
+
+---
+
+#### 5. **CONFLICT SUMMARY BANNER**
+**Current:** No summary banner  
+**Required:** Add banner at top of appointments section showing conflict count
+
+**Show when conflicts exist:**
+```
+⚠️ 2 of 3 appointments have conflicts
+Please resolve all conflicts before booking
+```
+
+**Show when all clear:**
+```
+✅ All 3 appointments available - Ready to book!
+```
+
+---
+
+#### 6. **SUBMIT BUTTON STATE MANAGEMENT**
+**Current:** Basic validation  
+**Required:** Dynamic button state based on ALL validations
+
+**Button States:**
+1. **Has conflicts:** 
+   - Disabled + Red + "Resolve Conflicts First"
+2. **Missing fields:** 
+   - Disabled + Gray + "Complete All Fields"
+3. **No client selected:** 
+   - Disabled + Gray + "Select Client First"
+4. **All valid:** 
+   - Enabled + Green + "Book All Appointments"
+
+---
+
+#### 7. **INSTANT TIME VALIDATION**
+**Current:** Validates at submit  
+**Required:** Validate immediately when times change
+
+**Add before API call:**
+```javascript
+// Check 1: End time must be after start time
+if (endTime <= startTime) {
+    showError('End time must be after start time');
+    return; // Don't call API
+}
+
+// Check 2: All fields must be filled
+if (!client || !date || !startTime || !endTime) {
+    clearError();
+    return; // Don't call API
+}
+```
+
+---
+
+#### 8. **IMPLEMENT QUICK ADD CLIENT**
+**Current:** Shows alert "to be implemented"  
+**Required:** Fully functional quick add client
+
+**Implementation:**
+1. Collect: first_name, last_name, phone, email, gender
+2. POST to `/api/unaki/quick-add-client`
+3. On success: Add new client to dropdown + auto-select it
+4. Close modal
+5. Trigger validation for all appointments
+
+---
+
+#### 9. **UNPAID APPOINTMENTS CONFLICT CHECK**
+**Current:** May not check unpaid appointments  
+**Required:** Check conflicts INCLUDING unpaid/past appointments
+
+**Backend API `/api/unaki/check-client-conflicts` must check:**
+- ✅ All scheduled/confirmed appointments
+- ✅ All unpaid appointments (payment_status = 'pending' or 'partial')
+- ❌ Exclude cancelled/no_show
+- ❌ Exclude completed+paid
+
+**Show in conflict message:**
+```
+⚠️ Client has Massage from 2:00 PM to 3:00 PM with John [UNPAID - ₹500]
+```
+
+---
+
+#### 10. **VALIDATION ICONS**
+**Current:** No icons  
+**Required:** Show checkmark/error icons next to field labels
+
+**Add:**
+- Green checkmark icon when field validated ✅
+- Red error icon when conflict detected ❌
+- Hide when field empty
+
+---
+
+### Additional Requirements:
+
+#### **Conflict Alert Styling:**
+- Staff conflict → Red alert
+- Client conflict → Yellow/Orange alert
+- Both alerts can show simultaneously
+
+#### **End Time Dropdown (Optional):**
+- Make end time also a dropdown (not just readonly text)
+- Populate based on service duration
+- Allow manual adjustment
+
+#### **Better Error Messages:**
+Include in conflict message:
+- Service name
+- Staff name
+- Time range
+- Payment status (if unpaid)
+- Status badge
+
+Example:
+```
+⚠️ Sarah Johnson already has Swedish Massage from 2:30 PM to 3:30 PM with John Doe [UNPAID - ₹500] [SCHEDULED]
+```
+
+---
+
+### Testing Checklist:
+
+After implementation, verify:
+
+1. ✅ Time dropdowns show 15-minute intervals in 12-hour format
+2. ✅ Conflict checking waits 300ms after last change
+3. ✅ Loading spinner shows during validation
+4. ✅ Green borders on valid fields
+5. ✅ Red borders on conflicted fields
+6. ✅ Conflict summary banner updates correctly
+7. ✅ Submit button disabled when conflicts exist
+8. ✅ Quick add client works and auto-selects new client
+9. ✅ Unpaid appointments are detected as conflicts
+10. ✅ End > Start validation happens before API call
+11. ✅ All appointments re-validate when client changes
+12. ✅ Visual feedback works for all appointment cards
+13. ✅ Can add/remove appointments without errors
+14. ✅ Summary updates correctly (duration/price/staff)
+15. ✅ Successful booking redirects to calendar
+
+---
+
+### Priority Order:
+1. **HIGH:** Debounced conflict checking + visual feedback
+2. **HIGH:** Submit button state management
+3. **HIGH:** Unpaid appointments in conflict detection
+4. **MEDIUM:** Time dropdowns with 15-min intervals
+5. **MEDIUM:** Conflict summary banner
+6. **MEDIUM:** Instant time validation (end > start)
+7. **LOW:** Quick add client implementation
+8. **LOW:** Validation icons
+
+---
+
+**Action:** Review the current `/multi-appointment-booking` page code and add all missing features listed above to match the modal version's functionality. Ensure all real-time validations, visual feedback, and conflict checking work properly.
