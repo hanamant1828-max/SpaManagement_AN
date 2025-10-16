@@ -224,6 +224,14 @@
     box-shadow: 0 4px 12px rgba(79, 70, 229, 0.1);
 }
 
+.time-display-12hr {
+    display: block;
+    margin-top: 4px;
+    font-size: 0.875rem;
+    color: #4f46e5;
+    font-weight: 600;
+}
+
 .appointment-number {
     position: absolute;
     top: -10px;
@@ -339,11 +347,12 @@ function addAppointmentRow() {
                     <label class="form-label fw-semibold">Start Time *</label>
                     <input type="time" class="form-control start-time" data-index="${index}" 
                            required onchange="updateEndTime(${index})" step="900">
+                    <small class="text-muted time-display-12hr" id="start-time-display-${index}"></small>
                 </div>
                 <div class="col-md-4 mb-3">
                     <label class="form-label fw-semibold">End Time *</label>
                     <input type="time" class="form-control end-time" data-index="${index}" readonly>
-                    <div class="text-muted small mt-1" id="time-display-${index}"></div>
+                    <small class="text-muted time-display-12hr" id="end-time-display-${index}"></small>
                 </div>
             </div>
 
@@ -385,7 +394,6 @@ function updateEndTime(index) {
     const serviceSelect = document.querySelector(`.service-select[data-index="${index}"]`);
     const startTimeInput = document.querySelector(`.start-time[data-index="${index}"]`);
     const endTimeInput = document.querySelector(`.end-time[data-index="${index}"]`);
-    const timeDisplay = document.getElementById(`time-display-${index}`);
     
     const selectedOption = serviceSelect.options[serviceSelect.selectedIndex];
     
@@ -402,12 +410,8 @@ function updateEndTime(index) {
         const endMinutes = String(endDate.getMinutes()).padStart(2, '0');
         endTimeInput.value = `${endHours}:${endMinutes}`;
         
-        // Display in 12-hour format
-        const start12h = format12Hour(startTimeInput.value);
-        const end12h = format12Hour(endTimeInput.value);
-        if (timeDisplay) {
-            timeDisplay.textContent = `${start12h} - ${end12h}`;
-        }
+        // Update 12-hour format displays
+        updateTimeDisplay(index);
         
         // Validate time logic
         if (endDate <= startDate) {
@@ -427,7 +431,22 @@ function format12Hour(time24) {
     const hour = parseInt(hours);
     const ampm = hour >= 12 ? 'PM' : 'AM';
     const hour12 = hour % 12 || 12;
-    return `${hour12}:${minutes} ${ampm}`;
+    return `🕐 ${hour12}:${minutes} ${ampm}`;
+}
+
+function updateTimeDisplay(index) {
+    const startTimeInput = document.querySelector(`.start-time[data-index="${index}"]`);
+    const endTimeInput = document.querySelector(`.end-time[data-index="${index}"]`);
+    const startTimeDisplay = document.getElementById(`start-time-display-${index}`);
+    const endTimeDisplay = document.getElementById(`end-time-display-${index}`);
+    
+    if (startTimeInput && startTimeInput.value && startTimeDisplay) {
+        startTimeDisplay.textContent = format12Hour(startTimeInput.value);
+    }
+    
+    if (endTimeInput && endTimeInput.value && endTimeDisplay) {
+        endTimeDisplay.textContent = format12Hour(endTimeInput.value);
+    }
 }
 
 function showFieldError(field, message) {
