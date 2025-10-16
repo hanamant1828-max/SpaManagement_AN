@@ -1,4 +1,3 @@
-
 {% extends "base.html" %}
 
 {% block title %}Book Multiple Appointments - Spa Management{% endblock %}
@@ -81,7 +80,7 @@
                 </div>
                 <div class="card-body">
                     <div id="appointmentsContainer"></div>
-                    
+
                     <button type="button" class="btn btn-outline-primary w-100 mt-3" onclick="addAppointmentRow()">
                         <i class="fas fa-plus-circle me-2"></i>Add Another Appointment
                     </button>
@@ -296,6 +295,47 @@
 .time-24h-hidden {
     display: none;
 }
+
+.is-invalid {
+    border-color: #ef4444 !important;
+    background-color: #fff5f5 !important;
+}
+
+.is-valid {
+    border-color: #10b981 !important;
+    background-color: #f0fff4 !important;
+}
+
+.validation-error {
+    color: #dc3545;
+    font-size: 0.875rem;
+    margin-top: 0.25rem;
+}
+
+.validation-icon {
+    font-size: 0.875rem;
+    transition: all 0.3s ease;
+}
+
+.form-select:focus,
+.form-control:focus {
+    box-shadow: 0 0 0 0.2rem rgba(79, 70, 229, 0.25);
+}
+
+.alert {
+    animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
 </style>
 
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
@@ -364,7 +404,7 @@ let appointmentIndex = 0;
 function addAppointmentRow() {
     const container = document.getElementById('appointmentsContainer');
     const index = appointmentIndex++;
-    
+
     const appointmentCard = `
         <div class="appointment-card" data-index="${index}">
             <div class="appointment-number">${index + 1}</div>
@@ -373,7 +413,7 @@ function addAppointmentRow() {
                     <i class="fas fa-times"></i>
                 </button>
             ` : ''}
-            
+
             <div class="row">
                 <div class="col-md-6 mb-3">
                     <label class="form-label fw-semibold">Service *</label>
@@ -445,7 +485,7 @@ function addAppointmentRow() {
             <div class="conflict-alert alert alert-warning" id="client-conflict-${index}" style="display: none;"></div>
         </div>
     `;
-    
+
     container.insertAdjacentHTML('beforeend', appointmentCard);
     initializeTimeInputs(index);
     updateAppointmentCount();
@@ -456,13 +496,13 @@ function initializeTimeInputs(index) {
     const hourInput = card.querySelector('.time-input-group .time-hour');
     const minuteInput = card.querySelector('.time-input-group .time-minute');
     const periodSelect = card.querySelector('.time-input-group .time-period');
-    
+
     [hourInput, minuteInput].forEach(input => {
         input.addEventListener('input', function() {
             updateHiddenTimeInput(index);
         });
     });
-    
+
     periodSelect.addEventListener('change', function() {
         updateHiddenTimeInput(index);
     });
@@ -473,36 +513,36 @@ function showTimePicker(element, index, type) {
     const hiddenInput = type === 'start' ? 
         card.querySelector('.start-time-24h') : 
         card.querySelector('.end-time-24h');
-    
+
     const currentTime = hiddenInput.value || '09:00';
     const time12 = convertTo12Hour(currentTime);
-    
+
     const newTime = prompt(`Enter time (format: HH:MM AM/PM)\nCurrent: ${time12}`, time12);
-    
+
     if (newTime) {
         const parts = newTime.trim().split(' ');
         if (parts.length === 2) {
             const [time, ampm] = parts;
             const [hours, minutes] = time.split(':');
-            
+
             if (validateTimeInput(hours, minutes)) {
                 const time24 = convertTo24Hour(time, ampm.toUpperCase());
                 hiddenInput.value = time24;
-                
+
                 // Update visible inputs
                 const timeGroup = element;
                 const hourInput = timeGroup.querySelector('.time-hour');
                 const minuteInput = timeGroup.querySelector('.time-minute');
                 const periodSelect = timeGroup.querySelector('.time-period');
-                
+
                 hourInput.value = parseInt(hours);
                 minuteInput.value = minutes;
                 periodSelect.value = ampm.toUpperCase();
-                
+
                 if (type === 'start') {
                     updateEndTime(index);
                 }
-                
+
                 checkConflicts(index);
                 updateSummary();
             } else {
@@ -518,7 +558,7 @@ function updateHiddenTimeInput(index) {
     const minuteInput = card.querySelector('.time-input-group .time-minute');
     const periodSelect = card.querySelector('.time-input-group .time-period');
     const hiddenInput = card.querySelector('.start-time-24h');
-    
+
     if (hourInput.value && minuteInput.value) {
         const time24 = convertTo24Hour(
             `${hourInput.value}:${minuteInput.value}`,
@@ -527,7 +567,7 @@ function updateHiddenTimeInput(index) {
         hiddenInput.value = time24;
         document.getElementById(`start-display-${index}`).textContent = 
             `🕐 ${convertTo12Hour(time24)}`;
-        
+
         updateEndTime(index);
         checkConflicts(index);
     }
@@ -545,14 +585,14 @@ function removeAppointment(index) {
 function updateService(index) {
     const serviceSelect = document.querySelector(`.service-select[data-index="${index}"]`);
     const selectedOption = serviceSelect.options[serviceSelect.selectedIndex];
-    
+
     if (selectedOption.value) {
         const startTimeInput = document.querySelector(`.start-time-24h[data-index="${index}"]`);
         if (startTimeInput.value) {
             updateEndTime(index);
         }
     }
-    
+
     updateSummary();
 }
 
@@ -560,42 +600,42 @@ function updateEndTime(index) {
     const serviceSelect = document.querySelector(`.service-select[data-index="${index}"]`);
     const startTimeInput = document.querySelector(`.start-time-24h[data-index="${index}"]`);
     const endTimeInput = document.querySelector(`.end-time-24h[data-index="${index}"]`);
-    
+
     const selectedOption = serviceSelect.options[serviceSelect.selectedIndex];
-    
+
     if (selectedOption.value && startTimeInput.value) {
         const duration = parseInt(selectedOption.dataset.duration) || 60;
         const [hours, minutes] = startTimeInput.value.split(':');
         const startDate = new Date();
         startDate.setHours(parseInt(hours), parseInt(minutes));
-        
+
         const endDate = new Date(startDate.getTime() + duration * 60000);
-        
+
         const endHours = String(endDate.getHours()).padStart(2, '0');
         const endMinutes = String(endDate.getMinutes()).padStart(2, '0');
         endTimeInput.value = `${endHours}:${endMinutes}`;
-        
+
         // Update end time display
         const endTime12 = convertTo12Hour(endTimeInput.value);
         const [h12, rest] = endTime12.split(':');
         const [m12, ampm] = rest.split(' ');
-        
+
         const card = document.querySelector(`[data-index="${index}"]`);
         const endTimeGroup = card.querySelectorAll('.time-input-group')[1];
         endTimeGroup.querySelector('.time-hour').value = h12;
         endTimeGroup.querySelector('.time-minute').value = m12;
         endTimeGroup.querySelector('.time-period').value = ampm;
-        
+
         document.getElementById(`end-display-${index}`).textContent = `🕐 ${endTime12}`;
-        
+
         if (endDate <= startDate) {
             showFieldError(endTimeInput, 'End time must be after start time');
             return;
         }
-        
+
         checkConflicts(index);
     }
-    
+
     updateSummary();
 }
 
@@ -625,13 +665,13 @@ function updateSummary() {
     let totalDuration = 0;
     let totalPrice = 0;
     const staffSet = new Set();
-    
+
     document.querySelectorAll('.service-select').forEach(select => {
         if (select.value) {
             const option = select.options[select.selectedIndex];
             totalDuration += parseInt(option.dataset.duration) || 0;
             totalPrice += parseFloat(option.dataset.price) || 0;
-            
+
             const index = select.dataset.index;
             const staffSelect = document.querySelector(`.staff-select[data-index="${index}"]`);
             if (staffSelect && staffSelect.value) {
@@ -639,7 +679,7 @@ function updateSummary() {
             }
         }
     });
-    
+
     document.getElementById('totalDuration').textContent = `${totalDuration} min`;
     document.getElementById('totalPrice').textContent = `₹${totalPrice.toFixed(2)}`;
     document.getElementById('staffRequired').textContent = staffSet.size;
@@ -653,15 +693,15 @@ function checkConflicts(index) {
     const endTimeInput = document.querySelector(`.end-time-24h[data-index="${index}"]`);
     const conflictAlert = document.getElementById(`conflict-${index}`);
     const clientConflictAlert = document.getElementById(`client-conflict-${index}`);
-    
+
     if (conflictAlert) conflictAlert.style.display = 'none';
     if (clientConflictAlert) clientConflictAlert.style.display = 'none';
-    
+
     if (!clientId || !staffSelect.value || !dateInput.value || !startTimeInput.value || !endTimeInput.value) {
         updateSummary();
         return;
     }
-    
+
     // Check staff conflicts
     fetch('/api/unaki/check-staff-conflicts', {
         method: 'POST',
@@ -684,7 +724,7 @@ function checkConflicts(index) {
         }
     })
     .catch(err => console.error('Error checking staff conflicts:', err));
-    
+
     // Check client conflicts
     fetch('/api/unaki/check-client-conflicts', {
         method: 'POST',
@@ -704,7 +744,7 @@ function checkConflicts(index) {
         }
     })
     .catch(err => console.error('Error checking client conflicts:', err));
-    
+
     updateSummary();
 }
 
@@ -723,12 +763,12 @@ function loadClientAppointments(clientId) {
 function displayClientAppointments(bookings) {
     const container = document.getElementById('clientAppointmentsList');
     const activeBookings = bookings.filter(b => b.status === 'scheduled' || b.status === 'confirmed');
-    
+
     if (activeBookings.length === 0) {
         $('#clientExistingAppointments').hide();
         return;
     }
-    
+
     let html = '<ul class="list-group list-group-flush">';
     activeBookings.forEach(booking => {
         const startTime12 = convertTo12Hour(booking.start_time);
@@ -744,7 +784,7 @@ function displayClientAppointments(bookings) {
         `;
     });
     html += '</ul>';
-    
+
     container.innerHTML = html;
     document.getElementById('clientAppointmentsCount').textContent = activeBookings.length;
     $('#clientExistingAppointments').show();
@@ -756,11 +796,11 @@ function submitMultiBooking() {
         alert('❌ Please select a client');
         return;
     }
-    
+
     const appointments = [];
     let isValid = true;
     let validationErrors = [];
-    
+
     document.querySelectorAll('.appointment-card').forEach((card, idx) => {
         const index = card.dataset.index;
         const serviceSelect = document.querySelector(`.service-select[data-index="${index}"]`);
@@ -768,13 +808,13 @@ function submitMultiBooking() {
         const dateInput = document.querySelector(`.date-input[data-index="${index}"]`);
         const startTimeInput = document.querySelector(`.start-time-24h[data-index="${index}"]`);
         const endTimeInput = document.querySelector(`.end-time-24h[data-index="${index}"]`);
-        
+
         if (!serviceSelect.value || !staffSelect.value || !dateInput.value || !startTimeInput.value || !endTimeInput.value) {
             isValid = false;
             validationErrors.push(`Appointment ${idx + 1}: Missing required fields`);
             return;
         }
-        
+
         const start = startTimeInput.value;
         const end = endTimeInput.value;
         if (start >= end) {
@@ -782,7 +822,7 @@ function submitMultiBooking() {
             validationErrors.push(`Appointment ${idx + 1}: End time must be after start time`);
             return;
         }
-        
+
         const conflictAlert = document.getElementById(`conflict-${index}`);
         const clientConflictAlert = document.getElementById(`client-conflict-${index}`);
         if (conflictAlert && conflictAlert.style.display !== 'none') {
@@ -795,10 +835,10 @@ function submitMultiBooking() {
             validationErrors.push(`Appointment ${idx + 1}: Client conflict detected`);
             return;
         }
-        
+
         const selectedService = serviceSelect.options[serviceSelect.selectedIndex];
         const selectedStaff = staffSelect.options[staffSelect.selectedIndex];
-        
+
         appointments.push({
             client_id: clientId,
             clientName: $('#clientSelect option:selected').text().split(' - ')[0],
@@ -813,25 +853,25 @@ function submitMultiBooking() {
             end_time: endTimeInput.value
         });
     });
-    
+
     if (!isValid) {
         alert('❌ Validation Failed:\n\n' + validationErrors.join('\n'));
         return;
     }
-    
+
     if (appointments.length === 0) {
         alert('❌ No appointments to book');
         return;
     }
-    
+
     const summary = appointments.map((apt, i) => 
         `${i + 1}. ${apt.service_name} with ${apt.staffName} at ${convertTo12Hour(apt.start_time)}`
     ).join('\n');
-    
+
     if (!confirm(`📅 Book ${appointments.length} appointment(s)?\n\n${summary}`)) {
         return;
     }
-    
+
     const promises = appointments.map(apt => 
         fetch('/api/unaki/book-appointment', {
             method: 'POST',
@@ -839,13 +879,13 @@ function submitMultiBooking() {
             body: JSON.stringify(apt)
         }).then(r => r.json())
     );
-    
+
     Promise.all(promises)
         .then(results => {
             const successCount = results.filter(r => r.success).length;
             const failCount = results.length - successCount;
             const errors = results.filter(r => !r.success).map(r => r.error || 'Unknown error');
-            
+
             if (failCount === 0) {
                 alert(`✅ Successfully booked ${successCount} appointment(s)!`);
                 window.location.href = '{{ url_for("unaki_booking") }}';

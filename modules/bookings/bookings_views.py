@@ -1273,6 +1273,63 @@ def api_check_staff_conflicts():
             'error': str(e)
         }), 500
 
+@app.route('/api/unaki/quick-add-client', methods=['POST'])
+@login_required
+def api_quick_add_client():
+    """Quick add new client from booking page"""
+    if not current_user.can_access('bookings'):
+        return jsonify({'success': False, 'error': 'Access denied'}), 403
+    
+    try:
+        data = request.get_json()
+        
+        # Validate required fields
+        first_name = data.get('first_name', '').strip()
+        last_name = data.get('last_name', '').strip()
+        phone = data.get('phone', '').strip()
+        gender = data.get('gender', '').strip()
+        
+        if not all([first_name, last_name, phone, gender]):
+            return jsonify({
+                'success': False,
+                'error': 'First name, last name, phone, and gender are required'
+            }), 400
+        
+        # Check if client with same phone already exists
+        existing = Customer.query.filter_by(phone=phone).first()
+        if existing:
+            return jsonify({
+                'success': False,
+                'error': f'Client with phone {phone} already exists'
+            }), 400
+        
+        # Create new client
+        new_client = Customer(
+            first_name=first_name,
+            last_name=last_name,
+            phone=phone,
+            email=data.get('email', '').strip() or None,
+            gender=gender,
+            is_active=True
+        )
+        
+        db.session.add(new_client)
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'client_id': new_client.id,
+            'client_name': f"{first_name} {last_name}",
+            'message': 'Client added successfully'
+        })
+        
+    except Exception as e:
+        print(f"❌ Error in quick-add-client: {e}")
+        import traceback
+        traceback.print_exc()
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 @app.route('/api/unaki/check-client-conflicts', methods=['POST'])
 @login_required
 def api_check_client_conflicts():
