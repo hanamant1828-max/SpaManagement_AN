@@ -1164,6 +1164,150 @@ def api_unaki_book_appointment():
             db.session.rollback()
         return jsonify({'error': str(e), 'success': False}), 500
 
+@app.route('/api/unaki/check-client-conflicts', methods=['POST'])
+@login_required
+def api_check_client_conflicts():
+    """API endpoint to check for client appointment conflicts in real-time"""
+    if not current_user.can_access('bookings'):
+        return jsonify({'error': 'Access denied', 'success': False}), 403
+    
+    try:
+        data = request.get_json()
+        
+        # Get parameters
+        client_id = data.get('client_id')
+        appointment_date_str = data.get('appointment_date')
+        start_time_str = data.get('start_time')
+        end_time_str = data.get('end_time')
+        
+        # Validate required fields
+        if not all([client_id, appointment_date_str, start_time_str, end_time_str]):
+            return jsonify({
+                'success': True,
+                'has_conflict': False,
+                'message': 'Missing required fields'
+            })
+        
+        # Parse date and times
+        from datetime import datetime
+        try:
+            appointment_date = datetime.strptime(appointment_date_str, '%Y-%m-%d').date()
+            start_time = datetime.strptime(start_time_str, '%H:%M').time()
+            end_time = datetime.strptime(end_time_str, '%H:%M').time()
+        except ValueError:
+            return jsonify({
+                'success': True,
+                'has_conflict': False,
+                'message': 'Invalid date/time format'
+            })
+        
+        # Validate end time is after start time
+        start_datetime = datetime.combine(appointment_date, start_time)
+        end_datetime = datetime.combine(appointment_date, end_time)
+        
+        if end_datetime <= start_datetime:
+            return jsonify({
+                'success': True,
+                'has_conflict': False,
+                'message': 'End time must be after start time'
+            })
+        
+        # Get client to find their name
+        from models import Customer, UnakiBooking, User, Service
+        client = Customer.query.get(client_id)
+        if not client:
+            return jsonify({
+                'success': True,
+                'has_conflict': False,
+                'message': 'Client not found'
+            })
+        
+        # Check for conflicts in UnakiBooking table
+        # Include: 
+        # 1. Scheduled, confirmed, in_progress appointments on the SAME date
+        # 2. ALL unpaid appointments (pending/partial) regardless of date (past or future)
+        # Exclude: cancelled, no_show
+        conflicting_bookings = UnakiBooking.query.filter(
+            UnakiBooking.client_id == client_id
+        ).filter(
+            db.or_(
+                # Same-day active appointments
+                db.and_(
+                    UnakiBooking.appointment_date == appointment_date,
+                    UnakiBooking.status.in_(['scheduled', 'confirmed', 'in_progress'])
+                ),
+                # All unpaid appointments (any date)
+                UnakiBooking.payment_status.in_(['pending', 'partial'])
+            )
+        ).filter(
+            ~UnakiBooking.status.in_(['cancelled', 'no_show'])
+        ).all()
+        
+        # Check for conflicts
+        conflicts = []
+        for booking in conflicting_bookings:
+            # Skip if this is a completed appointment that's already paid
+            if booking.status == 'completed' and booking.payment_status == 'paid':
+                continue
+            
+            is_same_date = booking.appointment_date == appointment_date
+            is_unpaid = booking.payment_status in ['pending', 'partial']
+            
+            # Unpaid appointments are ALWAYS conflicts (any date, any time)
+            # Same-date appointments check for time overlap
+            is_conflict = False
+            
+            if is_unpaid:
+                # Any unpaid appointment is a conflict
+                is_conflict = True
+            elif is_same_date:
+                # Same-date appointments: check time overlap
+                existing_start = datetime.combine(appointment_date, booking.start_time)
+                existing_end = datetime.combine(appointment_date, booking.end_time)
+                if start_datetime < existing_end and end_datetime > existing_start:
+                    is_conflict = True
+            
+            if is_conflict:
+                # Get staff name
+                staff = User.query.get(booking.staff_id) if booking.staff_id else None
+                staff_name = f"{staff.first_name} {staff.last_name}" if staff else "Unknown Staff"
+                
+                # Get service price
+                service_price = booking.amount_charged or 0
+                if not service_price and booking.service_id:
+                    service = Service.query.get(booking.service_id)
+                    service_price = float(service.price) if service else 0
+                
+                conflicts.append({
+                    'appointment_id': booking.id,
+                    'service_name': booking.service_name or 'Unknown Service',
+                    'staff_name': staff_name,
+                    'start_time': booking.start_time.strftime('%I:%M %p'),
+                    'end_time': booking.end_time.strftime('%I:%M %p'),
+                    'appointment_date': booking.appointment_date.strftime('%Y-%m-%d'),
+                    'is_same_date': is_same_date,
+                    'payment_status': booking.payment_status or 'pending',
+                    'service_price': service_price
+                })
+        
+        if conflicts:
+            return jsonify({
+                'success': True,
+                'has_conflict': True,
+                'conflicts': conflicts
+            })
+        else:
+            return jsonify({
+                'success': True,
+                'has_conflict': False
+            })
+    
+    except Exception as e:
+        print(f"❌ Error checking client conflicts: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 @app.route('/api/appointment/<int:appointment_id>')
 @login_required
 def api_appointment_details(appointment_id):

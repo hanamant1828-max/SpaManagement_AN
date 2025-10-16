@@ -2644,6 +2644,7 @@
                     hiddenInput.value = selectElement.value;
                     updateAppointmentEndTime(card);
                     checkConflictsRealtime(index);
+                    checkClientConflicts(index);
                 }
             }
 
@@ -2723,7 +2724,7 @@
 
                 // Multi-booking form changes
                 document.addEventListener("change", function(e) {
-                    if (e.target.matches('.service-select, .start-time, .appointment-date, .staff-select')) {
+                    if (e.target.matches('.service-select, .start-time, .appointment-date, .staff-select, .start-time-select, .end-time-select')) {
                         const card = e.target.closest(".appointment-card");
                         if (card) {
                             const index = parseInt(card.dataset.appointmentIndex);
@@ -2748,6 +2749,11 @@
                     clientSelect.addEventListener('change', () => {
                         validateClientSelection();
                         loadCustomerExistingAppointments(clientSelect.value);
+                        // Re-check conflicts for all appointments when client changes
+                        document.querySelectorAll('.appointment-card').forEach(card => {
+                            const index = parseInt(card.dataset.appointmentIndex);
+                            checkClientConflicts(index);
+                        });
                         updateSubmitButton();
                     });
 
@@ -2755,6 +2761,11 @@
                     $(clientSelect).on('select2:select', function(e) {
                         validateClientSelection();
                         loadCustomerExistingAppointments(this.value);
+                        // Re-check conflicts for all appointments when client changes
+                        document.querySelectorAll('.appointment-card').forEach(card => {
+                            const index = parseInt(card.dataset.appointmentIndex);
+                            checkClientConflicts(index);
+                        });
                         updateSubmitButton();
                     });
 
@@ -2762,6 +2773,13 @@
                     $(clientSelect).on('select2:clear', function(e) {
                         validateClientSelection();
                         loadCustomerExistingAppointments('');
+                        // Clear conflicts when client is cleared
+                        document.querySelectorAll('.appointment-card').forEach(card => {
+                            const index = parseInt(card.dataset.appointmentIndex);
+                            const conflictAlert = card.querySelector(`#conflictAlert${index}`);
+                            if (conflictAlert) conflictAlert.classList.add('d-none');
+                            card.classList.remove('has-conflict');
+                        });
                         updateSubmitButton();
                     });
                 }
@@ -2831,6 +2849,7 @@
                             const index = parseInt(card.dataset.appointmentIndex);
                             calculateEndTime(index);
                             checkConflicts(index);
+                            checkClientConflicts(index);
                             updateSummary();
                             updateSubmitButton();
                         }
@@ -3893,9 +3912,148 @@
                 .catch(error => console.error('Error checking conflicts:', error));
             }
 
+            // Debounce timer for client conflict checking
+            let clientConflictDebounceTimers = {};
+
+            // Check client conflicts via backend API with debouncing
+            function checkClientConflicts(appointmentIndex) {
+                // Clear existing timer for this appointment
+                if (clientConflictDebounceTimers[appointmentIndex]) {
+                    clearTimeout(clientConflictDebounceTimers[appointmentIndex]);
+                }
+
+                // Wait 300ms before making API call
+                clientConflictDebounceTimers[appointmentIndex] = setTimeout(() => {
+                    const appointment = document.querySelector(`[data-appointment-index="${appointmentIndex}"]`);
+                    if (!appointment) return;
+
+                    const clientSelect = document.getElementById('multiClientSelect');
+                    const dateInput = appointment.querySelector('.appointment-date');
+                    const startTimeInput = appointment.querySelector('.start-time-24h');
+                    const endTimeInput = appointment.querySelector('.end-time-24h');
+                    const conflictAlert = appointment.querySelector(`#conflictAlert${appointmentIndex}`);
+                    const conflictMessageSpan = conflictAlert?.querySelector('.conflict-message');
+
+                    // Check if all required fields are filled
+                    if (!clientSelect?.value || !dateInput?.value || !startTimeInput?.value || !endTimeInput?.value) {
+                        // Clear any conflict errors
+                        if (conflictAlert) conflictAlert.classList.add('d-none');
+                        dateInput.style.borderColor = '#e2e8f0';
+                        const startSelect = appointment.querySelector('.start-time-select');
+                        const endSelect = appointment.querySelector('.end-time-select');
+                        if (startSelect) startSelect.style.borderColor = '#e2e8f0';
+                        if (endSelect) endSelect.style.borderColor = '#e2e8f0';
+                        appointment.classList.remove('has-conflict');
+                        updateSubmitButton();
+                        return;
+                    }
+
+                    // Validate end time is after start time
+                    if (endTimeInput.value <= startTimeInput.value) {
+                        if (conflictMessageSpan) {
+                            conflictMessageSpan.textContent = '⚠️ End time must be after start time';
+                        }
+                        if (conflictAlert) {
+                            conflictAlert.classList.remove('d-none');
+                            conflictAlert.classList.remove('alert-danger');
+                            conflictAlert.classList.add('alert-warning');
+                        }
+                        dateInput.style.borderColor = '#ef4444';
+                        const startSelect = appointment.querySelector('.start-time-select');
+                        const endSelect = appointment.querySelector('.end-time-select');
+                        if (startSelect) startSelect.style.borderColor = '#ef4444';
+                        if (endSelect) endSelect.style.borderColor = '#ef4444';
+                        appointment.classList.add('has-conflict');
+                        updateSubmitButton();
+                        return;
+                    }
+
+                    // Show loading state
+                    if (conflictMessageSpan) {
+                        conflictMessageSpan.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Checking availability...';
+                    }
+                    if (conflictAlert) {
+                        conflictAlert.classList.remove('d-none', 'alert-danger', 'alert-warning');
+                        conflictAlert.classList.add('alert-info');
+                    }
+
+                    // Call API to check for client conflicts
+                    fetch('/api/unaki/check-client-conflicts', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            client_id: parseInt(clientSelect.value),
+                            appointment_date: dateInput.value,
+                            start_time: startTimeInput.value,
+                            end_time: endTimeInput.value
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success && data.has_conflict && data.conflicts && data.conflicts.length > 0) {
+                            // Show conflict error
+                            const conflict = data.conflicts[0];
+                            const clientName = clientSelect.options[clientSelect.selectedIndex]?.text.split(' - ')[0] || 'Client';
+                            
+                            // Build message based on whether it's same date or different date
+                            let message;
+                            if (conflict.is_same_date) {
+                                message = `⚠️ ${clientName} already has ${conflict.service_name} from ${conflict.start_time} to ${conflict.end_time} with ${conflict.staff_name}`;
+                            } else {
+                                // Past/future unpaid appointment
+                                const conflictDate = new Date(conflict.appointment_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                                message = `⚠️ ${clientName} has an UNPAID ${conflict.service_name} on ${conflictDate} from ${conflict.start_time} to ${conflict.end_time} with ${conflict.staff_name}`;
+                            }
+                            
+                            // Add unpaid indicator if applicable
+                            if (conflict.payment_status === 'pending' || conflict.payment_status === 'partial') {
+                                message += ` <span class="badge bg-danger ms-2">UNPAID - ₹${conflict.service_price}</span>`;
+                            }
+
+                            if (conflictMessageSpan) {
+                                conflictMessageSpan.innerHTML = message;
+                            }
+                            if (conflictAlert) {
+                                conflictAlert.classList.remove('d-none', 'alert-info', 'alert-warning');
+                                conflictAlert.classList.add('alert-danger');
+                            }
+
+                            // Red borders for conflict
+                            dateInput.style.borderColor = '#ef4444';
+                            const startSelect = appointment.querySelector('.start-time-select');
+                            const endSelect = appointment.querySelector('.end-time-select');
+                            if (startSelect) startSelect.style.borderColor = '#ef4444';
+                            if (endSelect) endSelect.style.borderColor = '#ef4444';
+
+                            appointment.classList.add('has-conflict');
+                        } else if (data.success && !data.has_conflict) {
+                            // No conflicts - show success
+                            if (conflictAlert) conflictAlert.classList.add('d-none');
+                            
+                            // Green borders for success
+                            dateInput.style.borderColor = '#10b981';
+                            const startSelect = appointment.querySelector('.start-time-select');
+                            const endSelect = appointment.querySelector('.end-time-select');
+                            if (startSelect) startSelect.style.borderColor = '#10b981';
+                            if (endSelect) endSelect.style.borderColor = '#10b981';
+
+                            appointment.classList.remove('has-conflict');
+                        }
+                        updateSubmitButton();
+                    })
+                    .catch(error => {
+                        console.error('Error checking client conflicts:', error);
+                        if (conflictAlert) conflictAlert.classList.add('d-none');
+                        appointment.classList.remove('has-conflict');
+                        updateSubmitButton();
+                    });
+                }, 300); // 300ms debounce delay
+            }
+
             // Legacy function for backward compatibility
             function checkConflicts(appointmentIndex) {
                 checkConflictsRealtime(appointmentIndex);
+                checkClientConflicts(appointmentIndex);
             }
 
             function updateSummary() {
@@ -3944,8 +4102,8 @@
                         !endTimeInput?.value || endTimeInput.value === '') {
                         return false;
                     }
-                    // Also check for duplicates/conflicts
-                    if (appointment.classList.contains('duplicate')) {
+                    // Check for duplicates/conflicts (both duplicate and has-conflict classes)
+                    if (appointment.classList.contains('duplicate') || appointment.classList.contains('has-conflict')) {
                         return false;
                     }
                 }
@@ -3982,12 +4140,24 @@
 
                 const hasClient = validateClientSelection();
                 const isValidAppointments = validateAllAppointments();
+                
+                // Check if there are any conflicts
+                const hasConflicts = document.querySelector('.appointment-card.has-conflict') !== null;
 
                 const allValid = hasClient && isValidAppointments;
 
                 submitBtn.disabled = !allValid;
                 submitBtn.classList.toggle('btn-secondary', !allValid);
                 submitBtn.classList.toggle('btn-primary', allValid);
+                
+                // Update button text if there are conflicts
+                if (hasConflicts) {
+                    submitBtn.innerHTML = '<i class="fas fa-exclamation-triangle me-2"></i>Resolve Conflicts First';
+                } else if (!allValid) {
+                    submitBtn.innerHTML = '<i class="fas fa-check-circle me-2"></i>Book All Appointments';
+                } else {
+                    submitBtn.innerHTML = '<i class="fas fa-check-circle me-2"></i>Book All Appointments';
+                }
             }
 
             // ==========================================
