@@ -1193,6 +1193,86 @@ def multi_appointment_booking():
         return redirect(url_for('unaki_booking'))
 
 
+@app.route('/api/unaki/check-staff-conflicts', methods=['POST'])
+@login_required
+def api_check_staff_conflicts():
+    """API endpoint to check for staff appointment conflicts"""
+    if not current_user.can_access('bookings'):
+        return jsonify({'error': 'Access denied', 'success': False}), 403
+    
+    try:
+        data = request.get_json()
+        
+        staff_id = data.get('staff_id')
+        appointment_date_str = data.get('appointment_date')
+        start_time_str = data.get('start_time')
+        end_time_str = data.get('end_time')
+        
+        if not all([staff_id, appointment_date_str, start_time_str, end_time_str]):
+            return jsonify({
+                'success': True,
+                'has_conflict': False,
+                'message': 'Missing required fields'
+            })
+        
+        from datetime import datetime
+        appointment_date = datetime.strptime(appointment_date_str, '%Y-%m-%d').date()
+        start_time = datetime.strptime(start_time_str, '%H:%M').time()
+        end_time = datetime.strptime(end_time_str, '%H:%M').time()
+        
+        start_datetime = datetime.combine(appointment_date, start_time)
+        end_datetime = datetime.combine(appointment_date, end_time)
+        
+        if end_datetime <= start_datetime:
+            return jsonify({
+                'success': True,
+                'has_conflict': True,
+                'message': 'End time must be after start time'
+            })
+        
+        from models import UnakiBooking, User
+        staff = User.query.get(staff_id)
+        if not staff:
+            return jsonify({
+                'success': False,
+                'has_conflict': True,
+                'message': 'Staff member not found'
+            }), 404
+        
+        # Check for conflicts
+        conflicting_bookings = UnakiBooking.query.filter(
+            UnakiBooking.staff_id == staff_id,
+            UnakiBooking.appointment_date == appointment_date,
+            UnakiBooking.status.in_(['scheduled', 'confirmed', 'in_progress'])
+        ).all()
+        
+        for booking in conflicting_bookings:
+            existing_start = datetime.combine(appointment_date, booking.start_time)
+            existing_end = datetime.combine(appointment_date, booking.end_time)
+            
+            if start_datetime < existing_end and end_datetime > existing_start:
+                return jsonify({
+                    'success': True,
+                    'has_conflict': True,
+                    'message': f"{staff.first_name} {staff.last_name} has appointment from {booking.start_time.strftime('%I:%M %p')} to {booking.end_time.strftime('%I:%M %p')} with {booking.client_name}"
+                })
+        
+        return jsonify({
+            'success': True,
+            'has_conflict': False,
+            'message': 'No conflicts found'
+        })
+        
+    except Exception as e:
+        print(f"❌ Error checking staff conflicts: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            'success': False,
+            'has_conflict': False,
+            'error': str(e)
+        }), 500
+
 @app.route('/api/unaki/check-client-conflicts', methods=['POST'])
 @login_required
 def api_check_client_conflicts():

@@ -333,20 +333,22 @@ function addAppointmentRow() {
                 <div class="col-md-4 mb-3">
                     <label class="form-label fw-semibold">Date *</label>
                     <input type="date" class="form-control date-input" data-index="${index}" 
-                           value="{{ today }}" required onchange="checkConflicts(${index})">
+                           value="{{ today }}" required onchange="checkConflicts(${index})" min="{{ today }}">
                 </div>
                 <div class="col-md-4 mb-3">
                     <label class="form-label fw-semibold">Start Time *</label>
                     <input type="time" class="form-control start-time" data-index="${index}" 
-                           required onchange="updateEndTime(${index})">
+                           required onchange="updateEndTime(${index})" step="900">
                 </div>
                 <div class="col-md-4 mb-3">
-                    <label class="form-label fw-semibold">End Time</label>
+                    <label class="form-label fw-semibold">End Time *</label>
                     <input type="time" class="form-control end-time" data-index="${index}" readonly>
+                    <div class="text-muted small mt-1" id="time-display-${index}"></div>
                 </div>
             </div>
 
-            <div class="conflict-alert" id="conflict-${index}" style="display: none;"></div>
+            <div class="conflict-alert alert alert-danger" id="conflict-${index}" style="display: none;"></div>
+            <div class="conflict-alert alert alert-warning" id="client-conflict-${index}" style="display: none;"></div>
         </div>
     `;
     
@@ -383,6 +385,7 @@ function updateEndTime(index) {
     const serviceSelect = document.querySelector(`.service-select[data-index="${index}"]`);
     const startTimeInput = document.querySelector(`.start-time[data-index="${index}"]`);
     const endTimeInput = document.querySelector(`.end-time[data-index="${index}"]`);
+    const timeDisplay = document.getElementById(`time-display-${index}`);
     
     const selectedOption = serviceSelect.options[serviceSelect.selectedIndex];
     
@@ -391,16 +394,57 @@ function updateEndTime(index) {
         const [hours, minutes] = startTimeInput.value.split(':');
         const startDate = new Date();
         startDate.setHours(parseInt(hours), parseInt(minutes));
-        startDate.setMinutes(startDate.getMinutes() + duration);
         
-        const endHours = String(startDate.getHours()).padStart(2, '0');
-        const endMinutes = String(startDate.getMinutes()).padStart(2, '0');
+        // Calculate end time
+        const endDate = new Date(startDate.getTime() + duration * 60000);
+        
+        const endHours = String(endDate.getHours()).padStart(2, '0');
+        const endMinutes = String(endDate.getMinutes()).padStart(2, '0');
         endTimeInput.value = `${endHours}:${endMinutes}`;
+        
+        // Display in 12-hour format
+        const start12h = format12Hour(startTimeInput.value);
+        const end12h = format12Hour(endTimeInput.value);
+        if (timeDisplay) {
+            timeDisplay.textContent = `${start12h} - ${end12h}`;
+        }
+        
+        // Validate time logic
+        if (endDate <= startDate) {
+            showFieldError(endTimeInput, 'End time must be after start time');
+            return;
+        }
         
         checkConflicts(index);
     }
     
     updateSummary();
+}
+
+function format12Hour(time24) {
+    if (!time24) return '';
+    const [hours, minutes] = time24.split(':');
+    const hour = parseInt(hours);
+    const ampm = hour >= 12 ? 'PM' : 'AM';
+    const hour12 = hour % 12 || 12;
+    return `${hour12}:${minutes} ${ampm}`;
+}
+
+function showFieldError(field, message) {
+    field.classList.add('is-invalid');
+    let feedback = field.parentElement.querySelector('.invalid-feedback');
+    if (!feedback) {
+        feedback = document.createElement('div');
+        feedback.className = 'invalid-feedback';
+        field.parentElement.appendChild(feedback);
+    }
+    feedback.textContent = message;
+}
+
+function clearFieldError(field) {
+    field.classList.remove('is-invalid');
+    const feedback = field.parentElement.querySelector('.invalid-feedback');
+    if (feedback) feedback.remove();
 }
 
 function updateAppointmentCount() {
@@ -433,7 +477,66 @@ function updateSummary() {
 }
 
 function checkConflicts(index) {
-    // Implement conflict checking logic similar to your existing code
+    const clientId = $('#clientSelect').val();
+    const staffSelect = document.querySelector(`.staff-select[data-index="${index}"]`);
+    const dateInput = document.querySelector(`.date-input[data-index="${index}"]`);
+    const startTimeInput = document.querySelector(`.start-time[data-index="${index}"]`);
+    const endTimeInput = document.querySelector(`.end-time[data-index="${index}"]`);
+    const conflictAlert = document.getElementById(`conflict-${index}`);
+    const clientConflictAlert = document.getElementById(`client-conflict-${index}`);
+    
+    // Clear previous alerts
+    if (conflictAlert) conflictAlert.style.display = 'none';
+    if (clientConflictAlert) clientConflictAlert.style.display = 'none';
+    
+    if (!clientId || !staffSelect.value || !dateInput.value || !startTimeInput.value || !endTimeInput.value) {
+        updateSummary();
+        return;
+    }
+    
+    // Check staff conflicts
+    fetch('/api/unaki/check-staff-conflicts', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+            staff_id: staffSelect.value,
+            appointment_date: dateInput.value,
+            start_time: startTimeInput.value,
+            end_time: endTimeInput.value
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.has_conflict) {
+            conflictAlert.innerHTML = `<i class="fas fa-exclamation-triangle"></i> ${data.message || 'Staff conflict detected'}`;
+            conflictAlert.style.display = 'block';
+            staffSelect.classList.add('is-invalid');
+        } else {
+            staffSelect.classList.remove('is-invalid');
+        }
+    })
+    .catch(err => console.error('Error checking staff conflicts:', err));
+    
+    // Check client conflicts
+    fetch('/api/unaki/check-client-conflicts', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+            client_id: clientId,
+            appointment_date: dateInput.value,
+            start_time: startTimeInput.value,
+            end_time: endTimeInput.value
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.has_conflict) {
+            clientConflictAlert.innerHTML = `<i class="fas fa-exclamation-circle"></i> ${data.message || 'Client has conflicting appointment'}`;
+            clientConflictAlert.style.display = 'block';
+        }
+    })
+    .catch(err => console.error('Error checking client conflicts:', err));
+    
     updateSummary();
 }
 
@@ -480,12 +583,13 @@ function displayClientAppointments(bookings) {
 function submitMultiBooking() {
     const clientId = $('#clientSelect').val();
     if (!clientId) {
-        alert('Please select a client');
+        alert('❌ Please select a client');
         return;
     }
     
     const appointments = [];
     let isValid = true;
+    let validationErrors = [];
     
     document.querySelectorAll('.appointment-card').forEach((card, idx) => {
         const index = card.dataset.index;
@@ -495,27 +599,72 @@ function submitMultiBooking() {
         const startTimeInput = document.querySelector(`.start-time[data-index="${index}"]`);
         const endTimeInput = document.querySelector(`.end-time[data-index="${index}"]`);
         
-        if (!serviceSelect.value || !staffSelect.value || !dateInput.value || !startTimeInput.value) {
+        // Required field validation
+        if (!serviceSelect.value || !staffSelect.value || !dateInput.value || !startTimeInput.value || !endTimeInput.value) {
             isValid = false;
-            alert(`Please fill all required fields for appointment ${idx + 1}`);
+            validationErrors.push(`Appointment ${idx + 1}: Missing required fields`);
+            return;
+        }
+        
+        // Time validation
+        const start = startTimeInput.value;
+        const end = endTimeInput.value;
+        if (start >= end) {
+            isValid = false;
+            validationErrors.push(`Appointment ${idx + 1}: End time must be after start time`);
+            return;
+        }
+        
+        // Check for visible conflicts
+        const conflictAlert = document.getElementById(`conflict-${index}`);
+        const clientConflictAlert = document.getElementById(`client-conflict-${index}`);
+        if (conflictAlert && conflictAlert.style.display !== 'none') {
+            isValid = false;
+            validationErrors.push(`Appointment ${idx + 1}: Staff conflict detected`);
+            return;
+        }
+        if (clientConflictAlert && clientConflictAlert.style.display !== 'none') {
+            isValid = false;
+            validationErrors.push(`Appointment ${idx + 1}: Client conflict detected`);
             return;
         }
         
         const selectedService = serviceSelect.options[serviceSelect.selectedIndex];
+        const selectedStaff = staffSelect.options[staffSelect.selectedIndex];
+        
         appointments.push({
             client_id: clientId,
+            clientName: $('#clientSelect option:selected').text().split(' - ')[0],
             service_id: serviceSelect.value,
             service_name: selectedService.text.split(' (')[0],
             service_duration: parseInt(selectedService.dataset.duration),
             service_price: parseFloat(selectedService.dataset.price),
             staff_id: staffSelect.value,
+            staffName: selectedStaff.text,
             appointment_date: dateInput.value,
             start_time: startTimeInput.value,
             end_time: endTimeInput.value
         });
     });
     
-    if (!isValid) return;
+    if (!isValid) {
+        alert('❌ Validation Failed:\n\n' + validationErrors.join('\n'));
+        return;
+    }
+    
+    if (appointments.length === 0) {
+        alert('❌ No appointments to book');
+        return;
+    }
+    
+    // Confirm booking
+    const summary = appointments.map((apt, i) => 
+        `${i + 1}. ${apt.service_name} with ${apt.staffName} at ${format12Hour(apt.start_time)}`
+    ).join('\n');
+    
+    if (!confirm(`📅 Book ${appointments.length} appointment(s)?\n\n${summary}`)) {
+        return;
+    }
     
     // Submit all appointments
     const promises = appointments.map(apt => 
@@ -530,17 +679,20 @@ function submitMultiBooking() {
         .then(results => {
             const successCount = results.filter(r => r.success).length;
             const failCount = results.length - successCount;
+            const errors = results.filter(r => !r.success).map(r => r.error || 'Unknown error');
             
             if (failCount === 0) {
                 alert(`✅ Successfully booked ${successCount} appointment(s)!`);
                 window.location.href = '{{ url_for("unaki_booking") }}';
             } else {
-                alert(`⚠️ Booked ${successCount} appointments, ${failCount} failed. Check details.`);
+                alert(`⚠️ Booked ${successCount} appointments, ${failCount} failed:\n\n${errors.join('\n')}`);
+                // Refresh to show successfully booked appointments
+                window.location.reload();
             }
         })
         .catch(error => {
             console.error('Error:', error);
-            alert('Error booking appointments. Please try again.');
+            alert('❌ Error booking appointments. Please try again.');
         });
 }
 
