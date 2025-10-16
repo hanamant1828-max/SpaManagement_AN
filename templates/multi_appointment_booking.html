@@ -469,6 +469,12 @@ Management{% endblock %} {% block content %}
 
     function format12Hour(time24) {
         if (!time24) return "";
+        
+        // Handle if already formatted with AM/PM
+        if (time24.includes('AM') || time24.includes('PM')) {
+            return time24;
+        }
+        
         const [hours, minutes] = time24.split(":");
         const hour = parseInt(hours);
         const ampm = hour >= 12 ? "PM" : "AM";

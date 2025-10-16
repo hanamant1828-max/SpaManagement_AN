@@ -7,8 +7,8 @@ from datetime import datetime, date, timedelta, time
 from app import app, db
 from forms import AppointmentForm, QuickBookingForm
 from .bookings_queries import (
-    get_appointments_by_date, get_active_clients, get_active_services, 
-    get_staff_members, create_appointment, update_appointment, 
+    get_appointments_by_date, get_active_clients, get_active_services,
+    get_staff_members, create_appointment, update_appointment,
     delete_appointment, get_appointment_by_id, get_time_slots,
     get_appointment_stats, get_staff_schedule, get_appointments_by_date_range
 )
@@ -125,7 +125,7 @@ def bookings():
     if preselected_customer_id:
         form.customer_id.data = preselected_customer_id
 
-    return render_template('bookings.html', 
+    return render_template('bookings.html',
                          appointments=appointments,
                          form=form,
                          filter_date=filter_date,
@@ -663,7 +663,7 @@ def book_appointment_api():
 
         # Create the appointment
         appointment, error = create_appointment(appointment_data)
-        
+
         if not appointment:
             return jsonify({
                 'success': False,
@@ -740,7 +740,7 @@ def api_quick_book():
         }
 
         appointment, error = create_appointment(appointment_data)
-        
+
         if not appointment:
             return jsonify({
                 'success': False,
@@ -1171,17 +1171,17 @@ def multi_appointment_booking():
     if not current_user.can_access('bookings'):
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
-    
+
     try:
         from modules.staff.staff_queries import get_staff_members
         from modules.services.services_queries import get_active_services
         from modules.clients.clients_queries import get_all_customers
-        
+
         staff_members = get_staff_members()
         services = get_active_services()
         clients = get_all_customers()
         today = date.today().strftime('%Y-%m-%d')
-        
+
         return render_template('multi_appointment_booking.html',
                              staff_members=staff_members,
                              services=services,
@@ -1199,30 +1199,30 @@ def api_check_staff_conflicts():
     """API endpoint to check for staff appointment conflicts including shift, break, and OOO validation"""
     if not current_user.can_access('bookings'):
         return jsonify({'error': 'Access denied', 'success': False}), 403
-    
+
     try:
         data = request.get_json()
-        
+
         staff_id = data.get('staff_id')
         appointment_date_str = data.get('appointment_date')
         start_time_str = data.get('start_time')
         end_time_str = data.get('end_time')
-        
+
         if not all([staff_id, appointment_date_str, start_time_str, end_time_str]):
             return jsonify({
                 'success': True,
                 'has_conflict': False,
                 'message': 'Missing required fields'
             })
-        
+
         from datetime import datetime
         appointment_date = datetime.strptime(appointment_date_str, '%Y-%m-%d').date()
         start_time = datetime.strptime(start_time_str, '%H:%M').time()
         end_time = datetime.strptime(end_time_str, '%H:%M').time()
-        
+
         start_datetime = datetime.combine(appointment_date, start_time)
         end_datetime = datetime.combine(appointment_date, end_time)
-        
+
         if end_datetime <= start_datetime:
             return jsonify({
                 'success': True,
@@ -1230,7 +1230,7 @@ def api_check_staff_conflicts():
                 'shift_violation': True,
                 'message': 'End time must be after start time'
             })
-        
+
         from models import UnakiBooking, User, ShiftManagement, ShiftLogs
         staff = User.query.get(staff_id)
         if not staff:
@@ -1239,14 +1239,14 @@ def api_check_staff_conflicts():
                 'has_conflict': True,
                 'message': 'Staff member not found'
             }), 404
-        
+
         # 1. CHECK SHIFT SCHEDULE
         shift_management = ShiftManagement.query.filter(
             ShiftManagement.staff_id == staff_id,
             ShiftManagement.from_date <= appointment_date,
             ShiftManagement.to_date >= appointment_date
         ).first()
-        
+
         # Block booking if no shift management found
         if not shift_management:
             return jsonify({
@@ -1255,13 +1255,13 @@ def api_check_staff_conflicts():
                 'shift_violation': True,
                 'message': f"{staff.first_name} {staff.last_name} has no schedule configured for {appointment_date.strftime('%B %d, %Y')}. Please contact admin to set up staff schedules."
             })
-        
+
         # Get shift log for the specific date
         shift_log = ShiftLogs.query.filter(
             ShiftLogs.shift_management_id == shift_management.id,
             ShiftLogs.individual_date == appointment_date
         ).first()
-        
+
         # Block booking if no shift log found for this specific date
         if not shift_log:
             return jsonify({
@@ -1270,7 +1270,7 @@ def api_check_staff_conflicts():
                 'shift_violation': True,
                 'message': f"{staff.first_name} {staff.last_name} has no shift scheduled for {appointment_date.strftime('%B %d, %Y')}. Please contact admin to configure daily schedules."
             })
-        
+
         # Now we have a valid shift_log, proceed with validations
         if shift_log:
                 # Check if staff is working (not absent/holiday)
@@ -1281,11 +1281,11 @@ def api_check_staff_conflicts():
                         'shift_violation': True,
                         'message': f"{staff.first_name} {staff.last_name} is {shift_log.status} on {appointment_date.strftime('%B %d, %Y')}"
                     })
-                
+
                 # Check shift hours
                 shift_start = shift_log.shift_start_time
                 shift_end = shift_log.shift_end_time
-                
+
                 if start_time < shift_start or end_time > shift_end:
                     return jsonify({
                         'success': True,
@@ -1293,12 +1293,12 @@ def api_check_staff_conflicts():
                         'shift_violation': True,
                         'message': f"{staff.first_name} {staff.last_name} works {shift_start.strftime('%I:%M %p')} - {shift_end.strftime('%I:%M %p')}. Appointment time is outside shift hours."
                     })
-                
+
                 # Check break time
                 if shift_log.break_start_time and shift_log.break_end_time:
                     break_start_dt = datetime.combine(appointment_date, shift_log.break_start_time)
                     break_end_dt = datetime.combine(appointment_date, shift_log.break_end_time)
-                    
+
                     # Check if appointment overlaps with break
                     if not (end_datetime <= break_start_dt or start_datetime >= break_end_dt):
                         return jsonify({
@@ -1307,12 +1307,12 @@ def api_check_staff_conflicts():
                             'shift_violation': True,
                             'message': f"{staff.first_name} {staff.last_name} has break from {shift_log.break_start_time.strftime('%I:%M %p')} to {shift_log.break_end_time.strftime('%I:%M %p')}"
                         })
-                
+
                 # Check out of office periods
                 if shift_log.out_of_office_start and shift_log.out_of_office_end:
                     ooo_start_dt = datetime.combine(appointment_date, shift_log.out_of_office_start)
                     ooo_end_dt = datetime.combine(appointment_date, shift_log.out_of_office_end)
-                    
+
                     # Check if appointment overlaps with OOO
                     if not (end_datetime <= ooo_start_dt or start_datetime >= ooo_end_dt):
                         reason = shift_log.out_of_office_reason or "Out of office"
@@ -1322,18 +1322,18 @@ def api_check_staff_conflicts():
                             'shift_violation': True,
                             'message': f"{staff.first_name} {staff.last_name} is out of office from {shift_log.out_of_office_start.strftime('%I:%M %p')} to {shift_log.out_of_office_end.strftime('%I:%M %p')} ({reason})"
                         })
-        
+
         # 2. CHECK APPOINTMENT CONFLICTS
         conflicting_bookings = UnakiBooking.query.filter(
             UnakiBooking.staff_id == staff_id,
             UnakiBooking.appointment_date == appointment_date,
             UnakiBooking.status.in_(['scheduled', 'confirmed', 'in_progress'])
         ).all()
-        
+
         for booking in conflicting_bookings:
             existing_start = datetime.combine(appointment_date, booking.start_time)
             existing_end = datetime.combine(appointment_date, booking.end_time)
-            
+
             if start_datetime < existing_end and end_datetime > existing_start:
                 return jsonify({
                     'success': True,
@@ -1341,7 +1341,7 @@ def api_check_staff_conflicts():
                     'shift_violation': False,
                     'message': f"{staff.first_name} {staff.last_name} has appointment from {booking.start_time.strftime('%I:%M %p')} to {booking.end_time.strftime('%I:%M %p')} with {booking.client_name}"
                 })
-        
+
         # All checks passed
         return jsonify({
             'success': True,
@@ -1349,7 +1349,7 @@ def api_check_staff_conflicts():
             'shift_violation': False,
             'message': 'No conflicts found'
         })
-        
+
     except Exception as e:
         print(f"❌ Error checking staff conflicts: {e}")
         import traceback
@@ -1366,22 +1366,22 @@ def api_quick_add_client():
     """Quick add new client from booking page"""
     if not current_user.can_access('bookings'):
         return jsonify({'success': False, 'error': 'Access denied'}), 403
-    
+
     try:
         data = request.get_json()
-        
+
         # Validate required fields
         first_name = data.get('first_name', '').strip()
         last_name = data.get('last_name', '').strip()
         phone = data.get('phone', '').strip()
         gender = data.get('gender', '').strip()
-        
+
         if not all([first_name, last_name, phone, gender]):
             return jsonify({
                 'success': False,
                 'error': 'First name, last name, phone, and gender are required'
             }), 400
-        
+
         # Check if client with same phone already exists
         existing = Customer.query.filter_by(phone=phone).first()
         if existing:
@@ -1389,7 +1389,7 @@ def api_quick_add_client():
                 'success': False,
                 'error': f'Client with phone {phone} already exists'
             }), 400
-        
+
         # Create new client
         new_client = Customer(
             first_name=first_name,
@@ -1399,17 +1399,17 @@ def api_quick_add_client():
             gender=gender,
             is_active=True
         )
-        
+
         db.session.add(new_client)
         db.session.commit()
-        
+
         return jsonify({
             'success': True,
             'client_id': new_client.id,
             'client_name': f"{first_name} {last_name}",
             'message': 'Client added successfully'
         })
-        
+
     except Exception as e:
         print(f"❌ Error in quick-add-client: {e}")
         import traceback
@@ -1423,16 +1423,16 @@ def api_check_client_conflicts():
     """API endpoint to check for client appointment conflicts in real-time"""
     if not current_user.can_access('bookings'):
         return jsonify({'error': 'Access denied', 'success': False}), 403
-    
+
     try:
         data = request.get_json()
-        
+
         # Get parameters
         client_id = data.get('client_id')
         appointment_date_str = data.get('appointment_date')
         start_time_str = data.get('start_time')
         end_time_str = data.get('end_time')
-        
+
         # Validate required fields
         if not all([client_id, appointment_date_str, start_time_str, end_time_str]):
             return jsonify({
@@ -1440,7 +1440,7 @@ def api_check_client_conflicts():
                 'has_conflict': False,
                 'message': 'Missing required fields'
             })
-        
+
         # Parse date and times
         from datetime import datetime
         try:
@@ -1453,18 +1453,18 @@ def api_check_client_conflicts():
                 'has_conflict': False,
                 'message': 'Invalid date/time format'
             })
-        
+
         # Validate end time is after start time
         start_datetime = datetime.combine(appointment_date, start_time)
         end_datetime = datetime.combine(appointment_date, end_time)
-        
+
         if end_datetime <= start_datetime:
             return jsonify({
                 'success': True,
                 'has_conflict': False,
                 'message': 'End time must be after start time'
             })
-        
+
         # Get client to find their name
         from models import Customer, UnakiBooking, User, Service
         client = Customer.query.get(client_id)
@@ -1474,9 +1474,9 @@ def api_check_client_conflicts():
                 'has_conflict': False,
                 'message': 'Client not found'
             })
-        
+
         # Check for conflicts in UnakiBooking table
-        # Include: 
+        # Include:
         # 1. Scheduled, confirmed, in_progress appointments on the SAME date
         # 2. ALL unpaid appointments (pending/partial) regardless of date (past or future)
         # Exclude: cancelled, no_show
@@ -1495,21 +1495,21 @@ def api_check_client_conflicts():
         ).filter(
             ~UnakiBooking.status.in_(['cancelled', 'no_show'])
         ).all()
-        
+
         # Check for conflicts
         conflicts = []
         for booking in conflicting_bookings:
             # Skip if this is a completed appointment that's already paid
             if booking.status == 'completed' and booking.payment_status == 'paid':
                 continue
-            
+
             is_same_date = booking.appointment_date == appointment_date
             is_unpaid = booking.payment_status in ['pending', 'partial']
-            
+
             # Unpaid appointments are ALWAYS conflicts (any date, any time)
             # Same-date appointments check for time overlap
             is_conflict = False
-            
+
             if is_unpaid:
                 # Any unpaid appointment is a conflict
                 is_conflict = True
@@ -1519,18 +1519,18 @@ def api_check_client_conflicts():
                 existing_end = datetime.combine(appointment_date, booking.end_time)
                 if start_datetime < existing_end and end_datetime > existing_start:
                     is_conflict = True
-            
+
             if is_conflict:
                 # Get staff name
                 staff = User.query.get(booking.staff_id) if booking.staff_id else None
                 staff_name = f"{staff.first_name} {staff.last_name}" if staff else "Unknown Staff"
-                
+
                 # Get service price
                 service_price = booking.amount_charged or 0
                 if not service_price and booking.service_id:
                     service = Service.query.get(booking.service_id)
                     service_price = float(service.price) if service else 0
-                
+
                 conflicts.append({
                     'appointment_id': booking.id,
                     'service_name': booking.service_name or 'Unknown Service',
@@ -1542,7 +1542,7 @@ def api_check_client_conflicts():
                     'payment_status': booking.payment_status or 'pending',
                     'service_price': service_price
                 })
-        
+
         if conflicts:
             return jsonify({
                 'success': True,
@@ -1554,7 +1554,7 @@ def api_check_client_conflicts():
                 'success': True,
                 'has_conflict': False
             })
-    
+
     except Exception as e:
         print(f"❌ Error checking client conflicts: {e}")
         import traceback
@@ -1994,14 +1994,14 @@ def api_get_customer_appointments_unaki(customer_id):
     try:
         from models import UnakiBooking, Customer
         from app import db
-        
+
         # Try to get customer
         customer = Customer.query.get(customer_id)
-        
+
         if customer:
             # Get appointments by client_id
             appointments = UnakiBooking.query.filter_by(client_id=customer_id).all()
-            
+
             # Also try to match by name and phone if client_id doesn't return results
             if not appointments:
                 full_name = f"{customer.first_name} {customer.last_name}".strip()
@@ -2370,7 +2370,7 @@ def update_appointment_status(appointment_id):
     return redirect(url_for('bookings'))
 
 @app.route('/appointments/schedule')
-@login_required 
+@login_required
 def appointments_schedule():
     """Timeline view for appointment scheduling with horizontal calendar layout"""
     if not current_user.can_access('bookings'):
@@ -2470,7 +2470,7 @@ def appointments_schedule():
             # Check if this time slot is booked
             booked_appointment = None
             for appointment in existing_appointments:
-                if (appointment.staff_id == staff.id and 
+                if (appointment.staff_id == staff.id and
                     appointment.appointment_date.time() == time_slot['start_time'].time() and
                     appointment.status != 'cancelled'):
                     booked_appointment = appointment
@@ -2606,7 +2606,7 @@ def appointments_book():
                 success_msg = 'Appointment booked successfully!'
                 if request.is_json:
                     return jsonify({
-                        'success': True, 
+                        'success': True,
                         'message': success_msg,
                         'appointment_id': appointment.id
                     })
@@ -3074,7 +3074,7 @@ def unaki_create_appointment_impl():
 
 
 @app.route('/api/schedule', methods=['GET'])
-@login_required  
+@login_required
 def get_schedule():
     """General schedule API endpoint with static data"""
     try:
@@ -3092,7 +3092,7 @@ def get_schedule():
                 {
                     "id": 2,
                     "name": "Michael Chen",
-                    "specialty": "Massage Therapist", 
+                    "specialty": "Massage Therapist",
                     "shift_start": "10:00",
                     "shift_end": "18:00",
                     "is_working": True
@@ -3118,7 +3118,7 @@ def get_schedule():
                     "notes": "First time client"
                 },
                 {
-                    "id": "apt_002", 
+                    "id": "apt_002",
                     "staff_id": 2,
                     "client_name": "David Brown",
                     "service": "Relaxation Massage",
@@ -3138,7 +3138,7 @@ def get_schedule():
                 },
                 {
                     "id": "break_2",
-                    "staff_id": 2, 
+                    "staff_id": 2,
                     "start_time": "12:30",
                     "end_time": "13:30",
                     "type": "lunch"
@@ -3293,7 +3293,7 @@ def api_unaki_customer_appointments(client_id):
         return jsonify({'error': 'Access denied', 'success': False}), 403
 
     try:
-        from models import UnakiBooking, Customer, User
+        from models import UnakiBooking, Customer, User, Service
 
         customer = Customer.query.get(client_id)
         if not customer:
