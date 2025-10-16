@@ -1,0 +1,562 @@
+
+{% extends "base.html" %}
+
+{% block title %}Book Multiple Appointments - Spa Management{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2 class="mb-1">
+                        <i class="fas fa-calendar-plus text-primary me-2"></i>
+                        Book Multiple Appointments
+                    </h2>
+                    <p class="text-muted mb-0">Book multiple services for a client in one go</p>
+                </div>
+                <a href="{{ url_for('unaki_booking') }}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-2"></i>Back to Calendar
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8">
+            <!-- Client Selection Card -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-user me-2"></i>Client Information
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-10">
+                            <label class="form-label fw-semibold">Select Client *</label>
+                            <select id="clientSelect" class="form-select select2-dropdown" required>
+                                <option value="">Choose a client...</option>
+                                {% if clients %}
+                                    {% for client in clients %}
+                                    <option value="{{ client.id }}" 
+                                            data-phone="{{ client.phone }}" 
+                                            data-email="{{ client.email or '' }}">
+                                        {{ client.first_name }} {{ client.last_name }} - {{ client.phone }}
+                                    </option>
+                                    {% endfor %}
+                                {% endif %}
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label fw-semibold">&nbsp;</label>
+                            <button type="button" class="btn btn-primary w-100" onclick="openQuickAddClient()">
+                                <i class="fas fa-plus"></i> New
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Client Existing Appointments Alert -->
+                    <div id="clientExistingAppointments" class="mt-3" style="display: none;">
+                        <div class="alert alert-info">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <strong><i class="fas fa-calendar-check me-2"></i>Existing Appointments</strong>
+                                <span id="clientAppointmentsCount" class="badge bg-primary">0</span>
+                            </div>
+                            <div id="clientAppointmentsList" style="max-height: 200px; overflow-y: auto;"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Appointments Card -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-success text-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="fas fa-calendar-alt me-2"></i>Appointments
+                        </h5>
+                        <span id="appointmentCount" class="badge bg-light text-dark">1 Appointment</span>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div id="appointmentsContainer"></div>
+                    
+                    <button type="button" class="btn btn-outline-primary w-100 mt-3" onclick="addAppointmentRow()">
+                        <i class="fas fa-plus-circle me-2"></i>Add Another Appointment
+                    </button>
+                </div>
+            </div>
+
+            <!-- Notes Card -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-sticky-note me-2"></i>Additional Notes
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <textarea id="bookingNotes" class="form-control" rows="3" 
+                              placeholder="Add any special instructions or notes..."></textarea>
+                </div>
+            </div>
+        </div>
+
+        <!-- Summary Sidebar -->
+        <div class="col-lg-4">
+            <div class="card shadow-sm sticky-top" style="top: 20px;">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-receipt me-2"></i>Booking Summary
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between align-items-center p-3 bg-light rounded">
+                            <div>
+                                <i class="fas fa-clock text-primary me-2"></i>
+                                <small class="text-muted">Total Duration</small>
+                            </div>
+                            <h4 class="mb-0" id="totalDuration">0 min</h4>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between align-items-center p-3 bg-light rounded">
+                            <div>
+                                <i class="fas fa-rupee-sign text-success me-2"></i>
+                                <small class="text-muted">Total Price</small>
+                            </div>
+                            <h4 class="mb-0" id="totalPrice">₹0.00</h4>
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <div class="d-flex justify-content-between align-items-center p-3 bg-light rounded">
+                            <div>
+                                <i class="fas fa-user-md text-warning me-2"></i>
+                                <small class="text-muted">Staff Required</small>
+                            </div>
+                            <h4 class="mb-0" id="staffRequired">0</h4>
+                        </div>
+                    </div>
+
+                    <hr>
+
+                    <div class="d-grid gap-2">
+                        <button type="button" class="btn btn-lg btn-success" onclick="submitMultiBooking()">
+                            <i class="fas fa-check-circle me-2"></i>Book All Appointments
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary" onclick="resetForm()">
+                            <i class="fas fa-redo me-2"></i>Reset Form
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Add Client Modal -->
+<div class="modal fade" id="quickAddClientModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-user-plus me-2"></i>Quick Add New Client
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="quickAddClientForm">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">First Name *</label>
+                            <input type="text" id="quickFirstName" class="form-control" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Last Name *</label>
+                            <input type="text" id="quickLastName" class="form-control" required>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Phone Number *</label>
+                        <input type="tel" id="quickPhone" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Email</label>
+                        <input type="email" id="quickEmail" class="form-control">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Gender *</label>
+                        <select id="quickGender" class="form-select" required>
+                            <option value="">Select gender...</option>
+                            <option value="male">Male</option>
+                            <option value="female">Female</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="saveQuickClient()">
+                    <i class="fas fa-save me-2"></i>Save Client
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.appointment-card {
+    background: white;
+    border: 2px solid #e9ecef;
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 15px;
+    position: relative;
+    transition: all 0.2s;
+}
+
+.appointment-card:hover {
+    border-color: #4f46e5;
+    box-shadow: 0 4px 12px rgba(79, 70, 229, 0.1);
+}
+
+.appointment-number {
+    position: absolute;
+    top: -10px;
+    left: 20px;
+    background: #4f46e5;
+    color: white;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.remove-appointment {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: none;
+    background: #ef4444;
+    color: white;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.remove-appointment:hover {
+    background: #dc2626;
+    transform: scale(1.1);
+}
+</style>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+<script>
+// Initialize page
+$(document).ready(function() {
+    // Initialize Select2
+    $('#clientSelect').select2({
+        placeholder: 'Choose a client...',
+        allowClear: true,
+        width: '100%'
+    });
+
+    // Add first appointment row
+    addAppointmentRow();
+
+    // Client selection handler
+    $('#clientSelect').on('change', function() {
+        const clientId = $(this).val();
+        if (clientId) {
+            loadClientAppointments(clientId);
+        } else {
+            $('#clientExistingAppointments').hide();
+        }
+    });
+});
+
+let appointmentIndex = 0;
+
+function addAppointmentRow() {
+    const container = document.getElementById('appointmentsContainer');
+    const index = appointmentIndex++;
+    
+    const appointmentCard = `
+        <div class="appointment-card" data-index="${index}">
+            <div class="appointment-number">${index + 1}</div>
+            ${index > 0 ? `
+                <button type="button" class="remove-appointment" onclick="removeAppointment(${index})">
+                    <i class="fas fa-times"></i>
+                </button>
+            ` : ''}
+            
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label fw-semibold">Service *</label>
+                    <select class="form-select service-select" data-index="${index}" required onchange="updateService(${index})">
+                        <option value="">Select service...</option>
+                        {% if services %}
+                            {% for service in services %}
+                            <option value="{{ service.id }}" 
+                                    data-duration="{{ service.duration or 60 }}" 
+                                    data-price="{{ service.price }}">
+                                {{ service.name }} ({{ service.duration or 60 }} min - ₹{{ "%.2f"|format(service.price) }})
+                            </option>
+                            {% endfor %}
+                        {% endif %}
+                    </select>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label fw-semibold">Staff Member *</label>
+                    <select class="form-select staff-select" data-index="${index}" required onchange="checkConflicts(${index})">
+                        <option value="">Select staff...</option>
+                        {% if staff_members %}
+                            {% for staff in staff_members %}
+                            <option value="{{ staff.id }}">
+                                {{ staff.first_name }} {{ staff.last_name if staff.last_name else '' }}
+                            </option>
+                            {% endfor %}
+                        {% endif %}
+                    </select>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <label class="form-label fw-semibold">Date *</label>
+                    <input type="date" class="form-control date-input" data-index="${index}" 
+                           value="{{ today }}" required onchange="checkConflicts(${index})">
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label class="form-label fw-semibold">Start Time *</label>
+                    <input type="time" class="form-control start-time" data-index="${index}" 
+                           required onchange="updateEndTime(${index})">
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label class="form-label fw-semibold">End Time</label>
+                    <input type="time" class="form-control end-time" data-index="${index}" readonly>
+                </div>
+            </div>
+
+            <div class="conflict-alert" id="conflict-${index}" style="display: none;"></div>
+        </div>
+    `;
+    
+    container.insertAdjacentHTML('beforeend', appointmentCard);
+    updateAppointmentCount();
+}
+
+function removeAppointment(index) {
+    const card = document.querySelector(`[data-index="${index}"]`);
+    if (card) {
+        card.remove();
+        updateAppointmentCount();
+        updateSummary();
+    }
+}
+
+function updateService(index) {
+    const serviceSelect = document.querySelector(`.service-select[data-index="${index}"]`);
+    const selectedOption = serviceSelect.options[serviceSelect.selectedIndex];
+    
+    if (selectedOption.value) {
+        const duration = parseInt(selectedOption.dataset.duration) || 60;
+        const startTimeInput = document.querySelector(`.start-time[data-index="${index}"]`);
+        
+        if (startTimeInput.value) {
+            updateEndTime(index);
+        }
+    }
+    
+    updateSummary();
+}
+
+function updateEndTime(index) {
+    const serviceSelect = document.querySelector(`.service-select[data-index="${index}"]`);
+    const startTimeInput = document.querySelector(`.start-time[data-index="${index}"]`);
+    const endTimeInput = document.querySelector(`.end-time[data-index="${index}"]`);
+    
+    const selectedOption = serviceSelect.options[serviceSelect.selectedIndex];
+    
+    if (selectedOption.value && startTimeInput.value) {
+        const duration = parseInt(selectedOption.dataset.duration) || 60;
+        const [hours, minutes] = startTimeInput.value.split(':');
+        const startDate = new Date();
+        startDate.setHours(parseInt(hours), parseInt(minutes));
+        startDate.setMinutes(startDate.getMinutes() + duration);
+        
+        const endHours = String(startDate.getHours()).padStart(2, '0');
+        const endMinutes = String(startDate.getMinutes()).padStart(2, '0');
+        endTimeInput.value = `${endHours}:${endMinutes}`;
+        
+        checkConflicts(index);
+    }
+    
+    updateSummary();
+}
+
+function updateAppointmentCount() {
+    const count = document.querySelectorAll('.appointment-card').length;
+    document.getElementById('appointmentCount').textContent = `${count} Appointment${count !== 1 ? 's' : ''}`;
+}
+
+function updateSummary() {
+    let totalDuration = 0;
+    let totalPrice = 0;
+    const staffSet = new Set();
+    
+    document.querySelectorAll('.service-select').forEach(select => {
+        if (select.value) {
+            const option = select.options[select.selectedIndex];
+            totalDuration += parseInt(option.dataset.duration) || 0;
+            totalPrice += parseFloat(option.dataset.price) || 0;
+            
+            const index = select.dataset.index;
+            const staffSelect = document.querySelector(`.staff-select[data-index="${index}"]`);
+            if (staffSelect && staffSelect.value) {
+                staffSet.add(staffSelect.value);
+            }
+        }
+    });
+    
+    document.getElementById('totalDuration').textContent = `${totalDuration} min`;
+    document.getElementById('totalPrice').textContent = `₹${totalPrice.toFixed(2)}`;
+    document.getElementById('staffRequired').textContent = staffSet.size;
+}
+
+function checkConflicts(index) {
+    // Implement conflict checking logic similar to your existing code
+    updateSummary();
+}
+
+function loadClientAppointments(clientId) {
+    fetch(`/api/unaki/customer-appointments/${clientId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && data.bookings && data.bookings.length > 0) {
+                displayClientAppointments(data.bookings);
+            } else {
+                $('#clientExistingAppointments').hide();
+            }
+        });
+}
+
+function displayClientAppointments(bookings) {
+    const container = document.getElementById('clientAppointmentsList');
+    const activeBookings = bookings.filter(b => b.status === 'scheduled' || b.status === 'confirmed');
+    
+    if (activeBookings.length === 0) {
+        $('#clientExistingAppointments').hide();
+        return;
+    }
+    
+    let html = '<ul class="list-group list-group-flush">';
+    activeBookings.forEach(booking => {
+        html += `
+            <li class="list-group-item">
+                <strong>${booking.service_name}</strong><br>
+                <small class="text-muted">
+                    ${booking.appointment_date} at ${booking.start_time} - ${booking.end_time}
+                    (${booking.staff_name})
+                </small>
+            </li>
+        `;
+    });
+    html += '</ul>';
+    
+    container.innerHTML = html;
+    document.getElementById('clientAppointmentsCount').textContent = activeBookings.length;
+    $('#clientExistingAppointments').show();
+}
+
+function submitMultiBooking() {
+    const clientId = $('#clientSelect').val();
+    if (!clientId) {
+        alert('Please select a client');
+        return;
+    }
+    
+    const appointments = [];
+    let isValid = true;
+    
+    document.querySelectorAll('.appointment-card').forEach((card, idx) => {
+        const index = card.dataset.index;
+        const serviceSelect = document.querySelector(`.service-select[data-index="${index}"]`);
+        const staffSelect = document.querySelector(`.staff-select[data-index="${index}"]`);
+        const dateInput = document.querySelector(`.date-input[data-index="${index}"]`);
+        const startTimeInput = document.querySelector(`.start-time[data-index="${index}"]`);
+        const endTimeInput = document.querySelector(`.end-time[data-index="${index}"]`);
+        
+        if (!serviceSelect.value || !staffSelect.value || !dateInput.value || !startTimeInput.value) {
+            isValid = false;
+            alert(`Please fill all required fields for appointment ${idx + 1}`);
+            return;
+        }
+        
+        const selectedService = serviceSelect.options[serviceSelect.selectedIndex];
+        appointments.push({
+            client_id: clientId,
+            service_id: serviceSelect.value,
+            service_name: selectedService.text.split(' (')[0],
+            service_duration: parseInt(selectedService.dataset.duration),
+            service_price: parseFloat(selectedService.dataset.price),
+            staff_id: staffSelect.value,
+            appointment_date: dateInput.value,
+            start_time: startTimeInput.value,
+            end_time: endTimeInput.value
+        });
+    });
+    
+    if (!isValid) return;
+    
+    // Submit all appointments
+    const promises = appointments.map(apt => 
+        fetch('/api/unaki/book-appointment', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(apt)
+        }).then(r => r.json())
+    );
+    
+    Promise.all(promises)
+        .then(results => {
+            const successCount = results.filter(r => r.success).length;
+            const failCount = results.length - successCount;
+            
+            if (failCount === 0) {
+                alert(`✅ Successfully booked ${successCount} appointment(s)!`);
+                window.location.href = '{{ url_for("unaki_booking") }}';
+            } else {
+                alert(`⚠️ Booked ${successCount} appointments, ${failCount} failed. Check details.`);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error booking appointments. Please try again.');
+        });
+}
+
+function resetForm() {
+    if (confirm('Are you sure you want to reset the form?')) {
+        location.reload();
+    }
+}
+
+function openQuickAddClient() {
+    $('#quickAddClientModal').modal('show');
+}
+
+function saveQuickClient() {
+    // Implement quick client creation logic
+    alert('Quick add client feature - to be implemented');
+}
+</script>
+{% endblock %}

@@ -1238,13 +1238,14 @@
 
                     <!-- Actions -->
                     <div class="calendar-actions">
-                        <button
+                        <a
+                            href="{{ url_for('multi_appointment_booking') }}"
                             class="action-btn action-btn-primary"
-                            onclick="openMultiBookModal()"
+                            style="text-decoration: none;"
                         >
                             <i class="fas fa-plus-circle"></i>
                             New Appointment
-                        </button>
+                        </a>
                         <a
                             href="{{ url_for('shift_scheduler.shift_scheduler') }}"
                             class="action-btn"

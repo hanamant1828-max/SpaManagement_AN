@@ -1164,6 +1164,35 @@ def api_unaki_book_appointment():
             db.session.rollback()
         return jsonify({'error': str(e), 'success': False}), 500
 
+@app.route('/multi-appointment-booking')
+@login_required
+def multi_appointment_booking():
+    """Dedicated page for booking multiple appointments"""
+    if not current_user.can_access('bookings'):
+        flash('Access denied', 'danger')
+        return redirect(url_for('dashboard'))
+    
+    try:
+        from modules.staff.staff_queries import get_staff_members
+        from modules.services.services_queries import get_active_services
+        from modules.clients.clients_queries import get_all_customers
+        
+        staff_members = get_staff_members()
+        services = get_active_services()
+        clients = get_all_customers()
+        today = date.today().strftime('%Y-%m-%d')
+        
+        return render_template('multi_appointment_booking.html',
+                             staff_members=staff_members,
+                             services=services,
+                             clients=clients,
+                             today=today)
+    except Exception as e:
+        print(f"Error in multi_appointment_booking: {e}")
+        flash('Error loading booking page', 'danger')
+        return redirect(url_for('unaki_booking'))
+
+
 @app.route('/api/unaki/check-client-conflicts', methods=['POST'])
 @login_required
 def api_check_client_conflicts():
