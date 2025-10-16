@@ -224,14 +224,6 @@
     box-shadow: 0 4px 12px rgba(79, 70, 229, 0.1);
 }
 
-.time-display-12hr {
-    display: block;
-    margin-top: 4px;
-    font-size: 0.875rem;
-    color: #4f46e5;
-    font-weight: 600;
-}
-
 .appointment-number {
     position: absolute;
     top: -10px;
@@ -262,25 +254,97 @@
     background: #dc2626;
     transform: scale(1.1);
 }
+
+.time-input-group {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 8px 12px;
+    border: 1px solid #ced4da;
+    border-radius: 0.375rem;
+    background: white;
+    cursor: pointer;
+}
+
+.time-input-group:hover {
+    border-color: #86b7fe;
+}
+
+.time-input-group input {
+    width: 40px;
+    border: none;
+    outline: none;
+    text-align: center;
+    font-size: 16px;
+}
+
+.time-input-group select {
+    border: none;
+    outline: none;
+    background: transparent;
+    cursor: pointer;
+}
+
+.time-display-12hr {
+    display: block;
+    margin-top: 4px;
+    font-size: 0.875rem;
+    color: #4f46e5;
+    font-weight: 600;
+}
+
+.time-24h-hidden {
+    display: none;
+}
 </style>
 
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 
 <script>
-// Initialize page
+// ==========================================
+// TIME FORMAT CONVERSION - 12-HOUR AM/PM
+// ==========================================
+
+function convertTo12Hour(time24) {
+    if (!time24) return '';
+    const [hours, minutes] = time24.split(':');
+    let hour = parseInt(hours);
+    const ampm = hour >= 12 ? 'PM' : 'AM';
+    hour = hour % 12 || 12;
+    return `${hour}:${minutes} ${ampm}`;
+}
+
+function convertTo24Hour(time12, ampm) {
+    let [hours, minutes] = time12.split(':');
+    hours = parseInt(hours);
+    if (ampm === 'PM' && hours !== 12) {
+        hours += 12;
+    } else if (ampm === 'AM' && hours === 12) {
+        hours = 0;
+    }
+    return `${hours.toString().padStart(2, '0')}:${minutes}`;
+}
+
+function validateTimeInput(hours, minutes) {
+    const h = parseInt(hours);
+    const m = parseInt(minutes);
+    return h >= 1 && h <= 12 && m >= 0 && m <= 59;
+}
+
+// ==========================================
+// INITIALIZATION
+// ==========================================
+
 $(document).ready(function() {
-    // Initialize Select2
     $('#clientSelect').select2({
         placeholder: 'Choose a client...',
         allowClear: true,
         width: '100%'
     });
 
-    // Add first appointment row
     addAppointmentRow();
 
-    // Client selection handler
     $('#clientSelect').on('change', function() {
         const clientId = $(this).val();
         if (clientId) {
@@ -292,6 +356,10 @@ $(document).ready(function() {
 });
 
 let appointmentIndex = 0;
+
+// ==========================================
+// APPOINTMENT MANAGEMENT
+// ==========================================
 
 function addAppointmentRow() {
     const container = document.getElementById('appointmentsContainer');
@@ -345,14 +413,31 @@ function addAppointmentRow() {
                 </div>
                 <div class="col-md-4 mb-3">
                     <label class="form-label fw-semibold">Start Time *</label>
-                    <input type="time" class="form-control start-time" data-index="${index}" 
-                           required onchange="updateEndTime(${index})" step="900">
-                    <small class="text-muted time-display-12hr" id="start-time-display-${index}"></small>
+                    <div class="time-input-group" onclick="showTimePicker(this, ${index}, 'start')">
+                        <input type="number" class="time-hour" min="1" max="12" placeholder="HH" data-index="${index}">
+                        <span>:</span>
+                        <input type="number" class="time-minute" min="0" max="59" placeholder="MM" data-index="${index}">
+                        <select class="time-period" data-index="${index}">
+                            <option value="AM">AM</option>
+                            <option value="PM">PM</option>
+                        </select>
+                    </div>
+                    <input type="time" class="time-24h-hidden start-time-24h" data-index="${index}">
+                    <small class="text-muted time-display-12hr" id="start-display-${index}"></small>
                 </div>
                 <div class="col-md-4 mb-3">
                     <label class="form-label fw-semibold">End Time *</label>
-                    <input type="time" class="form-control end-time" data-index="${index}" readonly>
-                    <small class="text-muted time-display-12hr" id="end-time-display-${index}"></small>
+                    <div class="time-input-group bg-light" style="cursor: default;">
+                        <input type="number" class="time-hour" readonly data-index="${index}">
+                        <span>:</span>
+                        <input type="number" class="time-minute" readonly data-index="${index}">
+                        <select class="time-period" disabled data-index="${index}">
+                            <option value="AM">AM</option>
+                            <option value="PM">PM</option>
+                        </select>
+                    </div>
+                    <input type="time" class="time-24h-hidden end-time-24h" data-index="${index}" readonly>
+                    <small class="text-muted time-display-12hr" id="end-display-${index}"></small>
                 </div>
             </div>
 
@@ -362,7 +447,90 @@ function addAppointmentRow() {
     `;
     
     container.insertAdjacentHTML('beforeend', appointmentCard);
+    initializeTimeInputs(index);
     updateAppointmentCount();
+}
+
+function initializeTimeInputs(index) {
+    const card = document.querySelector(`[data-index="${index}"]`);
+    const hourInput = card.querySelector('.time-input-group .time-hour');
+    const minuteInput = card.querySelector('.time-input-group .time-minute');
+    const periodSelect = card.querySelector('.time-input-group .time-period');
+    
+    [hourInput, minuteInput].forEach(input => {
+        input.addEventListener('input', function() {
+            updateHiddenTimeInput(index);
+        });
+    });
+    
+    periodSelect.addEventListener('change', function() {
+        updateHiddenTimeInput(index);
+    });
+}
+
+function showTimePicker(element, index, type) {
+    const card = document.querySelector(`[data-index="${index}"]`);
+    const hiddenInput = type === 'start' ? 
+        card.querySelector('.start-time-24h') : 
+        card.querySelector('.end-time-24h');
+    
+    const currentTime = hiddenInput.value || '09:00';
+    const time12 = convertTo12Hour(currentTime);
+    
+    const newTime = prompt(`Enter time (format: HH:MM AM/PM)\nCurrent: ${time12}`, time12);
+    
+    if (newTime) {
+        const parts = newTime.trim().split(' ');
+        if (parts.length === 2) {
+            const [time, ampm] = parts;
+            const [hours, minutes] = time.split(':');
+            
+            if (validateTimeInput(hours, minutes)) {
+                const time24 = convertTo24Hour(time, ampm.toUpperCase());
+                hiddenInput.value = time24;
+                
+                // Update visible inputs
+                const timeGroup = element;
+                const hourInput = timeGroup.querySelector('.time-hour');
+                const minuteInput = timeGroup.querySelector('.time-minute');
+                const periodSelect = timeGroup.querySelector('.time-period');
+                
+                hourInput.value = parseInt(hours);
+                minuteInput.value = minutes;
+                periodSelect.value = ampm.toUpperCase();
+                
+                if (type === 'start') {
+                    updateEndTime(index);
+                }
+                
+                checkConflicts(index);
+                updateSummary();
+            } else {
+                alert('Invalid time format. Please use HH:MM AM/PM format.');
+            }
+        }
+    }
+}
+
+function updateHiddenTimeInput(index) {
+    const card = document.querySelector(`[data-index="${index}"]`);
+    const hourInput = card.querySelector('.time-input-group .time-hour');
+    const minuteInput = card.querySelector('.time-input-group .time-minute');
+    const periodSelect = card.querySelector('.time-input-group .time-period');
+    const hiddenInput = card.querySelector('.start-time-24h');
+    
+    if (hourInput.value && minuteInput.value) {
+        const time24 = convertTo24Hour(
+            `${hourInput.value}:${minuteInput.value}`,
+            periodSelect.value
+        );
+        hiddenInput.value = time24;
+        document.getElementById(`start-display-${index}`).textContent = 
+            `🕐 ${convertTo12Hour(time24)}`;
+        
+        updateEndTime(index);
+        checkConflicts(index);
+    }
 }
 
 function removeAppointment(index) {
@@ -379,9 +547,7 @@ function updateService(index) {
     const selectedOption = serviceSelect.options[serviceSelect.selectedIndex];
     
     if (selectedOption.value) {
-        const duration = parseInt(selectedOption.dataset.duration) || 60;
-        const startTimeInput = document.querySelector(`.start-time[data-index="${index}"]`);
-        
+        const startTimeInput = document.querySelector(`.start-time-24h[data-index="${index}"]`);
         if (startTimeInput.value) {
             updateEndTime(index);
         }
@@ -392,8 +558,8 @@ function updateService(index) {
 
 function updateEndTime(index) {
     const serviceSelect = document.querySelector(`.service-select[data-index="${index}"]`);
-    const startTimeInput = document.querySelector(`.start-time[data-index="${index}"]`);
-    const endTimeInput = document.querySelector(`.end-time[data-index="${index}"]`);
+    const startTimeInput = document.querySelector(`.start-time-24h[data-index="${index}"]`);
+    const endTimeInput = document.querySelector(`.end-time-24h[data-index="${index}"]`);
     
     const selectedOption = serviceSelect.options[serviceSelect.selectedIndex];
     
@@ -403,17 +569,25 @@ function updateEndTime(index) {
         const startDate = new Date();
         startDate.setHours(parseInt(hours), parseInt(minutes));
         
-        // Calculate end time
         const endDate = new Date(startDate.getTime() + duration * 60000);
         
         const endHours = String(endDate.getHours()).padStart(2, '0');
         const endMinutes = String(endDate.getMinutes()).padStart(2, '0');
         endTimeInput.value = `${endHours}:${endMinutes}`;
         
-        // Update 12-hour format displays
-        updateTimeDisplay(index);
+        // Update end time display
+        const endTime12 = convertTo12Hour(endTimeInput.value);
+        const [h12, rest] = endTime12.split(':');
+        const [m12, ampm] = rest.split(' ');
         
-        // Validate time logic
+        const card = document.querySelector(`[data-index="${index}"]`);
+        const endTimeGroup = card.querySelectorAll('.time-input-group')[1];
+        endTimeGroup.querySelector('.time-hour').value = h12;
+        endTimeGroup.querySelector('.time-minute').value = m12;
+        endTimeGroup.querySelector('.time-period').value = ampm;
+        
+        document.getElementById(`end-display-${index}`).textContent = `🕐 ${endTime12}`;
+        
         if (endDate <= startDate) {
             showFieldError(endTimeInput, 'End time must be after start time');
             return;
@@ -423,30 +597,6 @@ function updateEndTime(index) {
     }
     
     updateSummary();
-}
-
-function format12Hour(time24) {
-    if (!time24) return '';
-    const [hours, minutes] = time24.split(':');
-    const hour = parseInt(hours);
-    const ampm = hour >= 12 ? 'PM' : 'AM';
-    const hour12 = hour % 12 || 12;
-    return `🕐 ${hour12}:${minutes} ${ampm}`;
-}
-
-function updateTimeDisplay(index) {
-    const startTimeInput = document.querySelector(`.start-time[data-index="${index}"]`);
-    const endTimeInput = document.querySelector(`.end-time[data-index="${index}"]`);
-    const startTimeDisplay = document.getElementById(`start-time-display-${index}`);
-    const endTimeDisplay = document.getElementById(`end-time-display-${index}`);
-    
-    if (startTimeInput && startTimeInput.value && startTimeDisplay) {
-        startTimeDisplay.textContent = format12Hour(startTimeInput.value);
-    }
-    
-    if (endTimeInput && endTimeInput.value && endTimeDisplay) {
-        endTimeDisplay.textContent = format12Hour(endTimeInput.value);
-    }
 }
 
 function showFieldError(field, message) {
@@ -499,12 +649,11 @@ function checkConflicts(index) {
     const clientId = $('#clientSelect').val();
     const staffSelect = document.querySelector(`.staff-select[data-index="${index}"]`);
     const dateInput = document.querySelector(`.date-input[data-index="${index}"]`);
-    const startTimeInput = document.querySelector(`.start-time[data-index="${index}"]`);
-    const endTimeInput = document.querySelector(`.end-time[data-index="${index}"]`);
+    const startTimeInput = document.querySelector(`.start-time-24h[data-index="${index}"]`);
+    const endTimeInput = document.querySelector(`.end-time-24h[data-index="${index}"]`);
     const conflictAlert = document.getElementById(`conflict-${index}`);
     const clientConflictAlert = document.getElementById(`client-conflict-${index}`);
     
-    // Clear previous alerts
     if (conflictAlert) conflictAlert.style.display = 'none';
     if (clientConflictAlert) clientConflictAlert.style.display = 'none';
     
@@ -582,11 +731,13 @@ function displayClientAppointments(bookings) {
     
     let html = '<ul class="list-group list-group-flush">';
     activeBookings.forEach(booking => {
+        const startTime12 = convertTo12Hour(booking.start_time);
+        const endTime12 = convertTo12Hour(booking.end_time);
         html += `
             <li class="list-group-item">
                 <strong>${booking.service_name}</strong><br>
                 <small class="text-muted">
-                    ${booking.appointment_date} at ${booking.start_time} - ${booking.end_time}
+                    ${booking.appointment_date} at ${startTime12} - ${endTime12}
                     (${booking.staff_name})
                 </small>
             </li>
@@ -615,17 +766,15 @@ function submitMultiBooking() {
         const serviceSelect = document.querySelector(`.service-select[data-index="${index}"]`);
         const staffSelect = document.querySelector(`.staff-select[data-index="${index}"]`);
         const dateInput = document.querySelector(`.date-input[data-index="${index}"]`);
-        const startTimeInput = document.querySelector(`.start-time[data-index="${index}"]`);
-        const endTimeInput = document.querySelector(`.end-time[data-index="${index}"]`);
+        const startTimeInput = document.querySelector(`.start-time-24h[data-index="${index}"]`);
+        const endTimeInput = document.querySelector(`.end-time-24h[data-index="${index}"]`);
         
-        // Required field validation
         if (!serviceSelect.value || !staffSelect.value || !dateInput.value || !startTimeInput.value || !endTimeInput.value) {
             isValid = false;
             validationErrors.push(`Appointment ${idx + 1}: Missing required fields`);
             return;
         }
         
-        // Time validation
         const start = startTimeInput.value;
         const end = endTimeInput.value;
         if (start >= end) {
@@ -634,7 +783,6 @@ function submitMultiBooking() {
             return;
         }
         
-        // Check for visible conflicts
         const conflictAlert = document.getElementById(`conflict-${index}`);
         const clientConflictAlert = document.getElementById(`client-conflict-${index}`);
         if (conflictAlert && conflictAlert.style.display !== 'none') {
@@ -676,16 +824,14 @@ function submitMultiBooking() {
         return;
     }
     
-    // Confirm booking
     const summary = appointments.map((apt, i) => 
-        `${i + 1}. ${apt.service_name} with ${apt.staffName} at ${format12Hour(apt.start_time)}`
+        `${i + 1}. ${apt.service_name} with ${apt.staffName} at ${convertTo12Hour(apt.start_time)}`
     ).join('\n');
     
     if (!confirm(`📅 Book ${appointments.length} appointment(s)?\n\n${summary}`)) {
         return;
     }
     
-    // Submit all appointments
     const promises = appointments.map(apt => 
         fetch('/api/unaki/book-appointment', {
             method: 'POST',
@@ -705,7 +851,6 @@ function submitMultiBooking() {
                 window.location.href = '{{ url_for("unaki_booking") }}';
             } else {
                 alert(`⚠️ Booked ${successCount} appointments, ${failCount} failed:\n\n${errors.join('\n')}`);
-                // Refresh to show successfully booked appointments
                 window.location.reload();
             }
         })
@@ -726,7 +871,6 @@ function openQuickAddClient() {
 }
 
 function saveQuickClient() {
-    // Implement quick client creation logic
     alert('Quick add client feature - to be implemented');
 }
 </script>
