@@ -1247,13 +1247,32 @@ def api_check_staff_conflicts():
             ShiftManagement.to_date >= appointment_date
         ).first()
         
-        if shift_management:
-            shift_log = ShiftLogs.query.filter(
-                ShiftLogs.shift_management_id == shift_management.id,
-                ShiftLogs.individual_date == appointment_date
-            ).first()
-            
-            if shift_log:
+        # Block booking if no shift management found
+        if not shift_management:
+            return jsonify({
+                'success': True,
+                'has_conflict': True,
+                'shift_violation': True,
+                'message': f"{staff.first_name} {staff.last_name} has no schedule configured for {appointment_date.strftime('%B %d, %Y')}. Please contact admin to set up staff schedules."
+            })
+        
+        # Get shift log for the specific date
+        shift_log = ShiftLogs.query.filter(
+            ShiftLogs.shift_management_id == shift_management.id,
+            ShiftLogs.individual_date == appointment_date
+        ).first()
+        
+        # Block booking if no shift log found for this specific date
+        if not shift_log:
+            return jsonify({
+                'success': True,
+                'has_conflict': True,
+                'shift_violation': True,
+                'message': f"{staff.first_name} {staff.last_name} has no shift scheduled for {appointment_date.strftime('%B %d, %Y')}. Please contact admin to configure daily schedules."
+            })
+        
+        # Now we have a valid shift_log, proceed with validations
+        if shift_log:
                 # Check if staff is working (not absent/holiday)
                 if shift_log.status not in ['scheduled', 'completed']:
                     return jsonify({
