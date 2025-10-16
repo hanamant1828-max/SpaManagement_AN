@@ -1,8 +1,5 @@
-{% extends "base.html" %}
-
-{% block title %}Book Multiple Appointments - Spa Management{% endblock %}
-
-{% block content %}
+{% extends "base.html" %} {% block title %}Book Multiple Appointments - Spa
+Management{% endblock %} {% block content %}
 <div class="container-fluid py-4">
     <div class="row mb-4">
         <div class="col-12">
@@ -12,9 +9,14 @@
                         <i class="fas fa-calendar-plus text-primary me-2"></i>
                         Book Multiple Appointments
                     </h2>
-                    <p class="text-muted mb-0">Book multiple services for a client in one go</p>
+                    <p class="text-muted mb-0">
+                        Book multiple services for a client in one go
+                    </p>
                 </div>
-                <a href="{{ url_for('unaki_booking') }}" class="btn btn-outline-secondary">
+                <a
+                    href="{{ url_for('unaki_booking') }}"
+                    class="btn btn-outline-secondary"
+                >
                     <i class="fas fa-arrow-left me-2"></i>Back to Calendar
                 </a>
             </div>
@@ -33,36 +35,63 @@
                 <div class="card-body">
                     <div class="row">
                         <div class="col-md-10">
-                            <label class="form-label fw-semibold">Select Client *</label>
-                            <select id="clientSelect" class="form-select select2-dropdown" required>
+                            <label class="form-label fw-semibold"
+                                >Select Client *</label
+                            >
+                            <select
+                                id="clientSelect"
+                                class="form-select select2-dropdown"
+                                required
+                            >
                                 <option value="">Choose a client...</option>
-                                {% if clients %}
-                                    {% for client in clients %}
-                                    <option value="{{ client.id }}" 
-                                            data-phone="{{ client.phone }}" 
-                                            data-email="{{ client.email or '' }}">
-                                        {{ client.first_name }} {{ client.last_name }} - {{ client.phone }}
-                                    </option>
-                                    {% endfor %}
-                                {% endif %}
+                                {% if clients %} {% for client in clients %}
+                                <option
+                                    value="{{ client.id }}"
+                                    data-phone="{{ client.phone }}"
+                                    data-email="{{ client.email or '' }}"
+                                >
+                                    {{ client.first_name }} {{ client.last_name
+                                    }} - {{ client.phone }}
+                                </option>
+                                {% endfor %} {% endif %}
                             </select>
                         </div>
                         <div class="col-md-2">
                             <label class="form-label fw-semibold">&nbsp;</label>
-                            <button type="button" class="btn btn-primary w-100" onclick="openQuickAddClient()">
+                            <button
+                                type="button"
+                                class="btn btn-primary w-100"
+                                onclick="openQuickAddClient()"
+                            >
                                 <i class="fas fa-plus"></i> New
                             </button>
                         </div>
                     </div>
 
                     <!-- Client Existing Appointments Alert -->
-                    <div id="clientExistingAppointments" class="mt-3" style="display: none;">
+                    <div
+                        id="clientExistingAppointments"
+                        class="mt-3"
+                        style="display: none"
+                    >
                         <div class="alert alert-info">
-                            <div class="d-flex justify-content-between align-items-center mb-2">
-                                <strong><i class="fas fa-calendar-check me-2"></i>Existing Appointments</strong>
-                                <span id="clientAppointmentsCount" class="badge bg-primary">0</span>
+                            <div
+                                class="d-flex justify-content-between align-items-center mb-2"
+                            >
+                                <strong
+                                    ><i class="fas fa-calendar-check me-2"></i
+                                    >Existing Appointments</strong
+                                >
+                                <span
+                                    id="clientAppointmentsCount"
+                                    class="badge bg-primary"
+                                    >0</span
+                                >
                             </div>
-                            <div id="clientAppointmentsList" style="max-height: 200px; overflow-y: auto;"></div>
+                            <div
+                                id="clientAppointmentsList"
+                                style="max-height: 200px; overflow-y: auto"
+                            ></div>
                         </div>
                     </div>
                 </div>
@@ -71,18 +100,49 @@
             <!-- Appointments Card -->
             <div class="card shadow-sm mb-4">
                 <div class="card-header bg-success text-white">
-                    <div class="d-flex justify-content-between align-items-center">
+                    <div
+                        class="d-flex justify-content-between align-items-center"
+                    >
                         <h5 class="mb-0">
                             <i class="fas fa-calendar-alt me-2"></i>Appointments
                         </h5>
-                        <span id="appointmentCount" class="badge bg-light text-dark">1 Appointment</span>
+                        <span
+                            id="appointmentCount"
+                            class="badge bg-light text-dark"
+                            >1 Appointment</span
+                        >
                     </div>
                 </div>
                 <div class="card-body">
+                    <!-- Conflict Summary Banner -->
+                    <div
+                        id="conflictSummaryBanner"
+                        class="alert d-none mb-3"
+                        role="alert"
+                    >
+                        <div class="d-flex align-items-center">
+                            <i
+                                class="fas fa-exclamation-triangle fs-4 me-3"
+                            ></i>
+                            <div class="flex-grow-1">
+                                <div
+                                    class="fw-bold"
+                                    id="conflictSummaryText"
+                                ></div>
+                                <small id="conflictSummarySubtext"></small>
+                            </div>
+                        </div>
+                    </div>
+
                     <div id="appointmentsContainer"></div>
 
-                    <button type="button" class="btn btn-outline-primary w-100 mt-3" onclick="addAppointmentRow()">
-                        <i class="fas fa-plus-circle me-2"></i>Add Another Appointment
+                    <button
+                        type="button"
+                        class="btn btn-outline-primary w-100 mt-3"
+                        onclick="addAppointmentRow()"
+                    >
+                        <i class="fas fa-plus-circle me-2"></i>Add Another
+                        Appointment
                     </button>
                 </div>
             </div>
@@ -95,15 +155,19 @@
                     </h5>
                 </div>
                 <div class="card-body">
-                    <textarea id="bookingNotes" class="form-control" rows="3" 
-                              placeholder="Add any special instructions or notes..."></textarea>
+                    <textarea
+                        id="bookingNotes"
+                        class="form-control"
+                        rows="3"
+                        placeholder="Add any special instructions or notes..."
+                    ></textarea>
                 </div>
             </div>
         </div>
 
         <!-- Summary Sidebar -->
         <div class="col-lg-4">
-            <div class="card shadow-sm sticky-top" style="top: 20px;">
+            <div class="card shadow-sm sticky-top" style="top: 20px">
                 <div class="card-header bg-info text-white">
                     <h5 class="mb-0">
                         <i class="fas fa-receipt me-2"></i>Booking Summary
@@ -111,7 +175,9 @@
                 </div>
                 <div class="card-body">
                     <div class="mb-3">
-                        <div class="d-flex justify-content-between align-items-center p-3 bg-light rounded">
+                        <div
+                            class="d-flex justify-content-between align-items-center p-3 bg-light rounded"
+                        >
                             <div>
                                 <i class="fas fa-clock text-primary me-2"></i>
                                 <small class="text-muted">Total Duration</small>
@@ -121,9 +187,13 @@
                     </div>
 
                     <div class="mb-3">
-                        <div class="d-flex justify-content-between align-items-center p-3 bg-light rounded">
+                        <div
+                            class="d-flex justify-content-between align-items-center p-3 bg-light rounded"
+                        >
                             <div>
-                                <i class="fas fa-rupee-sign text-success me-2"></i>
+                                <i
+                                    class="fas fa-rupee-sign text-success me-2"
+                                ></i>
                                 <small class="text-muted">Total Price</small>
                             </div>
                             <h4 class="mb-0" id="totalPrice">₹0.00</h4>
@@ -131,7 +201,9 @@
                     </div>
 
                     <div class="mb-4">
-                        <div class="d-flex justify-content-between align-items-center p-3 bg-light rounded">
+                        <div
+                            class="d-flex justify-content-between align-items-center p-3 bg-light rounded"
+                        >
                             <div>
                                 <i class="fas fa-user-md text-warning me-2"></i>
                                 <small class="text-muted">Staff Required</small>
@@ -140,13 +212,23 @@
                         </div>
                     </div>
 
-                    <hr>
+                    <hr />
 
                     <div class="d-grid gap-2">
-                        <button type="button" class="btn btn-lg btn-success" onclick="submitMultiBooking()">
-                            <i class="fas fa-check-circle me-2"></i>Book All Appointments
+                        <button
+                            type="button"
+                            id="submitBookingBtn"
+                            class="btn btn-lg btn-secondary"
+                            onclick="submitMultiBooking()"
+                            disabled
+                        >
+                            <i class="fas fa-edit me-2"></i>Complete All Fields
                         </button>
-                        <button type="button" class="btn btn-outline-secondary" onclick="resetForm()">
+                        <button
+                            type="button"
+                            class="btn btn-outline-secondary"
+                            onclick="resetForm()"
+                        >
                             <i class="fas fa-redo me-2"></i>Reset Form
                         </button>
                     </div>
@@ -164,27 +246,50 @@
                 <h5 class="modal-title">
                     <i class="fas fa-user-plus me-2"></i>Quick Add New Client
                 </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                <button
+                    type="button"
+                    class="btn-close"
+                    data-bs-dismiss="modal"
+                ></button>
             </div>
             <div class="modal-body">
                 <form id="quickAddClientForm">
                     <div class="row mb-3">
                         <div class="col-md-6">
                             <label class="form-label">First Name *</label>
-                            <input type="text" id="quickFirstName" class="form-control" required>
+                            <input
+                                type="text"
+                                id="quickFirstName"
+                                class="form-control"
+                                required
+                            />
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Last Name *</label>
-                            <input type="text" id="quickLastName" class="form-control" required>
+                            <input
+                                type="text"
+                                id="quickLastName"
+                                class="form-control"
+                                required
+                            />
                         </div>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Phone Number *</label>
-                        <input type="tel" id="quickPhone" class="form-control" required>
+                        <input
+                            type="tel"
+                            id="quickPhone"
+                            class="form-control"
+                            required
+                        />
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Email</label>
-                        <input type="email" id="quickEmail" class="form-control">
+                        <input
+                            type="email"
+                            id="quickEmail"
+                            class="form-control"
+                        />
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Gender *</label>
@@ -198,8 +303,19 @@
                 </form>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" onclick="saveQuickClient()">
+                <button
+                    type="button"
+                    class="btn btn-secondary"
+                    data-bs-dismiss="modal"
+                >
+                    Cancel
+                </button>
+                <button
+                    type="button"
+                    id="saveQuickClientBtn"
+                    class="btn btn-primary"
+                    onclick="saveQuickClient()"
+                >
                     <i class="fas fa-save me-2"></i>Save Client
                 </button>
             </div>
@@ -208,216 +324,231 @@
 </div>
 
 <style>
-.appointment-card {
-    background: white;
-    border: 2px solid #e9ecef;
-    border-radius: 10px;
-    padding: 20px;
-    margin-bottom: 15px;
-    position: relative;
-    transition: all 0.2s;
-}
-
-.appointment-card:hover {
-    border-color: #4f46e5;
-    box-shadow: 0 4px 12px rgba(79, 70, 229, 0.1);
-}
-
-.appointment-number {
-    position: absolute;
-    top: -10px;
-    left: 20px;
-    background: #4f46e5;
-    color: white;
-    padding: 4px 12px;
-    border-radius: 20px;
-    font-size: 12px;
-    font-weight: 600;
-}
-
-.remove-appointment {
-    position: absolute;
-    top: 10px;
-    right: 10px;
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    border: none;
-    background: #ef4444;
-    color: white;
-    cursor: pointer;
-    transition: all 0.2s;
-}
-
-.remove-appointment:hover {
-    background: #dc2626;
-    transform: scale(1.1);
-}
-
-.time-input-group {
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    padding: 8px 12px;
-    border: 1px solid #ced4da;
-    border-radius: 0.375rem;
-    background: white;
-    cursor: pointer;
-}
-
-.time-input-group:hover {
-    border-color: #86b7fe;
-}
-
-.time-input-group input {
-    width: 40px;
-    border: none;
-    outline: none;
-    text-align: center;
-    font-size: 16px;
-}
-
-.time-input-group select {
-    border: none;
-    outline: none;
-    background: transparent;
-    cursor: pointer;
-}
-
-.time-display-12hr {
-    display: block;
-    margin-top: 4px;
-    font-size: 0.875rem;
-    color: #4f46e5;
-    font-weight: 600;
-}
-
-.time-24h-hidden {
-    display: none;
-}
-
-.is-invalid {
-    border-color: #ef4444 !important;
-    background-color: #fff5f5 !important;
-}
-
-.is-valid {
-    border-color: #10b981 !important;
-    background-color: #f0fff4 !important;
-}
-
-.validation-error {
-    color: #dc3545;
-    font-size: 0.875rem;
-    margin-top: 0.25rem;
-}
-
-.validation-icon {
-    font-size: 0.875rem;
-    transition: all 0.3s ease;
-}
-
-.form-select:focus,
-.form-control:focus {
-    box-shadow: 0 0 0 0.2rem rgba(79, 70, 229, 0.25);
-}
-
-.alert {
-    animation: slideIn 0.3s ease;
-}
-
-@keyframes slideIn {
-    from {
-        opacity: 0;
-        transform: translateY(-10px);
+    .appointment-card {
+        background: white;
+        border: 2px solid #e9ecef;
+        border-radius: 10px;
+        padding: 20px;
+        margin-bottom: 15px;
+        position: relative;
+        transition: all 0.3s;
     }
-    to {
-        opacity: 1;
-        transform: translateY(0);
+
+    .appointment-card:hover {
+        border-color: #4f46e5;
+        box-shadow: 0 4px 12px rgba(79, 70, 229, 0.1);
     }
-}
+
+    .appointment-card.has-conflict {
+        border-color: #ef4444 !important;
+        background: #fef2f2;
+    }
+
+    .appointment-card.validating {
+        border-color: #3b82f6;
+        background: #eff6ff;
+    }
+
+    .appointment-card.validated {
+        border-color: #10b981;
+        background: #f0fdf4;
+    }
+
+    .time-display-12hr {
+        display: block;
+        margin-top: 4px;
+        font-size: 0.875rem;
+        color: #4f46e5;
+        font-weight: 600;
+    }
+
+    .appointment-number {
+        position: absolute;
+        top: -10px;
+        left: 20px;
+        background: #4f46e5;
+        color: white;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 600;
+    }
+
+    .remove-appointment {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        border: none;
+        background: #ef4444;
+        color: white;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .remove-appointment:hover {
+        background: #dc2626;
+        transform: scale(1.1);
+    }
+
+    .validation-icon {
+        display: none;
+        margin-left: 8px;
+    }
+
+    .validation-icon.show {
+        display: inline-block;
+    }
+
+    .field-validated {
+        border-color: #10b981 !important;
+    }
+
+    .field-error {
+        border-color: #ef4444 !important;
+    }
+
+    .field-validating {
+        border-color: #3b82f6 !important;
+    }
+
+    @keyframes shake {
+        0%,
+        100% {
+            transform: translateX(0);
+        }
+        10%,
+        30%,
+        50%,
+        70%,
+        90% {
+            transform: translateX(-5px);
+        }
+        20%,
+        40%,
+        60%,
+        80% {
+            transform: translateX(5px);
+        }
+    }
+
+    .shake-animation {
+        animation: shake 0.5s;
+    }
 </style>
 
+<link
+    href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css"
+    rel="stylesheet"
+/>
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 
 <script>
-// ==========================================
-// TIME FORMAT CONVERSION - 12-HOUR AM/PM
-// ==========================================
+    // ==================== GLOBAL VARIABLES ====================
+    let appointmentIndex = 0;
+    const conflictTimers = {};
+    const clientConflictTimers = {};
 
-function convertTo12Hour(time24) {
-    if (!time24) return '';
-    const [hours, minutes] = time24.split(':');
-    let hour = parseInt(hours);
-    const ampm = hour >= 12 ? 'PM' : 'AM';
-    hour = hour % 12 || 12;
-    return `${hour}:${minutes} ${ampm}`;
-}
-
-function convertTo24Hour(time12, ampm) {
-    let [hours, minutes] = time12.split(':');
-    hours = parseInt(hours);
-    if (ampm === 'PM' && hours !== 12) {
-        hours += 12;
-    } else if (ampm === 'AM' && hours === 12) {
-        hours = 0;
-    }
-    return `${hours.toString().padStart(2, '0')}:${minutes}`;
-}
-
-function validateTimeInput(hours, minutes) {
-    const h = parseInt(hours);
-    const m = parseInt(minutes);
-    return h >= 1 && h <= 12 && m >= 0 && m <= 59;
-}
-
-// ==========================================
-// INITIALIZATION
-// ==========================================
-
-$(document).ready(function() {
-    $('#clientSelect').select2({
-        placeholder: 'Choose a client...',
-        allowClear: true,
-        width: '100%'
-    });
-
-    addAppointmentRow();
-
-    $('#clientSelect').on('change', function() {
-        const clientId = $(this).val();
-        if (clientId) {
-            loadClientAppointments(clientId);
-        } else {
-            $('#clientExistingAppointments').hide();
+    // ==================== TIME UTILITIES ====================
+    function generateTimeOptions() {
+        const times = [];
+        for (let hour = 9; hour <= 21; hour++) {
+            for (let minute = 0; minute < 60; minute += 15) {
+                const hour24 = String(hour).padStart(2, "0");
+                const min = String(minute).padStart(2, "0");
+                const time24 = `${hour24}:${min}`;
+                const time12 = format12Hour(time24);
+                times.push({ value: time24, label: time12 });
+            }
         }
+        return times;
+    }
+
+    function format12Hour(time24) {
+        if (!time24) return "";
+        const [hours, minutes] = time24.split(":");
+        const hour = parseInt(hours);
+        const ampm = hour >= 12 ? "PM" : "AM";
+        const hour12 = hour % 12 || 12;
+        return `${hour12}:${minutes} ${ampm}`;
+    }
+
+    function calculateEndTime(startTime, durationMinutes) {
+        if (!startTime) return "";
+        const [hours, minutes] = startTime.split(":");
+        const startDate = new Date();
+        startDate.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+        const endDate = new Date(startDate.getTime() + durationMinutes * 60000);
+        const endHours = String(endDate.getHours()).padStart(2, "0");
+        const endMinutes = String(endDate.getMinutes()).padStart(2, "0");
+        return `${endHours}:${endMinutes}`;
+    }
+
+    // ==================== INITIALIZATION ====================
+    $(document).ready(function () {
+        // Initialize Select2
+        $("#clientSelect").select2({
+            placeholder: "Choose a client...",
+            allowClear: true,
+            width: "100%",
+        });
+
+        // Add first appointment row
+        addAppointmentRow();
+
+        // Client selection handler
+        $("#clientSelect").on("change", function () {
+            const clientId = $(this).val();
+            if (clientId) {
+                loadClientAppointments(clientId);
+                // Re-validate all appointments for new client
+                document
+                    .querySelectorAll(".appointment-card")
+                    .forEach((card) => {
+                        const index = card.dataset.index;
+                        checkClientConflicts(index);
+                    });
+            } else {
+                $("#clientExistingAppointments").hide();
+            }
+            updateSubmitButton();
+        });
     });
-});
 
-let appointmentIndex = 0;
+    // ==================== ADD/REMOVE APPOINTMENTS ====================
+    function addAppointmentRow() {
+        const container = document.getElementById("appointmentsContainer");
+        const index = appointmentIndex++;
+        const timeOptions = generateTimeOptions();
+        const timeOptionsHTML = timeOptions
+            .map((t) => `<option value="${t.value}">${t.label}</option>`)
+            .join("");
 
-// ==========================================
-// APPOINTMENT MANAGEMENT
-// ==========================================
-
-function addAppointmentRow() {
-    const container = document.getElementById('appointmentsContainer');
-    const index = appointmentIndex++;
-
-    const appointmentCard = `
+        const appointmentCard = `
         <div class="appointment-card" data-index="${index}">
             <div class="appointment-number">${index + 1}</div>
-            ${index > 0 ? `
+            ${
+                index > 0
+                    ? `
                 <button type="button" class="remove-appointment" onclick="removeAppointment(${index})">
                     <i class="fas fa-times"></i>
                 </button>
-            ` : ''}
+            `
+                    : ""
+            }
 
             <div class="row">
                 <div class="col-md-6 mb-3">
-                    <label class="form-label fw-semibold">Service *</label>
-                    <select class="form-select service-select" data-index="${index}" required onchange="updateService(${index})">
+                    <label class="form-label fw-semibold">
+                        Service *
+                        <span class="validation-icon text-success" id="service-icon-${index}">
+                            <i class="fas fa-check-circle"></i>
+                        </span>
+                    </label>
+                    <select class="form-select service-select" data-index="${index}" required>
                         <option value="">Select service...</option>
                         {% if services %}
                             {% for service in services %}
@@ -431,8 +562,13 @@ function addAppointmentRow() {
                     </select>
                 </div>
                 <div class="col-md-6 mb-3">
-                    <label class="form-label fw-semibold">Staff Member *</label>
-                    <select class="form-select staff-select" data-index="${index}" required onchange="checkConflicts(${index})">
+                    <label class="form-label fw-semibold">
+                        Staff Member *
+                        <span class="validation-icon text-success" id="staff-icon-${index}">
+                            <i class="fas fa-check-circle"></i>
+                        </span>
+                    </label>
+                    <select class="form-select staff-select" data-index="${index}" required>
                         <option value="">Select staff...</option>
                         {% if staff_members %}
                             {% for staff in staff_members %}
@@ -447,471 +583,999 @@ function addAppointmentRow() {
 
             <div class="row">
                 <div class="col-md-4 mb-3">
-                    <label class="form-label fw-semibold">Date *</label>
+                    <label class="form-label fw-semibold">
+                        Date *
+                        <span class="validation-icon text-success" id="date-icon-${index}">
+                            <i class="fas fa-check-circle"></i>
+                        </span>
+                    </label>
                     <input type="date" class="form-control date-input" data-index="${index}" 
-                           value="{{ today }}" required onchange="checkConflicts(${index})" min="{{ today }}">
+                           value="{{ today }}" required min="{{ today }}">
                 </div>
                 <div class="col-md-4 mb-3">
-                    <label class="form-label fw-semibold">Start Time *</label>
-                    <div class="time-input-group" onclick="showTimePicker(this, ${index}, 'start')">
-                        <input type="number" class="time-hour" min="1" max="12" placeholder="HH" data-index="${index}">
-                        <span>:</span>
-                        <input type="number" class="time-minute" min="0" max="59" placeholder="MM" data-index="${index}">
-                        <select class="time-period" data-index="${index}">
-                            <option value="AM">AM</option>
-                            <option value="PM">PM</option>
-                        </select>
-                    </div>
-                    <input type="time" class="time-24h-hidden start-time-24h" data-index="${index}">
-                    <small class="text-muted time-display-12hr" id="start-display-${index}"></small>
+                    <label class="form-label fw-semibold">
+                        Start Time *
+                        <span class="validation-icon text-success" id="start-icon-${index}">
+                            <i class="fas fa-check-circle"></i>
+                        </span>
+                    </label>
+                    <select class="form-select start-time-select" data-index="${index}" required>
+                        <option value="">Select time...</option>
+                        ${timeOptionsHTML}
+                    </select>
+                    <input type="time" class="d-none start-time-hidden" data-index="${index}">
                 </div>
                 <div class="col-md-4 mb-3">
-                    <label class="form-label fw-semibold">End Time *</label>
-                    <div class="time-input-group bg-light" style="cursor: default;">
-                        <input type="number" class="time-hour" readonly data-index="${index}">
-                        <span>:</span>
-                        <input type="number" class="time-minute" readonly data-index="${index}">
-                        <select class="time-period" disabled data-index="${index}">
-                            <option value="AM">AM</option>
-                            <option value="PM">PM</option>
-                        </select>
-                    </div>
-                    <input type="time" class="time-24h-hidden end-time-24h" data-index="${index}" readonly>
-                    <small class="text-muted time-display-12hr" id="end-display-${index}"></small>
+                    <label class="form-label fw-semibold">
+                        End Time *
+                        <span class="validation-icon text-success" id="end-icon-${index}">
+                            <i class="fas fa-check-circle"></i>
+                        </span>
+                    </label>
+                    <select class="form-select end-time-select" data-index="${index}" disabled>
+                        <option value="">Auto-calculated</option>
+                    </select>
+                    <input type="time" class="d-none end-time-hidden" data-index="${index}">
                 </div>
             </div>
 
-            <div class="conflict-alert alert alert-danger" id="conflict-${index}" style="display: none;"></div>
-            <div class="conflict-alert alert alert-warning" id="client-conflict-${index}" style="display: none;"></div>
+            <!-- Loading Alert -->
+            <div class="alert alert-info d-none" id="loading-${index}">
+                <i class="fas fa-spinner fa-spin me-2"></i>Checking availability (including unpaid bookings)...
+            </div>
+
+            <!-- Staff Conflict Alert -->
+            <div class="alert alert-danger d-none" id="conflict-${index}">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                <span class="conflict-message"></span>
+            </div>
+
+            <!-- Client Conflict Alert -->
+            <div class="alert alert-warning d-none" id="client-conflict-${index}">
+                <i class="fas fa-exclamation-circle me-2"></i>
+                <span class="client-conflict-message"></span>
+            </div>
         </div>
     `;
 
-    container.insertAdjacentHTML('beforeend', appointmentCard);
-    initializeTimeInputs(index);
-    updateAppointmentCount();
-}
+        container.insertAdjacentHTML("beforeend", appointmentCard);
+        attachEventListeners(index);
+        updateAppointmentCount();
+    }
 
-function initializeTimeInputs(index) {
-    const card = document.querySelector(`[data-index="${index}"]`);
-    const hourInput = card.querySelector('.time-input-group .time-hour');
-    const minuteInput = card.querySelector('.time-input-group .time-minute');
-    const periodSelect = card.querySelector('.time-input-group .time-period');
+    function removeAppointment(index) {
+        const card = document.querySelector(`[data-index="${index}"]`);
+        if (card) {
+            card.remove();
+            updateAppointmentCount();
+            updateSummary();
+            updateConflictSummary();
+            updateSubmitButton();
+        }
+    }
 
-    [hourInput, minuteInput].forEach(input => {
-        input.addEventListener('input', function() {
-            updateHiddenTimeInput(index);
-        });
-    });
+    // ==================== EVENT LISTENERS ====================
+    function attachEventListeners(index) {
+        const serviceSelect = document.querySelector(
+            `.service-select[data-index="${index}"]`,
+        );
+        const staffSelect = document.querySelector(
+            `.staff-select[data-index="${index}"]`,
+        );
+        const dateInput = document.querySelector(
+            `.date-input[data-index="${index}"]`,
+        );
+        const startTimeSelect = document.querySelector(
+            `.start-time-select[data-index="${index}"]`,
+        );
+        const endTimeSelect = document.querySelector(
+            `.end-time-select[data-index="${index}"]`,
+        );
 
-    periodSelect.addEventListener('change', function() {
-        updateHiddenTimeInput(index);
-    });
-}
-
-function showTimePicker(element, index, type) {
-    const card = document.querySelector(`[data-index="${index}"]`);
-    const hiddenInput = type === 'start' ? 
-        card.querySelector('.start-time-24h') : 
-        card.querySelector('.end-time-24h');
-
-    const currentTime = hiddenInput.value || '09:00';
-    const time12 = convertTo12Hour(currentTime);
-
-    const newTime = prompt(`Enter time (format: HH:MM AM/PM)\nCurrent: ${time12}`, time12);
-
-    if (newTime) {
-        const parts = newTime.trim().split(' ');
-        if (parts.length === 2) {
-            const [time, ampm] = parts;
-            const [hours, minutes] = time.split(':');
-
-            if (validateTimeInput(hours, minutes)) {
-                const time24 = convertTo24Hour(time, ampm.toUpperCase());
-                hiddenInput.value = time24;
-
-                // Update visible inputs
-                const timeGroup = element;
-                const hourInput = timeGroup.querySelector('.time-hour');
-                const minuteInput = timeGroup.querySelector('.time-minute');
-                const periodSelect = timeGroup.querySelector('.time-period');
-
-                hourInput.value = parseInt(hours);
-                minuteInput.value = minutes;
-                periodSelect.value = ampm.toUpperCase();
-
-                if (type === 'start') {
-                    updateEndTime(index);
-                }
-
-                checkConflicts(index);
+        if (serviceSelect) {
+            serviceSelect.addEventListener("change", () => {
+                showValidationIcon(
+                    `service-icon-${index}`,
+                    serviceSelect.value,
+                );
+                clearConflictAlerts(index); // Clear alerts immediately
+                updateEndTime(index);
                 updateSummary();
+            });
+        }
+
+        if (staffSelect) {
+            staffSelect.addEventListener("change", () => {
+                showValidationIcon(`staff-icon-${index}`, staffSelect.value);
+                clearConflictAlerts(index); // Clear alerts immediately
+                checkStaffConflicts(index);
+                updateSummary();
+            });
+        }
+
+        if (dateInput) {
+            dateInput.addEventListener("change", () => {
+                showValidationIcon(`date-icon-${index}`, dateInput.value);
+                clearConflictAlerts(index); // Clear alerts immediately
+                checkStaffConflicts(index);
+                checkClientConflicts(index);
+            });
+        }
+
+        if (startTimeSelect) {
+            startTimeSelect.addEventListener("change", () => {
+                const hiddenInput = document.querySelector(
+                    `.start-time-hidden[data-index="${index}"]`,
+                );
+                if (hiddenInput) hiddenInput.value = startTimeSelect.value;
+                showValidationIcon(
+                    `start-icon-${index}`,
+                    startTimeSelect.value,
+                );
+                clearConflictAlerts(index); // Clear alerts immediately
+                updateEndTime(index);
+            });
+        }
+
+        if (endTimeSelect) {
+            endTimeSelect.addEventListener("change", () => {
+                const hiddenInput = document.querySelector(
+                    `.end-time-hidden[data-index="${index}"]`,
+                );
+                if (hiddenInput) hiddenInput.value = endTimeSelect.value;
+                showValidationIcon(`end-icon-${index}`, endTimeSelect.value);
+                clearConflictAlerts(index); // Clear alerts immediately
+                checkStaffConflicts(index);
+                checkClientConflicts(index);
+            });
+        }
+    }
+
+    // ==================== VALIDATION ICONS ====================
+    function showValidationIcon(iconId, hasValue) {
+        const icon = document.getElementById(iconId);
+        if (icon) {
+            if (hasValue) {
+                icon.classList.add("show");
             } else {
-                alert('Invalid time format. Please use HH:MM AM/PM format.');
+                icon.classList.remove("show");
             }
         }
     }
-}
 
-function updateHiddenTimeInput(index) {
-    const card = document.querySelector(`[data-index="${index}"]`);
-    const hourInput = card.querySelector('.time-input-group .time-hour');
-    const minuteInput = card.querySelector('.time-input-group .time-minute');
-    const periodSelect = card.querySelector('.time-input-group .time-period');
-    const hiddenInput = card.querySelector('.start-time-24h');
-
-    if (hourInput.value && minuteInput.value) {
-        const time24 = convertTo24Hour(
-            `${hourInput.value}:${minuteInput.value}`,
-            periodSelect.value
+    // ==================== TIME CALCULATIONS ====================
+    function updateEndTime(index) {
+        const serviceSelect = document.querySelector(
+            `.service-select[data-index="${index}"]`,
         );
-        hiddenInput.value = time24;
-        document.getElementById(`start-display-${index}`).textContent = 
-            `🕐 ${convertTo12Hour(time24)}`;
+        const startTimeSelect = document.querySelector(
+            `.start-time-select[data-index="${index}"]`,
+        );
+        const endTimeSelect = document.querySelector(
+            `.end-time-select[data-index="${index}"]`,
+        );
+        const endTimeHidden = document.querySelector(
+            `.end-time-hidden[data-index="${index}"]`,
+        );
 
-        updateEndTime(index);
-        checkConflicts(index);
-    }
-}
+        const selectedOption =
+            serviceSelect?.options[serviceSelect.selectedIndex];
+        const startTime = startTimeSelect?.value;
 
-function removeAppointment(index) {
-    const card = document.querySelector(`[data-index="${index}"]`);
-    if (card) {
-        card.remove();
-        updateAppointmentCount();
-        updateSummary();
-    }
-}
+        if (selectedOption?.value && startTime) {
+            const duration = parseInt(selectedOption.dataset.duration) || 60;
+            const endTime = calculateEndTime(startTime, duration);
 
-function updateService(index) {
-    const serviceSelect = document.querySelector(`.service-select[data-index="${index}"]`);
-    const selectedOption = serviceSelect.options[serviceSelect.selectedIndex];
+            if (endTimeHidden) endTimeHidden.value = endTime;
 
-    if (selectedOption.value) {
-        const startTimeInput = document.querySelector(`.start-time-24h[data-index="${index}"]`);
-        if (startTimeInput.value) {
-            updateEndTime(index);
+            // Populate end time dropdown with options
+            if (endTimeSelect) {
+                endTimeSelect.disabled = false;
+                const timeOptions = generateTimeOptions();
+                endTimeSelect.innerHTML = timeOptions
+                    .map(
+                        (t) =>
+                            `<option value="${t.value}" ${t.value === endTime ? "selected" : ""}>${t.label}</option>`,
+                    )
+                    .join("");
+            }
+
+            // Instant validation: end > start
+            if (endTime <= startTime) {
+                showClientConflictError(
+                    index,
+                    "⏰ End time must be after start time",
+                    "time-error",
+                );
+                return;
+            }
+
+            // Clear alerts before rechecking
+            clearConflictAlerts(index);
+
+            // Recheck conflicts with new times
+            checkStaffConflicts(index);
+            checkClientConflicts(index);
         }
     }
 
-    updateSummary();
-}
+    // ==================== CLEAR CONFLICT ALERTS ====================
+    function clearConflictAlerts(index) {
+        // Clear staff conflict alert
+        const conflictAlert = document.getElementById(`conflict-${index}`);
+        if (conflictAlert) conflictAlert.classList.add("d-none");
 
-function updateEndTime(index) {
-    const serviceSelect = document.querySelector(`.service-select[data-index="${index}"]`);
-    const startTimeInput = document.querySelector(`.start-time-24h[data-index="${index}"]`);
-    const endTimeInput = document.querySelector(`.end-time-24h[data-index="${index}"]`);
+        // Clear client conflict alert
+        const clientConflictAlert = document.getElementById(
+            `client-conflict-${index}`,
+        );
+        if (clientConflictAlert) clientConflictAlert.classList.add("d-none");
 
-    const selectedOption = serviceSelect.options[serviceSelect.selectedIndex];
-
-    if (selectedOption.value && startTimeInput.value) {
-        const duration = parseInt(selectedOption.dataset.duration) || 60;
-        const [hours, minutes] = startTimeInput.value.split(':');
-        const startDate = new Date();
-        startDate.setHours(parseInt(hours), parseInt(minutes));
-
-        const endDate = new Date(startDate.getTime() + duration * 60000);
-
-        const endHours = String(endDate.getHours()).padStart(2, '0');
-        const endMinutes = String(endDate.getMinutes()).padStart(2, '0');
-        endTimeInput.value = `${endHours}:${endMinutes}`;
-
-        // Update end time display
-        const endTime12 = convertTo12Hour(endTimeInput.value);
-        const [h12, rest] = endTime12.split(':');
-        const [m12, ampm] = rest.split(' ');
-
+        // Remove has-conflict class from card
         const card = document.querySelector(`[data-index="${index}"]`);
-        const endTimeGroup = card.querySelectorAll('.time-input-group')[1];
-        endTimeGroup.querySelector('.time-hour').value = h12;
-        endTimeGroup.querySelector('.time-minute').value = m12;
-        endTimeGroup.querySelector('.time-period').value = ampm;
+        if (card) {
+            card.classList.remove("has-conflict");
+            delete card.dataset.conflictType;
+        }
 
-        document.getElementById(`end-display-${index}`).textContent = `🕐 ${endTime12}`;
+        // Reset all field borders to neutral
+        const staffSelect = document.querySelector(
+            `.staff-select[data-index="${index}"]`,
+        );
+        const dateInput = document.querySelector(
+            `.date-input[data-index="${index}"]`,
+        );
+        const startTimeSelect = document.querySelector(
+            `.start-time-select[data-index="${index}"]`,
+        );
+        const endTimeSelect = document.querySelector(
+            `.end-time-select[data-index="${index}"]`,
+        );
 
-        if (endDate <= startDate) {
-            showFieldError(endTimeInput, 'End time must be after start time');
+        if (staffSelect)
+            staffSelect.classList.remove(
+                "field-error",
+                "field-validated",
+                "field-validating",
+            );
+        if (dateInput)
+            dateInput.classList.remove(
+                "field-error",
+                "field-validated",
+                "field-validating",
+            );
+        if (startTimeSelect)
+            startTimeSelect.classList.remove(
+                "field-error",
+                "field-validated",
+                "field-validating",
+            );
+        if (endTimeSelect)
+            endTimeSelect.classList.remove(
+                "field-error",
+                "field-validated",
+                "field-validating",
+            );
+
+        // Update submit button and conflict summary
+        updateSubmitButton();
+        updateConflictSummary();
+    }
+
+    // ==================== CONFLICT CHECKING ====================
+    function checkStaffConflicts(index) {
+        const card = document.querySelector(`[data-index="${index}"]`);
+        const staffSelect = document.querySelector(
+            `.staff-select[data-index="${index}"]`,
+        );
+        const dateInput = document.querySelector(
+            `.date-input[data-index="${index}"]`,
+        );
+        const startTimeSelect = document.querySelector(
+            `.start-time-select[data-index="${index}"]`,
+        );
+        const endTimeSelect = document.querySelector(
+            `.end-time-select[data-index="${index}"]`,
+        );
+        const conflictAlert = document.getElementById(`conflict-${index}`);
+
+        // Clear previous alerts
+        if (conflictAlert) conflictAlert.classList.add("d-none");
+        staffSelect?.classList.remove(
+            "field-error",
+            "field-validating",
+            "field-validated",
+        );
+
+        if (
+            !staffSelect?.value ||
+            !dateInput?.value ||
+            !startTimeSelect?.value ||
+            !endTimeSelect?.value
+        ) {
             return;
         }
 
-        checkConflicts(index);
+        // Clear previous timer
+        clearTimeout(conflictTimers[index]);
+
+        // Show loading state
+        showLoadingState(index, true);
+        staffSelect.classList.add("field-validating");
+
+        // Debounce: wait 300ms
+        conflictTimers[index] = setTimeout(() => {
+            fetch("/api/unaki/check-staff-conflicts", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    staff_id: staffSelect.value,
+                    appointment_date: dateInput.value,
+                    start_time: startTimeSelect.value,
+                    end_time: endTimeSelect.value,
+                }),
+            })
+                .then((response) => response.json())
+                .then((data) => {
+                    showLoadingState(index, false);
+
+                    if (data.has_conflict || data.shift_violation) {
+                        showStaffConflictError(
+                            index,
+                            data.message ||
+                                data.reason ||
+                                "Staff conflict detected",
+                        );
+                        staffSelect.classList.add("field-error");
+                        staffSelect.classList.remove(
+                            "field-validating",
+                            "field-validated",
+                        );
+                    } else {
+                        staffSelect.classList.add("field-validated");
+                        staffSelect.classList.remove(
+                            "field-error",
+                            "field-validating",
+                        );
+                    }
+
+                    updateSubmitButton();
+                    updateConflictSummary();
+                })
+                .catch((err) => {
+                    console.error("Error checking staff conflicts:", err);
+                    showLoadingState(index, false);
+                    staffSelect.classList.remove("field-validating");
+                });
+        }, 300);
     }
 
-    updateSummary();
-}
+    function checkClientConflicts(index) {
+        const clientId = $("#clientSelect").val();
+        const card = document.querySelector(`[data-index="${index}"]`);
+        const dateInput = document.querySelector(
+            `.date-input[data-index="${index}"]`,
+        );
+        const startTimeSelect = document.querySelector(
+            `.start-time-select[data-index="${index}"]`,
+        );
+        const endTimeSelect = document.querySelector(
+            `.end-time-select[data-index="${index}"]`,
+        );
+        const clientConflictAlert = document.getElementById(
+            `client-conflict-${index}`,
+        );
 
-function showFieldError(field, message) {
-    field.classList.add('is-invalid');
-    let feedback = field.parentElement.querySelector('.invalid-feedback');
-    if (!feedback) {
-        feedback = document.createElement('div');
-        feedback.className = 'invalid-feedback';
-        field.parentElement.appendChild(feedback);
+        // Clear previous alerts
+        if (clientConflictAlert) clientConflictAlert.classList.add("d-none");
+        dateInput?.classList.remove(
+            "field-error",
+            "field-validating",
+            "field-validated",
+        );
+        startTimeSelect?.classList.remove(
+            "field-error",
+            "field-validating",
+            "field-validated",
+        );
+        endTimeSelect?.classList.remove(
+            "field-error",
+            "field-validating",
+            "field-validated",
+        );
+
+        if (
+            !clientId ||
+            !dateInput?.value ||
+            !startTimeSelect?.value ||
+            !endTimeSelect?.value
+        ) {
+            return;
+        }
+
+        // Instant check: end > start
+        if (endTimeSelect.value <= startTimeSelect.value) {
+            showClientConflictError(
+                index,
+                "⏰ End time must be after start time",
+                "time-error",
+            );
+            return;
+        }
+
+        // Clear previous timer
+        clearTimeout(clientConflictTimers[index]);
+
+        // Show validating state
+        dateInput.classList.add("field-validating");
+        startTimeSelect.classList.add("field-validating");
+        endTimeSelect.classList.add("field-validating");
+
+        // Debounce: wait 300ms
+        clientConflictTimers[index] = setTimeout(() => {
+            fetch("/api/unaki/check-client-conflicts", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    client_id: parseInt(clientId),
+                    appointment_date: dateInput.value,
+                    start_time: startTimeSelect.value,
+                    end_time: endTimeSelect.value,
+                }),
+            })
+                .then((response) => response.json())
+                .then((data) => {
+                    if (data.has_conflict && data.conflicts?.length > 0) {
+                        const conflict = data.conflicts[0];
+                        let message = `⚠️ Client already has ${conflict.service_name} from ${format12Hour(conflict.start_time)} to ${format12Hour(conflict.end_time)} with ${conflict.staff_name}`;
+
+                        // Add payment status if unpaid
+                        if (
+                            conflict.payment_status === "pending" ||
+                            conflict.payment_status === "partial"
+                        ) {
+                            const price = conflict.service_price || 0;
+                            message += ` <strong class="text-danger">[UNPAID - ₹${price.toFixed(2)}]</strong>`;
+                        }
+
+                        // Add status badge
+                        if (conflict.status) {
+                            message += ` <span class="badge bg-warning text-dark">${conflict.status.toUpperCase()}</span>`;
+                        }
+
+                        showClientConflictError(
+                            index,
+                            message,
+                            "client-conflict",
+                        );
+                        dateInput.classList.add("field-error");
+                        startTimeSelect.classList.add("field-error");
+                        endTimeSelect.classList.add("field-error");
+                    } else {
+                        dateInput.classList.add("field-validated");
+                        startTimeSelect.classList.add("field-validated");
+                        endTimeSelect.classList.add("field-validated");
+                    }
+
+                    dateInput.classList.remove("field-validating");
+                    startTimeSelect.classList.remove("field-validating");
+                    endTimeSelect.classList.remove("field-validating");
+
+                    updateSubmitButton();
+                    updateConflictSummary();
+                })
+                .catch((err) => {
+                    console.error("Error checking client conflicts:", err);
+                    dateInput.classList.remove("field-validating");
+                    startTimeSelect.classList.remove("field-validating");
+                    endTimeSelect.classList.remove("field-validating");
+                });
+        }, 300);
     }
-    feedback.textContent = message;
-}
 
-function clearFieldError(field) {
-    field.classList.remove('is-invalid');
-    const feedback = field.parentElement.querySelector('.invalid-feedback');
-    if (feedback) feedback.remove();
-}
-
-function updateAppointmentCount() {
-    const count = document.querySelectorAll('.appointment-card').length;
-    document.getElementById('appointmentCount').textContent = `${count} Appointment${count !== 1 ? 's' : ''}`;
-}
-
-function updateSummary() {
-    let totalDuration = 0;
-    let totalPrice = 0;
-    const staffSet = new Set();
-
-    document.querySelectorAll('.service-select').forEach(select => {
-        if (select.value) {
-            const option = select.options[select.selectedIndex];
-            totalDuration += parseInt(option.dataset.duration) || 0;
-            totalPrice += parseFloat(option.dataset.price) || 0;
-
-            const index = select.dataset.index;
-            const staffSelect = document.querySelector(`.staff-select[data-index="${index}"]`);
-            if (staffSelect && staffSelect.value) {
-                staffSet.add(staffSelect.value);
+    // ==================== VISUAL FEEDBACK ====================
+    function showLoadingState(index, show) {
+        const loadingAlert = document.getElementById(`loading-${index}`);
+        if (loadingAlert) {
+            if (show) {
+                loadingAlert.classList.remove("d-none");
+            } else {
+                loadingAlert.classList.add("d-none");
             }
         }
-    });
-
-    document.getElementById('totalDuration').textContent = `${totalDuration} min`;
-    document.getElementById('totalPrice').textContent = `₹${totalPrice.toFixed(2)}`;
-    document.getElementById('staffRequired').textContent = staffSet.size;
-}
-
-function checkConflicts(index) {
-    const clientId = $('#clientSelect').val();
-    const staffSelect = document.querySelector(`.staff-select[data-index="${index}"]`);
-    const dateInput = document.querySelector(`.date-input[data-index="${index}"]`);
-    const startTimeInput = document.querySelector(`.start-time-24h[data-index="${index}"]`);
-    const endTimeInput = document.querySelector(`.end-time-24h[data-index="${index}"]`);
-    const conflictAlert = document.getElementById(`conflict-${index}`);
-    const clientConflictAlert = document.getElementById(`client-conflict-${index}`);
-
-    if (conflictAlert) conflictAlert.style.display = 'none';
-    if (clientConflictAlert) clientConflictAlert.style.display = 'none';
-
-    if (!clientId || !staffSelect.value || !dateInput.value || !startTimeInput.value || !endTimeInput.value) {
-        updateSummary();
-        return;
     }
 
-    // Check staff conflicts
-    fetch('/api/unaki/check-staff-conflicts', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({
-            staff_id: staffSelect.value,
-            appointment_date: dateInput.value,
-            start_time: startTimeInput.value,
-            end_time: endTimeInput.value
-        })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.has_conflict) {
-            conflictAlert.innerHTML = `<i class="fas fa-exclamation-triangle"></i> ${data.message || 'Staff conflict detected'}`;
-            conflictAlert.style.display = 'block';
-            staffSelect.classList.add('is-invalid');
-        } else {
-            staffSelect.classList.remove('is-invalid');
+    function showStaffConflictError(index, message) {
+        const conflictAlert = document.getElementById(`conflict-${index}`);
+        const card = document.querySelector(`[data-index="${index}"]`);
+
+        if (conflictAlert) {
+            const messageSpan =
+                conflictAlert.querySelector(".conflict-message");
+            if (messageSpan) messageSpan.textContent = message;
+            conflictAlert.classList.remove("d-none");
+            conflictAlert.classList.add("shake-animation");
+            setTimeout(
+                () => conflictAlert.classList.remove("shake-animation"),
+                500,
+            );
         }
-    })
-    .catch(err => console.error('Error checking staff conflicts:', err));
 
-    // Check client conflicts
-    fetch('/api/unaki/check-client-conflicts', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({
-            client_id: clientId,
-            appointment_date: dateInput.value,
-            start_time: startTimeInput.value,
-            end_time: endTimeInput.value
-        })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.has_conflict) {
-            clientConflictAlert.innerHTML = `<i class="fas fa-exclamation-circle"></i> ${data.message || 'Client has conflicting appointment'}`;
-            clientConflictAlert.style.display = 'block';
+        if (card) card.classList.add("has-conflict");
+    }
+
+    function showClientConflictError(index, message, errorType) {
+        const clientConflictAlert = document.getElementById(
+            `client-conflict-${index}`,
+        );
+        const card = document.querySelector(`[data-index="${index}"]`);
+
+        if (clientConflictAlert) {
+            const messageSpan = clientConflictAlert.querySelector(
+                ".client-conflict-message",
+            );
+            if (messageSpan) messageSpan.innerHTML = message; // Use innerHTML for badges
+            clientConflictAlert.classList.remove("d-none");
+            clientConflictAlert.classList.add("shake-animation");
+            setTimeout(
+                () => clientConflictAlert.classList.remove("shake-animation"),
+                500,
+            );
         }
-    })
-    .catch(err => console.error('Error checking client conflicts:', err));
 
-    updateSummary();
-}
+        if (card) {
+            card.classList.add("has-conflict");
+            card.dataset.conflictType = errorType;
+        }
+    }
 
-function loadClientAppointments(clientId) {
-    fetch(`/api/unaki/customer-appointments/${clientId}`)
-        .then(response => response.json())
-        .then(data => {
-            if (data.success && data.bookings && data.bookings.length > 0) {
-                displayClientAppointments(data.bookings);
+    // ==================== CONFLICT SUMMARY ====================
+    function updateConflictSummary() {
+        const banner = document.getElementById("conflictSummaryBanner");
+        const summaryText = document.getElementById("conflictSummaryText");
+        const summarySubtext = document.getElementById(
+            "conflictSummarySubtext",
+        );
+
+        const allCards = document.querySelectorAll(".appointment-card");
+        const conflictedCards = document.querySelectorAll(
+            ".appointment-card.has-conflict",
+        );
+
+        const totalCount = allCards.length;
+        const conflictCount = conflictedCards.length;
+
+        if (conflictCount > 0) {
+            banner.classList.remove("d-none", "alert-success");
+            banner.classList.add("alert-warning");
+            summaryText.innerHTML = `⚠️ ${conflictCount} of ${totalCount} appointment${conflictCount > 1 ? "s have" : " has"} conflicts`;
+            summarySubtext.textContent =
+                "Please resolve all conflicts before booking";
+        } else if (totalCount > 0) {
+            // Check if all fields are filled
+            let allFilled = true;
+            allCards.forEach((card) => {
+                const index = card.dataset.index;
+                const service = document.querySelector(
+                    `.service-select[data-index="${index}"]`,
+                )?.value;
+                const staff = document.querySelector(
+                    `.staff-select[data-index="${index}"]`,
+                )?.value;
+                const date = document.querySelector(
+                    `.date-input[data-index="${index}"]`,
+                )?.value;
+                const startTime = document.querySelector(
+                    `.start-time-select[data-index="${index}"]`,
+                )?.value;
+                const endTime = document.querySelector(
+                    `.end-time-select[data-index="${index}"]`,
+                )?.value;
+
+                if (!service || !staff || !date || !startTime || !endTime) {
+                    allFilled = false;
+                }
+            });
+
+            if (allFilled && $("#clientSelect").val()) {
+                banner.classList.remove("d-none", "alert-warning");
+                banner.classList.add("alert-success");
+                banner.querySelector("i").className =
+                    "fas fa-check-circle fs-4 me-3";
+                summaryText.innerHTML = `✅ All ${totalCount} appointment${totalCount > 1 ? "s" : ""} available`;
+                summarySubtext.textContent = "Ready to book!";
             } else {
-                $('#clientExistingAppointments').hide();
+                banner.classList.add("d-none");
+            }
+        } else {
+            banner.classList.add("d-none");
+        }
+    }
+
+    // ==================== SUMMARY UPDATES ====================
+    function updateAppointmentCount() {
+        const count = document.querySelectorAll(".appointment-card").length;
+        document.getElementById("appointmentCount").textContent =
+            `${count} Appointment${count !== 1 ? "s" : ""}`;
+    }
+
+    function updateSummary() {
+        let totalDuration = 0;
+        let totalPrice = 0;
+        const staffSet = new Set();
+
+        document.querySelectorAll(".service-select").forEach((select) => {
+            if (select.value) {
+                const option = select.options[select.selectedIndex];
+                totalDuration += parseInt(option.dataset.duration) || 0;
+                totalPrice += parseFloat(option.dataset.price) || 0;
+
+                const index = select.dataset.index;
+                const staffSelect = document.querySelector(
+                    `.staff-select[data-index="${index}"]`,
+                );
+                if (staffSelect?.value) {
+                    staffSet.add(staffSelect.value);
+                }
             }
         });
-}
 
-function displayClientAppointments(bookings) {
-    const container = document.getElementById('clientAppointmentsList');
-    const activeBookings = bookings.filter(b => b.status === 'scheduled' || b.status === 'confirmed');
-
-    if (activeBookings.length === 0) {
-        $('#clientExistingAppointments').hide();
-        return;
+        document.getElementById("totalDuration").textContent =
+            `${totalDuration} min`;
+        document.getElementById("totalPrice").textContent =
+            `₹${totalPrice.toFixed(2)}`;
+        document.getElementById("staffRequired").textContent = staffSet.size;
     }
 
-    let html = '<ul class="list-group list-group-flush">';
-    activeBookings.forEach(booking => {
-        const startTime12 = convertTo12Hour(booking.start_time);
-        const endTime12 = convertTo12Hour(booking.end_time);
-        html += `
+    // ==================== SUBMIT BUTTON ====================
+    function updateSubmitButton() {
+        const submitBtn = document.getElementById("submitBookingBtn");
+        if (!submitBtn) return;
+
+        const clientId = $("#clientSelect").val();
+        const hasConflicts =
+            document.querySelectorAll(".appointment-card.has-conflict").length >
+            0;
+
+        // Check if all fields filled
+        let allFilled = true;
+        document.querySelectorAll(".appointment-card").forEach((card) => {
+            const index = card.dataset.index;
+            const service = document.querySelector(
+                `.service-select[data-index="${index}"]`,
+            )?.value;
+            const staff = document.querySelector(
+                `.staff-select[data-index="${index}"]`,
+            )?.value;
+            const date = document.querySelector(
+                `.date-input[data-index="${index}"]`,
+            )?.value;
+            const startTime = document.querySelector(
+                `.start-time-select[data-index="${index}"]`,
+            )?.value;
+            const endTime = document.querySelector(
+                `.end-time-select[data-index="${index}"]`,
+            )?.value;
+
+            if (!service || !staff || !date || !startTime || !endTime) {
+                allFilled = false;
+            }
+        });
+
+        // Update button state
+        if (!clientId) {
+            submitBtn.disabled = true;
+            submitBtn.className = "btn btn-lg btn-secondary";
+            submitBtn.innerHTML =
+                '<i class="fas fa-user me-2"></i>Select Client First';
+        } else if (hasConflicts) {
+            submitBtn.disabled = true;
+            submitBtn.className = "btn btn-lg btn-danger";
+            submitBtn.innerHTML =
+                '<i class="fas fa-exclamation-triangle me-2"></i>Resolve Conflicts First';
+        } else if (!allFilled) {
+            submitBtn.disabled = true;
+            submitBtn.className = "btn btn-lg btn-secondary";
+            submitBtn.innerHTML =
+                '<i class="fas fa-edit me-2"></i>Complete All Fields';
+        } else {
+            submitBtn.disabled = false;
+            submitBtn.className = "btn btn-lg btn-success";
+            submitBtn.innerHTML =
+                '<i class="fas fa-check-circle me-2"></i>Book All Appointments';
+        }
+    }
+
+    // ==================== CLIENT LOADING ====================
+    function loadClientAppointments(clientId) {
+        fetch(`/api/unaki/customer-appointments/${clientId}`)
+            .then((response) => response.json())
+            .then((data) => {
+                if (data.success && data.bookings?.length > 0) {
+                    displayClientAppointments(data.bookings);
+                } else {
+                    $("#clientExistingAppointments").hide();
+                }
+            })
+            .catch((err) =>
+                console.error("Error loading client appointments:", err),
+            );
+    }
+
+    function displayClientAppointments(bookings) {
+        const container = document.getElementById("clientAppointmentsList");
+        const activeBookings = bookings.filter(
+            (b) =>
+                b.status === "scheduled" ||
+                b.status === "confirmed" ||
+                b.payment_status === "pending",
+        );
+
+        if (activeBookings.length === 0) {
+            $("#clientExistingAppointments").hide();
+            return;
+        }
+
+        let html = '<ul class="list-group list-group-flush">';
+        activeBookings.forEach((booking) => {
+            const paymentBadge =
+                booking.payment_status === "pending"
+                    ? '<span class="badge bg-warning text-dark">UNPAID</span>'
+                    : "";
+
+            html += `
             <li class="list-group-item">
-                <strong>${booking.service_name}</strong><br>
-                <small class="text-muted">
-                    ${booking.appointment_date} at ${startTime12} - ${endTime12}
-                    (${booking.staff_name})
-                </small>
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <strong>${booking.service_name}</strong><br>
+                        <small class="text-muted">
+                            ${booking.appointment_date} at ${format12Hour(booking.start_time)} - ${format12Hour(booking.end_time)}
+                            (${booking.staff_name})
+                        </small>
+                    </div>
+                    ${paymentBadge}
+                </div>
             </li>
         `;
-    });
-    html += '</ul>';
-
-    container.innerHTML = html;
-    document.getElementById('clientAppointmentsCount').textContent = activeBookings.length;
-    $('#clientExistingAppointments').show();
-}
-
-function submitMultiBooking() {
-    const clientId = $('#clientSelect').val();
-    if (!clientId) {
-        alert('❌ Please select a client');
-        return;
-    }
-
-    const appointments = [];
-    let isValid = true;
-    let validationErrors = [];
-
-    document.querySelectorAll('.appointment-card').forEach((card, idx) => {
-        const index = card.dataset.index;
-        const serviceSelect = document.querySelector(`.service-select[data-index="${index}"]`);
-        const staffSelect = document.querySelector(`.staff-select[data-index="${index}"]`);
-        const dateInput = document.querySelector(`.date-input[data-index="${index}"]`);
-        const startTimeInput = document.querySelector(`.start-time-24h[data-index="${index}"]`);
-        const endTimeInput = document.querySelector(`.end-time-24h[data-index="${index}"]`);
-
-        if (!serviceSelect.value || !staffSelect.value || !dateInput.value || !startTimeInput.value || !endTimeInput.value) {
-            isValid = false;
-            validationErrors.push(`Appointment ${idx + 1}: Missing required fields`);
-            return;
-        }
-
-        const start = startTimeInput.value;
-        const end = endTimeInput.value;
-        if (start >= end) {
-            isValid = false;
-            validationErrors.push(`Appointment ${idx + 1}: End time must be after start time`);
-            return;
-        }
-
-        const conflictAlert = document.getElementById(`conflict-${index}`);
-        const clientConflictAlert = document.getElementById(`client-conflict-${index}`);
-        if (conflictAlert && conflictAlert.style.display !== 'none') {
-            isValid = false;
-            validationErrors.push(`Appointment ${idx + 1}: Staff conflict detected`);
-            return;
-        }
-        if (clientConflictAlert && clientConflictAlert.style.display !== 'none') {
-            isValid = false;
-            validationErrors.push(`Appointment ${idx + 1}: Client conflict detected`);
-            return;
-        }
-
-        const selectedService = serviceSelect.options[serviceSelect.selectedIndex];
-        const selectedStaff = staffSelect.options[staffSelect.selectedIndex];
-
-        appointments.push({
-            client_id: clientId,
-            clientName: $('#clientSelect option:selected').text().split(' - ')[0],
-            service_id: serviceSelect.value,
-            service_name: selectedService.text.split(' (')[0],
-            service_duration: parseInt(selectedService.dataset.duration),
-            service_price: parseFloat(selectedService.dataset.price),
-            staff_id: staffSelect.value,
-            staffName: selectedStaff.text,
-            appointment_date: dateInput.value,
-            start_time: startTimeInput.value,
-            end_time: endTimeInput.value
         });
-    });
+        html += "</ul>";
 
-    if (!isValid) {
-        alert('❌ Validation Failed:\n\n' + validationErrors.join('\n'));
-        return;
+        container.innerHTML = html;
+        document.getElementById("clientAppointmentsCount").textContent =
+            activeBookings.length;
+        $("#clientExistingAppointments").show();
     }
 
-    if (appointments.length === 0) {
-        alert('❌ No appointments to book');
-        return;
-    }
+    // ==================== FORM SUBMISSION ====================
+    function submitMultiBooking() {
+        const clientId = $("#clientSelect").val();
+        if (!clientId) {
+            alert("❌ Please select a client");
+            return;
+        }
 
-    const summary = appointments.map((apt, i) => 
-        `${i + 1}. ${apt.service_name} with ${apt.staffName} at ${convertTo12Hour(apt.start_time)}`
-    ).join('\n');
+        const appointments = [];
+        let isValid = true;
+        const validationErrors = [];
 
-    if (!confirm(`📅 Book ${appointments.length} appointment(s)?\n\n${summary}`)) {
-        return;
-    }
+        document.querySelectorAll(".appointment-card").forEach((card, idx) => {
+            const index = card.dataset.index;
+            const serviceSelect = document.querySelector(
+                `.service-select[data-index="${index}"]`,
+            );
+            const staffSelect = document.querySelector(
+                `.staff-select[data-index="${index}"]`,
+            );
+            const dateInput = document.querySelector(
+                `.date-input[data-index="${index}"]`,
+            );
+            const startTimeSelect = document.querySelector(
+                `.start-time-select[data-index="${index}"]`,
+            );
+            const endTimeSelect = document.querySelector(
+                `.end-time-select[data-index="${index}"]`,
+            );
 
-    const promises = appointments.map(apt => 
-        fetch('/api/unaki/book-appointment', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify(apt)
-        }).then(r => r.json())
-    );
-
-    Promise.all(promises)
-        .then(results => {
-            const successCount = results.filter(r => r.success).length;
-            const failCount = results.length - successCount;
-            const errors = results.filter(r => !r.success).map(r => r.error || 'Unknown error');
-
-            if (failCount === 0) {
-                alert(`✅ Successfully booked ${successCount} appointment(s)!`);
-                window.location.href = '{{ url_for("unaki_booking") }}';
-            } else {
-                alert(`⚠️ Booked ${successCount} appointments, ${failCount} failed:\n\n${errors.join('\n')}`);
-                window.location.reload();
+            // Validation
+            if (
+                !serviceSelect?.value ||
+                !staffSelect?.value ||
+                !dateInput?.value ||
+                !startTimeSelect?.value ||
+                !endTimeSelect?.value
+            ) {
+                isValid = false;
+                validationErrors.push(
+                    `Appointment ${idx + 1}: Missing required fields`,
+                );
+                return;
             }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('❌ Error booking appointments. Please try again.');
+
+            if (startTimeSelect.value >= endTimeSelect.value) {
+                isValid = false;
+                validationErrors.push(
+                    `Appointment ${idx + 1}: End time must be after start time`,
+                );
+                return;
+            }
+
+            // Check conflicts
+            if (
+                document
+                    .getElementById(`conflict-${index}`)
+                    .classList.contains("d-none") === false ||
+                document
+                    .getElementById(`client-conflict-${index}`)
+                    .classList.contains("d-none") === false
+            ) {
+                isValid = false;
+                validationErrors.push(`Appointment ${idx + 1}: Has conflicts`);
+                return;
+            }
+
+            const selectedService =
+                serviceSelect.options[serviceSelect.selectedIndex];
+            const selectedStaff =
+                staffSelect.options[staffSelect.selectedIndex];
+
+            appointments.push({
+                client_id: clientId,
+                client_name: $("#clientSelect option:selected")
+                    .text()
+                    .split(" - ")[0],
+                client_phone: $("#clientSelect option:selected").data("phone"),
+                client_email: $("#clientSelect option:selected").data("email"),
+                service_id: serviceSelect.value,
+                service_name: selectedService.text.split(" (")[0],
+                service_duration: parseInt(selectedService.dataset.duration),
+                service_price: parseFloat(selectedService.dataset.price),
+                staff_id: staffSelect.value,
+                staff_name: selectedStaff.text,
+                appointment_date: dateInput.value,
+                start_time: startTimeSelect.value,
+                end_time: endTimeSelect.value,
+                notes: document.getElementById("bookingNotes").value,
+            });
         });
-}
 
-function resetForm() {
-    if (confirm('Are you sure you want to reset the form?')) {
-        location.reload();
+        if (!isValid) {
+            alert("❌ Validation Failed:\n\n" + validationErrors.join("\n"));
+            return;
+        }
+
+        // Confirm
+        const summary = appointments
+            .map(
+                (apt, i) =>
+                    `${i + 1}. ${apt.service_name} with ${apt.staff_name} at ${format12Hour(apt.start_time)}`,
+            )
+            .join("\n");
+
+        if (
+            !confirm(
+                `📅 Book ${appointments.length} appointment(s)?\n\n${summary}`,
+            )
+        ) {
+            return;
+        }
+
+        // Disable button during submission
+        const submitBtn = document.getElementById("submitBookingBtn");
+        submitBtn.disabled = true;
+        submitBtn.innerHTML =
+            '<i class="fas fa-spinner fa-spin me-2"></i>Booking...';
+
+        // Submit all
+        const promises = appointments.map((apt) =>
+            fetch("/api/unaki/book-appointment", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(apt),
+            }).then((r) => r.json()),
+        );
+
+        Promise.all(promises)
+            .then((results) => {
+                const successCount = results.filter((r) => r.success).length;
+                const failCount = results.length - successCount;
+                const errors = results
+                    .filter((r) => !r.success)
+                    .map((r) => r.error || "Unknown error");
+
+                if (failCount === 0) {
+                    alert(
+                        `✅ Successfully booked ${successCount} appointment(s)!`,
+                    );
+                    window.location.href = '{{ url_for("unaki_booking") }}';
+                } else {
+                    alert(
+                        `⚠️ Booked ${successCount} appointments, ${failCount} failed:\n\n${errors.join("\n")}`,
+                    );
+                    window.location.reload();
+                }
+            })
+            .catch((error) => {
+                console.error("Error:", error);
+                alert("❌ Error booking appointments. Please try again.");
+                submitBtn.disabled = false;
+                updateSubmitButton();
+            });
     }
-}
 
-function openQuickAddClient() {
-    $('#quickAddClientModal').modal('show');
-}
+    function resetForm() {
+        if (confirm("Are you sure you want to reset the form?")) {
+            location.reload();
+        }
+    }
 
-function saveQuickClient() {
-    alert('Quick add client feature - to be implemented');
-}
+    // ==================== QUICK ADD CLIENT ====================
+    function openQuickAddClient() {
+        $("#quickAddClientForm")[0].reset();
+        $("#quickAddClientModal").modal("show");
+    }
+
+    async function saveQuickClient() {
+        const firstName = $("#quickFirstName").val().trim();
+        const lastName = $("#quickLastName").val().trim();
+        const phone = $("#quickPhone").val().trim();
+        const email = $("#quickEmail").val().trim();
+        const gender = $("#quickGender").val();
+
+        if (!firstName || !lastName || !phone || !gender) {
+            alert("❌ Please fill all required fields");
+            return;
+        }
+
+        if (phone.length < 10) {
+            alert("❌ Please enter a valid phone number");
+            return;
+        }
+
+        const saveBtn = $("#saveQuickClientBtn");
+        saveBtn
+            .prop("disabled", true)
+            .html('<i class="fas fa-spinner fa-spin me-2"></i>Saving...');
+
+        try {
+            const response = await fetch("/api/unaki/quick-add-client", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    first_name: firstName,
+                    last_name: lastName,
+                    phone: phone,
+                    email: email,
+                    gender: gender,
+                }),
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                // Add to dropdown
+                const newOption = new Option(
+                    `${result.client.first_name} ${result.client.last_name} - ${result.client.phone}`,
+                    result.client.id,
+                    true,
+                    true,
+                );
+                $(newOption).attr("data-phone", result.client.phone);
+                $(newOption).attr("data-email", result.client.email || "");
+                $("#clientSelect").append(newOption).trigger("change");
+
+                $("#quickAddClientModal").modal("hide");
+                alert("✅ Client added successfully!");
+            } else {
+                alert("❌ " + (result.error || "Failed to add client"));
+            }
+        } catch (error) {
+            console.error("Error:", error);
+            alert("❌ Error adding client. Please try again.");
+        } finally {
+            saveBtn
+                .prop("disabled", false)
+                .html('<i class="fas fa-save me-2"></i>Save Client');
+        }
+    }
 </script>
 {% endblock %}
