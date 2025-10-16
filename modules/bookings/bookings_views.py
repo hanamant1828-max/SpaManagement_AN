@@ -1531,12 +1531,18 @@ def api_check_client_conflicts():
                     service = Service.query.get(booking.service_id)
                     service_price = float(service.price) if service else 0
 
+                # Format time without leading zeros (e.g., "1:00 PM" instead of "01:00 PM")
+                start_hour = booking.start_time.strftime('%I').lstrip('0') or '12'
+                end_hour = booking.end_time.strftime('%I').lstrip('0') or '12'
+                start_time_formatted = f"{start_hour}:{booking.start_time.strftime('%M %p')}"
+                end_time_formatted = f"{end_hour}:{booking.end_time.strftime('%M %p')}"
+                
                 conflicts.append({
                     'appointment_id': booking.id,
                     'service_name': booking.service_name or 'Unknown Service',
                     'staff_name': staff_name,
-                    'start_time': booking.start_time.strftime('%I:%M %p'),
-                    'end_time': booking.end_time.strftime('%I:%M %p'),
+                    'start_time': start_time_formatted,
+                    'end_time': end_time_formatted,
                     'appointment_date': booking.appointment_date.strftime('%Y-%m-%d'),
                     'is_same_date': is_same_date,
                     'payment_status': booking.payment_status or 'pending',

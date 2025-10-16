@@ -479,6 +479,7 @@ Management{% endblock %} {% block content %}
         const hour = parseInt(hours);
         const ampm = hour >= 12 ? "PM" : "AM";
         const hour12 = hour % 12 || 12;
+        // No leading zero for single-digit hours
         return `${hour12}:${minutes} ${ampm}`;
     }
 
