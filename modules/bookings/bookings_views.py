@@ -1196,7 +1196,7 @@ def multi_appointment_booking():
 @app.route('/api/unaki/check-staff-conflicts', methods=['POST'])
 @login_required
 def api_check_staff_conflicts():
-    """API endpoint to check for staff appointment conflicts"""
+    """API endpoint to check for staff appointment conflicts including shift, break, and OOO validation"""
     if not current_user.can_access('bookings'):
         return jsonify({'error': 'Access denied', 'success': False}), 403
     
@@ -1227,10 +1227,11 @@ def api_check_staff_conflicts():
             return jsonify({
                 'success': True,
                 'has_conflict': True,
+                'shift_violation': True,
                 'message': 'End time must be after start time'
             })
         
-        from models import UnakiBooking, User
+        from models import UnakiBooking, User, ShiftManagement, ShiftLogs
         staff = User.query.get(staff_id)
         if not staff:
             return jsonify({
@@ -1239,7 +1240,71 @@ def api_check_staff_conflicts():
                 'message': 'Staff member not found'
             }), 404
         
-        # Check for conflicts
+        # 1. CHECK SHIFT SCHEDULE
+        shift_management = ShiftManagement.query.filter(
+            ShiftManagement.staff_id == staff_id,
+            ShiftManagement.from_date <= appointment_date,
+            ShiftManagement.to_date >= appointment_date
+        ).first()
+        
+        if shift_management:
+            shift_log = ShiftLogs.query.filter(
+                ShiftLogs.shift_management_id == shift_management.id,
+                ShiftLogs.individual_date == appointment_date
+            ).first()
+            
+            if shift_log:
+                # Check if staff is working (not absent/holiday)
+                if shift_log.status not in ['scheduled', 'completed']:
+                    return jsonify({
+                        'success': True,
+                        'has_conflict': True,
+                        'shift_violation': True,
+                        'message': f"{staff.first_name} {staff.last_name} is {shift_log.status} on {appointment_date.strftime('%B %d, %Y')}"
+                    })
+                
+                # Check shift hours
+                shift_start = shift_log.shift_start_time
+                shift_end = shift_log.shift_end_time
+                
+                if start_time < shift_start or end_time > shift_end:
+                    return jsonify({
+                        'success': True,
+                        'has_conflict': True,
+                        'shift_violation': True,
+                        'message': f"{staff.first_name} {staff.last_name} works {shift_start.strftime('%I:%M %p')} - {shift_end.strftime('%I:%M %p')}. Appointment time is outside shift hours."
+                    })
+                
+                # Check break time
+                if shift_log.break_start_time and shift_log.break_end_time:
+                    break_start_dt = datetime.combine(appointment_date, shift_log.break_start_time)
+                    break_end_dt = datetime.combine(appointment_date, shift_log.break_end_time)
+                    
+                    # Check if appointment overlaps with break
+                    if not (end_datetime <= break_start_dt or start_datetime >= break_end_dt):
+                        return jsonify({
+                            'success': True,
+                            'has_conflict': True,
+                            'shift_violation': True,
+                            'message': f"{staff.first_name} {staff.last_name} has break from {shift_log.break_start_time.strftime('%I:%M %p')} to {shift_log.break_end_time.strftime('%I:%M %p')}"
+                        })
+                
+                # Check out of office periods
+                if shift_log.out_of_office_start and shift_log.out_of_office_end:
+                    ooo_start_dt = datetime.combine(appointment_date, shift_log.out_of_office_start)
+                    ooo_end_dt = datetime.combine(appointment_date, shift_log.out_of_office_end)
+                    
+                    # Check if appointment overlaps with OOO
+                    if not (end_datetime <= ooo_start_dt or start_datetime >= ooo_end_dt):
+                        reason = shift_log.out_of_office_reason or "Out of office"
+                        return jsonify({
+                            'success': True,
+                            'has_conflict': True,
+                            'shift_violation': True,
+                            'message': f"{staff.first_name} {staff.last_name} is out of office from {shift_log.out_of_office_start.strftime('%I:%M %p')} to {shift_log.out_of_office_end.strftime('%I:%M %p')} ({reason})"
+                        })
+        
+        # 2. CHECK APPOINTMENT CONFLICTS
         conflicting_bookings = UnakiBooking.query.filter(
             UnakiBooking.staff_id == staff_id,
             UnakiBooking.appointment_date == appointment_date,
@@ -1254,12 +1319,15 @@ def api_check_staff_conflicts():
                 return jsonify({
                     'success': True,
                     'has_conflict': True,
+                    'shift_violation': False,
                     'message': f"{staff.first_name} {staff.last_name} has appointment from {booking.start_time.strftime('%I:%M %p')} to {booking.end_time.strftime('%I:%M %p')} with {booking.client_name}"
                 })
         
+        # All checks passed
         return jsonify({
             'success': True,
             'has_conflict': False,
+            'shift_violation': False,
             'message': 'No conflicts found'
         })
         
