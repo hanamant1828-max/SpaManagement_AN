@@ -1892,7 +1892,7 @@
                             <label class="form-label fw-semibold">
                                 <i class="fas fa-user me-2" style="color: var(--primary-color)"></i>Select Client
                             </label>
-                            <select id="checkinClientSelect" class="form-select select2-dropdown" style="border-radius: 10px; padding: 12px">
+                            <select id="checkinClientSelect" class="form-select" style="border-radius: 10px; padding: 12px">
                                 <option value="">Choose a client...</option>
                                 {% for client in customers %}
                                 <option value="{{ client.id }}">{{ client.full_name }} - {{ client.phone }}</option>
@@ -2132,8 +2132,8 @@
                     // Destroy existing Select2 instances first
                     $('.select2-dropdown.select2-hidden-accessible').select2('destroy');
 
-                    // Initialize select2 for regular dropdowns
-                    $('.select2-dropdown').select2({
+                    // Initialize select2 for regular dropdowns (excluding check-in dropdown)
+                    $('.select2-dropdown').not('#checkinClientSelect').select2({
                         width: '100%',
                         placeholder: function() {
                             return $(this).find('option:first').text();
@@ -2141,7 +2141,7 @@
                         allowClear: true
                     });
 
-                    // Initialize check-in client dropdown (without select2 if causing issues)
+                    // Check-in client dropdown uses normal select (no Select2)
                     const checkinSelect = document.getElementById('checkinClientSelect');
                     if (checkinSelect && checkinSelect.options.length <= 1) {
                         console.log('⚠️ Check-in client dropdown has no clients loaded');
