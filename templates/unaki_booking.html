@@ -566,7 +566,7 @@
             }
 
             .appointment-block.checked-in .appointment-client {
-                color: #92400e;
+                color: #991b1b;
             }
 
             .appointment-block.checked-in .appointment-service {
@@ -2132,7 +2132,7 @@
                     // Destroy existing Select2 instances first
                     $('.select2-dropdown.select2-hidden-accessible').select2('destroy');
 
-                    // Initialize Select2 for edit modal
+                    // Initialize select2 for regular dropdowns
                     $('.select2-dropdown').select2({
                         width: '100%',
                         placeholder: function() {
@@ -2140,6 +2140,28 @@
                         },
                         allowClear: true
                     });
+
+                    // Initialize check-in client dropdown (without select2 if causing issues)
+                    const checkinSelect = document.getElementById('checkinClientSelect');
+                    if (checkinSelect && checkinSelect.options.length <= 1) {
+                        console.log('⚠️ Check-in client dropdown has no clients loaded');
+                        // Try to reload clients via API
+                        fetch('/api/customers')
+                            .then(response => response.json())
+                            .then(customers => {
+                                checkinSelect.innerHTML = '<option value="">Choose a client...</option>';
+                                customers.forEach(customer => {
+                                    const option = document.createElement('option');
+                                    option.value = customer.id;
+                                    option.textContent = `${customer.name} - ${customer.phone}`;
+                                    checkinSelect.appendChild(option);
+                                });
+                                console.log(`✅ Loaded ${customers.length} clients into check-in dropdown`);
+                            })
+                            .catch(error => {
+                                console.error('Error loading clients:', error);
+                            });
+                    }
                 }
             }
             // ==========================================
@@ -2262,7 +2284,7 @@
                     const startMinute = parseFloat(booking.start_minute);
                     const hoursSince9AM = startHour - 9 + startMinute / 60;
                     const leftPosition = hoursSince9AM * 140;
-                    
+
                     // Calculate actual duration from start_time and end_time
                     let durationMinutes = booking.duration; // Default fallback
                     if (booking.start_time && booking.end_time) {
@@ -2631,12 +2653,12 @@
             // ==========================================
             // CHECK-IN FUNCTIONS
             // ==========================================
-            
+
             function performManualCheckin() {
                 const clientSelect = document.getElementById('checkinClientSelect');
                 const clientId = clientSelect.value;
                 const messageDiv = document.getElementById('checkinMessage');
-                
+
                 if (!clientId) {
                     messageDiv.className = 'alert alert-warning';
                     messageDiv.style.display = 'block';
@@ -2645,7 +2667,7 @@
                 }
 
                 messageDiv.style.display = 'none';
-                
+
                 fetch('/api/unaki/checkin/manual', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -2657,7 +2679,7 @@
                         messageDiv.className = 'alert alert-success';
                         messageDiv.style.display = 'block';
                         messageDiv.innerHTML = `<i class="fas fa-check-circle me-2"></i>${data.message}`;
-                        
+
                         setTimeout(() => {
                             bootstrap.Modal.getInstance(document.getElementById('manualCheckinModal')).hide();
                             loadBookings();
@@ -2680,7 +2702,7 @@
 
             function checkinAppointment(appointmentId) {
                 if (!appointmentId) return;
-                
+
                 fetch(`/api/unaki/checkin/${appointmentId}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' }
@@ -2703,7 +2725,7 @@
 
             function undoCheckin(appointmentId) {
                 if (!appointmentId) return;
-                
+
                 fetch(`/api/unaki/checkin/undo/${appointmentId}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' }

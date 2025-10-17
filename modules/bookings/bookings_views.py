@@ -3302,7 +3302,7 @@ def api_unaki_customer_appointments(client_id):
         # Get all Unaki bookings for this customer
         bookings = UnakiBooking.query.filter_by(client_id=customer.id).all()
 
-        # If no bookings found by client_id, try matching by phone number
+        # If no bookings found by client_id, try matching by phone if customer.phone exists
         if not bookings and customer.phone:
             bookings = UnakiBooking.query.filter(
                 UnakiBooking.client_phone == customer.phone,
@@ -3388,7 +3388,7 @@ def api_unaki_checkin_appointment(booking_id):
         # Check in the appointment
         booking.checked_in = True
         booking.checked_in_at = datetime.now(pytz.timezone('Asia/Kolkata')).replace(tzinfo=None)
-        
+
         db.session.commit()
 
         return jsonify({
@@ -3420,7 +3420,7 @@ def api_unaki_manual_checkin():
 
         data = request.get_json()
         client_id = data.get('client_id')
-        
+
         if not client_id:
             return jsonify({'success': False, 'error': 'Client ID is required'}), 400
 
@@ -3449,7 +3449,7 @@ def api_unaki_manual_checkin():
 
         if not bookings:
             return jsonify({
-                'success': False, 
+                'success': False,
                 'error': f'No scheduled appointments found for {customer.full_name} today'
             }), 404
 
@@ -3496,7 +3496,7 @@ def api_unaki_undo_checkin(booking_id):
         # Undo check-in
         booking.checked_in = False
         booking.checked_in_at = None
-        
+
         db.session.commit()
 
         return jsonify({
