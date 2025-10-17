@@ -148,20 +148,20 @@
                             <span class="fw-bold">${convert24To12Hour(schedule.shift_end_time)}</span>
                         </div>
                         ${schedule.break_time ? `<small class="text-muted d-block mt-1"><i class="fas fa-coffee me-1"></i>${schedule.break_time}</small>` : ''}
-                        <div class="mt-1">
-                            ${getStatusBadge(schedule.is_active)}
-                        </div>
                     </td>
-                    <td>
+                    <td class="text-center">
+                        ${getStatusBadge(schedule.is_active)}
+                    </td>
+                    <td class="text-center">
                         <div class="action-buttons-group">
                             <button type="button" class="btn action-btn-view btn-view" data-id="${schedule.id}" title="View Schedule">
-                                👁 <i class="fas fa-eye"></i>
+                                <i class="fas fa-eye"></i>
                             </button>
                             <button type="button" class="btn action-btn-edit btn-edit" data-id="${schedule.id}" title="Edit Schedule">
-                                ✏ <i class="fas fa-edit"></i>
+                                <i class="fas fa-edit"></i>
                             </button>
                             <button type="button" class="btn action-btn-delete btn-delete" data-id="${schedule.id}" title="Delete Schedule">
-                                🗑 <i class="fas fa-trash"></i>
+                                <i class="fas fa-trash"></i>
                             </button>
                         </div>
                     </td>

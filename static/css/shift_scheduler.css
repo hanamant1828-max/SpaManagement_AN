@@ -220,11 +220,12 @@ body {
     background: transparent !important;
     border: 1px solid #60a5fa !important;
     color: #3b82f6 !important;
-    padding: 6px 10px;
+    padding: 6px 12px;
     border-radius: 4px;
-    font-size: 0.8rem;
-    margin: 0 2px;
+    font-size: 0.85rem;
+    margin: 0 3px;
     transition: all 0.2s ease;
+    min-width: 36px;
 }
 
 .action-btn-view:hover {
@@ -237,11 +238,12 @@ body {
     background-color: #3b82f6 !important;
     color: #fff !important;
     border: 1px solid #3b82f6 !important;
-    padding: 6px 10px;
+    padding: 6px 12px;
     border-radius: 4px;
-    font-size: 0.8rem;
-    margin: 0 2px;
+    font-size: 0.85rem;
+    margin: 0 3px;
     transition: all 0.2s ease;
+    min-width: 36px;
 }
 
 .action-btn-edit:hover {
@@ -254,17 +256,27 @@ body {
     background: transparent !important;
     border: 1px solid #ef4444 !important;
     color: #ef4444 !important;
-    padding: 6px 10px;
+    padding: 6px 12px;
     border-radius: 4px;
-    font-size: 0.8rem;
-    margin: 0 2px;
+    font-size: 0.85rem;
+    margin: 0 3px;
     transition: all 0.2s ease;
+    min-width: 36px;
 }
 
 .action-btn-delete:hover {
     background-color: #fee2e2 !important;
     color: #ef4444 !important;
     border-color: #ef4444 !important;
+}
+
+/* Action buttons group */
+.action-buttons-group {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    flex-wrap: nowrap;
 }
 
 /* Legacy Table Design - White and Black (kept for compatibility) */
