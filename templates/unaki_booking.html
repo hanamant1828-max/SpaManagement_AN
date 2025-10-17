@@ -2179,6 +2179,7 @@
                         const [startH, startM] = booking.start_time.split(':').map(Number);
                         const [endH, endM] = booking.end_time.split(':').map(Number);
                         durationMinutes = (endH * 60 + endM) - (startH * 60 + startM);
+                        console.log(`⏱️ Calculated duration for ${booking.client_name}: ${booking.start_time} to ${booking.end_time} = ${durationMinutes} minutes (was ${booking.duration})`);
                     }
                     const durationHours = durationMinutes / 60;
                     const width = Math.max(durationHours * 140, 80);
