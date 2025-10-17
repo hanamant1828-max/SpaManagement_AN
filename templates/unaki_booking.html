@@ -2477,21 +2477,16 @@
                 }
             }
 
+            // Handle empty slot clicks - redirect to multi-appointment booking page
             function handleSlotClick(event, staffId, hour, minute) {
+                event.preventDefault();
                 event.stopPropagation();
-                const slot = event.currentTarget;
-                const rect = slot.getBoundingClientRect();
-                const clickX = event.clientX - rect.left;
-                const minuteOffset = Math.floor(((clickX / rect.width) * 60) / 15) * 15;
-                const time = `${String(hour).padStart(2, "0")}:${String(minuteOffset).padStart(2, "0")}`;
+
+                const selectedDate = currentDate;
+                const startTime = `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
 
                 // Redirect to multi-appointment booking page with pre-filled data
-                const params = new URLSearchParams({
-                    date: currentDate,
-                    staff_id: staffId,
-                    start_time: time
-                });
-                window.location.href = `/multi-appointment-booking?${params.toString()}`;
+                window.location.href = `/multi-appointment-booking?date=${selectedDate}&staff_id=${staffId}&time=${startTime}`;
             }
 
             function showLoading(show) {
