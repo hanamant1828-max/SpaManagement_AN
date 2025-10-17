@@ -527,16 +527,21 @@
             }
 
             .appointment-block.checked-in {
-                background: #fef3c7 !important;
-                border-left-color: #f59e0b !important;
+                background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%) !important;
+                border-left-color: #3b82f6 !important;
             }
 
             .appointment-block.checked-in .appointment-client {
-                color: #991b1b;
+                color: #1e3a8a;
+                font-weight: 700;
             }
 
             .appointment-block.checked-in .appointment-service {
-                color: #b45309;
+                color: #1e40af;
+            }
+
+            .appointment-block.checked-in .appointment-footer {
+                color: #2563eb;
             }
 
             .appointment-header {

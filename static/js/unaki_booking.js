@@ -471,7 +471,13 @@
 
                     // Create appointment element with service-based color class
                     const appointmentDiv = document.createElement('div');
-                    const checkedInClass = booking.checked_in ? 'checked-in' : '';
+                    
+                    // Check if this client has ANY checked-in appointment
+                    const clientHasCheckedIn = bookingsData.some(b => 
+                        b.client_id === booking.client_id && b.checked_in === true
+                    );
+                    
+                    const checkedInClass = (booking.checked_in || clientHasCheckedIn) ? 'checked-in' : '';
                     const paidClass = booking.payment_status === 'paid' ? 'paid' : '';
                     appointmentDiv.className = `appointment-block ${serviceType} ${checkedInClass} ${paidClass}`;
                     appointmentDiv.style.left = `${leftPosition}px`;
@@ -888,12 +894,26 @@
                 .then(data => {
                     if (data.success) {
                         showNotification('✅ ' + data.message, 'success');
-                        // Update the appointment block immediately for instant feedback
-                        const appointmentBlock = document.querySelector(`[data-appointment-id="${appointmentId}"]`);
-                        if (appointmentBlock) {
-                            appointmentBlock.classList.add('checked-in');
-                            appointmentBlock.dataset.checkedIn = 'true';
+                        
+                        // Get the client ID from the checked-in appointment
+                        const checkedInBooking = bookingsData.find(b => b.id === appointmentId);
+                        if (checkedInBooking && checkedInBooking.client_id) {
+                            const clientId = checkedInBooking.client_id;
+                            console.log(`🔵 Client ${clientId} checked in - marking all their appointments as checked-in`);
+                            
+                            // Update all appointment blocks for this client
+                            bookingsData.forEach(booking => {
+                                if (booking.client_id === clientId) {
+                                    const appointmentBlock = document.querySelector(`[data-appointment-id="${booking.id}"]`);
+                                    if (appointmentBlock) {
+                                        appointmentBlock.classList.add('checked-in');
+                                        appointmentBlock.dataset.checkedIn = 'true';
+                                        console.log(`✅ Marked appointment ${booking.id} as checked-in (sky blue)`);
+                                    }
+                                }
+                            });
                         }
+                        
                         // Refresh the full schedule to ensure consistency
                         setTimeout(() => loadBookings(), 500);
                     } else {
