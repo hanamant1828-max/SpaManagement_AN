@@ -2741,16 +2741,9 @@
                 if (editServiceSelect) editServiceSelect.addEventListener('change', calculateEditEndTime);
                 if (editStartTime) editStartTime.addEventListener('change', calculateEditEndTime);
 
-                // Client selection - handle both native and Select2 events
+                // Client selection - use Select2 events only (avoid duplicate firing)
                 const clientSelect = document.getElementById('multiClientSelect');
                 if (clientSelect) {
-                    // Native change event
-                    clientSelect.addEventListener('change', () => {
-                        validateClientSelection();
-                        loadCustomerExistingAppointments(clientSelect.value);
-                        updateSubmitButton();
-                    });
-
                     // Select2 select event
                     $(clientSelect).on('select2:select', function(e) {
                         validateClientSelection();
@@ -4239,7 +4232,7 @@
 
                         // Show special message if payment status changed to paid and completed
                         if (paymentStatus === 'paid' && status === 'completed') {
-                            showToast('Payment marked as paid. Appointment will be hidden from view.', 'info');
+                            showToast('Payment marked as paid. Appointment styled with paid indicator.', 'success');
                             // Force page reload after 1 second to ensure UI updates
                             setTimeout(() => {
                                 window.location.reload();
