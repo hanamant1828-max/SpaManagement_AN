@@ -2297,19 +2297,17 @@
                     const width = Math.max(durationHours * 140, 80);
                     const serviceType = booking.service_type || "default";
 
-                    const block = document.createElement("div");
-                    // Add 'paid' class if payment status is 'paid' or 'success'
-                    const isPaid = booking.payment_status === 'paid' || booking.payment_status === 'success';
-                    // Add 'checked-in' class if client has checked in
-                    const isCheckedIn = booking.checked_in === true || booking.checked_in === 1;
-                    block.className = `appointment-block service-${serviceType}${isPaid ? ' paid' : ''}${isCheckedIn ? ' checked-in' : ''}`;
-                    block.style.left = `${leftPosition}px`;
-                    block.style.width = `${width}px`;
-                    block.dataset.appointmentId = booking.id;
-                    block.dataset.clientId = booking.client_id;
-                    block.draggable = true;
+                    // Create appointment element with service-based color class
+                    const appointmentDiv = document.createElement('div');
+                    const checkedInClass = booking.checked_in ? 'checked-in' : '';
+                    appointmentDiv.className = `appointment-block ${serviceType} ${checkedInClass}`;
+                    appointmentDiv.style.left = `${leftPosition}px`;
+                    appointmentDiv.style.width = `${width}px`;
+                    appointmentDiv.dataset.appointmentId = booking.id;
+                    appointmentDiv.dataset.checkedIn = booking.checked_in ? 'true' : 'false';
+                    appointmentDiv.draggable = true;
 
-                    block.innerHTML = `
+                    appointmentDiv.innerHTML = `
                         <div class="appointment-header">
                             <div class="appointment-client">${booking.client_name}</div>
                             <div class="appointment-status"></div>
@@ -2323,7 +2321,7 @@
                         </div>
                     `;
 
-                    row.appendChild(block);
+                    row.appendChild(appointmentDiv);
                 });
 
                 // Reinitialize context menu
@@ -2701,26 +2699,40 @@
             }
 
             function checkinAppointment(appointmentId) {
-                if (!appointmentId) return;
+                if (!appointmentId) {
+                    showNotification('No appointment selected', 'error');
+                    return;
+                }
 
                 fetch(`/api/unaki/checkin/${appointmentId}`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' }
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
                 })
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
-                        showNotification(data.message, 'success');
-                        loadBookings();
+                        showNotification('✅ ' + data.message, 'success');
+                        // Update the appointment block immediately for instant feedback
+                        const appointmentBlock = document.querySelector(`[data-appointment-id="${appointmentId}"]`);
+                        if (appointmentBlock) {
+                            appointmentBlock.classList.add('checked-in');
+                            appointmentBlock.dataset.checkedIn = 'true';
+                        }
+                        // Refresh the full schedule to ensure consistency
+                        setTimeout(() => loadBookings(), 500);
                     } else {
-                        showNotification(data.error || 'Failed to check in', 'error');
+                        showNotification('Error: ' + data.error, 'error');
                     }
                 })
                 .catch(error => {
                     console.error('Check-in error:', error);
                     showNotification('Error checking in appointment', 'error');
+                })
+                .finally(() => {
+                    hideContextMenu();
                 });
-                hideContextMenu();
             }
 
             function undoCheckin(appointmentId) {
