@@ -1,5 +1,6 @@
-{% extends "base.html" %} {% block title %}Book Multiple Appointments - Spa
-Management{% endblock %} {% block content %}
+{% extends "base.html" %} 
+{% block title %}Book Multiple Appointments - Spa Management{% endblock %} 
+{% block content %}
 <div class="container-fluid py-4">
     <div class="row mb-4">
         <div class="col-12">
@@ -13,7 +14,7 @@ Management{% endblock %} {% block content %}
                         Book multiple services for a client in one go
                     </p>
                 </div>
-                <a
+                
                     href="{{ url_for('unaki_booking') }}"
                     class="btn btn-outline-secondary"
                 >
@@ -109,7 +110,7 @@ Management{% endblock %} {% block content %}
                         <span
                             id="appointmentCount"
                             class="badge bg-light text-dark"
-                            >1 Appointment</span
+                            >0 Appointments</span
                         >
                     </div>
                 </div>
@@ -139,10 +140,10 @@ Management{% endblock %} {% block content %}
                     <button
                         type="button"
                         class="btn btn-outline-primary w-100 mt-3"
+                        id="addAppointmentBtn"
                         onclick="addAppointmentRow()"
                     >
-                        <i class="fas fa-plus-circle me-2"></i>Add Another
-                        Appointment
+                        <i class="fas fa-plus-circle me-2"></i>Add First Appointment
                     </button>
                 </div>
             </div>
@@ -344,6 +345,11 @@ Management{% endblock %} {% block content %}
         background: #fef2f2;
     }
 
+    .appointment-card.has-warning {
+        border-color: #f59e0b !important;
+        background: #fffbeb;
+    }
+
     .appointment-card.validating {
         border-color: #3b82f6;
         background: #eff6ff;
@@ -404,14 +410,22 @@ Management{% endblock %} {% block content %}
 
     .field-validated {
         border-color: #10b981 !important;
+        background-color: #f0fdf4;
     }
 
     .field-error {
         border-color: #ef4444 !important;
+        background-color: #fef2f2;
     }
 
     .field-validating {
         border-color: #3b82f6 !important;
+        background-color: #eff6ff;
+    }
+
+    .field-warning {
+        border-color: #f59e0b !important;
+        background-color: #fffbeb;
     }
 
     @keyframes shake {
@@ -437,6 +451,16 @@ Management{% endblock %} {% block content %}
     .shake-animation {
         animation: shake 0.5s;
     }
+
+    .validation-toast {
+        position: fixed;
+        top: 80px;
+        right: 20px;
+        z-index: 9999;
+        min-width: 400px;
+        max-width: 500px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
 </style>
 
 <link
@@ -451,6 +475,7 @@ Management{% endblock %} {% block content %}
     let appointmentIndex = 0;
     const conflictTimers = {};
     const clientConflictTimers = {};
+    let clientExistingBookings = []; // Store client's existing appointments
 
     // ==================== TIME UTILITIES ====================
     function generateTimeOptions() {
@@ -470,7 +495,6 @@ Management{% endblock %} {% block content %}
     function format12Hour(time24) {
         if (!time24) return "";
         
-        // Handle if already formatted with AM/PM
         if (time24.includes('AM') || time24.includes('PM')) {
             return time24;
         }
@@ -493,39 +517,58 @@ Management{% endblock %} {% block content %}
         return `${endHours}:${endMinutes}`;
     }
 
+    // ==================== TIME OVERLAP CHECKER ====================
+    function checkTimeOverlap(start1, end1, start2, end2) {
+        // Convert times to minutes for easier comparison
+        const toMinutes = (time) => {
+            const [h, m] = time.split(':').map(Number);
+            return h * 60 + m;
+        };
+
+        const s1 = toMinutes(start1);
+        const e1 = toMinutes(end1);
+        const s2 = toMinutes(start2);
+        const e2 = toMinutes(end2);
+
+        // Check if there's any overlap
+        return (s1 < e2 && e1 > s2);
+    }
+
     // ==================== INITIALIZATION ====================
     $(document).ready(function () {
-        // Initialize Select2
         $("#clientSelect").select2({
             placeholder: "Choose a client...",
             allowClear: true,
             width: "100%",
         });
 
-        // Add first appointment row
         addAppointmentRow();
 
-        // Client selection handler
         $("#clientSelect").on("change", function () {
             const clientId = $(this).val();
             if (clientId) {
                 loadClientAppointments(clientId);
-                // Re-validate all appointments for new client
-                document
-                    .querySelectorAll(".appointment-card")
-                    .forEach((card) => {
-                        const index = card.dataset.index;
-                        checkClientConflicts(index);
-                    });
             } else {
                 $("#clientExistingAppointments").hide();
+                clientExistingBookings = [];
             }
             updateSubmitButton();
         });
+
+        updateAddButtonState();
     });
 
     // ==================== ADD/REMOVE APPOINTMENTS ====================
-    function addAppointmentRow() {
+    async function addAppointmentRow() {
+        const existingCards = document.querySelectorAll(".appointment-card");
+        if (existingCards.length > 0) {
+            // Validate before adding new - AWAIT the async validation
+            const isValid = await validateBeforeAddingNew();
+            if (!isValid) {
+                return;
+            }
+        }
+
         const container = document.getElementById("appointmentsContainer");
         const index = appointmentIndex++;
         const timeOptions = generateTimeOptions();
@@ -613,21 +656,22 @@ Management{% endblock %} {% block content %}
                 </div>
                 <div class="col-md-4 mb-3">
                     <label class="form-label fw-semibold">
-                        End Time *
+                        End Time
                         <span class="validation-icon text-success" id="end-icon-${index}">
                             <i class="fas fa-check-circle"></i>
                         </span>
                     </label>
-                    <select class="form-select end-time-select" data-index="${index}" disabled>
+                    <select class="form-select end-time-select" data-index="${index}">
                         <option value="">Auto-calculated</option>
                     </select>
                     <input type="time" class="d-none end-time-hidden" data-index="${index}">
+                    <small class="text-muted">Optional: Auto-calculated from service duration</small>
                 </div>
             </div>
 
             <!-- Loading Alert -->
             <div class="alert alert-info d-none" id="loading-${index}">
-                <i class="fas fa-spinner fa-spin me-2"></i>Checking availability (including unpaid bookings)...
+                <i class="fas fa-spinner fa-spin me-2"></i>Checking availability...
             </div>
 
             <!-- Staff Conflict Alert -->
@@ -636,7 +680,7 @@ Management{% endblock %} {% block content %}
                 <span class="conflict-message"></span>
             </div>
 
-            <!-- Client Conflict Alert -->
+            <!-- Client Time Conflict Alert -->
             <div class="alert alert-warning d-none" id="client-conflict-${index}">
                 <i class="fas fa-exclamation-circle me-2"></i>
                 <span class="client-conflict-message"></span>
@@ -647,6 +691,7 @@ Management{% endblock %} {% block content %}
         container.insertAdjacentHTML("beforeend", appointmentCard);
         attachEventListeners(index);
         updateAppointmentCount();
+        updateAddButtonState();
     }
 
     function removeAppointment(index) {
@@ -657,34 +702,173 @@ Management{% endblock %} {% block content %}
             updateSummary();
             updateConflictSummary();
             updateSubmitButton();
+            updateAddButtonState();
+        }
+    }
+
+    // ==================== VALIDATION BEFORE ADDING NEW (ASYNC) ====================
+    async function validateBeforeAddingNew() {
+        const clientId = $("#clientSelect").val();
+        const allCards = document.querySelectorAll(".appointment-card");
+        const validationErrors = [];
+
+        if (!clientId) {
+            showValidationError("❌ Please select a client first");
+            $("#clientSelect").parent().addClass("shake-animation");
+            setTimeout(() => $("#clientSelect").parent().removeClass("shake-animation"), 500);
+            return false;
+        }
+
+        // Validate each appointment
+        for (const card of allCards) {
+            const idx = Array.from(allCards).indexOf(card);
+            const index = card.dataset.index;
+            
+            const serviceSelect = document.querySelector(`.service-select[data-index="${index}"]`);
+            const staffSelect = document.querySelector(`.staff-select[data-index="${index}"]`);
+            const dateInput = document.querySelector(`.date-input[data-index="${index}"]`);
+            const startTimeSelect = document.querySelector(`.start-time-select[data-index="${index}"]`);
+            const endTimeSelect = document.querySelector(`.end-time-select[data-index="${index}"]`);
+
+            // Check required fields
+            if (!serviceSelect?.value) {
+                validationErrors.push(`Appointment ${idx + 1}: Please select a service`);
+                serviceSelect?.classList.add("field-error", "shake-animation");
+                setTimeout(() => serviceSelect?.classList.remove("shake-animation"), 500);
+            }
+
+            if (!staffSelect?.value) {
+                validationErrors.push(`Appointment ${idx + 1}: Please select a staff member`);
+                staffSelect?.classList.add("field-error", "shake-animation");
+                setTimeout(() => staffSelect?.classList.remove("shake-animation"), 500);
+            }
+
+            if (!dateInput?.value) {
+                validationErrors.push(`Appointment ${idx + 1}: Please select a date`);
+                dateInput?.classList.add("field-error", "shake-animation");
+                setTimeout(() => dateInput?.classList.remove("shake-animation"), 500);
+            }
+
+            if (!startTimeSelect?.value) {
+                validationErrors.push(`Appointment ${idx + 1}: Please select a start time`);
+                startTimeSelect?.classList.add("field-error", "shake-animation");
+                setTimeout(() => startTimeSelect?.classList.remove("shake-animation"), 500);
+            }
+
+            if (!endTimeSelect?.value) {
+                validationErrors.push(`Appointment ${idx + 1}: End time is required`);
+                endTimeSelect?.classList.add("field-error", "shake-animation");
+                setTimeout(() => endTimeSelect?.classList.remove("shake-animation"), 500);
+            }
+
+            // If all fields are filled, check for conflicts
+            if (serviceSelect?.value && staffSelect?.value && dateInput?.value && 
+                startTimeSelect?.value && endTimeSelect?.value) {
+                
+                // Check for staff conflicts
+                const hasStaffConflict = !document.getElementById(`conflict-${index}`)?.classList.contains("d-none");
+                if (hasStaffConflict) {
+                    validationErrors.push(`Appointment ${idx + 1}: Staff conflict detected`);
+                }
+
+                // Check for client time overlap with existing bookings
+                const appointmentDate = dateInput.value;
+                const startTime = startTimeSelect.value;
+                const endTime = endTimeSelect.value;
+
+                // Check against client's existing bookings
+                for (const booking of clientExistingBookings) {
+                    if (booking.appointment_date === appointmentDate) {
+                        const overlap = checkTimeOverlap(
+                            startTime, 
+                            endTime, 
+                            booking.start_time, 
+                            booking.end_time
+                        );
+
+                        if (overlap) {
+                            const isPaid = booking.payment_status === 'paid' || booking.payment_status === 'completed';
+                            const paymentLabel = isPaid ? 'PAID' : 'UNPAID';
+                            validationErrors.push(
+                                `Appointment ${idx + 1}: Client has ${paymentLabel} appointment "${booking.service_name}" from ${format12Hour(booking.start_time)} to ${format12Hour(booking.end_time)}`
+                            );
+                        }
+                    }
+                }
+            }
+        }
+
+        if (validationErrors.length > 0) {
+            showValidationError(
+                `⚠️ Please fix the following issues:\n\n${validationErrors.join("\n")}`
+            );
+            return false;
+        }
+
+        showValidationSuccess(`✅ Appointment ${allCards.length} validated! Adding next appointment...`);
+        return true;
+    }
+
+    // ==================== VALIDATION FEEDBACK ====================
+    function showValidationError(message) {
+        const alertDiv = document.createElement("div");
+        alertDiv.className = "alert alert-danger alert-dismissible fade show validation-toast";
+        alertDiv.innerHTML = `
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            <strong>Validation Failed</strong>
+            <pre class="mb-0 mt-2" style="white-space: pre-wrap; font-size: 0.9em;">${message}</pre>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        document.body.appendChild(alertDiv);
+
+        setTimeout(() => {
+            alertDiv.classList.remove("show");
+            setTimeout(() => alertDiv.remove(), 300);
+        }, 8000);
+    }
+
+    function showValidationSuccess(message) {
+        const alertDiv = document.createElement("div");
+        alertDiv.className = "alert alert-success alert-dismissible fade show validation-toast";
+        alertDiv.innerHTML = `
+            <i class="fas fa-check-circle me-2"></i>
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        document.body.appendChild(alertDiv);
+
+        setTimeout(() => {
+            alertDiv.classList.remove("show");
+            setTimeout(() => alertDiv.remove(), 300);
+        }, 2000);
+    }
+
+    // ==================== UPDATE BUTTON TEXT ====================
+    function updateAddButtonState() {
+        const addBtn = document.getElementById("addAppointmentBtn");
+        const appointmentCount = document.querySelectorAll(".appointment-card").length;
+        
+        if (addBtn) {
+            if (appointmentCount === 0) {
+                addBtn.innerHTML = '<i class="fas fa-plus-circle me-2"></i>Add First Appointment';
+            } else {
+                addBtn.innerHTML = `<i class="fas fa-save me-2"></i>Save & Add Another Appointment`;
+            }
         }
     }
 
     // ==================== EVENT LISTENERS ====================
     function attachEventListeners(index) {
-        const serviceSelect = document.querySelector(
-            `.service-select[data-index="${index}"]`,
-        );
-        const staffSelect = document.querySelector(
-            `.staff-select[data-index="${index}"]`,
-        );
-        const dateInput = document.querySelector(
-            `.date-input[data-index="${index}"]`,
-        );
-        const startTimeSelect = document.querySelector(
-            `.start-time-select[data-index="${index}"]`,
-        );
-        const endTimeSelect = document.querySelector(
-            `.end-time-select[data-index="${index}"]`,
-        );
+        const serviceSelect = document.querySelector(`.service-select[data-index="${index}"]`);
+        const staffSelect = document.querySelector(`.staff-select[data-index="${index}"]`);
+        const dateInput = document.querySelector(`.date-input[data-index="${index}"]`);
+        const startTimeSelect = document.querySelector(`.start-time-select[data-index="${index}"]`);
+        const endTimeSelect = document.querySelector(`.end-time-select[data-index="${index}"]`);
 
         if (serviceSelect) {
             serviceSelect.addEventListener("change", () => {
-                showValidationIcon(
-                    `service-icon-${index}`,
-                    serviceSelect.value,
-                );
-                clearConflictAlerts(index); // Clear alerts immediately
+                showValidationIcon(`service-icon-${index}`, serviceSelect.value);
+                clearConflictAlerts(index);
                 updateEndTime(index);
                 updateSummary();
             });
@@ -693,7 +877,7 @@ Management{% endblock %} {% block content %}
         if (staffSelect) {
             staffSelect.addEventListener("change", () => {
                 showValidationIcon(`staff-icon-${index}`, staffSelect.value);
-                clearConflictAlerts(index); // Clear alerts immediately
+                clearConflictAlerts(index);
                 checkStaffConflicts(index);
                 updateSummary();
             });
@@ -702,7 +886,7 @@ Management{% endblock %} {% block content %}
         if (dateInput) {
             dateInput.addEventListener("change", () => {
                 showValidationIcon(`date-icon-${index}`, dateInput.value);
-                clearConflictAlerts(index); // Clear alerts immediately
+                clearConflictAlerts(index);
                 checkStaffConflicts(index);
                 checkClientConflicts(index);
             });
@@ -710,27 +894,20 @@ Management{% endblock %} {% block content %}
 
         if (startTimeSelect) {
             startTimeSelect.addEventListener("change", () => {
-                const hiddenInput = document.querySelector(
-                    `.start-time-hidden[data-index="${index}"]`,
-                );
+                const hiddenInput = document.querySelector(`.start-time-hidden[data-index="${index}"]`);
                 if (hiddenInput) hiddenInput.value = startTimeSelect.value;
-                showValidationIcon(
-                    `start-icon-${index}`,
-                    startTimeSelect.value,
-                );
-                clearConflictAlerts(index); // Clear alerts immediately
+                showValidationIcon(`start-icon-${index}`, startTimeSelect.value);
+                clearConflictAlerts(index);
                 updateEndTime(index);
             });
         }
 
         if (endTimeSelect) {
             endTimeSelect.addEventListener("change", () => {
-                const hiddenInput = document.querySelector(
-                    `.end-time-hidden[data-index="${index}"]`,
-                );
+                const hiddenInput = document.querySelector(`.end-time-hidden[data-index="${index}"]`);
                 if (hiddenInput) hiddenInput.value = endTimeSelect.value;
                 showValidationIcon(`end-icon-${index}`, endTimeSelect.value);
-                clearConflictAlerts(index); // Clear alerts immediately
+                clearConflictAlerts(index);
                 checkStaffConflicts(index);
                 checkClientConflicts(index);
             });
@@ -751,21 +928,12 @@ Management{% endblock %} {% block content %}
 
     // ==================== TIME CALCULATIONS ====================
     function updateEndTime(index) {
-        const serviceSelect = document.querySelector(
-            `.service-select[data-index="${index}"]`,
-        );
-        const startTimeSelect = document.querySelector(
-            `.start-time-select[data-index="${index}"]`,
-        );
-        const endTimeSelect = document.querySelector(
-            `.end-time-select[data-index="${index}"]`,
-        );
-        const endTimeHidden = document.querySelector(
-            `.end-time-hidden[data-index="${index}"]`,
-        );
+        const serviceSelect = document.querySelector(`.service-select[data-index="${index}"]`);
+        const startTimeSelect = document.querySelector(`.start-time-select[data-index="${index}"]`);
+        const endTimeSelect = document.querySelector(`.end-time-select[data-index="${index}"]`);
+        const endTimeHidden = document.querySelector(`.end-time-hidden[data-index="${index}"]`);
 
-        const selectedOption =
-            serviceSelect?.options[serviceSelect.selectedIndex];
+        const selectedOption = serviceSelect?.options[serviceSelect.selectedIndex];
         const startTime = startTimeSelect?.value;
 
         if (selectedOption?.value && startTime) {
@@ -774,7 +942,6 @@ Management{% endblock %} {% block content %}
 
             if (endTimeHidden) endTimeHidden.value = endTime;
 
-            // Populate end time dropdown with options
             if (endTimeSelect) {
                 endTimeSelect.disabled = false;
                 const timeOptions = generateTimeOptions();
@@ -786,20 +953,7 @@ Management{% endblock %} {% block content %}
                     .join("");
             }
 
-            // Instant validation: end > start
-            if (endTime <= startTime) {
-                showClientConflictError(
-                    index,
-                    "⏰ End time must be after start time",
-                    "time-error",
-                );
-                return;
-            }
-
-            // Clear alerts before rechecking
             clearConflictAlerts(index);
-
-            // Recheck conflicts with new times
             checkStaffConflicts(index);
             checkClientConflicts(index);
         }
@@ -807,109 +961,50 @@ Management{% endblock %} {% block content %}
 
     // ==================== CLEAR CONFLICT ALERTS ====================
     function clearConflictAlerts(index) {
-        // Clear staff conflict alert
         const conflictAlert = document.getElementById(`conflict-${index}`);
         if (conflictAlert) conflictAlert.classList.add("d-none");
 
-        // Clear client conflict alert
-        const clientConflictAlert = document.getElementById(
-            `client-conflict-${index}`,
-        );
+        const clientConflictAlert = document.getElementById(`client-conflict-${index}`);
         if (clientConflictAlert) clientConflictAlert.classList.add("d-none");
 
-        // Remove has-conflict class from card
         const card = document.querySelector(`[data-index="${index}"]`);
         if (card) {
-            card.classList.remove("has-conflict");
+            card.classList.remove("has-conflict", "has-warning");
             delete card.dataset.conflictType;
         }
 
-        // Reset all field borders to neutral
-        const staffSelect = document.querySelector(
-            `.staff-select[data-index="${index}"]`,
-        );
-        const dateInput = document.querySelector(
-            `.date-input[data-index="${index}"]`,
-        );
-        const startTimeSelect = document.querySelector(
-            `.start-time-select[data-index="${index}"]`,
-        );
-        const endTimeSelect = document.querySelector(
-            `.end-time-select[data-index="${index}"]`,
-        );
+        const staffSelect = document.querySelector(`.staff-select[data-index="${index}"]`);
+        const dateInput = document.querySelector(`.date-input[data-index="${index}"]`);
+        const startTimeSelect = document.querySelector(`.start-time-select[data-index="${index}"]`);
+        const endTimeSelect = document.querySelector(`.end-time-select[data-index="${index}"]`);
 
-        if (staffSelect)
-            staffSelect.classList.remove(
-                "field-error",
-                "field-validated",
-                "field-validating",
-            );
-        if (dateInput)
-            dateInput.classList.remove(
-                "field-error",
-                "field-validated",
-                "field-validating",
-            );
-        if (startTimeSelect)
-            startTimeSelect.classList.remove(
-                "field-error",
-                "field-validated",
-                "field-validating",
-            );
-        if (endTimeSelect)
-            endTimeSelect.classList.remove(
-                "field-error",
-                "field-validated",
-                "field-validating",
-            );
+        [staffSelect, dateInput, startTimeSelect, endTimeSelect].forEach(el => {
+            el?.classList.remove("field-error", "field-validated", "field-validating", "field-warning");
+        });
 
-        // Update submit button and conflict summary
         updateSubmitButton();
         updateConflictSummary();
     }
 
     // ==================== CONFLICT CHECKING ====================
     function checkStaffConflicts(index) {
-        const card = document.querySelector(`[data-index="${index}"]`);
-        const staffSelect = document.querySelector(
-            `.staff-select[data-index="${index}"]`,
-        );
-        const dateInput = document.querySelector(
-            `.date-input[data-index="${index}"]`,
-        );
-        const startTimeSelect = document.querySelector(
-            `.start-time-select[data-index="${index}"]`,
-        );
-        const endTimeSelect = document.querySelector(
-            `.end-time-select[data-index="${index}"]`,
-        );
+        const staffSelect = document.querySelector(`.staff-select[data-index="${index}"]`);
+        const dateInput = document.querySelector(`.date-input[data-index="${index}"]`);
+        const startTimeSelect = document.querySelector(`.start-time-select[data-index="${index}"]`);
+        const endTimeSelect = document.querySelector(`.end-time-select[data-index="${index}"]`);
         const conflictAlert = document.getElementById(`conflict-${index}`);
 
-        // Clear previous alerts
         if (conflictAlert) conflictAlert.classList.add("d-none");
-        staffSelect?.classList.remove(
-            "field-error",
-            "field-validating",
-            "field-validated",
-        );
+        staffSelect?.classList.remove("field-error", "field-validating", "field-validated");
 
-        if (
-            !staffSelect?.value ||
-            !dateInput?.value ||
-            !startTimeSelect?.value ||
-            !endTimeSelect?.value
-        ) {
+        if (!staffSelect?.value || !dateInput?.value || !startTimeSelect?.value || !endTimeSelect?.value) {
             return;
         }
 
-        // Clear previous timer
         clearTimeout(conflictTimers[index]);
-
-        // Show loading state
         showLoadingState(index, true);
         staffSelect.classList.add("field-validating");
 
-        // Debounce: wait 300ms
         conflictTimers[index] = setTimeout(() => {
             fetch("/api/unaki/check-staff-conflicts", {
                 method: "POST",
@@ -926,23 +1021,12 @@ Management{% endblock %} {% block content %}
                     showLoadingState(index, false);
 
                     if (data.has_conflict || data.shift_violation) {
-                        showStaffConflictError(
-                            index,
-                            data.message ||
-                                data.reason ||
-                                "Staff conflict detected",
-                        );
+                        showStaffConflictError(index, data.message || data.reason || "Staff conflict detected");
                         staffSelect.classList.add("field-error");
-                        staffSelect.classList.remove(
-                            "field-validating",
-                            "field-validated",
-                        );
+                        staffSelect.classList.remove("field-validating", "field-validated");
                     } else {
                         staffSelect.classList.add("field-validated");
-                        staffSelect.classList.remove(
-                            "field-error",
-                            "field-validating",
-                        );
+                        staffSelect.classList.remove("field-error", "field-validating");
                     }
 
                     updateSubmitButton();
@@ -958,125 +1042,74 @@ Management{% endblock %} {% block content %}
 
     function checkClientConflicts(index) {
         const clientId = $("#clientSelect").val();
+        const dateInput = document.querySelector(`.date-input[data-index="${index}"]`);
+        const startTimeSelect = document.querySelector(`.start-time-select[data-index="${index}"]`);
+        const endTimeSelect = document.querySelector(`.end-time-select[data-index="${index}"]`);
+        const clientConflictAlert = document.getElementById(`client-conflict-${index}`);
         const card = document.querySelector(`[data-index="${index}"]`);
-        const dateInput = document.querySelector(
-            `.date-input[data-index="${index}"]`,
-        );
-        const startTimeSelect = document.querySelector(
-            `.start-time-select[data-index="${index}"]`,
-        );
-        const endTimeSelect = document.querySelector(
-            `.end-time-select[data-index="${index}"]`,
-        );
-        const clientConflictAlert = document.getElementById(
-            `client-conflict-${index}`,
-        );
 
-        // Clear previous alerts
         if (clientConflictAlert) clientConflictAlert.classList.add("d-none");
-        dateInput?.classList.remove(
-            "field-error",
-            "field-validating",
-            "field-validated",
-        );
-        startTimeSelect?.classList.remove(
-            "field-error",
-            "field-validating",
-            "field-validated",
-        );
-        endTimeSelect?.classList.remove(
-            "field-error",
-            "field-validating",
-            "field-validated",
-        );
+        
+        [dateInput, startTimeSelect, endTimeSelect].forEach(el => {
+            el?.classList.remove("field-error", "field-validating", "field-validated", "field-warning");
+        });
 
-        if (
-            !clientId ||
-            !dateInput?.value ||
-            !startTimeSelect?.value ||
-            !endTimeSelect?.value
-        ) {
+        if (!clientId || !dateInput?.value || !startTimeSelect?.value || !endTimeSelect?.value) {
             return;
         }
 
-        // Instant check: end > start
-        if (endTimeSelect.value <= startTimeSelect.value) {
-            showClientConflictError(
-                index,
-                "⏰ End time must be after start time",
-                "time-error",
-            );
-            return;
+        const appointmentDate = dateInput.value;
+        const startTime = startTimeSelect.value;
+        const endTime = endTimeSelect.value;
+
+        // Check against existing bookings stored locally
+        let hasOverlap = false;
+        let conflictDetails = null;
+
+        for (const booking of clientExistingBookings) {
+            if (booking.appointment_date === appointmentDate) {
+                const overlap = checkTimeOverlap(startTime, endTime, booking.start_time, booking.end_time);
+                
+                if (overlap) {
+                    hasOverlap = true;
+                    conflictDetails = booking;
+                    break;
+                }
+            }
         }
 
-        // Clear previous timer
-        clearTimeout(clientConflictTimers[index]);
+        if (hasOverlap && conflictDetails) {
+            const isPaid = conflictDetails.payment_status === 'paid' || conflictDetails.payment_status === 'completed';
+            const paymentBadge = isPaid 
+                ? `<span class="badge bg-success">PAID - ₹${conflictDetails.service_price.toFixed(2)}</span>`
+                : `<span class="badge bg-warning text-dark">UNPAID - ₹${conflictDetails.service_price.toFixed(2)}</span>`;
+            
+            let message = `⚠️ Client has ${isPaid ? 'PAID' : 'UNPAID'} appointment: <strong>${conflictDetails.service_name}</strong> from <strong>${format12Hour(conflictDetails.start_time)}</strong> to <strong>${format12Hour(conflictDetails.end_time)}</strong> ${paymentBadge}`;
+            
+            if (conflictDetails.status) {
+                message += ` <span class="badge bg-info">${conflictDetails.status.toUpperCase()}</span>`;
+            }
 
-        // Show validating state
-        dateInput.classList.add("field-validating");
-        startTimeSelect.classList.add("field-validating");
-        endTimeSelect.classList.add("field-validating");
+            showClientConflictError(index, message);
+            
+            // Mark fields with warning color
+            dateInput.classList.add("field-warning");
+            startTimeSelect.classList.add("field-warning");
+            endTimeSelect.classList.add("field-warning");
 
-        // Debounce: wait 300ms
-        clientConflictTimers[index] = setTimeout(() => {
-            fetch("/api/unaki/check-client-conflicts", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    client_id: parseInt(clientId),
-                    appointment_date: dateInput.value,
-                    start_time: startTimeSelect.value,
-                    end_time: endTimeSelect.value,
-                }),
-            })
-                .then((response) => response.json())
-                .then((data) => {
-                    if (data.has_conflict && data.conflicts?.length > 0) {
-                        const conflict = data.conflicts[0];
-                        let message = `⚠️ Client already has ${conflict.service_name} from ${format12Hour(conflict.start_time)} to ${format12Hour(conflict.end_time)} with ${conflict.staff_name}`;
+            if (card) {
+                card.classList.add("has-warning");
+                card.dataset.conflictType = "client-time-overlap";
+            }
+        } else {
+            // No overlap - validated
+            dateInput.classList.add("field-validated");
+            startTimeSelect.classList.add("field-validated");
+            endTimeSelect.classList.add("field-validated");
+        }
 
-                        // Add payment status if unpaid
-                        if (
-                            conflict.payment_status === "pending" ||
-                            conflict.payment_status === "partial"
-                        ) {
-                            const price = conflict.service_price || 0;
-                            message += ` <strong class="text-danger">[UNPAID - ₹${price.toFixed(2)}]</strong>`;
-                        }
-
-                        // Add status badge
-                        if (conflict.status) {
-                            message += ` <span class="badge bg-warning text-dark">${conflict.status.toUpperCase()}</span>`;
-                        }
-
-                        showClientConflictError(
-                            index,
-                            message,
-                            "client-conflict",
-                        );
-                        dateInput.classList.add("field-error");
-                        startTimeSelect.classList.add("field-error");
-                        endTimeSelect.classList.add("field-error");
-                    } else {
-                        dateInput.classList.add("field-validated");
-                        startTimeSelect.classList.add("field-validated");
-                        endTimeSelect.classList.add("field-validated");
-                    }
-
-                    dateInput.classList.remove("field-validating");
-                    startTimeSelect.classList.remove("field-validating");
-                    endTimeSelect.classList.remove("field-validating");
-
-                    updateSubmitButton();
-                    updateConflictSummary();
-                })
-                .catch((err) => {
-                    console.error("Error checking client conflicts:", err);
-                    dateInput.classList.remove("field-validating");
-                    startTimeSelect.classList.remove("field-validating");
-                    endTimeSelect.classList.remove("field-validating");
-                });
-        }, 300);
+        updateSubmitButton();
+        updateConflictSummary();
     }
 
     // ==================== VISUAL FEEDBACK ====================
@@ -1096,42 +1129,28 @@ Management{% endblock %} {% block content %}
         const card = document.querySelector(`[data-index="${index}"]`);
 
         if (conflictAlert) {
-            const messageSpan =
-                conflictAlert.querySelector(".conflict-message");
+            const messageSpan = conflictAlert.querySelector(".conflict-message");
             if (messageSpan) messageSpan.textContent = message;
             conflictAlert.classList.remove("d-none");
             conflictAlert.classList.add("shake-animation");
-            setTimeout(
-                () => conflictAlert.classList.remove("shake-animation"),
-                500,
-            );
-        }
-
-        if (card) card.classList.add("has-conflict");
-    }
-
-    function showClientConflictError(index, message, errorType) {
-        const clientConflictAlert = document.getElementById(
-            `client-conflict-${index}`,
-        );
-        const card = document.querySelector(`[data-index="${index}"]`);
-
-        if (clientConflictAlert) {
-            const messageSpan = clientConflictAlert.querySelector(
-                ".client-conflict-message",
-            );
-            if (messageSpan) messageSpan.innerHTML = message; // Use innerHTML for badges
-            clientConflictAlert.classList.remove("d-none");
-            clientConflictAlert.classList.add("shake-animation");
-            setTimeout(
-                () => clientConflictAlert.classList.remove("shake-animation"),
-                500,
-            );
+            setTimeout(() => conflictAlert.classList.remove("shake-animation"), 500);
         }
 
         if (card) {
             card.classList.add("has-conflict");
-            card.dataset.conflictType = errorType;
+            card.dataset.conflictType = "staff";
+        }
+    }
+
+    function showClientConflictError(index, message) {
+        const clientConflictAlert = document.getElementById(`client-conflict-${index}`);
+
+        if (clientConflictAlert) {
+            const messageSpan = clientConflictAlert.querySelector(".client-conflict-message");
+            if (messageSpan) messageSpan.innerHTML = message;
+            clientConflictAlert.classList.remove("d-none");
+            clientConflictAlert.classList.add("shake-animation");
+            setTimeout(() => clientConflictAlert.classList.remove("shake-animation"), 500);
         }
     }
 
@@ -1139,14 +1158,10 @@ Management{% endblock %} {% block content %}
     function updateConflictSummary() {
         const banner = document.getElementById("conflictSummaryBanner");
         const summaryText = document.getElementById("conflictSummaryText");
-        const summarySubtext = document.getElementById(
-            "conflictSummarySubtext",
-        );
+        const summarySubtext = document.getElementById("conflictSummarySubtext");
 
         const allCards = document.querySelectorAll(".appointment-card");
-        const conflictedCards = document.querySelectorAll(
-            ".appointment-card.has-conflict",
-        );
+        const conflictedCards = document.querySelectorAll(".appointment-card.has-conflict, .appointment-card.has-warning");
 
         const totalCount = allCards.length;
         const conflictCount = conflictedCards.length;
@@ -1155,30 +1170,17 @@ Management{% endblock %} {% block content %}
             banner.classList.remove("d-none", "alert-success");
             banner.classList.add("alert-warning");
             summaryText.innerHTML = `⚠️ ${conflictCount} of ${totalCount} appointment${conflictCount > 1 ? "s have" : " has"} conflicts`;
-            summarySubtext.textContent =
-                "Please resolve all conflicts before booking";
+            summarySubtext.textContent = "Please resolve all conflicts before booking";
         } else if (totalCount > 0) {
-            // Check if all fields are filled
             let allFilled = true;
             allCards.forEach((card) => {
                 const index = card.dataset.index;
-                const service = document.querySelector(
-                    `.service-select[data-index="${index}"]`,
-                )?.value;
-                const staff = document.querySelector(
-                    `.staff-select[data-index="${index}"]`,
-                )?.value;
-                const date = document.querySelector(
-                    `.date-input[data-index="${index}"]`,
-                )?.value;
-                const startTime = document.querySelector(
-                    `.start-time-select[data-index="${index}"]`,
-                )?.value;
-                const endTime = document.querySelector(
-                    `.end-time-select[data-index="${index}"]`,
-                )?.value;
+                const service = document.querySelector(`.service-select[data-index="${index}"]`)?.value;
+                const staff = document.querySelector(`.staff-select[data-index="${index}"]`)?.value;
+                const date = document.querySelector(`.date-input[data-index="${index}"]`)?.value;
+                const startTime = document.querySelector(`.start-time-select[data-index="${index}"]`)?.value;
 
-                if (!service || !staff || !date || !startTime || !endTime) {
+                if (!service || !staff || !date || !startTime) {
                     allFilled = false;
                 }
             });
@@ -1186,8 +1188,7 @@ Management{% endblock %} {% block content %}
             if (allFilled && $("#clientSelect").val()) {
                 banner.classList.remove("d-none", "alert-warning");
                 banner.classList.add("alert-success");
-                banner.querySelector("i").className =
-                    "fas fa-check-circle fs-4 me-3";
+                banner.querySelector("i").className = "fas fa-check-circle fs-4 me-3";
                 summaryText.innerHTML = `✅ All ${totalCount} appointment${totalCount > 1 ? "s" : ""} available`;
                 summarySubtext.textContent = "Ready to book!";
             } else {
@@ -1201,8 +1202,7 @@ Management{% endblock %} {% block content %}
     // ==================== SUMMARY UPDATES ====================
     function updateAppointmentCount() {
         const count = document.querySelectorAll(".appointment-card").length;
-        document.getElementById("appointmentCount").textContent =
-            `${count} Appointment${count !== 1 ? "s" : ""}`;
+        document.getElementById("appointmentCount").textContent = `${count} Appointment${count !== 1 ? "s" : ""}`;
     }
 
     function updateSummary() {
@@ -1217,19 +1217,15 @@ Management{% endblock %} {% block content %}
                 totalPrice += parseFloat(option.dataset.price) || 0;
 
                 const index = select.dataset.index;
-                const staffSelect = document.querySelector(
-                    `.staff-select[data-index="${index}"]`,
-                );
+                const staffSelect = document.querySelector(`.staff-select[data-index="${index}"]`);
                 if (staffSelect?.value) {
                     staffSet.add(staffSelect.value);
                 }
             }
         });
 
-        document.getElementById("totalDuration").textContent =
-            `${totalDuration} min`;
-        document.getElementById("totalPrice").textContent =
-            `₹${totalPrice.toFixed(2)}`;
+        document.getElementById("totalDuration").textContent = `${totalDuration} min`;
+        document.getElementById("totalPrice").textContent = `₹${totalPrice.toFixed(2)}`;
         document.getElementById("staffRequired").textContent = staffSet.size;
     }
 
@@ -1239,56 +1235,37 @@ Management{% endblock %} {% block content %}
         if (!submitBtn) return;
 
         const clientId = $("#clientSelect").val();
-        const hasConflicts =
-            document.querySelectorAll(".appointment-card.has-conflict").length >
-            0;
+        const hasConflicts = document.querySelectorAll(".appointment-card.has-conflict, .appointment-card.has-warning").length > 0;
 
-        // Check if all fields filled
         let allFilled = true;
         document.querySelectorAll(".appointment-card").forEach((card) => {
             const index = card.dataset.index;
-            const service = document.querySelector(
-                `.service-select[data-index="${index}"]`,
-            )?.value;
-            const staff = document.querySelector(
-                `.staff-select[data-index="${index}"]`,
-            )?.value;
-            const date = document.querySelector(
-                `.date-input[data-index="${index}"]`,
-            )?.value;
-            const startTime = document.querySelector(
-                `.start-time-select[data-index="${index}"]`,
-            )?.value;
-            const endTime = document.querySelector(
-                `.end-time-select[data-index="${index}"]`,
-            )?.value;
+            const service = document.querySelector(`.service-select[data-index="${index}"]`)?.value;
+            const staff = document.querySelector(`.staff-select[data-index="${index}"]`)?.value;
+            const date = document.querySelector(`.date-input[data-index="${index}"]`)?.value;
+            const startTime = document.querySelector(`.start-time-select[data-index="${index}"]`)?.value;
 
-            if (!service || !staff || !date || !startTime || !endTime) {
+            if (!service || !staff || !date || !startTime) {
                 allFilled = false;
             }
         });
 
-        // Update button state
         if (!clientId) {
             submitBtn.disabled = true;
             submitBtn.className = "btn btn-lg btn-secondary";
-            submitBtn.innerHTML =
-                '<i class="fas fa-user me-2"></i>Select Client First';
+            submitBtn.innerHTML = '<i class="fas fa-user me-2"></i>Select Client First';
         } else if (hasConflicts) {
             submitBtn.disabled = true;
             submitBtn.className = "btn btn-lg btn-danger";
-            submitBtn.innerHTML =
-                '<i class="fas fa-exclamation-triangle me-2"></i>Resolve Conflicts First';
+            submitBtn.innerHTML = '<i class="fas fa-exclamation-triangle me-2"></i>Resolve Conflicts First';
         } else if (!allFilled) {
             submitBtn.disabled = true;
             submitBtn.className = "btn btn-lg btn-secondary";
-            submitBtn.innerHTML =
-                '<i class="fas fa-edit me-2"></i>Complete All Fields';
+            submitBtn.innerHTML = '<i class="fas fa-edit me-2"></i>Complete All Fields';
         } else {
             submitBtn.disabled = false;
             submitBtn.className = "btn btn-lg btn-success";
-            submitBtn.innerHTML =
-                '<i class="fas fa-check-circle me-2"></i>Book All Appointments';
+            submitBtn.innerHTML = '<i class="fas fa-check-circle me-2"></i>Book All Appointments';
         }
     }
 
@@ -1298,48 +1275,65 @@ Management{% endblock %} {% block content %}
             .then((response) => response.json())
             .then((data) => {
                 if (data.success && data.bookings?.length > 0) {
-                    displayClientAppointments(data.bookings);
+                    clientExistingBookings = data.bookings.filter(
+                        (b) => b.status === "scheduled" || 
+                               b.status === "confirmed" || 
+                               b.payment_status === "pending" ||
+                               b.payment_status === "partial"
+                    );
+                    displayClientAppointments(clientExistingBookings);
+                    
+                    // Re-validate all current appointments against new client's bookings
+                    document.querySelectorAll(".appointment-card").forEach((card) => {
+                        const index = card.dataset.index;
+                        checkClientConflicts(index);
+                    });
                 } else {
+                    clientExistingBookings = [];
                     $("#clientExistingAppointments").hide();
                 }
             })
-            .catch((err) =>
-                console.error("Error loading client appointments:", err),
-            );
+            .catch((err) => {
+                console.error("Error loading client appointments:", err);
+                clientExistingBookings = [];
+            });
     }
 
     function displayClientAppointments(bookings) {
         const container = document.getElementById("clientAppointmentsList");
-        const activeBookings = bookings.filter(
-            (b) =>
-                b.status === "scheduled" ||
-                b.status === "confirmed" ||
-                b.payment_status === "pending",
-        );
 
-        if (activeBookings.length === 0) {
+        if (bookings.length === 0) {
             $("#clientExistingAppointments").hide();
             return;
         }
 
         let html = '<ul class="list-group list-group-flush">';
-        activeBookings.forEach((booking) => {
-            const paymentBadge =
-                booking.payment_status === "pending"
-                    ? '<span class="badge bg-warning text-dark">UNPAID</span>'
-                    : "";
+        bookings.forEach((booking) => {
+            const isPaid = booking.payment_status === 'paid' || booking.payment_status === 'completed';
+            const paymentBadge = isPaid
+                ? `<span class="badge bg-success">PAID - ₹${(booking.service_price || 0).toFixed(2)}</span>`
+                : `<span class="badge bg-warning text-dark">UNPAID - ₹${(booking.service_price || 0).toFixed(2)}</span>`;
+
+            const statusBadge = booking.status 
+                ? `<span class="badge bg-info">${booking.status.toUpperCase()}</span>`
+                : '';
 
             html += `
             <li class="list-group-item">
-                <div class="d-flex justify-content-between">
-                    <div>
+                <div class="d-flex justify-content-between align-items-start">
+                    <div class="flex-grow-1">
                         <strong>${booking.service_name}</strong><br>
                         <small class="text-muted">
-                            ${booking.appointment_date} at ${format12Hour(booking.start_time)} - ${format12Hour(booking.end_time)}
-                            (${booking.staff_name})
+                            <i class="fas fa-calendar me-1"></i>${booking.appointment_date} 
+                            <i class="fas fa-clock ms-2 me-1"></i>${format12Hour(booking.start_time)} - ${format12Hour(booking.end_time)}
+                            <br>
+                            <i class="fas fa-user-md me-1"></i>${booking.staff_name}
                         </small>
                     </div>
-                    ${paymentBadge}
+                    <div class="text-end">
+                        ${paymentBadge}
+                        ${statusBadge}
+                    </div>
                 </div>
             </li>
         `;
@@ -1347,8 +1341,7 @@ Management{% endblock %} {% block content %}
         html += "</ul>";
 
         container.innerHTML = html;
-        document.getElementById("clientAppointmentsCount").textContent =
-            activeBookings.length;
+        document.getElementById("clientAppointmentsCount").textContent = bookings.length;
         $("#clientExistingAppointments").show();
     }
 
@@ -1366,69 +1359,32 @@ Management{% endblock %} {% block content %}
 
         document.querySelectorAll(".appointment-card").forEach((card, idx) => {
             const index = card.dataset.index;
-            const serviceSelect = document.querySelector(
-                `.service-select[data-index="${index}"]`,
-            );
-            const staffSelect = document.querySelector(
-                `.staff-select[data-index="${index}"]`,
-            );
-            const dateInput = document.querySelector(
-                `.date-input[data-index="${index}"]`,
-            );
-            const startTimeSelect = document.querySelector(
-                `.start-time-select[data-index="${index}"]`,
-            );
-            const endTimeSelect = document.querySelector(
-                `.end-time-select[data-index="${index}"]`,
-            );
+            const serviceSelect = document.querySelector(`.service-select[data-index="${index}"]`);
+            const staffSelect = document.querySelector(`.staff-select[data-index="${index}"]`);
+            const dateInput = document.querySelector(`.date-input[data-index="${index}"]`);
+            const startTimeSelect = document.querySelector(`.start-time-select[data-index="${index}"]`);
+            const endTimeSelect = document.querySelector(`.end-time-select[data-index="${index}"]`);
 
-            // Validation
-            if (
-                !serviceSelect?.value ||
-                !staffSelect?.value ||
-                !dateInput?.value ||
-                !startTimeSelect?.value ||
-                !endTimeSelect?.value
-            ) {
+            if (!serviceSelect?.value || !staffSelect?.value || !dateInput?.value || 
+                !startTimeSelect?.value || !endTimeSelect?.value) {
                 isValid = false;
-                validationErrors.push(
-                    `Appointment ${idx + 1}: Missing required fields`,
-                );
+                validationErrors.push(`Appointment ${idx + 1}: Missing required fields`);
                 return;
             }
 
-            if (startTimeSelect.value >= endTimeSelect.value) {
-                isValid = false;
-                validationErrors.push(
-                    `Appointment ${idx + 1}: End time must be after start time`,
-                );
-                return;
-            }
-
-            // Check conflicts
-            if (
-                document
-                    .getElementById(`conflict-${index}`)
-                    .classList.contains("d-none") === false ||
-                document
-                    .getElementById(`client-conflict-${index}`)
-                    .classList.contains("d-none") === false
-            ) {
+            if (!document.getElementById(`conflict-${index}`)?.classList.contains("d-none") ||
+                !document.getElementById(`client-conflict-${index}`)?.classList.contains("d-none")) {
                 isValid = false;
                 validationErrors.push(`Appointment ${idx + 1}: Has conflicts`);
                 return;
             }
 
-            const selectedService =
-                serviceSelect.options[serviceSelect.selectedIndex];
-            const selectedStaff =
-                staffSelect.options[staffSelect.selectedIndex];
+            const selectedService = serviceSelect.options[serviceSelect.selectedIndex];
+            const selectedStaff = staffSelect.options[staffSelect.selectedIndex];
 
             appointments.push({
                 client_id: clientId,
-                client_name: $("#clientSelect option:selected")
-                    .text()
-                    .split(" - ")[0],
+                client_name: $("#clientSelect option:selected").text().split(" - ")[0],
                 client_phone: $("#clientSelect option:selected").data("phone"),
                 client_email: $("#clientSelect option:selected").data("email"),
                 service_id: serviceSelect.value,
@@ -1449,29 +1405,18 @@ Management{% endblock %} {% block content %}
             return;
         }
 
-        // Confirm
         const summary = appointments
-            .map(
-                (apt, i) =>
-                    `${i + 1}. ${apt.service_name} with ${apt.staff_name} at ${format12Hour(apt.start_time)}`,
-            )
+            .map((apt, i) => `${i + 1}. ${apt.service_name} with ${apt.staff_name} at ${format12Hour(apt.start_time)} on ${apt.appointment_date}`)
             .join("\n");
 
-        if (
-            !confirm(
-                `📅 Book ${appointments.length} appointment(s)?\n\n${summary}`,
-            )
-        ) {
+        if (!confirm(`📅 Book ${appointments.length} appointment(s)?\n\n${summary}\n\nClient: ${appointments[0].client_name}`)) {
             return;
         }
 
-        // Disable button during submission
         const submitBtn = document.getElementById("submitBookingBtn");
         submitBtn.disabled = true;
-        submitBtn.innerHTML =
-            '<i class="fas fa-spinner fa-spin me-2"></i>Booking...';
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Booking...';
 
-        // Submit all
         const promises = appointments.map((apt) =>
             fetch("/api/unaki/book-appointment", {
                 method: "POST",
@@ -1484,19 +1429,13 @@ Management{% endblock %} {% block content %}
             .then((results) => {
                 const successCount = results.filter((r) => r.success).length;
                 const failCount = results.length - successCount;
-                const errors = results
-                    .filter((r) => !r.success)
-                    .map((r) => r.error || "Unknown error");
+                const errors = results.filter((r) => !r.success).map((r) => r.error || "Unknown error");
 
                 if (failCount === 0) {
-                    alert(
-                        `✅ Successfully booked ${successCount} appointment(s)!`,
-                    );
+                    alert(`✅ Successfully booked ${successCount} appointment(s)!`);
                     window.location.href = '{{ url_for("unaki_booking") }}';
                 } else {
-                    alert(
-                        `⚠️ Booked ${successCount} appointments, ${failCount} failed:\n\n${errors.join("\n")}`,
-                    );
+                    alert(`⚠️ Booked ${successCount} appointments, ${failCount} failed:\n\n${errors.join("\n")}`);
                     window.location.reload();
                 }
             })
@@ -1538,9 +1477,7 @@ Management{% endblock %} {% block content %}
         }
 
         const saveBtn = $("#saveQuickClientBtn");
-        saveBtn
-            .prop("disabled", true)
-            .html('<i class="fas fa-spinner fa-spin me-2"></i>Saving...');
+        saveBtn.prop("disabled", true).html('<i class="fas fa-spinner fa-spin me-2"></i>Saving...');
 
         try {
             const response = await fetch("/api/unaki/quick-add-client", {
@@ -1558,7 +1495,6 @@ Management{% endblock %} {% block content %}
             const result = await response.json();
 
             if (result.success) {
-                // Add to dropdown
                 const newOption = new Option(
                     `${result.client.first_name} ${result.client.last_name} - ${result.client.phone}`,
                     result.client.id,
@@ -1570,7 +1506,7 @@ Management{% endblock %} {% block content %}
                 $("#clientSelect").append(newOption).trigger("change");
 
                 $("#quickAddClientModal").modal("hide");
-                alert("✅ Client added successfully!");
+                showValidationSuccess("✅ Client added successfully!");
             } else {
                 alert("❌ " + (result.error || "Failed to add client"));
             }
@@ -1578,9 +1514,7 @@ Management{% endblock %} {% block content %}
             console.error("Error:", error);
             alert("❌ Error adding client. Please try again.");
         } finally {
-            saveBtn
-                .prop("disabled", false)
-                .html('<i class="fas fa-save me-2"></i>Save Client');
+            saveBtn.prop("disabled", false).html('<i class="fas fa-save me-2"></i>Save Client');
         }
     }
 </script>
