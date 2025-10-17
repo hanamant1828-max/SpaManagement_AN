@@ -529,7 +529,9 @@
         const s2 = toMinutes(start2);
         const e2 = toMinutes(end2);
 
-        return (s1 < e2 && e1 > s2);
+        // Allow back-to-back appointments: only flag as conflict if truly overlapping
+        // Not a conflict if one ends exactly when the other starts
+        return (s1 < e2 && e1 > s2) && !(e1 === s2 || s1 === e2);
     }
 
     // ==================== INITIALIZATION ====================
