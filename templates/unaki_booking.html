@@ -2295,7 +2295,26 @@
                     }
                     const durationHours = durationMinutes / 60;
                     const width = Math.max(durationHours * 140, 80);
-                    const serviceType = booking.service_type || "default";
+                    
+                    // Determine service type for color coding
+                    let serviceType = 'default';
+                    const serviceName = (booking.service_name || '').toLowerCase();
+                    
+                    if (serviceName.includes('massage')) {
+                        serviceType = 'service-massage';
+                    } else if (serviceName.includes('facial')) {
+                        serviceType = 'service-facial';
+                    } else if (serviceName.includes('manicure')) {
+                        serviceType = 'service-manicure';
+                    } else if (serviceName.includes('pedicure')) {
+                        serviceType = 'service-pedicure';
+                    } else if (serviceName.includes('hair') || serviceName.includes('cut')) {
+                        serviceType = 'service-haircut';
+                    } else if (serviceName.includes('wax')) {
+                        serviceType = 'service-waxing';
+                    } else {
+                        serviceType = 'service-default';
+                    }
 
                     // Create appointment element with service-based color class
                     const appointmentDiv = document.createElement('div');
