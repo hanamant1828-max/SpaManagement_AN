@@ -15,10 +15,20 @@
         console.log('Shift Scheduler JavaScript loaded - Wireframe Implementation');
         
         // Initialize loading modal first
-        loadingModal = new bootstrap.Modal(document.getElementById('loadingModal'));
+        const modalElement = document.getElementById('loadingModal');
+        if (modalElement) {
+            loadingModal = new bootstrap.Modal(modalElement, {
+                backdrop: 'static',
+                keyboard: false
+            });
+        }
         
         initializeEventHandlers();
-        loadSchedules();
+        
+        // Add a small delay to ensure DOM is fully ready
+        setTimeout(() => {
+            loadSchedules();
+        }, 100);
     });
 
     /**
@@ -349,19 +359,32 @@
      * Hide loading modal
      */
     function hideLoadingModal() {
-        if (loadingModal) {
-            try {
+        try {
+            // Try Bootstrap 5 instance method first
+            if (loadingModal) {
                 loadingModal.hide();
-                // Force remove modal backdrop if it exists
-                $('.modal-backdrop').remove();
-                $('body').removeClass('modal-open');
-            } catch (e) {
-                console.error('Error hiding loading modal:', e);
-                // Fallback: force hide
-                $('#loadingModal').modal('hide');
-                $('.modal-backdrop').remove();
-                $('body').removeClass('modal-open');
             }
+            
+            // Ensure modal element is hidden
+            const modalElement = document.getElementById('loadingModal');
+            if (modalElement) {
+                modalElement.classList.remove('show');
+                modalElement.style.display = 'none';
+                modalElement.setAttribute('aria-hidden', 'true');
+            }
+            
+            // Remove any backdrop
+            document.querySelectorAll('.modal-backdrop').forEach(backdrop => {
+                backdrop.remove();
+            });
+            
+            // Restore body scroll
+            document.body.classList.remove('modal-open');
+            document.body.style.overflow = '';
+            document.body.style.paddingRight = '';
+            
+        } catch (e) {
+            console.error('Error hiding loading modal:', e);
         }
     }
 
