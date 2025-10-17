@@ -1949,6 +1949,84 @@ def api_check_conflicts():
         print(f"Error in conflict checking: {e}")
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/unaki/check-client-conflicts', methods=['POST'])
+@login_required
+def api_unaki_check_client_conflicts():
+    """API endpoint for checking client conflicts in Unaki system"""
+    if not current_user.can_access('bookings'):
+        return jsonify({'error': 'Access denied'}), 403
+
+    try:
+        data = request.get_json()
+
+        # Validate required fields
+        required_fields = ['client_id', 'start_time', 'end_time', 'date']
+        for field in required_fields:
+            if field not in data:
+                return jsonify({'error': f'Missing required field: {field}'}), 400
+
+        client_id = int(data['client_id'])
+        start_time = data['start_time']
+        end_time = data['end_time']
+        check_date = datetime.strptime(data['date'], '%Y-%m-%d').date()
+        exclude_id = data.get('exclude_id')  # For edit operations
+
+        # Get existing appointments for this client on this date
+        from models import UnakiBooking, User
+        query = UnakiBooking.query.filter(
+            UnakiBooking.client_id == client_id,
+            UnakiBooking.appointment_date == check_date,
+            UnakiBooking.status.in_(['scheduled', 'confirmed'])
+        )
+
+        # Exclude current appointment if editing
+        if exclude_id:
+            query = query.filter(UnakiBooking.id != exclude_id)
+
+        existing_bookings = query.all()
+
+        conflicts = []
+
+        # Convert times to minutes for easier comparison
+        def time_to_minutes(time_str):
+            hours, minutes = map(int, time_str.split(':'))
+            return hours * 60 + minutes
+
+        start_minutes = time_to_minutes(start_time)
+        end_minutes = time_to_minutes(end_time)
+
+        # Check for conflicts
+        for booking in existing_bookings:
+            booking_start = time_to_minutes(booking.start_time.strftime('%H:%M'))
+            booking_end = time_to_minutes(booking.end_time.strftime('%H:%M'))
+
+            # Check overlap
+            if start_minutes < booking_end and end_minutes > booking_start:
+                # Get staff name
+                staff = User.query.get(booking.staff_id)
+                staff_name = f"{staff.first_name} {staff.last_name}" if staff else "Unknown Staff"
+                
+                conflicts.append({
+                    'id': booking.id,
+                    'client_name': booking.client_name,
+                    'staff_name': staff_name,
+                    'service_name': booking.service_name,
+                    'start_time': booking.start_time.strftime('%H:%M'),
+                    'end_time': booking.end_time.strftime('%H:%M'),
+                    'status': booking.status
+                })
+
+        return jsonify({
+            'has_conflicts': len(conflicts) > 0,
+            'conflicts': conflicts,
+            'client_id': client_id,
+            'requested_time': f"{start_time} - {end_time}"
+        })
+
+    except Exception as e:
+        print(f"Error in client conflict checking: {e}")
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/bookings/update-status/<int:appointment_id>', methods=['POST'])
 @login_required
 def update_appointment_status(appointment_id):

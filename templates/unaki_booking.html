@@ -3523,7 +3523,7 @@
                 updateSubmitButton();
             }
 
-            function addAppointment() {
+            async function addAppointment() {
                 // Check if any existing appointments have conflicts
                 const existingAppointments = document.querySelectorAll('.appointment-card');
                 const hasConflicts = Array.from(existingAppointments).some(card => {
@@ -3580,6 +3580,66 @@
                     }, 5000);
                     
                     return; // Don't add the appointment
+                }
+
+                // Check for client conflicts with existing bookings in the database
+                const clientSelect = document.getElementById('multiClientSelect');
+                if (!clientSelect || !clientSelect.value) {
+                    const errorAlert = document.createElement('div');
+                    errorAlert.className = 'alert alert-warning';
+                    errorAlert.style.cssText = 'position: fixed; top: 20px; right: 20px; z-index: 9999; animation: shake 0.5s; min-width: 350px;';
+                    errorAlert.innerHTML = `
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>Client Not Selected!</strong><br>
+                        Please select a client before adding appointments.
+                    `;
+                    document.body.appendChild(errorAlert);
+                    setTimeout(() => errorAlert.remove(), 5000);
+                    return;
+                }
+
+                const clientId = clientSelect.value;
+                
+                // Check each existing appointment for client conflicts
+                for (const card of existingAppointments) {
+                    const dateInput = card.querySelector('.appointment-date');
+                    const startTimeInput = card.querySelector('.start-time-24h');
+                    const endTimeInput = card.querySelector('.end-time-24h');
+                    
+                    if (dateInput?.value && startTimeInput?.value && endTimeInput?.value) {
+                        try {
+                            const response = await fetch('/api/unaki/check-client-conflicts', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    client_id: parseInt(clientId),
+                                    date: dateInput.value,
+                                    start_time: startTimeInput.value,
+                                    end_time: endTimeInput.value
+                                })
+                            });
+                            
+                            const data = await response.json();
+                            
+                            if (data.has_conflicts && data.conflicts?.length > 0) {
+                                const conflict = data.conflicts[0];
+                                const errorAlert = document.createElement('div');
+                                errorAlert.className = 'alert alert-danger';
+                                errorAlert.style.cssText = 'position: fixed; top: 20px; right: 20px; z-index: 9999; animation: shake 0.5s; min-width: 400px;';
+                                errorAlert.innerHTML = `
+                                    <i class="fas fa-exclamation-circle me-2"></i>
+                                    <strong>Client Conflict Detected!</strong><br>
+                                    ${conflict.client_name} already has an appointment from ${convertTo12Hour(conflict.start_time)} to ${convertTo12Hour(conflict.end_time)} with ${conflict.staff_name}.<br>
+                                    <small>Please resolve this conflict before adding more appointments.</small>
+                                `;
+                                document.body.appendChild(errorAlert);
+                                setTimeout(() => errorAlert.remove(), 7000);
+                                return; // Don't add the appointment
+                            }
+                        } catch (error) {
+                            console.error('Error checking client conflicts:', error);
+                        }
+                    }
                 }
 
                 // All validations passed - proceed to add new appointment
