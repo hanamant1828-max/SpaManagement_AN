@@ -72,7 +72,7 @@
             // GLOBAL VARIABLES & STATE
             // ==========================================
             let selectedAppointmentId = null;
-            const currentDate = "{{ today }}";
+            const currentDate = window.UNAKI_CONFIG.today;
             let bookingsData = [];
             let appointmentCounter = 1;
 
@@ -754,11 +754,11 @@
             function navigateDate(days) {
                 const date = new Date(currentDate);
                 date.setDate(date.getDate() + days);
-                window.location.href = `{{ url_for('unaki_booking') }}?date=${date.toISOString().split("T")[0]}`;
+                window.location.href = `${window.UNAKI_CONFIG.bookingUrl}?date=${date.toISOString().split("T")[0]}`;
             }
 
             function navigateToToday() {
-                window.location.href = `{{ url_for('unaki_booking') }}?date=${new Date().toISOString().split("T")[0]}`;
+                window.location.href = `${window.UNAKI_CONFIG.bookingUrl}?date=${new Date().toISOString().split("T")[0]}`;
             }
 
             function refreshSchedule() {

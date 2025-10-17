@@ -1,9 +1,10 @@
-                margin: 0;
-                padding: 0;
-                box-sizing: border-box;
-            }
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
 
-            :root {
+:root {
                 --primary-color: #4f46e5;
                 --primary-hover: #4338ca;
                 --success-color: #10b981;
