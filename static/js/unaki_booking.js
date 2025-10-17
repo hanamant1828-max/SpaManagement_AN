@@ -796,9 +796,36 @@
             }
 
             function showNotification(message, type) {
-                // Replace this with your actual toast implementation if available
-                // For now, using alert for simplicity.
-                alert(message);
+                // Create toast container if it doesn't exist
+                let toastContainer = document.getElementById('toastContainer');
+                if (!toastContainer) {
+                    toastContainer = document.createElement('div');
+                    toastContainer.id = 'toastContainer';
+                    toastContainer.style.position = 'fixed';
+                    toastContainer.style.top = '20px';
+                    toastContainer.style.right = '20px';
+                    toastContainer.style.zIndex = '9999';
+                    document.body.appendChild(toastContainer);
+                }
+
+                // Create toast element
+                const toast = document.createElement('div');
+                toast.className = `alert alert-${type === 'error' ? 'danger' : type} alert-dismissible fade show`;
+                toast.style.minWidth = '300px';
+                toast.style.marginBottom = '10px';
+                toast.style.boxShadow = '0 4px 6px rgba(0,0,0,0.1)';
+                toast.innerHTML = `
+                    ${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                `;
+
+                toastContainer.appendChild(toast);
+
+                // Auto remove after 5 seconds
+                setTimeout(() => {
+                    toast.classList.remove('show');
+                    setTimeout(() => toast.remove(), 150);
+                }, 5000);
             }
 
             function hideContextMenu() {
@@ -837,6 +864,8 @@
                 const clientId = clientSelect.value;
                 const messageDiv = document.getElementById('checkinMessage');
 
+                console.log('🔵 performManualCheckin called with clientId:', clientId);
+
                 if (!clientId) {
                     messageDiv.className = 'alert alert-warning';
                     messageDiv.style.display = 'block';
@@ -846,20 +875,35 @@
 
                 messageDiv.style.display = 'none';
 
+                // Show loading state
+                messageDiv.className = 'alert alert-info';
+                messageDiv.style.display = 'block';
+                messageDiv.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Checking in client...';
+
                 fetch('/api/unaki/checkin/manual', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ client_id: parseInt(clientId) })
                 })
-                .then(response => response.json())
+                .then(response => {
+                    console.log('📥 Check-in response status:', response.status);
+                    return response.json();
+                })
                 .then(data => {
+                    console.log('📥 Check-in response data:', data);
                     if (data.success) {
                         messageDiv.className = 'alert alert-success';
                         messageDiv.style.display = 'block';
                         messageDiv.innerHTML = `<i class="fas fa-check-circle me-2"></i>${data.message}`;
 
+                        // Update all appointments for this client to sky blue
+                        console.log(`🔵 Marking all appointments for client ${clientId} as checked-in`);
+                        
                         setTimeout(() => {
-                            bootstrap.Modal.getInstance(document.getElementById('manualCheckinModal')).hide();
+                            const modal = bootstrap.Modal.getInstance(document.getElementById('manualCheckinModal'));
+                            if (modal) {
+                                modal.hide();
+                            }
                             loadBookings();
                             clientSelect.value = '';
                             messageDiv.style.display = 'none';
@@ -871,10 +915,10 @@
                     }
                 })
                 .catch(error => {
-                    console.error('Check-in error:', error);
+                    console.error('❌ Check-in error:', error);
                     messageDiv.className = 'alert alert-danger';
                     messageDiv.style.display = 'block';
-                    messageDiv.innerHTML = '<i class="fas fa-times-circle me-2"></i>Error checking in client';
+                    messageDiv.innerHTML = '<i class="fas fa-times-circle me-2"></i>Error checking in client. Please try again.';
                 });
             }
 

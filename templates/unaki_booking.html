@@ -332,6 +332,46 @@
             </div>
         </div>
 
+        <!-- Manual Check-In Modal -->
+        <div class="modal fade" id="manualCheckinModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header" style="background: var(--success-color); color: white;">
+                        <h5 class="modal-title">
+                            <i class="fas fa-user-check me-2"></i>Manual Client Check-In
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div id="checkinMessage" style="display: none;"></div>
+                        
+                        <div class="mb-3">
+                            <label for="checkinClientSelect" class="form-label">Select Client</label>
+                            <select id="checkinClientSelect" class="form-select">
+                                <option value="">Choose a client...</option>
+                                {% if staff_members %}
+                                    {% for client in clients %}
+                                        <option value="{{ client.id }}">{{ client.name }} - {{ client.phone }}</option>
+                                    {% endfor %}
+                                {% endif %}
+                            </select>
+                        </div>
+
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <small>All appointments for this client will be marked as checked-in (shown in sky blue)</small>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-success" onclick="performManualCheckin()">
+                            <i class="fas fa-check me-2"></i>Check In Client
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <script src="{{ url_for('static', filename='js/unaki_booking.js') }}"></script>
     </body>
 </html>
