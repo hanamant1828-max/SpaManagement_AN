@@ -3368,3 +3368,146 @@ def api_unaki_customer_appointments(client_id):
         import traceback
         traceback.print_exc()
         return jsonify({'error': str(e), 'success': False, 'bookings': []}), 500
+
+@app.route('/api/unaki/checkin/<int:booking_id>', methods=['POST'])
+@login_required
+def api_unaki_checkin_appointment(booking_id):
+    """Check in a specific Unaki appointment"""
+    if not current_user.can_access('bookings'):
+        return jsonify({'error': 'Access denied', 'success': False}), 403
+
+    try:
+        from models import UnakiBooking
+        from datetime import datetime
+        import pytz
+
+        booking = UnakiBooking.query.get(booking_id)
+        if not booking:
+            return jsonify({'success': False, 'error': 'Booking not found'}), 404
+
+        # Check in the appointment
+        booking.checked_in = True
+        booking.checked_in_at = datetime.now(pytz.timezone('Asia/Kolkata')).replace(tzinfo=None)
+        
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'message': f'Client {booking.client_name} checked in successfully!',
+            'booking_id': booking.id,
+            'client_id': booking.client_id,
+            'checked_in_at': booking.checked_in_at.isoformat() if booking.checked_in_at else None
+        })
+
+    except Exception as e:
+        print(f"❌ Error checking in appointment: {e}")
+        import traceback
+        traceback.print_exc()
+        db.session.rollback()
+        return jsonify({'error': str(e), 'success': False}), 500
+
+@app.route('/api/unaki/checkin/manual', methods=['POST'])
+@login_required
+def api_unaki_manual_checkin():
+    """Manually check in a client - checks in all their appointments for today"""
+    if not current_user.can_access('bookings'):
+        return jsonify({'error': 'Access denied', 'success': False}), 403
+
+    try:
+        from models import UnakiBooking, Customer
+        from datetime import datetime, date
+        import pytz
+
+        data = request.get_json()
+        client_id = data.get('client_id')
+        
+        if not client_id:
+            return jsonify({'success': False, 'error': 'Client ID is required'}), 400
+
+        # Get the customer
+        customer = Customer.query.get(client_id)
+        if not customer:
+            return jsonify({'success': False, 'error': 'Customer not found'}), 404
+
+        # Get today's date
+        today = date.today()
+
+        # Find all today's appointments for this customer
+        bookings = UnakiBooking.query.filter(
+            UnakiBooking.client_id == client_id,
+            UnakiBooking.appointment_date == today,
+            UnakiBooking.status.in_(['scheduled', 'confirmed'])
+        ).all()
+
+        # Also check by phone if no bookings found
+        if not bookings and customer.phone:
+            bookings = UnakiBooking.query.filter(
+                UnakiBooking.client_phone == customer.phone,
+                UnakiBooking.appointment_date == today,
+                UnakiBooking.status.in_(['scheduled', 'confirmed'])
+            ).all()
+
+        if not bookings:
+            return jsonify({
+                'success': False, 
+                'error': f'No scheduled appointments found for {customer.full_name} today'
+            }), 404
+
+        # Check in all appointments
+        checked_in_count = 0
+        for booking in bookings:
+            if not booking.checked_in:
+                booking.checked_in = True
+                booking.checked_in_at = datetime.now(pytz.timezone('Asia/Kolkata')).replace(tzinfo=None)
+                checked_in_count += 1
+
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'message': f'Checked in {checked_in_count} appointment(s) for {customer.full_name}',
+            'client_id': client_id,
+            'client_name': customer.full_name,
+            'checked_in_count': checked_in_count,
+            'booking_ids': [b.id for b in bookings]
+        })
+
+    except Exception as e:
+        print(f"❌ Error in manual check-in: {e}")
+        import traceback
+        traceback.print_exc()
+        db.session.rollback()
+        return jsonify({'error': str(e), 'success': False}), 500
+
+@app.route('/api/unaki/checkin/undo/<int:booking_id>', methods=['POST'])
+@login_required
+def api_unaki_undo_checkin(booking_id):
+    """Undo check-in for a specific Unaki appointment"""
+    if not current_user.can_access('bookings'):
+        return jsonify({'error': 'Access denied', 'success': False}), 403
+
+    try:
+        from models import UnakiBooking
+
+        booking = UnakiBooking.query.get(booking_id)
+        if not booking:
+            return jsonify({'success': False, 'error': 'Booking not found'}), 404
+
+        # Undo check-in
+        booking.checked_in = False
+        booking.checked_in_at = None
+        
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'message': f'Check-in removed for {booking.client_name}',
+            'booking_id': booking.id
+        })
+
+    except Exception as e:
+        print(f"❌ Error undoing check-in: {e}")
+        import traceback
+        traceback.print_exc()
+        db.session.rollback()
+        return jsonify({'error': str(e), 'success': False}), 500
