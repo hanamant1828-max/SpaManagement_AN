@@ -1279,6 +1279,8 @@ class UnakiBooking(db.Model):
             'booking_source': self.booking_source,
             'amount_charged': float(self.amount_charged) if self.amount_charged else 0.0,
             'payment_status': self.payment_status,
+            'checked_in': self.checked_in,
+            'checked_in_at': self.checked_in_at.isoformat() if self.checked_in_at else None,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None
         }

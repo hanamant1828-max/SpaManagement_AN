@@ -2061,8 +2061,28 @@
                 // Edit modal changes
                 const editServiceSelect = document.getElementById('editServiceSelect');
                 const editStartTime = document.getElementById('editStartTime');
-                if (editServiceSelect) editServiceSelect.addEventListener('change', calculateEditEndTime);
-                if (editStartTime) editStartTime.addEventListener('change', calculateEditEndTime);
+                if (editServiceSelect) {
+                    editServiceSelect.addEventListener('change', function() {
+                        const serviceOption = this.selectedOptions[0];
+                        const duration = parseInt(serviceOption?.dataset.duration || 0);
+                        const startTime = document.getElementById('editStartTime').value;
+                        if (startTime && duration) {
+                            const endTime = calculateEndTimeFromDuration(startTime, duration);
+                            document.getElementById('editEndTime').value = endTime;
+                        }
+                    });
+                }
+                if (editStartTime) {
+                    editStartTime.addEventListener('change', function() {
+                        const serviceSelect = document.getElementById('editServiceSelect');
+                        const serviceOption = serviceSelect?.selectedOptions[0];
+                        const duration = parseInt(serviceOption?.dataset.duration || 0);
+                        if (this.value && duration) {
+                            const endTime = calculateEndTimeFromDuration(this.value, duration);
+                            document.getElementById('editEndTime').value = endTime;
+                        }
+                    });
+                }
             }
 
             function setupTooltips() {
