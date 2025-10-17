@@ -2172,7 +2172,15 @@
                     const startMinute = parseFloat(booking.start_minute);
                     const hoursSince9AM = startHour - 9 + startMinute / 60;
                     const leftPosition = hoursSince9AM * 140;
-                    const durationHours = booking.duration / 60;
+                    
+                    // Calculate actual duration from start_time and end_time
+                    let durationMinutes = booking.duration; // Default fallback
+                    if (booking.start_time && booking.end_time) {
+                        const [startH, startM] = booking.start_time.split(':').map(Number);
+                        const [endH, endM] = booking.end_time.split(':').map(Number);
+                        durationMinutes = (endH * 60 + endM) - (startH * 60 + startM);
+                    }
+                    const durationHours = durationMinutes / 60;
                     const width = Math.max(durationHours * 140, 80);
                     const serviceType = booking.service_type || "default";
 
@@ -2195,7 +2203,7 @@
                             <div class="appointment-time">
                                 <i class="fas fa-clock"></i>${booking.start_time}
                             </div>
-                            <div class="appointment-duration">${booking.duration}m</div>
+                            <div class="appointment-duration">${durationMinutes}m</div>
                         </div>
                     `;
 
