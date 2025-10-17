@@ -2176,65 +2176,6 @@
                         },
                         allowClear: true
                     });
-
-                    // Re-initialize when new appointments are added
-                    const observer = new MutationObserver(function(mutations) {
-                        mutations.forEach(function(mutation) {
-                            if (mutation.addedNodes.length) {
-                                // Destroy and reinit new dropdowns
-                                $('.select2-dropdown').not('.select2-hidden-accessible').each(function() {
-                                    $(this).select2({
-                                        dropdownParent: $('#multiBookModal'),
-                                        width: '100%',
-                                        placeholder: $(this).find('option:first').text(),
-                                        allowClear: true
-                                    });
-
-                                    // Add event handlers to new dropdowns
-                                    $(this).on('select2:select', function(e) {
-                                        const card = $(this).closest('.appointment-card')[0];
-                                        if (card) {
-                                            const index = parseInt(card.dataset.appointmentIndex);
-                                            calculateEndTime(index);
-                                            checkConflicts(index);
-                                            updateSummary();
-                                            updateSubmitButton();
-                                        }
-                                    });
-
-                                    $(this).on('select2:unselecting', function(e) {
-                                        e.preventDefault();
-                                        $(this).val('').trigger('change');
-
-                                        const card = $(this).closest('.appointment-card')[0];
-                                        if (card) {
-                                            const index = parseInt(card.dataset.appointmentIndex);
-                                            calculateEndTime(index);
-                                            checkConflicts(index);
-                                            updateSummary();
-                                            updateSubmitButton();
-                                        }
-                                    });
-
-                                    $(this).on('select2:clear', function(e) {
-                                        const card = $(this).closest('.appointment-card')[0];
-                                        if (card) {
-                                            const index = parseInt(card.dataset.appointmentIndex);
-                                            calculateEndTime(index);
-                                            checkConflicts(index);
-                                            updateSummary();
-                                            updateSubmitButton();
-                                        }
-                                    });
-                                });
-                            }
-                        });
-                    });
-
-                    const container = document.getElementById('appointmentsContainer');
-                    if (container) {
-                        observer.observe(container, { childList: true, subtree: true });
-                    }
                 }
             }
             // ==========================================
@@ -2620,26 +2561,6 @@
                         }
 
                         quickAddForm.reset();
-
-                        // Auto-select the newly added client in the multi-booking form
-                        const clientSelect = document.getElementById('multiClientSelect');
-                        if (clientSelect && result.client) {
-                            // Add new option to select with data attributes
-                            const option = new Option(
-                                `${result.client.first_name} ${result.client.last_name} - ${result.client.phone}`,
-                                result.client.id,
-                                true,
-                                true
-                            );
-                            option.setAttribute('data-phone', result.client.phone);
-                            option.setAttribute('data-email', result.client.email || '');
-                            clientSelect.add(option);
-
-                            // Trigger change event for Select2
-                            $(clientSelect).trigger('change');
-
-                            console.log('✅ Client added to dropdown');
-                        }
                     } else {
                         console.error('❌ Server returned error:', result.error);
                         showNotification(result.error || 'Failed to create client', 'error');
@@ -2657,30 +2578,13 @@
                 }
             }
 
-            // Placeholder for loadClients function if it's needed for refreshing the dropdown
-            async function loadClients() {
-                // This function should ideally fetch the latest client list and update the #multiClientSelect dropdown.
-                // For now, we'll assume the page reload or manual refresh handles this,
-                // or that the added option is sufficient. If not, implement fetching and updating here.
-                console.log("Refreshing client list (implementation needed if not handled by page reload)");
-                // Example:
-                // const response = await fetch('/api/clients');
-                // const clients = await response.json();
-                // const clientSelect = document.getElementById('multiClientSelect');
-                // clientSelect.innerHTML = '<option value="">Choose a client...</option>'; // Clear existing
-                // clients.forEach(client => {
-                //     const option = document.createElement('option');
-                //     option.value = client.id;
-                //     option.textContent = `${client.first_name} ${client.last_name} - ${client.phone}`;
-                //     clientSelect.appendChild(option);
-                // });
-                // $(clientSelect).select2({ dropdownParent: $('#multiBookModal'), width: '100%' }); // Re-initialize select2
-            }
 
 
             // ==========================================
-            // MULTI-BOOKING MODAL
+            // NAVIGATION FUNCTIONS
             // ==========================================
+            function navigateDate(days) {
+                const date = new Date(currentDate);
                 date.setDate(date.getDate() + days);
                 window.location.href = `{{ url_for('unaki_booking') }}?date=${date.toISOString().split("T")[0]}`;
             }
@@ -2707,41 +2611,13 @@
                 const minuteOffset = Math.floor(((clickX / rect.width) * 60) / 15) * 15;
                 const time = `${String(hour).padStart(2, "0")}:${String(minuteOffset).padStart(2, "0")}`;
 
-                openMultiBookModal();
-                const firstCard = document.querySelector(".appointment-card");
-                if (firstCard) {
-                    firstCard.querySelector(".staff-select").value = staffId;
-                    firstCard.querySelector(".appointment-date").value = currentDate;
-
-                    // Set the time in the new manual input fields
-                    const hourInput = firstCard.querySelector('.time-hour');
-                    const minuteInput = firstCard.querySelector('.time-minute');
-                    const periodSelect = firstCard.querySelector('.time-period');
-                    const hiddenInput = firstCard.querySelector('.start-time-24h');
-
-                    if (hourInput && minuteInput && periodSelect && hiddenInput) {
-                        const [h24, m] = time.split(':');
-                        const hour24 = parseInt(h24);
-                        const minute = parseInt(m);
-                        const period = hour24 >= 12 ? 'PM' : 'AM';
-                        const hour12 = hour24 % 12 || 12;
-
-                        hourInput.value = hour12;
-                        minuteInput.value = minute;
-                        periodSelect.value = period;
-
-                        // Update the hidden input and other related fields
-                        updateHiddenTimeInput(hourInput, minuteInput, periodSelect, hiddenInput);
-                        updateAppointmentEndTime(firstCard); // Ensure end time is calculated
-                        const endTimeDisplay = firstCard.querySelector('.end-time-display');
-                        if (endTimeDisplay) {
-                            endTimeDisplay.value = convertTo12Hour(hiddenInput.value); // Update display
-                        }
-
-                        checkConflicts(0);
-                        updateSubmitButton();
-                    }
-                }
+                // Redirect to multi-appointment booking page with pre-filled data
+                const params = new URLSearchParams({
+                    date: currentDate,
+                    staff_id: staffId,
+                    start_time: time
+                });
+                window.location.href = `/multi-appointment-booking?${params.toString()}`;
             }
 
             function showLoading(show) {
@@ -2917,17 +2793,7 @@
                 alert(`${type.toUpperCase()}: ${message}`);
             }
 
-                        const periodSelect = appointmentCard.querySelector('.time-period');
-                        const hiddenInput = appointmentCard.querySelector('.start-time-24h');
-
-                        updateHiddenTimeInput(hourInput, minuteInput, periodSelect, hiddenInput);
-                        updateAppointmentEndTime(appointmentCard);
-                        updateSubmitButton(); // Update button state after changes
-                    }
-                }
-            });
-
-             // Sync 12-hour displays when page loads and after appointments are added/modified
+            // Sync 12-hour displays when page loads and after appointments are added/modified
             function syncAll12HourDisplays() {
                 document.querySelectorAll('.appointment-card').forEach(card => {
                     const startTime24h = card.querySelector('.start-time-24h')?.value;
