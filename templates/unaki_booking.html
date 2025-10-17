@@ -855,34 +855,6 @@
                 overflow-y: auto;
             }
 
-            #appointmentsContainer {
-                /* Container for appointment cards - no height restrictions */
-                display: flex;
-                flex-direction: column;
-                gap: 0;
-            }
-
-            .appointment-card {
-                background: white;
-                border: 2px solid transparent;
-                border-radius: 10px;
-                padding: 16px;
-                margin-bottom: 12px;
-                transition: all 0.2s;
-                position: relative;
-            }
-
-            .appointment-card:hover {
-                border-color: var(--primary-color);
-                transform: translateY(-2px);
-                box-shadow: var(--shadow-md);
-            }
-
-            .appointment-card.duplicate {
-                border-color: var(--warning-color);
-                background: #fffbeb;
-            }
-
             .appointment-number {
                 position: absolute;
                 top: -8px;
@@ -2016,43 +1988,6 @@
                 }
             }
 
-            // Helper function to update the hidden 24-hour time input based on manual inputs
-            function updateHiddenTimeInput(hourInput, minuteInput, periodSelect, hiddenInput) {
-                const hour = parseInt(hourInput.value) || 9;
-                const minute = parseInt(minuteInput.value) || 0;
-                const period = periodSelect.value;
-
-                // Convert to 24-hour format
-                let hour24 = hour;
-                if (period === 'PM' && hour !== 12) {
-                    hour24 = hour + 12;
-                } else if (period === 'AM' && hour === 12) {
-                    hour24 = 0;
-                }
-
-                // Format as HH:MM
-                const timeString = `${String(hour24).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
-                hiddenInput.value = timeString;
-
-                console.log(`Time updated: ${hour}:${String(minute).padStart(2, '0')} ${period} → ${timeString}`);
-            }
-
-
-            // Handle time selection change
-            function handleTimeChange(selectElement) {
-                const card = selectElement.closest('[data-appointment-index]');
-                if (!card) return;
-
-                const index = parseInt(card.dataset.appointmentIndex);
-                const hiddenInput = card.querySelector('.start-time-24h');
-
-                if (hiddenInput) {
-                    hiddenInput.value = selectElement.value;
-                    updateAppointmentEndTime(card);
-                    checkConflictsRealtime(index);
-                    checkClientConflicts(index);
-                }
-            }
 
             // ==========================================
             // INITIALIZATION
@@ -2063,11 +1998,6 @@
                 setupTooltips();
                 setupScrollSync();
                 initializeSearchableDropdowns();
-
-                // Initialize 12-hour time displays on page load
-                setTimeout(() => {
-                    syncAll12HourDisplays();
-                }, 100);
             });
 
             function initializeApp() {
@@ -2791,39 +2721,6 @@
                 // Replace this with your actual toast implementation
                 console.log(`Toast (${type}): ${message}`);
                 alert(`${type.toUpperCase()}: ${message}`);
-            }
-
-            // Sync 12-hour displays when page loads and after appointments are added/modified
-            function syncAll12HourDisplays() {
-                document.querySelectorAll('.appointment-card').forEach(card => {
-                    const startTime24h = card.querySelector('.start-time-24h')?.value;
-                    const endTime24h = card.querySelector('.end-time-24h')?.value;
-
-                    const startTimeDisplay = card.querySelector('.start-time-select'); // This is now the manual input group
-                    const endTimeDisplay = card.querySelector('.end-time-display');
-
-                    // Update manual input fields for start time
-                    if (startTime24h) {
-                        const [h24, m] = startTime24h.split(':');
-                        const hour24 = parseInt(h24);
-                        const minute = parseInt(m);
-                        const period = hour24 >= 12 ? 'PM' : 'AM';
-                        const hour12 = hour24 % 12 || 12;
-
-                        const hourInput = card.querySelector('.time-hour');
-                        const minuteInput = card.querySelector('.time-minute');
-                        const periodSelect = card.querySelector('.time-period');
-
-                        if (hourInput) hourInput.value = hour12;
-                        if (minuteInput) minuteInput.value = String(minute).padStart(2, '0'); // Ensure minute is two digits
-                        if (periodSelect) periodSelect.value = period;
-                    }
-
-                    // Update visible end time display
-                    if (endTimeDisplay) {
-                        endTimeDisplay.value = endTime24h ? convertTo12Hour(endTime24h) : '';
-                    }
-                });
             }
 
         </script>
