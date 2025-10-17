@@ -560,6 +560,19 @@
                 color: #b91c1c;
             }
 
+            .appointment-block.checked-in {
+                background: #fef3c7 !important;
+                border-left-color: #f59e0b !important;
+            }
+
+            .appointment-block.checked-in .appointment-client {
+                color: #92400e;
+            }
+
+            .appointment-block.checked-in .appointment-service {
+                color: #b45309;
+            }
+
             .appointment-header {
                 display: flex;
                 align-items: flex-start;
@@ -1154,6 +1167,19 @@
                             <i class="fas fa-plus-circle"></i>
                             New Appointment
                         </a>
+                        <button
+                            class="action-btn"
+                            style="
+                                background: var(--success-color);
+                                color: white;
+                                border: none;
+                            "
+                            data-bs-toggle="modal"
+                            data-bs-target="#manualCheckinModal"
+                        >
+                            <i class="fas fa-user-check"></i>
+                            Check-In Client
+                        </button>
                         <a
                             href="{{ url_for('shift_scheduler.shift_scheduler') }}"
                             class="action-btn"
@@ -1298,6 +1324,13 @@
             </div>
             <div class="context-menu-item" onclick="editAppointment()">
                 <i class="fas fa-edit"></i>Edit Appointment
+            </div>
+            <div class="context-menu-divider"></div>
+            <div class="context-menu-item" id="checkinMenuItem" onclick="checkinAppointment(selectedAppointmentId)" style="color: var(--success-color);">
+                <i class="fas fa-user-check"></i>Check-In Client
+            </div>
+            <div class="context-menu-item" id="undoCheckinMenuItem" onclick="undoCheckin(selectedAppointmentId)" style="color: var(--warning-color); display: none;">
+                <i class="fas fa-undo"></i>Undo Check-In
             </div>
             <div class="context-menu-divider"></div>
             <div class="context-menu-item danger" onclick="cancelAppointment()">
@@ -1843,6 +1876,43 @@
             </div>
         </div>
 
+        <!-- Manual Check-In Modal -->
+        <div class="modal fade" id="manualCheckinModal" tabindex="-1">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content" style="border-radius: 16px; border: none; box-shadow: var(--shadow-xl);">
+                    <div class="modal-header" style="border-bottom: 2px solid var(--border-color); padding: 20px 24px;">
+                        <h5 class="modal-title" style="font-weight: 700; font-size: 18px">
+                            <i class="fas fa-user-check me-2" style="color: var(--success-color)"></i>Check-In Client
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body" style="padding: 24px;">
+                        <p class="text-muted mb-3">Select a client to check them in. All their appointments for today will be marked as checked-in.</p>
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">
+                                <i class="fas fa-user me-2" style="color: var(--primary-color)"></i>Select Client
+                            </label>
+                            <select id="checkinClientSelect" class="form-select select2-dropdown" style="border-radius: 10px; padding: 12px">
+                                <option value="">Choose a client...</option>
+                                {% for client in customers %}
+                                <option value="{{ client.id }}">{{ client.full_name }} - {{ client.phone }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div id="checkinMessage" class="alert" style="display: none;"></div>
+                    </div>
+                    <div class="modal-footer" style="border-top: 2px solid var(--border-color); padding: 16px 24px;">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" style="border-radius: 10px; padding: 10px 20px">
+                            <i class="fas fa-times me-2"></i>Cancel
+                        </button>
+                        <button type="button" class="btn btn-success" onclick="performManualCheckin()" style="border-radius: 10px; padding: 10px 20px; background: var(--success-color); border: none;">
+                            <i class="fas fa-check me-2"></i>Check-In
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
 
         <script>
             // ==========================================
@@ -2188,10 +2258,13 @@
                     const block = document.createElement("div");
                     // Add 'paid' class if payment status is 'paid' or 'success'
                     const isPaid = booking.payment_status === 'paid' || booking.payment_status === 'success';
-                    block.className = `appointment-block service-${serviceType}${isPaid ? ' paid' : ''}`;
+                    // Add 'checked-in' class if client has checked in
+                    const isCheckedIn = booking.checked_in === true || booking.checked_in === 1;
+                    block.className = `appointment-block service-${serviceType}${isPaid ? ' paid' : ''}${isCheckedIn ? ' checked-in' : ''}`;
                     block.style.left = `${leftPosition}px`;
                     block.style.width = `${width}px`;
                     block.dataset.appointmentId = booking.id;
+                    block.dataset.clientId = booking.client_id;
                     block.draggable = true;
 
                     block.innerHTML = `
@@ -2532,6 +2605,102 @@
                     // Implement cancellation logic here
                     alert("Cancel appointment " + selectedAppointmentId);
                 }
+                hideContextMenu();
+            }
+
+            // ==========================================
+            // CHECK-IN FUNCTIONS
+            // ==========================================
+            
+            function performManualCheckin() {
+                const clientSelect = document.getElementById('checkinClientSelect');
+                const clientId = clientSelect.value;
+                const messageDiv = document.getElementById('checkinMessage');
+                
+                if (!clientId) {
+                    messageDiv.className = 'alert alert-warning';
+                    messageDiv.style.display = 'block';
+                    messageDiv.innerHTML = '<i class="fas fa-exclamation-triangle me-2"></i>Please select a client';
+                    return;
+                }
+
+                messageDiv.style.display = 'none';
+                
+                fetch('/api/unaki/checkin/manual', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ client_id: parseInt(clientId) })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        messageDiv.className = 'alert alert-success';
+                        messageDiv.style.display = 'block';
+                        messageDiv.innerHTML = `<i class="fas fa-check-circle me-2"></i>${data.message}`;
+                        
+                        setTimeout(() => {
+                            bootstrap.Modal.getInstance(document.getElementById('manualCheckinModal')).hide();
+                            loadBookings();
+                            clientSelect.value = '';
+                            messageDiv.style.display = 'none';
+                        }, 1500);
+                    } else {
+                        messageDiv.className = 'alert alert-danger';
+                        messageDiv.style.display = 'block';
+                        messageDiv.innerHTML = `<i class="fas fa-times-circle me-2"></i>${data.error}`;
+                    }
+                })
+                .catch(error => {
+                    console.error('Check-in error:', error);
+                    messageDiv.className = 'alert alert-danger';
+                    messageDiv.style.display = 'block';
+                    messageDiv.innerHTML = '<i class="fas fa-times-circle me-2"></i>Error checking in client';
+                });
+            }
+
+            function checkinAppointment(appointmentId) {
+                if (!appointmentId) return;
+                
+                fetch(`/api/unaki/checkin/${appointmentId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showNotification(data.message, 'success');
+                        loadBookings();
+                    } else {
+                        showNotification(data.error || 'Failed to check in', 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Check-in error:', error);
+                    showNotification('Error checking in appointment', 'error');
+                });
+                hideContextMenu();
+            }
+
+            function undoCheckin(appointmentId) {
+                if (!appointmentId) return;
+                
+                fetch(`/api/unaki/checkin/undo/${appointmentId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showNotification(data.message, 'success');
+                        loadBookings();
+                    } else {
+                        showNotification(data.error || 'Failed to undo check-in', 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Undo check-in error:', error);
+                    showNotification('Error undoing check-in', 'error');
+                });
                 hideContextMenu();
             }
 
