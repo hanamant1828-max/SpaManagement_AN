@@ -78,6 +78,10 @@
                     statusCode: xhr.status
                 });
                 showAlert('Error loading schedules. Please try again.', 'danger');
+            },
+            complete: function() {
+                // Ensure modal is hidden even if there's an unexpected issue
+                hideLoadingModal();
             }
         });
     }
@@ -346,7 +350,18 @@
      */
     function hideLoadingModal() {
         if (loadingModal) {
-            loadingModal.hide();
+            try {
+                loadingModal.hide();
+                // Force remove modal backdrop if it exists
+                $('.modal-backdrop').remove();
+                $('body').removeClass('modal-open');
+            } catch (e) {
+                console.error('Error hiding loading modal:', e);
+                // Fallback: force hide
+                $('#loadingModal').modal('hide');
+                $('.modal-backdrop').remove();
+                $('body').removeClass('modal-open');
+            }
         }
     }
 
