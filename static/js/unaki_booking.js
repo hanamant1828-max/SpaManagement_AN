@@ -306,7 +306,9 @@
                                 customers.forEach(customer => {
                                     const option = document.createElement('option');
                                     option.value = customer.id;
-                                    option.textContent = `${customer.name} - ${customer.phone}`;
+                                    // Display full name with phone number
+                                    const displayName = customer.name || `${customer.first_name || ''} ${customer.last_name || ''}`.trim();
+                                    option.textContent = `${displayName} - ${customer.phone}`;
                                     checkinSelect.appendChild(option);
                                 });
                                 console.log(`✅ Loaded ${customers.length} clients into check-in dropdown`);

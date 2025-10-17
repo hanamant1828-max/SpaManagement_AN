@@ -349,9 +349,9 @@
                             <label for="checkinClientSelect" class="form-label">Select Client</label>
                             <select id="checkinClientSelect" class="form-select">
                                 <option value="">Choose a client...</option>
-                                {% if staff_members %}
+                                {% if clients %}
                                     {% for client in clients %}
-                                        <option value="{{ client.id }}">{{ client.name }} - {{ client.phone }}</option>
+                                        <option value="{{ client.id }}">{{ client.first_name }} {{ client.last_name }} - {{ client.phone }}</option>
                                     {% endfor %}
                                 {% endif %}
                             </select>
