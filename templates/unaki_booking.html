@@ -4133,31 +4133,24 @@
                     firstCard.querySelector(".staff-select").value = staffId;
                     firstCard.querySelector(".appointment-date").value = currentDate;
 
-                    // Set the time in the new manual input fields
-                    const hourInput = firstCard.querySelector('.time-hour');
-                    const minuteInput = firstCard.querySelector('.time-minute');
-                    const periodSelect = firstCard.querySelector('.time-period');
+                    // Set the time using actual dropdown and hidden input
+                    const startTimeDropdown = firstCard.querySelector('.start-time-select');
                     const hiddenInput = firstCard.querySelector('.start-time-24h');
 
-                    if (hourInput && minuteInput && periodSelect && hiddenInput) {
-                        const [h24, m] = time.split(':');
-                        const hour24 = parseInt(h24);
-                        const minute = parseInt(m);
-                        const period = hour24 >= 12 ? 'PM' : 'AM';
-                        const hour12 = hour24 % 12 || 12;
+                    if (startTimeDropdown && hiddenInput) {
+                        // Set the hidden 24-hour input
+                        hiddenInput.value = time;
+                        
+                        // Set the dropdown to the same time
+                        startTimeDropdown.value = time;
+                        
+                        // Trigger change event to update any listeners
+                        startTimeDropdown.dispatchEvent(new Event('change', { bubbles: true }));
 
-                        hourInput.value = hour12;
-                        minuteInput.value = minute;
-                        periodSelect.value = period;
+                        // Update end time based on service duration
+                        updateAppointmentEndTime(firstCard);
 
-                        // Update the hidden input and other related fields
-                        updateHiddenTimeInput(hourInput, minuteInput, periodSelect, hiddenInput);
-                        updateAppointmentEndTime(firstCard); // Ensure end time is calculated
-                        const endTimeDisplay = firstCard.querySelector('.end-time-display');
-                        if (endTimeDisplay) {
-                            endTimeDisplay.value = convertTo12Hour(hiddenInput.value); // Update display
-                        }
-
+                        // Re-check conflicts and update UI
                         checkConflicts(0);
                         updateSubmitButton();
                     }
@@ -4379,53 +4372,26 @@
                 }
             });
 
-            // Also trigger on input events for immediate feedback (e.g., time input)
-            document.getElementById('appointmentsContainer').addEventListener('input', function(e) {
-                if (e.target.matches('.time-hour, .time-minute, .time-period')) { // Listen to manual time inputs
-                    const appointmentCard = e.target.closest('.appointment-card');
-                    if (appointmentCard) {
-                        const index = parseInt(appointmentCard.dataset.appointmentIndex);
-                        const hourInput = appointmentCard.querySelector('.time-hour');
-                        const minuteInput = appointmentCard.querySelector('.time-minute');
-                        const periodSelect = appointmentCard.querySelector('.time-period');
-                        const hiddenInput = appointmentCard.querySelector('.start-time-24h');
+            // Dropdown time selects are handled by the 'change' event listener above
+            // No need for separate input event listener for time dropdowns
 
-                        updateHiddenTimeInput(hourInput, minuteInput, periodSelect, hiddenInput);
-                        updateAppointmentEndTime(appointmentCard);
-                        updateSubmitButton(); // Update button state after changes
-                    }
-                }
-            });
-
-             // Sync 12-hour displays when page loads and after appointments are added/modified
+             // Sync dropdowns with hidden 24-hour inputs when page loads and after appointments are added/modified
             function syncAll12HourDisplays() {
                 document.querySelectorAll('.appointment-card').forEach(card => {
                     const startTime24h = card.querySelector('.start-time-24h')?.value;
                     const endTime24h = card.querySelector('.end-time-24h')?.value;
 
-                    const startTimeDisplay = card.querySelector('.start-time-select'); // This is now the manual input group
-                    const endTimeDisplay = card.querySelector('.end-time-display');
+                    const startTimeDropdown = card.querySelector('.start-time-select');
+                    const endTimeDropdown = card.querySelector('.end-time-select');
 
-                    // Update manual input fields for start time
-                    if (startTime24h) {
-                        const [h24, m] = startTime24h.split(':');
-                        const hour24 = parseInt(h24);
-                        const minute = parseInt(m);
-                        const period = hour24 >= 12 ? 'PM' : 'AM';
-                        const hour12 = hour24 % 12 || 12;
-
-                        const hourInput = card.querySelector('.time-hour');
-                        const minuteInput = card.querySelector('.time-minute');
-                        const periodSelect = card.querySelector('.time-period');
-
-                        if (hourInput) hourInput.value = hour12;
-                        if (minuteInput) minuteInput.value = String(minute).padStart(2, '0'); // Ensure minute is two digits
-                        if (periodSelect) periodSelect.value = period;
+                    // Sync start time dropdown with hidden input
+                    if (startTime24h && startTimeDropdown) {
+                        startTimeDropdown.value = startTime24h;
                     }
 
-                    // Update visible end time display
-                    if (endTimeDisplay) {
-                        endTimeDisplay.value = endTime24h ? convertTo12Hour(endTime24h) : '';
+                    // Sync end time dropdown with hidden input
+                    if (endTime24h && endTimeDropdown) {
+                        endTimeDropdown.value = endTime24h;
                     }
                 });
             }
