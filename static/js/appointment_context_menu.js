@@ -948,6 +948,60 @@ class AppointmentContextMenu {
             e.preventDefault();
             this.saveAppointmentChanges(appointment.id, modal);
         });
+
+        // Add auto-calculation for duration and end time
+        this.setupTimeCalculations();
+    }
+
+    setupTimeCalculations() {
+        const durationInput = document.getElementById('editServiceDuration');
+        const startTimeInput = document.getElementById('editStartTime');
+        const endTimeInput = document.getElementById('editEndTime');
+
+        if (!durationInput || !startTimeInput || !endTimeInput) return;
+
+        // Calculate end time when duration or start time changes
+        const calculateEndTime = () => {
+            const startTime = startTimeInput.value;
+            const duration = parseInt(durationInput.value) || 0;
+
+            if (startTime && duration > 0) {
+                const [hours, minutes] = startTime.split(':').map(Number);
+                const totalMinutes = hours * 60 + minutes + duration;
+                const endHours = Math.floor(totalMinutes / 60) % 24;
+                const endMinutes = totalMinutes % 60;
+                
+                endTimeInput.value = `${String(endHours).padStart(2, '0')}:${String(endMinutes).padStart(2, '0')}`;
+            }
+        };
+
+        // Calculate duration when start time or end time changes
+        const calculateDuration = () => {
+            const startTime = startTimeInput.value;
+            const endTime = endTimeInput.value;
+
+            if (startTime && endTime) {
+                const [startHours, startMinutes] = startTime.split(':').map(Number);
+                const [endHours, endMinutes] = endTime.split(':').map(Number);
+                
+                let duration = (endHours * 60 + endMinutes) - (startHours * 60 + startMinutes);
+                
+                // Handle overnight appointments
+                if (duration < 0) {
+                    duration += 24 * 60;
+                }
+                
+                durationInput.value = duration;
+            }
+        };
+
+        // Event listeners
+        durationInput.addEventListener('change', calculateEndTime);
+        startTimeInput.addEventListener('change', calculateEndTime);
+        endTimeInput.addEventListener('change', calculateDuration);
+
+        // Calculate duration on load to sync with current values
+        calculateDuration();
     }
 
     saveAppointmentChanges(appointmentId, modal) {
