@@ -1242,6 +1242,10 @@ class UnakiBooking(db.Model):
     payment_status = db.Column(db.String(20), default='pending')  # pending, paid, partial, cancelled
     payment_method = db.Column(db.String(20))  # cash, card, upi, online
 
+    # Check-in tracking
+    checked_in = db.Column(db.Boolean, default=False)
+    checked_in_at = db.Column(db.DateTime)
+
     # Timestamps (stored as naive datetime in IST)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(pytz.timezone('Asia/Kolkata')).replace(tzinfo=None))
     updated_at = db.Column(db.DateTime, default=lambda: datetime.now(pytz.timezone('Asia/Kolkata')).replace(tzinfo=None), onupdate=lambda: datetime.now(pytz.timezone('Asia/Kolkata')).replace(tzinfo=None))
