@@ -14,7 +14,7 @@
                         Book multiple services for a client in one go
                     </p>
                 </div>
-                
+
                     href="{{ url_for('unaki_booking') }}"
                     class="btn btn-outline-secondary"
                 >
@@ -474,8 +474,15 @@
     // ==================== GLOBAL VARIABLES ====================
     let appointmentIndex = 0;
     const conflictTimers = {};
-    const clientConflictTimers = {};
     let clientExistingBookings = [];
+    const DEBUG = true; // Set to false in production
+
+    // Debug logger
+    function debugLog(message, data = null) {
+        if (DEBUG) {
+            console.log(`[MULTI-BOOKING] ${message}`, data || '');
+        }
+    }
 
     // ==================== TIME UTILITIES ====================
     function generateTimeOptions() {
@@ -494,11 +501,11 @@
 
     function format12Hour(time24) {
         if (!time24) return "";
-        
+
         if (time24.includes('AM') || time24.includes('PM')) {
             return time24;
         }
-        
+
         const [hours, minutes] = time24.split(":");
         const hour = parseInt(hours);
         const ampm = hour >= 12 ? "PM" : "AM";
@@ -517,9 +524,24 @@
         return `${endHours}:${endMinutes}`;
     }
 
-    // ==================== TIME OVERLAP CHECKER (FIXED FOR BACK-TO-BACK) ====================
+    // ==================== COMPREHENSIVE TIME OVERLAP CHECKER ====================
+    /**
+     * Checks if two time ranges overlap
+     * Returns TRUE if there's a REAL overlap (not just touching)
+     * 
+     * ALLOWED (back-to-back):
+     * - 10:30-11:30 and 11:30-13:00 → FALSE (no overlap)
+     * 
+     * NOT ALLOWED (overlapping):
+     * - 10:30-11:30 and 11:00-12:00 → TRUE (overlap)
+     * - 10:00-12:00 and 11:00-13:00 → TRUE (overlap)
+     * - 10:00-13:00 and 11:00-12:00 → TRUE (one inside other)
+     * - 10:30-11:30 and 10:30-11:30 → TRUE (exact same)
+     */
     function checkTimeOverlap(start1, end1, start2, end2) {
+        // Convert times to minutes since midnight for easy comparison
         const toMinutes = (time) => {
+            if (!time) return 0;
             const [h, m] = time.split(':').map(Number);
             return h * 60 + m;
         };
@@ -529,14 +551,55 @@
         const s2 = toMinutes(start2);
         const e2 = toMinutes(end2);
 
-        // TRUE OVERLAP: One appointment starts BEFORE the other ends
-        // Back-to-back (touching) appointments where end1 === start2 are ALLOWED
-        // Example: 10:30-11:30 and 11:30-13:00 should NOT overlap
-        return (s1 < e2 && e1 > s2) && !(e1 === s2 || s1 === e2);
+        debugLog('Checking overlap:', {
+            slot1: `${start1}-${end1} (${s1}-${e1} mins)`,
+            slot2: `${start2}-${end2} (${s2}-${e2} mins)`
+        });
+
+        // Validate times
+        if (e1 <= s1 || e2 <= s2) {
+            debugLog('Invalid time range detected');
+            return false;
+        }
+
+        // Check for overlap: Two ranges overlap if one starts before the other ends
+        // BUT they must actually overlap, not just touch
+        // Overlap exists if: (start1 < end2) AND (end1 > start2) AND they don't just touch
+        const hasOverlap = (s1 < e2 && e1 > s2) && !(e1 === s2 || s1 === e2);
+
+        debugLog('Overlap result:', hasOverlap);
+        return hasOverlap;
+    }
+
+    // ==================== GET APPOINTMENT DATA ====================
+    function getAppointmentData(index) {
+        return {
+            index: index,
+            service: document.querySelector(`.service-select[data-index="${index}"]`)?.value || null,
+            serviceName: document.querySelector(`.service-select[data-index="${index}"]`)?.options[document.querySelector(`.service-select[data-index="${index}"]`)?.selectedIndex]?.text?.split(" (")[0] || '',
+            staff: document.querySelector(`.staff-select[data-index="${index}"]`)?.value || null,
+            staffName: document.querySelector(`.staff-select[data-index="${index}"]`)?.options[document.querySelector(`.staff-select[data-index="${index}"]`)?.selectedIndex]?.text || '',
+            date: document.querySelector(`.date-input[data-index="${index}"]`)?.value || null,
+            startTime: document.querySelector(`.start-time-select[data-index="${index}"]`)?.value || null,
+            endTime: document.querySelector(`.end-time-select[data-index="${index}"]`)?.value || null,
+        };
+    }
+
+    function getAllAppointmentsData() {
+        const appointments = [];
+        document.querySelectorAll(".appointment-card").forEach((card) => {
+            const data = getAppointmentData(card.dataset.index);
+            if (data.service && data.staff && data.date && data.startTime && data.endTime) {
+                appointments.push(data);
+            }
+        });
+        return appointments;
     }
 
     // ==================== INITIALIZATION ====================
     $(document).ready(function () {
+        debugLog('Initializing multi-booking page');
+
         $("#clientSelect").select2({
             placeholder: "Choose a client...",
             allowClear: true,
@@ -547,12 +610,17 @@
 
         $("#clientSelect").on("change", function () {
             const clientId = $(this).val();
+            debugLog('Client selected:', clientId);
+
             if (clientId) {
                 loadClientAppointments(clientId);
             } else {
                 $("#clientExistingAppointments").hide();
                 clientExistingBookings = [];
             }
+
+            // Re-validate all appointments when client changes
+            validateAllAppointments();
             updateSubmitButton();
         });
 
@@ -561,10 +629,13 @@
 
     // ==================== ADD/REMOVE APPOINTMENTS ====================
     async function addAppointmentRow() {
+        debugLog('Adding new appointment row');
+
         const existingCards = document.querySelectorAll(".appointment-card");
         if (existingCards.length > 0) {
             const isValid = await validateBeforeAddingNew();
             if (!isValid) {
+                debugLog('Validation failed, not adding new row');
                 return;
             }
         }
@@ -656,7 +727,7 @@
                 </div>
                 <div class="col-md-4 mb-3">
                     <label class="form-label fw-semibold">
-                        End Time
+                        End Time *
                         <span class="validation-icon text-success" id="end-icon-${index}">
                             <i class="fas fa-check-circle"></i>
                         </span>
@@ -665,7 +736,7 @@
                         <option value="">Auto-calculated</option>
                     </select>
                     <input type="time" class="d-none end-time-hidden" data-index="${index}">
-                    <small class="text-muted">Optional: Auto-calculated from service duration</small>
+                    <small class="text-muted">Auto-calculated from service duration</small>
                 </div>
             </div>
 
@@ -686,7 +757,7 @@
                 <span class="client-conflict-message"></span>
             </div>
 
-            <!-- Internal Conflict Alert (between current form appointments) -->
+            <!-- Internal Conflict Alert -->
             <div class="alert alert-danger d-none" id="internal-conflict-${index}">
                 <i class="fas fa-ban me-2"></i>
                 <span class="internal-conflict-message"></span>
@@ -698,18 +769,20 @@
         attachEventListeners(index);
         updateAppointmentCount();
         updateAddButtonState();
+
+        debugLog(`Appointment row ${index} added successfully`);
     }
 
     function removeAppointment(index) {
+        debugLog(`Removing appointment ${index}`);
+
         const card = document.querySelector(`[data-index="${index}"]`);
         if (card) {
             card.remove();
-            
-            document.querySelectorAll(".appointment-card").forEach((card) => {
-                const idx = card.dataset.index;
-                checkInternalConflicts(idx);
-            });
-            
+
+            // Re-validate ALL remaining appointments
+            validateAllAppointments();
+
             updateAppointmentCount();
             updateSummary();
             updateConflictSummary();
@@ -718,12 +791,36 @@
         }
     }
 
-    // ==================== VALIDATION BEFORE ADDING NEW ====================
+    // ==================== COMPREHENSIVE VALIDATION ====================
+    function validateAllAppointments() {
+        debugLog('Validating all appointments');
+
+        const allCards = document.querySelectorAll(".appointment-card");
+
+        allCards.forEach((card) => {
+            const index = card.dataset.index;
+            const data = getAppointmentData(index);
+
+            // Clear previous conflicts
+            clearConflictAlerts(index);
+
+            // Only validate if all fields are filled
+            if (data.service && data.staff && data.date && data.startTime && data.endTime) {
+                checkStaffConflicts(index);
+                checkClientConflicts(index);
+                checkInternalConflicts(index);
+            }
+        });
+    }
+
     async function validateBeforeAddingNew() {
+        debugLog('Validating before adding new appointment');
+
         const clientId = $("#clientSelect").val();
         const allCards = document.querySelectorAll(".appointment-card");
         const validationErrors = [];
 
+        // Check if client is selected
         if (!clientId) {
             showValidationError("❌ Please select a client first");
             $("#clientSelect").parent().addClass("shake-animation");
@@ -731,66 +828,60 @@
             return false;
         }
 
+        // Validate each existing appointment
         for (const card of allCards) {
             const idx = Array.from(allCards).indexOf(card);
-            const index = card.dataset.index;
-            
-            const serviceSelect = document.querySelector(`.service-select[data-index="${index}"]`);
-            const staffSelect = document.querySelector(`.staff-select[data-index="${index}"]`);
-            const dateInput = document.querySelector(`.date-input[data-index="${index}"]`);
-            const startTimeSelect = document.querySelector(`.start-time-select[data-index="${index}"]`);
-            const endTimeSelect = document.querySelector(`.end-time-select[data-index="${index}"]`);
+            const data = getAppointmentData(card.dataset.index);
 
-            if (!serviceSelect?.value) {
+            // Check required fields
+            if (!data.service) {
                 validationErrors.push(`Appointment ${idx + 1}: Please select a service`);
-                serviceSelect?.classList.add("field-error", "shake-animation");
-                setTimeout(() => serviceSelect?.classList.remove("shake-animation"), 500);
+                document.querySelector(`.service-select[data-index="${data.index}"]`)?.classList.add("field-error", "shake-animation");
+                setTimeout(() => document.querySelector(`.service-select[data-index="${data.index}"]`)?.classList.remove("shake-animation"), 500);
             }
 
-            if (!staffSelect?.value) {
+            if (!data.staff) {
                 validationErrors.push(`Appointment ${idx + 1}: Please select a staff member`);
-                staffSelect?.classList.add("field-error", "shake-animation");
-                setTimeout(() => staffSelect?.classList.remove("shake-animation"), 500);
+                document.querySelector(`.staff-select[data-index="${data.index}"]`)?.classList.add("field-error", "shake-animation");
+                setTimeout(() => document.querySelector(`.staff-select[data-index="${data.index}"]`)?.classList.remove("shake-animation"), 500);
             }
 
-            if (!dateInput?.value) {
+            if (!data.date) {
                 validationErrors.push(`Appointment ${idx + 1}: Please select a date`);
-                dateInput?.classList.add("field-error", "shake-animation");
-                setTimeout(() => dateInput?.classList.remove("shake-animation"), 500);
+                document.querySelector(`.date-input[data-index="${data.index}"]`)?.classList.add("field-error", "shake-animation");
+                setTimeout(() => document.querySelector(`.date-input[data-index="${data.index}"]`)?.classList.remove("shake-animation"), 500);
             }
 
-            if (!startTimeSelect?.value) {
+            if (!data.startTime) {
                 validationErrors.push(`Appointment ${idx + 1}: Please select a start time`);
-                startTimeSelect?.classList.add("field-error", "shake-animation");
-                setTimeout(() => startTimeSelect?.classList.remove("shake-animation"), 500);
+                document.querySelector(`.start-time-select[data-index="${data.index}"]`)?.classList.add("field-error", "shake-animation");
+                setTimeout(() => document.querySelector(`.start-time-select[data-index="${data.index}"]`)?.classList.remove("shake-animation"), 500);
             }
 
-            if (!endTimeSelect?.value) {
+            if (!data.endTime) {
                 validationErrors.push(`Appointment ${idx + 1}: End time is required`);
-                endTimeSelect?.classList.add("field-error", "shake-animation");
-                setTimeout(() => endTimeSelect?.classList.remove("shake-animation"), 500);
+                document.querySelector(`.end-time-select[data-index="${data.index}"]`)?.classList.add("field-error", "shake-animation");
+                setTimeout(() => document.querySelector(`.end-time-select[data-index="${data.index}"]`)?.classList.remove("shake-animation"), 500);
             }
 
-            if (serviceSelect?.value && staffSelect?.value && dateInput?.value && 
-                startTimeSelect?.value && endTimeSelect?.value) {
-                
-                const hasStaffConflict = !document.getElementById(`conflict-${index}`)?.classList.contains("d-none");
+            // Check for conflicts if all fields are filled
+            if (data.service && data.staff && data.date && data.startTime && data.endTime) {
+                // Check staff conflicts
+                const hasStaffConflict = !document.getElementById(`conflict-${data.index}`)?.classList.contains("d-none");
                 if (hasStaffConflict) {
-                    validationErrors.push(`Appointment ${idx + 1}: Staff conflict detected`);
+                    validationErrors.push(`Appointment ${idx + 1}: Staff member not available at this time`);
                 }
 
-                const hasInternalConflict = !document.getElementById(`internal-conflict-${index}`)?.classList.contains("d-none");
+                // Check internal conflicts
+                const hasInternalConflict = !document.getElementById(`internal-conflict-${data.index}`)?.classList.contains("d-none");
                 if (hasInternalConflict) {
-                    validationErrors.push(`Appointment ${idx + 1}: Time overlaps with another appointment in this booking`);
+                    validationErrors.push(`Appointment ${idx + 1}: Time overlaps with another appointment`);
                 }
 
-                const appointmentDate = dateInput.value;
-                const startTime = startTimeSelect.value;
-                const endTime = endTimeSelect.value;
-
+                // Check client existing bookings
                 for (const booking of clientExistingBookings) {
-                    if (booking.appointment_date === appointmentDate) {
-                        const overlap = checkTimeOverlap(startTime, endTime, booking.start_time, booking.end_time);
+                    if (booking.appointment_date === data.date) {
+                        const overlap = checkTimeOverlap(data.startTime, data.endTime, booking.start_time, booking.end_time);
 
                         if (overlap) {
                             const isPaid = booking.payment_status === 'paid' || booking.payment_status === 'completed';
@@ -811,93 +902,99 @@
             return false;
         }
 
-        showValidationSuccess(`✅ Appointment ${allCards.length} validated! Adding next appointment...`);
+        showValidationSuccess(`✅ All appointments validated! Adding next appointment...`);
         return true;
     }
 
     // ==================== CHECK INTERNAL CONFLICTS ====================
     function checkInternalConflicts(currentIndex) {
-        const currentCard = document.querySelector(`[data-index="${currentIndex}"]`);
-        const currentDateInput = document.querySelector(`.date-input[data-index="${currentIndex}"]`);
-        const currentStartTime = document.querySelector(`.start-time-select[data-index="${currentIndex}"]`);
-        const currentEndTime = document.querySelector(`.end-time-select[data-index="${currentIndex}"]`);
-        const internalConflictAlert = document.getElementById(`internal-conflict-${currentIndex}`);
+        debugLog(`Checking internal conflicts for appointment ${currentIndex}`);
 
+        const currentData = getAppointmentData(currentIndex);
+        const internalConflictAlert = document.getElementById(`internal-conflict-${currentIndex}`);
+        const currentCard = document.querySelector(`[data-index="${currentIndex}"]`);
+
+        // Clear previous alert
         if (internalConflictAlert) internalConflictAlert.classList.add("d-none");
 
-        if (!currentDateInput?.value || !currentStartTime?.value || !currentEndTime?.value) {
+        // Only check if current appointment has all required data
+        if (!currentData.date || !currentData.startTime || !currentData.endTime) {
+            debugLog('Incomplete data, skipping internal conflict check');
             return;
         }
 
-        const currentDate = currentDateInput.value;
-        const currentStart = currentStartTime.value;
-        const currentEnd = currentEndTime.value;
+        // Get all other appointments
+        const allAppointments = getAllAppointmentsData();
+        let hasConflict = false;
+        let conflictDetails = null;
 
-        const allCards = document.querySelectorAll(".appointment-card");
-        let hasInternalConflict = false;
-        let conflictingAppointment = null;
+        // Check against each other appointment
+        for (const otherData of allAppointments) {
+            // Skip self
+            if (otherData.index === currentIndex) continue;
 
-        allCards.forEach((card) => {
-            const otherIndex = card.dataset.index;
-            
-            if (otherIndex === currentIndex) return;
+            // Only check if same date
+            if (currentData.date !== otherData.date) continue;
 
-            const otherDateInput = document.querySelector(`.date-input[data-index="${otherIndex}"]`);
-            const otherStartTime = document.querySelector(`.start-time-select[data-index="${otherIndex}"]`);
-            const otherEndTime = document.querySelector(`.end-time-select[data-index="${otherIndex}"]`);
-            const otherServiceSelect = document.querySelector(`.service-select[data-index="${otherIndex}"]`);
+            // Check for time overlap
+            const overlap = checkTimeOverlap(
+                currentData.startTime, 
+                currentData.endTime, 
+                otherData.startTime, 
+                otherData.endTime
+            );
 
-            if (otherDateInput?.value && otherStartTime?.value && otherEndTime?.value) {
-                const otherDate = otherDateInput.value;
-                const otherStart = otherStartTime.value;
-                const otherEnd = otherEndTime.value;
+            if (overlap) {
+                hasConflict = true;
+                conflictDetails = {
+                    appointmentNumber: Array.from(document.querySelectorAll(".appointment-card")).findIndex(
+                        card => card.dataset.index === otherData.index
+                    ) + 1,
+                    serviceName: otherData.serviceName,
+                    startTime: format12Hour(otherData.startTime),
+                    endTime: format12Hour(otherData.endTime)
+                };
 
-                if (currentDate === otherDate) {
-                    const overlap = checkTimeOverlap(currentStart, currentEnd, otherStart, otherEnd);
-                    
-                    if (overlap) {
-                        hasInternalConflict = true;
-                        const otherServiceName = otherServiceSelect?.options[otherServiceSelect.selectedIndex]?.text.split(" (")[0] || "Another service";
-                        const otherAppointmentNumber = Array.from(allCards).indexOf(card) + 1;
-                        
-                        conflictingAppointment = {
-                            number: otherAppointmentNumber,
-                            service: otherServiceName,
-                            startTime: format12Hour(otherStart),
-                            endTime: format12Hour(otherEnd)
-                        };
-                    }
-                }
+                debugLog('Internal conflict detected:', conflictDetails);
+                break;
             }
-        });
+        }
 
-        if (hasInternalConflict && conflictingAppointment) {
-            const currentAppointmentNumber = Array.from(allCards).indexOf(currentCard) + 1;
-            const message = `🚫 Appointment ${currentAppointmentNumber} overlaps with Appointment ${conflictingAppointment.number} (${conflictingAppointment.service}: ${conflictingAppointment.startTime} - ${conflictingAppointment.endTime}). Back-to-back appointments are allowed.`;
-            
+        if (hasConflict && conflictDetails) {
+            const currentAppointmentNumber = Array.from(document.querySelectorAll(".appointment-card")).findIndex(
+                card => card.dataset.index === currentIndex
+            ) + 1;
+
+            const message = `🚫 This appointment overlaps with Appointment ${conflictDetails.appointmentNumber} (${conflictDetails.serviceName}: ${conflictDetails.startTime} - ${conflictDetails.endTime}). Note: Back-to-back appointments are allowed.`;
+
             showInternalConflictError(currentIndex, message);
-            
-            currentDateInput.classList.add("field-error");
-            currentStartTime.classList.add("field-error");
-            currentEndTime.classList.add("field-error");
+
+            // Mark fields as error
+            document.querySelector(`.date-input[data-index="${currentIndex}"]`)?.classList.add("field-error");
+            document.querySelector(`.start-time-select[data-index="${currentIndex}"]`)?.classList.add("field-error");
+            document.querySelector(`.end-time-select[data-index="${currentIndex}"]`)?.classList.add("field-error");
 
             if (currentCard) {
                 currentCard.classList.add("has-conflict");
                 currentCard.dataset.conflictType = "internal";
             }
         } else {
+            debugLog('No internal conflicts found');
+
+            // Check if there are other types of conflicts
             const hasOtherConflicts = 
                 !document.getElementById(`conflict-${currentIndex}`)?.classList.contains("d-none") ||
                 !document.getElementById(`client-conflict-${currentIndex}`)?.classList.contains("d-none");
-            
+
             if (!hasOtherConflicts) {
-                currentDateInput.classList.remove("field-error", "field-warning");
-                currentStartTime.classList.remove("field-error", "field-warning");
-                currentEndTime.classList.remove("field-error", "field-warning");
-                
-                currentDateInput.classList.add("field-validated");
-                currentStartTime.classList.add("field-validated");
-                currentEndTime.classList.add("field-validated");
+                // Mark as validated
+                document.querySelector(`.date-input[data-index="${currentIndex}"]`)?.classList.remove("field-error", "field-warning");
+                document.querySelector(`.start-time-select[data-index="${currentIndex}"]`)?.classList.remove("field-error", "field-warning");
+                document.querySelector(`.end-time-select[data-index="${currentIndex}"]`)?.classList.remove("field-error", "field-warning");
+
+                document.querySelector(`.date-input[data-index="${currentIndex}"]`)?.classList.add("field-validated");
+                document.querySelector(`.start-time-select[data-index="${currentIndex}"]`)?.classList.add("field-validated");
+                document.querySelector(`.end-time-select[data-index="${currentIndex}"]`)?.classList.add("field-validated");
             }
         }
 
@@ -905,56 +1002,138 @@
         updateConflictSummary();
     }
 
-    // ==================== VALIDATION FEEDBACK ====================
-    function showValidationError(message) {
-        const alertDiv = document.createElement("div");
-        alertDiv.className = "alert alert-danger alert-dismissible fade show validation-toast";
-        alertDiv.innerHTML = `
-            <i class="fas fa-exclamation-triangle me-2"></i>
-            <strong>Validation Failed</strong>
-            <pre class="mb-0 mt-2" style="white-space: pre-wrap; font-size: 0.9em;">${message}</pre>
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        `;
-        document.body.appendChild(alertDiv);
+    // ==================== CHECK CLIENT CONFLICTS ====================
+    function checkClientConflicts(index) {
+        debugLog(`Checking client conflicts for appointment ${index}`);
 
-        setTimeout(() => {
-            alertDiv.classList.remove("show");
-            setTimeout(() => alertDiv.remove(), 300);
-        }, 8000);
-    }
+        const clientId = $("#clientSelect").val();
+        const data = getAppointmentData(index);
+        const clientConflictAlert = document.getElementById(`client-conflict-${index}`);
+        const card = document.querySelector(`[data-index="${index}"]`);
 
-    function showValidationSuccess(message) {
-        const alertDiv = document.createElement("div");
-        alertDiv.className = "alert alert-success alert-dismissible fade show validation-toast";
-        alertDiv.innerHTML = `
-            <i class="fas fa-check-circle me-2"></i>
-            ${message}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        `;
-        document.body.appendChild(alertDiv);
+        // Clear previous alert
+        if (clientConflictAlert) clientConflictAlert.classList.add("d-none");
 
-        setTimeout(() => {
-            alertDiv.classList.remove("show");
-            setTimeout(() => alertDiv.remove(), 300);
-        }, 2000);
-    }
+        // Only check if all required data is present
+        if (!clientId || !data.date || !data.startTime || !data.endTime) {
+            debugLog('Incomplete data, skipping client conflict check');
+            return;
+        }
 
-    // ==================== UPDATE BUTTON TEXT ====================
-    function updateAddButtonState() {
-        const addBtn = document.getElementById("addAppointmentBtn");
-        const appointmentCount = document.querySelectorAll(".appointment-card").length;
-        
-        if (addBtn) {
-            if (appointmentCount === 0) {
-                addBtn.innerHTML = '<i class="fas fa-plus-circle me-2"></i>Add First Appointment';
-            } else {
-                addBtn.innerHTML = `<i class="fas fa-save me-2"></i>Save & Add Another Appointment`;
+        let hasOverlap = false;
+        let conflictDetails = null;
+
+        // Check against client's existing bookings
+        for (const booking of clientExistingBookings) {
+            if (booking.appointment_date === data.date) {
+                const overlap = checkTimeOverlap(
+                    data.startTime, 
+                    data.endTime, 
+                    booking.start_time, 
+                    booking.end_time
+                );
+
+                if (overlap) {
+                    hasOverlap = true;
+                    conflictDetails = booking;
+                    debugLog('Client conflict detected:', booking);
+                    break;
+                }
             }
         }
+
+        if (hasOverlap && conflictDetails) {
+            const isPaid = conflictDetails.payment_status === 'paid' || conflictDetails.payment_status === 'completed';
+            const paymentBadge = isPaid 
+                ? `<span class="badge bg-success">PAID - ₹${conflictDetails.service_price.toFixed(2)}</span>`
+                : `<span class="badge bg-warning text-dark">UNPAID - ₹${conflictDetails.service_price.toFixed(2)}</span>`;
+
+            let message = `⚠️ Client has ${isPaid ? 'PAID' : 'UNPAID'} appointment: <strong>${conflictDetails.service_name}</strong> from <strong>${format12Hour(conflictDetails.start_time)}</strong> to <strong>${format12Hour(conflictDetails.end_time)}</strong> ${paymentBadge}`;
+
+            if (conflictDetails.status) {
+                message += ` <span class="badge bg-info">${conflictDetails.status.toUpperCase()}</span>`;
+            }
+
+            showClientConflictError(index, message);
+
+            document.querySelector(`.date-input[data-index="${index}"]`)?.classList.add("field-warning");
+            document.querySelector(`.start-time-select[data-index="${index}"]`)?.classList.add("field-warning");
+            document.querySelector(`.end-time-select[data-index="${index}"]`)?.classList.add("field-warning");
+
+            if (card) {
+                card.classList.add("has-warning");
+                card.dataset.conflictType = "client-time-overlap";
+            }
+        } else {
+            debugLog('No client conflicts found');
+        }
+
+        updateSubmitButton();
+        updateConflictSummary();
+    }
+
+    // ==================== CHECK STAFF CONFLICTS ====================
+    function checkStaffConflicts(index) {
+        debugLog(`Checking staff conflicts for appointment ${index}`);
+
+        const data = getAppointmentData(index);
+        const conflictAlert = document.getElementById(`conflict-${index}`);
+        const staffSelect = document.querySelector(`.staff-select[data-index="${index}"]`);
+
+        // Clear previous alert
+        if (conflictAlert) conflictAlert.classList.add("d-none");
+        staffSelect?.classList.remove("field-error", "field-validating", "field-validated");
+
+        // Only check if all required data is present
+        if (!data.staff || !data.date || !data.startTime || !data.endTime) {
+            debugLog('Incomplete data, skipping staff conflict check');
+            return;
+        }
+
+        clearTimeout(conflictTimers[index]);
+        showLoadingState(index, true);
+        staffSelect?.classList.add("field-validating");
+
+        conflictTimers[index] = setTimeout(() => {
+            fetch("/api/unaki/check-staff-conflicts", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    staff_id: data.staff,
+                    appointment_date: data.date,
+                    start_time: data.startTime,
+                    end_time: data.endTime,
+                }),
+            })
+                .then((response) => response.json())
+                .then((result) => {
+                    showLoadingState(index, false);
+                    debugLog('Staff conflict check result:', result);
+
+                    if (result.has_conflict || result.shift_violation) {
+                        showStaffConflictError(index, result.message || result.reason || "Staff not available");
+                        staffSelect?.classList.add("field-error");
+                        staffSelect?.classList.remove("field-validating", "field-validated");
+                    } else {
+                        staffSelect?.classList.add("field-validated");
+                        staffSelect?.classList.remove("field-error", "field-validating");
+                    }
+
+                    updateSubmitButton();
+                    updateConflictSummary();
+                })
+                .catch((err) => {
+                    console.error("Error checking staff conflicts:", err);
+                    showLoadingState(index, false);
+                    staffSelect?.classList.remove("field-validating");
+                });
+        }, 300);
     }
 
     // ==================== EVENT LISTENERS ====================
     function attachEventListeners(index) {
+        debugLog(`Attaching event listeners for appointment ${index}`);
+
         const serviceSelect = document.querySelector(`.service-select[data-index="${index}"]`);
         const staffSelect = document.querySelector(`.staff-select[data-index="${index}"]`);
         const dateInput = document.querySelector(`.date-input[data-index="${index}"]`);
@@ -963,6 +1142,7 @@
 
         if (serviceSelect) {
             serviceSelect.addEventListener("change", () => {
+                debugLog(`Service changed for appointment ${index}`);
                 showValidationIcon(`service-icon-${index}`, serviceSelect.value);
                 clearConflictAlerts(index);
                 updateEndTime(index);
@@ -972,6 +1152,7 @@
 
         if (staffSelect) {
             staffSelect.addEventListener("change", () => {
+                debugLog(`Staff changed for appointment ${index}`);
                 showValidationIcon(`staff-icon-${index}`, staffSelect.value);
                 clearConflictAlerts(index);
                 checkStaffConflicts(index);
@@ -981,23 +1162,23 @@
 
         if (dateInput) {
             dateInput.addEventListener("change", () => {
+                debugLog(`Date changed for appointment ${index}`);
                 showValidationIcon(`date-icon-${index}`, dateInput.value);
                 clearConflictAlerts(index);
+
+                // Re-validate this and all other appointments
                 checkStaffConflicts(index);
                 checkClientConflicts(index);
                 checkInternalConflicts(index);
-                
-                document.querySelectorAll(".appointment-card").forEach((card) => {
-                    const otherIndex = card.dataset.index;
-                    if (otherIndex !== index) {
-                        checkInternalConflicts(otherIndex);
-                    }
-                });
+
+                // Re-validate all other appointments for internal conflicts
+                validateAllAppointments();
             });
         }
 
         if (startTimeSelect) {
             startTimeSelect.addEventListener("change", () => {
+                debugLog(`Start time changed for appointment ${index}`);
                 const hiddenInput = document.querySelector(`.start-time-hidden[data-index="${index}"]`);
                 if (hiddenInput) hiddenInput.value = startTimeSelect.value;
                 showValidationIcon(`start-icon-${index}`, startTimeSelect.value);
@@ -1008,38 +1189,27 @@
 
         if (endTimeSelect) {
             endTimeSelect.addEventListener("change", () => {
+                debugLog(`End time changed for appointment ${index}`);
                 const hiddenInput = document.querySelector(`.end-time-hidden[data-index="${index}"]`);
                 if (hiddenInput) hiddenInput.value = endTimeSelect.value;
                 showValidationIcon(`end-icon-${index}`, endTimeSelect.value);
                 clearConflictAlerts(index);
+
+                // Re-validate this and all other appointments
                 checkStaffConflicts(index);
                 checkClientConflicts(index);
                 checkInternalConflicts(index);
-                
-                document.querySelectorAll(".appointment-card").forEach((card) => {
-                    const otherIndex = card.dataset.index;
-                    if (otherIndex !== index) {
-                        checkInternalConflicts(otherIndex);
-                    }
-                });
-            });
-        }
-    }
 
-    // ==================== VALIDATION ICONS ====================
-    function showValidationIcon(iconId, hasValue) {
-        const icon = document.getElementById(iconId);
-        if (icon) {
-            if (hasValue) {
-                icon.classList.add("show");
-            } else {
-                icon.classList.remove("show");
-            }
+                // Re-validate all other appointments for internal conflicts
+                validateAllAppointments();
+            });
         }
     }
 
     // ==================== TIME CALCULATIONS ====================
     function updateEndTime(index) {
+        debugLog(`Updating end time for appointment ${index}`);
+
         const serviceSelect = document.querySelector(`.service-select[data-index="${index}"]`);
         const startTimeSelect = document.querySelector(`.start-time-select[data-index="${index}"]`);
         const endTimeSelect = document.querySelector(`.end-time-select[data-index="${index}"]`);
@@ -1051,6 +1221,8 @@
         if (selectedOption?.value && startTime) {
             const duration = parseInt(selectedOption.dataset.duration) || 60;
             const endTime = calculateEndTime(startTime, duration);
+
+            debugLog(`Calculated end time: ${endTime} (duration: ${duration} mins)`);
 
             if (endTimeHidden) endTimeHidden.value = endTime;
 
@@ -1065,17 +1237,14 @@
                     .join("");
             }
 
+            // Re-validate this and all other appointments
             clearConflictAlerts(index);
             checkStaffConflicts(index);
             checkClientConflicts(index);
             checkInternalConflicts(index);
-            
-            document.querySelectorAll(".appointment-card").forEach((card) => {
-                const otherIndex = card.dataset.index;
-                if (otherIndex !== index) {
-                    checkInternalConflicts(otherIndex);
-                }
-            });
+
+            // Re-validate all other appointments for internal conflicts
+            validateAllAppointments();
         }
     }
 
@@ -1104,121 +1273,6 @@
         [staffSelect, dateInput, startTimeSelect, endTimeSelect].forEach(el => {
             el?.classList.remove("field-error", "field-validated", "field-validating", "field-warning");
         });
-
-        updateSubmitButton();
-        updateConflictSummary();
-    }
-
-    // ==================== CONFLICT CHECKING ====================
-    function checkStaffConflicts(index) {
-        const staffSelect = document.querySelector(`.staff-select[data-index="${index}"]`);
-        const dateInput = document.querySelector(`.date-input[data-index="${index}"]`);
-        const startTimeSelect = document.querySelector(`.start-time-select[data-index="${index}"]`);
-        const endTimeSelect = document.querySelector(`.end-time-select[data-index="${index}"]`);
-        const conflictAlert = document.getElementById(`conflict-${index}`);
-
-        if (conflictAlert) conflictAlert.classList.add("d-none");
-        staffSelect?.classList.remove("field-error", "field-validating", "field-validated");
-
-        if (!staffSelect?.value || !dateInput?.value || !startTimeSelect?.value || !endTimeSelect?.value) {
-            return;
-        }
-
-        clearTimeout(conflictTimers[index]);
-        showLoadingState(index, true);
-        staffSelect.classList.add("field-validating");
-
-        conflictTimers[index] = setTimeout(() => {
-            fetch("/api/unaki/check-staff-conflicts", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    staff_id: staffSelect.value,
-                    appointment_date: dateInput.value,
-                    start_time: startTimeSelect.value,
-                    end_time: endTimeSelect.value,
-                }),
-            })
-                .then((response) => response.json())
-                .then((data) => {
-                    showLoadingState(index, false);
-
-                    if (data.has_conflict || data.shift_violation) {
-                        showStaffConflictError(index, data.message || data.reason || "Staff conflict detected");
-                        staffSelect.classList.add("field-error");
-                        staffSelect.classList.remove("field-validating", "field-validated");
-                    } else {
-                        staffSelect.classList.add("field-validated");
-                        staffSelect.classList.remove("field-error", "field-validating");
-                    }
-
-                    updateSubmitButton();
-                    updateConflictSummary();
-                })
-                .catch((err) => {
-                    console.error("Error checking staff conflicts:", err);
-                    showLoadingState(index, false);
-                    staffSelect.classList.remove("field-validating");
-                });
-        }, 300);
-    }
-
-    function checkClientConflicts(index) {
-        const clientId = $("#clientSelect").val();
-        const dateInput = document.querySelector(`.date-input[data-index="${index}"]`);
-        const startTimeSelect = document.querySelector(`.start-time-select[data-index="${index}"]`);
-        const endTimeSelect = document.querySelector(`.end-time-select[data-index="${index}"]`);
-        const clientConflictAlert = document.getElementById(`client-conflict-${index}`);
-        const card = document.querySelector(`[data-index="${index}"]`);
-
-        if (clientConflictAlert) clientConflictAlert.classList.add("d-none");
-
-        if (!clientId || !dateInput?.value || !startTimeSelect?.value || !endTimeSelect?.value) {
-            return;
-        }
-
-        const appointmentDate = dateInput.value;
-        const startTime = startTimeSelect.value;
-        const endTime = endTimeSelect.value;
-
-        let hasOverlap = false;
-        let conflictDetails = null;
-
-        for (const booking of clientExistingBookings) {
-            if (booking.appointment_date === appointmentDate) {
-                const overlap = checkTimeOverlap(startTime, endTime, booking.start_time, booking.end_time);
-                
-                if (overlap) {
-                    hasOverlap = true;
-                    conflictDetails = booking;
-                    break;
-                }
-            }
-        }
-
-        if (hasOverlap && conflictDetails) {
-            const isPaid = conflictDetails.payment_status === 'paid' || conflictDetails.payment_status === 'completed';
-            const paymentBadge = isPaid 
-                ? `<span class="badge bg-success">PAID - ₹${conflictDetails.service_price.toFixed(2)}</span>`
-                : `<span class="badge bg-warning text-dark">UNPAID - ₹${conflictDetails.service_price.toFixed(2)}</span>`;
-            
-            let message = `⚠️ Client has ${isPaid ? 'PAID' : 'UNPAID'} appointment: <strong>${conflictDetails.service_name}</strong> from <strong>${format12Hour(conflictDetails.start_time)}</strong> to <strong>${format12Hour(conflictDetails.end_time)}</strong> ${paymentBadge}`;
-            
-            if (conflictDetails.status) {
-                message += ` <span class="badge bg-info">${conflictDetails.status.toUpperCase()}</span>`;
-            }
-
-            showClientConflictError(index, message);
-            
-            dateInput.classList.add("field-warning");
-            startTimeSelect.classList.add("field-warning");
-            endTimeSelect.classList.add("field-warning");
-
-            if (card) {
-                card.classList.add("has-warning");
-                card.dataset.conflictType = "client-time-overlap";
-            }
-        }
 
         updateSubmitButton();
         updateConflictSummary();
@@ -1284,6 +1338,50 @@
         }
     }
 
+    function showValidationError(message) {
+        const alertDiv = document.createElement("div");
+        alertDiv.className = "alert alert-danger alert-dismissible fade show validation-toast";
+        alertDiv.innerHTML = `
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            <strong>Validation Failed</strong>
+            <pre class="mb-0 mt-2" style="white-space: pre-wrap; font-size: 0.9em;">${message}</pre>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        document.body.appendChild(alertDiv);
+
+        setTimeout(() => {
+            alertDiv.classList.remove("show");
+            setTimeout(() => alertDiv.remove(), 300);
+        }, 8000);
+    }
+
+    function showValidationSuccess(message) {
+        const alertDiv = document.createElement("div");
+        alertDiv.className = "alert alert-success alert-dismissible fade show validation-toast";
+        alertDiv.innerHTML = `
+            <i class="fas fa-check-circle me-2"></i>
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        document.body.appendChild(alertDiv);
+
+        setTimeout(() => {
+            alertDiv.classList.remove("show");
+            setTimeout(() => alertDiv.remove(), 300);
+        }, 2000);
+    }
+
+    function showValidationIcon(iconId, hasValue) {
+        const icon = document.getElementById(iconId);
+        if (icon) {
+            if (hasValue) {
+                icon.classList.add("show");
+            } else {
+                icon.classList.remove("show");
+            }
+        }
+    }
+
     // ==================== CONFLICT SUMMARY ====================
     function updateConflictSummary() {
         const banner = document.getElementById("conflictSummaryBanner");
@@ -1304,13 +1402,8 @@
         } else if (totalCount > 0) {
             let allFilled = true;
             allCards.forEach((card) => {
-                const index = card.dataset.index;
-                const service = document.querySelector(`.service-select[data-index="${index}"]`)?.value;
-                const staff = document.querySelector(`.staff-select[data-index="${index}"]`)?.value;
-                const date = document.querySelector(`.date-input[data-index="${index}"]`)?.value;
-                const startTime = document.querySelector(`.start-time-select[data-index="${index}"]`)?.value;
-
-                if (!service || !staff || !date || !startTime) {
+                const data = getAppointmentData(card.dataset.index);
+                if (!data.service || !data.staff || !data.date || !data.startTime || !data.endTime) {
                     allFilled = false;
                 }
             });
@@ -1359,6 +1452,19 @@
         document.getElementById("staffRequired").textContent = staffSet.size;
     }
 
+    function updateAddButtonState() {
+        const addBtn = document.getElementById("addAppointmentBtn");
+        const appointmentCount = document.querySelectorAll(".appointment-card").length;
+
+        if (addBtn) {
+            if (appointmentCount === 0) {
+                addBtn.innerHTML = '<i class="fas fa-plus-circle me-2"></i>Add First Appointment';
+            } else {
+                addBtn.innerHTML = `<i class="fas fa-save me-2"></i>Save & Add Another Appointment`;
+            }
+        }
+    }
+
     // ==================== SUBMIT BUTTON ====================
     function updateSubmitButton() {
         const submitBtn = document.getElementById("submitBookingBtn");
@@ -1368,14 +1474,11 @@
         const hasConflicts = document.querySelectorAll(".appointment-card.has-conflict, .appointment-card.has-warning").length > 0;
 
         let allFilled = true;
-        document.querySelectorAll(".appointment-card").forEach((card) => {
-            const index = card.dataset.index;
-            const service = document.querySelector(`.service-select[data-index="${index}"]`)?.value;
-            const staff = document.querySelector(`.staff-select[data-index="${index}"]`)?.value;
-            const date = document.querySelector(`.date-input[data-index="${index}"]`)?.value;
-            const startTime = document.querySelector(`.start-time-select[data-index="${index}"]`)?.value;
+        const allAppointments = getAllAppointmentsData();
 
-            if (!service || !staff || !date || !startTime) {
+        document.querySelectorAll(".appointment-card").forEach((card) => {
+            const data = getAppointmentData(card.dataset.index);
+            if (!data.service || !data.staff || !data.date || !data.startTime || !data.endTime) {
                 allFilled = false;
             }
         });
@@ -1401,6 +1504,8 @@
 
     // ==================== CLIENT LOADING ====================
     function loadClientAppointments(clientId) {
+        debugLog(`Loading appointments for client ${clientId}`);
+
         fetch(`/api/unaki/customer-appointments/${clientId}`)
             .then((response) => response.json())
             .then((data) => {
@@ -1411,12 +1516,12 @@
                                b.payment_status === "pending" ||
                                b.payment_status === "partial"
                     );
+
+                    debugLog('Client existing bookings loaded:', clientExistingBookings);
                     displayClientAppointments(clientExistingBookings);
-                    
-                    document.querySelectorAll(".appointment-card").forEach((card) => {
-                        const index = card.dataset.index;
-                        checkClientConflicts(index);
-                    });
+
+                    // Re-validate all appointments
+                    validateAllAppointments();
                 } else {
                     clientExistingBookings = [];
                     $("#clientExistingAppointments").hide();
@@ -1476,6 +1581,8 @@
 
     // ==================== FORM SUBMISSION ====================
     function submitMultiBooking() {
+        debugLog('Submitting multi-booking');
+
         const clientId = $("#clientSelect").val();
         if (!clientId) {
             alert("❌ Please select a client");
@@ -1487,28 +1594,24 @@
         const validationErrors = [];
 
         document.querySelectorAll(".appointment-card").forEach((card, idx) => {
-            const index = card.dataset.index;
-            const serviceSelect = document.querySelector(`.service-select[data-index="${index}"]`);
-            const staffSelect = document.querySelector(`.staff-select[data-index="${index}"]`);
-            const dateInput = document.querySelector(`.date-input[data-index="${index}"]`);
-            const startTimeSelect = document.querySelector(`.start-time-select[data-index="${index}"]`);
-            const endTimeSelect = document.querySelector(`.end-time-select[data-index="${index}"]`);
+            const data = getAppointmentData(card.dataset.index);
 
-            if (!serviceSelect?.value || !staffSelect?.value || !dateInput?.value || 
-                !startTimeSelect?.value || !endTimeSelect?.value) {
+            if (!data.service || !data.staff || !data.date || !data.startTime || !data.endTime) {
                 isValid = false;
                 validationErrors.push(`Appointment ${idx + 1}: Missing required fields`);
                 return;
             }
 
-            if (!document.getElementById(`conflict-${index}`)?.classList.contains("d-none") ||
-                !document.getElementById(`client-conflict-${index}`)?.classList.contains("d-none") ||
-                !document.getElementById(`internal-conflict-${index}`)?.classList.contains("d-none")) {
+            if (!document.getElementById(`conflict-${data.index}`)?.classList.contains("d-none") ||
+                !document.getElementById(`client-conflict-${data.index}`)?.classList.contains("d-none") ||
+                !document.getElementById(`internal-conflict-${data.index}`)?.classList.contains("d-none")) {
                 isValid = false;
                 validationErrors.push(`Appointment ${idx + 1}: Has conflicts`);
                 return;
             }
 
+            const serviceSelect = document.querySelector(`.service-select[data-index="${data.index}"]`);
+            const staffSelect = document.querySelector(`.staff-select[data-index="${data.index}"]`);
             const selectedService = serviceSelect.options[serviceSelect.selectedIndex];
             const selectedStaff = staffSelect.options[staffSelect.selectedIndex];
 
@@ -1517,15 +1620,15 @@
                 client_name: $("#clientSelect option:selected").text().split(" - ")[0],
                 client_phone: $("#clientSelect option:selected").data("phone"),
                 client_email: $("#clientSelect option:selected").data("email"),
-                service_id: serviceSelect.value,
+                service_id: data.service,
                 service_name: selectedService.text.split(" (")[0],
                 service_duration: parseInt(selectedService.dataset.duration),
                 service_price: parseFloat(selectedService.dataset.price),
-                staff_id: staffSelect.value,
+                staff_id: data.staff,
                 staff_name: selectedStaff.text,
-                appointment_date: dateInput.value,
-                start_time: startTimeSelect.value,
-                end_time: endTimeSelect.value,
+                appointment_date: data.date,
+                start_time: data.startTime,
+                end_time: data.endTime,
                 notes: document.getElementById("bookingNotes").value,
             });
         });
@@ -1534,6 +1637,8 @@
             alert("❌ Validation Failed:\n\n" + validationErrors.join("\n"));
             return;
         }
+
+        debugLog('Appointments to book:', appointments);
 
         const summary = appointments
             .map((apt, i) => `${i + 1}. ${apt.service_name} with ${apt.staff_name} at ${format12Hour(apt.start_time)} on ${apt.appointment_date}`)
@@ -1557,6 +1662,8 @@
 
         Promise.all(promises)
             .then((results) => {
+                debugLog('Booking results:', results);
+
                 const successCount = results.filter((r) => r.success).length;
                 const failCount = results.length - successCount;
                 const errors = results.filter((r) => !r.success).map((r) => r.error || "Unknown error");
