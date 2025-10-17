@@ -326,7 +326,7 @@
                     .then(response => response.json())
                     .then(data => {
                         if (data.success) {
-                            // Filter out cancelled appointments
+                            // Filter out only cancelled appointments, keep paid ones visible
                             bookingsData = (data.bookings || []).filter(b => b.status !== "cancelled");
                             renderBookings();
                             updateStats();
@@ -472,11 +472,13 @@
                     // Create appointment element with service-based color class
                     const appointmentDiv = document.createElement('div');
                     const checkedInClass = booking.checked_in ? 'checked-in' : '';
-                    appointmentDiv.className = `appointment-block ${serviceType} ${checkedInClass}`;
+                    const paidClass = booking.payment_status === 'paid' ? 'paid' : '';
+                    appointmentDiv.className = `appointment-block ${serviceType} ${checkedInClass} ${paidClass}`;
                     appointmentDiv.style.left = `${leftPosition}px`;
                     appointmentDiv.style.width = `${width}px`;
                     appointmentDiv.dataset.appointmentId = booking.id;
                     appointmentDiv.dataset.checkedIn = booking.checked_in ? 'true' : 'false';
+                    appointmentDiv.dataset.paymentStatus = booking.payment_status || 'pending';
                     appointmentDiv.draggable = true;
 
                     appointmentDiv.innerHTML = `
@@ -600,8 +602,8 @@
                 console.log(`📊 Stats Update:
                     Total: ${total}
                     Completed: ${completed}
-                    Paid (hidden): ${paid}
-                    Pending (visible): ${pending}
+                    Paid (shown in green): ${paid}
+                    Pending: ${pending}
                 `);
             }
 

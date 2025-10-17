@@ -509,16 +509,21 @@
             }
 
             .appointment-block.paid {
-                background: #ffe4e6 !important;
-                border-left-color: #f87171 !important;
+                background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%) !important;
+                border-left-color: #10b981 !important;
             }
 
             .appointment-block.paid .appointment-client {
-                color: #991b1b;
+                color: #065f46;
+                font-weight: 700;
             }
 
             .appointment-block.paid .appointment-service {
-                color: #b91c1c;
+                color: #047857;
+            }
+
+            .appointment-block.paid .appointment-footer {
+                color: #059669;
             }
 
             .appointment-block.checked-in {
