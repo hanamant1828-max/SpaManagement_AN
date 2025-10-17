@@ -45,3 +45,4 @@ replit>=4.1.2
 pillow
 pytz
 Pillow
+pillow
