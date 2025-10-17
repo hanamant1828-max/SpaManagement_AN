@@ -492,6 +492,41 @@
         return times;
     }
 
+    function calculateEditEndTime(index) {
+        const serviceSelect = document.querySelector(`.service-select[data-index="${index}"]`);
+        const startTimeSelect = document.querySelector(`.start-time-select[data-index="${index}"]`);
+        const endTimeSelect = document.querySelector(`.end-time-select[data-index="${index}"]`);
+
+        if (!serviceSelect?.value || !startTimeSelect?.value) {
+            return;
+        }
+
+        const selectedOption = serviceSelect.options[serviceSelect.selectedIndex];
+        const duration = parseInt(selectedOption.dataset.duration) || 60;
+        const startTime = startTimeSelect.value;
+
+        const endTime = calculateEndTime(startTime, duration);
+        
+        if (endTimeSelect) {
+            const timeOptions = generateTimeOptions();
+            endTimeSelect.innerHTML = timeOptions
+                .map(t => `<option value="${t.value}" ${t.value === endTime ? 'selected' : ''}>${t.label}</option>`)
+                .join('');
+            
+            const hiddenInput = document.querySelector(`.end-time-hidden[data-index="${index}"]`);
+            if (hiddenInput) {
+                hiddenInput.value = endTime;
+            }
+            
+            showValidationIcon(`end-icon-${index}`, endTime);
+        }
+
+        // Trigger conflict checks after time is calculated
+        checkStaffConflicts(index);
+        checkClientConflicts(index);
+        updateSummary();
+    }
+
     function format12Hour(time24) {
         if (!time24) return "";
         
@@ -869,7 +904,7 @@
             serviceSelect.addEventListener("change", () => {
                 showValidationIcon(`service-icon-${index}`, serviceSelect.value);
                 clearConflictAlerts(index);
-                updateEndTime(index);
+                calculateEditEndTime(index);
                 updateSummary();
             });
         }
@@ -898,7 +933,7 @@
                 if (hiddenInput) hiddenInput.value = startTimeSelect.value;
                 showValidationIcon(`start-icon-${index}`, startTimeSelect.value);
                 clearConflictAlerts(index);
-                updateEndTime(index);
+                calculateEditEndTime(index);
             });
         }
 
