@@ -887,6 +887,83 @@
         });
     });
 
+    // Helper functions for loading overlay (assuming they exist in the HTML or are defined elsewhere)
+    function showLoadingOverlay(message) {
+        const overlay = document.getElementById('loadingOverlay');
+        if (overlay) {
+            const messageEl = overlay.querySelector('.loading-message');
+            if (messageEl) {
+                messageEl.textContent = message || 'Processing your request...';
+            }
+            overlay.classList.add('show');
+        }
+    }
+
+    function hideLoadingOverlay() {
+        const overlay = document.getElementById('loadingOverlay');
+        if (overlay) {
+            overlay.classList.remove('show');
+        }
+    }
+
+    // Functions related to edit view that were not in the original code but are referenced in changes
+    function loadScheduleForEdit(scheduleId) {
+        console.log('Loading schedule for edit:', scheduleId);
+
+        // Show loading overlay
+        showLoadingOverlay('Loading schedule data...');
+
+        fetch(`/api/shift-scheduler/schedules/${scheduleId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    populateEditForm(data.schedule);
+                } else {
+                    showNotification(data.error || 'Failed to load schedule', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error loading schedule:', error);
+                showNotification('Error loading schedule data', 'error');
+            })
+            .finally(() => {
+                // Always hide loading overlay when done
+                hideLoadingOverlay();
+            });
+    }
+
+    function populateEditForm(schedule) {
+        console.log('Populating edit form with schedule:', schedule);
+
+        // Populate basic info
+        document.getElementById('editScheduleId').value = schedule.id;
+        document.getElementById('editStaffId').value = schedule.staff_id;
+        document.getElementById('editScheduleName').value = schedule.schedule_name || '';
+        document.getElementById('editFromDate').value = schedule.start_date;
+        document.getElementById('editToDate').value = schedule.end_date;
+        document.getElementById('editPriority').value = schedule.priority || 1;
+        document.getElementById('editDescription').value = schedule.description || '';
+
+        // Load shift logs for this schedule
+        loadShiftLogsForEdit(schedule.id);
+
+        // Hide loading overlay after form is populated
+        hideLoadingOverlay();
+    }
+
+    // Placeholder for functions that might be missing but are called
+    function showNotification(message, type) {
+        console.log(`Notification: ${type} - ${message}`);
+        // Implement actual notification display if needed
+        showAlert(message, type); // Using existing showAlert for now
+    }
+
+    function loadShiftLogsForEdit(scheduleId) {
+        console.log(`Loading shift logs for schedule ID: ${scheduleId}`);
+        // Placeholder for actual implementation
+    }
+
+
     console.log('Shift Scheduler JavaScript fully loaded - Wireframe Implementation');
 
 })();
