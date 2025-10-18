@@ -1685,6 +1685,7 @@ def api_unaki_get_bookings():
             bookings_data.append({
                 'id': booking.id,
                 'staff_id': booking.staff_id,
+                'client_id': booking.client_id,
                 'client_name': booking.client_name,
                 'service_names': booking.service_name,
                 'service_type': service_type,
@@ -1693,7 +1694,9 @@ def api_unaki_get_bookings():
                 'start_minute': start_minute,
                 'duration': booking.service_duration,
                 'status': booking.status,
-                'payment_status': booking.payment_status
+                'payment_status': booking.payment_status,
+                'checked_in': booking.checked_in,
+                'checked_in_at': booking.checked_in_at.isoformat() if booking.checked_in_at else None
             })
 
         return jsonify({'success': True, 'bookings': bookings_data})
