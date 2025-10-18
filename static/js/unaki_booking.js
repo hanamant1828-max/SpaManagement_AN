@@ -557,9 +557,13 @@
                         return;
                     }
 
-                    if (!staff.is_working || !staff.shift_start || !staff.shift_end ||
+                    // Check if staff has valid shift times (not null, undefined, or empty string)
+                    const hasValidShift = staff.shift_start && staff.shift_start.trim() !== '' && 
+                                         staff.shift_end && staff.shift_end.trim() !== '';
+                    
+                    if (!staff.is_working || !hasValidShift ||
                         (staff.day_status && OFFDAY_STATUSES.includes(staff.day_status))) {
-                        const noShiftLabel = (!staff.shift_start && !staff.shift_end) ? 'No Shifts Found' : 'Off Day';
+                        const noShiftLabel = !hasValidShift ? 'No Shifts Found' : 'Off Day';
                         row.appendChild(createOverlay('off-duty', 0, 13 * 140, noShiftLabel));
                         if (statusElement) {
                             statusElement.innerHTML = `<span class="status-dot" style="background: #6b7280;"></span>${noShiftLabel}`;
