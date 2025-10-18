@@ -225,7 +225,7 @@
             action: 'edit',
             id: scheduleId
         });
-        window.location.href = `/shift-scheduler/shift-scheduler/add?${params.toString()}`;
+        window.location.href = `/shift-scheduler/add?${params.toString()}`;
     }
 
     /**

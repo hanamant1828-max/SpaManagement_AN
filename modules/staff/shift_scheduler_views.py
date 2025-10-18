@@ -33,9 +33,15 @@ def add_shift_scheduler():
     # Get all active staff members
     staff_members = User.query.filter_by(is_active=True).order_by(User.first_name, User.last_name).all()
 
+    # Get action and schedule_id from query parameters (for edit/view mode)
+    action = request.args.get('action', 'add')  # Default to 'add' if not specified
+    schedule_id = request.args.get('id', type=int)
+
     return render_template('add_shift_scheduler.html',
                          staff_members=staff_members,
-                         today=date.today().strftime('%Y-%m-%d'))
+                         today=date.today().strftime('%Y-%m-%d'),
+                         action=action,
+                         schedule_id=schedule_id)
 
 # Out of Office Management Page
 @shift_scheduler_bp.route('/out-of-office-management')
