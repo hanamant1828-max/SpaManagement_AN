@@ -74,3 +74,4 @@ weasyprint
 werkzeug
 wtforms
 Pillow
+Pillow
