@@ -13,7 +13,7 @@
     // Initialize when document is ready
     $(document).ready(function() {
         console.log('Shift Scheduler JavaScript loaded - Wireframe Implementation');
-        
+
         // Initialize loading modal first
         const modalElement = document.getElementById('loadingModal');
         if (modalElement) {
@@ -22,9 +22,9 @@
                 keyboard: false
             });
         }
-        
+
         initializeEventHandlers();
-        
+
         // Add a small delay to ensure DOM is fully ready
         setTimeout(() => {
             loadSchedules();
@@ -67,7 +67,7 @@
             url: '/shift-scheduler/api/all-schedules',
             method: 'GET',
             success: function(response) {
-                hideLoadingModal();
+                // hideLoadingModal(); // Moved to complete
                 console.log('API Response:', response);
                 if (response.success) {
                     schedules = response.schedules || [];
@@ -80,7 +80,7 @@
                 }
             },
             error: function(xhr, status, error) {
-                hideLoadingModal();
+                // hideLoadingModal(); // Moved to complete
                 console.error('AJAX Error:', {
                     status: status,
                     error: error,
@@ -195,7 +195,7 @@
             url: `/shift-scheduler/api/staff/${schedule.staff_id}/schedule-details`,
             method: 'GET',
             success: function(response) {
-                hideLoadingModal();
+                // hideLoadingModal(); // Moved to complete
                 if (response.success) {
                     showScheduleDetailsModal(response);
                 } else {
@@ -203,9 +203,12 @@
                 }
             },
             error: function(xhr, status, error) {
-                hideLoadingModal();
+                // hideLoadingModal(); // Moved to complete
                 console.error('Error loading schedule details:', error);
                 showAlert('Error loading schedule details. Please try again.', 'danger');
+            },
+            complete: function() {
+                hideLoadingModal();
             }
         });
     }
@@ -249,7 +252,7 @@
             url: `/shift-scheduler/api/schedule/${scheduleId}`,
             method: 'DELETE',
             success: function(response) {
-                hideLoadingModal();
+                // hideLoadingModal(); // Moved to complete
                 if (response.success) {
                     showAlert('Schedule deleted successfully!', 'success');
                     loadSchedules(); // Refresh the table
@@ -258,9 +261,12 @@
                 }
             },
             error: function(xhr, status, error) {
-                hideLoadingModal();
+                // hideLoadingModal(); // Moved to complete
                 console.error('Error deleting schedule:', error);
                 showAlert('Error deleting schedule. Please try again.', 'danger');
+            },
+            complete: function() {
+                hideLoadingModal();
             }
         });
     }
@@ -294,15 +300,15 @@
             // Parse HH:MM format
             const [hours, minutes] = timeString.split(':');
             if (!hours || !minutes) return timeString;
-            
+
             const hour24 = parseInt(hours, 10);
             const min = parseInt(minutes, 10);
-            
+
             if (isNaN(hour24) || isNaN(min)) return timeString;
-            
+
             const hour12 = hour24 === 0 ? 12 : (hour24 > 12 ? hour24 - 12 : hour24);
             const ampm = hour24 >= 12 ? 'PM' : 'AM';
-            
+
             return `${hour12}:${min.toString().padStart(2, '0')} ${ampm}`;
         } catch (error) {
             console.error('Time formatting error:', error);
@@ -315,17 +321,17 @@
      */
     function convert24To12Hour(time24) {
         if (!time24) return '';
-        
+
         try {
             const [hours, minutes] = time24.split(':');
             const hour24 = parseInt(hours, 10);
             const min = parseInt(minutes, 10);
-            
+
             if (isNaN(hour24) || isNaN(min)) return time24;
-            
+
             const hour12 = hour24 === 0 ? 12 : (hour24 > 12 ? hour24 - 12 : hour24);
             const ampm = hour24 >= 12 ? 'PM' : 'AM';
-            
+
             return `${hour12}:${min.toString().padStart(2, '0')} ${ampm}`;
         } catch (error) {
             console.error('Time conversion error:', error);
@@ -364,7 +370,7 @@
             if (loadingModal) {
                 loadingModal.hide();
             }
-            
+
             // Ensure modal element is hidden
             const modalElement = document.getElementById('loadingModal');
             if (modalElement) {
@@ -372,17 +378,17 @@
                 modalElement.style.display = 'none';
                 modalElement.setAttribute('aria-hidden', 'true');
             }
-            
+
             // Remove any backdrop
             document.querySelectorAll('.modal-backdrop').forEach(backdrop => {
                 backdrop.remove();
             });
-            
+
             // Restore body scroll
             document.body.classList.remove('modal-open');
             document.body.style.overflow = '';
             document.body.style.paddingRight = '';
-            
+
         } catch (e) {
             console.error('Error hiding loading modal:', e);
         }
@@ -438,7 +444,7 @@
         // Add schedule ranges
         ranges.forEach(range => {
             const rangeDays = schedulesByRange[range.id] || [];
-            
+
             modalContent += `
                 <div class="mb-4">
                     <h6 class="mb-3">
@@ -489,8 +495,8 @@
                             <td>${formatDate(day.date)}</td>
                             <td>${day.day_name}</td>
                             <td>
-                                ${day.is_working ? 
-                                    '<span class="badge bg-success">Yes</span>' : 
+                                ${day.is_working ?
+                                    '<span class="badge bg-success">Yes</span>' :
                                     '<span class="badge bg-secondary">Off</span>'
                                 }
                             </td>
@@ -536,7 +542,7 @@
 
         // Remove existing modal if any
         $('#scheduleDetailsModal').remove();
-        
+
         // Add modal to body and show
         $('body').append(modalContent);
         const modal = new bootstrap.Modal(document.getElementById('scheduleDetailsModal'));
@@ -553,7 +559,7 @@
             url: '/shift-scheduler/api/database-records',
             method: 'GET',
             success: function(response) {
-                hideLoadingModal();
+                // hideLoadingModal(); // Moved to complete
                 if (response.success) {
                     showDatabaseRecordsModal(response);
                 } else {
@@ -561,9 +567,12 @@
                 }
             },
             error: function(xhr, status, error) {
-                hideLoadingModal();
+                // hideLoadingModal(); // Moved to complete
                 console.error('Error loading database records:', error);
                 showAlert('Error loading database records. Please try again.', 'danger');
+            },
+            complete: function() {
+                hideLoadingModal();
             }
         });
     }
@@ -587,7 +596,7 @@
                             <div class="alert alert-info">
                                 <strong>Summary:</strong> ${data.summary}
                             </div>
-                            
+
                             <!-- Shift Management Records -->
                             <h6 class="mb-3">
                                 <i class="fas fa-table me-2"></i>
@@ -632,7 +641,7 @@
                         <code>${record.sql_statement}</code>
                     </div>
                     <small class="text-muted">
-                        -- Shift: ${record.record_data.shift_start_time} to ${record.record_data.shift_end_time} | 
+                        -- Shift: ${record.record_data.shift_start_time} to ${record.record_data.shift_end_time} |
                         Break: ${record.record_data.break_start_time || 'None'} to ${record.record_data.break_end_time || 'None'}
                     </small>
                 </div>
@@ -653,7 +662,7 @@
 
         // Remove existing modal if any
         $('#databaseRecordsModal').remove();
-        
+
         // Add modal to body and show
         $('body').append(modalContent);
         const modal = new bootstrap.Modal(document.getElementById('databaseRecordsModal'));
@@ -664,10 +673,10 @@
      * Show alert message
      */
     function showAlert(message, type = 'success') {
-        const alertClass = type === 'danger' ? 'alert-danger' : 
+        const alertClass = type === 'danger' ? 'alert-danger' :
                           type === 'warning' ? 'alert-warning' :
                           type === 'info' ? 'alert-info' : 'alert-success';
-        const iconClass = type === 'danger' ? 'fa-exclamation-triangle' : 
+        const iconClass = type === 'danger' ? 'fa-exclamation-triangle' :
                          type === 'warning' ? 'fa-exclamation-circle' :
                          type === 'info' ? 'fa-info-circle' : 'fa-check-circle';
 
@@ -815,6 +824,7 @@
             url: `/shift-scheduler/api/out-of-office/${id}`,
             method: 'DELETE',
             success: function(response) {
+                // hideLoadingModal(); // Moved to complete
                 if (response.success) {
                     showAlert('Entry deleted successfully!', 'success');
                     loadOutOfOfficeEntries();
@@ -823,8 +833,12 @@
                 }
             },
             error: function(xhr, status, error) {
+                // hideLoadingModal(); // Moved to complete
                 console.error('Error deleting entry:', error);
                 showAlert('Error deleting entry. Please try again.', 'danger');
+            },
+            complete: function() {
+                hideLoadingModal();
             }
         });
     }
@@ -853,6 +867,7 @@
             contentType: 'application/json',
             data: JSON.stringify(data),
             success: function(response) {
+                // hideLoadingModal(); // Moved to complete
                 if (response.success) {
                     showAlert(entryId ? 'Entry updated successfully!' : 'Entry added successfully!', 'success');
                     resetOutOfOfficeForm();
@@ -862,8 +877,12 @@
                 }
             },
             error: function(xhr, status, error) {
+                // hideLoadingModal(); // Moved to complete
                 console.error('Error saving entry:', error);
                 showAlert('Error saving entry. Please try again.', 'danger');
+            },
+            complete: function() {
+                hideLoadingModal();
             }
         });
     });
