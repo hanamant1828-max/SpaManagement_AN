@@ -22,7 +22,7 @@ def shift_scheduler_redirect():
     return redirect(url_for('shift_scheduler.shift_scheduler'))
 
 # Add shift scheduler page
-@shift_scheduler_bp.route('/shift-scheduler/add')
+@shift_scheduler_bp.route('/add')
 @login_required
 def add_shift_scheduler():
     """Add shift scheduler page with day-by-day configuration"""
