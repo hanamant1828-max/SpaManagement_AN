@@ -830,29 +830,29 @@ def unaki_schedule():
                         shift_display = f"{shift_start} - {shift_end}"
 
                 else:
-                    # No shift log found - use defaults or shift management
+                    # No shift log found - check if it's an off day or no schedule
                     if shift_management:
-                        # Use shift management default times if no specific log
-                        shift_start = '09:00'
-                        shift_end = '17:00'
-                        is_working = True
-                        availability_status = 'Scheduled (Default)'
-                        shift_status = 'no_log'
-                        day_status = 'scheduled'
+                        # Shift management exists but no log for this date = OFF DAY (like Sunday)
+                        shift_start = None
+                        shift_end = None
+                        is_working = False
+                        availability_status = 'Off Day'
+                        shift_status = 'offday'
+                        day_status = 'offday'
                     else:
                         # No shift management at all
-                        shift_start = '09:00'
-                        shift_end = '17:00'
+                        shift_start = None
+                        shift_end = None
                         is_working = False
                         availability_status = 'Not Scheduled'
                         shift_status = 'not_scheduled'
-                        day_status = 'off'
+                        day_status = 'not_scheduled'
 
                     break_start = None
                     break_end = None
                     break_duration = None
                     break_display = 'No Break'
-                    shift_display = f"{shift_start} - {shift_end} (Default)"
+                    shift_display = 'OFF DAY' if shift_management else 'Not Scheduled'
                     ooo_start = None
                     ooo_end = None
                     ooo_reason = None
@@ -2264,6 +2264,10 @@ def unaki_get_staff_shift_logs(staff_id, date_str):
                 ShiftLogs.individual_date == target_date
             ).first()
 
+        # Determine if this is an off day
+        # If there's shift management but no shift log, it's an off day
+        is_off_day = shift_management is not None and shift_log is None
+        
         # Prepare response
         response_data = {
             'success': True,
@@ -2271,7 +2275,9 @@ def unaki_get_staff_shift_logs(staff_id, date_str):
             'staff_name': staff.full_name or f"{staff.first_name} {staff.last_name}",
             'date': date_str,
             'has_shift_management': shift_management is not None,
-            'has_shift_log': shift_log is not None
+            'has_shift_log': shift_log is not None,
+            'is_off_day': is_off_day,
+            'status': 'off_day' if is_off_day else ('working' if shift_log else 'no_schedule')
         }
 
         if shift_management:
