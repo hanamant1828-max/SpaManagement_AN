@@ -1599,10 +1599,18 @@ def unaki_create_appointment():
 @login_required
 def unaki_booking():
     """Enhanced Unaki Appointment Booking System - Professional spa booking interface"""
-    from datetime import date
+    from datetime import date, datetime
 
-    # Get current date parameter before try block
-    selected_date = request.args.get('date', date.today().strftime('%Y-%m-%d'))
+    # Get current date parameter and convert to date object
+    selected_date_str = request.args.get('date', date.today().strftime('%Y-%m-%d'))
+    
+    try:
+        # Convert string to date object for template
+        selected_date_obj = datetime.strptime(selected_date_str, '%Y-%m-%d').date()
+    except ValueError:
+        # Fallback to today if invalid date format
+        selected_date_obj = date.today()
+        selected_date_str = selected_date_obj.strftime('%Y-%m-%d')
 
     try:
         from modules.staff.staff_queries import get_staff_members
@@ -1615,7 +1623,7 @@ def unaki_booking():
         clients = get_all_customers()
         today = date.today().strftime('%Y-%m-%d')
 
-        print(f"🗓️  Querying Unaki bookings for date: {selected_date} (from parameter: {request.args.get('date', 'not provided')})")
+        print(f"🗓️  Querying Unaki bookings for date: {selected_date_str} (from parameter: {request.args.get('date', 'not provided')})")
         print(f"📊 Loaded {len(staff_members)} staff, {len(services)} services, {len(clients)} clients")
 
         return render_template('unaki_booking.html',
@@ -1623,15 +1631,17 @@ def unaki_booking():
                              services=services,
                              clients=clients,
                              today=today,
-                             today_date=selected_date)
+                             today_date=selected_date_obj)
     except Exception as e:
         print(f"Error in unaki_booking route: {e}")
+        import traceback
+        traceback.print_exc()
         return render_template('unaki_booking.html',
                              staff_members=[],
                              services=[],
                              clients=[],
                              today=date.today().strftime('%Y-%m-%d'),
-                             today_date=selected_date)
+                             today_date=date.today())
 
 @app.route('/api/unaki/get-bookings')
 @login_required
