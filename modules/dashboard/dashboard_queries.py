@@ -175,3 +175,223 @@ def get_expiring_items(days_threshold=30):
     except Exception as e:
         print(f"Error in get_expiring_items: {e}")
         return []
+
+def get_revenue_trends():
+    """Calculate revenue trends and comparisons"""
+    try:
+        from models import Invoice, EnhancedInvoice
+        ist_now = get_ist_now()
+        today = ist_now.date()
+        yesterday = today - timedelta(days=1)
+        
+        first_day_this_month = date(today.year, today.month, 1)
+        if today.month == 1:
+            first_day_last_month = date(today.year - 1, 12, 1)
+            last_day_last_month = date(today.year, 1, 1) - timedelta(days=1)
+        else:
+            first_day_last_month = date(today.year, today.month - 1, 1)
+            last_day_last_month = first_day_this_month - timedelta(days=1)
+        
+        yesterday_revenue = db.session.query(func.sum(Appointment.amount)).filter(
+            func.date(Appointment.appointment_date) == yesterday,
+            Appointment.status == 'completed',
+            Appointment.is_paid == True
+        ).scalar() or 0.0
+        
+        yesterday_invoice_revenue = db.session.query(func.sum(Invoice.total_amount)).filter(
+            func.date(Invoice.created_at) == yesterday,
+            Invoice.payment_status == 'paid'
+        ).scalar() or 0.0
+        
+        yesterday_enhanced_revenue = db.session.query(func.sum(EnhancedInvoice.total_amount)).filter(
+            func.date(EnhancedInvoice.invoice_date) == yesterday,
+            EnhancedInvoice.payment_status == 'paid'
+        ).scalar() or 0.0
+        
+        total_yesterday = float(yesterday_revenue) + float(yesterday_invoice_revenue) + float(yesterday_enhanced_revenue)
+        
+        last_month_revenue = db.session.query(func.sum(Appointment.amount)).filter(
+            func.date(Appointment.appointment_date) >= first_day_last_month,
+            func.date(Appointment.appointment_date) <= last_day_last_month,
+            Appointment.status == 'completed',
+            Appointment.is_paid == True
+        ).scalar() or 0.0
+        
+        last_month_invoice_revenue = db.session.query(func.sum(Invoice.total_amount)).filter(
+            func.date(Invoice.created_at) >= first_day_last_month,
+            func.date(Invoice.created_at) <= last_day_last_month,
+            Invoice.payment_status == 'paid'
+        ).scalar() or 0.0
+        
+        last_month_enhanced_revenue = db.session.query(func.sum(EnhancedInvoice.total_amount)).filter(
+            func.strftime('%Y-%m', EnhancedInvoice.invoice_date) == first_day_last_month.strftime('%Y-%m'),
+            EnhancedInvoice.payment_status == 'paid'
+        ).scalar() or 0.0
+        
+        total_last_month = float(last_month_revenue) + float(last_month_invoice_revenue) + float(last_month_enhanced_revenue)
+        
+        return {
+            'yesterday_revenue': total_yesterday,
+            'last_month_revenue': total_last_month
+        }
+    except Exception as e:
+        print(f"Error in get_revenue_trends: {e}")
+        return {
+            'yesterday_revenue': 0.0,
+            'last_month_revenue': 0.0
+        }
+
+def get_peak_hours():
+    """Get appointment distribution by hour to identify peak hours"""
+    try:
+        ist_now = get_ist_now()
+        today = ist_now.date()
+        seven_days_ago = today - timedelta(days=7)
+        
+        appointments = Appointment.query.filter(
+            func.date(Appointment.appointment_date) >= seven_days_ago,
+            func.date(Appointment.appointment_date) <= today
+        ).all()
+        
+        hour_counts = {}
+        for hour in range(9, 21):
+            hour_counts[hour] = 0
+        
+        for appt in appointments:
+            if appt.appointment_date:
+                hour = appt.appointment_date.hour
+                if 9 <= hour < 21:
+                    hour_counts[hour] = hour_counts.get(hour, 0) + 1
+        
+        return hour_counts
+    except Exception as e:
+        print(f"Error in get_peak_hours: {e}")
+        return {}
+
+def get_top_services(limit=5):
+    """Get most popular services"""
+    try:
+        ist_now = get_ist_now()
+        today = ist_now.date()
+        thirty_days_ago = today - timedelta(days=30)
+        
+        service_stats = db.session.query(
+            Service.name,
+            func.count(Appointment.id).label('booking_count'),
+            func.sum(Appointment.amount).label('total_revenue')
+        ).join(
+            Appointment, Appointment.service_id == Service.id
+        ).filter(
+            Appointment.appointment_date >= thirty_days_ago,
+            Appointment.status == 'completed'
+        ).group_by(
+            Service.id, Service.name
+        ).order_by(
+            func.count(Appointment.id).desc()
+        ).limit(limit).all()
+        
+        return [
+            {
+                'name': stat.name,
+                'bookings': stat.booking_count,
+                'revenue': float(stat.total_revenue or 0)
+            }
+            for stat in service_stats
+        ]
+    except Exception as e:
+        print(f"Error in get_top_services: {e}")
+        return []
+
+def get_top_staff(limit=5):
+    """Get top performing staff members"""
+    try:
+        ist_now = get_ist_now()
+        today = ist_now.date()
+        thirty_days_ago = today - timedelta(days=30)
+        
+        staff_stats = db.session.query(
+            User.username,
+            func.count(Appointment.id).label('appointment_count'),
+            func.sum(Appointment.amount).label('total_revenue')
+        ).join(
+            Appointment, Appointment.staff_id == User.id
+        ).filter(
+            Appointment.appointment_date >= thirty_days_ago,
+            Appointment.status == 'completed',
+            User.role == 'staff'
+        ).group_by(
+            User.id, User.username
+        ).order_by(
+            func.sum(Appointment.amount).desc()
+        ).limit(limit).all()
+        
+        return [
+            {
+                'name': stat.username,
+                'appointments': stat.appointment_count,
+                'revenue': float(stat.total_revenue or 0)
+            }
+            for stat in staff_stats
+        ]
+    except Exception as e:
+        print(f"Error in get_top_staff: {e}")
+        return []
+
+def get_client_retention_metrics():
+    """Calculate client retention and engagement metrics"""
+    try:
+        ist_now = get_ist_now()
+        today = ist_now.date()
+        thirty_days_ago = today - timedelta(days=30)
+        sixty_days_ago = today - timedelta(days=60)
+        
+        new_clients_this_month = Customer.query.filter(
+            Customer.created_at >= thirty_days_ago,
+            Customer.is_active == True
+        ).count()
+        
+        returning_clients = db.session.query(Customer.id).join(
+            Appointment
+        ).filter(
+            Appointment.appointment_date >= thirty_days_ago
+        ).group_by(
+            Customer.id
+        ).having(
+            func.count(Appointment.id) > 1
+        ).count()
+        
+        total_active_clients = Customer.query.filter_by(is_active=True).count()
+        
+        retention_rate = (returning_clients / total_active_clients * 100) if total_active_clients > 0 else 0
+        
+        return {
+            'new_clients_this_month': new_clients_this_month,
+            'returning_clients': returning_clients,
+            'retention_rate': round(retention_rate, 1)
+        }
+    except Exception as e:
+        print(f"Error in get_client_retention_metrics: {e}")
+        return {
+            'new_clients_this_month': 0,
+            'returning_clients': 0,
+            'retention_rate': 0
+        }
+
+def get_upcoming_appointments(limit=10):
+    """Get upcoming appointments for timeline view"""
+    try:
+        ist_now = get_ist_now()
+        
+        upcoming = Appointment.query.filter(
+            Appointment.appointment_date >= ist_now,
+            Appointment.status.in_(['scheduled', 'confirmed'])
+        ).order_by(
+            Appointment.appointment_date.asc()
+        ).limit(limit).all()
+        
+        return upcoming
+    except Exception as e:
+        print(f"Error in get_upcoming_appointments: {e}")
+        import traceback
+        traceback.print_exc()
+        return []

@@ -4,32 +4,59 @@ Dashboard views and routes
 from flask import render_template, redirect, url_for, flash, jsonify
 from flask_login import login_required, current_user
 from app import app, get_ist_now, IST
-from .dashboard_queries import get_dashboard_stats, get_recent_appointments, get_low_stock_items, get_expiring_items
+from .dashboard_queries import (
+    get_dashboard_stats, get_recent_appointments, get_low_stock_items, 
+    get_expiring_items, get_revenue_trends, get_peak_hours, get_top_services,
+    get_top_staff, get_client_retention_metrics, get_upcoming_appointments
+)
 from datetime import date, timedelta
 
 @app.route('/dashboard')
 @login_required
 def dashboard():
     try:
-        # Get current IST time
         ist_now = get_ist_now()
 
         stats = get_dashboard_stats()
         recent_appointments = get_recent_appointments()
         low_stock_items = get_low_stock_items()
         expiring_items = get_expiring_items()
+        
+        trends = get_revenue_trends()
+        peak_hours = get_peak_hours()
+        top_services = get_top_services()
+        top_staff = get_top_staff()
+        retention_metrics = get_client_retention_metrics()
+        upcoming_appointments = get_upcoming_appointments()
+        
+        today_vs_yesterday = 0
+        if trends['yesterday_revenue'] > 0:
+            today_vs_yesterday = ((stats['total_revenue_today'] - trends['yesterday_revenue']) / trends['yesterday_revenue']) * 100
+        
+        month_vs_last_month = 0
+        if trends['last_month_revenue'] > 0:
+            month_vs_last_month = ((stats['total_revenue_month'] - trends['last_month_revenue']) / trends['last_month_revenue']) * 100
 
         return render_template('dashboard.html', 
                              stats=stats, 
                              recent_appointments=recent_appointments,
                              low_stock_items=low_stock_items,
                              expiring_items=expiring_items,
+                             trends=trends,
+                             peak_hours=peak_hours,
+                             top_services=top_services,
+                             top_staff=top_staff,
+                             retention_metrics=retention_metrics,
+                             upcoming_appointments=upcoming_appointments,
+                             today_vs_yesterday=round(today_vs_yesterday, 1),
+                             month_vs_last_month=round(month_vs_last_month, 1),
                              current_date=ist_now.strftime('%A, %B %d, %Y'),
                              current_time=ist_now.strftime('%I:%M %p IST'))
     except Exception as e:
         print(f"Dashboard error: {e}")
+        import traceback
+        traceback.print_exc()
         flash('Error loading dashboard', 'danger')
-        # Provide default stats structure to prevent template errors
         default_stats = {
             'todays_appointments': 0,
             'total_clients': 0,
@@ -42,7 +69,17 @@ def dashboard():
                              stats=default_stats, 
                              recent_appointments=[],
                              low_stock_items=[],
-                             expiring_items=[])
+                             expiring_items=[],
+                             trends={'yesterday_revenue': 0, 'last_month_revenue': 0},
+                             peak_hours={},
+                             top_services=[],
+                             top_staff=[],
+                             retention_metrics={'new_clients_this_month': 0, 'returning_clients': 0, 'retention_rate': 0},
+                             upcoming_appointments=[],
+                             today_vs_yesterday=0,
+                             month_vs_last_month=0,
+                             current_date='',
+                             current_time='')
 
 @app.route('/api/dashboard/stats')
 @login_required
