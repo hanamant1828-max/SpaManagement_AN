@@ -1096,6 +1096,8 @@ def api_unaki_manual_checkin():
 
         # Check in all appointments and update client_id if missing
         checked_in_count = 0
+        already_checked_in_count = 0
+        
         for booking in bookings:
             print(f"📋 Booking {booking.id}: checked_in={booking.checked_in}, client_id={booking.client_id}")
             
@@ -1109,16 +1111,31 @@ def api_unaki_manual_checkin():
                 booking.checked_in_at = datetime.now(pytz.timezone('Asia/Kolkata')).replace(tzinfo=None)
                 checked_in_count += 1
                 print(f"✅ Checked in booking {booking.id}")
+            else:
+                already_checked_in_count += 1
+                print(f"ℹ️ Booking {booking.id} was already checked in")
 
         db.session.commit()
-        print(f"💾 Database committed. Total checked in: {checked_in_count}")
+        print(f"💾 Database committed. Total checked in: {checked_in_count}, Already checked in: {already_checked_in_count}")
+
+        # Build appropriate message
+        if checked_in_count > 0 and already_checked_in_count > 0:
+            message = f'Checked in {checked_in_count} appointment(s) for {customer.full_name}. {already_checked_in_count} appointment(s) were already checked in.'
+        elif checked_in_count > 0:
+            message = f'Checked in {checked_in_count} appointment(s) for {customer.full_name}'
+        elif already_checked_in_count > 0:
+            message = f'All {already_checked_in_count} appointment(s) for {customer.full_name} were already checked in'
+        else:
+            message = f'No appointments to check in for {customer.full_name}'
 
         return jsonify({
             'success': True,
-            'message': f'Checked in {checked_in_count} appointment(s) for {customer.full_name}',
+            'message': message,
             'client_id': client_id,
             'client_name': customer.full_name,
             'checked_in_count': checked_in_count,
+            'already_checked_in_count': already_checked_in_count,
+            'total_appointments': len(bookings),
             'booking_ids': [b.id for b in bookings]
         })
 
