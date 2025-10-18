@@ -479,9 +479,18 @@
                         b.client_id === booking.client_id && b.checked_in === true
                     );
 
-                    const checkedInClass = (booking.checked_in || clientHasCheckedIn) ? 'checked-in' : '';
-                    const paidClass = booking.payment_status === 'paid' ? 'paid' : '';
-                    appointmentDiv.className = `appointment-block ${serviceType} ${checkedInClass} ${paidClass}`;
+                    // Priority: paid > checked-in > service color
+                    const isPaid = booking.payment_status === 'paid';
+                    const isCheckedIn = booking.checked_in === true || booking.checked_in === 1 || clientHasCheckedIn;
+                    
+                    let statusClass = '';
+                    if (isPaid) {
+                        statusClass = 'paid';
+                    } else if (isCheckedIn) {
+                        statusClass = 'checked-in';
+                    }
+                    
+                    appointmentDiv.className = `appointment-block ${serviceType} ${statusClass}`;
                     appointmentDiv.style.left = `${leftPosition}px`;
                     appointmentDiv.style.width = `${width}px`;
                     appointmentDiv.dataset.appointmentId = booking.id;
@@ -915,15 +924,17 @@
                         // Immediately update all appointments for this client to yellow (checked-in)
                         console.log(`🟡 Marking all appointments for client ${clientId} as checked-in (yellow)`);
                         
-                        // Update in bookingsData array
+                        // Update in bookingsData array - ensure boolean true
                         bookingsData.forEach(booking => {
                             if (booking.client_id === parseInt(clientId)) {
                                 booking.checked_in = true;
-                                console.log(`✅ Updated booking ${booking.id} in data array`);
+                                booking.checked_in_at = new Date().toISOString();
+                                console.log(`✅ Updated booking ${booking.id}: checked_in=${booking.checked_in}`);
                             }
                         });
 
-                        // Re-render to apply yellow styling
+                        // Force re-render to apply yellow styling
+                        console.log('🔄 Force re-rendering appointments with checked-in status');
                         renderBookings();
 
                         setTimeout(() => {
@@ -973,20 +984,19 @@
                             const clientId = checkedInBooking.client_id;
                             console.log(`🔵 Client ${clientId} checked in - marking all their appointments as checked-in`);
 
-                            // Update all appointment blocks for this client
+                            // Update the bookingsData array immediately
                             bookingsData.forEach(booking => {
                                 if (booking.client_id === clientId) {
-                                    const appointmentBlock = document.querySelector(`[data-appointment-id="${booking.id}"]`);
-                                    if (appointmentBlock) {
-                                        appointmentBlock.classList.add('checked-in');
-                                        appointmentBlock.dataset.checkedIn = 'true';
-                                        console.log(`✅ Marked appointment ${booking.id} as checked-in (sky blue)`);
-                                    }
+                                    booking.checked_in = true;
+                                    console.log(`✅ Updated booking ${booking.id} checked_in status in data array`);
                                 }
                             });
+
+                            // Force immediate re-render with updated data
+                            renderBookings();
                         }
 
-                        // Refresh the full schedule to ensure consistency
+                        // Refresh from server to ensure consistency
                         setTimeout(() => loadBookings(), 500);
                     } else {
                         showNotification('Error: ' + data.error, 'error');

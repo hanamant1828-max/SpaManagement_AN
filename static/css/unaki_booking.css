@@ -526,22 +526,27 @@
                 color: #059669;
             }
 
+            /* Checked-in styling - yellow/amber */
             .appointment-block.checked-in {
                 background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%) !important;
                 border-left-color: #f59e0b !important;
             }
 
             .appointment-block.checked-in .appointment-client {
-                color: #78350f;
-                font-weight: 700;
+                color: #78350f !important;
+                font-weight: 700 !important;
             }
 
             .appointment-block.checked-in .appointment-service {
-                color: #92400e;
+                color: #92400e !important;
             }
 
             .appointment-block.checked-in .appointment-footer {
-                color: #b45309;
+                color: #b45309 !important;
+            }
+            
+            .appointment-block.checked-in .appointment-time {
+                color: #b45309 !important;
             }
 
             .appointment-header {
