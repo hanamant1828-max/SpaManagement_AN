@@ -172,6 +172,12 @@
                 loadShiftSchedule();
                 updateCurrentTimeLine();
                 setInterval(updateCurrentTimeLine, 60000);
+                
+                // Auto-refresh appointment colors every minute to update late/no-show status
+                setInterval(() => {
+                    console.log('🔄 Auto-refreshing appointment colors for late status...');
+                    renderBookings();
+                }, 60000);
 
                 // Close context menu on click outside
                 document.addEventListener("click", hideContextMenu);
@@ -479,17 +485,57 @@
                         b.client_id === booking.client_id && (b.checked_in === true || b.checked_in === 1 || b.checked_in === '1' || b.checked_in === 'true')
                     );
 
-                    // Priority: paid > checked-in > service color
+                    // Priority: paid > checked-in > late/no-show > service color
                     const isPaid = booking.payment_status === 'paid';
                     const isCheckedIn = booking.checked_in === true || booking.checked_in === 1 || booking.checked_in === '1' || booking.checked_in === 'true' || clientHasCheckedIn;
                     
-                    console.log(`🎨 Booking ${booking.id} (${booking.client_name}): checked_in=${booking.checked_in}, isCheckedIn=${isCheckedIn}, isPaid=${isPaid}`);
+                    // Check if appointment time has passed (late/no-show)
+                    const isLate = (() => {
+                        if (isPaid || isCheckedIn) return false; // Don't mark as late if already paid or checked in
+                        
+                        try {
+                            // Get current date and time
+                            const now = new Date();
+                            const currentHours = now.getHours();
+                            const currentMinutes = now.getMinutes();
+                            const currentTotalMinutes = currentHours * 60 + currentMinutes;
+                            
+                            // Get appointment start time
+                            const startTimeMatch = booking.start_time.match(/(\d+):(\d+)\s*(AM|PM)?/i);
+                            if (!startTimeMatch) return false;
+                            
+                            let appointmentHours = parseInt(startTimeMatch[1]);
+                            const appointmentMinutes = parseInt(startTimeMatch[2]);
+                            const period = startTimeMatch[3];
+                            
+                            // Convert to 24-hour format if needed
+                            if (period) {
+                                if (period.toUpperCase() === 'PM' && appointmentHours !== 12) {
+                                    appointmentHours += 12;
+                                } else if (period.toUpperCase() === 'AM' && appointmentHours === 12) {
+                                    appointmentHours = 0;
+                                }
+                            }
+                            
+                            const appointmentTotalMinutes = appointmentHours * 60 + appointmentMinutes;
+                            
+                            // Appointment is late if current time is past appointment time
+                            return currentTotalMinutes > appointmentTotalMinutes;
+                        } catch (e) {
+                            console.error('Error checking if appointment is late:', e);
+                            return false;
+                        }
+                    })();
+                    
+                    console.log(`🎨 Booking ${booking.id} (${booking.client_name}): checked_in=${booking.checked_in}, isCheckedIn=${isCheckedIn}, isPaid=${isPaid}, isLate=${isLate}`);
 
                     let statusClass = '';
                     if (isPaid) {
                         statusClass = 'paid';
                     } else if (isCheckedIn) {
                         statusClass = 'checked-in';
+                    } else if (isLate) {
+                        statusClass = 'late';
                     }
 
                     appointmentDiv.className = `appointment-block ${serviceType} ${statusClass}`;

@@ -555,6 +555,35 @@
                 color: #b45309 !important;
             }
 
+            /* Late/No-show styling - light red */
+            .appointment-block.late,
+            .timeline-row .appointment-block.late {
+                background: linear-gradient(135deg, #fecaca 0%, #fca5a5 100%) !important;
+                border-left-color: #ef4444 !important;
+                border-left-width: 4px !important;
+            }
+
+            .appointment-block.late .appointment-client,
+            .timeline-row .appointment-block.late .appointment-client {
+                color: #7f1d1d !important;
+                font-weight: 700 !important;
+            }
+
+            .appointment-block.late .appointment-service,
+            .timeline-row .appointment-block.late .appointment-service {
+                color: #991b1b !important;
+            }
+
+            .appointment-block.late .appointment-footer,
+            .timeline-row .appointment-block.late .appointment-footer {
+                color: #b91c1c !important;
+            }
+
+            .appointment-block.late .appointment-time,
+            .timeline-row .appointment-block.late .appointment-time {
+                color: #b91c1c !important;
+            }
+
             /* Paid appointment styling */
             .appointment-paid {
                 background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%) !important;
