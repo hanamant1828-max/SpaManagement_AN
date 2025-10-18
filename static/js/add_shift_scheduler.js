@@ -769,7 +769,6 @@
             url: `/shift-scheduler/api/schedule/${scheduleId}/details`,
             method: 'GET',
             success: function(response) {
-                hideLoadingModal();
                 if (response.success) {
                     const schedule = response.schedule;
 
