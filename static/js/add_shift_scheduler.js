@@ -763,14 +763,10 @@
      * Load existing schedule data for view/edit mode
      */
     function loadExistingSchedule(action, scheduleId) {
-        showLoadingModal('Loading schedule data...');
-
         $.ajax({
             url: `/shift-scheduler/api/schedule/${scheduleId}/details`,
             method: 'GET',
             success: function(response) {
-                hideLoadingModal();
-                
                 if (response.success) {
                     const schedule = response.schedule;
 
@@ -815,7 +811,6 @@
                 }
             },
             error: function(xhr, status, error) {
-                hideLoadingModal();
                 console.error('Error loading schedule:', error);
                 showAlert('Error loading schedule data. Please try again.', 'danger');
             }
