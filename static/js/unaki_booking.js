@@ -914,10 +914,10 @@
                 })
                 .then(response => {
                     console.log('📥 Check-in response status:', response.status);
-                    console.log('📥 Check-in response headers:', response.headers);
                     
                     if (!response.ok) {
                         console.error('❌ HTTP error! status:', response.status);
+                        throw new Error(`HTTP ${response.status}`);
                     }
                     
                     return response.json();
@@ -930,9 +930,9 @@
                         messageDiv.style.display = 'block';
                         messageDiv.innerHTML = `<i class="fas fa-check-circle me-2"></i>${data.message}`;
 
-                        console.log(`🟡 Client ${clientId} checked in successfully`);
+                        console.log(`✅ Client ${clientId} checked in successfully`);
                         console.log(`📊 Checked in ${data.checked_in_count} appointment(s)`);
-                        console.log(`📋 Booking IDs: ${data.booking_ids}`);
+                        console.log(`📋 Booking IDs:`, data.booking_ids);
                         
                         // Update in bookingsData array - ensure boolean true
                         bookingsData.forEach(booking => {
@@ -966,10 +966,10 @@
                 })
                 .catch(error => {
                     console.error('❌ Check-in error:', error);
-                    console.error('❌ Error stack:', error.stack);
+                    console.error('❌ Error details:', error.message);
                     messageDiv.className = 'alert alert-danger';
                     messageDiv.style.display = 'block';
-                    messageDiv.innerHTML = '<i class="fas fa-times-circle me-2"></i>Error checking in client. Please try again.';
+                    messageDiv.innerHTML = `<i class="fas fa-times-circle me-2"></i>Error: ${error.message}. Please try again.`;
                 });
             }
 
