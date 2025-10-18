@@ -1045,26 +1045,46 @@ def api_unaki_manual_checkin():
         today = datetime.now(pytz.timezone('Asia/Kolkata')).date()
         print(f"📅 Searching for appointments on: {today}")
 
+        # Build comprehensive search query using OR conditions
+        customer_name = f"{customer.first_name} {customer.last_name}".strip()
+        customer_phone = customer.phone
+        
+        print(f"🔍 Searching for appointments with:")
+        print(f"   - client_id: {client_id}")
+        print(f"   - client_name: {customer_name}")
+        print(f"   - client_phone: {customer_phone}")
+
+        # Search by client_id OR name OR phone (cast to same type for comparison)
+        from sqlalchemy import or_
+        
+        search_conditions = [
+            UnakiBooking.client_id == client_id
+        ]
+        
+        # Add name search (try both exact and partial match)
+        if customer_name:
+            search_conditions.append(UnakiBooking.client_name == customer_name)
+            search_conditions.append(UnakiBooking.client_name.ilike(f"%{customer_name}%"))
+            
+            # Also try first name only (in case last name is missing in booking)
+            if customer.first_name:
+                search_conditions.append(UnakiBooking.client_name.ilike(f"{customer.first_name}%"))
+        
+        # Add phone search
+        if customer_phone:
+            search_conditions.append(UnakiBooking.client_phone == customer_phone)
+        
         bookings = UnakiBooking.query.filter(
-            UnakiBooking.client_id == client_id,
+            or_(*search_conditions),
             func.date(UnakiBooking.appointment_date) == today,
             UnakiBooking.status.in_(['scheduled', 'confirmed'])
         ).all()
 
-        print(f"🔍 Found {len(bookings)} appointments by client_id")
-
-        if not bookings:
-            # Try to find by name if no client_id match
-            customer_name = f"{customer.first_name} {customer.last_name}".strip()
-            print(f"🔍 Trying to find by name: {customer_name}")
-
-            bookings = UnakiBooking.query.filter(
-                UnakiBooking.client_name.like(f"%{customer_name}%"),
-                func.date(UnakiBooking.appointment_date) == today,
-                UnakiBooking.status.in_(['scheduled', 'confirmed'])
-            ).all()
-
-            print(f"🔍 Found {len(bookings)} appointments by name")
+        print(f"🔍 Found {len(bookings)} appointments using comprehensive search")
+        
+        # Log what was found
+        for booking in bookings:
+            print(f"   📋 Booking {booking.id}: {booking.client_name} (client_id={booking.client_id}, phone={booking.client_phone})")
 
         if not bookings:
             error_msg = f'No scheduled appointments found for {customer.full_name} today'
@@ -1074,10 +1094,16 @@ def api_unaki_manual_checkin():
                 'error': error_msg
             }), 404
 
-        # Check in all appointments
+        # Check in all appointments and update client_id if missing
         checked_in_count = 0
         for booking in bookings:
-            print(f"📋 Booking {booking.id}: checked_in={booking.checked_in}")
+            print(f"📋 Booking {booking.id}: checked_in={booking.checked_in}, client_id={booking.client_id}")
+            
+            # Update client_id if it's missing or NULL
+            if not booking.client_id:
+                booking.client_id = client_id
+                print(f"✅ Updated client_id to {client_id} for booking {booking.id}")
+            
             if not booking.checked_in:
                 booking.checked_in = True
                 booking.checked_in_at = datetime.now(pytz.timezone('Asia/Kolkata')).replace(tzinfo=None)
