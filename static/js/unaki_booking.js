@@ -172,7 +172,7 @@
                 loadShiftSchedule();
                 updateCurrentTimeLine();
                 setInterval(updateCurrentTimeLine, 60000);
-                
+
                 // Auto-refresh appointment colors every minute to update late/no-show status
                 setInterval(() => {
                     console.log('🔄 Auto-refreshing appointment colors for late status...');
@@ -481,33 +481,33 @@
                     const appointmentDiv = document.createElement('div');
 
                     // Check if this client has ANY checked-in appointment
-                    const clientHasCheckedIn = bookingsData.some(b => 
+                    const clientHasCheckedIn = bookingsData.some(b =>
                         b.client_id === booking.client_id && (b.checked_in === true || b.checked_in === 1 || b.checked_in === '1' || b.checked_in === 'true')
                     );
 
                     // Priority: paid > checked-in > late/no-show > service color
                     const isPaid = booking.payment_status === 'paid';
                     const isCheckedIn = booking.checked_in === true || booking.checked_in === 1 || booking.checked_in === '1' || booking.checked_in === 'true' || clientHasCheckedIn;
-                    
+
                     // Check if appointment time has passed (late/no-show)
                     const isLate = (() => {
                         if (isPaid || isCheckedIn) return false; // Don't mark as late if already paid or checked in
-                        
+
                         try {
                             // Get current date and time
                             const now = new Date();
                             const currentHours = now.getHours();
                             const currentMinutes = now.getMinutes();
                             const currentTotalMinutes = currentHours * 60 + currentMinutes;
-                            
+
                             // Get appointment start time
                             const startTimeMatch = booking.start_time.match(/(\d+):(\d+)\s*(AM|PM)?/i);
                             if (!startTimeMatch) return false;
-                            
+
                             let appointmentHours = parseInt(startTimeMatch[1]);
                             const appointmentMinutes = parseInt(startTimeMatch[2]);
                             const period = startTimeMatch[3];
-                            
+
                             // Convert to 24-hour format if needed
                             if (period) {
                                 if (period.toUpperCase() === 'PM' && appointmentHours !== 12) {
@@ -516,9 +516,9 @@
                                     appointmentHours = 0;
                                 }
                             }
-                            
+
                             const appointmentTotalMinutes = appointmentHours * 60 + appointmentMinutes;
-                            
+
                             // Appointment is late if current time is past appointment time
                             return currentTotalMinutes > appointmentTotalMinutes;
                         } catch (e) {
@@ -526,7 +526,7 @@
                             return false;
                         }
                     })();
-                    
+
                     console.log(`🎨 Booking ${booking.id} (${booking.client_name}): checked_in=${booking.checked_in}, isCheckedIn=${isCheckedIn}, isPaid=${isPaid}, isLate=${isLate}`);
 
                     let statusClass = '';
@@ -615,7 +615,7 @@
                     }
 
                     // Check if staff has valid shift times (not null, undefined, or empty string)
-                    const hasValidShift = staff.shift_start && staff.shift_start.trim() !== '' && 
+                    const hasValidShift = staff.shift_start && staff.shift_start.trim() !== '' &&
                                          staff.shift_end && staff.shift_end.trim() !== '';
 
                     if (!staff.is_working || !hasValidShift ||
@@ -833,14 +833,49 @@
             // NAVIGATION FUNCTIONS
             // ==========================================
             function navigateDate(days) {
-                const date = new Date(currentDate);
-                date.setDate(date.getDate() + days);
-                window.location.href = `${window.UNAKI_CONFIG.bookingUrl}?date=${date.toISOString().split("T")[0]}`;
+                const currentDate = new Date(document.getElementById('datePicker').value);
+                currentDate.setDate(currentDate.getDate() + days);
+                const newDate = currentDate.toISOString().split('T')[0];
+                navigateToDate(newDate);
             }
 
-            function navigateToToday() {
-                window.location.href = `${window.UNAKI_CONFIG.bookingUrl}?date=${new Date().toISOString().split("T")[0]}`;
+            function navigateToDate(dateString) {
+                console.log('🗓️  Navigating to date:', dateString);
+
+                // Update UI immediately for better UX
+                document.getElementById('datePicker').value = dateString;
+
+                // Format date for display
+                const date = new Date(dateString + 'T00:00:00');
+                const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+                const formattedDate = date.toLocaleDateString('en-US', options);
+                document.getElementById('currentDateDisplay').textContent = formattedDate;
+
+                // Show loading indicator
+                showNotification('Loading bookings for ' + formattedDate + '...', 'info', 1500);
+
+                // Reload the page with the new date to fetch bookings from server
+                window.location.href = `/unaki-booking?date=${dateString}`;
             }
+
+            function goToToday() {
+                const today = new Date().toISOString().split('T')[0];
+                console.log('🏠 Going to today:', today);
+                navigateToDate(today);
+            }
+
+            // Initialize date display on page load
+            document.addEventListener('DOMContentLoaded', function() {
+                const datePicker = document.getElementById('datePicker');
+                if (datePicker && datePicker.value) {
+                    const date = new Date(datePicker.value + 'T00:00:00');
+                    const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+                    const formattedDate = date.toLocaleDateString('en-US', options);
+                    document.getElementById('currentDateDisplay').textContent = formattedDate;
+
+                    console.log('📅 Current viewing date:', formattedDate);
+                }
+            });
 
             function refreshSchedule() {
                 loadBookings();
@@ -868,7 +903,7 @@
                 document.getElementById("loadingOverlay").classList.toggle("show", show);
             }
 
-            function showNotification(message, type) {
+            function showNotification(message, type, duration = 5000) {
                 // Create toast container if it doesn't exist
                 let toastContainer = document.getElementById('toastContainer');
                 if (!toastContainer) {
@@ -894,11 +929,11 @@
 
                 toastContainer.appendChild(toast);
 
-                // Auto remove after 5 seconds
+                // Auto remove after specified duration
                 setTimeout(() => {
                     toast.classList.remove('show');
                     setTimeout(() => toast.remove(), 150);
-                }, 5000);
+                }, duration);
             }
 
             function hideContextMenu() {
@@ -985,7 +1020,7 @@
                         // Update in bookingsData array - ensure boolean true
                         console.log(`🔄 Updating bookingsData for client ${clientId}`);
                         console.log(`📊 Current bookingsData:`, bookingsData);
-                        
+
                         bookingsData.forEach(booking => {
                             if (booking.client_id === parseInt(clientId)) {
                                 booking.checked_in = true;
@@ -993,7 +1028,7 @@
                                 console.log(`✅ Updated booking ${booking.id}: checked_in=${booking.checked_in} (type: ${typeof booking.checked_in})`);
                             }
                         });
-                        
+
                         console.log(`📊 Updated bookingsData:`, bookingsData);
 
                         // Force re-render to apply yellow styling
