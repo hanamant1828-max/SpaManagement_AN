@@ -1,4 +1,4 @@
-            // Cancel all appointments for a specific customer from Unaki booking view
+// Cancel all appointments for a specific customer from Unaki booking view
             function cancelAllCustomerAppointments(customerId, customerName) {
                 if (!customerId) {
                     alert('Please select a customer first');
@@ -450,11 +450,11 @@
                     }
                     const durationHours = durationMinutes / 60;
                     const width = Math.max(durationHours * 140, 80);
-                    
+
                     // Determine service type for color coding
                     let serviceType = 'default';
                     const serviceName = (booking.service_name || '').toLowerCase();
-                    
+
                     if (serviceName.includes('massage')) {
                         serviceType = 'service-massage';
                     } else if (serviceName.includes('facial')) {
@@ -473,12 +473,12 @@
 
                     // Create appointment element with service-based color class
                     const appointmentDiv = document.createElement('div');
-                    
+
                     // Check if this client has ANY checked-in appointment
                     const clientHasCheckedIn = bookingsData.some(b => 
                         b.client_id === booking.client_id && b.checked_in === true
                     );
-                    
+
                     const checkedInClass = (booking.checked_in || clientHasCheckedIn) ? 'checked-in' : '';
                     const paidClass = booking.payment_status === 'paid' ? 'paid' : '';
                     appointmentDiv.className = `appointment-block ${serviceType} ${checkedInClass} ${paidClass}`;
@@ -522,7 +522,7 @@
 
                     // Update staff status in sidebar
                     const statusElement = document.getElementById(`staff-status-${staff.id}`);
-                    
+
                     const timeToPosition = (timeStr) => {
                         if (!timeStr) return 0;
                         const [hours, minutes] = timeStr.split(':').map(Number);
@@ -910,7 +910,7 @@
 
                         // Update all appointments for this client to sky blue
                         console.log(`🔵 Marking all appointments for client ${clientId} as checked-in`);
-                        
+
                         setTimeout(() => {
                             const modal = bootstrap.Modal.getInstance(document.getElementById('manualCheckinModal'));
                             if (modal) {
@@ -950,13 +950,13 @@
                 .then(data => {
                     if (data.success) {
                         showNotification('✅ ' + data.message, 'success');
-                        
+
                         // Get the client ID from the checked-in appointment
                         const checkedInBooking = bookingsData.find(b => b.id === appointmentId);
                         if (checkedInBooking && checkedInBooking.client_id) {
                             const clientId = checkedInBooking.client_id;
                             console.log(`🔵 Client ${clientId} checked in - marking all their appointments as checked-in`);
-                            
+
                             // Update all appointment blocks for this client
                             bookingsData.forEach(booking => {
                                 if (booking.client_id === clientId) {
@@ -969,7 +969,7 @@
                                 }
                             });
                         }
-                        
+
                         // Refresh the full schedule to ensure consistency
                         setTimeout(() => loadBookings(), 500);
                     } else {
@@ -1144,3 +1144,134 @@
                 alert(`${type.toUpperCase()}: ${message}`);
             }
 
+            // ==========================================
+            // MULTI-APPOINTMENT BOOKING CONFLICT CHECKS
+            // ==========================================
+
+            function checkStaffConflicts(appointmentNumber) {
+                const appointment = document.getElementById(`appointment-${appointmentNumber}`);
+                if (!appointment) return;
+
+                const serviceSelect = appointment.querySelector('.service-select');
+                const staffSelect = appointment.querySelector('.staff-select');
+                const dateInput = appointment.querySelector('.appointment-date');
+                const startTimeInput = appointment.querySelector('.start-time-input');
+                const endTimeInput = appointment.querySelector('.end-time-input');
+
+                const serviceId = serviceSelect?.value;
+                const staffId = staffSelect?.value;
+                const appointmentDate = dateInput?.value;
+                const startTime = startTimeInput?.value;
+                const endTime = endTimeInput?.value;
+
+                console.log('[MULTI-BOOKING] Checking staff conflicts for appointment', appointmentNumber);
+
+                const warningDiv = appointment.querySelector('.staff-conflict-warning');
+
+                // Skip if incomplete data - hide warning and return
+                if (!serviceId || !staffId || !appointmentDate || !startTime || !endTime) {
+                    console.log('[MULTI-BOOKING] Incomplete data, skipping staff conflict check');
+                    if (warningDiv) {
+                        warningDiv.style.display = 'none';
+                    }
+                    return;
+                }
+
+                // Check client conflicts first
+                checkClientConflicts(appointmentNumber);
+
+                // Check internal conflicts (between appointments in the form)
+                checkInternalConflicts(appointmentNumber);
+
+                fetch('/api/unaki/check-conflicts', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        staff_id: parseInt(staffId),
+                        date: appointmentDate,
+                        start_time: startTime,
+                        end_time: endTime
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    console.log('[MULTI-BOOKING] Staff conflict check result:', data);
+
+                    // Only show shift-related warnings, not hard errors
+                    if (data.has_conflict) {
+                        // If it's a shift violation (no shift configured), show as info message, not error
+                        if (data.shift_violation) {
+                            if (warningDiv) {
+                                warningDiv.innerHTML = `<i class="fas fa-info-circle me-2"></i>${data.message}`;
+                                warningDiv.className = 'alert alert-info alert-sm mb-2 staff-conflict-warning';
+                                warningDiv.style.display = 'block';
+                            }
+                        } else {
+                            // Real conflicts (overlapping appointments, breaks, etc.)
+                            if (warningDiv) {
+                                warningDiv.innerHTML = `<i class="fas fa-exclamation-triangle me-2"></i>${data.message}`;
+                                warningDiv.className = 'alert alert-danger alert-sm mb-2 staff-conflict-warning';
+                                warningDiv.style.display = 'block';
+                            }
+                        }
+                    } else {
+                        if (warningDiv) {
+                            warningDiv.style.display = 'none';
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('[MULTI-BOOKING] Error checking staff conflicts:', error);
+                    if (warningDiv) {
+                        warningDiv.style.display = 'none';
+                    }
+                });
+            }
+
+            function checkClientConflicts(appointmentNumber) {
+                // This function would check for conflicts with existing appointments for the selected client.
+                // For now, it's a placeholder.
+                console.log('[MULTI-BOOKING] Checking client conflicts for appointment', appointmentNumber);
+            }
+
+            function checkInternalConflicts(appointmentNumber) {
+                // This function would check for conflicts between appointments added within the same multi-booking form.
+                // For now, it's a placeholder.
+                console.log('[MULTI-BOOKING] Checking internal conflicts for appointment', appointmentNumber);
+            }
+
+            function validateAllAppointments() {
+                console.log('[MULTI-BOOKING] Validating all appointments');
+                const appointments = document.querySelectorAll('.appointment-row');
+                let allValid = true;
+                let hasRealConflicts = false;
+
+                appointments.forEach((appointment, index) => {
+                    const serviceSelect = appointment.querySelector('.service-select');
+                    const staffSelect = appointment.querySelector('.staff-select');
+                    const dateInput = appointment.querySelector('.appointment-date');
+                    const startTimeInput = appointment.querySelector('.start-time-input');
+                    const warningDiv = appointment.querySelector('.staff-conflict-warning');
+
+                    // Check required fields
+                    if (!serviceSelect?.value || !staffSelect?.value || !dateInput?.value || !startTimeInput?.value) {
+                        allValid = false;
+                    }
+
+                    // Check for real conflicts (not just shift warnings)
+                    if (warningDiv && warningDiv.style.display !== 'none') {
+                        // Only block if it's a real conflict (danger alert), not a shift warning (info alert)
+                        if (warningDiv.classList.contains('alert-danger')) {
+                            hasRealConflicts = true;
+                        }
+                    }
+                });
+
+                const submitButton = document.getElementById('submitMultiBooking');
+                if (submitButton) {
+                    // Disable only if form is incomplete or has real conflicts
+                    submitButton.disabled = !allValid || hasRealConflicts;
+                }
+
+                return allValid && !hasRealConflicts;
+            }
