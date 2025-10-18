@@ -15,10 +15,11 @@ from flask import request, jsonify, flash, redirect, url_for
 from flask_login import login_required, current_user
 from datetime import datetime, date, timedelta, time
 import pytz
+from sqlalchemy import func
 
 from app import app, db
 from models import (
-    Appointment, Customer, Service, User, ShiftManagement, 
+    Appointment, Customer, Service, User, ShiftManagement,
     ShiftLogs, UnakiBooking
 )
 from .bookings_queries import get_time_slots, get_active_services, create_appointment
@@ -1015,55 +1016,76 @@ def api_unaki_checkin_appointment(booking_id):
 @app.route('/api/unaki/checkin/manual', methods=['POST'])
 @login_required
 def api_unaki_manual_checkin():
-    """Manually check in a client - checks in all their appointments for today"""
+    """Manual check-in for a client - checks in all their appointments for today"""
     if not current_user.can_access('bookings'):
+        print("❌ Check-in access denied")
         return jsonify({'error': 'Access denied', 'success': False}), 403
 
     try:
         data = request.get_json()
+        print(f"🔵 Manual check-in request data: {data}")
+
         client_id = data.get('client_id')
 
         if not client_id:
-            return jsonify({'success': False, 'error': 'Client ID is required'}), 400
+            print("❌ No client_id provided")
+            return jsonify({'error': 'Client ID is required', 'success': False}), 400
 
-        # Get the customer
+        print(f"🔍 Looking for customer with ID: {client_id}")
+
+        # Get customer details
         customer = Customer.query.get(client_id)
         if not customer:
-            return jsonify({'success': False, 'error': 'Customer not found'}), 404
+            print(f"❌ Customer not found with ID: {client_id}")
+            return jsonify({'error': 'Customer not found', 'success': False}), 404
 
-        # Get today's date
-        today = date.today()
+        print(f"✅ Found customer: {customer.full_name}")
 
-        # Find all today's appointments for this customer
+        # Get all appointments for this customer today
+        today = datetime.now(pytz.timezone('Asia/Kolkata')).date()
+        print(f"📅 Searching for appointments on: {today}")
+
         bookings = UnakiBooking.query.filter(
             UnakiBooking.client_id == client_id,
-            UnakiBooking.appointment_date == today,
+            func.date(UnakiBooking.appointment_date) == today,
             UnakiBooking.status.in_(['scheduled', 'confirmed'])
         ).all()
 
-        # Also check by phone if no bookings found
-        if not bookings and customer.phone:
+        print(f"🔍 Found {len(bookings)} appointments by client_id")
+
+        if not bookings:
+            # Try to find by name if no client_id match
+            customer_name = f"{customer.first_name} {customer.last_name}".strip()
+            print(f"🔍 Trying to find by name: {customer_name}")
+
             bookings = UnakiBooking.query.filter(
-                UnakiBooking.client_phone == customer.phone,
-                UnakiBooking.appointment_date == today,
+                UnakiBooking.client_name.like(f"%{customer_name}%"),
+                func.date(UnakiBooking.appointment_date) == today,
                 UnakiBooking.status.in_(['scheduled', 'confirmed'])
             ).all()
 
+            print(f"🔍 Found {len(bookings)} appointments by name")
+
         if not bookings:
+            error_msg = f'No scheduled appointments found for {customer.full_name} today'
+            print(f"❌ {error_msg}")
             return jsonify({
                 'success': False,
-                'error': f'No scheduled appointments found for {customer.full_name} today'
+                'error': error_msg
             }), 404
 
         # Check in all appointments
         checked_in_count = 0
         for booking in bookings:
+            print(f"📋 Booking {booking.id}: checked_in={booking.checked_in}")
             if not booking.checked_in:
                 booking.checked_in = True
                 booking.checked_in_at = datetime.now(pytz.timezone('Asia/Kolkata')).replace(tzinfo=None)
                 checked_in_count += 1
+                print(f"✅ Checked in booking {booking.id}")
 
         db.session.commit()
+        print(f"💾 Database committed. Total checked in: {checked_in_count}")
 
         return jsonify({
             'success': True,

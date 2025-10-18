@@ -905,6 +905,8 @@
                 messageDiv.style.display = 'block';
                 messageDiv.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Checking in client...';
 
+                console.log('📤 Sending check-in request for client ID:', clientId);
+
                 fetch('/api/unaki/checkin/manual', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -912,17 +914,25 @@
                 })
                 .then(response => {
                     console.log('📥 Check-in response status:', response.status);
+                    console.log('📥 Check-in response headers:', response.headers);
+                    
+                    if (!response.ok) {
+                        console.error('❌ HTTP error! status:', response.status);
+                    }
+                    
                     return response.json();
                 })
                 .then(data => {
                     console.log('📥 Check-in response data:', data);
+                    
                     if (data.success) {
                         messageDiv.className = 'alert alert-success';
                         messageDiv.style.display = 'block';
                         messageDiv.innerHTML = `<i class="fas fa-check-circle me-2"></i>${data.message}`;
 
-                        // Immediately update all appointments for this client to yellow (checked-in)
-                        console.log(`🟡 Marking all appointments for client ${clientId} as checked-in (yellow)`);
+                        console.log(`🟡 Client ${clientId} checked in successfully`);
+                        console.log(`📊 Checked in ${data.checked_in_count} appointment(s)`);
+                        console.log(`📋 Booking IDs: ${data.booking_ids}`);
                         
                         // Update in bookingsData array - ensure boolean true
                         bookingsData.forEach(booking => {
@@ -948,6 +958,7 @@
                             messageDiv.style.display = 'none';
                         }, 1500);
                     } else {
+                        console.error('❌ Check-in failed:', data.error);
                         messageDiv.className = 'alert alert-danger';
                         messageDiv.style.display = 'block';
                         messageDiv.innerHTML = `<i class="fas fa-times-circle me-2"></i>${data.error}`;
@@ -955,6 +966,7 @@
                 })
                 .catch(error => {
                     console.error('❌ Check-in error:', error);
+                    console.error('❌ Error stack:', error.stack);
                     messageDiv.className = 'alert alert-danger';
                     messageDiv.style.display = 'block';
                     messageDiv.innerHTML = '<i class="fas fa-times-circle me-2"></i>Error checking in client. Please try again.';
