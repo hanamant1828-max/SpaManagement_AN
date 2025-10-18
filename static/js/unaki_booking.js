@@ -482,14 +482,14 @@
                     // Priority: paid > checked-in > service color
                     const isPaid = booking.payment_status === 'paid';
                     const isCheckedIn = booking.checked_in === true || booking.checked_in === 1 || clientHasCheckedIn;
-                    
+
                     let statusClass = '';
                     if (isPaid) {
                         statusClass = 'paid';
                     } else if (isCheckedIn) {
                         statusClass = 'checked-in';
                     }
-                    
+
                     appointmentDiv.className = `appointment-block ${serviceType} ${statusClass}`;
                     appointmentDiv.style.left = `${leftPosition}px`;
                     appointmentDiv.style.width = `${width}px`;
@@ -569,7 +569,7 @@
                     // Check if staff has valid shift times (not null, undefined, or empty string)
                     const hasValidShift = staff.shift_start && staff.shift_start.trim() !== '' && 
                                          staff.shift_end && staff.shift_end.trim() !== '';
-                    
+
                     if (!staff.is_working || !hasValidShift ||
                         (staff.day_status && OFFDAY_STATUSES.includes(staff.day_status))) {
                         const noShiftLabel = !hasValidShift ? 'No Shifts Found' : 'Off Day';
@@ -914,17 +914,17 @@
                 })
                 .then(response => {
                     console.log('📥 Check-in response status:', response.status);
-                    
+
                     if (!response.ok) {
                         console.error('❌ HTTP error! status:', response.status);
                         throw new Error(`HTTP ${response.status}`);
                     }
-                    
+
                     return response.json();
                 })
                 .then(data => {
                     console.log('📥 Check-in response data:', data);
-                    
+
                     if (data.success) {
                         messageDiv.className = 'alert alert-success';
                         messageDiv.style.display = 'block';
@@ -933,7 +933,7 @@
                         console.log(`✅ Client ${clientId} checked in successfully`);
                         console.log(`📊 Checked in ${data.checked_in_count} appointment(s)`);
                         console.log(`📋 Booking IDs:`, data.booking_ids);
-                        
+
                         // Update in bookingsData array - ensure boolean true
                         bookingsData.forEach(booking => {
                             if (booking.client_id === parseInt(clientId)) {
