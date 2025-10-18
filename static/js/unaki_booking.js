@@ -912,14 +912,26 @@
                         messageDiv.style.display = 'block';
                         messageDiv.innerHTML = `<i class="fas fa-check-circle me-2"></i>${data.message}`;
 
-                        // Update all appointments for this client to sky blue
-                        console.log(`🔵 Marking all appointments for client ${clientId} as checked-in`);
+                        // Immediately update all appointments for this client to yellow (checked-in)
+                        console.log(`🟡 Marking all appointments for client ${clientId} as checked-in (yellow)`);
+                        
+                        // Update in bookingsData array
+                        bookingsData.forEach(booking => {
+                            if (booking.client_id === parseInt(clientId)) {
+                                booking.checked_in = true;
+                                console.log(`✅ Updated booking ${booking.id} in data array`);
+                            }
+                        });
+
+                        // Re-render to apply yellow styling
+                        renderBookings();
 
                         setTimeout(() => {
                             const modal = bootstrap.Modal.getInstance(document.getElementById('manualCheckinModal'));
                             if (modal) {
                                 modal.hide();
                             }
+                            // Reload from server to ensure consistency
                             loadBookings();
                             clientSelect.value = '';
                             messageDiv.style.display = 'none';
