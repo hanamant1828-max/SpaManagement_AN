@@ -526,26 +526,32 @@
                 color: #059669;
             }
 
-            /* Checked-in styling - yellow/amber */
-            .appointment-block.checked-in {
+            /* Checked-in styling - yellow/amber - HIGHEST PRIORITY */
+            .appointment-block.checked-in,
+            .timeline-row .appointment-block.checked-in {
                 background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%) !important;
                 border-left-color: #f59e0b !important;
+                border-left-width: 4px !important;
             }
 
-            .appointment-block.checked-in .appointment-client {
+            .appointment-block.checked-in .appointment-client,
+            .timeline-row .appointment-block.checked-in .appointment-client {
                 color: #78350f !important;
                 font-weight: 700 !important;
             }
 
-            .appointment-block.checked-in .appointment-service {
+            .appointment-block.checked-in .appointment-service,
+            .timeline-row .appointment-block.checked-in .appointment-service {
                 color: #92400e !important;
             }
 
-            .appointment-block.checked-in .appointment-footer {
+            .appointment-block.checked-in .appointment-footer,
+            .timeline-row .appointment-block.checked-in .appointment-footer {
                 color: #b45309 !important;
             }
 
-            .appointment-block.checked-in .appointment-time {
+            .appointment-block.checked-in .appointment-time,
+            .timeline-row .appointment-block.checked-in .appointment-time {
                 color: #b45309 !important;
             }
 

@@ -476,12 +476,14 @@
 
                     // Check if this client has ANY checked-in appointment
                     const clientHasCheckedIn = bookingsData.some(b => 
-                        b.client_id === booking.client_id && b.checked_in === true
+                        b.client_id === booking.client_id && (b.checked_in === true || b.checked_in === 1 || b.checked_in === '1' || b.checked_in === 'true')
                     );
 
                     // Priority: paid > checked-in > service color
                     const isPaid = booking.payment_status === 'paid';
-                    const isCheckedIn = booking.checked_in === true || booking.checked_in === 1 || clientHasCheckedIn;
+                    const isCheckedIn = booking.checked_in === true || booking.checked_in === 1 || booking.checked_in === '1' || booking.checked_in === 'true' || clientHasCheckedIn;
+                    
+                    console.log(`🎨 Booking ${booking.id} (${booking.client_name}): checked_in=${booking.checked_in}, isCheckedIn=${isCheckedIn}, isPaid=${isPaid}`);
 
                     let statusClass = '';
                     if (isPaid) {
@@ -935,13 +937,18 @@
                         console.log(`📋 Booking IDs:`, data.booking_ids);
 
                         // Update in bookingsData array - ensure boolean true
+                        console.log(`🔄 Updating bookingsData for client ${clientId}`);
+                        console.log(`📊 Current bookingsData:`, bookingsData);
+                        
                         bookingsData.forEach(booking => {
                             if (booking.client_id === parseInt(clientId)) {
                                 booking.checked_in = true;
                                 booking.checked_in_at = new Date().toISOString();
-                                console.log(`✅ Updated booking ${booking.id}: checked_in=${booking.checked_in}`);
+                                console.log(`✅ Updated booking ${booking.id}: checked_in=${booking.checked_in} (type: ${typeof booking.checked_in})`);
                             }
                         });
+                        
+                        console.log(`📊 Updated bookingsData:`, bookingsData);
 
                         // Force re-render to apply yellow styling
                         console.log('🔄 Force re-rendering appointments with checked-in status');
