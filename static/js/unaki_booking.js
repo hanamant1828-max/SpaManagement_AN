@@ -520,6 +520,9 @@
                     const row = document.querySelector(`.timeline-row[data-staff-id="${staff.id}"]`);
                     if (!row) return;
 
+                    // Update staff status in sidebar
+                    const statusElement = document.getElementById(`staff-status-${staff.id}`);
+                    
                     const timeToPosition = (timeStr) => {
                         if (!timeStr) return 0;
                         const [hours, minutes] = timeStr.split(':').map(Number);
@@ -548,12 +551,19 @@
 
                     if (staff.day_status && HOLIDAY_STATUSES.includes(staff.day_status)) {
                         row.appendChild(createOverlay('holiday', 0, 13 * 140, 'Holiday'));
+                        if (statusElement) {
+                            statusElement.innerHTML = '<span class="status-dot" style="background: orange;"></span>Holiday';
+                        }
                         return;
                     }
 
                     if (!staff.is_working || !staff.shift_start || !staff.shift_end ||
                         (staff.day_status && OFFDAY_STATUSES.includes(staff.day_status))) {
-                        row.appendChild(createOverlay('off-duty', 0, 13 * 140, 'Off Day'));
+                        const noShiftLabel = (!staff.shift_start && !staff.shift_end) ? 'No Shifts Found' : 'Off Day';
+                        row.appendChild(createOverlay('off-duty', 0, 13 * 140, noShiftLabel));
+                        if (statusElement) {
+                            statusElement.innerHTML = `<span class="status-dot" style="background: #6b7280;"></span>${noShiftLabel}`;
+                        }
                         return;
                     }
 

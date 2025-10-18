@@ -666,12 +666,22 @@
             }
 
             .shift-overlay-off-duty {
-                background: linear-gradient(
-                    135deg,
-                    rgba(107, 114, 128, 0.2),
-                    rgba(156, 163, 175, 0.2)
+                background: repeating-linear-gradient(
+                    45deg,
+                    rgba(156, 163, 175, 0.1),
+                    rgba(156, 163, 175, 0.1) 10px,
+                    rgba(156, 163, 175, 0.05) 10px,
+                    rgba(156, 163, 175, 0.05) 20px
                 );
-                border: 1px dashed rgba(107, 114, 128, 0.4);
+                border: 1px dashed #9ca3af;
+            }
+
+            .shift-overlay-off-duty .overlay-label {
+                font-size: 14px;
+                font-weight: 600;
+                color: #6b7280;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
             }
 
             .shift-overlay-holiday {

@@ -237,13 +237,18 @@
                                 <div class="staff-role">
                                     {{ staff.role or 'Therapist' }}
                                 </div>
-                                <div class="staff-status">
+                                <div class="staff-status" id="staff-status-{{ staff.id }}">
                                     <span class="status-dot"></span>
                                     Available
                                 </div>
                             </div>
                         </div>
-                        {% endfor %} {% endif %}
+                        {% endfor %} {% else %}
+                        <div style="padding: 20px; text-align: center; color: #6b7280;">
+                            <i class="fas fa-users-slash" style="font-size: 48px; margin-bottom: 10px; opacity: 0.5;"></i>
+                            <p style="margin: 0;">No staff members found</p>
+                        </div>
+                        {% endif %}
                     </div>
                 </div>
 
