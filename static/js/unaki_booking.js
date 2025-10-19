@@ -864,6 +864,18 @@
                 navigateToDate(today);
             }
 
+            function navigateToToday() {
+                goToToday();
+            }
+
+            function navigateToSelectedDate() {
+                const datePicker = document.getElementById('datePicker');
+                if (datePicker && datePicker.value) {
+                    console.log('📅 Date picker changed to:', datePicker.value);
+                    navigateToDate(datePicker.value);
+                }
+            }
+
             // Initialize date display on page load
             document.addEventListener('DOMContentLoaded', function() {
                 const datePicker = document.getElementById('datePicker');

@@ -74,6 +74,14 @@
                     >
                         Today
                     </button>
+                    <input 
+                        type="date" 
+                        id="datePicker" 
+                        class="date-picker-input"
+                        value="{{ today_date.strftime('%Y-%m-%d') }}"
+                        onchange="navigateToSelectedDate()"
+                        data-tooltip="Select Date"
+                    />
                     <div class="current-date-display" id="currentDateDisplay">
                         {{ today_date.strftime('%A, %B %d, %Y') }}
                     </div>
