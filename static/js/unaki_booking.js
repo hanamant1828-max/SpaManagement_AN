@@ -72,7 +72,7 @@
             // GLOBAL VARIABLES & STATE
             // ==========================================
             let selectedAppointmentId = null;
-            const currentDate = window.UNAKI_CONFIG.today;
+            let currentDate = document.getElementById('datePicker') ? document.getElementById('datePicker').value : window.UNAKI_CONFIG.today;
             let bookingsData = [];
             let appointmentCounter = 1;
 
@@ -160,6 +160,19 @@
             // INITIALIZATION
             // ==========================================
             document.addEventListener("DOMContentLoaded", function() {
+                // CRITICAL: Update currentDate from date picker FIRST before loading bookings
+                const datePicker = document.getElementById('datePicker');
+                if (datePicker && datePicker.value) {
+                    currentDate = datePicker.value;
+                    console.log('🔄 Updated currentDate from date picker:', currentDate);
+                    
+                    const date = new Date(datePicker.value + 'T00:00:00');
+                    const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+                    const formattedDate = date.toLocaleDateString('en-US', options);
+                    document.getElementById('currentDateDisplay').textContent = formattedDate;
+                    console.log('📅 Current viewing date:', formattedDate);
+                }
+                
                 initializeApp();
                 setupEventListeners();
                 setupTooltips();
@@ -168,6 +181,7 @@
             });
 
             function initializeApp() {
+                console.log('🚀 Initializing app with date:', currentDate);
                 loadBookings();
                 loadShiftSchedule();
                 updateCurrentTimeLine();
@@ -842,6 +856,9 @@
             function navigateToDate(dateString) {
                 console.log('🗓️  Navigating to date:', dateString);
 
+                // Update the global currentDate variable
+                currentDate = dateString;
+
                 // Update UI immediately for better UX
                 document.getElementById('datePicker').value = dateString;
 
@@ -876,18 +893,6 @@
                 }
             }
 
-            // Initialize date display on page load
-            document.addEventListener('DOMContentLoaded', function() {
-                const datePicker = document.getElementById('datePicker');
-                if (datePicker && datePicker.value) {
-                    const date = new Date(datePicker.value + 'T00:00:00');
-                    const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-                    const formattedDate = date.toLocaleDateString('en-US', options);
-                    document.getElementById('currentDateDisplay').textContent = formattedDate;
-
-                    console.log('📅 Current viewing date:', formattedDate);
-                }
-            });
 
             function refreshSchedule() {
                 loadBookings();
