@@ -100,3 +100,4 @@ sqlalchemy
 werkzeug
 wtforms
 pillow
+Pillow
