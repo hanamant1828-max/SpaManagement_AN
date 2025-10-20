@@ -1162,8 +1162,8 @@ async function loadGSTSettings() {
                 gstin_number: data.configuration.gstin_number || '',
                 business_name: data.configuration.business_name || '',
                 business_address: data.configuration.address || '',
-                business_phone: data.configuration.phone || '',
-                business_email: data.configuration.email || '',
+                business_phone: data.configuration.phone || '',  // API returns 'phone' key
+                business_email: data.configuration.email || '',  // API returns 'email' key
                 state: data.configuration.state || '',
                 enabled: data.configuration.gst_enabled || false
             };

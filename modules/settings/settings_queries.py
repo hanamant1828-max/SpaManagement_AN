@@ -103,14 +103,14 @@ def update_business_settings(settings_data):
 def get_gst_settings():
     """Get GST configuration settings from database"""
     try:
-        # Fetch all GST-related settings
+        # Fetch all GST-related settings using correct database keys
         gst_settings = {
             'enabled': get_setting_by_key('gst_enabled') == 'True',
             'gstin_number': get_setting_by_key('gstin_number') or '',
             'business_name': get_setting_by_key('gst_business_name') or '',
             'business_address': get_setting_by_key('gst_business_address') or '',
-            'business_phone': get_setting_by_key('gst_business_phone') or '',
-            'business_email': get_setting_by_key('gst_business_email') or '',
+            'business_phone': get_setting_by_key('gst_phone') or '',  # Fixed: was gst_business_phone
+            'business_email': get_setting_by_key('gst_email') or '',  # Fixed: was gst_business_email
             'state': get_setting_by_key('gst_state') or '',
             'cgst_rate': float(get_setting_by_key('default_cgst') or 9),
             'sgst_rate': float(get_setting_by_key('default_sgst') or 9),
