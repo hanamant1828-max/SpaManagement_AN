@@ -245,7 +245,7 @@ from flask import render_template, request, redirect, url_for, flash, jsonify
 from flask_login import login_required, current_user
 from app import app, db
 from models import SystemSetting, Department
-from .settings_queries import get_all_settings, update_setting
+from .settings_queries import get_system_settings, update_setting
 
 # Import settings queries with error handling
 try:
