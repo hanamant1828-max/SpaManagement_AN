@@ -213,12 +213,13 @@
                                     </button>
                                 </div>
                                 <div class="card-body">
-                                    <div class="row mb-4">
-                                        <div class="col-md-6">
-                                            <div class="card bg-light">
-                                                <div class="card-body">
-                                                    <h6 class="card-title"><i class="fas fa-info-circle me-2"></i>Business GST Details</h6>
-                                                    <form id="businessGstForm">
+                                    <!-- Unified GST Configuration Form -->
+                                    <form id="unifiedGstForm" class="mb-4">
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <div class="card bg-light">
+                                                    <div class="card-body">
+                                                        <h6 class="card-title"><i class="fas fa-info-circle me-2"></i>Business GST Details</h6>
                                                         <div class="mb-3">
                                                             <label class="form-label">GSTIN Number</label>
                                                             <input type="text" class="form-control" id="gstin_number" name="gstin_number" placeholder="22AAAAA0000A1Z5">
@@ -231,7 +232,7 @@
                                                             <label class="form-label">State</label>
                                                             <input type="text" class="form-control" id="gst_state" name="gst_state">
                                                         </div>
-                                                        <div class="mb-3">
+                                                        <div class="mb-0">
                                                             <div class="form-check">
                                                                 <input class="form-check-input" type="checkbox" id="gst_enabled" name="gst_enabled">
                                                                 <label class="form-check-label" for="gst_enabled">
@@ -239,42 +240,46 @@
                                                                 </label>
                                                             </div>
                                                         </div>
-                                                        <button type="submit" class="btn btn-primary btn-sm">
-                                                            <i class="fas fa-save me-1"></i>Save Business GST Details
-                                                        </button>
-                                                    </form>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="col-md-6">
-                                            <div class="card bg-light">
-                                                <div class="card-body">
-                                                    <h6 class="card-title"><i class="fas fa-percentage me-2"></i>Default GST Rates</h6>
-                                                    <div class="table-responsive">
-                                                        <table class="table table-sm table-borderless">
-                                                            <tbody>
-                                                                <tr>
-                                                                    <td><strong>CGST:</strong></td>
-                                                                    <td><input type="number" class="form-control form-control-sm" id="default_cgst" value="9" step="0.01">%</td>
-                                                                </tr>
-                                                                <tr>
-                                                                    <td><strong>SGST:</strong></td>
-                                                                    <td><input type="number" class="form-control form-control-sm" id="default_sgst" value="9" step="0.01">%</td>
-                                                                </tr>
-                                                                <tr>
-                                                                    <td><strong>IGST:</strong></td>
-                                                                    <td><input type="number" class="form-control form-control-sm" id="default_igst" value="18" step="0.01">%</td>
-                                                                </tr>
-                                                            </tbody>
-                                                        </table>
                                                     </div>
-                                                    <button class="btn btn-success btn-sm w-100" id="saveDefaultRates">
-                                                        <i class="fas fa-save me-1"></i>Save Default Rates
-                                                    </button>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="card bg-light">
+                                                    <div class="card-body">
+                                                        <h6 class="card-title"><i class="fas fa-percentage me-2"></i>Default GST Rates</h6>
+                                                        <div class="mb-3">
+                                                            <label class="form-label">CGST:</label>
+                                                            <div class="input-group">
+                                                                <input type="number" class="form-control" id="default_cgst" name="default_cgst" value="9" step="0.01">
+                                                                <span class="input-group-text">%</span>
+                                                            </div>
+                                                        </div>
+                                                        <div class="mb-3">
+                                                            <label class="form-label">SGST:</label>
+                                                            <div class="input-group">
+                                                                <input type="number" class="form-control" id="default_sgst" name="default_sgst" value="9" step="0.01">
+                                                                <span class="input-group-text">%</span>
+                                                            </div>
+                                                        </div>
+                                                        <div class="mb-0">
+                                                            <label class="form-label">IGST:</label>
+                                                            <div class="input-group">
+                                                                <input type="number" class="form-control" id="default_igst" name="default_igst" value="18" step="0.01">
+                                                                <span class="input-group-text">%</span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
-                                    </div>
+                                        <div class="row mt-3">
+                                            <div class="col-12 text-end">
+                                                <button type="submit" class="btn btn-primary">
+                                                    <i class="fas fa-save me-1"></i>Save GST Configuration
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </form>
 
                                     <div class="card">
                                         <div class="card-header">
@@ -604,62 +609,37 @@ function deleteDepartment(departmentId) {
 
 // GST Tab functionality
 document.addEventListener('DOMContentLoaded', function() {
-    // Business GST form submission
-    const businessGstForm = document.getElementById('businessGstForm');
-    if (businessGstForm) {
-        businessGstForm.addEventListener('submit', function(e) {
+    // Unified GST Configuration Form submission
+    const unifiedGstForm = document.getElementById('unifiedGstForm');
+    if (unifiedGstForm) {
+        unifiedGstForm.addEventListener('submit', function(e) {
             e.preventDefault();
             const formData = new FormData(this);
             
-            fetch('/api/gst/business', {
+            const submitBtn = this.querySelector('button[type="submit"]');
+            const originalText = submitBtn.innerHTML;
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Saving...';
+            
+            fetch('/api/gst/configuration', {
                 method: 'POST',
                 body: formData
             })
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    alert('Business GST details saved successfully!');
+                    alert('GST configuration saved successfully!');
                 } else {
-                    alert('Error: ' + data.message);
+                    alert('Error: ' + (data.message || 'Failed to save configuration'));
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
-                alert('An error occurred while saving business GST details');
-            });
-        });
-    }
-
-    // Save default GST rates
-    const saveDefaultRatesBtn = document.getElementById('saveDefaultRates');
-    if (saveDefaultRatesBtn) {
-        saveDefaultRatesBtn.addEventListener('click', function() {
-            const cgst = document.getElementById('default_cgst').value;
-            const sgst = document.getElementById('default_sgst').value;
-            const igst = document.getElementById('default_igst').value;
-
-            fetch('/api/gst/default-rates', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    cgst: parseFloat(cgst),
-                    sgst: parseFloat(sgst),
-                    igst: parseFloat(igst)
-                })
+                alert('An error occurred while saving GST configuration');
             })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    alert('Default GST rates saved successfully!');
-                } else {
-                    alert('Error: ' + data.message);
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('An error occurred while saving default rates');
+            .finally(() => {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalText;
             });
         });
     }
@@ -785,18 +765,22 @@ function loadGstRates() {
 }
 
 function loadBusinessGstDetails() {
-    fetch('/api/gst/business')
+    fetch('/api/gst/configuration')
         .then(response => response.json())
         .then(data => {
-            if (data.success && data.gst_details) {
-                document.getElementById('gstin_number').value = data.gst_details.gstin_number || '';
-                document.getElementById('gst_business_name').value = data.gst_details.business_name || '';
-                document.getElementById('gst_state').value = data.gst_details.state || '';
-                document.getElementById('gst_enabled').checked = data.gst_details.gst_enabled || false;
+            if (data.success && data.configuration) {
+                const config = data.configuration;
+                document.getElementById('gstin_number').value = config.gstin_number || '';
+                document.getElementById('gst_business_name').value = config.business_name || '';
+                document.getElementById('gst_state').value = config.state || '';
+                document.getElementById('gst_enabled').checked = config.gst_enabled || false;
+                document.getElementById('default_cgst').value = config.default_cgst || 9;
+                document.getElementById('default_sgst').value = config.default_sgst || 9;
+                document.getElementById('default_igst').value = config.default_igst || 18;
             }
         })
         .catch(error => {
-            console.error('Error loading business GST details:', error);
+            console.error('Error loading GST configuration:', error);
         });
 }
 
