@@ -1,3 +1,243 @@
+
+"""
+Settings and Department Management Views
+"""
+from flask import render_template, request, redirect, url_for, flash, jsonify
+from flask_login import login_required, current_user
+from app import app, db
+from models import Department, User
+
+# Department Management API Routes
+@app.route('/api/departments', methods=['GET'])
+@login_required
+def api_get_departments():
+    """Get all departments"""
+    try:
+        departments = Department.query.order_by(Department.name).all()
+        return jsonify({
+            'success': True,
+            'departments': [{
+                'id': dept.id,
+                'name': dept.name,
+                'display_name': dept.display_name,
+                'description': dept.description,
+                'is_active': dept.is_active,
+                'created_at': dept.created_at.isoformat() if dept.created_at else None
+            } for dept in departments]
+        })
+    except Exception as e:
+        print(f"Error loading departments: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@app.route('/api/departments/<int:department_id>', methods=['GET'])
+@login_required
+def api_get_department(department_id):
+    """Get single department by ID"""
+    try:
+        department = Department.query.get(department_id)
+        if not department:
+            return jsonify({
+                'success': False,
+                'error': 'Department not found'
+            }), 404
+        
+        return jsonify({
+            'id': department.id,
+            'name': department.name,
+            'display_name': department.display_name,
+            'description': department.description,
+            'is_active': department.is_active,
+            'created_at': department.created_at.isoformat() if department.created_at else None
+        })
+    except Exception as e:
+        print(f"Error loading department {department_id}: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@app.route('/api/departments', methods=['POST'])
+@login_required
+def api_create_department():
+    """Create new department"""
+    try:
+        if not current_user.can_access('settings'):
+            return jsonify({
+                'success': False,
+                'message': 'Access denied'
+            }), 403
+        
+        # Get form data
+        name = request.form.get('name', '').strip()
+        display_name = request.form.get('display_name', '').strip()
+        description = request.form.get('description', '').strip()
+        is_active = request.form.get('is_active') == 'on'
+        
+        # Validate required fields
+        if not name or not display_name:
+            return jsonify({
+                'success': False,
+                'message': 'Name and display name are required'
+            }), 400
+        
+        # Check for duplicate name
+        existing = Department.query.filter_by(name=name).first()
+        if existing:
+            return jsonify({
+                'success': False,
+                'message': 'Department with this name already exists'
+            }), 400
+        
+        # Create department
+        department = Department(
+            name=name,
+            display_name=display_name,
+            description=description,
+            is_active=is_active
+        )
+        
+        db.session.add(department)
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Department created successfully',
+            'department_id': department.id
+        })
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error creating department: {e}")
+        return jsonify({
+            'success': False,
+            'message': str(e)
+        }), 500
+
+@app.route('/api/departments/<int:department_id>', methods=['PUT'])
+@login_required
+def api_update_department(department_id):
+    """Update existing department"""
+    try:
+        if not current_user.can_access('settings'):
+            return jsonify({
+                'success': False,
+                'message': 'Access denied'
+            }), 403
+        
+        department = Department.query.get(department_id)
+        if not department:
+            return jsonify({
+                'success': False,
+                'message': 'Department not found'
+            }), 404
+        
+        # Get form data
+        name = request.form.get('name', '').strip()
+        display_name = request.form.get('display_name', '').strip()
+        description = request.form.get('description', '').strip()
+        is_active = request.form.get('is_active') == 'on'
+        
+        # Validate required fields
+        if not name or not display_name:
+            return jsonify({
+                'success': False,
+                'message': 'Name and display name are required'
+            }), 400
+        
+        # Check for duplicate name (excluding current department)
+        existing = Department.query.filter(
+            Department.name == name,
+            Department.id != department_id
+        ).first()
+        if existing:
+            return jsonify({
+                'success': False,
+                'message': 'Department with this name already exists'
+            }), 400
+        
+        # Update department
+        department.name = name
+        department.display_name = display_name
+        department.description = description
+        department.is_active = is_active
+        
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Department updated successfully'
+        })
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error updating department {department_id}: {e}")
+        return jsonify({
+            'success': False,
+            'message': str(e)
+        }), 500
+
+@app.route('/api/departments/<int:department_id>', methods=['DELETE'])
+@login_required
+def api_delete_department(department_id):
+    """Delete department"""
+    try:
+        if not current_user.can_access('settings'):
+            return jsonify({
+                'success': False,
+                'message': 'Access denied'
+            }), 403
+        
+        department = Department.query.get(department_id)
+        if not department:
+            return jsonify({
+                'success': False,
+                'message': 'Department not found'
+            }), 404
+        
+        # Check if department has staff members
+        staff_count = User.query.filter_by(department_id=department_id).count()
+        if staff_count > 0:
+            return jsonify({
+                'success': False,
+                'message': f'Cannot delete department with {staff_count} staff member(s)'
+            }), 400
+        
+        db.session.delete(department)
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Department deleted successfully'
+        })
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error deleting department {department_id}: {e}")
+        return jsonify({
+            'success': False,
+            'message': str(e)
+        }), 500
+
+@app.route('/settings')
+@login_required
+def settings():
+    """Settings page"""
+    if not current_user.can_access('settings'):
+        flash('Access denied', 'danger')
+        return redirect(url_for('dashboard'))
+    
+    return render_template('settings.html')
+
+@app.route('/system_management')
+@login_required
+def system_management():
+    """System management page"""
+    if not current_user.can_access('settings'):
+        flash('Access denied', 'danger')
+        return redirect(url_for('dashboard'))
+    
+    return render_template('system_management.html')
+
 """
 Settings views and routes
 """

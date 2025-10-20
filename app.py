@@ -499,23 +499,11 @@ except Exception as e:
 
 try:
     from modules.settings.settings_views import *
-    print("✅ Settings views imported")
+    print("✅ Settings views imported - Department API routes loaded")
 except Exception as e:
     print(f"⚠️ Settings views import error: {e}")
-    # Add fallback settings route
-    @app.route('/settings')
-    @login_required
-    def settings():
-        """Fallback settings route"""
-        if not current_user.can_access('settings'):
-            flash('Access denied', 'danger')
-            return redirect(url_for('dashboard'))
-
-        return render_template('settings.html',
-                             system_settings={},
-                             business_settings={},
-                             business_form=None,
-                             system_form=None)
+    import traceback
+    traceback.print_exc()
 
 try:
     from modules.checkin.checkin_views import *
