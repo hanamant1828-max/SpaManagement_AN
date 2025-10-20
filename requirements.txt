@@ -99,3 +99,4 @@ requests
 sqlalchemy
 werkzeug
 wtforms
+pillow
