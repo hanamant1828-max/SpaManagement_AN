@@ -1,9 +1,8 @@
-
 """
 Settings database queries
 """
 from app import db
-from models import BusinessSettings, SystemSetting
+from models import SystemSetting, BusinessSettings
 
 def get_system_settings():
     """Get all system settings"""
@@ -32,7 +31,7 @@ def update_setting(key, value):
         else:
             setting = SystemSetting(key=key, value=value)
             db.session.add(setting)
-        
+
         db.session.commit()
         return True
     except Exception as e:
@@ -53,12 +52,12 @@ def get_business_settings():
                 self.tax_rate = 0.0
                 self.currency = 'USD'
                 self.timezone = 'UTC'
-        
+
         settings_obj = SettingsObject()
-        
+
         # Get all settings from database
         all_settings = BusinessSettings.query.all()
-        
+
         # Map settings to object attributes
         for setting in all_settings:
             if setting.setting_key == 'business_name':
@@ -75,7 +74,7 @@ def get_business_settings():
                 settings_obj.currency = setting.setting_value or 'USD'
             elif setting.setting_key == 'timezone':
                 settings_obj.timezone = setting.setting_value or 'UTC'
-        
+
         return settings_obj
     except Exception as e:
         print(f"Error getting business settings: {e}")
@@ -90,10 +89,10 @@ def update_business_settings(settings_data):
             if not setting:
                 setting = BusinessSettings(setting_key=key)
                 db.session.add(setting)
-            
+
             # Update value
             setting.setting_value = str(value) if value is not None else ''
-        
+
         db.session.commit()
         return True
     except Exception as e:

@@ -1703,25 +1703,7 @@ def api_unaki_get_bookings():
         print(f"Error getting Unaki bookings: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
-@app.route('/system_management')
-@login_required
-def system_management():
-    """System management page"""
-    if not current_user.can_access('settings'):
-        flash('Access denied', 'danger')
-        return redirect(url_for('dashboard'))
-    return render_template('system_management.html')
-
-@app.route('/role_management')
-@login_required
-def role_management():
-    """Role management page"""
-    if not current_user.can_access('settings'):
-        flash('Access denied', 'danger')
-        return redirect(url_for('dashboard'))
-    return render_template('settings.html')
-
-# Department Management Routes moved to routes.py to avoid conflicts
+# Department Management Routes are in settings_views.py
 
 @app.route('/')
 def index():
