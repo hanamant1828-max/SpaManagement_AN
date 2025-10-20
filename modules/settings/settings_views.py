@@ -228,6 +228,7 @@ def api_get_gst_configuration():
         # Get GST settings
         gstin_number = SystemSetting.query.filter_by(key='gstin_number').first()
         gst_business_name = SystemSetting.query.filter_by(key='gst_business_name').first()
+        gst_business_address = SystemSetting.query.filter_by(key='gst_business_address').first()
         gst_state = SystemSetting.query.filter_by(key='gst_state').first()
         gst_enabled = SystemSetting.query.filter_by(key='gst_enabled').first()
         default_cgst = SystemSetting.query.filter_by(key='default_cgst').first()
@@ -239,6 +240,7 @@ def api_get_gst_configuration():
             'configuration': {
                 'gstin_number': gstin_number.value if gstin_number else '',
                 'business_name': gst_business_name.value if gst_business_name else '',
+                'business_address': gst_business_address.value if gst_business_address else '',
                 'state': gst_state.value if gst_state else '',
                 'gst_enabled': gst_enabled.value == 'true' if gst_enabled else False,
                 'default_cgst': float(default_cgst.value) if default_cgst else 9.0,
@@ -269,6 +271,7 @@ def api_save_gst_configuration():
         # Get form data
         gstin_number = request.form.get('gstin_number', '').strip()
         gst_business_name = request.form.get('gst_business_name', '').strip()
+        gst_business_address = request.form.get('gst_business_address', '').strip()
         gst_state = request.form.get('gst_state', '').strip()
         gst_enabled = request.form.get('gst_enabled') == 'on'
         default_cgst = request.form.get('default_cgst', '9')
@@ -279,6 +282,7 @@ def api_save_gst_configuration():
         settings_to_update = {
             'gstin_number': gstin_number,
             'gst_business_name': gst_business_name,
+            'gst_business_address': gst_business_address,
             'gst_state': gst_state,
             'gst_enabled': 'true' if gst_enabled else 'false',
             'default_cgst': str(default_cgst),

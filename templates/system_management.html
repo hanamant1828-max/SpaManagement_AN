@@ -235,6 +235,10 @@
                                                         <div id="displayBusinessName" class="fw-bold">-</div>
                                                     </div>
                                                     <div class="mb-2">
+                                                        <small class="text-muted">Business Address:</small>
+                                                        <div id="displayBusinessAddress" class="fw-bold" style="white-space: pre-line;">-</div>
+                                                    </div>
+                                                    <div class="mb-2">
                                                         <small class="text-muted">State:</small>
                                                         <div id="displayState" class="fw-bold">-</div>
                                                     </div>
@@ -302,6 +306,10 @@
                                                 <div class="mb-3">
                                                     <label class="form-label">Business Name (as per GST)</label>
                                                     <input type="text" class="form-control" id="gst_business_name" name="gst_business_name">
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label class="form-label">Business Address</label>
+                                                    <textarea class="form-control" id="gst_business_address" name="gst_business_address" rows="3" placeholder="Enter complete business address"></textarea>
                                                 </div>
                                                 <div class="mb-3">
                                                     <label class="form-label">State</label>
@@ -596,6 +604,7 @@ function loadAndDisplayGstConfig() {
                 // Update display fields
                 document.getElementById('displayGstinNumber').textContent = config.gstin_number || '-';
                 document.getElementById('displayBusinessName').textContent = config.business_name || '-';
+                document.getElementById('displayBusinessAddress').textContent = config.business_address || '-';
                 document.getElementById('displayState').textContent = config.state || '-';
                 
                 // Update GST enabled status
@@ -625,6 +634,7 @@ function loadBusinessGstDetails() {
                 const config = data.configuration;
                 document.getElementById('gstin_number').value = config.gstin_number || '';
                 document.getElementById('gst_business_name').value = config.business_name || '';
+                document.getElementById('gst_business_address').value = config.business_address || '';
                 document.getElementById('gst_state').value = config.state || '';
                 document.getElementById('gst_enabled').checked = config.gst_enabled || false;
                 document.getElementById('default_cgst').value = config.default_cgst || 9;
