@@ -63,10 +63,10 @@
             <div class="row align-items-center">
                 <div class="col-md-8">
                     <h2 class="text-primary mb-1">TAX INVOICE</h2>
-                    <h4 class="mb-2">Your Spa & Wellness Center</h4>
-                    <p class="mb-1">123 Wellness Street, Health City</p>
-                    <p class="mb-1">Phone: +91-9876543210 | Email: info@yourSpa.com</p>
-                    <p class="mb-0"><strong>GSTIN:</strong> 29XXXXX1234Z1Z5</p>
+                    <h4 class="mb-2">{{ gst_config.business_name or 'Your Spa & Wellness Center' }}</h4>
+                    <p class="mb-1">{{ gst_config.business_address or '123 Wellness Street, Health City' }}</p>
+                    <p class="mb-1">Phone: {{ gst_config.business_phone or '+91-9876543210' }} | Email: {{ gst_config.business_email or 'info@yourSpa.com' }}</p>
+                    <p class="mb-0"><strong>GSTIN:</strong> {{ gst_config.gstin_number or '29XXXXX1234Z1Z5' }}</p>
                 </div>
                 <div class="col-md-4 text-end">
                     <!-- Company logo placeholder -->

@@ -2270,12 +2270,17 @@ def print_professional_invoice(invoice_id):
         staffs = User.query.filter(User.id.in_(service_staff_ids)).all()
         staff_names = {staff.id: staff.full_name for staff in staffs}
 
-    # Render HTML template
+    # Fetch GST business information from database
+    from modules.settings.settings_queries import get_gst_settings
+    gst_config = get_gst_settings()
+
+    # Render HTML template with dynamic GST information
     html_string = render_template('professional_invoice_print.html',
                                  invoice=invoice,
                                  invoice_items=invoice_items,
                                  tax_details=tax_details,
                                  staff_names=staff_names,
+                                 gst_config=gst_config,
                                  total_amount_words=number_to_words)
 
     try:
