@@ -1,10 +1,11 @@
 """
 Settings views and routes
 """
-from flask import render_template, request, redirect, url_for, flash
+from flask import render_template, request, redirect, url_for, flash, jsonify
 from flask_login import login_required, current_user
 from app import app, db
-from forms import BusinessSettingsForm, SystemSettingForm
+from models import Settings, Department
+from .settings_queries import get_all_settings, update_setting
 
 # Import settings queries with error handling
 try:
@@ -32,18 +33,27 @@ def settings():
     if not current_user.can_access('settings'):
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
-    
+
     system_settings = get_system_settings()
     business_settings = get_business_settings()
-    
+
     business_form = BusinessSettingsForm()
     system_form = SystemSettingForm()
-    
+
+    # Fetch departments for table view
+    try:
+        departments = Department.query.filter_by(is_active=True).all()
+    except Exception as e:
+        flash(f"Error fetching departments: {e}", "danger")
+        departments = []
+
     return render_template('settings.html',
                          system_settings=system_settings,
                          business_settings=business_settings,
                          business_form=business_form,
-                         system_form=system_form)
+                         system_form=system_form,
+                         departments=departments)
+
 
 @app.route('/settings/business', methods=['POST'])
 @login_required
@@ -51,7 +61,7 @@ def update_business_settings_route():
     if not current_user.can_access('settings'):
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
-    
+
     form = BusinessSettingsForm()
     if form.validate_on_submit():
         settings_data = {
@@ -63,12 +73,12 @@ def update_business_settings_route():
             'currency': form.currency.data,
             'timezone': form.timezone.data
         }
-        
+
         update_business_settings(settings_data)
         flash('Business settings updated successfully!', 'success')
     else:
         flash('Error updating business settings. Please check your input.', 'danger')
-    
+
     return redirect(url_for('settings'))
 
 @app.route('/settings/system', methods=['POST'])
@@ -77,14 +87,152 @@ def update_system_setting_route():
     if not current_user.can_access('settings'):
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
-    
+
     setting_key = request.form.get('key')
     setting_value = request.form.get('value')
-    
+
     if setting_key and setting_value is not None:
         update_setting(setting_key, setting_value)
         flash('System setting updated successfully!', 'success')
     else:
         flash('Invalid setting data', 'danger')
-    
+
     return redirect(url_for('settings'))
+
+@app.route('/settings/update', methods=['POST'])
+@login_required
+def update_settings():
+    if not current_user.has_permission('settings_edit'):
+        flash('You do not have permission to update settings', 'danger')
+        return redirect(url_for('settings'))
+
+    try:
+        for key in request.form.keys():
+            if key != 'csrf_token':
+                value = request.form.get(key)
+                update_setting(key, value)
+
+        flash('Settings updated successfully', 'success')
+    except Exception as e:
+        flash(f'Error updating settings: {str(e)}', 'danger')
+
+    return redirect(url_for('settings'))
+
+# Department API endpoints
+@app.route('/api/departments', methods=['GET'])
+@login_required
+def get_departments_api():
+    """Get all departments"""
+    try:
+        departments = Department.query.filter_by(is_active=True).all()
+        return jsonify({
+            'success': True,
+            'departments': [{
+                'id': dept.id,
+                'name': dept.name,
+                'display_name': dept.display_name,
+                'description': dept.description,
+                'is_active': dept.is_active
+            } for dept in departments]
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+@app.route('/api/departments/<int:department_id>', methods=['GET'])
+@login_required
+def get_department_api(department_id):
+    """Get single department"""
+    try:
+        dept = Department.query.get_or_404(department_id)
+        return jsonify({
+            'id': dept.id,
+            'name': dept.name,
+            'display_name': dept.display_name,
+            'description': dept.description,
+            'is_active': dept.is_active
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 404
+
+@app.route('/api/departments', methods=['POST'])
+@login_required
+def create_department_api():
+    """Create new department"""
+    try:
+        name = request.form.get('name')
+        display_name = request.form.get('display_name')
+        description = request.form.get('description', '')
+        is_active = request.form.get('is_active') == 'on'
+
+        department = Department(
+            name=name,
+            display_name=display_name,
+            description=description,
+            is_active=is_active
+        )
+
+        db.session.add(department)
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'message': 'Department created successfully',
+            'department': {
+                'id': department.id,
+                'name': department.name,
+                'display_name': department.display_name
+            }
+        })
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+@app.route('/api/departments/<int:department_id>', methods=['PUT'])
+@login_required
+def update_department_api(department_id):
+    """Update department"""
+    try:
+        dept = Department.query.get_or_404(department_id)
+
+        dept.name = request.form.get('name', dept.name)
+        dept.display_name = request.form.get('display_name', dept.display_name)
+        dept.description = request.form.get('description', dept.description)
+        dept.is_active = request.form.get('is_active') == 'on'
+
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'message': 'Department updated successfully'
+        })
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+@app.route('/api/departments/<int:department_id>', methods=['DELETE'])
+@login_required
+def delete_department_api(department_id):
+    """Delete department"""
+    try:
+        dept = Department.query.get_or_404(department_id)
+
+        # Check if department has staff assigned
+        from models import User
+        staff_count = User.query.filter_by(department_id=department_id).count()
+
+        if staff_count > 0:
+            return jsonify({
+                'success': False,
+                'message': f'Cannot delete department with {staff_count} staff members assigned'
+            }), 400
+
+        db.session.delete(dept)
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'message': 'Department deleted successfully'
+        })
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': str(e)}), 500
