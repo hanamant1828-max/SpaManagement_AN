@@ -227,24 +227,24 @@ def api_get_gst_configuration():
         from models import SystemSetting
         
         # Get GST settings
-        gstin_number = SystemSetting.query.filter_by(setting_key='gstin_number').first()
-        gst_business_name = SystemSetting.query.filter_by(setting_key='gst_business_name').first()
-        gst_state = SystemSetting.query.filter_by(setting_key='gst_state').first()
-        gst_enabled = SystemSetting.query.filter_by(setting_key='gst_enabled').first()
-        default_cgst = SystemSetting.query.filter_by(setting_key='default_cgst').first()
-        default_sgst = SystemSetting.query.filter_by(setting_key='default_sgst').first()
-        default_igst = SystemSetting.query.filter_by(setting_key='default_igst').first()
+        gstin_number = SystemSetting.query.filter_by(key='gstin_number').first()
+        gst_business_name = SystemSetting.query.filter_by(key='gst_business_name').first()
+        gst_state = SystemSetting.query.filter_by(key='gst_state').first()
+        gst_enabled = SystemSetting.query.filter_by(key='gst_enabled').first()
+        default_cgst = SystemSetting.query.filter_by(key='default_cgst').first()
+        default_sgst = SystemSetting.query.filter_by(key='default_sgst').first()
+        default_igst = SystemSetting.query.filter_by(key='default_igst').first()
         
         return jsonify({
             'success': True,
             'configuration': {
-                'gstin_number': gstin_number.setting_value if gstin_number else '',
-                'business_name': gst_business_name.setting_value if gst_business_name else '',
-                'state': gst_state.setting_value if gst_state else '',
-                'gst_enabled': gst_enabled.setting_value == 'true' if gst_enabled else False,
-                'default_cgst': float(default_cgst.setting_value) if default_cgst else 9.0,
-                'default_sgst': float(default_sgst.setting_value) if default_sgst else 9.0,
-                'default_igst': float(default_igst.setting_value) if default_igst else 18.0
+                'gstin_number': gstin_number.value if gstin_number else '',
+                'business_name': gst_business_name.value if gst_business_name else '',
+                'state': gst_state.value if gst_state else '',
+                'gst_enabled': gst_enabled.value == 'true' if gst_enabled else False,
+                'default_cgst': float(default_cgst.value) if default_cgst else 9.0,
+                'default_sgst': float(default_sgst.value) if default_sgst else 9.0,
+                'default_igst': float(default_igst.value) if default_igst else 18.0
             }
         })
     except Exception as e:
@@ -287,12 +287,12 @@ def api_save_gst_configuration():
             'default_igst': str(default_igst)
         }
         
-        for key, value in settings_to_update.items():
-            setting = SystemSetting.query.filter_by(setting_key=key).first()
+        for setting_key, setting_value in settings_to_update.items():
+            setting = SystemSetting.query.filter_by(key=setting_key).first()
             if setting:
-                setting.setting_value = value
+                setting.value = setting_value
             else:
-                setting = SystemSetting(setting_key=key, setting_value=value)
+                setting = SystemSetting(key=setting_key, value=setting_value)
                 db.session.add(setting)
         
         db.session.commit()
