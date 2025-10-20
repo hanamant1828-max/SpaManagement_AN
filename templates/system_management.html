@@ -239,6 +239,14 @@
                                                         <div id="displayBusinessAddress" class="fw-bold" style="white-space: pre-line;">-</div>
                                                     </div>
                                                     <div class="mb-2">
+                                                        <small class="text-muted">Phone Number:</small>
+                                                        <div id="displayPhone" class="fw-bold">-</div>
+                                                    </div>
+                                                    <div class="mb-2">
+                                                        <small class="text-muted">Email:</small>
+                                                        <div id="displayEmail" class="fw-bold">-</div>
+                                                    </div>
+                                                    <div class="mb-2">
                                                         <small class="text-muted">State:</small>
                                                         <div id="displayState" class="fw-bold">-</div>
                                                     </div>
@@ -310,6 +318,14 @@
                                                 <div class="mb-3">
                                                     <label class="form-label">Business Address</label>
                                                     <textarea class="form-control" id="gst_business_address" name="gst_business_address" rows="3" placeholder="Enter complete business address"></textarea>
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label class="form-label">Phone Number</label>
+                                                    <input type="text" class="form-control" id="gst_phone" name="gst_phone" placeholder="+91-9876543210">
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label class="form-label">Email</label>
+                                                    <input type="email" class="form-control" id="gst_email" name="gst_email" placeholder="info@yourspa.com">
                                                 </div>
                                                 <div class="mb-3">
                                                     <label class="form-label">State</label>
@@ -605,6 +621,8 @@ function loadAndDisplayGstConfig() {
                 document.getElementById('displayGstinNumber').textContent = config.gstin_number || '-';
                 document.getElementById('displayBusinessName').textContent = config.business_name || '-';
                 document.getElementById('displayBusinessAddress').textContent = config.business_address || '-';
+                document.getElementById('displayPhone').textContent = config.phone || '-';
+                document.getElementById('displayEmail').textContent = config.email || '-';
                 document.getElementById('displayState').textContent = config.state || '-';
                 
                 // Update GST enabled status
@@ -635,6 +653,8 @@ function loadBusinessGstDetails() {
                 document.getElementById('gstin_number').value = config.gstin_number || '';
                 document.getElementById('gst_business_name').value = config.business_name || '';
                 document.getElementById('gst_business_address').value = config.business_address || '';
+                document.getElementById('gst_phone').value = config.phone || '';
+                document.getElementById('gst_email').value = config.email || '';
                 document.getElementById('gst_state').value = config.state || '';
                 document.getElementById('gst_enabled').checked = config.gst_enabled || false;
                 document.getElementById('default_cgst').value = config.default_cgst || 9;

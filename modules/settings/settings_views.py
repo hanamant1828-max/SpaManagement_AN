@@ -235,12 +235,18 @@ def api_get_gst_configuration():
         default_sgst = SystemSetting.query.filter_by(key='default_sgst').first()
         default_igst = SystemSetting.query.filter_by(key='default_igst').first()
 
+        # Get phone and email settings
+        gst_phone = SystemSetting.query.filter_by(key='gst_phone').first()
+        gst_email = SystemSetting.query.filter_by(key='gst_email').first()
+
         return jsonify({
             'success': True,
             'configuration': {
                 'gstin_number': gstin_number.value if gstin_number else '',
                 'business_name': gst_business_name.value if gst_business_name else '',
                 'business_address': gst_business_address.value if gst_business_address else '',
+                'phone': gst_phone.value if gst_phone else '',
+                'email': gst_email.value if gst_email else '',
                 'state': gst_state.value if gst_state else '',
                 'gst_enabled': gst_enabled.value == 'true' if gst_enabled else False,
                 'default_cgst': float(default_cgst.value) if default_cgst else 9.0,
@@ -272,6 +278,8 @@ def api_save_gst_configuration():
         gstin_number = request.form.get('gstin_number', '').strip()
         gst_business_name = request.form.get('gst_business_name', '').strip()
         gst_business_address = request.form.get('gst_business_address', '').strip()
+        gst_phone = request.form.get('gst_phone', '').strip()
+        gst_email = request.form.get('gst_email', '').strip()
         gst_state = request.form.get('gst_state', '').strip()
         gst_enabled = request.form.get('gst_enabled') == 'on'
         default_cgst = request.form.get('default_cgst', '9')
@@ -283,6 +291,8 @@ def api_save_gst_configuration():
             'gstin_number': gstin_number,
             'gst_business_name': gst_business_name,
             'gst_business_address': gst_business_address,
+            'gst_phone': gst_phone,
+            'gst_email': gst_email,
             'gst_state': gst_state,
             'gst_enabled': 'true' if gst_enabled else 'false',
             'default_cgst': str(default_cgst),
