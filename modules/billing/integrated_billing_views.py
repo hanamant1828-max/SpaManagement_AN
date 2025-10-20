@@ -1218,10 +1218,14 @@ def create_professional_invoice():
 
         gross_subtotal = services_subtotal + inventory_subtotal
 
-        # Get tax rates
-        cgst_rate = float(request.form.get('cgst_rate', 9)) / 100
-        sgst_rate = float(request.form.get('sgst_rate', 9)) / 100
-        igst_rate = float(request.form.get('igst_rate', 0)) / 100
+        # Get tax rates from database settings (dynamic GST configuration)
+        from modules.settings.settings_queries import get_gst_settings
+        gst_config = get_gst_settings()
+        
+        # Use form values if provided, otherwise use database defaults
+        cgst_rate = float(request.form.get('cgst_rate', gst_config['cgst_rate'])) / 100
+        sgst_rate = float(request.form.get('sgst_rate', gst_config['sgst_rate'])) / 100
+        igst_rate = float(request.form.get('igst_rate', gst_config['igst_rate'])) / 100
         is_interstate = request.form.get('is_interstate') == 'on'
         total_gst_rate = igst_rate if is_interstate else (cgst_rate + sgst_rate)
 
