@@ -99,3 +99,36 @@ def update_business_settings(settings_data):
         print(f"Error updating business settings: {e}")
         db.session.rollback()
         return False
+
+def get_gst_settings():
+    """Get GST configuration settings from database"""
+    try:
+        # Fetch all GST-related settings
+        gst_settings = {
+            'enabled': get_setting_by_key('gst_enabled') == 'True',
+            'gstin_number': get_setting_by_key('gstin_number') or '',
+            'business_name': get_setting_by_key('gst_business_name') or '',
+            'business_address': get_setting_by_key('gst_business_address') or '',
+            'business_phone': get_setting_by_key('gst_business_phone') or '',
+            'business_email': get_setting_by_key('gst_business_email') or '',
+            'state': get_setting_by_key('gst_state') or '',
+            'cgst_rate': float(get_setting_by_key('default_cgst') or 9),
+            'sgst_rate': float(get_setting_by_key('default_sgst') or 9),
+            'igst_rate': float(get_setting_by_key('default_igst') or 18),
+        }
+        return gst_settings
+    except Exception as e:
+        print(f"Error getting GST settings: {e}")
+        # Return default values if there's an error
+        return {
+            'enabled': False,
+            'gstin_number': '',
+            'business_name': '',
+            'business_address': '',
+            'business_phone': '',
+            'business_email': '',
+            'state': '',
+            'cgst_rate': 9.0,
+            'sgst_rate': 9.0,
+            'igst_rate': 18.0,
+        }
