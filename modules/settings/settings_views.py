@@ -323,21 +323,28 @@ def api_get_gst_rates():
 
         rates = GSTRate.query.order_by(GSTRate.service_category).all()
 
-        app.logger.info(f"Found {len(rates)} GST rates in database")
+        print(f"📊 Found {len(rates)} GST rates in database")
 
         gst_rates_list = []
         for rate in rates:
-            gst_data = {
-                'id': rate.id,
-                'service_category': rate.service_category or 'Uncategorized',
-                'hsn_sac_code': rate.hsn_sac_code or '',
-                'cgst_rate': float(rate.cgst_rate) if rate.cgst_rate else 0.0,
-                'sgst_rate': float(rate.sgst_rate) if rate.sgst_rate else 0.0,
-                'igst_rate': float(rate.igst_rate) if rate.igst_rate else 0.0,
-                'is_active': getattr(rate, 'is_active', True),
-                'created_at': rate.created_at.isoformat() if hasattr(rate, 'created_at') and rate.created_at else None
-            }
-            gst_rates_list.append(gst_data)
+            try:
+                gst_data = {
+                    'id': rate.id,
+                    'service_category': rate.service_category or 'Uncategorized',
+                    'hsn_sac_code': rate.hsn_sac_code or '',
+                    'cgst_rate': float(rate.cgst_rate) if rate.cgst_rate is not None else 9.0,
+                    'sgst_rate': float(rate.sgst_rate) if rate.sgst_rate is not None else 9.0,
+                    'igst_rate': float(rate.igst_rate) if rate.igst_rate is not None else 18.0,
+                    'is_active': getattr(rate, 'is_active', True),
+                    'created_at': rate.created_at.isoformat() if hasattr(rate, 'created_at') and rate.created_at else None
+                }
+                gst_rates_list.append(gst_data)
+                print(f"  ✓ {gst_data['service_category']}: CGST {gst_data['cgst_rate']}%, SGST {gst_data['sgst_rate']}%, IGST {gst_data['igst_rate']}%")
+            except Exception as rate_error:
+                print(f"  ✗ Error processing GST rate {rate.id}: {rate_error}")
+                continue
+
+        print(f"📤 Returning {len(gst_rates_list)} GST rates to frontend")
 
         return jsonify({
             'success': True,
@@ -345,12 +352,13 @@ def api_get_gst_rates():
             'total': len(gst_rates_list)
         })
     except Exception as e:
-        app.logger.error(f"Error loading GST rates: {str(e)}")
+        print(f"❌ Error loading GST rates: {str(e)}")
         import traceback
         traceback.print_exc()
         return jsonify({
             'success': False,
-            'message': str(e),
+            'error': str(e),
+            'message': 'Failed to load GST rates',
             'gst_rates': [],
             'total': 0
         }), 500

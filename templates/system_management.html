@@ -208,9 +208,14 @@
                                     <h5 class="mb-0">
                                         <i class="fas fa-file-invoice-dollar me-2"></i>GST Configuration
                                     </h5>
-                                    <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#gstConfigModal">
-                                        <i class="fas fa-cog me-1"></i>Configure GST
-                                    </button>
+                                    <div>
+                                        <button class="btn btn-success btn-sm me-2" data-bs-toggle="modal" data-bs-target="#addGstModal">
+                                            <i class="fas fa-plus me-1"></i>Add GST Rate
+                                        </button>
+                                        <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#gstConfigModal">
+                                            <i class="fas fa-cog me-1"></i>Configure GST
+                                        </button>
+                                    </div>
                                 </div>
                                 <div class="card-body">
 
@@ -221,23 +226,25 @@
                                         <div class="card-body">
                                             <div id="gstRatesContainer">
                                                 <div class="table-responsive">
-                                                    <table class="table table-hover">
-                                                        <thead>
+                                                    <table class="table table-hover table-striped">
+                                                        <thead class="table-dark">
                                                             <tr>
                                                                 <th>Service Category</th>
                                                                 <th>HSN/SAC Code</th>
-                                                                <th>CGST (%)</th>
-                                                                <th>SGST (%)</th>
-                                                                <th>IGST (%)</th>
-                                                                <th>Total GST (%)</th>
-                                                                <th>Actions</th>
+                                                                <th class="text-end">CGST (%)</th>
+                                                                <th class="text-end">SGST (%)</th>
+                                                                <th class="text-end">IGST (%)</th>
+                                                                <th class="text-end">Total GST (%)</th>
+                                                                <th class="text-center">Actions</th>
                                                             </tr>
                                                         </thead>
                                                         <tbody id="gstRatesTableBody">
                                                             <tr>
                                                                 <td colspan="7" class="text-center text-muted py-3">
-                                                                    <i class="fas fa-percentage fa-2x mb-2"></i>
-                                                                    <p>No GST rates configured yet.</p>
+                                                                    <div class="spinner-border spinner-border-sm me-2" role="status">
+                                                                        <span class="visually-hidden">Loading...</span>
+                                                                    </div>
+                                                                    <span>Loading GST rates...</span>
                                                                 </td>
                                                             </tr>
                                                         </tbody>
@@ -699,22 +706,47 @@ document.addEventListener('DOMContentLoaded', function() {
     const gstTab = document.getElementById('gst-tab');
     if (gstTab) {
         gstTab.addEventListener('shown.bs.tab', function() {
+            console.log('GST tab shown - loading data');
             loadGstRates();
             loadBusinessGstDetails();
         });
+    }
+    
+    // Check if GST tab is active on page load
+    const activeTab = document.querySelector('#systemManagementTabs .nav-link.active');
+    if (activeTab && activeTab.id === 'gst-tab') {
+        console.log('GST tab is active on page load - loading data');
+        loadGstRates();
+        loadBusinessGstDetails();
     }
 });
 
 function loadGstRates() {
     console.log('Loading GST rates...');
+    const tbody = document.getElementById('gstRatesTableBody');
+    
+    // Show loading state
+    tbody.innerHTML = `
+        <tr>
+            <td colspan="7" class="text-center text-muted py-3">
+                <div class="spinner-border spinner-border-sm me-2" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <span>Loading GST rates...</span>
+            </td>
+        </tr>
+    `;
+    
     fetch('/api/gst/rates')
         .then(response => {
             console.log('GST rates API response status:', response.status);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
             return response.json();
         })
         .then(data => {
             console.log('GST rates data received:', data);
-            const tbody = document.getElementById('gstRatesTableBody');
 
             if (data.success && data.gst_rates && data.gst_rates.length > 0) {
                 console.log('Displaying', data.gst_rates.length, 'GST rates');
@@ -740,13 +772,13 @@ function loadGstRates() {
                     `;
                 }).join('');
             } else {
-                console.log('No GST rates found or error occurred');
+                console.log('No GST rates found');
                 tbody.innerHTML = `
                     <tr>
-                        <td colspan="7" class="text-center text-muted py-3">
-                            <i class="fas fa-percentage fa-2x mb-2"></i>
-                            <p class="mb-0">No GST rates configured yet.</p>
-                            <small class="text-muted">Click "Configure GST" to add GST rates for your services.</small>
+                        <td colspan="7" class="text-center text-muted py-4">
+                            <i class="fas fa-percentage fa-3x mb-3 text-secondary"></i>
+                            <p class="mb-2 fw-bold">No GST rates configured yet.</p>
+                            <p class="mb-0 small text-muted">Click "Add GST Rate" to configure GST rates for your services.</p>
                         </td>
                     </tr>
                 `;
@@ -754,13 +786,16 @@ function loadGstRates() {
         })
         .catch(error => {
             console.error('Error loading GST rates:', error);
-            const tbody = document.getElementById('gstRatesTableBody');
             tbody.innerHTML = `
                 <tr>
-                    <td colspan="7" class="text-center text-danger py-3">
-                        <i class="fas fa-exclamation-triangle fa-2x mb-2"></i>
-                        <p class="mb-0">Error loading GST rates</p>
-                        <small>${error.message}</small>
+                    <td colspan="7" class="text-center text-danger py-4">
+                        <i class="fas fa-exclamation-triangle fa-3x mb-3"></i>
+                        <p class="mb-2 fw-bold">Error loading GST rates</p>
+                        <small class="text-muted">${error.message}</small>
+                        <br>
+                        <button class="btn btn-sm btn-outline-primary mt-2" onclick="loadGstRates()">
+                            <i class="fas fa-sync-alt me-1"></i>Retry
+                        </button>
                     </td>
                 </tr>
             `;
