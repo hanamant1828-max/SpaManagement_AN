@@ -1086,11 +1086,26 @@ let selectedServices = [];
 let selectedProducts = [];
 let taxRate = 9; // Default tax rate
 
+// Global GST Settings (loaded dynamically from database)
+let GSTSettings = {
+    cgst_rate: 9,
+    sgst_rate: 9,
+    igst_rate: 18,
+    gstin_number: '',
+    business_name: '',
+    business_address: '',
+    business_phone: '',
+    business_email: '',
+    state: '',
+    enabled: false
+};
+
 // ==========================================
 // INITIALIZATION
 // ==========================================
 // Initialize application when DOM is loaded
 document.addEventListener('DOMContentLoaded', function() {
+    loadGSTSettings(); // Load GST settings first
     initializeBillingSystem();
     initializeSearchableDropdowns();
     updateCalculations(); // Initial calculation to set display to 0.00
@@ -1125,6 +1140,47 @@ function initializeSearchableDropdowns() {
     });
 
     console.log('✅ Standard dropdowns initialized');
+}
+
+// ==========================================
+// GST SETTINGS LOADER
+// ==========================================
+async function loadGSTSettings() {
+    console.log('🔄 Loading GST settings from database...');
+    try {
+        const response = await fetch('/api/gst/configuration');
+        if (!response.ok) {
+            throw new Error('Failed to load GST settings');
+        }
+        const data = await response.json();
+        
+        if (data.success && data.configuration) {
+            GSTSettings = {
+                cgst_rate: data.configuration.default_cgst || 9,
+                sgst_rate: data.configuration.default_sgst || 9,
+                igst_rate: data.configuration.default_igst || 18,
+                gstin_number: data.configuration.gstin_number || '',
+                business_name: data.configuration.business_name || '',
+                business_address: data.configuration.address || '',
+                business_phone: data.configuration.phone || '',
+                business_email: data.configuration.email || '',
+                state: data.configuration.state || '',
+                enabled: data.configuration.gst_enabled || false
+            };
+            
+            console.log('✅ GST Settings loaded:', GSTSettings);
+            
+            // Update display labels with dynamic percentages
+            document.querySelector('.summary-row:has(#cgstAmount) .summary-label').textContent = `CGST (${GSTSettings.cgst_rate}%):`;
+            document.querySelector('.summary-row:has(#sgstAmount) .summary-label').textContent = `SGST (${GSTSettings.sgst_rate}%):`;
+            
+            // Trigger recalculation with new rates
+            updateCalculations();
+        }
+    } catch (error) {
+        console.error('❌ Error loading GST settings:', error);
+        // Use default values already set in GSTSettings
+    }
 }
 
 function initializeBillingSystem() {
@@ -2293,7 +2349,8 @@ function resetCustomerPackages() {
         const taxableAmountAfterTax = Math.max(0, taxableAmountBeforeDiscount - discountAmount);
 
         // --- Calculate GST (Services INCLUSIVE, Products NO GST - MRP is final) ---
-        const gstRate = 0.18; // 18% total (9% CGST + 9% SGST)
+        // Use dynamic GST rates from database configuration
+        const gstRate = (GSTSettings.cgst_rate + GSTSettings.sgst_rate) / 100; // Total GST rate
 
         // For services: GST is INCLUSIVE (extract from price)
         const serviceBase = servicesSubtotal / (1 + gstRate);
@@ -2312,9 +2369,10 @@ function resetCustomerPackages() {
             totalGst = totalGst * discountFactor;
         }
 
-        // Split into CGST and SGST (equal split)
-        const cgstAmount = totalGst / 2;
-        const sgstAmount = totalGst / 2;
+        // Split into CGST and SGST based on configured rates
+        const totalGstRate = GSTSettings.cgst_rate + GSTSettings.sgst_rate;
+        const cgstAmount = totalGstRate > 0 ? totalGst * (GSTSettings.cgst_rate / totalGstRate) : 0;
+        const sgstAmount = totalGstRate > 0 ? totalGst * (GSTSettings.sgst_rate / totalGstRate) : 0;
 
         // --- Additional Charges & Tips ---
         const additionalCharges = parseFloat(document.querySelector('input[name="additional_charges"]')?.value) || 0;
