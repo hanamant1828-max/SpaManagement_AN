@@ -2374,3 +2374,121 @@ def unaki_delete_appointment(appointment_id):
             'success': False,
             'error': f'Failed to delete appointment: {str(e)}'
         }), 500
+
+
+# Departments Management API
+@app.route('/api/departments', methods=['GET'])
+@login_required
+def api_get_departments():
+    """Get all departments"""
+    try:
+        from models import Department
+        departments = Department.query.filter_by(is_active=True).order_by(Department.name).all()
+        return jsonify({
+            'success': True,
+            'departments': [
+                {
+                    'id': dept.id,
+                    'name': dept.name,
+                    'display_name': dept.display_name,
+                    'description': dept.description or '',
+                    'is_active': dept.is_active,
+                    'created_at': dept.created_at.isoformat() if hasattr(dept, 'created_at') and dept.created_at else None
+                } for dept in departments
+            ]
+        })
+    except Exception as e:
+        print(f"Error loading departments: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'departments': []
+        }), 500
+
+@app.route('/api/departments', methods=['POST'])
+@login_required
+def api_create_department():
+    """Create new department"""
+    try:
+        from models import Department
+        
+        data = request.get_json()
+        department = Department(
+            name=data.get('name'),
+            display_name=data.get('display_name'),
+            description=data.get('description', ''),
+            is_active=True
+        )
+        
+        db.session.add(department)
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Department created successfully',
+            'department': {
+                'id': department.id,
+                'name': department.name,
+                'display_name': department.display_name,
+                'description': department.description
+            }
+        })
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error creating department: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@app.route('/api/departments/<int:dept_id>', methods=['PUT'])
+@login_required
+def api_update_department(dept_id):
+    """Update department"""
+    try:
+        from models import Department
+        
+        department = Department.query.get_or_404(dept_id)
+        data = request.get_json()
+        
+        department.name = data.get('name', department.name)
+        department.display_name = data.get('display_name', department.display_name)
+        department.description = data.get('description', department.description)
+        department.is_active = data.get('is_active', department.is_active)
+        
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Department updated successfully'
+        })
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error updating department: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@app.route('/api/departments/<int:dept_id>', methods=['DELETE'])
+@login_required
+def api_delete_department(dept_id):
+    """Delete department"""
+    try:
+        from models import Department
+        
+        department = Department.query.get_or_404(dept_id)
+        db.session.delete(department)
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Department deleted successfully'
+        })
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error deleting department: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500

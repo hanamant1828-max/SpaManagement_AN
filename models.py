@@ -1838,3 +1838,19 @@ class Receipt(db.Model):
 
 # Import Hanaman Inventory Models after all other models are defined
 # Hanamantinventory models import removed to fix startup issues
+
+
+class Department(db.Model):
+    """Department model for organizing staff and services"""
+    __tablename__ = 'departments'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), unique=True, nullable=False)
+    display_name = db.Column(db.String(200), nullable=False)
+    description = db.Column(db.Text)
+    is_active = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    def __repr__(self):
+        return f'<Department {self.name}>'
