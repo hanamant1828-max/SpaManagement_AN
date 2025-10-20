@@ -601,12 +601,12 @@ document.addEventListener('DOMContentLoaded', function() {
         unifiedGstForm.addEventListener('submit', function(e) {
             e.preventDefault();
             const formData = new FormData(this);
-            
+
             const submitBtn = this.querySelector('button[type="submit"]');
             const originalText = submitBtn.innerHTML;
             submitBtn.disabled = true;
             submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Saving...';
-            
+
             fetch('/api/gst/configuration', {
                 method: 'POST',
                 body: formData
@@ -706,23 +706,29 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function loadGstRates() {
+    console.log('Loading GST rates...');
     fetch('/api/gst/rates')
-        .then(response => response.json())
+        .then(response => {
+            console.log('GST rates API response status:', response.status);
+            return response.json();
+        })
         .then(data => {
+            console.log('GST rates data received:', data);
             const tbody = document.getElementById('gstRatesTableBody');
-            
+
             if (data.success && data.gst_rates && data.gst_rates.length > 0) {
+                console.log('Displaying', data.gst_rates.length, 'GST rates');
                 tbody.innerHTML = data.gst_rates.map(rate => {
                     const totalGst = parseFloat(rate.cgst_rate || 0) + parseFloat(rate.sgst_rate || 0);
                     return `
                         <tr>
-                            <td><strong>${rate.service_category}</strong></td>
+                            <td><strong>${rate.service_category || 'N/A'}</strong></td>
                             <td>${rate.hsn_sac_code || '-'}</td>
-                            <td>${parseFloat(rate.cgst_rate || 0).toFixed(2)}%</td>
-                            <td>${parseFloat(rate.sgst_rate || 0).toFixed(2)}%</td>
-                            <td>${parseFloat(rate.igst_rate || 0).toFixed(2)}%</td>
-                            <td><strong>${totalGst.toFixed(2)}%</strong></td>
-                            <td>
+                            <td class="text-end">${parseFloat(rate.cgst_rate || 0).toFixed(2)}%</td>
+                            <td class="text-end">${parseFloat(rate.sgst_rate || 0).toFixed(2)}%</td>
+                            <td class="text-end">${parseFloat(rate.igst_rate || 0).toFixed(2)}%</td>
+                            <td class="text-end"><strong>${totalGst.toFixed(2)}%</strong></td>
+                            <td class="text-center">
                                 <button class="btn btn-sm btn-outline-primary me-1" onclick="editGstRate(${rate.id})" title="Edit">
                                     <i class="fas fa-edit"></i>
                                 </button>
@@ -734,11 +740,13 @@ function loadGstRates() {
                     `;
                 }).join('');
             } else {
+                console.log('No GST rates found or error occurred');
                 tbody.innerHTML = `
                     <tr>
                         <td colspan="7" class="text-center text-muted py-3">
                             <i class="fas fa-percentage fa-2x mb-2"></i>
-                            <p>No GST rates configured yet.</p>
+                            <p class="mb-0">No GST rates configured yet.</p>
+                            <small class="text-muted">Click "Configure GST" to add GST rates for your services.</small>
                         </td>
                     </tr>
                 `;
@@ -746,11 +754,13 @@ function loadGstRates() {
         })
         .catch(error => {
             console.error('Error loading GST rates:', error);
-            document.getElementById('gstRatesTableBody').innerHTML = `
+            const tbody = document.getElementById('gstRatesTableBody');
+            tbody.innerHTML = `
                 <tr>
                     <td colspan="7" class="text-center text-danger py-3">
                         <i class="fas fa-exclamation-triangle fa-2x mb-2"></i>
-                        <p>Error loading GST rates</p>
+                        <p class="mb-0">Error loading GST rates</p>
+                        <small>${error.message}</small>
                     </td>
                 </tr>
             `;
@@ -788,7 +798,7 @@ function editGstRate(gstId) {
                 document.getElementById('editCgstRate').value = data.gst_rate.cgst_rate;
                 document.getElementById('editSgstRate').value = data.gst_rate.sgst_rate;
                 document.getElementById('editIgstRate').value = data.gst_rate.igst_rate;
-                
+
                 new bootstrap.Modal(document.getElementById('editGstModal')).show();
             }
         })

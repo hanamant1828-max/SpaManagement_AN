@@ -1,4 +1,3 @@
-
 """
 Settings and Department Management Views
 """
@@ -43,7 +42,7 @@ def api_get_department(department_id):
                 'success': False,
                 'error': 'Department not found'
             }), 404
-        
+
         return jsonify({
             'id': department.id,
             'name': department.name,
@@ -69,20 +68,20 @@ def api_create_department():
                 'success': False,
                 'message': 'Access denied'
             }), 403
-        
+
         # Get form data
         name = request.form.get('name', '').strip()
         display_name = request.form.get('display_name', '').strip()
         description = request.form.get('description', '').strip()
         is_active = request.form.get('is_active') == 'on'
-        
+
         # Validate required fields
         if not name or not display_name:
             return jsonify({
                 'success': False,
                 'message': 'Name and display name are required'
             }), 400
-        
+
         # Check for duplicate name
         existing = Department.query.filter_by(name=name).first()
         if existing:
@@ -90,7 +89,7 @@ def api_create_department():
                 'success': False,
                 'message': 'Department with this name already exists'
             }), 400
-        
+
         # Create department
         department = Department(
             name=name,
@@ -98,10 +97,10 @@ def api_create_department():
             description=description,
             is_active=is_active
         )
-        
+
         db.session.add(department)
         db.session.commit()
-        
+
         return jsonify({
             'success': True,
             'message': 'Department created successfully',
@@ -125,27 +124,27 @@ def api_update_department(department_id):
                 'success': False,
                 'message': 'Access denied'
             }), 403
-        
+
         department = Department.query.get(department_id)
         if not department:
             return jsonify({
                 'success': False,
                 'message': 'Department not found'
             }), 404
-        
+
         # Get form data
         name = request.form.get('name', '').strip()
         display_name = request.form.get('display_name', '').strip()
         description = request.form.get('description', '').strip()
         is_active = request.form.get('is_active') == 'on'
-        
+
         # Validate required fields
         if not name or not display_name:
             return jsonify({
                 'success': False,
                 'message': 'Name and display name are required'
             }), 400
-        
+
         # Check for duplicate name (excluding current department)
         existing = Department.query.filter(
             Department.name == name,
@@ -156,15 +155,15 @@ def api_update_department(department_id):
                 'success': False,
                 'message': 'Department with this name already exists'
             }), 400
-        
+
         # Update department
         department.name = name
         department.display_name = display_name
         department.description = description
         department.is_active = is_active
-        
+
         db.session.commit()
-        
+
         return jsonify({
             'success': True,
             'message': 'Department updated successfully'
@@ -187,14 +186,14 @@ def api_delete_department(department_id):
                 'success': False,
                 'message': 'Access denied'
             }), 403
-        
+
         department = Department.query.get(department_id)
         if not department:
             return jsonify({
                 'success': False,
                 'message': 'Department not found'
             }), 404
-        
+
         # Check if department has staff members
         staff_count = User.query.filter_by(department_id=department_id).count()
         if staff_count > 0:
@@ -202,10 +201,10 @@ def api_delete_department(department_id):
                 'success': False,
                 'message': f'Cannot delete department with {staff_count} staff member(s)'
             }), 400
-        
+
         db.session.delete(department)
         db.session.commit()
-        
+
         return jsonify({
             'success': True,
             'message': 'Department deleted successfully'
@@ -225,7 +224,7 @@ def api_get_gst_configuration():
     """Get GST configuration"""
     try:
         from models import SystemSetting
-        
+
         # Get GST settings
         gstin_number = SystemSetting.query.filter_by(key='gstin_number').first()
         gst_business_name = SystemSetting.query.filter_by(key='gst_business_name').first()
@@ -234,7 +233,7 @@ def api_get_gst_configuration():
         default_cgst = SystemSetting.query.filter_by(key='default_cgst').first()
         default_sgst = SystemSetting.query.filter_by(key='default_sgst').first()
         default_igst = SystemSetting.query.filter_by(key='default_igst').first()
-        
+
         return jsonify({
             'success': True,
             'configuration': {
@@ -264,9 +263,9 @@ def api_save_gst_configuration():
                 'success': False,
                 'message': 'Access denied'
             }), 403
-        
+
         from models import SystemSetting
-        
+
         # Get form data
         gstin_number = request.form.get('gstin_number', '').strip()
         gst_business_name = request.form.get('gst_business_name', '').strip()
@@ -275,7 +274,7 @@ def api_save_gst_configuration():
         default_cgst = request.form.get('default_cgst', '9')
         default_sgst = request.form.get('default_sgst', '9')
         default_igst = request.form.get('default_igst', '18')
-        
+
         # Update or create settings
         settings_to_update = {
             'gstin_number': gstin_number,
@@ -286,7 +285,7 @@ def api_save_gst_configuration():
             'default_sgst': str(default_sgst),
             'default_igst': str(default_igst)
         }
-        
+
         for setting_key, setting_value in settings_to_update.items():
             setting = SystemSetting.query.filter_by(key=setting_key).first()
             if setting:
@@ -300,9 +299,9 @@ def api_save_gst_configuration():
                     data_type='string'
                 )
                 db.session.add(setting)
-        
+
         db.session.commit()
-        
+
         return jsonify({
             'success': True,
             'message': 'GST configuration saved successfully'
@@ -321,25 +320,40 @@ def api_get_gst_rates():
     """Get all GST rates"""
     try:
         from models import GSTRate
-        
-        gst_rates = GSTRate.query.all()
-        return jsonify({
-            'success': True,
-            'gst_rates': [{
+
+        rates = GSTRate.query.order_by(GSTRate.service_category).all()
+
+        app.logger.info(f"Found {len(rates)} GST rates in database")
+
+        gst_rates_list = []
+        for rate in rates:
+            gst_data = {
                 'id': rate.id,
-                'service_category': rate.service_category,
-                'hsn_sac_code': rate.hsn_sac_code,
+                'service_category': rate.service_category or 'Uncategorized',
+                'hsn_sac_code': rate.hsn_sac_code or '',
                 'cgst_rate': float(rate.cgst_rate) if rate.cgst_rate else 0.0,
                 'sgst_rate': float(rate.sgst_rate) if rate.sgst_rate else 0.0,
-                'igst_rate': float(rate.igst_rate) if rate.igst_rate else 0.0
-            } for rate in gst_rates]
-        })
-    except Exception as e:
-        print(f"Error loading GST rates: {e}")
+                'igst_rate': float(rate.igst_rate) if rate.igst_rate else 0.0,
+                'is_active': getattr(rate, 'is_active', True),
+                'created_at': rate.created_at.isoformat() if hasattr(rate, 'created_at') and rate.created_at else None
+            }
+            gst_rates_list.append(gst_data)
+
         return jsonify({
             'success': True,
-            'gst_rates': []
+            'gst_rates': gst_rates_list,
+            'total': len(gst_rates_list)
         })
+    except Exception as e:
+        app.logger.error(f"Error loading GST rates: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            'success': False,
+            'message': str(e),
+            'gst_rates': [],
+            'total': 0
+        }), 500
 
 @app.route('/api/gst/rates', methods=['POST'])
 @login_required
@@ -351,21 +365,21 @@ def api_create_gst_rate():
                 'success': False,
                 'message': 'Access denied'
             }), 403
-        
+
         from models import GSTRate
-        
+
         service_category = request.form.get('service_category', '').strip()
         hsn_sac_code = request.form.get('hsn_sac_code', '').strip()
         cgst_rate = float(request.form.get('cgst_rate', 9.0))
         sgst_rate = float(request.form.get('sgst_rate', 9.0))
         igst_rate = float(request.form.get('igst_rate', 18.0))
-        
+
         if not service_category:
             return jsonify({
                 'success': False,
                 'message': 'Service category is required'
             }), 400
-        
+
         gst_rate = GSTRate(
             service_category=service_category,
             hsn_sac_code=hsn_sac_code,
@@ -373,10 +387,10 @@ def api_create_gst_rate():
             sgst_rate=sgst_rate,
             igst_rate=igst_rate
         )
-        
+
         db.session.add(gst_rate)
         db.session.commit()
-        
+
         return jsonify({
             'success': True,
             'message': 'GST rate created successfully'
@@ -395,14 +409,14 @@ def api_get_gst_rate(rate_id):
     """Get single GST rate"""
     try:
         from models import GSTRate
-        
+
         gst_rate = GSTRate.query.get(rate_id)
         if not gst_rate:
             return jsonify({
                 'success': False,
                 'error': 'GST rate not found'
             }), 404
-        
+
         return jsonify({
             'success': True,
             'gst_rate': {
@@ -431,24 +445,24 @@ def api_update_gst_rate(rate_id):
                 'success': False,
                 'message': 'Access denied'
             }), 403
-        
+
         from models import GSTRate
-        
+
         gst_rate = GSTRate.query.get(rate_id)
         if not gst_rate:
             return jsonify({
                 'success': False,
                 'message': 'GST rate not found'
             }), 404
-        
+
         gst_rate.service_category = request.form.get('service_category', gst_rate.service_category)
         gst_rate.hsn_sac_code = request.form.get('hsn_sac_code', gst_rate.hsn_sac_code)
         gst_rate.cgst_rate = float(request.form.get('cgst_rate', gst_rate.cgst_rate))
         gst_rate.sgst_rate = float(request.form.get('sgst_rate', gst_rate.sgst_rate))
         gst_rate.igst_rate = float(request.form.get('igst_rate', gst_rate.igst_rate))
-        
+
         db.session.commit()
-        
+
         return jsonify({
             'success': True,
             'message': 'GST rate updated successfully'
@@ -471,19 +485,19 @@ def api_delete_gst_rate(rate_id):
                 'success': False,
                 'message': 'Access denied'
             }), 403
-        
+
         from models import GSTRate
-        
+
         gst_rate = GSTRate.query.get(rate_id)
         if not gst_rate:
             return jsonify({
                 'success': False,
                 'message': 'GST rate not found'
             }), 404
-        
+
         db.session.delete(gst_rate)
         db.session.commit()
-        
+
         return jsonify({
             'success': True,
             'message': 'GST rate deleted successfully'
@@ -503,7 +517,7 @@ def settings():
     if not current_user.can_access('settings'):
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
-    
+
     return render_template('settings.html')
 
 @app.route('/system_management')
@@ -513,7 +527,7 @@ def system_management():
     if not current_user.can_access('settings'):
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
-    
+
     return render_template('system_management.html')
 
 """
