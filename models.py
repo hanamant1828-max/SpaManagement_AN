@@ -90,6 +90,24 @@ class SystemSetting(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
+class GSTRate(db.Model):
+    """GST rates for different service categories"""
+    __tablename__ = 'gst_rates'
+
+    id = db.Column(db.Integer, primary_key=True)
+    service_category = db.Column(db.String(200), nullable=False)
+    hsn_sac_code = db.Column(db.String(50))
+    cgst_rate = db.Column(db.Float, default=9.0)
+    sgst_rate = db.Column(db.Float, default=9.0)
+    igst_rate = db.Column(db.Float, default=18.0)
+    is_active = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    def __repr__(self):
+        return f'<GSTRate {self.service_category}>'
+
+
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(64), unique=True, nullable=False, index=True)
@@ -424,11 +442,11 @@ class Customer(db.Model):
     allergies = db.Column(db.Text)
     medical_conditions = db.Column(db.Text)
     notes = db.Column(db.Text)
-    
+
     # Emergency contact information
     emergency_contact = db.Column(db.String(100))
     emergency_phone = db.Column(db.String(20))
-    
+
     # Face recognition fields - MUST match what face_recognition_api.py expects
     face_encoding = db.Column(db.Text)  # Store face encoding as JSON string
     face_image_url = db.Column(db.String(255))  # Store face image path
@@ -1028,7 +1046,7 @@ class PackageUsage(db.Model):
 class PettyCashAccount(db.Model):
     """Track petty cash/bank account balance"""
     __tablename__ = 'petty_cash_account'
-    
+
     id = db.Column(db.Integer, primary_key=True)
     account_name = db.Column(db.String(100), nullable=False, default='Main Account')
     current_balance = db.Column(db.Float, nullable=False, default=0.0)
@@ -1037,14 +1055,14 @@ class PettyCashAccount(db.Model):
     is_active = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    
+
     # Relationships
     transactions = db.relationship('PettyCashTransaction', backref='account', lazy=True, cascade='all, delete-orphan')
 
 class PettyCashTransaction(db.Model):
     """Track all cash account transactions (deposits and expenses)"""
     __tablename__ = 'petty_cash_transaction'
-    
+
     id = db.Column(db.Integer, primary_key=True)
     account_id = db.Column(db.Integer, db.ForeignKey('petty_cash_account.id'), nullable=False)
     transaction_type = db.Column(db.String(20), nullable=False)  # 'deposit' or 'expense'
@@ -1056,7 +1074,7 @@ class PettyCashTransaction(db.Model):
     created_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     transaction_date = db.Column(db.DateTime, default=datetime.utcnow)
     notes = db.Column(db.Text)
-    
+
     # Relationships
     creator = db.relationship('User', backref='cash_transactions')
     expense = db.relationship('Expense', backref='cash_transaction')
@@ -1838,6 +1856,3 @@ class Receipt(db.Model):
 
 # Import Hanaman Inventory Models after all other models are defined
 # Hanamantinventory models import removed to fix startup issues
-
-
-
