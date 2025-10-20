@@ -292,7 +292,13 @@ def api_save_gst_configuration():
             if setting:
                 setting.value = setting_value
             else:
-                setting = SystemSetting(key=setting_key, value=setting_value)
+                setting = SystemSetting(
+                    key=setting_key,
+                    value=setting_value,
+                    category='gst',
+                    display_name=setting_key.replace('_', ' ').title(),
+                    data_type='string'
+                )
                 db.session.add(setting)
         
         db.session.commit()
