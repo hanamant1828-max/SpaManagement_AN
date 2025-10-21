@@ -1,0 +1,235 @@
+{% extends "website/base.html" %}
+
+{% block title %}Gallery - {{ business_name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .page-header {
+        background: linear-gradient(135deg, rgba(212,165,116,0.9) 0%, rgba(139,115,85,0.9) 100%);
+        color: #fff;
+        padding: 4rem 0 3rem;
+        text-align: center;
+    }
+    
+    .page-header h1 {
+        color: #fff;
+        font-size: 3rem;
+        margin-bottom: 1rem;
+    }
+    
+    .gallery-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 1.5rem;
+        padding: 0;
+    }
+    
+    .gallery-item {
+        position: relative;
+        overflow: hidden;
+        border-radius: 15px;
+        box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+        transition: all 0.3s;
+        aspect-ratio: 1;
+        background: var(--light-color);
+    }
+    
+    .gallery-item:hover {
+        transform: translateY(-10px);
+        box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    }
+    
+    .gallery-item img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: transform 0.3s;
+    }
+    
+    .gallery-item:hover img {
+        transform: scale(1.1);
+    }
+    
+    .gallery-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.7) 100%);
+        opacity: 0;
+        transition: opacity 0.3s;
+        display: flex;
+        align-items: flex-end;
+        padding: 1.5rem;
+    }
+    
+    .gallery-item:hover .gallery-overlay {
+        opacity: 1;
+    }
+    
+    .gallery-caption {
+        color: #fff;
+        font-weight: 500;
+    }
+    
+    .placeholder-gallery {
+        text-align: center;
+        padding: 5rem 0;
+    }
+    
+    .placeholder-icon {
+        font-size: 5rem;
+        color: var(--primary-color);
+        margin-bottom: 2rem;
+    }
+    
+    .sample-images-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 1.5rem;
+    }
+    
+    .sample-image-card {
+        border-radius: 15px;
+        overflow: hidden;
+        box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+        aspect-ratio: 1;
+    }
+    
+    .sample-image-card img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+    
+    .lightbox {
+        display: none;
+        position: fixed;
+        z-index: 9999;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0,0,0,0.9);
+        justify-content: center;
+        align-items: center;
+    }
+    
+    .lightbox.active {
+        display: flex;
+    }
+    
+    .lightbox img {
+        max-width: 90%;
+        max-height: 90%;
+        object-fit: contain;
+    }
+    
+    .lightbox-close {
+        position: absolute;
+        top: 20px;
+        right: 40px;
+        color: #fff;
+        font-size: 40px;
+        cursor: pointer;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<section class="page-header">
+    <div class="container">
+        <h1><i class="fas fa-images me-3"></i>Our Gallery</h1>
+        <p class="lead">Take a peek at our beautiful salon and happy clients</p>
+    </div>
+</section>
+
+<!-- Gallery Content -->
+<section class="py-5">
+    <div class="container">
+        {% if images %}
+            <div class="gallery-grid">
+                {% for image in images %}
+                <div class="gallery-item" onclick="openLightbox('{{ image }}')">
+                    <img src="{{ image }}" alt="Gallery Image {{ loop.index }}" loading="lazy">
+                    <div class="gallery-overlay">
+                        <p class="gallery-caption mb-0">
+                            <i class="fas fa-search-plus me-2"></i>Click to enlarge
+                        </p>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <!-- Placeholder with sample images -->
+            <div class="placeholder-gallery">
+                <div class="placeholder-icon">
+                    <i class="fas fa-camera"></i>
+                </div>
+                <h3>Gallery Coming Soon</h3>
+                <p class="text-muted mb-5">We're currently updating our gallery with beautiful images of our salon and services.</p>
+                
+                <!-- Sample spa/salon themed images from Unsplash -->
+                <div class="sample-images-grid">
+                    <div class="sample-image-card">
+                        <img src="https://images.unsplash.com/photo-1560066984-138dadb4c035?w=600&h=600&fit=crop" alt="Spa Treatment" loading="lazy">
+                    </div>
+                    <div class="sample-image-card">
+                        <img src="https://images.unsplash.com/photo-1519415387722-a1c3bbef716c?w=600&h=600&fit=crop" alt="Salon Interior" loading="lazy">
+                    </div>
+                    <div class="sample-image-card">
+                        <img src="https://images.unsplash.com/photo-1540555700478-4be289fbecef?w=600&h=600&fit=crop" alt="Massage Therapy" loading="lazy">
+                    </div>
+                    <div class="sample-image-card">
+                        <img src="https://images.unsplash.com/photo-1512290923902-8a9f81dc236c?w=600&h=600&fit=crop" alt="Nail Services" loading="lazy">
+                    </div>
+                    <div class="sample-image-card">
+                        <img src="https://images.unsplash.com/photo-1562322140-8baeececf3df?w=600&h=600&fit=crop" alt="Facial Treatment" loading="lazy">
+                    </div>
+                    <div class="sample-image-card">
+                        <img src="https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=600&h=600&fit=crop" alt="Hair Styling" loading="lazy">
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+        
+        <!-- Call to Action -->
+        <div class="text-center mt-5 pt-4">
+            <h3 class="mb-4">Experience it yourself!</h3>
+            <p class="text-muted mb-4">Book your appointment and see why our clients love us</p>
+            <a href="{{ url_for('website_book_online') }}" class="btn btn-primary btn-lg">
+                <i class="fas fa-calendar-check me-2"></i>Book Your Visit
+            </a>
+        </div>
+    </div>
+</section>
+
+<!-- Lightbox Modal -->
+<div id="lightbox" class="lightbox" onclick="closeLightbox()">
+    <span class="lightbox-close">&times;</span>
+    <img id="lightbox-img" src="" alt="Enlarged view">
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function openLightbox(imageSrc) {
+        document.getElementById('lightbox').classList.add('active');
+        document.getElementById('lightbox-img').src = imageSrc;
+        document.body.style.overflow = 'hidden';
+    }
+    
+    function closeLightbox() {
+        document.getElementById('lightbox').classList.remove('active');
+        document.body.style.overflow = 'auto';
+    }
+    
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            closeLightbox();
+        }
+    });
+</script>
+{% endblock %}

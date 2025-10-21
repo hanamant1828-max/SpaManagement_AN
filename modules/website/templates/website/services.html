@@ -1,0 +1,179 @@
+{% extends "website/base.html" %}
+
+{% block title %}Our Services - {{ business_name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .page-header {
+        background: linear-gradient(135deg, rgba(212,165,116,0.9) 0%, rgba(139,115,85,0.9) 100%);
+        color: #fff;
+        padding: 4rem 0 3rem;
+        text-align: center;
+    }
+    
+    .page-header h1 {
+        color: #fff;
+        font-size: 3rem;
+        margin-bottom: 1rem;
+    }
+    
+    .category-section {
+        padding: 3rem 0;
+        border-bottom: 1px solid #eee;
+    }
+    
+    .category-section:last-child {
+        border-bottom: none;
+    }
+    
+    .category-header {
+        display: flex;
+        align-items: center;
+        margin-bottom: 2rem;
+    }
+    
+    .category-icon {
+        font-size: 2.5rem;
+        color: var(--primary-color);
+        margin-right: 1rem;
+    }
+    
+    .service-item {
+        background: #fff;
+        border-radius: 10px;
+        padding: 2rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 3px 15px rgba(0,0,0,0.08);
+        transition: all 0.3s;
+    }
+    
+    .service-item:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 5px 25px rgba(0,0,0,0.12);
+    }
+    
+    .service-name {
+        font-size: 1.5rem;
+        color: var(--dark-color);
+        margin-bottom: 0.5rem;
+    }
+    
+    .service-details {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 1.5rem;
+        padding-top: 1.5rem;
+        border-top: 1px solid #eee;
+    }
+    
+    .service-meta {
+        display: flex;
+        gap: 2rem;
+        color: #777;
+    }
+    
+    .service-price {
+        font-size: 1.8rem;
+        font-weight: 600;
+        color: var(--primary-color);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<section class="page-header">
+    <div class="container">
+        <h1><i class="fas fa-list me-3"></i>Our Services</h1>
+        <p class="lead">Discover our comprehensive range of beauty and wellness services</p>
+    </div>
+</section>
+
+<!-- Services Content -->
+<section class="py-5">
+    <div class="container">
+        {% if services_by_category %}
+            {% for category, services in services_by_category.items() %}
+            <div class="category-section">
+                <div class="category-header">
+                    <i class="{{ category.icon if category.icon else 'fas fa-spa' }} category-icon"></i>
+                    <div>
+                        <h2>{{ category.display_name }}</h2>
+                        {% if category.description %}
+                        <p class="text-muted mb-0">{{ category.description }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="row">
+                    {% for service in services %}
+                    <div class="col-lg-6">
+                        <div class="service-item">
+                            <h4 class="service-name">{{ service.name }}</h4>
+                            <p class="text-muted">{{ service.description if service.description else 'Premium service tailored to your needs' }}</p>
+                            <div class="service-details">
+                                <div class="service-meta">
+                                    <span><i class="far fa-clock me-2"></i>{{ service.duration }} minutes</span>
+                                </div>
+                                <div class="service-price">
+                                    ${{ "%.2f"|format(service.price) }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endfor %}
+        {% endif %}
+        
+        {% if uncategorized_services %}
+        <div class="category-section">
+            <div class="category-header">
+                <i class="fas fa-spa category-icon"></i>
+                <div>
+                    <h2>More Services</h2>
+                </div>
+            </div>
+            
+            <div class="row">
+                {% for service in uncategorized_services %}
+                <div class="col-lg-6">
+                    <div class="service-item">
+                        <h4 class="service-name">{{ service.name }}</h4>
+                        <p class="text-muted">{{ service.description if service.description else 'Premium service tailored to your needs' }}</p>
+                        <div class="service-details">
+                            <div class="service-meta">
+                                <span><i class="far fa-clock me-2"></i>{{ service.duration }} minutes</span>
+                            </div>
+                            <div class="service-price">
+                                ${{ "%.2f"|format(service.price) }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+        
+        {% if not services_by_category and not uncategorized_services %}
+        <div class="text-center py-5">
+            <i class="fas fa-info-circle fa-3x text-muted mb-3"></i>
+            <h3>Services Coming Soon</h3>
+            <p class="text-muted">Please contact us for more information about our services.</p>
+            <a href="{{ url_for('website_contact') }}" class="btn btn-primary mt-3">Contact Us</a>
+        </div>
+        {% endif %}
+        
+        <!-- Call to Action -->
+        <div class="text-center mt-5 pt-4">
+            <h3 class="mb-4">Ready to book your treatment?</h3>
+            <a href="{{ url_for('website_book_online') }}" class="btn btn-primary btn-lg">
+                <i class="fas fa-calendar-check me-2"></i>Book Appointment
+            </a>
+        </div>
+    </div>
+</section>
+{% endblock %}

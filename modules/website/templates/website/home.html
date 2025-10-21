@@ -1,0 +1,206 @@
+{% extends "website/base.html" %}
+
+{% block title %}{{ business_name }} - Luxury Spa & Salon{% endblock %}
+
+{% block extra_css %}
+<style>
+    .hero-section {
+        background: linear-gradient(135deg, rgba(212,165,116,0.9) 0%, rgba(139,115,85,0.9) 100%),
+                    url('https://images.unsplash.com/photo-1544161515-4ab6ce6db874?w=1920') center/cover;
+        color: #fff;
+        padding: 8rem 0 6rem;
+        text-align: center;
+    }
+    
+    .hero-section h1 {
+        font-size: 3.5rem;
+        color: #fff;
+        margin-bottom: 1.5rem;
+        text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+    }
+    
+    .hero-section p {
+        font-size: 1.3rem;
+        margin-bottom: 2rem;
+        opacity: 0.95;
+    }
+    
+    .service-card {
+        border: none;
+        border-radius: 15px;
+        overflow: hidden;
+        transition: all 0.3s;
+        box-shadow: 0 3px 15px rgba(0,0,0,0.08);
+        height: 100%;
+    }
+    
+    .service-card:hover {
+        transform: translateY(-10px);
+        box-shadow: 0 8px 30px rgba(0,0,0,0.15);
+    }
+    
+    .service-card .card-body {
+        padding: 2rem;
+    }
+    
+    .service-icon {
+        font-size: 3rem;
+        color: var(--primary-color);
+        margin-bottom: 1rem;
+    }
+    
+    .why-choose-us {
+        background: var(--light-color);
+        padding: 5rem 0;
+    }
+    
+    .feature-box {
+        text-align: center;
+        padding: 2rem;
+        transition: all 0.3s;
+    }
+    
+    .feature-box:hover {
+        transform: translateY(-5px);
+    }
+    
+    .feature-icon {
+        font-size: 3rem;
+        color: var(--primary-color);
+        margin-bottom: 1rem;
+    }
+    
+    .cta-section {
+        background: linear-gradient(135deg, var(--dark-color) 0%, var(--secondary-color) 100%);
+        color: #fff;
+        padding: 5rem 0;
+        text-align: center;
+    }
+    
+    .cta-section h2 {
+        color: #fff;
+        margin-bottom: 1.5rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<section class="hero-section">
+    <div class="container">
+        <h1>Welcome to {{ business_name }}</h1>
+        <p class="lead">Where Beauty Meets Relaxation</p>
+        <p>Discover the ultimate spa and salon experience with our expert team</p>
+        <div class="mt-4">
+            <a href="{{ url_for('website_book_online') }}" class="btn btn-light btn-lg me-3">
+                <i class="fas fa-calendar-check me-2"></i>Book Appointment
+            </a>
+            <a href="{{ url_for('website_services') }}" class="btn btn-outline-light btn-lg">
+                <i class="fas fa-list me-2"></i>View Services
+            </a>
+        </div>
+    </div>
+</section>
+
+<!-- Featured Services -->
+<section class="py-5">
+    <div class="container">
+        <div class="text-center mb-5">
+            <h2 class="section-title">Our Services</h2>
+            <p class="text-muted">Experience luxury treatments tailored to your needs</p>
+        </div>
+        
+        <div class="row g-4">
+            {% for service in featured_services %}
+            <div class="col-md-4">
+                <div class="card service-card">
+                    <div class="card-body text-center">
+                        <div class="service-icon">
+                            <i class="fas fa-spa"></i>
+                        </div>
+                        <h4>{{ service.name }}</h4>
+                        <p class="text-muted">{{ service.description[:100] }}{% if service.description and service.description|length > 100 %}...{% endif %}</p>
+                        <div class="d-flex justify-content-between align-items-center mt-3">
+                            <span class="text-muted"><i class="far fa-clock me-2"></i>{{ service.duration }} min</span>
+                            <strong class="text-primary">${{ "%.2f"|format(service.price) }}</strong>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        
+        <div class="text-center mt-5">
+            <a href="{{ url_for('website_services') }}" class="btn btn-primary btn-lg">
+                View All Services <i class="fas fa-arrow-right ms-2"></i>
+            </a>
+        </div>
+    </div>
+</section>
+
+<!-- Why Choose Us -->
+<section class="why-choose-us">
+    <div class="container">
+        <div class="text-center mb-5">
+            <h2 class="section-title">Why Choose Us</h2>
+            <p class="text-muted">Experience the difference with our premium services</p>
+        </div>
+        
+        <div class="row g-4">
+            <div class="col-md-3 col-sm-6">
+                <div class="feature-box">
+                    <div class="feature-icon">
+                        <i class="fas fa-user-md"></i>
+                    </div>
+                    <h5>Expert Staff</h5>
+                    <p class="text-muted">Highly trained professionals dedicated to your care</p>
+                </div>
+            </div>
+            <div class="col-md-3 col-sm-6">
+                <div class="feature-box">
+                    <div class="feature-icon">
+                        <i class="fas fa-award"></i>
+                    </div>
+                    <h5>Premium Products</h5>
+                    <p class="text-muted">Only the finest quality products for your treatments</p>
+                </div>
+            </div>
+            <div class="col-md-3 col-sm-6">
+                <div class="feature-box">
+                    <div class="feature-icon">
+                        <i class="fas fa-clock"></i>
+                    </div>
+                    <h5>Flexible Hours</h5>
+                    <p class="text-muted">Convenient scheduling to fit your busy lifestyle</p>
+                </div>
+            </div>
+            <div class="col-md-3 col-sm-6">
+                <div class="feature-box">
+                    <div class="feature-icon">
+                        <i class="fas fa-heart"></i>
+                    </div>
+                    <h5>Personalized Care</h5>
+                    <p class="text-muted">Tailored treatments designed just for you</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Call to Action -->
+<section class="cta-section">
+    <div class="container">
+        <h2>Ready to Experience Luxury?</h2>
+        <p class="lead">Book your appointment today and discover the ultimate relaxation</p>
+        <div class="mt-4">
+            <a href="{{ url_for('website_book_online') }}" class="btn btn-light btn-lg me-3">
+                <i class="fas fa-calendar-plus me-2"></i>Book Now
+            </a>
+            <a href="https://wa.me/{{ business_phone.replace('+', '').replace('-', '').replace(' ', '') if business_phone else '15551234567' }}?text=Hello!%20I%20would%20like%20to%20learn%20more%20about%20your%20services." 
+               class="btn btn-outline-light btn-lg" target="_blank">
+                <i class="fab fa-whatsapp me-2"></i>Chat on WhatsApp
+            </a>
+        </div>
+    </div>
+</section>
+{% endblock %}

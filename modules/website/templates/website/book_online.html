@@ -1,0 +1,188 @@
+{% extends "website/base.html" %}
+
+{% block title %}Book Online - {{ business_name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .page-header {
+        background: linear-gradient(135deg, rgba(212,165,116,0.9) 0%, rgba(139,115,85,0.9) 100%);
+        color: #fff;
+        padding: 4rem 0 3rem;
+        text-align: center;
+    }
+    
+    .page-header h1 {
+        color: #fff;
+        font-size: 3rem;
+        margin-bottom: 1rem;
+    }
+    
+    .booking-form {
+        background: #fff;
+        border-radius: 15px;
+        padding: 3rem;
+        box-shadow: 0 5px 30px rgba(0,0,0,0.1);
+        margin-top: -50px;
+        position: relative;
+        z-index: 10;
+    }
+    
+    .form-label {
+        font-weight: 500;
+        color: var(--dark-color);
+        margin-bottom: 0.5rem;
+    }
+    
+    .form-control, .form-select {
+        border-radius: 8px;
+        padding: 0.75rem 1rem;
+        border: 1px solid #ddd;
+    }
+    
+    .form-control:focus, .form-select:focus {
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 0.2rem rgba(212,165,116,0.25);
+    }
+    
+    .required-field::after {
+        content: '*';
+        color: #dc3545;
+        margin-left: 4px;
+    }
+    
+    .info-box {
+        background: var(--light-color);
+        border-left: 4px solid var(--primary-color);
+        padding: 1.5rem;
+        border-radius: 8px;
+        margin-bottom: 2rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<section class="page-header">
+    <div class="container">
+        <h1><i class="fas fa-calendar-check me-3"></i>Book Online</h1>
+        <p class="lead">Schedule your appointment in just a few clicks</p>
+    </div>
+</section>
+
+<!-- Booking Form -->
+<section class="pb-5">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+                <div class="booking-form">
+                    <div class="info-box">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>Please note:</strong> Your booking will be confirmed once we verify availability. 
+                        We'll contact you shortly to confirm your appointment.
+                    </div>
+                    
+                    <form method="POST" action="{{ url_for('website_book_online') }}">
+                        <div class="row g-3">
+                            <!-- Personal Information -->
+                            <div class="col-12">
+                                <h5 class="mb-3"><i class="fas fa-user me-2"></i>Personal Information</h5>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <label for="client_name" class="form-label required-field">Full Name</label>
+                                <input type="text" class="form-control" id="client_name" name="client_name" required>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <label for="client_phone" class="form-label required-field">Phone Number</label>
+                                <input type="tel" class="form-control" id="client_phone" name="client_phone" placeholder="+1-555-123-4567" required>
+                            </div>
+                            
+                            <div class="col-12">
+                                <label for="client_email" class="form-label">Email Address (Optional)</label>
+                                <input type="email" class="form-control" id="client_email" name="client_email" placeholder="your@email.com">
+                            </div>
+                            
+                            <!-- Appointment Details -->
+                            <div class="col-12 mt-4">
+                                <h5 class="mb-3"><i class="fas fa-calendar-alt me-2"></i>Appointment Details</h5>
+                            </div>
+                            
+                            <div class="col-12">
+                                <label for="service_id" class="form-label required-field">Select Service</label>
+                                <select class="form-select" id="service_id" name="service_id" required>
+                                    <option value="">Choose a service...</option>
+                                    {% for category in categories %}
+                                        <optgroup label="{{ category.display_name }}">
+                                            {% for service in services if service.category_id == category.id %}
+                                                <option value="{{ service.id }}">
+                                                    {{ service.name }} - {{ service.duration }}min - ${{ "%.2f"|format(service.price) }}
+                                                </option>
+                                            {% endfor %}
+                                        </optgroup>
+                                    {% endfor %}
+                                    {% if services|selectattr('category_id', 'none')|list %}
+                                        <optgroup label="Other Services">
+                                            {% for service in services if not service.category_id %}
+                                                <option value="{{ service.id }}">
+                                                    {{ service.name }} - {{ service.duration }}min - ${{ "%.2f"|format(service.price) }}
+                                                </option>
+                                            {% endfor %}
+                                        </optgroup>
+                                    {% endif %}
+                                </select>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <label for="appointment_date" class="form-label required-field">Preferred Date</label>
+                                <input type="date" class="form-control" id="appointment_date" name="appointment_date" 
+                                       min="{{ available_dates[0] }}" required>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <label for="appointment_time" class="form-label required-field">Preferred Time</label>
+                                <select class="form-select" id="appointment_time" name="appointment_time" required>
+                                    <option value="">Choose a time...</option>
+                                    {% for slot in time_slots %}
+                                        <option value="{{ slot }}">{{ slot }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            
+                            <div class="col-12">
+                                <label for="notes" class="form-label">Special Requests (Optional)</label>
+                                <textarea class="form-control" id="notes" name="notes" rows="3" placeholder="Any special requests or notes..."></textarea>
+                            </div>
+                            
+                            <!-- Submit Button -->
+                            <div class="col-12 mt-4">
+                                <button type="submit" class="btn btn-primary btn-lg w-100">
+                                    <i class="fas fa-check-circle me-2"></i>Submit Booking Request
+                                </button>
+                            </div>
+                            
+                            <div class="col-12 text-center mt-3">
+                                <small class="text-muted">
+                                    <i class="fas fa-lock me-1"></i>Your information is secure and will only be used for your appointment.
+                                </small>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                
+                <!-- Alternative Contact -->
+                <div class="text-center mt-5">
+                    <p class="text-muted">Prefer to book over the phone or WhatsApp?</p>
+                    <a href="tel:{{ business_phone if business_phone else '+15551234567' }}" class="btn btn-outline-primary me-2">
+                        <i class="fas fa-phone me-2"></i>Call Us
+                    </a>
+                    <a href="https://wa.me/{{ business_phone.replace('+', '').replace('-', '').replace(' ', '') if business_phone else '15551234567' }}?text=Hello!%20I%20would%20like%20to%20book%20an%20appointment." 
+                       class="btn btn-outline-primary" target="_blank">
+                        <i class="fab fa-whatsapp me-2"></i>WhatsApp Us
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

@@ -2347,3 +2347,10 @@ def unaki_delete_appointment(appointment_id):
 
 
 # Department API routes are handled in modules/settings/settings_views.py
+
+# Import public website module
+try:
+    from modules.website import website_views
+    print("✅ Website module imported successfully")
+except Exception as e:
+    print(f"⚠️ Website module import error: {e}")
