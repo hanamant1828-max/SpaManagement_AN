@@ -15,12 +15,12 @@
 }
 
 body {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 25%, #f093fb 50%, #4facfe 75%, #00f2fe 100%);
-    background-attachment: fixed;
-    background-size: 400% 400%;
-    animation: gradientShift 15s ease infinite;
-    min-height: 100vh;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 25%, #f093fb 50%, #4facfe 75%, #00f2fe 100%) !important;
+    background-attachment: fixed !important;
+    background-size: 400% 400% !important;
+    animation: gradientShift 15s ease infinite !important;
+    min-height: 100vh !important;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;
 }
 
 @keyframes gradientShift {
@@ -32,13 +32,31 @@ body {
 .container-fluid {
     background: transparent !important;
     min-height: 100vh;
+    padding-top: 2rem;
+    padding-bottom: 2rem;
 }
 
 /* Prevent any white backgrounds from overriding */
 .main-content,
 .content-wrapper,
-main {
+main,
+#content,
+.content {
     background: transparent !important;
+}
+
+/* Ensure base.html body doesn't override */
+body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 25%, #f093fb 50%, #4facfe 75%, #00f2fe 100%);
+    background-size: 400% 400%;
+    animation: gradientShift 15s ease infinite;
+    z-index: -1;
 }
 
 /* Ensure all text is readable on gradient background */
@@ -1110,6 +1128,9 @@ h5.fw-bold {
 <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // Add dashboard class to body for styling
+    document.body.classList.add('dashboard-page');
+    
     const retentionRate = {{ retention_metrics.retention_rate }};
 
     const retentionCtx = document.getElementById('retentionChart');

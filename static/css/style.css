@@ -40,6 +40,11 @@ html, body {
     padding-top: 56px;
 }
 
+/* Allow page-specific backgrounds to override */
+body.dashboard-page {
+    background: transparent !important;
+}
+
 /* ========== LAYOUT SYSTEM ========== */
 @media (min-width: 992px) {
     body {
