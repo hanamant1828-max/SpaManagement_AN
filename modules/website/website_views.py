@@ -17,7 +17,7 @@ def website_home():
                          business_name=business_name.value if business_name else 'Spa & Salon Suite',
                          business_phone=business_phone.value if business_phone else '')
 
-@app.route('/services')
+@app.route('/our-services')
 def website_services():
     """Public services page with categories"""
     categories = Category.query.filter_by(category_type='service', is_active=True).order_by(Category.sort_order).all()

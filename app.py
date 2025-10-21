@@ -1705,12 +1705,11 @@ def api_unaki_get_bookings():
 
 # Department Management Routes are in settings_views.py
 
-@app.route('/')
-def index():
-    """Root route - redirect to dashboard if authenticated, otherwise to login"""
-    if current_user.is_authenticated:
-        return redirect(url_for('dashboard'))
-    return redirect(url_for('login'))
+@app.route('/admin')
+@login_required
+def admin_index():
+    """Admin route - redirect to dashboard"""
+    return redirect(url_for('dashboard'))
 
 @app.route('/zenoti-booking')
 @app.route('/zenoti_booking')
