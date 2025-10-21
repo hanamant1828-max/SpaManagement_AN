@@ -626,34 +626,47 @@ body {
     </div>
 
     <div class="row g-4 mb-4">
-        <div class="col-lg-6">
+        <div class="col-lg-12">
             <div class="card widget-card">
                 <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
                     <h6 class="m-0 fw-bold text-dark">
                         <i class="fas fa-calendar-check me-2 text-primary"></i>Recent Appointments
                     </h6>
-                    <a href="{{ url_for('bookings') }}" class="btn btn-sm btn-outline-primary">View All</a>
+                    <a href="{{ url_for('bookings') }}" class="btn btn-sm btn-primary">
+                        <i class="fas fa-eye me-1"></i>View All
+                    </a>
                 </div>
                 <div class="card-body">
                     {% if recent_appointments %}
                         <div class="table-responsive">
-                            <table class="table table-hover">
-                                <thead>
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="table-light">
                                     <tr>
-                                        <th>Client</th>
-                                        <th>Service</th>
-                                        <th>Date</th>
-                                        <th>Status</th>
+                                        <th class="border-0"><i class="fas fa-user me-2"></i>Client</th>
+                                        <th class="border-0"><i class="fas fa-concierge-bell me-2"></i>Service</th>
+                                        <th class="border-0"><i class="fas fa-calendar me-2"></i>Date & Time</th>
+                                        <th class="border-0"><i class="fas fa-info-circle me-2"></i>Status</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {% for appointment in recent_appointments %}
-                                    <tr>
-                                        <td>{{ appointment.client.full_name if appointment.client else 'N/A' }}</td>
-                                        <td>{{ appointment.service.name if appointment.service else 'N/A' }}</td>
-                                        <td>{{ utils.format_datetime(appointment.appointment_date) }}</td>
+                                    <tr class="border-bottom">
                                         <td>
-                                            <span class="badge bg-{{ utils.get_status_badge_class(appointment.status) }}">
+                                            <div class="d-flex align-items-center">
+                                                <div class="avatar-circle me-2" style="width: 35px; height: 35px; font-size: 0.8rem;">
+                                                    {{ (appointment.client.full_name if appointment.client else 'N/A')[:1].upper() }}
+                                                </div>
+                                                <div>
+                                                    <div class="fw-bold">{{ appointment.client.full_name if appointment.client else 'N/A' }}</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td class="fw-medium">{{ appointment.service.name if appointment.service else 'N/A' }}</td>
+                                        <td>
+                                            <div>{{ utils.format_datetime(appointment.appointment_date) }}</div>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-{{ utils.get_status_badge_class(appointment.status) }} px-3 py-2">
                                                 {{ appointment.status.replace('_', ' ').title() }}
                                             </span>
                                         </td>
@@ -663,49 +676,9 @@ body {
                             </table>
                         </div>
                     {% else %}
-                        <p class="text-muted text-center py-4">No recent appointments found</p>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
-
-        <div class="col-lg-6">
-            <div class="card widget-card">
-                <div class="card-header bg-white py-3">
-                    <h6 class="m-0 fw-bold text-dark">
-                        <i class="fas fa-bell me-2 text-warning"></i>Alerts & Notifications
-                    </h6>
-                </div>
-                <div class="card-body">
-                    {% if low_stock_items %}
-                        <div class="alert alert-warning" role="alert">
-                            <h6 class="alert-heading">
-                                <i class="fas fa-exclamation-triangle me-2"></i>Low Stock Items
-                            </h6>
-                            <ul class="mb-0">
-                                {% for item in low_stock_items %}
-                                <li>{{ item.product.name if item.product else item.name }} ({{ item.current_stock }} remaining)</li>
-                                {% endfor %}
-                            </ul>
-                        </div>
-                    {% endif %}
-
-                    {% if expiring_items %}
-                        <div class="alert alert-danger" role="alert">
-                            <h6 class="alert-heading">
-                                <i class="fas fa-clock me-2"></i>Expiring Soon
-                            </h6>
-                            <ul class="mb-0">
-                                {% for item in expiring_items %}
-                                <li>{{ item.product.name if item.product else 'Product' }} - Batch #{{ item.batch_no }} (expires {{ utils.format_date(item.expiry_date) }})</li>
-                                {% endfor %}
-                            </ul>
-                        </div>
-                    {% endif %}
-
-                    {% if not low_stock_items and not expiring_items %}
-                        <div class="alert alert-success" role="alert">
-                            <i class="fas fa-check-circle me-2"></i>All systems normal - No alerts at this time
+                        <div class="text-center py-5">
+                            <i class="fas fa-calendar-times fa-3x text-muted mb-3"></i>
+                            <p class="text-muted">No recent appointments found</p>
                         </div>
                     {% endif %}
                 </div>
@@ -713,32 +686,94 @@ body {
         </div>
     </div>
 
-    <div class="row g-3 mb-4">
+    <div class="row g-4 mb-4">
+        <div class="col-lg-6">
+
+        <div class="card widget-card h-100">
+                <div class="card-header bg-white py-3">
+                    <h6 class="m-0 fw-bold text-dark">
+                        <i class="fas fa-bell me-2 text-warning"></i>Alerts & Notifications
+                    </h6>
+                </div>
+                <div class="card-body">
+                    {% if low_stock_items %}
+                        <div class="alert alert-warning border-0 shadow-sm mb-3" role="alert">
+                            <div class="d-flex align-items-center mb-2">
+                                <i class="fas fa-exclamation-triangle fa-lg me-2"></i>
+                                <h6 class="alert-heading mb-0">Low Stock Items</h6>
+                            </div>
+                            <ul class="mb-0 ps-4">
+                                {% for item in low_stock_items %}
+                                <li class="mb-1">{{ item.product.name if item.product else item.name }} 
+                                    <span class="badge bg-warning text-dark">{{ item.current_stock }} left</span>
+                                </li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    {% endif %}
+
+                    {% if expiring_items %}
+                        <div class="alert alert-danger border-0 shadow-sm mb-3" role="alert">
+                            <div class="d-flex align-items-center mb-2">
+                                <i class="fas fa-clock fa-lg me-2"></i>
+                                <h6 class="alert-heading mb-0">Items Expiring Soon</h6>
+                            </div>
+                            <ul class="mb-0 ps-4">
+                                {% for item in expiring_items %}
+                                <li class="mb-1">{{ item.product.name if item.product else 'Product' }} - Batch #{{ item.batch_no }}
+                                    <small class="text-muted">(expires {{ utils.format_date(item.expiry_date) }})</small>
+                                </li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    {% endif %}
+
+                    {% if not low_stock_items and not expiring_items %}
+                        <div class="alert alert-success border-0 shadow-sm d-flex align-items-center" role="alert">
+                            <i class="fas fa-check-circle fa-2x me-3"></i>
+                            <div>
+                                <h6 class="mb-0">All Systems Normal</h6>
+                                <small>No alerts at this time</small>
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4 mb-4">
         <div class="col-12">
-            <h5 class="mb-3 fw-bold">Quick Actions</h5>
+            <h5 class="mb-3 fw-bold text-dark">
+                <i class="fas fa-bolt me-2 text-warning"></i>Quick Actions
+            </h5>
         </div>
-        <div class="col-md-3">
-            <a href="/bookings" class="quick-action-btn">
-                <i class="fas fa-calendar-plus fa-2x text-primary mb-2"></i>
-                <div class="fw-bold">New Appointment</div>
+        <div class="col-lg-3 col-md-6">
+            <a href="/bookings" class="quick-action-btn text-decoration-none">
+                <i class="fas fa-calendar-plus fa-3x mb-3"></i>
+                <div class="fw-bold fs-6">New Appointment</div>
+                <small class="text-muted">Book a new service</small>
             </a>
         </div>
-        <div class="col-md-3">
-            <a href="/clients" class="quick-action-btn">
-                <i class="fas fa-user-plus fa-2x text-success mb-2"></i>
-                <div class="fw-bold">Add Client</div>
+        <div class="col-lg-3 col-md-6">
+            <a href="/clients" class="quick-action-btn text-decoration-none">
+                <i class="fas fa-user-plus fa-3x mb-3"></i>
+                <div class="fw-bold fs-6">Add Client</div>
+                <small class="text-muted">Register new client</small>
             </a>
         </div>
-        <div class="col-md-3">
-            <a href="/checkin" class="quick-action-btn">
-                <i class="fas fa-camera fa-2x text-info mb-2"></i>
-                <div class="fw-bold">Face Check-in</div>
+        <div class="col-lg-3 col-md-6">
+            <a href="/checkin" class="quick-action-btn text-decoration-none">
+                <i class="fas fa-camera fa-3x mb-3"></i>
+                <div class="fw-bold fs-6">Face Check-in</div>
+                <small class="text-muted">Quick facial recognition</small>
             </a>
         </div>
-        <div class="col-md-3">
-            <a href="/comprehensive_staff" class="quick-action-btn">
-                <i class="fas fa-users-cog fa-2x text-warning mb-2"></i>
-                <div class="fw-bold">Manage Staff</div>
+        <div class="col-lg-3 col-md-6">
+            <a href="/comprehensive_staff" class="quick-action-btn text-decoration-none">
+                <i class="fas fa-users-cog fa-3x mb-3"></i>
+                <div class="fw-bold fs-6">Manage Staff</div>
+                <small class="text-muted">Staff scheduling</small>
             </a>
         </div>
     </div>
