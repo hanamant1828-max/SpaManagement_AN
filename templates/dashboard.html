@@ -30,8 +30,15 @@ body {
 }
 
 .container-fluid {
-    background: transparent;
+    background: transparent !important;
     min-height: 100vh;
+}
+
+/* Prevent any white backgrounds from overriding */
+.main-content,
+.content-wrapper,
+main {
+    background: transparent !important;
 }
 
 /* Ensure all text is readable on gradient background */
@@ -45,7 +52,7 @@ body {
 .modern-stat-card.gradient-success,
 .modern-stat-card.gradient-info,
 .modern-stat-card.gradient-warning {
-    background: rgba(255, 255, 255, 0.75) !important;
+    background: rgba(255, 255, 255, 0.85) !important;
     backdrop-filter: blur(20px);
 }
 
@@ -275,7 +282,7 @@ body {
 .widget-card {
     border-radius: 20px;
     border: none;
-    background: rgba(255, 255, 255, 0.75);
+    background: rgba(255, 255, 255, 0.65) !important;
     backdrop-filter: blur(20px);
     transition: all 0.4s ease;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
@@ -719,7 +726,7 @@ body {
 
 /* ========== Glass Effect for Cards ========== */
 .card {
-    background: rgba(255, 255, 255, 0.75);
+    background: rgba(255, 255, 255, 0.65) !important;
     backdrop-filter: blur(20px);
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
 }
