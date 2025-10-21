@@ -29,7 +29,16 @@ The application uses Flask and SQLAlchemy, following a modular design with featu
   - Instant feedback as users fill in fields, preventing booking conflicts before submission
 
 **Technical Implementations:**
-- **Core Modules:** Dashboard, Client Management, Staff Management, Shift Scheduling, Appointment Booking (Unaki integration), Integrated Billing, Service Catalog, Package Management (Prepaid, Service, Memberships, Student Offers, Kitty Party), Inventory, Check-In, Reporting, Notifications, User Roles & Permissions, User Management, and a Face Recognition System.
+- **Core Modules:** Dashboard, Client Management, Staff Management, Shift Scheduling, Appointment Booking (Unaki integration), Integrated Billing, Service Catalog, Package Management (Prepaid, Service, Memberships, Student Offers, Kitty Party), Inventory, Check-In, Reporting, Notifications, User Roles & Permissions, User Management, Face Recognition System, and **Public Website Module**.
+- **Public Website Module (NEW):** A complete public-facing website for customer engagement, featuring:
+  - **Homepage (/):** Hero section with background image, featured services showcase, call-to-action buttons, and WhatsApp integration
+  - **Services Page (/our-services):** Categorized service listings with pricing, duration, and descriptions pulled from the Service and Category database models
+  - **Online Booking (/book-online):** Customer-friendly booking form that creates UnakiBooking records with `booking_source='online'`, auto-creates Customer records, and sends booking confirmations
+  - **Contact Page (/contact):** Business information, Google Maps embed, phone/email/WhatsApp contact buttons, and business hours display
+  - **Gallery Page (/gallery):** Responsive image gallery with placeholder images from Unsplash, ready for custom salon photos
+  - **Mobile-Responsive Design:** Bootstrap 5 framework with professional spa/salon color scheme (gold/brown tones), sticky navigation, and WhatsApp floating chat button
+  - **Database Integration:** Seamlessly integrates with existing models (Service, Category, UnakiBooking, Customer, SystemSetting) to ensure data consistency between public and admin systems
+  - **Separate Route Structure:** Public routes (/, /our-services, /book-online, /contact, /gallery) are distinct from admin routes (/login, /admin, /services) to avoid conflicts while maintaining staff access via "Staff Login" button in navigation
 - **Face Recognition System:** InsightFace-based biometric authentication for customer registration and check-in, supporting face registration via webcam and recognition using cosine similarity. It handles RGBA-to-BGR color conversion for browser captures and uses CPU-based ONNXRuntime inference.
 - **User Management System:** Provides a complete administrative interface for managing users, roles, and permissions, including CRUD operations, role assignment, permission management across modules, an access control matrix, and multi-layered authorization.
 - **Package Management:** Implements type-specific billing methods for various package types (service, prepaid, membership, student offer, yearly membership, kitty party) using dedicated functions.
