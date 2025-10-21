@@ -34,6 +34,37 @@ body {
     min-height: 100vh;
 }
 
+/* Ensure all text is readable on gradient background */
+.page-header h2,
+.page-header p {
+    text-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+
+/* Make stat cards stand out with solid backgrounds */
+.modern-stat-card.gradient-primary,
+.modern-stat-card.gradient-success,
+.modern-stat-card.gradient-info,
+.modern-stat-card.gradient-warning {
+    background: rgba(255, 255, 255, 0.95) !important;
+    backdrop-filter: blur(10px);
+}
+
+.modern-stat-card.gradient-primary {
+    border-left: 5px solid #667eea !important;
+}
+
+.modern-stat-card.gradient-success {
+    border-left: 5px solid #11998e !important;
+}
+
+.modern-stat-card.gradient-info {
+    border-left: 5px solid #00d2ff !important;
+}
+
+.modern-stat-card.gradient-warning {
+    border-left: 5px solid #f093fb !important;
+}
+
 /* ========== Enhanced Stat Cards ========== */
 .modern-stat-card {
     position: relative;
@@ -88,10 +119,26 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    background: rgba(255, 255, 255, 0.3);
+    background: rgba(102, 126, 234, 0.1);
     backdrop-filter: blur(10px);
     box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
     transition: all 0.3s ease;
+}
+
+.gradient-primary .stat-icon-wrapper {
+    background: rgba(102, 126, 234, 0.1);
+}
+
+.gradient-success .stat-icon-wrapper {
+    background: rgba(17, 153, 142, 0.1);
+}
+
+.gradient-info .stat-icon-wrapper {
+    background: rgba(0, 210, 255, 0.1);
+}
+
+.gradient-warning .stat-icon-wrapper {
+    background: rgba(240, 147, 251, 0.1);
 }
 
 .modern-stat-card:hover .stat-icon-wrapper {
@@ -101,7 +148,22 @@ body {
 
 .stat-icon-wrapper i {
     font-size: 2rem;
-    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
+}
+
+.gradient-primary .stat-icon-wrapper i {
+    color: #667eea !important;
+}
+
+.gradient-success .stat-icon-wrapper i {
+    color: #11998e !important;
+}
+
+.gradient-info .stat-icon-wrapper i {
+    color: #00d2ff !important;
+}
+
+.gradient-warning .stat-icon-wrapper i {
+    color: #f093fb !important;
 }
 
 .trend-indicator {
@@ -134,27 +196,67 @@ body {
 
 /* ========== Gradient Backgrounds ========== */
 .gradient-primary {
-    background: var(--primary-gradient) !important;
-    color: white !important;
-    box-shadow: 0 15px 35px rgba(102, 126, 234, 0.5) !important;
+    background: white !important;
+    color: #1f2937 !important;
+    box-shadow: 0 15px 35px rgba(102, 126, 234, 0.3) !important;
+    border-top: 4px solid #667eea !important;
+}
+
+.gradient-primary h6,
+.gradient-primary .text-white {
+    color: #667eea !important;
+}
+
+.gradient-primary h2 {
+    color: #1f2937 !important;
 }
 
 .gradient-success {
-    background: var(--success-gradient) !important;
-    color: white !important;
-    box-shadow: 0 15px 35px rgba(17, 153, 142, 0.5) !important;
+    background: white !important;
+    color: #1f2937 !important;
+    box-shadow: 0 15px 35px rgba(17, 153, 142, 0.3) !important;
+    border-top: 4px solid #11998e !important;
+}
+
+.gradient-success h6,
+.gradient-success .text-white {
+    color: #11998e !important;
+}
+
+.gradient-success h2 {
+    color: #1f2937 !important;
 }
 
 .gradient-info {
-    background: var(--info-gradient) !important;
-    color: white !important;
-    box-shadow: 0 15px 35px rgba(0, 210, 255, 0.5) !important;
+    background: white !important;
+    color: #1f2937 !important;
+    box-shadow: 0 15px 35px rgba(0, 210, 255, 0.3) !important;
+    border-top: 4px solid #00d2ff !important;
+}
+
+.gradient-info h6,
+.gradient-info .text-white {
+    color: #00d2ff !important;
+}
+
+.gradient-info h2 {
+    color: #1f2937 !important;
 }
 
 .gradient-warning {
-    background: var(--warning-gradient) !important;
-    color: white !important;
-    box-shadow: 0 15px 35px rgba(240, 147, 251, 0.5) !important;
+    background: white !important;
+    color: #1f2937 !important;
+    box-shadow: 0 15px 35px rgba(240, 147, 251, 0.3) !important;
+    border-top: 4px solid #f093fb !important;
+}
+
+.gradient-warning h6,
+.gradient-warning .text-white {
+    color: #f093fb !important;
+}
+
+.gradient-warning h2 {
+    color: #1f2937 !important;
 }
 
 .gradient-pink {
