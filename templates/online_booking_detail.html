@@ -198,7 +198,7 @@
                     </a>
                     {% endif %}
                     {% if booking.client %}
-                    <a href="{{ url_for('customer_detail', customer_id=booking.client_id) }}"
+                    <a href="{{ url_for('client_detail', id=booking.client_id) }}"
                        class="btn btn-outline-info w-100">
                         <i class="fas fa-user me-2"></i>View Customer Profile
                     </a>
