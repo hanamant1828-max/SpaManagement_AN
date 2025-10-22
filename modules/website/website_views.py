@@ -182,9 +182,25 @@ def website_book_online():
 
 @app.route('/booking-success/<int:booking_id>')
 def website_booking_success(booking_id):
-    """Booking confirmation page"""
+    """Booking confirmation page - shows all bookings from the same submission"""
     booking = UnakiBooking.query.get_or_404(booking_id)
-    return render_template('website/booking_success.html', booking=booking)
+    
+    # Get all bookings created within the last 5 minutes for the same customer
+    # This captures all bookings from the same multi-service submission
+    recent_cutoff = datetime.utcnow() - timedelta(minutes=5)
+    all_bookings = UnakiBooking.query.filter(
+        UnakiBooking.client_phone == booking.client_phone,
+        UnakiBooking.created_at >= recent_cutoff,
+        UnakiBooking.booking_source == 'online'
+    ).order_by(UnakiBooking.appointment_date, UnakiBooking.start_time).all()
+    
+    # Calculate total price
+    total_price = sum(b.service_price for b in all_bookings)
+    
+    return render_template('website/booking_success.html', 
+                         booking=booking, 
+                         all_bookings=all_bookings,
+                         total_price=total_price)
 
 @app.route('/contact')
 def website_contact():
