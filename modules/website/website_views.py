@@ -38,7 +38,7 @@ def website_services():
 
 @app.route('/book-online', methods=['GET', 'POST'])
 def website_book_online():
-    """Public online booking page"""
+    """Public online booking page - supports multiple service bookings"""
     if request.method == 'POST':
         try:
             data = request.form
@@ -46,20 +46,30 @@ def website_book_online():
             client_name = data.get('client_name', '').strip()
             client_phone = data.get('client_phone', '').strip()
             client_email = data.get('client_email', '').strip()
-            service_id = data.get('service_id')
-            appointment_date_str = data.get('appointment_date')
-            appointment_time_str = data.get('appointment_time')
-            notes = data.get('notes', '').strip()
             
-            if not all([client_name, client_phone, service_id, appointment_date_str, appointment_time_str]):
+            if not all([client_name, client_phone]):
                 flash('Please fill in all required fields.', 'error')
                 return redirect(url_for('website_book_online'))
             
-            service = Service.query.get(service_id)
-            if not service:
-                flash('Selected service not found.', 'error')
+            # Parse multiple services from form data
+            services_data = {}
+            for key in data.keys():
+                if key.startswith('services['):
+                    # Extract index and field name: services[0][service_id]
+                    import re
+                    match = re.match(r'services\[(\d+)\]\[(\w+)\]', key)
+                    if match:
+                        index = int(match.group(1))
+                        field = match.group(2)
+                        if index not in services_data:
+                            services_data[index] = {}
+                        services_data[index][field] = data.get(key, '').strip()
+            
+            if not services_data:
+                flash('Please select at least one service.', 'error')
                 return redirect(url_for('website_book_online'))
             
+            # Create or get customer
             name_parts = client_name.split(' ', 1)
             first_name = name_parts[0]
             last_name = name_parts[1] if len(name_parts) > 1 else ''
@@ -76,49 +86,80 @@ def website_book_online():
                 db.session.add(customer)
                 db.session.flush()
             
-            appointment_date = datetime.strptime(appointment_date_str, '%Y-%m-%d').date()
-            appointment_time_obj = datetime.strptime(appointment_time_str, '%H:%M').time()
-            
-            start_datetime = datetime.combine(appointment_date, appointment_time_obj)
-            end_datetime = start_datetime + timedelta(minutes=service.duration)
-            
+            # Get available staff
             available_staff = User.query.filter_by(is_active=True).first()
             if not available_staff:
                 flash('No staff available. Please contact us directly.', 'error')
                 return redirect(url_for('website_contact'))
             
-            booking = UnakiBooking(
-                client_id=customer.id,
-                client_name=client_name,
-                client_phone=client_phone,
-                client_email=client_email,
-                staff_id=available_staff.id,
-                staff_name=f"{available_staff.first_name} {available_staff.last_name}",
-                service_id=service.id,
-                service_name=service.name,
-                service_duration=service.duration,
-                service_price=service.price,
-                appointment_date=appointment_date,
-                start_time=appointment_time_obj,
-                end_time=end_datetime.time(),
-                status='scheduled',
-                notes=notes,
-                booking_source='online',
-                booking_method='website',
-                amount_charged=service.price,
-                payment_status='pending',
-                created_at=datetime.utcnow()
-            )
+            # Create bookings for each service
+            created_bookings = []
+            for index in sorted(services_data.keys()):
+                service_info = services_data[index]
+                
+                service_id = service_info.get('service_id')
+                appointment_date_str = service_info.get('appointment_date')
+                appointment_time_str = service_info.get('appointment_time')
+                notes = service_info.get('notes', '')
+                
+                if not all([service_id, appointment_date_str, appointment_time_str]):
+                    continue  # Skip incomplete entries
+                
+                service = Service.query.get(service_id)
+                if not service:
+                    continue  # Skip invalid services
+                
+                appointment_date = datetime.strptime(appointment_date_str, '%Y-%m-%d').date()
+                appointment_time_obj = datetime.strptime(appointment_time_str, '%H:%M').time()
+                
+                start_datetime = datetime.combine(appointment_date, appointment_time_obj)
+                end_datetime = start_datetime + timedelta(minutes=service.duration)
+                
+                booking = UnakiBooking(
+                    client_id=customer.id,
+                    client_name=client_name,
+                    client_phone=client_phone,
+                    client_email=client_email,
+                    staff_id=available_staff.id,
+                    staff_name=f"{available_staff.first_name} {available_staff.last_name}",
+                    service_id=service.id,
+                    service_name=service.name,
+                    service_duration=service.duration,
+                    service_price=service.price,
+                    appointment_date=appointment_date,
+                    start_time=appointment_time_obj,
+                    end_time=end_datetime.time(),
+                    status='scheduled',
+                    notes=notes,
+                    booking_source='online',
+                    booking_method='website',
+                    amount_charged=service.price,
+                    payment_status='pending',
+                    created_at=datetime.utcnow()
+                )
+                
+                db.session.add(booking)
+                created_bookings.append(booking)
             
-            db.session.add(booking)
+            if not created_bookings:
+                flash('No valid bookings were created. Please check your entries.', 'error')
+                return redirect(url_for('website_book_online'))
+            
             db.session.commit()
             
-            flash(f'Booking confirmed! We will contact you at {client_phone} to confirm your appointment.', 'success')
-            return redirect(url_for('website_booking_success', booking_id=booking.id))
+            # Success message
+            if len(created_bookings) == 1:
+                flash(f'Booking confirmed! We will contact you at {client_phone} to confirm your appointment.', 'success')
+            else:
+                flash(f'{len(created_bookings)} appointments booked successfully! We will contact you at {client_phone} to confirm.', 'success')
+            
+            return redirect(url_for('website_booking_success', booking_id=created_bookings[0].id))
             
         except Exception as e:
             db.session.rollback()
             print(f"Booking error: {e}")
+            import traceback
+            traceback.print_exc()
             flash('An error occurred. Please try again or contact us directly.', 'error')
             return redirect(url_for('website_book_online'))
     

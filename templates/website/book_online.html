@@ -57,6 +57,62 @@
         border-radius: 8px;
         margin-bottom: 2rem;
     }
+    
+    .service-item {
+        background: #f8f9fa;
+        border: 2px solid #dee2e6;
+        border-radius: 10px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        position: relative;
+        transition: all 0.3s ease;
+    }
+    
+    .service-item:hover {
+        border-color: var(--primary-color);
+        box-shadow: 0 3px 10px rgba(212,165,116,0.2);
+    }
+    
+    .service-item-header {
+        background: linear-gradient(135deg, var(--primary-color), #b8976a);
+        color: #fff;
+        padding: 0.75rem 1rem;
+        border-radius: 8px 8px 0 0;
+        margin: -1.5rem -1.5rem 1rem -1.5rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .remove-service-btn {
+        background: rgba(255,255,255,0.2);
+        border: 1px solid rgba(255,255,255,0.3);
+        color: #fff;
+        border-radius: 5px;
+        padding: 0.25rem 0.75rem;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    
+    .remove-service-btn:hover {
+        background: rgba(220, 53, 69, 0.9);
+        border-color: #dc3545;
+    }
+    
+    .add-service-btn {
+        background: linear-gradient(135deg, #28a745, #218838);
+        border: none;
+        color: #fff;
+        padding: 0.75rem 1.5rem;
+        border-radius: 8px;
+        font-weight: 500;
+        transition: all 0.3s;
+    }
+    
+    .add-service-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(40, 167, 69, 0.3);
+    }
 </style>
 {% endblock %}
 
@@ -81,7 +137,7 @@
                         We'll contact you shortly to confirm your appointment.
                     </div>
                     
-                    <form method="POST" action="{{ url_for('website_book_online') }}">
+                    <form method="POST" action="{{ url_for('website_book_online') }}" id="bookingForm">
                         <div class="row g-3">
                             <!-- Personal Information -->
                             <div class="col-12">
@@ -105,67 +161,89 @@
                             
                             <!-- Appointment Details -->
                             <div class="col-12 mt-4">
-                                <h5 class="mb-3"><i class="fas fa-calendar-alt me-2"></i>Appointment Details</h5>
+                                <h5 class="mb-3">
+                                    <i class="fas fa-calendar-alt me-2"></i>Appointment Details
+                                    <small class="text-muted" style="font-size: 0.8rem;">(You can book multiple services)</small>
+                                </h5>
                             </div>
-                            
-                            <div class="col-12">
-                                <label for="service_id" class="form-label required-field">Select Service</label>
-                                <select class="form-select" id="service_id" name="service_id" required>
-                                    <option value="">Choose a service...</option>
-                                    {% for category in categories %}
-                                        <optgroup label="{{ category.display_name }}">
-                                            {% for service in services if service.category_id == category.id %}
-                                                <option value="{{ service.id }}">
-                                                    {{ service.name }} - {{ service.duration }}min - ${{ "%.2f"|format(service.price) }}
-                                                </option>
+                        </div>
+                        
+                        <!-- Services Container -->
+                        <div id="servicesContainer">
+                            <!-- First Service (Template) -->
+                            <div class="service-item" data-service-index="0">
+                                <div class="service-item-header">
+                                    <span><i class="fas fa-cut me-2"></i>Service #1</span>
+                                </div>
+                                
+                                <div class="row g-3">
+                                    <div class="col-12">
+                                        <label class="form-label required-field">Select Service</label>
+                                        <select class="form-select" name="services[0][service_id]" required>
+                                            <option value="">Choose a service...</option>
+                                            {% for category in categories %}
+                                                <optgroup label="{{ category.display_name }}">
+                                                    {% for service in services if service.category_id == category.id %}
+                                                        <option value="{{ service.id }}">
+                                                            {{ service.name }} - {{ service.duration }}min - ${{ "%.2f"|format(service.price) }}
+                                                        </option>
+                                                    {% endfor %}
+                                                </optgroup>
                                             {% endfor %}
-                                        </optgroup>
-                                    {% endfor %}
-                                    {% if services|selectattr('category_id', 'none')|list %}
-                                        <optgroup label="Other Services">
-                                            {% for service in services if not service.category_id %}
-                                                <option value="{{ service.id }}">
-                                                    {{ service.name }} - {{ service.duration }}min - ${{ "%.2f"|format(service.price) }}
-                                                </option>
+                                            {% if services|selectattr('category_id', 'none')|list %}
+                                                <optgroup label="Other Services">
+                                                    {% for service in services if not service.category_id %}
+                                                        <option value="{{ service.id }}">
+                                                            {{ service.name }} - {{ service.duration }}min - ${{ "%.2f"|format(service.price) }}
+                                                        </option>
+                                                    {% endfor %}
+                                                </optgroup>
+                                            {% endif %}
+                                        </select>
+                                    </div>
+                                    
+                                    <div class="col-md-6">
+                                        <label class="form-label required-field">Preferred Date</label>
+                                        <input type="date" class="form-control" name="services[0][appointment_date]" 
+                                               min="{{ available_dates[0] }}" required>
+                                    </div>
+                                    
+                                    <div class="col-md-6">
+                                        <label class="form-label required-field">Preferred Time</label>
+                                        <select class="form-select" name="services[0][appointment_time]" required>
+                                            <option value="">Choose a time...</option>
+                                            {% for slot in time_slots %}
+                                                <option value="{{ slot }}">{{ slot }}</option>
                                             {% endfor %}
-                                        </optgroup>
-                                    {% endif %}
-                                </select>
+                                        </select>
+                                    </div>
+                                    
+                                    <div class="col-12">
+                                        <label class="form-label">Notes for this service (Optional)</label>
+                                        <textarea class="form-control" name="services[0][notes]" rows="2" placeholder="Any special requests..."></textarea>
+                                    </div>
+                                </div>
                             </div>
-                            
-                            <div class="col-md-6">
-                                <label for="appointment_date" class="form-label required-field">Preferred Date</label>
-                                <input type="date" class="form-control" id="appointment_date" name="appointment_date" 
-                                       min="{{ available_dates[0] }}" required>
-                            </div>
-                            
-                            <div class="col-md-6">
-                                <label for="appointment_time" class="form-label required-field">Preferred Time</label>
-                                <select class="form-select" id="appointment_time" name="appointment_time" required>
-                                    <option value="">Choose a time...</option>
-                                    {% for slot in time_slots %}
-                                        <option value="{{ slot }}">{{ slot }}</option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-                            
-                            <div class="col-12">
-                                <label for="notes" class="form-label">Special Requests (Optional)</label>
-                                <textarea class="form-control" id="notes" name="notes" rows="3" placeholder="Any special requests or notes..."></textarea>
-                            </div>
-                            
-                            <!-- Submit Button -->
-                            <div class="col-12 mt-4">
-                                <button type="submit" class="btn btn-primary btn-lg w-100">
-                                    <i class="fas fa-check-circle me-2"></i>Submit Booking Request
-                                </button>
-                            </div>
-                            
-                            <div class="col-12 text-center mt-3">
-                                <small class="text-muted">
-                                    <i class="fas fa-lock me-1"></i>Your information is secure and will only be used for your appointment.
-                                </small>
-                            </div>
+                        </div>
+                        
+                        <!-- Add Another Service Button -->
+                        <div class="text-center my-4">
+                            <button type="button" class="btn add-service-btn" onclick="addService()">
+                                <i class="fas fa-plus-circle me-2"></i>Add Another Service
+                            </button>
+                        </div>
+                        
+                        <!-- Submit Button -->
+                        <div class="mt-4">
+                            <button type="submit" class="btn btn-primary btn-lg w-100">
+                                <i class="fas fa-check-circle me-2"></i>Submit Booking Request
+                            </button>
+                        </div>
+                        
+                        <div class="text-center mt-3">
+                            <small class="text-muted">
+                                <i class="fas fa-lock me-1"></i>Your information is secure and will only be used for your appointment.
+                            </small>
                         </div>
                     </form>
                 </div>
@@ -185,4 +263,99 @@
         </div>
     </div>
 </section>
+
+<script>
+let serviceCount = 1;
+
+function addService() {
+    const container = document.getElementById('servicesContainer');
+    const serviceIndex = serviceCount;
+    
+    const serviceHTML = `
+        <div class="service-item" data-service-index="${serviceIndex}">
+            <div class="service-item-header">
+                <span><i class="fas fa-cut me-2"></i>Service #${serviceIndex + 1}</span>
+                <button type="button" class="remove-service-btn" onclick="removeService(${serviceIndex})">
+                    <i class="fas fa-times me-1"></i>Remove
+                </button>
+            </div>
+            
+            <div class="row g-3">
+                <div class="col-12">
+                    <label class="form-label required-field">Select Service</label>
+                    <select class="form-select" name="services[${serviceIndex}][service_id]" required>
+                        <option value="">Choose a service...</option>
+                        {% for category in categories %}
+                            <optgroup label="{{ category.display_name }}">
+                                {% for service in services if service.category_id == category.id %}
+                                    <option value="{{ service.id }}">
+                                        {{ service.name }} - {{ service.duration }}min - ${{ "%.2f"|format(service.price) }}
+                                    </option>
+                                {% endfor %}
+                            </optgroup>
+                        {% endfor %}
+                        {% if services|selectattr('category_id', 'none')|list %}
+                            <optgroup label="Other Services">
+                                {% for service in services if not service.category_id %}
+                                    <option value="{{ service.id }}">
+                                        {{ service.name }} - {{ service.duration }}min - ${{ "%.2f"|format(service.price) }}
+                                    </option>
+                                {% endfor %}
+                            </optgroup>
+                        {% endif %}
+                    </select>
+                </div>
+                
+                <div class="col-md-6">
+                    <label class="form-label required-field">Preferred Date</label>
+                    <input type="date" class="form-control" name="services[${serviceIndex}][appointment_date]" 
+                           min="{{ available_dates[0] }}" required>
+                </div>
+                
+                <div class="col-md-6">
+                    <label class="form-label required-field">Preferred Time</label>
+                    <select class="form-select" name="services[${serviceIndex}][appointment_time]" required>
+                        <option value="">Choose a time...</option>
+                        {% for slot in time_slots %}
+                            <option value="{{ slot }}">{{ slot }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="col-12">
+                    <label class="form-label">Notes for this service (Optional)</label>
+                    <textarea class="form-control" name="services[${serviceIndex}][notes]" rows="2" placeholder="Any special requests..."></textarea>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    container.insertAdjacentHTML('beforeend', serviceHTML);
+    serviceCount++;
+    
+    // Scroll to the new service
+    setTimeout(() => {
+        const newService = container.lastElementChild;
+        newService.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 100);
+}
+
+function removeService(index) {
+    const serviceItem = document.querySelector(`[data-service-index="${index}"]`);
+    if (serviceItem) {
+        serviceItem.remove();
+        updateServiceNumbers();
+    }
+}
+
+function updateServiceNumbers() {
+    const serviceItems = document.querySelectorAll('.service-item');
+    serviceItems.forEach((item, index) => {
+        const header = item.querySelector('.service-item-header span');
+        if (header) {
+            header.innerHTML = `<i class="fas fa-cut me-2"></i>Service #${index + 1}`;
+        }
+    });
+}
+</script>
 {% endblock %}
