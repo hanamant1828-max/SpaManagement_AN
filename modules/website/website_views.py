@@ -69,13 +69,15 @@ def website_book_online():
                 flash('Please select at least one service.', 'error')
                 return redirect(url_for('website_book_online'))
 
-            # Create or get customer
-            name_parts = client_name.split(' ', 1)
-            first_name = name_parts[0]
-            last_name = name_parts[1] if len(name_parts) > 1 else ''
-
+            # Create or get customer - ALWAYS search by phone first
             customer = Customer.query.filter_by(phone=client_phone).first()
+            
             if not customer:
+                # Customer doesn't exist, create new one
+                name_parts = client_name.split(' ', 1)
+                first_name = name_parts[0]
+                last_name = name_parts[1] if len(name_parts) > 1 else ''
+                
                 customer = Customer(
                     first_name=first_name,
                     last_name=last_name,
@@ -85,6 +87,11 @@ def website_book_online():
                 )
                 db.session.add(customer)
                 db.session.flush()
+            else:
+                # Customer exists - update email if provided and different
+                if client_email and customer.email != client_email:
+                    customer.email = client_email
+                    db.session.flush()
 
             # Get available staff
             available_staff = User.query.filter_by(is_active=True).first()
