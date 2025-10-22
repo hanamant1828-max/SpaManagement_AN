@@ -1,0 +1,442 @@
+
+{% extends "base.html" %}
+
+{% block title %}Online Bookings - Spa Management{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <h1 class="h3 mb-0">
+                    <i class="fas fa-globe me-2"></i>Online Booking Management
+                </h1>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-success" onclick="refreshBookings()">
+                        <i class="fas fa-sync-alt me-2"></i>Refresh
+                    </button>
+                    <a href="{{ url_for('website_book_online') }}" class="btn btn-primary" target="_blank">
+                        <i class="fas fa-external-link-alt me-2"></i>View Public Booking Page
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card border-left-primary">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col">
+                            <div class="text-xs font-weight-bold text-uppercase mb-1 text-primary">
+                                Total Online Bookings
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold">{{ stats.total }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-calendar fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-left-warning">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col">
+                            <div class="text-xs font-weight-bold text-uppercase mb-1 text-warning">
+                                Pending Review
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold">{{ stats.pending }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-clock fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-left-success">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col">
+                            <div class="text-xs font-weight-bold text-uppercase mb-1 text-success">
+                                Accepted
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold">{{ stats.accepted }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-check-circle fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-left-danger">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col">
+                            <div class="text-xs font-weight-bold text-uppercase mb-1 text-danger">
+                                Rejected
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold">{{ stats.rejected }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-times-circle fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <form method="GET" action="{{ url_for('online_bookings') }}" class="row g-3">
+                        <div class="col-md-3">
+                            <label class="form-label">Status</label>
+                            <select name="status" class="form-select">
+                                <option value="all" {% if status_filter == 'all' %}selected{% endif %}>All Statuses</option>
+                                <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>Pending</option>
+                                <option value="scheduled" {% if status_filter == 'scheduled' %}selected{% endif %}>Accepted</option>
+                                <option value="cancelled" {% if status_filter == 'cancelled' %}selected{% endif %}>Rejected</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">From Date</label>
+                            <input type="date" name="date_from" class="form-control" 
+                                   value="{{ date_from.strftime('%Y-%m-%d') if date_from else '' }}">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">To Date</label>
+                            <input type="date" name="date_to" class="form-control" 
+                                   value="{{ date_to.strftime('%Y-%m-%d') if date_to else '' }}">
+                        </div>
+                        <div class="col-md-3 d-flex align-items-end">
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="fas fa-filter me-2"></i>Apply Filters
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bulk Actions -->
+    <div class="row mb-3">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <form id="bulkActionForm" method="POST" action="{{ url_for('bulk_action_online_bookings') }}">
+                        <div class="row g-3 align-items-end">
+                            <div class="col-md-2">
+                                <label class="form-label">Select Action</label>
+                                <select name="action" id="bulkAction" class="form-select">
+                                    <option value="">Choose...</option>
+                                    <option value="accept">Accept Selected</option>
+                                    <option value="reject">Reject Selected</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3" id="staffSelectDiv" style="display:none;">
+                                <label class="form-label">Assign Staff (Optional)</label>
+                                <select name="bulk_staff_id" class="form-select">
+                                    <option value="">Auto-assign</option>
+                                    {% for staff in staff_members %}
+                                    <option value="{{ staff.id }}">{{ staff.full_name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-4" id="reasonDiv" style="display:none;">
+                                <label class="form-label">Rejection Reason</label>
+                                <input type="text" name="bulk_reason" class="form-control" placeholder="Reason for rejection">
+                            </div>
+                            <div class="col-md-2">
+                                <button type="submit" class="btn btn-primary w-100" id="bulkActionBtn" disabled>
+                                    <i class="fas fa-check me-2"></i>Apply
+                                </button>
+                            </div>
+                            <div class="col-md-1">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="selectAll">
+                                    <label class="form-check-label" for="selectAll">
+                                        Select All
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bookings List -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-list me-2"></i>
+                        Online Bookings ({{ bookings|length }} records)
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if bookings %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th style="width: 50px;">
+                                        <input type="checkbox" id="selectAllTable" class="form-check-input">
+                                    </th>
+                                    <th>ID</th>
+                                    <th>Customer</th>
+                                    <th>Contact</th>
+                                    <th>Service</th>
+                                    <th>Preferred Date/Time</th>
+                                    <th>Amount</th>
+                                    <th>Received</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for booking in bookings %}
+                                <tr>
+                                    <td>
+                                        <input type="checkbox" name="booking_checkbox" 
+                                               value="{{ booking.id }}" class="form-check-input booking-checkbox">
+                                    </td>
+                                    <td><strong>#{{ booking.id }}</strong></td>
+                                    <td>
+                                        <div>
+                                            <strong>{{ booking.client_name }}</strong>
+                                            {% if booking.client %}
+                                            <span class="badge bg-success ms-1">Existing</span>
+                                            {% else %}
+                                            <span class="badge bg-warning ms-1">New</span>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div><i class="fas fa-phone me-1"></i>{{ booking.client_phone }}</div>
+                                        {% if booking.client_email %}
+                                        <div><i class="fas fa-envelope me-1"></i>{{ booking.client_email }}</div>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <strong>{{ booking.service_name }}</strong>
+                                        <div class="text-muted small">{{ booking.service_duration }} min</div>
+                                    </td>
+                                    <td>
+                                        <div><strong>{{ booking.appointment_date.strftime('%b %d, %Y') }}</strong></div>
+                                        <div class="text-primary">{{ booking.start_time.strftime('%I:%M %p') }}</div>
+                                    </td>
+                                    <td>
+                                        <strong>${{ "%.2f"|format(booking.service_price or 0) }}</strong>
+                                    </td>
+                                    <td>
+                                        <small class="text-muted">
+                                            {{ booking.created_at.strftime('%b %d, %I:%M %p') }}
+                                        </small>
+                                    </td>
+                                    <td>
+                                        {% if booking.status == 'pending' %}
+                                        <span class="badge bg-warning">Pending</span>
+                                        {% elif booking.status == 'scheduled' %}
+                                        <span class="badge bg-success">Accepted</span>
+                                        {% elif booking.status == 'cancelled' %}
+                                        <span class="badge bg-danger">Rejected</span>
+                                        {% else %}
+                                        <span class="badge bg-secondary">{{ booking.status }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <button type="button" class="btn btn-info" 
+                                                    onclick="viewBooking({{ booking.id }})" title="View Details">
+                                                <i class="fas fa-eye"></i>
+                                            </button>
+                                            {% if booking.status == 'pending' %}
+                                            <button type="button" class="btn btn-success" 
+                                                    onclick="acceptBooking({{ booking.id }})" title="Accept">
+                                                <i class="fas fa-check"></i>
+                                            </button>
+                                            <button type="button" class="btn btn-danger" 
+                                                    onclick="rejectBooking({{ booking.id }})" title="Reject">
+                                                <i class="fas fa-times"></i>
+                                            </button>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted">No online bookings found</h5>
+                        <p class="text-muted">Online bookings will appear here when customers book through your website.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Accept Booking Modal -->
+<div class="modal fade" id="acceptModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Accept Booking</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="acceptForm" method="POST">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Assign Staff Member (Optional)</label>
+                        <select name="staff_id" class="form-select">
+                            <option value="">Auto-assign available staff</option>
+                            {% for staff in staff_members %}
+                            <option value="{{ staff.id }}">{{ staff.full_name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Notes (Optional)</label>
+                        <textarea name="notes" class="form-control" rows="3" 
+                                  placeholder="Add any notes about this booking..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-check me-2"></i>Accept Booking
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Reject Booking Modal -->
+<div class="modal fade" id="rejectModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Reject Booking</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="rejectForm" method="POST">
+                <div class="modal-body">
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        Are you sure you want to reject this booking?
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Reason for Rejection <span class="text-danger">*</span></label>
+                        <textarea name="reason" class="form-control" rows="3" required
+                                  placeholder="Please provide a reason for rejection..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fas fa-times me-2"></i>Reject Booking
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<style>
+.border-left-primary { border-left: 4px solid #4e73df; }
+.border-left-success { border-left: 4px solid #1cc88a; }
+.border-left-warning { border-left: 4px solid #f6c23e; }
+.border-left-danger { border-left: 4px solid #e74a3b; }
+</style>
+
+<script>
+// Bulk action handling
+document.getElementById('bulkAction')?.addEventListener('change', function() {
+    const action = this.value;
+    document.getElementById('staffSelectDiv').style.display = action === 'accept' ? 'block' : 'none';
+    document.getElementById('reasonDiv').style.display = action === 'reject' ? 'block' : 'none';
+    document.getElementById('bulkActionBtn').disabled = !action;
+});
+
+// Select all checkboxes
+document.getElementById('selectAll')?.addEventListener('change', function() {
+    document.querySelectorAll('.booking-checkbox').forEach(cb => cb.checked = this.checked);
+    updateBulkActionForm();
+});
+
+document.getElementById('selectAllTable')?.addEventListener('change', function() {
+    document.querySelectorAll('.booking-checkbox').forEach(cb => cb.checked = this.checked);
+    updateBulkActionForm();
+});
+
+// Update bulk action form with selected IDs
+document.querySelectorAll('.booking-checkbox').forEach(checkbox => {
+    checkbox.addEventListener('change', updateBulkActionForm);
+});
+
+function updateBulkActionForm() {
+    const form = document.getElementById('bulkActionForm');
+    const selectedCheckboxes = document.querySelectorAll('.booking-checkbox:checked');
+    
+    // Remove existing hidden inputs
+    form.querySelectorAll('input[name="booking_ids[]"]').forEach(input => input.remove());
+    
+    // Add new hidden inputs for selected IDs
+    selectedCheckboxes.forEach(checkbox => {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = 'booking_ids[]';
+        input.value = checkbox.value;
+        form.appendChild(input);
+    });
+}
+
+// Accept booking
+function acceptBooking(bookingId) {
+    const form = document.getElementById('acceptForm');
+    form.action = `/online-bookings/${bookingId}/accept`;
+    const modal = new bootstrap.Modal(document.getElementById('acceptModal'));
+    modal.show();
+}
+
+// Reject booking
+function rejectBooking(bookingId) {
+    const form = document.getElementById('rejectForm');
+    form.action = `/online-bookings/${bookingId}/reject`;
+    const modal = new bootstrap.Modal(document.getElementById('rejectModal'));
+    modal.show();
+}
+
+// View booking details
+function viewBooking(bookingId) {
+    window.location.href = `/online-bookings/${bookingId}/details`;
+}
+
+// Refresh bookings
+function refreshBookings() {
+    location.reload();
+}
+</script>
+{% endblock %}

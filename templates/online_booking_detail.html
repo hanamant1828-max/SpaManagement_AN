@@ -1,0 +1,210 @@
+
+{% extends "base.html" %}
+
+{% block title %}Booking Details #{{ booking.id }} - Spa Management{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <h1 class="h3 mb-0">
+                    <i class="fas fa-file-alt me-2"></i>Booking Details #{{ booking.id }}
+                </h1>
+                <a href="{{ url_for('online_bookings') }}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left me-2"></i>Back to List
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>Booking Information</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <strong>Booking ID:</strong> #{{ booking.id }}
+                        </div>
+                        <div class="col-md-6">
+                            <strong>Status:</strong>
+                            {% if booking.status == 'pending' %}
+                            <span class="badge bg-warning">Pending Review</span>
+                            {% elif booking.status == 'scheduled' %}
+                            <span class="badge bg-success">Accepted</span>
+                            {% elif booking.status == 'cancelled' %}
+                            <span class="badge bg-danger">Rejected</span>
+                            {% else %}
+                            <span class="badge bg-secondary">{{ booking.status }}</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <strong>Received:</strong> {{ booking.created_at.strftime('%B %d, %Y at %I:%M %p') }}
+                        </div>
+                        <div class="col-md-6">
+                            <strong>Source:</strong> <span class="badge bg-info">{{ booking.booking_source }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0"><i class="fas fa-user me-2"></i>Customer Information</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <strong>Name:</strong> {{ booking.client_name }}
+                            {% if booking.client %}
+                            <span class="badge bg-success ms-2">Existing Customer</span>
+                            {% else %}
+                            <span class="badge bg-warning ms-2">New Customer</span>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <strong>Phone:</strong> {{ booking.client_phone }}
+                        </div>
+                    </div>
+                    {% if booking.client_email %}
+                    <div class="row mb-3">
+                        <div class="col-12">
+                            <strong>Email:</strong> {{ booking.client_email }}
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0"><i class="fas fa-cut me-2"></i>Service Details</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <strong>Service:</strong> {{ booking.service_name }}
+                        </div>
+                        <div class="col-md-6">
+                            <strong>Duration:</strong> {{ booking.service_duration }} minutes
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <strong>Price:</strong> ${{ "%.2f"|format(booking.service_price or 0) }}
+                        </div>
+                        {% if booking.staff_name %}
+                        <div class="col-md-6">
+                            <strong>Assigned Staff:</strong> {{ booking.staff_name }}
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0"><i class="fas fa-calendar me-2"></i>Appointment Schedule</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <strong>Preferred Date:</strong> {{ booking.appointment_date.strftime('%B %d, %Y') }}
+                        </div>
+                        <div class="col-md-6">
+                            <strong>Preferred Time:</strong> {{ booking.start_time.strftime('%I:%M %p') }}
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-12">
+                            <strong>End Time:</strong> {{ booking.end_time.strftime('%I:%M %p') if booking.end_time else 'N/A' }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {% if booking.notes %}
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-sticky-note me-2"></i>Notes</h5>
+                </div>
+                <div class="card-body">
+                    <pre class="mb-0">{{ booking.notes }}</pre>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="col-md-4">
+            {% if booking.status == 'pending' %}
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Actions</h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('accept_online_booking', booking_id=booking.id) }}" class="mb-3">
+                        <h6>Accept Booking</h6>
+                        <div class="mb-3">
+                            <label class="form-label">Assign Staff (Optional)</label>
+                            <select name="staff_id" class="form-select">
+                                <option value="">Auto-assign</option>
+                                {% for staff in staff_members %}
+                                <option value="{{ staff.id }}">{{ staff.full_name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Notes</label>
+                            <textarea name="notes" class="form-control" rows="2"></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-success w-100">
+                            <i class="fas fa-check me-2"></i>Accept Booking
+                        </button>
+                    </form>
+
+                    <hr>
+
+                    <form method="POST" action="{{ url_for('reject_online_booking', booking_id=booking.id) }}">
+                        <h6>Reject Booking</h6>
+                        <div class="mb-3">
+                            <label class="form-label">Reason <span class="text-danger">*</span></label>
+                            <textarea name="reason" class="form-control" rows="2" required></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-danger w-100">
+                            <i class="fas fa-times me-2"></i>Reject Booking
+                        </button>
+                    </form>
+                </div>
+            </div>
+            {% endif %}
+
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Quick Links</h5>
+                </div>
+                <div class="card-body">
+                    <a href="tel:{{ booking.client_phone }}" class="btn btn-outline-primary w-100 mb-2">
+                        <i class="fas fa-phone me-2"></i>Call Customer
+                    </a>
+                    {% if booking.client_email %}
+                    <a href="mailto:{{ booking.client_email }}" class="btn btn-outline-primary w-100 mb-2">
+                        <i class="fas fa-envelope me-2"></i>Email Customer
+                    </a>
+                    {% endif %}
+                    {% if booking.client %}
+                    <a href="{{ url_for('customer_dashboard', customer_id=booking.client_id) }}" 
+                       class="btn btn-outline-info w-100">
+                        <i class="fas fa-user me-2"></i>View Customer Profile
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -20,6 +20,7 @@ from . import booking_helpers
 from . import booking_services
 from . import booking_api
 from . import booking_routes
+from . import online_booking_views
 
 # Note: bookings_queries is imported by other modules as needed
 
