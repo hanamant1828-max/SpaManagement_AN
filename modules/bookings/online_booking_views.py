@@ -152,7 +152,12 @@ def online_booking_details(booking_id):
         flash('Booking not found', 'danger')
         return redirect(url_for('online_bookings'))
     
-    return render_template('online_booking_detail.html', booking=booking)
+    # Get staff members for assignment dropdown
+    staff_members = User.query.filter_by(is_active=True).order_by(User.first_name).all()
+    
+    return render_template('online_booking_detail.html', 
+                         booking=booking,
+                         staff_members=staff_members)
 
 
 @app.route('/online-bookings/<int:booking_id>/callback', methods=['POST'])
