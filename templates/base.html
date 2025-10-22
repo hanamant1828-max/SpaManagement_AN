@@ -119,6 +119,14 @@
 
                     {% if true %}
                     <li class="nav-item">
+                        <a class="nav-link text-white" href="{{ url_for('online_bookings') }}">
+                            <i class="fas fa-globe me-2"></i><span>Online Bookings</span>
+                        </a>
+                    </li>
+                    {% endif %}
+
+                    {% if true %}
+                    <li class="nav-item">
                         <a class="nav-link text-white" href="{{ url_for('notifications') }}">
                             <i class="fab fa-whatsapp me-2"></i><span>Client Notifications</span>
                         </a>
