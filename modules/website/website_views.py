@@ -90,8 +90,12 @@ def website_book_online():
             else:
                 # Customer exists - update email if provided and different
                 if client_email and customer.email != client_email:
-                    customer.email = client_email
-                    db.session.flush()
+                    # Check if the new email is already used by another customer
+                    existing_email_customer = Customer.query.filter_by(email=client_email).first()
+                    if not existing_email_customer or existing_email_customer.id == customer.id:
+                        customer.email = client_email
+                        db.session.flush()
+                    # If email is already used by another customer, skip the update
 
             # Get available staff
             available_staff = User.query.filter_by(is_active=True).first()
@@ -101,58 +105,66 @@ def website_book_online():
 
             # Create bookings for each service
             created_bookings = []
-            for index in sorted(services_data.keys()):
-                service_info = services_data[index]
+            try:
+                for index in sorted(services_data.keys()):
+                    service_info = services_data[index]
 
-                service_id = service_info.get('service_id')
-                appointment_date_str = service_info.get('appointment_date')
-                appointment_time_str = service_info.get('appointment_time')
-                notes = service_info.get('notes', '')
+                    service_id = service_info.get('service_id')
+                    appointment_date_str = service_info.get('appointment_date')
+                    appointment_time_str = service_info.get('appointment_time')
+                    notes = service_info.get('notes', '')
 
-                if not all([service_id, appointment_date_str, appointment_time_str]):
-                    continue  # Skip incomplete entries
+                    if not all([service_id, appointment_date_str, appointment_time_str]):
+                        continue  # Skip incomplete entries
 
-                service = Service.query.get(service_id)
-                if not service:
-                    continue  # Skip invalid services
+                    service = Service.query.get(service_id)
+                    if not service:
+                        continue  # Skip invalid services
 
-                appointment_date = datetime.strptime(appointment_date_str, '%Y-%m-%d').date()
-                appointment_time_obj = datetime.strptime(appointment_time_str, '%H:%M').time()
+                    appointment_date = datetime.strptime(appointment_date_str, '%Y-%m-%d').date()
+                    appointment_time_obj = datetime.strptime(appointment_time_str, '%H:%M').time()
 
-                start_datetime = datetime.combine(appointment_date, appointment_time_obj)
-                end_datetime = start_datetime + timedelta(minutes=service.duration)
+                    start_datetime = datetime.combine(appointment_date, appointment_time_obj)
+                    end_datetime = start_datetime + timedelta(minutes=service.duration)
 
-                booking = UnakiBooking(
-                    client_id=customer.id,
-                    client_name=client_name,
-                    client_phone=client_phone,
-                    client_email=client_email,
-                    staff_id=available_staff.id,
-                    staff_name=f"{available_staff.first_name} {available_staff.last_name}",
-                    service_id=service.id,
-                    service_name=service.name,
-                    service_duration=service.duration,
-                    service_price=service.price,
-                    appointment_date=appointment_date,
-                    start_time=appointment_time_obj,
-                    end_time=end_datetime.time(),
-                    status='pending',  # Default to pending for online bookings - admin must review
-                    notes=notes,
-                    booking_source='online',
-                    booking_method='website',
-                    amount_charged=service.price,
-                    payment_status='pending',
-                    created_at=datetime.utcnow()
-                )
+                    booking = UnakiBooking(
+                        client_id=customer.id,
+                        client_name=client_name,
+                        client_phone=client_phone,
+                        client_email=client_email if client_email else None,
+                        staff_id=available_staff.id,
+                        staff_name=f"{available_staff.first_name} {available_staff.last_name}",
+                        service_id=service.id,
+                        service_name=service.name,
+                        service_duration=service.duration,
+                        service_price=service.price,
+                        appointment_date=appointment_date,
+                        start_time=appointment_time_obj,
+                        end_time=end_datetime.time(),
+                        status='pending',  # Default to pending for online bookings - admin must review
+                        notes=notes,
+                        booking_source='online',
+                        booking_method='website',
+                        amount_charged=service.price,
+                        payment_status='pending',
+                        created_at=datetime.utcnow()
+                    )
 
-                db.session.add(booking)
-                created_bookings.append(booking)
+                    db.session.add(booking)
+                    created_bookings.append(booking)
 
-            if not created_bookings:
-                flash('No valid bookings were created. Please check your entries.', 'error')
+                if not created_bookings:
+                    flash('No valid bookings were created. Please check your entries.', 'error')
+                    return redirect(url_for('website_book_online'))
+
+                db.session.commit()
+            except Exception as booking_error:
+                db.session.rollback()
+                print(f"Error creating bookings: {booking_error}")
+                import traceback
+                traceback.print_exc()
+                flash('Unable to create booking. Please contact us directly.', 'error')
                 return redirect(url_for('website_book_online'))
-
-            db.session.commit()
 
             # Success message
             if len(created_bookings) == 1:
