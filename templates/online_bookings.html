@@ -267,6 +267,14 @@
                                                     onclick="viewBooking({{ booking.id }})" title="View Details">
                                                 <i class="fas fa-eye"></i>
                                             </button>
+                                            <a href="tel:{{ booking.client_phone }}" class="btn btn-primary" title="Call Customer">
+                                                <i class="fas fa-phone"></i>
+                                            </a>
+                                            {% if booking.client_email %}
+                                            <a href="mailto:{{ booking.client_email }}" class="btn btn-secondary" title="Email Customer">
+                                                <i class="fas fa-envelope"></i>
+                                            </a>
+                                            {% endif %}
                                             {% if booking.status == 'pending' %}
                                             <button type="button" class="btn btn-success" 
                                                     onclick="acceptBooking({{ booking.id }})" title="Accept">
@@ -275,6 +283,11 @@
                                             <button type="button" class="btn btn-danger" 
                                                     onclick="rejectBooking({{ booking.id }})" title="Reject">
                                                 <i class="fas fa-times"></i>
+                                            </button>
+                                            {% elif booking.status == 'scheduled' %}
+                                            <button type="button" class="btn btn-warning" 
+                                                    onclick="markCallback({{ booking.id }})" title="Mark as Called Back">
+                                                <i class="fas fa-phone-volume"></i>
                                             </button>
                                             {% endif %}
                                         </div>
@@ -437,6 +450,58 @@ function viewBooking(bookingId) {
 // Refresh bookings
 function refreshBookings() {
     location.reload();
+}
+
+// Mark as called back
+function markCallback(bookingId) {
+    if (confirm('Mark this booking as "Customer Called Back"?')) {
+        fetch(`/online-bookings/${bookingId}/callback`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Marked as called back successfully!');
+                location.reload();
+            } else {
+                alert('Error: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Failed to update booking');
+        });
+    }
+}
+
+// Log callback on detail page
+function logCallback(bookingId) {
+    const notes = prompt('Add callback notes (optional):');
+    fetch(`/online-bookings/${bookingId}/callback`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            notes: notes || 'Customer called back'
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Callback logged successfully!');
+            location.reload();
+        } else {
+            alert('Error: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Failed to log callback');
+    });
 }
 </script>
 {% endblock %}

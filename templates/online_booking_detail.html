@@ -1,4 +1,3 @@
-
 {% extends "base.html" %}
 
 {% block title %}Booking Details #{{ booking.id }} - Spa Management{% endblock %}
@@ -188,16 +187,16 @@
                     <h5 class="mb-0">Quick Links</h5>
                 </div>
                 <div class="card-body">
-                    <a href="tel:{{ booking.client_phone }}" class="btn btn-outline-primary w-100 mb-2">
-                        <i class="fas fa-phone me-2"></i>Call Customer
-                    </a>
+                    <button class="btn btn-outline-primary w-100 mb-2" onclick="logCallback({{ booking.id }})">
+                        <i class="fas fa-phone me-2"></i>Log Callback
+                    </button>
                     {% if booking.client_email %}
                     <a href="mailto:{{ booking.client_email }}" class="btn btn-outline-primary w-100 mb-2">
                         <i class="fas fa-envelope me-2"></i>Email Customer
                     </a>
                     {% endif %}
                     {% if booking.client %}
-                    <a href="{{ url_for('customer_dashboard', customer_id=booking.client_id) }}" 
+                    <a href="{{ url_for('customer_dashboard', customer_id=booking.client_id) }}"
                        class="btn btn-outline-info w-100">
                         <i class="fas fa-user me-2"></i>View Customer Profile
                     </a>
@@ -207,4 +206,34 @@
         </div>
     </div>
 </div>
+
+<script>
+function logCallback(bookingId) {
+    const notes = prompt('Add callback notes (optional):');
+    if (notes !== null) {  // User didn't cancel
+        fetch(`/online-bookings/${bookingId}/callback`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                notes: notes || 'Customer called back'
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Callback logged successfully!');
+                location.reload();
+            } else {
+                alert('Error: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Failed to log callback');
+        });
+    }
+}
+</script>
 {% endblock %}

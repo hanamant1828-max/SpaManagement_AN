@@ -155,6 +155,33 @@ def online_booking_details(booking_id):
     return render_template('online_booking_detail.html', booking=booking)
 
 
+@app.route('/online-bookings/<int:booking_id>/callback', methods=['POST'])
+@login_required
+def log_booking_callback(booking_id):
+    """Log that customer was called back"""
+    if not current_user.can_access('bookings'):
+        return jsonify({'success': False, 'error': 'Access denied'}), 403
+    
+    booking = get_online_booking_by_id(booking_id)
+    if not booking:
+        return jsonify({'success': False, 'error': 'Booking not found'}), 404
+    
+    try:
+        data = request.get_json() or {}
+        callback_note = data.get('notes', 'Customer called back')
+        
+        timestamp = datetime.now().strftime('%Y-%m-%d %H:%M')
+        callback_log = f"\n[{timestamp}] CALLBACK: {callback_note} (by {current_user.full_name})"
+        
+        booking.notes = (booking.notes or '') + callback_log
+        db.session.commit()
+        
+        return jsonify({'success': True})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 # API endpoints for AJAX operations
 @app.route('/api/online-bookings/stats')
 @login_required
