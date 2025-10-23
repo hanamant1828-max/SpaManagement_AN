@@ -33,7 +33,7 @@ def get_online_booking_by_id(booking_id):
 
 
 def update_booking_status(booking_id, new_status, notes=None):
-    """Update booking status (pending, accepted, rejected, scheduled, cancelled)"""
+    """Update booking status (scheduled, confirmed, in_progress, completed, cancelled, no_show)"""
     booking = get_online_booking_by_id(booking_id)
     if not booking:
         return None, "Booking not found"
@@ -52,7 +52,7 @@ def accept_booking(booking_id, staff_id=None, notes=None):
     if not booking:
         return None, "Booking not found"
 
-    booking.status = 'scheduled'  # Change from pending to scheduled
+    booking.status = 'confirmed'  # Change from scheduled to confirmed
     if staff_id:
         staff = User.query.get(staff_id)
         if staff:
@@ -111,10 +111,10 @@ def get_online_booking_stats():
     """Get statistics for online bookings"""
     from models import UnakiBooking
 
-    total = UnakiBooking.query.filter_by(booking_source='website').count()
-    pending = UnakiBooking.query.filter_by(booking_source='website', status='pending').count()
-    accepted = UnakiBooking.query.filter_by(booking_source='website', status='scheduled').count()
-    rejected = UnakiBooking.query.filter_by(booking_source='website', status='cancelled').count()
+    total = UnakiBooking.query.filter_by(booking_source='online').count()
+    pending = UnakiBooking.query.filter_by(booking_source='online', status='scheduled').count()
+    accepted = UnakiBooking.query.filter_by(booking_source='online', status='confirmed').count()
+    rejected = UnakiBooking.query.filter_by(booking_source='online', status='cancelled').count()
 
     return {
         'total': total,

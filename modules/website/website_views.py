@@ -155,7 +155,7 @@ def website_book_online():
                         appointment_date=appointment_date,
                         start_time=appointment_time_obj,
                         end_time=end_datetime.time(),
-                        status='pending',  # Default to pending for online bookings - admin must review
+                        status='scheduled',  # Default to scheduled for online bookings - admin can confirm later
                         notes=notes,
                         booking_source='online',
                         booking_method='website',
