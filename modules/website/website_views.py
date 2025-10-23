@@ -78,24 +78,33 @@ def website_book_online():
                 first_name = name_parts[0]
                 last_name = name_parts[1] if len(name_parts) > 1 else ''
                 
+                # Only set email if it's provided and not empty
+                email_value = None
+                if client_email and client_email.strip():
+                    email_value = client_email.strip().lower()
+                
                 customer = Customer(
                     first_name=first_name,
                     last_name=last_name,
                     phone=client_phone,
-                    email=client_email if client_email else None,
+                    email=email_value,
                     created_at=datetime.utcnow()
                 )
                 db.session.add(customer)
                 db.session.flush()
             else:
                 # Customer exists - update email if provided and different
-                if client_email and customer.email != client_email:
-                    # Check if the new email is already used by another customer
-                    existing_email_customer = Customer.query.filter_by(email=client_email).first()
-                    if not existing_email_customer or existing_email_customer.id == customer.id:
-                        customer.email = client_email
-                        db.session.flush()
-                    # If email is already used by another customer, skip the update
+                if client_email and client_email.strip():
+                    new_email = client_email.strip().lower()
+                    if customer.email != new_email:
+                        # Check if the new email is already used by another customer
+                        existing_email_customer = Customer.query.filter(
+                            Customer.email == new_email,
+                            Customer.id != customer.id
+                        ).first()
+                        if not existing_email_customer:
+                            customer.email = new_email
+                            db.session.flush()
 
             # Get available staff
             available_staff = User.query.filter_by(is_active=True).first()
@@ -127,11 +136,16 @@ def website_book_online():
                     start_datetime = datetime.combine(appointment_date, appointment_time_obj)
                     end_datetime = start_datetime + timedelta(minutes=service.duration)
 
+                    # Only set email if it's provided and not empty
+                    email_value = None
+                    if client_email and client_email.strip():
+                        email_value = client_email.strip().lower()
+                    
                     booking = UnakiBooking(
                         client_id=customer.id,
                         client_name=client_name,
                         client_phone=client_phone,
-                        client_email=client_email if client_email else None,
+                        client_email=email_value,
                         staff_id=available_staff.id,
                         staff_name=f"{available_staff.first_name} {available_staff.last_name}",
                         service_id=service.id,
