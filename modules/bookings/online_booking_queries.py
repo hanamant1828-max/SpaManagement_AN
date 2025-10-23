@@ -10,18 +10,25 @@ from models import UnakiBooking, Customer, Service, User
 
 def get_online_bookings(status_filter=None, date_from=None, date_to=None):
     """Get all online bookings with optional filters"""
-    query = UnakiBooking.query.filter_by(booking_source='online')
+    try:
+        query = UnakiBooking.query.filter_by(booking_source='online')
 
-    if status_filter:
-        query = query.filter_by(status=status_filter)
+        if status_filter:
+            query = query.filter_by(status=status_filter)
 
-    if date_from:
-        query = query.filter(UnakiBooking.appointment_date >= date_from)
+        if date_from:
+            query = query.filter(UnakiBooking.appointment_date >= date_from)
 
-    if date_to:
-        query = query.filter(UnakiBooking.appointment_date <= date_to)
+        if date_to:
+            query = query.filter(UnakiBooking.appointment_date <= date_to)
 
-    return query.order_by(UnakiBooking.created_at.desc()).all()
+        return query.order_by(UnakiBooking.created_at.desc()).all()
+    except Exception as e:
+        print(f"❌ Error getting online bookings: {e}")
+        import traceback
+        traceback.print_exc()
+        # Return empty list on error to prevent crashes
+        return []
 
 
 def get_online_booking_by_id(booking_id):
