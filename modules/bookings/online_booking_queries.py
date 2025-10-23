@@ -14,9 +14,6 @@ def get_online_bookings(status_filter=None, date_from=None, date_to=None):
         query = UnakiBooking.query.filter_by(booking_source='online')
 
         if status_filter:
-            # Map 'pending' to 'scheduled' since online bookings start as 'scheduled' status
-            if status_filter == 'pending':
-                status_filter = 'scheduled'
             query = query.filter_by(status=status_filter)
 
         if date_from:

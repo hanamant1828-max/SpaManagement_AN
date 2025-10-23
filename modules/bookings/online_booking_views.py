@@ -27,12 +27,6 @@ def online_bookings():
     # Get filters from query params
     status_filter = request.args.get('status', 'scheduled')  # Default to 'scheduled' (pending review)
     
-    # Validate status filter - only allow valid enum values
-    valid_statuses = ['scheduled', 'confirmed', 'in_progress', 'completed', 'cancelled', 'no_show', 'all']
-    if status_filter not in valid_statuses:
-        flash(f'Invalid status filter: {status_filter}. Using "scheduled" instead.', 'warning')
-        status_filter = 'scheduled'
-    
     date_from = request.args.get('date_from')
     date_to = request.args.get('date_to')
     
