@@ -251,12 +251,14 @@
                                         </small>
                                     </td>
                                     <td>
-                                        {% if booking.status == 'pending' %}
-                                        <span class="badge bg-warning">Pending</span>
-                                        {% elif booking.status == 'scheduled' %}
+                                        {% if booking.status == 'scheduled' and booking.booking_source == 'online' %}
+                                        <span class="badge bg-warning">Pending Review</span>
+                                        {% elif booking.status == 'confirmed' %}
                                         <span class="badge bg-success">Accepted</span>
                                         {% elif booking.status == 'cancelled' %}
                                         <span class="badge bg-danger">Rejected</span>
+                                        {% elif booking.status == 'completed' %}
+                                        <span class="badge bg-info">Completed</span>
                                         {% else %}
                                         <span class="badge bg-secondary">{{ booking.status }}</span>
                                         {% endif %}
@@ -275,7 +277,7 @@
                                                 <i class="fas fa-envelope"></i>
                                             </a>
                                             {% endif %}
-                                            {% if booking.status == 'pending' %}
+                                            {% if booking.status == 'scheduled' %}
                                             <button type="button" class="btn btn-success" 
                                                     onclick="acceptBooking({{ booking.id }})" title="Accept">
                                                 <i class="fas fa-check"></i>
@@ -284,7 +286,7 @@
                                                     onclick="rejectBooking({{ booking.id }})" title="Reject">
                                                 <i class="fas fa-times"></i>
                                             </button>
-                                            {% elif booking.status == 'scheduled' %}
+                                            {% elif booking.status == 'confirmed' %}
                                             <button type="button" class="btn btn-warning" 
                                                     onclick="markCallback({{ booking.id }})" title="Mark as Called Back">
                                                 <i class="fas fa-phone-volume"></i>

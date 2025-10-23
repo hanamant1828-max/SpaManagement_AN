@@ -14,6 +14,9 @@ def get_online_bookings(status_filter=None, date_from=None, date_to=None):
         query = UnakiBooking.query.filter_by(booking_source='online')
 
         if status_filter:
+            # Map 'pending' to 'scheduled' since online bookings start as 'scheduled' status
+            if status_filter == 'pending':
+                status_filter = 'scheduled'
             query = query.filter_by(status=status_filter)
 
         if date_from:
@@ -59,7 +62,10 @@ def accept_booking(booking_id, staff_id=None, notes=None):
     if not booking:
         return None, "Booking not found"
 
-    booking.status = 'confirmed'  # Change from scheduled to confirmed
+    # Change status from 'scheduled' (pending) to 'confirmed' (accepted)
+    booking.status = 'confirmed'
+    booking.confirmed_at = datetime.now()
+    
     if staff_id:
         staff = User.query.get(staff_id)
         if staff:
