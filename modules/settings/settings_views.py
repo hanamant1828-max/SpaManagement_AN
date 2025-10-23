@@ -532,16 +532,6 @@ def api_delete_gst_rate(rate_id):
             'message': str(e)
         }), 500
 
-@app.route('/settings')
-@login_required
-def settings():
-    """Settings page"""
-    if not current_user.can_access('settings'):
-        flash('Access denied', 'danger')
-        return redirect(url_for('dashboard'))
-
-    return render_template('settings.html')
-
 @app.route('/system_management')
 @login_required
 def system_management():
