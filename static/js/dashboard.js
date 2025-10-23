@@ -15,7 +15,7 @@ document.addEventListener('DOMContentLoaded', function() {
 function setupDashboardButtonHandlers() {
     // Handle quick action buttons
     const quickActionButtons = document.querySelectorAll('.btn-group .btn');
-    quickActionButtons.forEach(button => {
+    quickActionButtons.for                 Each(button => {
         // Add click handler as backup
         button.addEventListener('click', function(e) {
             const action = this.getAttribute('data-action');
