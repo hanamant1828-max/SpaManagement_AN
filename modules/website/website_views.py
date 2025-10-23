@@ -176,10 +176,16 @@ def website_book_online():
 
         except Exception as e:
             db.session.rollback()
-            print(f"Booking error: {e}")
+            print(f"=== BOOKING ERROR ===")
+            print(f"Error type: {type(e).__name__}")
+            print(f"Error message: {str(e)}")
+            print(f"Client name: {client_name}")
+            print(f"Client phone: {client_phone}")
+            print(f"Client email: {client_email}")
             import traceback
             traceback.print_exc()
-            flash('An error occurred. Please try again or contact us directly.', 'error')
+            print(f"=== END BOOKING ERROR ===")
+            flash(f'Booking error: {str(e)}. Please try again or contact us directly.', 'error')
             return redirect(url_for('website_book_online'))
 
     services = Service.query.filter_by(is_active=True).order_by(Service.name).all()
