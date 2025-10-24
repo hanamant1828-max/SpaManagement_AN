@@ -12,7 +12,8 @@ from models import UnakiBooking, User
 from .online_booking_queries import (
     get_online_bookings, get_online_booking_by_id, 
     update_booking_status, accept_booking, reject_booking,
-    bulk_accept_bookings, bulk_reject_bookings, get_online_booking_stats
+    bulk_accept_bookings, bulk_reject_bookings, get_online_booking_stats,
+    get_grouped_online_bookings, accept_grouped_bookings
 )
 
 
@@ -43,8 +44,8 @@ def online_bookings():
         except ValueError:
             date_to = None
     
-    # Get bookings with filters
-    bookings = get_online_bookings(
+    # Get grouped bookings with filters
+    grouped_bookings = get_grouped_online_bookings(
         status_filter=status_filter if status_filter != 'all' else None,
         date_from=date_from,
         date_to=date_to
@@ -57,7 +58,7 @@ def online_bookings():
     staff_members = User.query.filter_by(is_active=True).order_by(User.first_name).all()
     
     return render_template('online_bookings.html',
-                         bookings=bookings,
+                         grouped_bookings=grouped_bookings,
                          stats=stats,
                          staff_members=staff_members,
                          status_filter=status_filter,
@@ -195,3 +196,49 @@ def api_online_booking_stats():
     """Get online booking statistics"""
     stats = get_online_booking_stats()
     return jsonify(stats)
+
+
+@app.route('/online-bookings/accept-group', methods=['POST'])
+@login_required
+def accept_grouped_booking():
+    """Accept a group of bookings with individual staff assignments"""
+    if not current_user.can_access('bookings'):
+        return jsonify({'success': False, 'error': 'Access denied'}), 403
+    
+    try:
+        # Get booking IDs and their staff assignments from the form
+        booking_ids = request.form.getlist('booking_ids[]')
+        
+        # Build mapping of booking_id to staff_id
+        booking_staff_map = {}
+        for booking_id in booking_ids:
+            staff_id = request.form.get(f'staff_{booking_id}')
+            booking_staff_map[booking_id] = staff_id if staff_id else None
+        
+        if not booking_staff_map:
+            flash('No bookings selected', 'warning')
+            return redirect(url_for('online_bookings'))
+        
+        # Accept all bookings with their individual staff assignments
+        results = accept_grouped_bookings(booking_staff_map)
+        
+        success_count = len(results['success'])
+        failed_count = len(results['failed'])
+        
+        if success_count > 0:
+            flash(f'Successfully accepted {success_count} booking(s)', 'success')
+        if failed_count > 0:
+            flash(f'Failed to accept {failed_count} booking(s)', 'warning')
+        
+        if request.is_json:
+            return jsonify({'success': True, 'results': results})
+        
+        return redirect(url_for('online_bookings'))
+        
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        flash(f'Error accepting bookings: {str(e)}', 'danger')
+        if request.is_json:
+            return jsonify({'success': False, 'error': str(e)}), 500
+        return redirect(url_for('online_bookings'))
