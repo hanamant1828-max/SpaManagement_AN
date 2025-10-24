@@ -51,6 +51,26 @@ def online_bookings():
         date_to=date_to
     )
     
+    # Convert grouped bookings to JSON-serializable format for JavaScript
+    grouped_bookings_json = []
+    for group in grouped_bookings:
+        bookings_list = []
+        for booking in group['bookings']:
+            bookings_list.append({
+                'id': booking.id,
+                'service_name': booking.service_name,
+                'service_duration': booking.service_duration,
+                'service_price': float(booking.service_price or 0),
+                'start_time': booking.start_time.isoformat() if booking.start_time else None,
+                'staff_name': booking.staff_name
+            })
+        
+        grouped_bookings_json.append({
+            'customer_name': group['customer_name'],
+            'customer_phone': group['customer_phone'],
+            'bookings': bookings_list
+        })
+    
     # Get statistics
     stats = get_online_booking_stats()
     
@@ -59,6 +79,7 @@ def online_bookings():
     
     return render_template('online_bookings.html',
                          grouped_bookings=grouped_bookings,
+                         grouped_bookings_json=grouped_bookings_json,
                          stats=stats,
                          staff_members=staff_members,
                          status_filter=status_filter,

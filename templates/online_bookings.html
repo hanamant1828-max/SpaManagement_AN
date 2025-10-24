@@ -378,7 +378,7 @@
 
 <script>
 // Store grouped bookings data for JavaScript access
-const groupedBookings = {{ grouped_bookings|tojson|safe }};
+const groupedBookings = {{ grouped_bookings_json|tojson|safe }};
 
 // Toggle group expansion
 function toggleGroup(groupId) {
