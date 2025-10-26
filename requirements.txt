@@ -113,3 +113,12 @@ flask-sqlalchemy
 gunicorn
 psycopg2-binary
 pillow
+flask-wtf
+insightface
+numpy
+onnxruntime
+opencv-python
+Pillow
+python-dotenv
+pytz
+weasyprint
