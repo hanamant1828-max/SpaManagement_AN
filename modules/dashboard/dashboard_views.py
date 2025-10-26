@@ -117,6 +117,11 @@ def dashboard_stats_api():
 
         service_labels = [s[0] for s in service_popularity]
         service_data = [s[1] for s in service_popularity]
+        
+        # Show demo data if we have fewer than 3 services
+        if len(service_labels) < 3:
+            service_labels = ['Facial Treatment', 'Swedish Massage', 'Hair Styling', 'Manicure', 'Pedicure', 'Body Scrub']
+            service_data = [45, 38, 32, 28, 25, 20]
 
         # Get last 7 days bookings
         bookings_data = []
@@ -145,14 +150,10 @@ def dashboard_stats_api():
         staff_labels = [f"{s[1]} {s[2]}" for s in staff_performance]
         staff_data = [s[3] for s in staff_performance]
 
-        # Add realistic demo data if charts are empty
+        # Add realistic demo data if charts are empty or have minimal data
         if not any(revenue_data) or sum(revenue_data) == 0:
             revenue_data = [4500, 5200, 4800, 6100, 5500, 6800, 7200]
             revenue_labels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
-        
-        if not service_labels or len(service_labels) == 0:
-            service_labels = ['Facial Treatment', 'Swedish Massage', 'Hair Styling', 'Manicure', 'Pedicure', 'Body Scrub']
-            service_data = [45, 38, 32, 28, 25, 20]
         
         if not any(bookings_data) or sum(bookings_data) == 0:
             bookings_data = [12, 15, 10, 18, 14, 20, 16]
