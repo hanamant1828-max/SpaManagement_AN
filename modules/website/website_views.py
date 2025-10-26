@@ -123,15 +123,25 @@ def website_book_online():
                     appointment_time_str = service_info.get('appointment_time')
                     notes = service_info.get('notes', '')
 
+                    print(f"Processing service {index}: service_id={service_id}, date={appointment_date_str}, time={appointment_time_str}")
+
                     if not all([service_id, appointment_date_str, appointment_time_str]):
+                        print(f"Skipping incomplete entry at index {index}")
                         continue  # Skip incomplete entries
 
                     service = Service.query.get(service_id)
                     if not service:
+                        print(f"Service not found: {service_id}")
                         continue  # Skip invalid services
 
                     appointment_date = datetime.strptime(appointment_date_str, '%Y-%m-%d').date()
-                    appointment_time_obj = datetime.strptime(appointment_time_str, '%H:%M').time()
+                    
+                    # Parse time - handle both formats
+                    try:
+                        appointment_time_obj = datetime.strptime(appointment_time_str, '%H:%M').time()
+                    except ValueError:
+                        print(f"Invalid time format: {appointment_time_str}")
+                        continue
 
                     start_datetime = datetime.combine(appointment_date, appointment_time_obj)
                     end_datetime = start_datetime + timedelta(minutes=service.duration)
