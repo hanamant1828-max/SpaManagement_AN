@@ -86,19 +86,25 @@ def website_book_online():
                 flash('Please select at least one service with date and time.', 'error')
                 return redirect(url_for('website_book_online'))
 
-            # Create or get customer - ALWAYS search by phone first
+            # Create or get customer - search by phone first, then check email for conflicts
             customer = Customer.query.filter_by(phone=client_phone).first()
 
             if not customer:
-                # Customer doesn't exist, create new one
-                name_parts = client_name.split(' ', 1)
-                first_name = name_parts[0]
-                last_name = name_parts[1] if len(name_parts) > 1 else ''
-
-                # Only set email if it's provided and not empty
+                # Customer doesn't exist by phone, check if email already exists
                 email_value = None
                 if client_email and client_email.strip():
                     email_value = client_email.strip().lower()
+                    existing_email_customer = Customer.query.filter_by(email=email_value).first()
+                    
+                    if existing_email_customer:
+                        # Email exists but phone is different - this is a conflict
+                        flash(f'A customer with email {email_value} already exists with phone {existing_email_customer.phone}. Please use a different email or contact support.', 'error')
+                        return redirect(url_for('website_book_online'))
+                
+                # Safe to create new customer
+                name_parts = client_name.split(' ', 1)
+                first_name = name_parts[0]
+                last_name = name_parts[1] if len(name_parts) > 1 else ''
 
                 customer = Customer(
                     first_name=first_name,
@@ -110,7 +116,11 @@ def website_book_online():
                 db.session.add(customer)
                 db.session.flush()
             else:
-                # Customer exists - update email if provided and different
+                # Customer exists by phone - update name and email if needed
+                name_parts = client_name.split(' ', 1)
+                customer.first_name = name_parts[0]
+                customer.last_name = name_parts[1] if len(name_parts) > 1 else ''
+                
                 if client_email and client_email.strip():
                     new_email = client_email.strip().lower()
                     if customer.email != new_email:
@@ -119,9 +129,12 @@ def website_book_online():
                             Customer.email == new_email,
                             Customer.id != customer.id
                         ).first()
-                        if not existing_email_customer:
+                        if existing_email_customer:
+                            # Email conflict - keep old email
+                            flash(f'Email {new_email} is already registered to another customer. Using existing email {customer.email}.', 'warning')
+                        else:
                             customer.email = new_email
-                            db.session.flush()
+                db.session.flush()
 
             # Get available staff
             available_staff = User.query.filter_by(is_active=True).first()

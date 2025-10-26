@@ -305,19 +305,20 @@
                 <h5 class="modal-title">Accept Booking - Assign Staff</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <form id="acceptGroupForm" method="POST" action="{{ url_for('accept_grouped_booking') }}">
+            <form id="acceptGroupForm" method="POST" action="{{ url_for('accept_grouped_booking') }}" onsubmit="return validateAcceptForm()">
                 <div class="modal-body">
                     <div class="alert alert-info">
                         <i class="fas fa-info-circle me-2"></i>
                         Please assign staff members to each service below before confirming the booking.
                     </div>
+                    <div id="acceptFormErrors" class="alert alert-danger" style="display: none;"></div>
                     <div id="servicesContainer">
                         <!-- Services will be dynamically added here -->
                     </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-success">
+                    <button type="submit" class="btn btn-success" id="confirmBookingsBtn">
                         <i class="fas fa-check me-2"></i>Confirm All Bookings
                     </button>
                 </div>
@@ -458,6 +459,37 @@ function rejectGroupBooking(groupId) {
 
     const modal = new bootstrap.Modal(document.getElementById('rejectGroupModal'));
     modal.show();
+}
+
+// Validate accept form before submission
+function validateAcceptForm() {
+    const form = document.getElementById('acceptGroupForm');
+    const staffSelects = form.querySelectorAll('select[name^="staff_"]');
+    const errorDiv = document.getElementById('acceptFormErrors');
+    const errors = [];
+    
+    // Check if all staff members are assigned
+    staffSelects.forEach((select, index) => {
+        if (!select.value) {
+            errors.push(`Service ${index + 1}: Please select a staff member`);
+        }
+    });
+    
+    if (errors.length > 0) {
+        errorDiv.innerHTML = '<strong>Please fix the following errors:</strong><ul class="mb-0 mt-2">' + 
+            errors.map(err => `<li>${err}</li>`).join('') + '</ul>';
+        errorDiv.style.display = 'block';
+        return false;
+    }
+    
+    errorDiv.style.display = 'none';
+    
+    // Show loading state
+    const submitBtn = document.getElementById('confirmBookingsBtn');
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Processing...';
+    
+    return true;
 }
 
 // Refresh bookings
