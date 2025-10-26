@@ -368,8 +368,8 @@ endblock %} {% block extra_css %}
 
     /* Enhanced Charts Grid */
     .charts-grid {
-        display: grid;
-        grid-template-columns: repeat(12, 1fr);
+        display: flex;
+        flex-wrap: wrap;
         gap: 1.5rem;
         margin-bottom: 2rem;
     }
@@ -414,6 +414,8 @@ endblock %} {% block extra_css %}
     }
     .chart-card.col-6 {
         grid-column: span 6;
+        width: 50%;
+        flex: 0 0 50%;
     }
     .chart-card.col-12 {
         grid-column: span 12;
