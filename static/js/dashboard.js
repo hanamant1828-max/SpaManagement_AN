@@ -15,7 +15,7 @@ document.addEventListener('DOMContentLoaded', function() {
 function setupDashboardButtonHandlers() {
     // Handle quick action buttons
     const quickActionButtons = document.querySelectorAll('.btn-group .btn');
-    quickActionButtons.forEach(button => {
+    quickActionButtons.forEach(function(button) {
         // Add click handler as backup
         button.addEventListener('click', function(e) {
             const action = this.getAttribute('data-action');
@@ -856,7 +856,7 @@ async function refreshDashboardData() {
 
     // Add loading indicator
     const statsCards = document.querySelectorAll('.card[data-stat]');
-    statsCards.forEach(card => {
+    statsCards.forEach(function(card) {
         card.classList.add('loading');
     });
 
@@ -869,7 +869,7 @@ async function refreshDashboardData() {
     } catch (error) {
         console.error('Error refreshing dashboard:', error);
         
-        statsCards.forEach(card => {
+        statsCards.forEach(function(card) {
             card.classList.remove('loading');
         });
     }
