@@ -1,4 +1,3 @@
-
 {% extends "base.html" %}
 
 {% block title %}Online Bookings - Spa Management{% endblock %}
@@ -113,12 +112,12 @@
                         </div>
                         <div class="col-md-3">
                             <label class="form-label">From Date</label>
-                            <input type="date" name="date_from" class="form-control" 
+                            <input type="date" name="date_from" class="form-control"
                                    value="{{ date_from.strftime('%Y-%m-%d') if date_from else '' }}">
                         </div>
                         <div class="col-md-3">
                             <label class="form-label">To Date</label>
-                            <input type="date" name="date_to" class="form-control" 
+                            <input type="date" name="date_to" class="form-control"
                                    value="{{ date_to.strftime('%Y-%m-%d') if date_to else '' }}">
                         </div>
                         <div class="col-md-3 d-flex align-items-end">
@@ -187,10 +186,7 @@
                                         {% endif %}
                                     </td>
                                     <td>
-                                        <div><i class="fas fa-phone me-1"></i>{{ group.customer_phone }}</div>
-                                        {% if group.customer_email %}
-                                        <div><i class="fas fa-envelope me-1"></i>{{ group.customer_email }}</div>
-                                        {% endif %}
+                                        <div><i class="fas fa-phone text-primary me-2"></i>{{ group.customer_phone }}</div>
                                     </td>
                                     <td>
                                         {% if group.bookings|length == 1 %}
@@ -237,11 +233,11 @@
                                             </a>
                                             {% endif %}
                                             {% if group.status == 'scheduled' %}
-                                            <button type="button" class="btn btn-success" 
+                                            <button type="button" class="btn btn-success"
                                                     onclick="acceptGroupBooking({{ group_id }})" title="Accept">
                                                 <i class="fas fa-check"></i>
                                             </button>
-                                            <button type="button" class="btn btn-danger" 
+                                            <button type="button" class="btn btn-danger"
                                                     onclick="rejectGroupBooking({{ group_id }})" title="Reject">
                                                 <i class="fas fa-times"></i>
                                             </button>
@@ -249,7 +245,7 @@
                                         </div>
                                     </td>
                                 </tr>
-                                
+
                                 <!-- Sub-appointments (hidden by default) -->
                                 {% if group.bookings|length > 1 %}
                                 <tr class="sub-appointments" id="sub-{{ group_id }}" style="display: none;">
@@ -384,7 +380,7 @@ const groupedBookings = {{ grouped_bookings_json|tojson|safe }};
 function toggleGroup(groupId) {
     const subRow = document.getElementById('sub-' + groupId);
     const icon = document.getElementById('icon-' + groupId);
-    
+
     if (subRow.style.display === 'none') {
         subRow.style.display = 'table-row';
         icon.classList.remove('fa-chevron-right');
@@ -401,7 +397,7 @@ function acceptGroupBooking(groupId) {
     const group = groupedBookings[groupId - 1];
     const container = document.getElementById('servicesContainer');
     container.innerHTML = '';
-    
+
     // Add each booking as a service with staff assignment dropdown
     group.bookings.forEach((booking, index) => {
         const serviceDiv = document.createElement('div');
@@ -411,8 +407,8 @@ function acceptGroupBooking(groupId) {
                 <div class="col-md-6">
                     <h6 class="mb-1">${booking.service_name}</h6>
                     <small class="text-muted">
-                        ${booking.service_duration} min | 
-                        ${new Date(booking.start_time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })} | 
+                        ${booking.service_duration} min |
+                        ${new Date(booking.start_time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })} |
                         $${parseFloat(booking.service_price || 0).toFixed(2)}
                     </small>
                 </div>
@@ -430,7 +426,7 @@ function acceptGroupBooking(groupId) {
         `;
         container.appendChild(serviceDiv);
     });
-    
+
     const modal = new bootstrap.Modal(document.getElementById('acceptGroupModal'));
     modal.show();
 }
@@ -439,13 +435,13 @@ function acceptGroupBooking(groupId) {
 function rejectGroupBooking(groupId) {
     const group = groupedBookings[groupId - 1];
     const form = document.getElementById('rejectGroupForm');
-    
+
     // Set form action to reject all bookings in this group
     form.action = '{{ url_for("bulk_action_online_bookings") }}';
-    
+
     // Clear any existing hidden inputs
     form.querySelectorAll('input[name="booking_ids[]"]').forEach(input => input.remove());
-    
+
     // Add hidden inputs for all booking IDs in the group
     group.bookings.forEach(booking => {
         const input = document.createElement('input');
@@ -454,7 +450,7 @@ function rejectGroupBooking(groupId) {
         input.value = booking.id;
         form.appendChild(input);
     });
-    
+
     // Add action type
     let actionInput = form.querySelector('input[name="action"]');
     if (!actionInput) {
@@ -464,7 +460,7 @@ function rejectGroupBooking(groupId) {
         form.appendChild(actionInput);
     }
     actionInput.value = 'reject';
-    
+
     const modal = new bootstrap.Modal(document.getElementById('rejectGroupModal'));
     modal.show();
 }
