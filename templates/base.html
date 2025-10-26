@@ -24,6 +24,7 @@
     <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
 
     {% block extra_head %}{% endblock %}
+    {% block extra_css %}{% endblock %}
 </head>
 <body>
     <!-- Top Navigation Bar -->
@@ -334,6 +335,7 @@
     <script src="{{ url_for('static', filename='js/appointment_context_menu.js') }}" 
             onerror="console.error('Failed to load appointment_context_menu.js')"></script>
 
+    {% block extra_js %}{% endblock %}
     {% block scripts %}{% endblock %}
 </body>
 </html>
