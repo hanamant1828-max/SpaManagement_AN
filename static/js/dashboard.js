@@ -64,7 +64,7 @@ function setupDashboardButtonHandlers() {
 
     // Handle navigation links in the dashboard
     const dashboardLinks = document.querySelectorAll('a[href]');
-    dashboardLinks.forEach(link => {
+    dashboardLinks.forEach(function(link) {
         link.addEventListener('click', function(e) {
             const href = this.getAttribute('href');
             if (href && href.startsWith('/')) {
@@ -73,9 +73,9 @@ function setupDashboardButtonHandlers() {
                 this.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Loading...';
 
                 // Reset after delay if navigation doesn't complete
-                setTimeout(() => {
-                    if (this.innerHTML.includes('Loading...')) {
-                        this.innerHTML = originalText;
+                setTimeout(function() {
+                    if (link.innerHTML.includes('Loading...')) {
+                        link.innerHTML = originalText;
                     }
                 }, 3000);
             }
@@ -856,9 +856,11 @@ async function refreshDashboardData() {
 
     // Add loading indicator
     const statsCards = document.querySelectorAll('.card[data-stat]');
-    statsCards.forEach(function(card) {
-        card.classList.add('loading');
-    });
+    if (statsCards && statsCards.length > 0) {
+        statsCards.forEach(function(card) {
+            card.classList.add('loading');
+        });
+    }
 
     try {
         // Reload charts with fresh data
@@ -869,9 +871,19 @@ async function refreshDashboardData() {
     } catch (error) {
         console.error('Error refreshing dashboard:', error);
         
-        statsCards.forEach(function(card) {
-            card.classList.remove('loading');
-        });
+        if (statsCards && statsCards.length > 0) {
+            statsCards.forEach(function(card) {
+                card.classList.remove('loading');
+            });
+        }
+    } finally {
+        // Ensure loading state is removed
+        const allCards = document.querySelectorAll('.card[data-stat]');
+        if (allCards && allCards.length > 0) {
+            allCards.forEach(function(card) {
+                card.classList.remove('loading');
+            });
+        }
     }
 }
 
