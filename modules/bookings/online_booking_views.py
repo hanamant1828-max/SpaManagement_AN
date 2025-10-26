@@ -247,9 +247,15 @@ def accept_grouped_booking():
         failed_count = len(results['failed'])
         
         if success_count > 0:
-            flash(f'Successfully accepted {success_count} booking(s)', 'success')
+            flash(f'✅ Successfully accepted {success_count} booking(s)', 'success')
+        
         if failed_count > 0:
-            flash(f'Failed to accept {failed_count} booking(s)', 'warning')
+            # Show comprehensive error messages for each failed booking
+            flash(f'❌ Failed to accept {failed_count} booking(s). Please review the errors below:', 'danger')
+            for failed_booking in results['failed']:
+                # Format the error message for display (remove extra "Booking #X:" prefix if present)
+                error_msg = failed_booking['error']
+                flash(error_msg, 'danger')
         
         if request.is_json:
             return jsonify({'success': True, 'results': results})

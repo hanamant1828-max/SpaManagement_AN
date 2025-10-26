@@ -121,7 +121,10 @@ def accept_booking(booking_id, staff_id=None, notes=None):
     end_time_str = booking.end_time.strftime('%H:%M')
     appointment_date = booking.appointment_date
     
-    # VALIDATION: Check staff conflicts (shift hours, breaks, overlapping appointments)
+    # COLLECT ALL VALIDATION ERRORS (don't stop at first error)
+    validation_errors = []
+    
+    # VALIDATION 1: Check staff conflicts (shift hours, breaks, overlapping appointments)
     staff_conflict_result = check_staff_conflicts(
         staff_id, 
         appointment_date, 
@@ -133,13 +136,23 @@ def accept_booking(booking_id, staff_id=None, notes=None):
     if staff_conflict_result.get('has_conflicts'):
         if staff_conflict_result.get('shift_violation'):
             # Shift violations (outside hours, during break, etc.)
-            return None, staff_conflict_result.get('reason', 'Staff scheduling conflict')
+            validation_errors.append({
+                'category': 'Staff Schedule',
+                'message': staff_conflict_result.get('reason', 'Staff scheduling conflict')
+            })
         else:
             # Overlapping appointments
             conflicts = staff_conflict_result.get('conflicts', [])
-            if conflicts:
-                conflict = conflicts[0]
-                return None, f"Staff {staff.full_name} already has an appointment from {conflict['start_time']} to {conflict['end_time']} with {conflict['client_name']}"
+            for conflict in conflicts:
+                validation_errors.append({
+                    'category': 'Staff Conflicts',
+                    'message': f"Staff {staff.full_name} already has an appointment from {conflict['start_time']} to {conflict['end_time']} with {conflict['client_name']}"
+                })
+    
+    # If there are any validation errors, return them all
+    if validation_errors:
+        error_message = _format_validation_errors(validation_errors)
+        return None, error_message
     
     # All validations passed - accept the booking
     booking.status = 'confirmed'
@@ -150,7 +163,7 @@ def accept_booking(booking_id, staff_id=None, notes=None):
     booking.staff_name = f"{staff.first_name} {staff.last_name}"
 
     # Add notes
-    validation_note = f"\n[{datetime.now().strftime('%Y-%m-%d %H:%M')}] Booking accepted with validations passed"
+    validation_note = f"\n[{datetime.now().strftime('%Y-%m-%d %H:%M')}] Booking accepted - all validations passed"
     if notes:
         booking.notes = (booking.notes or '') + f"{validation_note}: {notes}"
     else:
@@ -158,6 +171,32 @@ def accept_booking(booking_id, staff_id=None, notes=None):
 
     db.session.commit()
     return booking, None
+
+
+def _format_validation_errors(errors):
+    """Format validation errors in a clear, organized way"""
+    if not errors:
+        return ""
+    
+    # Group errors by category
+    errors_by_category = {}
+    for error in errors:
+        category = error.get('category', 'General')
+        if category not in errors_by_category:
+            errors_by_category[category] = []
+        errors_by_category[category].append(error['message'])
+    
+    # Format the error message
+    formatted_parts = []
+    for category, messages in errors_by_category.items():
+        if len(messages) == 1:
+            formatted_parts.append(f"❌ {category}: {messages[0]}")
+        else:
+            formatted_parts.append(f"❌ {category}:")
+            for msg in messages:
+                formatted_parts.append(f"  • {msg}")
+    
+    return "\n".join(formatted_parts)
 
 
 def reject_booking(booking_id, reason):
@@ -222,8 +261,8 @@ def accept_grouped_bookings(booking_staff_map):
             'staff': staff
         })
     
-    # Step 2: Validate all bookings before accepting any
-    validation_errors = []
+    # Step 2: Collect ALL validation errors for each booking (comprehensive checking)
+    booking_errors = {}  # Map booking_id to list of errors
     
     for item in bookings_to_process:
         booking = item['booking']
@@ -231,11 +270,15 @@ def accept_grouped_bookings(booking_staff_map):
         staff = item['staff']
         booking_id = item['booking_id']
         
+        # Initialize error list for this booking
+        if booking_id not in booking_errors:
+            booking_errors[booking_id] = []
+        
         start_time_str = booking.start_time.strftime('%H:%M')
         end_time_str = booking.end_time.strftime('%H:%M')
         appointment_date = booking.appointment_date
         
-        # VALIDATION: Check staff conflicts
+        # VALIDATION 1: Check staff conflicts (collect ALL conflicts, not just first)
         staff_conflict_result = check_staff_conflicts(
             staff_id, 
             appointment_date, 
@@ -246,17 +289,19 @@ def accept_grouped_bookings(booking_staff_map):
         
         if staff_conflict_result.get('has_conflicts'):
             if staff_conflict_result.get('shift_violation'):
-                error_msg = f"Booking #{booking_id}: {staff_conflict_result.get('reason', 'Staff scheduling conflict')}"
+                # Shift violations (not scheduled, outside hours, during break)
+                booking_errors[booking_id].append({
+                    'category': 'Staff Schedule',
+                    'message': staff_conflict_result.get('reason', 'Staff scheduling conflict')
+                })
             else:
+                # Overlapping appointments (show ALL conflicts, not just first)
                 conflicts = staff_conflict_result.get('conflicts', [])
-                if conflicts:
-                    conflict = conflicts[0]
-                    error_msg = f"Booking #{booking_id}: {staff.full_name} already has an appointment from {conflict['start_time']} to {conflict['end_time']}"
-                else:
-                    error_msg = f"Booking #{booking_id}: Staff scheduling conflict"
-            
-            validation_errors.append(error_msg)
-            results['failed'].append({'id': booking_id, 'error': error_msg})
+                for conflict in conflicts:
+                    booking_errors[booking_id].append({
+                        'category': 'Staff Conflicts',
+                        'message': f"{staff.full_name} already has an appointment from {conflict['start_time']} to {conflict['end_time']} with {conflict['client_name']}"
+                    })
     
     # Step 3: Check for INTERNAL conflicts (between bookings in this group)
     # For each pair of bookings, check if same staff has time overlap
@@ -264,11 +309,6 @@ def accept_grouped_bookings(booking_staff_map):
     
     for i, item1 in enumerate(bookings_to_process):
         for item2 in bookings_to_process[i+1:]:
-            # Skip if already marked as failed
-            if item1['booking_id'] in [f['id'] for f in results['failed']] or \
-               item2['booking_id'] in [f['id'] for f in results['failed']]:
-                continue
-            
             # Check if same staff and same date
             if item1['staff_id'] == item2['staff_id'] and \
                item1['booking'].appointment_date == item2['booking'].appointment_date:
@@ -284,21 +324,32 @@ def accept_grouped_bookings(booking_staff_map):
                     pair_key = f"{min(item1['booking_id'], item2['booking_id'])}-{max(item1['booking_id'], item2['booking_id'])}"
                     if pair_key not in internal_conflicts_found:
                         internal_conflicts_found.add(pair_key)
-                        error_msg = f"Internal conflict: Bookings #{item1['booking_id']} and #{item2['booking_id']} have overlapping times for {item1['staff'].full_name}"
-                        validation_errors.append(error_msg)
                         
-                        # Add error to both bookings if not already failed
-                        if item1['booking_id'] not in [f['id'] for f in results['failed']]:
-                            results['failed'].append({'id': item1['booking_id'], 'error': error_msg})
-                        if item2['booking_id'] not in [f['id'] for f in results['failed']]:
-                            results['failed'].append({'id': item2['booking_id'], 'error': error_msg})
+                        # Add internal conflict error to BOTH bookings
+                        conflict_msg = f"Overlaps with booking #{item2['booking_id']} for {item1['staff'].full_name} ({item1['booking'].start_time.strftime('%I:%M %p')} - {item1['booking'].end_time.strftime('%I:%M %p')})"
+                        booking_errors[item1['booking_id']].append({
+                            'category': 'Internal Conflicts',
+                            'message': conflict_msg
+                        })
+                        
+                        conflict_msg2 = f"Overlaps with booking #{item1['booking_id']} for {item2['staff'].full_name} ({item2['booking'].start_time.strftime('%I:%M %p')} - {item2['booking'].end_time.strftime('%I:%M %p')})"
+                        booking_errors[item2['booking_id']].append({
+                            'category': 'Internal Conflicts',
+                            'message': conflict_msg2
+                        })
     
-    # Step 4: If there are any validation errors, don't accept ANY bookings
-    if validation_errors:
-        print(f"⚠️ Grouped booking validation failed: {'; '.join(validation_errors)}")
+    # Step 4: Format errors and build failed results
+    for booking_id, errors in booking_errors.items():
+        if errors:  # Only add to failed if there are errors
+            error_message = f"Booking #{booking_id}:\n" + _format_validation_errors(errors)
+            results['failed'].append({'id': booking_id, 'error': error_message})
+    
+    # Step 5: If there are any validation errors, don't accept ANY bookings
+    if results['failed']:
+        print(f"⚠️ Grouped booking validation failed: {len(results['failed'])} booking(s) have errors")
         return results
     
-    # Step 5: All validations passed - accept all bookings
+    # Step 6: All validations passed - accept all bookings
     for item in bookings_to_process:
         # Skip if somehow marked as failed
         if item['booking_id'] in [f['id'] for f in results['failed']]:
