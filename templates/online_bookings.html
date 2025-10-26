@@ -227,11 +227,6 @@
                                             <a href="tel:{{ group.customer_phone }}" class="btn btn-primary" title="Call Customer">
                                                 <i class="fas fa-phone"></i>
                                             </a>
-                                            {% if group.customer_email %}
-                                            <a href="mailto:{{ group.customer_email }}" class="btn btn-secondary" title="Email Customer">
-                                                <i class="fas fa-envelope"></i>
-                                            </a>
-                                            {% endif %}
                                             {% if group.status == 'scheduled' %}
                                             <button type="button" class="btn btn-success"
                                                     onclick="acceptGroupBooking({{ group_id }})" title="Accept">
