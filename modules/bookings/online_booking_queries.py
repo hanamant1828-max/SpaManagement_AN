@@ -121,7 +121,7 @@ def accept_booking(booking_id, staff_id=None, notes=None):
     end_time_str = booking.end_time.strftime('%H:%M')
     appointment_date = booking.appointment_date
     
-    # VALIDATION 1: Check staff conflicts (shift hours, breaks, overlapping appointments)
+    # VALIDATION: Check staff conflicts (shift hours, breaks, overlapping appointments)
     staff_conflict_result = check_staff_conflicts(
         staff_id, 
         appointment_date, 
@@ -140,18 +140,6 @@ def accept_booking(booking_id, staff_id=None, notes=None):
             if conflicts:
                 conflict = conflicts[0]
                 return None, f"Staff {staff.full_name} already has an appointment from {conflict['start_time']} to {conflict['end_time']} with {conflict['client_name']}"
-    
-    # VALIDATION 2: Check client conflicts (unpaid appointments, time overlaps)
-    if booking.client_id:
-        client_conflict_result = check_client_conflicts(
-            booking.client_id,
-            appointment_date,
-            start_time_str,
-            end_time_str
-        )
-        
-        if client_conflict_result.get('has_conflict'):
-            return None, client_conflict_result.get('message', 'Client has conflicting appointments')
     
     # All validations passed - accept the booking
     booking.status = 'confirmed'
@@ -247,10 +235,7 @@ def accept_grouped_bookings(booking_staff_map):
         end_time_str = booking.end_time.strftime('%H:%M')
         appointment_date = booking.appointment_date
         
-        # Track if this booking has failed validation
-        has_failed = False
-        
-        # VALIDATION 1: Check staff conflicts
+        # VALIDATION: Check staff conflicts
         staff_conflict_result = check_staff_conflicts(
             staff_id, 
             appointment_date, 
@@ -272,22 +257,6 @@ def accept_grouped_bookings(booking_staff_map):
             
             validation_errors.append(error_msg)
             results['failed'].append({'id': booking_id, 'error': error_msg})
-            has_failed = True
-        
-        # VALIDATION 2: Check client conflicts (only if staff validation passed)
-        if not has_failed and booking.client_id:
-            client_conflict_result = check_client_conflicts(
-                booking.client_id,
-                appointment_date,
-                start_time_str,
-                end_time_str
-            )
-            
-            if client_conflict_result.get('has_conflict'):
-                error_msg = f"Booking #{booking_id}: {client_conflict_result.get('message', 'Client has conflicting appointments')}"
-                validation_errors.append(error_msg)
-                results['failed'].append({'id': booking_id, 'error': error_msg})
-                has_failed = True
     
     # Step 3: Check for INTERNAL conflicts (between bookings in this group)
     # For each pair of bookings, check if same staff has time overlap
