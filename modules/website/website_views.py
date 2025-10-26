@@ -71,18 +71,18 @@ def website_book_online():
 
             # Create or get customer - ALWAYS search by phone first
             customer = Customer.query.filter_by(phone=client_phone).first()
-            
+
             if not customer:
                 # Customer doesn't exist, create new one
                 name_parts = client_name.split(' ', 1)
                 first_name = name_parts[0]
                 last_name = name_parts[1] if len(name_parts) > 1 else ''
-                
+
                 # Only set email if it's provided and not empty
                 email_value = None
                 if client_email and client_email.strip():
                     email_value = client_email.strip().lower()
-                
+
                 customer = Customer(
                     first_name=first_name,
                     last_name=last_name,
@@ -140,7 +140,7 @@ def website_book_online():
                     email_value = None
                     if client_email and client_email.strip():
                         email_value = client_email.strip().lower()
-                    
+
                     booking = UnakiBooking(
                         client_id=customer.id,
                         client_name=client_name,
@@ -208,10 +208,15 @@ def website_book_online():
     today = date.today()
     available_dates = [(today + timedelta(days=i)).strftime('%Y-%m-%d') for i in range(0, 30)]
 
+    # Generate time slots (9 AM to 6 PM, 30-minute intervals) in 12-hour format
     time_slots = []
-    for hour in range(9, 20):
-        for minute in [0, 30]:
-            time_slots.append(f"{hour:02d}:{minute:02d}")
+    current_time = datetime.combine(date.today(), time(9, 0))
+    end_time = datetime.combine(date.today(), time(18, 0))
+
+    while current_time <= end_time:
+        # Format as 12-hour with AM/PM
+        time_slots.append(current_time.strftime('%I:%M %p'))
+        current_time += timedelta(minutes=30)
 
     return render_template('website/book_online.html',
                          services=services,

@@ -10,13 +10,13 @@
         padding: 4rem 0 3rem;
         text-align: center;
     }
-    
+
     .page-header h1 {
         color: #fff;
         font-size: 3rem;
         margin-bottom: 1rem;
     }
-    
+
     .booking-form {
         background: #fff;
         border-radius: 15px;
@@ -26,30 +26,30 @@
         position: relative;
         z-index: 10;
     }
-    
+
     .form-label {
         font-weight: 500;
         color: var(--dark-color);
         margin-bottom: 0.5rem;
     }
-    
+
     .form-control, .form-select {
         border-radius: 8px;
         padding: 0.75rem 1rem;
         border: 1px solid #ddd;
     }
-    
+
     .form-control:focus, .form-select:focus {
         border-color: var(--primary-color);
         box-shadow: 0 0 0 0.2rem rgba(212,165,116,0.25);
     }
-    
+
     .required-field::after {
         content: '*';
         color: #dc3545;
         margin-left: 4px;
     }
-    
+
     .info-box {
         background: var(--light-color);
         border-left: 4px solid var(--primary-color);
@@ -57,7 +57,7 @@
         border-radius: 8px;
         margin-bottom: 2rem;
     }
-    
+
     .service-item {
         background: #f8f9fa;
         border: 2px solid #dee2e6;
@@ -67,12 +67,12 @@
         position: relative;
         transition: all 0.3s ease;
     }
-    
+
     .service-item:hover {
         border-color: var(--primary-color);
         box-shadow: 0 3px 10px rgba(212,165,116,0.2);
     }
-    
+
     .service-item-header {
         background: linear-gradient(135deg, var(--primary-color), #b8976a);
         color: #fff;
@@ -83,7 +83,7 @@
         justify-content: space-between;
         align-items: center;
     }
-    
+
     .remove-service-btn {
         background: rgba(255,255,255,0.2);
         border: 1px solid rgba(255,255,255,0.3);
@@ -93,12 +93,12 @@
         cursor: pointer;
         transition: all 0.2s;
     }
-    
+
     .remove-service-btn:hover {
         background: rgba(220, 53, 69, 0.9);
         border-color: #dc3545;
     }
-    
+
     .add-service-btn {
         background: linear-gradient(135deg, #28a745, #218838);
         border: none;
@@ -108,7 +108,7 @@
         font-weight: 500;
         transition: all 0.3s;
     }
-    
+
     .add-service-btn:hover {
         transform: translateY(-2px);
         box-shadow: 0 5px 15px rgba(40, 167, 69, 0.3);
@@ -136,29 +136,29 @@
                         <strong>Please note:</strong> Your booking will be confirmed once we verify availability. 
                         We'll contact you shortly to confirm your appointment.
                     </div>
-                    
+
                     <form method="POST" action="{{ url_for('website_book_online') }}" id="bookingForm">
                         <div class="row g-3">
                             <!-- Personal Information -->
                             <div class="col-12">
                                 <h5 class="mb-3"><i class="fas fa-user me-2"></i>Personal Information</h5>
                             </div>
-                            
+
                             <div class="col-md-6">
                                 <label for="client_name" class="form-label required-field">Full Name</label>
                                 <input type="text" class="form-control" id="client_name" name="client_name" required>
                             </div>
-                            
+
                             <div class="col-md-6">
                                 <label for="client_phone" class="form-label required-field">Phone Number</label>
                                 <input type="tel" class="form-control" id="client_phone" name="client_phone" placeholder="+1-555-123-4567" required>
                             </div>
-                            
+
                             <div class="col-12">
                                 <label for="client_email" class="form-label">Email Address (Optional)</label>
                                 <input type="email" class="form-control" id="client_email" name="client_email" placeholder="your@email.com">
                             </div>
-                            
+
                             <!-- Appointment Details -->
                             <div class="col-12 mt-4">
                                 <h5 class="mb-3">
@@ -167,7 +167,7 @@
                                 </h5>
                             </div>
                         </div>
-                        
+
                         <!-- Services Container -->
                         <div id="servicesContainer">
                             <!-- First Service (Template) -->
@@ -175,7 +175,7 @@
                                 <div class="service-item-header">
                                     <span><i class="fas fa-cut me-2"></i>Service #1</span>
                                 </div>
-                                
+
                                 <div class="row g-3">
                                     <div class="col-12">
                                         <label class="form-label required-field">Select Service</label>
@@ -201,13 +201,13 @@
                                             {% endif %}
                                         </select>
                                     </div>
-                                    
+
                                     <div class="col-md-6">
                                         <label class="form-label required-field">Preferred Date</label>
                                         <input type="date" class="form-control" name="services[0][appointment_date]" 
                                                min="{{ available_dates[0] }}" required>
                                     </div>
-                                    
+
                                     <div class="col-md-6">
                                         <label class="form-label required-field">Preferred Time</label>
                                         <select class="form-select" name="services[0][appointment_time]" required>
@@ -217,7 +217,7 @@
                                             {% endfor %}
                                         </select>
                                     </div>
-                                    
+
                                     <div class="col-12">
                                         <label class="form-label">Notes for this service (Optional)</label>
                                         <textarea class="form-control" name="services[0][notes]" rows="2" placeholder="Any special requests..."></textarea>
@@ -225,21 +225,21 @@
                                 </div>
                             </div>
                         </div>
-                        
+
                         <!-- Add Another Service Button -->
                         <div class="text-center my-4">
                             <button type="button" class="btn add-service-btn" onclick="addService()">
                                 <i class="fas fa-plus-circle me-2"></i>Add Another Service
                             </button>
                         </div>
-                        
+
                         <!-- Submit Button -->
                         <div class="mt-4">
                             <button type="submit" class="btn btn-primary btn-lg w-100">
                                 <i class="fas fa-check-circle me-2"></i>Submit Booking Request
                             </button>
                         </div>
-                        
+
                         <div class="text-center mt-3">
                             <small class="text-muted">
                                 <i class="fas fa-lock me-1"></i>Your information is secure and will only be used for your appointment.
@@ -247,7 +247,7 @@
                         </div>
                     </form>
                 </div>
-                
+
                 <!-- Alternative Contact -->
                 <div class="text-center mt-5">
                     <p class="text-muted">Prefer to book over the phone or WhatsApp?</p>
@@ -270,7 +270,7 @@ let serviceCount = 1;
 function addService() {
     const container = document.getElementById('servicesContainer');
     const serviceIndex = serviceCount;
-    
+
     const serviceHTML = `
         <div class="service-item" data-service-index="${serviceIndex}">
             <div class="service-item-header">
@@ -279,7 +279,7 @@ function addService() {
                     <i class="fas fa-times me-1"></i>Remove
                 </button>
             </div>
-            
+
             <div class="row g-3">
                 <div class="col-12">
                     <label class="form-label required-field">Select Service</label>
@@ -305,13 +305,13 @@ function addService() {
                         {% endif %}
                     </select>
                 </div>
-                
+
                 <div class="col-md-6">
                     <label class="form-label required-field">Preferred Date</label>
                     <input type="date" class="form-control" name="services[${serviceIndex}][appointment_date]" 
                            min="{{ available_dates[0] }}" required>
                 </div>
-                
+
                 <div class="col-md-6">
                     <label class="form-label required-field">Preferred Time</label>
                     <select class="form-select" name="services[${serviceIndex}][appointment_time]" required>
@@ -321,7 +321,7 @@ function addService() {
                         {% endfor %}
                     </select>
                 </div>
-                
+
                 <div class="col-12">
                     <label class="form-label">Notes for this service (Optional)</label>
                     <textarea class="form-control" name="services[${serviceIndex}][notes]" rows="2" placeholder="Any special requests..."></textarea>
@@ -329,10 +329,10 @@ function addService() {
             </div>
         </div>
     `;
-    
+
     container.insertAdjacentHTML('beforeend', serviceHTML);
     serviceCount++;
-    
+
     // Scroll to the new service
     setTimeout(() => {
         const newService = container.lastElementChild;
@@ -357,5 +357,100 @@ function updateServiceNumbers() {
         }
     });
 }
+
+// Convert 12-hour format to 24-hour format
+    function convertTo24Hour(time12h) {
+        if (!time12h) return ''; // Handle empty time
+        const [time, modifier] = time12h.split(' ');
+        let [hours, minutes] = time.split(':');
+
+        if (hours === '12') {
+            hours = '00';
+        }
+
+        if (modifier === 'PM') {
+            hours = parseInt(hours, 10) + 12;
+        } else if (modifier === 'AM' && hours === '12') { // Handle 12 AM case
+            hours = '00';
+        }
+
+
+        return `${String(hours).padStart(2, '0')}:${minutes}`;
+    }
+
+    // Form submission handler
+    document.getElementById('bookingForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+
+        const submitButton = this.querySelector('button[type="submit"]');
+        submitButton.disabled = true;
+        submitButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+
+        const formData = new FormData(this);
+        const bookingData = {
+            services: []
+        };
+
+        // Collect all service bookings
+        document.querySelectorAll('.service-item').forEach((serviceDiv, index) => {
+            // Dynamically get names based on the structure
+            const serviceSelect = serviceDiv.querySelector('select[name^="services[' + index + '][service_id]"]');
+            const dateInput = serviceDiv.querySelector('input[name^="services[' + index + '][appointment_date]"]');
+            const timeSelect = serviceDiv.querySelector('select[name^="services[' + index + '][appointment_time]"]');
+            const notesTextarea = serviceDiv.querySelector('textarea[name^="services[' + index + '][notes]"]');
+
+            const service = serviceSelect ? serviceSelect.value : null;
+            const date = dateInput ? dateInput.value : null;
+            const time12h = timeSelect ? timeSelect.value : null;
+            const notes = notesTextarea ? notesTextarea.value : '';
+
+            if (service && date && time12h) {
+                // Convert 12-hour format to 24-hour format for backend
+                const time24h = convertTo24Hour(time12h);
+
+                bookingData.services.push({
+                    service_id: service,
+                    preferred_date: date,
+                    preferred_time: time24h,
+                    notes: notes
+                });
+            }
+        });
+
+        // Add other form data
+        bookingData.client_name = formData.get('client_name');
+        bookingData.client_phone = formData.get('client_phone');
+        bookingData.client_email = formData.get('client_email');
+
+
+        try {
+            const response = await fetch('{{ url_for("website_book_online") }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(bookingData),
+            });
+
+            const result = await response.json();
+
+            if (response.ok) {
+                // Display success message and redirect or clear form
+                alert('Booking successful! We will contact you shortly to confirm.');
+                window.location.href = '{{ url_for("website_booking_confirmation") }}'; // Redirect to a confirmation page
+            } else {
+                // Display error message
+                alert(`Booking failed: ${result.message || 'Please check your details and try again.'}`);
+                submitButton.disabled = false;
+                submitButton.innerHTML = '<i class="fas fa-check-circle me-2"></i>Submit Booking Request';
+            }
+        } catch (error) {
+            console.error('Error submitting booking:', error);
+            alert('An unexpected error occurred. Please try again later.');
+            submitButton.disabled = false;
+            submitButton.innerHTML = '<i class="fas fa-check-circle me-2"></i>Submit Booking Request';
+        }
+    });
+
 </script>
 {% endblock %}
