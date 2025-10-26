@@ -746,7 +746,7 @@ endblock %} {% block extra_css %}
                     <i class="fas fa-file-chart-line"></i> Reports
                 </a>
                 <a
-                    href="{{ url_for('new_appointment') }}"
+                    href="{{ url_for('unaki_booking') }}"
                     class="btn-header secondary"
                 >
                     <i class="fas fa-plus"></i> New Booking
@@ -760,13 +760,13 @@ endblock %} {% block extra_css %}
         <h3><i class="fas fa-bolt"></i> Quick Actions</h3>
         <div class="action-buttons">
             <a
-                href="{{ url_for('new_appointment') }}"
+                href="{{ url_for('unaki_booking') }}"
                 class="action-btn primary"
             >
                 <i class="fas fa-calendar-plus"></i>
                 <span>New Appointment</span>
             </a>
-            <a href="{{ url_for('new_client') }}" class="action-btn success">
+            <a href="{{ url_for('customers') }}" class="action-btn success">
                 <i class="fas fa-user-plus"></i>
                 <span>Add Client</span>
             </a>
