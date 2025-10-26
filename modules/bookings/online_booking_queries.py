@@ -6,6 +6,11 @@ from datetime import datetime, date
 from sqlalchemy import func, and_, or_
 from app import db
 from models import UnakiBooking, Customer, Service, User
+from modules.bookings.booking_services import (
+    check_staff_conflicts, 
+    check_client_conflicts,
+    validate_against_shift
+)
 
 
 def get_online_bookings(status_filter=None, date_from=None, date_to=None):
@@ -93,23 +98,75 @@ def update_booking_status(booking_id, new_status, notes=None):
 
 
 def accept_booking(booking_id, staff_id=None, notes=None):
-    """Accept an online booking and optionally assign staff"""
+    """Accept an online booking and optionally assign staff with comprehensive validation"""
     booking = get_online_booking_by_id(booking_id)
     if not booking:
         return None, "Booking not found"
-
-    # Change status from 'scheduled' (pending) to 'confirmed' (accepted)
+    
+    # Require staff assignment for validation
+    if not staff_id:
+        # If booking already has a staff assigned, use that
+        if booking.staff_id:
+            staff_id = booking.staff_id
+        else:
+            return None, "Staff assignment is required to accept this booking"
+    
+    # Validate staff exists
+    staff = User.query.get(staff_id)
+    if not staff:
+        return None, f"Staff member with ID {staff_id} not found"
+    
+    # Prepare time strings for validation
+    start_time_str = booking.start_time.strftime('%H:%M')
+    end_time_str = booking.end_time.strftime('%H:%M')
+    appointment_date = booking.appointment_date
+    
+    # VALIDATION 1: Check staff conflicts (shift hours, breaks, overlapping appointments)
+    staff_conflict_result = check_staff_conflicts(
+        staff_id, 
+        appointment_date, 
+        start_time_str, 
+        end_time_str,
+        exclude_id=booking_id  # Exclude this booking if it's already in the system
+    )
+    
+    if staff_conflict_result.get('has_conflicts'):
+        if staff_conflict_result.get('shift_violation'):
+            # Shift violations (outside hours, during break, etc.)
+            return None, staff_conflict_result.get('reason', 'Staff scheduling conflict')
+        else:
+            # Overlapping appointments
+            conflicts = staff_conflict_result.get('conflicts', [])
+            if conflicts:
+                conflict = conflicts[0]
+                return None, f"Staff {staff.full_name} already has an appointment from {conflict['start_time']} to {conflict['end_time']} with {conflict['client_name']}"
+    
+    # VALIDATION 2: Check client conflicts (unpaid appointments, time overlaps)
+    if booking.client_id:
+        client_conflict_result = check_client_conflicts(
+            booking.client_id,
+            appointment_date,
+            start_time_str,
+            end_time_str
+        )
+        
+        if client_conflict_result.get('has_conflict'):
+            return None, client_conflict_result.get('message', 'Client has conflicting appointments')
+    
+    # All validations passed - accept the booking
     booking.status = 'confirmed'
     booking.confirmed_at = datetime.now()
     
-    if staff_id:
-        staff = User.query.get(staff_id)
-        if staff:
-            booking.staff_id = staff_id
-            booking.staff_name = f"{staff.first_name} {staff.last_name}"
+    # Update staff assignment
+    booking.staff_id = staff_id
+    booking.staff_name = f"{staff.first_name} {staff.last_name}"
 
+    # Add notes
+    validation_note = f"\n[{datetime.now().strftime('%Y-%m-%d %H:%M')}] Booking accepted with validations passed"
     if notes:
-        booking.notes = (booking.notes or '') + f"\n[{datetime.now().strftime('%Y-%m-%d %H:%M')}] Booking accepted: {notes}"
+        booking.notes = (booking.notes or '') + f"{validation_note}: {notes}"
+    else:
+        booking.notes = (booking.notes or '') + validation_note
 
     db.session.commit()
     return booking, None
@@ -144,17 +201,158 @@ def bulk_accept_bookings(booking_ids, staff_id=None):
 
 def accept_grouped_bookings(booking_staff_map):
     """
-    Accept multiple bookings with individual staff assignments
+    Accept multiple bookings with individual staff assignments and comprehensive validation
+    Validates ALL bookings before accepting ANY (atomic operation)
     booking_staff_map: dict mapping booking_id to staff_id
     """
     results = {'success': [], 'failed': []}
     
+    # Step 1: Fetch all bookings and validate they exist
+    bookings_to_process = []
     for booking_id, staff_id in booking_staff_map.items():
-        booking, error = accept_booking(int(booking_id), int(staff_id) if staff_id else None)
-        if booking:
+        booking = get_online_booking_by_id(int(booking_id))
+        if not booking:
+            results['failed'].append({'id': booking_id, 'error': 'Booking not found'})
+            continue
+        
+        # Require staff assignment
+        final_staff_id = int(staff_id) if staff_id else booking.staff_id
+        if not final_staff_id:
+            results['failed'].append({'id': booking_id, 'error': 'Staff assignment is required'})
+            continue
+        
+        # Validate staff exists
+        staff = User.query.get(final_staff_id)
+        if not staff:
+            results['failed'].append({'id': booking_id, 'error': f'Staff member with ID {final_staff_id} not found'})
+            continue
+        
+        bookings_to_process.append({
+            'booking': booking,
+            'booking_id': int(booking_id),
+            'staff_id': final_staff_id,
+            'staff': staff
+        })
+    
+    # Step 2: Validate all bookings before accepting any
+    validation_errors = []
+    
+    for item in bookings_to_process:
+        booking = item['booking']
+        staff_id = item['staff_id']
+        staff = item['staff']
+        booking_id = item['booking_id']
+        
+        start_time_str = booking.start_time.strftime('%H:%M')
+        end_time_str = booking.end_time.strftime('%H:%M')
+        appointment_date = booking.appointment_date
+        
+        # VALIDATION 1: Check staff conflicts
+        staff_conflict_result = check_staff_conflicts(
+            staff_id, 
+            appointment_date, 
+            start_time_str, 
+            end_time_str,
+            exclude_id=booking_id
+        )
+        
+        if staff_conflict_result.get('has_conflicts'):
+            if staff_conflict_result.get('shift_violation'):
+                error_msg = f"#{booking_id}: {staff_conflict_result.get('reason', 'Staff scheduling conflict')}"
+            else:
+                conflicts = staff_conflict_result.get('conflicts', [])
+                if conflicts:
+                    conflict = conflicts[0]
+                    error_msg = f"#{booking_id}: {staff.full_name} already has an appointment from {conflict['start_time']} to {conflict['end_time']}"
+                else:
+                    error_msg = f"#{booking_id}: Staff scheduling conflict"
+            
+            validation_errors.append(error_msg)
+            results['failed'].append({'id': booking_id, 'error': error_msg})
+            continue
+        
+        # VALIDATION 2: Check client conflicts
+        if booking.client_id:
+            client_conflict_result = check_client_conflicts(
+                booking.client_id,
+                appointment_date,
+                start_time_str,
+                end_time_str
+            )
+            
+            if client_conflict_result.get('has_conflict'):
+                error_msg = f"#{booking_id}: {client_conflict_result.get('message', 'Client has conflicting appointments')}"
+                validation_errors.append(error_msg)
+                results['failed'].append({'id': booking_id, 'error': error_msg})
+                continue
+    
+    # Step 3: Check for INTERNAL conflicts (between bookings in this group)
+    # For each pair of bookings, check if same staff has time overlap
+    for i, item1 in enumerate(bookings_to_process):
+        for item2 in bookings_to_process[i+1:]:
+            # Skip if already marked as failed
+            if item1['booking_id'] in [f['id'] for f in results['failed']] or \
+               item2['booking_id'] in [f['id'] for f in results['failed']]:
+                continue
+            
+            # Check if same staff and same date
+            if item1['staff_id'] == item2['staff_id'] and \
+               item1['booking'].appointment_date == item2['booking'].appointment_date:
+                
+                # Check time overlap
+                start1 = datetime.combine(item1['booking'].appointment_date, item1['booking'].start_time)
+                end1 = datetime.combine(item1['booking'].appointment_date, item1['booking'].end_time)
+                start2 = datetime.combine(item2['booking'].appointment_date, item2['booking'].start_time)
+                end2 = datetime.combine(item2['booking'].appointment_date, item2['booking'].end_time)
+                
+                if start1 < end2 and start2 < end1:
+                    error_msg = f"Internal conflict: Bookings #{item1['booking_id']} and #{item2['booking_id']} have overlapping times for {item1['staff'].full_name}"
+                    validation_errors.append(error_msg)
+                    results['failed'].append({'id': item1['booking_id'], 'error': error_msg})
+                    results['failed'].append({'id': item2['booking_id'], 'error': error_msg})
+    
+    # Step 4: If there are any validation errors, don't accept ANY bookings
+    if validation_errors:
+        print(f"⚠️ Grouped booking validation failed: {'; '.join(validation_errors)}")
+        return results
+    
+    # Step 5: All validations passed - accept all bookings
+    for item in bookings_to_process:
+        # Skip if somehow marked as failed
+        if item['booking_id'] in [f['id'] for f in results['failed']]:
+            continue
+        
+        booking = item['booking']
+        staff = item['staff']
+        staff_id = item['staff_id']
+        booking_id = item['booking_id']
+        
+        try:
+            booking.status = 'confirmed'
+            booking.confirmed_at = datetime.now()
+            booking.staff_id = staff_id
+            booking.staff_name = f"{staff.first_name} {staff.last_name}"
+            
+            validation_note = f"\n[{datetime.now().strftime('%Y-%m-%d %H:%M')}] Booking accepted (grouped) with validations passed"
+            booking.notes = (booking.notes or '') + validation_note
+            
             results['success'].append(booking_id)
-        else:
-            results['failed'].append({'id': booking_id, 'error': error})
+        except Exception as e:
+            db.session.rollback()
+            results['failed'].append({'id': booking_id, 'error': str(e)})
+    
+    # Commit all changes if at least one succeeded
+    if results['success']:
+        try:
+            db.session.commit()
+            print(f"✅ Successfully accepted {len(results['success'])} grouped bookings")
+        except Exception as e:
+            db.session.rollback()
+            print(f"❌ Error committing grouped bookings: {e}")
+            # Move all success to failed
+            for booking_id in results['success']:
+                results['failed'].append({'id': booking_id, 'error': 'Database commit failed'})
+            results['success'] = []
     
     return results
 
