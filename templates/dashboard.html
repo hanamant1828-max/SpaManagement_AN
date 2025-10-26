@@ -1,1195 +1,560 @@
 {% extends "base.html" %}
 
-{% block title %}Dashboard - Spa & Salon Management Suite{% endblock %}
+{% block title %}Dashboard - Spa & Salon Management{% endblock %}
 
 {% block extra_css %}
 <style>
-/* ========== Global Styles ========== */
 :root {
-    --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    --success-gradient: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
-    --info-gradient: linear-gradient(135deg, #00d2ff 0%, #3a7bd5 100%);
-    --warning-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-    --purple-gradient: linear-gradient(135deg, #a855f7 0%, #ec4899 100%);
-    --gold-gradient: linear-gradient(135deg, #f9d423 0%, #ff4e50 100%);
+    --primary-color: #4f46e5;
+    --primary-dark: #4338ca;
+    --success-color: #10b981;
+    --warning-color: #f59e0b;
+    --danger-color: #ef4444;
+    --info-color: #3b82f6;
+    --bg-light: #f9fafb;
+    --text-dark: #111827;
+    --text-muted: #6b7280;
+    --border-color: #e5e7eb;
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
 }
 
 body {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 25%, #f093fb 50%, #4facfe 75%, #00f2fe 100%) !important;
-    background-attachment: fixed !important;
-    background-size: 400% 400% !important;
-    animation: gradientShift 15s ease infinite !important;
-    min-height: 100vh !important;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;
+    background-color: var(--bg-light);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
 
-@keyframes gradientShift {
-    0% { background-position: 0% 50%; }
-    50% { background-position: 100% 50%; }
-    100% { background-position: 0% 50%; }
+.dashboard-container {
+    padding: 2rem 1rem;
+    max-width: 1400px;
+    margin: 0 auto;
 }
 
-.container-fluid {
-    background: transparent !important;
-    min-height: 100vh;
-    padding-top: 2rem;
-    padding-bottom: 2rem;
+.page-header {
+    margin-bottom: 2rem;
 }
 
-/* Prevent any white backgrounds from overriding */
-.main-content,
-.content-wrapper,
-main,
-#content,
-.content {
-    background: transparent !important;
-}
-
-/* Ensure base.html body doesn't override */
-body::before {
-    content: '';
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 25%, #f093fb 50%, #4facfe 75%, #00f2fe 100%);
-    background-size: 400% 400%;
-    animation: gradientShift 15s ease infinite;
-    z-index: -1;
-}
-
-/* Ensure all text is readable on gradient background */
-.page-header h2,
-.page-header p {
-    text-shadow: 0 2px 8px rgba(0,0,0,0.3);
-}
-
-/* Make stat cards stand out with semi-transparent backgrounds */
-.modern-stat-card.gradient-primary,
-.modern-stat-card.gradient-success,
-.modern-stat-card.gradient-info,
-.modern-stat-card.gradient-warning {
-    background: rgba(255, 255, 255, 0.85) !important;
-    backdrop-filter: blur(20px);
-}
-
-.modern-stat-card.gradient-primary {
-    border-left: 5px solid #667eea !important;
-}
-
-.modern-stat-card.gradient-success {
-    border-left: 5px solid #11998e !important;
-}
-
-.modern-stat-card.gradient-info {
-    border-left: 5px solid #00d2ff !important;
-}
-
-.modern-stat-card.gradient-warning {
-    border-left: 5px solid #f093fb !important;
-}
-
-/* ========== Enhanced Stat Cards ========== */
-.modern-stat-card {
-    position: relative;
-    overflow: hidden;
-    border: none;
-    border-radius: 20px;
-    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
-    backdrop-filter: blur(20px);
-    background: rgba(255, 255, 255, 0.98);
-}
-
-.modern-stat-card:hover {
-    transform: translateY(-10px) scale(1.02);
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.25);
-}
-
-.modern-stat-card::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: linear-gradient(135deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0) 100%);
-    pointer-events: none;
-}
-
-.modern-stat-card::after {
-    content: '';
-    position: absolute;
-    width: 200px;
-    height: 200px;
-    background: radial-gradient(circle, rgba(255,255,255,0.3) 0%, transparent 70%);
-    top: -100px;
-    right: -100px;
-    pointer-events: none;
-    transition: all 0.4s ease;
-}
-
-.modern-stat-card:hover::after {
-    top: -80px;
-    right: -80px;
-    width: 250px;
-    height: 250px;
-}
-
-.stat-icon-wrapper {
-    width: 80px;
-    height: 80px;
-    border-radius: 16px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: rgba(102, 126, 234, 0.1);
-    backdrop-filter: blur(10px);
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
-    transition: all 0.3s ease;
-}
-
-.gradient-primary .stat-icon-wrapper {
-    background: rgba(102, 126, 234, 0.1);
-}
-
-.gradient-success .stat-icon-wrapper {
-    background: rgba(17, 153, 142, 0.1);
-}
-
-.gradient-info .stat-icon-wrapper {
-    background: rgba(0, 210, 255, 0.1);
-}
-
-.gradient-warning .stat-icon-wrapper {
-    background: rgba(240, 147, 251, 0.1);
-}
-
-.modern-stat-card:hover .stat-icon-wrapper {
-    transform: rotate(10deg) scale(1.1);
-    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.2);
-}
-
-.stat-icon-wrapper i {
+.page-header h1 {
     font-size: 2rem;
-}
-
-.gradient-primary .stat-icon-wrapper i {
-    color: #667eea !important;
-}
-
-.gradient-success .stat-icon-wrapper i {
-    color: #11998e !important;
-}
-
-.gradient-info .stat-icon-wrapper i {
-    color: #00d2ff !important;
-}
-
-.gradient-warning .stat-icon-wrapper i {
-    color: #f093fb !important;
-}
-
-.trend-indicator {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 0.9rem;
     font-weight: 700;
-    padding: 6px 12px;
-    border-radius: 20px;
-    margin-top: 10px;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-    animation: pulse 2s infinite;
+    color: var(--text-dark);
+    margin-bottom: 0.5rem;
 }
 
-@keyframes pulse {
-    0%, 100% { transform: scale(1); }
-    50% { transform: scale(1.05); }
+.page-header p {
+    color: var(--text-muted);
+    font-size: 1rem;
 }
 
-.trend-up {
-    background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
-    color: white;
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
 }
 
-.trend-down {
-    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-    color: white;
+.stat-card {
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: var(--shadow);
+    transition: all 0.3s ease;
+    border-left: 4px solid;
 }
 
-/* ========== Gradient Backgrounds ========== */
-.gradient-primary {
-    background: white !important;
-    color: #1f2937 !important;
-    box-shadow: 0 15px 35px rgba(102, 126, 234, 0.3) !important;
-    border-top: 4px solid #667eea !important;
+.stat-card:hover {
+    box-shadow: var(--shadow-lg);
+    transform: translateY(-2px);
 }
 
-.gradient-primary h6,
-.gradient-primary .text-white {
-    color: #667eea !important;
-}
+.stat-card.primary { border-color: var(--primary-color); }
+.stat-card.success { border-color: var(--success-color); }
+.stat-card.info { border-color: var(--info-color); }
+.stat-card.warning { border-color: var(--warning-color); }
 
-.gradient-primary h2 {
-    color: #1f2937 !important;
-}
-
-.gradient-success {
-    background: white !important;
-    color: #1f2937 !important;
-    box-shadow: 0 15px 35px rgba(17, 153, 142, 0.3) !important;
-    border-top: 4px solid #11998e !important;
-}
-
-.gradient-success h6,
-.gradient-success .text-white {
-    color: #11998e !important;
-}
-
-.gradient-success h2 {
-    color: #1f2937 !important;
-}
-
-.gradient-info {
-    background: white !important;
-    color: #1f2937 !important;
-    box-shadow: 0 15px 35px rgba(0, 210, 255, 0.3) !important;
-    border-top: 4px solid #00d2ff !important;
-}
-
-.gradient-info h6,
-.gradient-info .text-white {
-    color: #00d2ff !important;
-}
-
-.gradient-info h2 {
-    color: #1f2937 !important;
-}
-
-.gradient-warning {
-    background: white !important;
-    color: #1f2937 !important;
-    box-shadow: 0 15px 35px rgba(240, 147, 251, 0.3) !important;
-    border-top: 4px solid #f093fb !important;
-}
-
-.gradient-warning h6,
-.gradient-warning .text-white {
-    color: #f093fb !important;
-}
-
-.gradient-warning h2 {
-    color: #1f2937 !important;
-}
-
-.gradient-pink {
-    background: linear-gradient(135deg, #ec4899 0%, #db2777 100%);
-    color: white;
-    box-shadow: 0 15px 35px rgba(236, 72, 153, 0.5);
-}
-
-.gradient-purple {
-    background: var(--purple-gradient);
-    color: white;
-    box-shadow: 0 15px 35px rgba(168, 85, 247, 0.5);
-}
-
-/* ========== Enhanced Widget Cards ========== */
-.widget-card {
-    border-radius: 20px;
-    border: none;
-    background: rgba(255, 255, 255, 0.65) !important;
-    backdrop-filter: blur(20px);
-    transition: all 0.4s ease;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
-    overflow: hidden;
-    position: relative;
-}
-
-.widget-card::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 4px;
-    background: var(--primary-gradient);
-}
-
-.widget-card:hover {
-    box-shadow: 0 20px 50px rgba(102, 126, 234, 0.3);
-    transform: translateY(-5px);
-}
-
-.widget-card .card-header {
-    background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%) !important;
-    border-bottom: 2px solid #e9ecef;
-    padding: 1.25rem !important;
-}
-
-.widget-card .card-header h6 {
-    font-size: 1.1rem;
-    letter-spacing: 0.5px;
-}
-
-/* ========== Peak Hours Bar Chart ========== */
-.peak-hour-bar {
-    height: 100%;
-    border-radius: 12px 12px 0 0;
-    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    position: relative;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-}
-
-.peak-hour-bar:hover {
-    transform: scaleY(1.1) scale(1.05);
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
-}
-
-.peak-hour-bar:nth-child(4n+1) {
-    background: linear-gradient(180deg, #667eea 0%, #764ba2 100%);
-    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
-}
-
-.peak-hour-bar:nth-child(4n+2) {
-    background: linear-gradient(180deg, #f093fb 0%, #f5576c 100%);
-    box-shadow: 0 4px 15px rgba(240, 147, 251, 0.4);
-}
-
-.peak-hour-bar:nth-child(4n+3) {
-    background: linear-gradient(180deg, #00d2ff 0%, #3a7bd5 100%);
-    box-shadow: 0 4px 15px rgba(0, 210, 255, 0.4);
-}
-
-.peak-hour-bar:nth-child(4n+4) {
-    background: linear-gradient(180deg, #11998e 0%, #38ef7d 100%);
-    box-shadow: 0 4px 15px rgba(17, 153, 142, 0.4);
-}
-
-.peak-hour-bar::before {
-    content: attr(data-count);
-    position: absolute;
-    top: -25px;
-    left: 50%;
-    transform: translateX(-50%);
-    font-weight: 700;
-    font-size: 0.85rem;
-    color: #1f2937;
-    opacity: 0;
-    transition: opacity 0.3s ease;
-}
-
-.peak-hour-bar:hover::before {
-    opacity: 1;
-}
-
-.hour-label {
-    font-size: 0.8rem;
-    color: #4b5563;
-    margin-top: 8px;
-    font-weight: 700;
-    padding: 4px 10px;
-    background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
-    border-radius: 8px;
-    display: inline-block;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-}
-
-/* ========== Top Performers ========== */
-.top-performer-item {
+.stat-header {
     display: flex;
-    align-items: center;
-    padding: 18px;
-    border-radius: 16px;
-    background: linear-gradient(135deg, #ffffff 0%, #f9fafb 100%);
-    margin-bottom: 14px;
-    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    border: 2px solid #f3f4f6;
-    position: relative;
-    overflow: hidden;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 0.5rem;
 }
 
-.top-performer-item::before {
-    content: '';
-    position: absolute;
-    left: 0;
-    top: 0;
-    bottom: 0;
-    width: 0;
-    background: var(--primary-gradient);
-    transition: width 0.4s ease;
+.stat-label {
+    font-size: 0.875rem;
+    color: var(--text-muted);
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
 }
 
-.top-performer-item:hover::before {
-    width: 5px;
-}
-
-.top-performer-item:hover {
-    background: linear-gradient(135deg, #fff 0%, #fafafa 100%);
-    transform: translateX(10px) scale(1.02);
-    border-color: #667eea;
-    box-shadow: 0 8px 20px rgba(102, 126, 234, 0.25);
-}
-
-.performer-rank {
-    width: 52px;
-    height: 52px;
-    border-radius: 50%;
-    background: var(--primary-gradient);
-    color: white;
+.stat-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 10px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-weight: 800;
-    margin-right: 18px;
-    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
-    font-size: 1.3rem;
-    transition: all 0.3s ease;
-}
-
-.top-performer-item:hover .performer-rank {
-    transform: rotate(360deg) scale(1.1);
-}
-
-.top-performer-item:nth-child(1) .performer-rank {
-    background: var(--gold-gradient);
-    box-shadow: 0 8px 25px rgba(249, 212, 35, 0.6);
     font-size: 1.5rem;
 }
 
-.top-performer-item:nth-child(2) .performer-rank {
-    background: linear-gradient(135deg, #c0c0c0 0%, #8a8a8a 100%);
-    box-shadow: 0 8px 25px rgba(192, 192, 192, 0.6);
+.stat-card.primary .stat-icon {
+    background-color: rgba(79, 70, 229, 0.1);
+    color: var(--primary-color);
 }
 
-.top-performer-item:nth-child(3) .performer-rank {
-    background: linear-gradient(135deg, #cd7f32 0%, #a0522d 100%);
-    box-shadow: 0 8px 25px rgba(205, 127, 50, 0.6);
+.stat-card.success .stat-icon {
+    background-color: rgba(16, 185, 129, 0.1);
+    color: var(--success-color);
 }
 
-.performer-rank::after {
-    content: '';
-    position: absolute;
-    width: 100%;
-    height: 100%;
-    border-radius: 50%;
-    border: 3px solid rgba(255,255,255,0.3);
-    animation: ripple 2s infinite;
+.stat-card.info .stat-icon {
+    background-color: rgba(59, 130, 246, 0.1);
+    color: var(--info-color);
 }
 
-@keyframes ripple {
-    0% {
-        transform: scale(1);
-        opacity: 1;
-    }
-    100% {
-        transform: scale(1.5);
-        opacity: 0;
-    }
+.stat-card.warning .stat-icon {
+    background-color: rgba(245, 158, 11, 0.1);
+    color: var(--warning-color);
 }
 
-/* ========== Timeline for Appointments ========== */
-.timeline-item {
-    position: relative;
-    padding-left: 35px;
-    padding-bottom: 25px;
-    transition: all 0.3s ease;
-}
-
-.timeline-item:hover {
-    transform: translateX(5px);
-}
-
-.timeline-item::before {
-    content: '';
-    position: absolute;
-    left: 8px;
-    top: 10px;
-    bottom: -15px;
-    width: 2px;
-    background: linear-gradient(180deg, #667eea 0%, #764ba2 100%);
-}
-
-.timeline-item:last-child::before {
-    display: none;
-}
-
-.timeline-dot {
-    position: absolute;
-    left: 0;
-    top: 5px;
-    width: 18px;
-    height: 18px;
-    border-radius: 50%;
-    background: var(--primary-gradient);
-    box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.2);
-    animation: pulse-dot 2s infinite;
-}
-
-@keyframes pulse-dot {
-    0%, 100% {
-        box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.2);
-    }
-    50% {
-        box-shadow: 0 0 0 8px rgba(102, 126, 234, 0.1);
-    }
-}
-
-/* ========== Quick Action Buttons ========== */
-.quick-action-btn {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 2rem 1.5rem;
-    background: rgba(255, 255, 255, 0.98);
-    border-radius: 20px;
-    text-decoration: none;
-    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
-    border: 2px solid transparent;
-    position: relative;
-    overflow: hidden;
-}
-
-.quick-action-btn::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
-    transition: left 0.5s ease;
-}
-
-.quick-action-btn:hover::before {
-    left: 100%;
-}
-
-.quick-action-btn:hover {
-    transform: translateY(-10px) scale(1.05);
-    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25);
-    border-color: #667eea;
-}
-
-.quick-action-btn i {
-    transition: all 0.3s ease;
-    filter: drop-shadow(0 4px 8px rgba(0,0,0,0.2));
-}
-
-.quick-action-btn:hover i {
-    transform: scale(1.2) rotate(5deg);
-}
-
-.quick-action-btn .fw-bold {
-    color: #1f2937;
-    margin-top: 0.5rem;
-    font-size: 1rem;
-    letter-spacing: 0.5px;
-}
-
-/* ========== Table Improvements ========== */
-.table {
-    border-radius: 12px;
-    overflow: hidden;
-}
-
-.table thead th {
-    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-    color: #1f2937;
+.stat-value {
+    font-size: 2rem;
     font-weight: 700;
-    text-transform: uppercase;
-    font-size: 0.85rem;
-    letter-spacing: 0.5px;
-    border: none;
-    padding: 1rem;
+    color: var(--text-dark);
+    margin-bottom: 0.5rem;
 }
 
-.table tbody tr {
-    transition: all 0.3s ease;
-    border-bottom: 1px solid #f3f4f6;
-}
-
-.table tbody tr:hover {
-    background: linear-gradient(90deg, rgba(102, 126, 234, 0.05) 0%, transparent 100%);
-    transform: scale(1.01);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-}
-
-.table tbody td {
-    padding: 1rem;
-    vertical-align: middle;
-}
-
-/* ========== Badge Enhancements ========== */
-.badge {
-    padding: 0.5rem 1rem;
-    border-radius: 20px;
+.stat-change {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.875rem;
     font-weight: 600;
-    font-size: 0.85rem;
-    letter-spacing: 0.3px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    padding: 0.25rem 0.5rem;
+    border-radius: 6px;
 }
 
-/* ========== Alert Improvements ========== */
-.alert {
-    border-radius: 16px;
-    border: none;
-    box-shadow: 0 8px 20px rgba(0,0,0,0.1);
-    backdrop-filter: blur(10px);
+.stat-change.positive {
+    background-color: rgba(16, 185, 129, 0.1);
+    color: var(--success-color);
 }
 
-.alert-warning {
-    background: linear-gradient(135deg, rgba(245, 158, 11, 0.2) 0%, rgba(251, 191, 36, 0.1) 100%);
-    color: #92400e;
+.stat-change.negative {
+    background-color: rgba(239, 68, 68, 0.1);
+    color: var(--danger-color);
 }
 
-.alert-danger {
-    background: linear-gradient(135deg, rgba(239, 68, 68, 0.2) 0%, rgba(220, 38, 38, 0.1) 100%);
-    color: #991b1b;
+.content-grid {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    gap: 1.5rem;
 }
 
-.alert-success {
-    background: linear-gradient(135deg, rgba(34, 197, 94, 0.2) 0%, rgba(22, 163, 74, 0.1) 100%);
-    color: #14532d;
-}
-
-/* ========== Custom Scrollbar ========== */
-::-webkit-scrollbar {
-    width: 10px;
-}
-
-::-webkit-scrollbar-track {
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 10px;
-}
-
-::-webkit-scrollbar-thumb {
-    background: var(--primary-gradient);
-    border-radius: 10px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-    background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
-}
-
-/* ========== Service Progress Bars ========== */
-.progress {
-    height: 12px;
-    border-radius: 10px;
-    background: rgba(229, 231, 235, 0.5);
-    overflow: visible;
-}
-
-.progress-bar {
-    border-radius: 10px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-    position: relative;
-    overflow: visible;
-}
-
-.progress-bar::after {
-    content: '';
-    position: absolute;
-    top: -2px;
-    right: -2px;
-    bottom: -2px;
-    left: -2px;
-    background: inherit;
-    border-radius: 10px;
-    filter: blur(8px);
-    opacity: 0.5;
-    z-index: -1;
-}
-
-/* ========== Responsive Improvements ========== */
-@media (max-width: 768px) {
-    .modern-stat-card {
-        margin-bottom: 1rem;
-    }
-
-    .quick-action-btn {
-        padding: 1.5rem 1rem;
-    }
-
-    .performer-rank {
-        width: 45px;
-        height: 45px;
-        font-size: 1.1rem;
-    }
-}
-
-/* ========== Floating Animation ========== */
-@keyframes float {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-10px); }
-}
-
-.stat-icon-wrapper {
-    animation: float 3s ease-in-out infinite;
-}
-
-/* ========== Shine Effect ========== */
-@keyframes shine {
-    0% { left: -100%; }
-    100% { left: 100%; }
-}
-
-.modern-stat-card:hover::after {
-    animation: shine 1s ease-in-out;
-}
-
-/* ========== Glass Effect for Cards ========== */
 .card {
-    background: rgba(255, 255, 255, 0.65) !important;
-    backdrop-filter: blur(20px);
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: var(--shadow);
 }
 
-/* ========== Section Headers ========== */
-h5.fw-bold {
-    color: #1f2937;
-    text-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    letter-spacing: 0.5px;
+.col-8 { grid-column: span 8; }
+.col-4 { grid-column: span 4; }
+.col-6 { grid-column: span 6; }
+.col-12 { grid-column: span 12; }
+
+.card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.card-title {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--text-dark);
+}
+
+.btn {
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    border: none;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.btn-primary {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+.btn-primary:hover {
+    background-color: var(--primary-dark);
+}
+
+.btn-sm {
+    padding: 0.375rem 0.75rem;
+    font-size: 0.875rem;
+}
+
+.table-container {
+    overflow-x: auto;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+thead th {
+    text-align: left;
+    padding: 0.75rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-bottom: 2px solid var(--border-color);
+}
+
+tbody td {
+    padding: 1rem 0.75rem;
+    font-size: 0.875rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+tbody tr:hover {
+    background-color: var(--bg-light);
+}
+
+.badge {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.badge-success { background-color: rgba(16, 185, 129, 0.1); color: var(--success-color); }
+.badge-warning { background-color: rgba(245, 158, 11, 0.1); color: var(--warning-color); }
+.badge-danger { background-color: rgba(239, 68, 68, 0.1); color: var(--danger-color); }
+.badge-info { background-color: rgba(59, 130, 246, 0.1); color: var(--info-color); }
+
+.empty-state {
+    text-align: center;
+    padding: 3rem 1rem;
+    color: var(--text-muted);
+}
+
+.empty-state i {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    opacity: 0.5;
+}
+
+@media (max-width: 1024px) {
+    .col-8, .col-4, .col-6 {
+        grid-column: span 12;
+    }
+}
+
+@media (max-width: 768px) {
+    .stats-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .page-header h1 {
+        font-size: 1.5rem;
+    }
 }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="container-fluid py-4">
-    <!-- Page Header with enhanced styling -->
-    <div class="row mb-5">
-        <div class="col-12">
-            <h2 class="fw-bold text-white mb-2" style="text-shadow: 0 4px 6px rgba(0,0,0,0.3); font-size: 2.5rem;">
-                <i class="fas fa-chart-line me-3"></i>Dashboard Overview
-            </h2>
-            <p class="text-white" style="text-shadow: 0 2px 4px rgba(0,0,0,0.2); font-size: 1.1rem; opacity: 0.95;">
-                Welcome back! Here's what's happening with your spa today.
-            </p>
+<div class="dashboard-container">
+    <!-- Page Header -->
+    <div class="page-header">
+        <h1><i class="fas fa-chart-line"></i> Dashboard</h1>
+        <p>Welcome back! Here's an overview of your spa & salon operations.</p>
+    </div>
+
+    <!-- Stats Grid -->
+    <div class="stats-grid">
+        <!-- Revenue Card -->
+        <div class="stat-card primary">
+            <div class="stat-header">
+                <span class="stat-label">Today's Revenue</span>
+                <div class="stat-icon">
+                    <i class="fas fa-dollar-sign"></i>
+                </div>
+            </div>
+            <div class="stat-value">{{ utils.format_currency(stats.total_revenue_today) }}</div>
+            {% if today_vs_yesterday > 0 %}
+            <span class="stat-change positive">
+                <i class="fas fa-arrow-up"></i> {{ today_vs_yesterday }}%
+            </span>
+            {% elif today_vs_yesterday < 0 %}
+            <span class="stat-change negative">
+                <i class="fas fa-arrow-down"></i> {{ today_vs_yesterday|abs }}%
+            </span>
+            {% endif %}
+        </div>
+
+        <!-- Appointments Card -->
+        <div class="stat-card success">
+            <div class="stat-header">
+                <span class="stat-label">Appointments Today</span>
+                <div class="stat-icon">
+                    <i class="fas fa-calendar-check"></i>
+                </div>
+            </div>
+            <div class="stat-value">{{ stats.todays_appointments }}</div>
+            <span class="stat-change positive">
+                <i class="fas fa-arrow-up"></i> Active
+            </span>
+        </div>
+
+        <!-- Clients Card -->
+        <div class="stat-card info">
+            <div class="stat-header">
+                <span class="stat-label">Total Clients</span>
+                <div class="stat-icon">
+                    <i class="fas fa-users"></i>
+                </div>
+            </div>
+            <div class="stat-value">{{ stats.total_clients }}</div>
+            <span class="stat-change positive">
+                <i class="fas fa-user-plus"></i> {{ retention_metrics.new_clients_this_month }} new this month
+            </span>
+        </div>
+
+        <!-- Monthly Revenue Card -->
+        <div class="stat-card warning">
+            <div class="stat-header">
+                <span class="stat-label">Monthly Revenue</span>
+                <div class="stat-icon">
+                    <i class="fas fa-chart-bar"></i>
+                </div>
+            </div>
+            <div class="stat-value">{{ utils.format_currency(stats.total_revenue_month) }}</div>
+            {% if month_vs_last_month > 0 %}
+            <span class="stat-change positive">
+                <i class="fas fa-arrow-up"></i> {{ month_vs_last_month }}%
+            </span>
+            {% elif month_vs_last_month < 0 %}
+            <span class="stat-change negative">
+                <i class="fas fa-arrow-down"></i> {{ month_vs_last_month|abs }}%
+            </span>
+            {% endif %}
         </div>
     </div>
 
-    <!-- Stat Cards -->
-    <div class="row g-4 mb-5">
-        <div class="col-xl-3 col-lg-6">
-            <div class="modern-stat-card gradient-primary">
-                <div class="card-body p-4">
-                    <div class="d-flex justify-content-between align-items-start">
-                        <div>
-                            <h6 class="text-white text-opacity-90 mb-2 fw-semibold">Today's Revenue</h6>
-                            <h2 class="fw-bold mb-0">{{ utils.format_currency(stats.total_revenue_today) }}</h2>
-                            <div class="trend-indicator trend-up">
-                                <i class="fas fa-arrow-up"></i> {{ today_vs_yesterday }}% vs yesterday
-                            </div>
-                        </div>
-                        <div class="stat-icon-wrapper">
-                            <i class="fas fa-dollar-sign text-white"></i>
-                        </div>
-                    </div>
-                </div>
+    <!-- Content Grid -->
+    <div class="content-grid">
+        <!-- Recent Appointments -->
+        <div class="card col-8">
+            <div class="card-header">
+                <h2 class="card-title"><i class="fas fa-clock"></i> Recent Appointments</h2>
+                <a href="{{ url_for('appointments') }}" class="btn btn-primary btn-sm">
+                    View All <i class="fas fa-arrow-right"></i>
+                </a>
             </div>
-        </div>
-
-        <div class="col-xl-3 col-lg-6">
-            <div class="modern-stat-card gradient-success">
-                <div class="card-body p-4">
-                    <div class="d-flex justify-content-between align-items-start">
-                        <div>
-                            <h6 class="text-white text-opacity-90 mb-2 fw-semibold">Appointments</h6>
-                            <h2 class="fw-bold mb-0">{{ stats.todays_appointments }}</h2>
-                            <div class="trend-indicator trend-up">
-                                <i class="fas fa-arrow-up"></i> 8% increase
-                            </div>
-                        </div>
-                        <div class="stat-icon-wrapper">
-                            <i class="fas fa-calendar-check text-white"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-xl-3 col-lg-6">
-            <div class="modern-stat-card gradient-info">
-                <div class="card-body p-4">
-                    <div class="d-flex justify-content-between align-items-start">
-                        <div>
-                            <h6 class="text-white text-opacity-90 mb-2 fw-semibold">Total Clients</h6>
-                            <h2 class="fw-bold mb-0">{{ stats.total_clients }}</h2>
-                            <div class="trend-indicator trend-up">
-                                <i class="fas fa-arrow-up"></i> {{ retention_metrics.new_clients_this_month }} new
-                            </div>
-                        </div>
-                        <div class="stat-icon-wrapper">
-                            <i class="fas fa-user-plus text-white"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-xl-3 col-lg-6">
-            <div class="modern-stat-card gradient-warning">
-                <div class="card-body p-4">
-                    <div class="d-flex justify-content-between align-items-start">
-                        <div>
-                            <h6 class="text-white text-opacity-90 mb-2 fw-semibold">Client Retention</h6>
-                            <h2 class="fw-bold mb-0">{{ retention_metrics.retention_rate }}%</h2>
-                            <div class="trend-indicator trend-up">
-                                <i class="fas fa-arrow-up"></i> 3% better
-                            </div>
-                        </div>
-                        <div class="stat-icon-wrapper">
-                            <i class="fas fa-heart text-white"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Charts and Analytics -->
-    <div class="row g-4 mb-5">
-        <div class="col-lg-8">
-            <div class="card widget-card h-100">
-                <div class="card-header bg-white py-3">
-                    <h6 class="m-0 fw-bold text-dark">
-                        <i class="fas fa-chart-bar me-2 text-primary"></i>Peak Hours Analysis
-                    </h6>
-                </div>
-                <div class="card-body">
-                    {% if peak_hours %}
-                        <div class="d-flex justify-content-between align-items-end" style="height: 250px; gap: 8px;">
-                            {% for hour, count in peak_hours.items() %}
-                                <div class="d-flex flex-column align-items-center flex-fill">
-                                    <div class="peak-hour-bar" 
-                                         style="height: {{ (count / peak_hours.values()|max * 100) if count > 0 else 5 }}%;" 
-                                         data-count="{{ count }}">
-                                    </div>
-                                    <div class="hour-label">{{ hour }}</div>
-                                </div>
-                            {% endfor %}
-                        </div>
-                    {% else %}
-                        <p class="text-muted text-center py-5">No peak hours data available</p>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
-
-        <div class="col-lg-4">
-            <div class="card widget-card h-100">
-                <div class="card-header bg-white py-3">
-                    <h6 class="m-0 fw-bold text-dark">
-                        <i class="fas fa-chart-pie me-2 text-success"></i>Client Retention
-                    </h6>
-                </div>
-                <div class="card-body d-flex align-items-center justify-content-center">
-                    <div class="position-relative" style="width: 200px; height: 200px;">
-                        <canvas id="retentionChart"></canvas>
-                        <div class="position-absolute top-50 start-50 translate-middle text-center">
-                            <h2 class="fw-bold mb-0">{{ retention_metrics.retention_rate }}%</h2>
-                            <small class="text-muted">Retention</small>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Services and Performance -->
-    <div class="row g-4 mb-5">
-        <div class="col-lg-4">
-            <div class="card widget-card h-100">
-                <div class="card-header bg-white py-3">
-                    <h6 class="m-0 fw-bold text-dark">
-                        <i class="fas fa-spa me-2 text-info"></i>Popular Services
-                    </h6>
-                </div>
-                <div class="card-body">
-                    {% if top_services %}
-                        {% for service in top_services %}
-                            <div class="mb-4">
-                                <div class="d-flex justify-content-between align-items-center mb-2">
-                                    <span class="fw-semibold text-dark">{{ service.name }}</span>
-                                    <span class="badge bg-primary">{{ service.bookings }} bookings</span>
-                                </div>
-                                <div class="progress">
-                                    <div class="progress-bar" 
-                                         role="progressbar" 
-                                         style="width: {{ (service.bookings / top_services[0].bookings * 100) if top_services[0].bookings > 0 else 0 }}%; background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);"
-                                         aria-valuenow="{{ service.bookings }}" 
-                                         aria-valuemin="0" 
-                                         aria-valuemax="{{ top_services[0].bookings }}">
-                                    </div>
-                                </div>
-                            </div>
+            <div class="table-container">
+                {% if recent_appointments %}
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Client</th>
+                            <th>Service</th>
+                            <th>Staff</th>
+                            <th>Time</th>
+                            <th>Status</th>
+                            <th>Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for apt in recent_appointments %}
+                        <tr>
+                            <td>{{ apt.client_name }}</td>
+                            <td>{{ apt.service_name }}</td>
+                            <td>{{ apt.staff_name }}</td>
+                            <td>{{ apt.appointment_time }}</td>
+                            <td>
+                                {% if apt.status == 'completed' %}
+                                <span class="badge badge-success">Completed</span>
+                                {% elif apt.status == 'confirmed' %}
+                                <span class="badge badge-info">Confirmed</span>
+                                {% elif apt.status == 'pending' %}
+                                <span class="badge badge-warning">Pending</span>
+                                {% else %}
+                                <span class="badge badge-danger">Cancelled</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ utils.format_currency(apt.amount) }}</td>
+                        </tr>
                         {% endfor %}
-                    {% else %}
-                        <p class="text-muted text-center">No services data available</p>
-                    {% endif %}
+                    </tbody>
+                </table>
+                {% else %}
+                <div class="empty-state">
+                    <i class="fas fa-calendar-times"></i>
+                    <p>No recent appointments</p>
                 </div>
+                {% endif %}
             </div>
         </div>
 
-        <div class="col-lg-4">
-            <div class="card widget-card h-100">
-                <div class="card-header bg-white py-3">
-                    <h6 class="m-0 fw-bold text-dark">
-                        <i class="fas fa-trophy me-2 text-warning"></i>Top Performers
-                    </h6>
+        <!-- Upcoming Appointments -->
+        <div class="card col-4">
+            <div class="card-header">
+                <h2 class="card-title"><i class="fas fa-calendar-alt"></i> Upcoming</h2>
+            </div>
+            {% if upcoming_appointments %}
+            <div style="max-height: 400px; overflow-y: auto;">
+                {% for apt in upcoming_appointments[:5] %}
+                <div style="padding: 1rem; border-bottom: 1px solid var(--border-color); transition: background 0.2s;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                        <strong style="color: var(--text-dark);">{{ apt.client_name }}</strong>
+                        <span style="font-size: 0.875rem; color: var(--text-muted);">{{ apt.appointment_time }}</span>
+                    </div>
+                    <div style="font-size: 0.875rem; color: var(--text-muted);">
+                        {{ apt.service_name }}
+                    </div>
+                    <div style="font-size: 0.875rem; color: var(--text-muted); margin-top: 0.25rem;">
+                        Staff: {{ apt.staff_name }}
+                    </div>
                 </div>
-                <div class="card-body">
-                    {% if top_staff %}
-                        {% for staff in top_staff %}
-                            <div class="top-performer-item">
-                                <div class="performer-rank">{{ loop.index }}</div>
-                                <div class="flex-grow-1">
-                                    <div class="fw-bold text-dark">{{ staff.name }}</div>
-                                    <small class="text-muted">
-                                        <i class="fas fa-calendar-check me-1"></i>{{ staff.appointments }} appointments • 
-                                        <i class="fas fa-coins me-1"></i>{{ utils.format_currency(staff.revenue) }}
-                                    </small>
-                                </div>
-                            </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <i class="fas fa-calendar-day"></i>
+                <p>No upcoming appointments</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Top Services -->
+        <div class="card col-6">
+            <div class="card-header">
+                <h2 class="card-title"><i class="fas fa-star"></i> Top Services</h2>
+            </div>
+            {% if top_services %}
+            <div style="max-height: 300px; overflow-y: auto;">
+                {% for service in top_services %}
+                <div style="padding: 0.75rem 0; border-bottom: 1px solid var(--border-color);">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                        <strong style="color: var(--text-dark);">{{ service.service_name }}</strong>
+                        <span style="font-weight: 600; color: var(--primary-color);">{{ service.booking_count }} bookings</span>
+                    </div>
+                    <div style="background: var(--bg-light); height: 6px; border-radius: 3px; overflow: hidden;">
+                        <div style="background: var(--primary-color); height: 100%; width: {{ (service.booking_count / top_services[0].booking_count * 100)|round }}%; transition: width 0.3s ease;"></div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <i class="fas fa-spa"></i>
+                <p>No service data available</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Top Staff -->
+        <div class="card col-6">
+            <div class="card-header">
+                <h2 class="card-title"><i class="fas fa-trophy"></i> Top Performers</h2>
+            </div>
+            {% if top_staff %}
+            <div style="max-height: 300px; overflow-y: auto;">
+                {% for staff in top_staff %}
+                <div style="padding: 0.75rem 0; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; gap: 1rem;">
+                    <div style="width: 40px; height: 40px; border-radius: 50%; background: var(--primary-color); color: white; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 1.25rem;">
+                        {{ loop.index }}
+                    </div>
+                    <div style="flex: 1;">
+                        <strong style="color: var(--text-dark); display: block;">{{ staff.staff_name }}</strong>
+                        <span style="font-size: 0.875rem; color: var(--text-muted);">{{ staff.appointment_count }} appointments</span>
+                    </div>
+                    <div style="text-align: right;">
+                        <div style="font-weight: 600; color: var(--success-color);">{{ utils.format_currency(staff.revenue) }}</div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <i class="fas fa-user-tie"></i>
+                <p>No staff data available</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Alerts -->
+        {% if low_stock_items or expiring_items %}
+        <div class="card col-12">
+            <div class="card-header">
+                <h2 class="card-title"><i class="fas fa-exclamation-triangle"></i> Alerts</h2>
+                <a href="{{ url_for('alerts') }}" class="btn btn-primary btn-sm">
+                    View All <i class="fas fa-arrow-right"></i>
+                </a>
+            </div>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Type</th>
+                            <th>Item</th>
+                            <th>Details</th>
+                            <th>Priority</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in low_stock_items[:3] %}
+                        <tr>
+                            <td><span class="badge badge-warning">Low Stock</span></td>
+                            <td>{{ item.name }}</td>
+                            <td>Current: {{ item.current_stock }}</td>
+                            <td><i class="fas fa-circle" style="color: var(--warning-color);"></i> Medium</td>
+                        </tr>
                         {% endfor %}
-                    {% else %}
-                        <p class="text-muted text-center">No staff data available</p>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
-
-        <div class="col-lg-4">
-            <div class="card widget-card h-100">
-                <div class="card-header bg-white py-3">
-                    <h6 class="m-0 fw-bold text-dark">
-                        <i class="fas fa-clock me-2 text-primary"></i>Upcoming Appointments
-                    </h6>
-                </div>
-                <div class="card-body" style="max-height: 400px; overflow-y: auto;">
-                    {% if upcoming_appointments %}
-                        {% for appt in upcoming_appointments %}
-                            <div class="timeline-item">
-                                <div class="timeline-dot"></div>
-                                <div class="mb-1">
-                                    <span class="badge bg-primary">{{ appt.appointment_date.strftime('%I:%M %p') if appt.appointment_date else 'N/A' }}</span>
-                                </div>
-                                <div class="fw-bold text-dark">{{ appt.client.full_name if appt.client else 'N/A' }}</div>
-                                <small class="text-muted">
-                                    {{ appt.service.name if appt.service else 'N/A' }} 
-                                    {% if appt.staff %}with {{ appt.staff.full_name }}{% endif %}
-                                </small>
-                            </div>
+                        {% for item in expiring_items[:3] %}
+                        <tr>
+                            <td><span class="badge badge-danger">Expiring Soon</span></td>
+                            <td>{{ item.product.name }}</td>
+                            <td>Expires: {{ item.expiry_date.strftime('%Y-%m-%d') }}</td>
+                            <td><i class="fas fa-circle" style="color: var(--danger-color);"></i> High</td>
+                        </tr>
                         {% endfor %}
-                    {% else %}
-                        <p class="text-muted text-center py-4">No upcoming appointments</p>
-                    {% endif %}
-                </div>
+                    </tbody>
+                </table>
             </div>
         </div>
-    </div>
-
-    <!-- Recent Activity and Alerts -->
-    <div class="row g-4 mb-5">
-        <div class="col-lg-6">
-            <div class="card widget-card">
-                <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
-                    <h6 class="m-0 fw-bold text-dark">
-                        <i class="fas fa-calendar-check me-2 text-primary"></i>Recent Appointments
-                    </h6>
-                    <a href="{{ url_for('bookings') }}" class="btn btn-sm btn-outline-primary rounded-pill px-3">
-                        <i class="fas fa-arrow-right me-1"></i>View All
-                    </a>
-                </div>
-                <div class="card-body">
-                    {% if recent_appointments %}
-                        <div class="table-responsive">
-                            <table class="table table-hover mb-0">
-                                <thead>
-                                    <tr>
-                                        <th>Client</th>
-                                        <th>Service</th>
-                                        <th>Date</th>
-                                        <th>Status</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% for appointment in recent_appointments %}
-                                    <tr>
-                                        <td class="fw-semibold">{{ appointment.client.full_name if appointment.client else 'N/A' }}</td>
-                                        <td>{{ appointment.service.name if appointment.service else 'N/A' }}</td>
-                                        <td>{{ appointment.appointment_date.strftime('%b %d, %I:%M %p') if appointment.appointment_date else 'N/A' }}</td>
-                                        <td>
-                                            <span class="badge bg-{{ 'success' if appointment.status == 'completed' else ('primary' if appointment.status == 'confirmed' else 'secondary') }}">
-                                                {{ appointment.status.replace('_', ' ').title() }}
-                                            </span>
-                                        </td>
-                                    </tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
-                        </div>
-                    {% else %}
-                        <p class="text-muted text-center py-4">No recent appointments found</p>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
-
-        <div class="col-lg-6">
-            <div class="card widget-card">
-                <div class="card-header bg-white py-3">
-                    <h6 class="m-0 fw-bold text-dark">
-                        <i class="fas fa-bell me-2 text-warning"></i>Alerts & Notifications
-                    </h6>
-                </div>
-                <div class="card-body">
-                    {% if low_stock_items %}
-                        <div class="alert alert-warning" role="alert">
-                            <h6 class="alert-heading fw-bold">
-                                <i class="fas fa-exclamation-triangle me-2"></i>Low Stock Items
-                            </h6>
-                            <ul class="mb-0">
-                                {% for item in low_stock_items %}
-                                <li>{{ item.product.name if item.product else item.name }} ({{ item.current_stock }} remaining)</li>
-                                {% endfor %}
-                            </ul>
-                        </div>
-                    {% endif %}
-
-                    {% if expiring_items %}
-                        <div class="alert alert-danger" role="alert">
-                            <h6 class="alert-heading fw-bold">
-                                <i class="fas fa-clock me-2"></i>Expiring Soon
-                            </h6>
-                            <ul class="mb-0">
-                                {% for item in expiring_items %}
-                                <li>{{ item.product.name if item.product else 'Product' }} - Batch #{{ item.batch_no }} (expires {{ item.expiry_date.strftime('%b %d, %Y') if item.expiry_date else 'N/A' }})</li>
-                                {% endfor %}
-                            </ul>
-                        </div>
-                    {% endif %}
-
-                    {% if not low_stock_items and not expiring_items %}
-                        <div class="alert alert-success" role="alert">
-                            <i class="fas fa-check-circle me-2"></i>All systems normal - No alerts at this time
-                        </div>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Quick Actions -->
-    <div class="row g-3 mb-4">
-        <div class="col-12">
-            <h5 class="mb-4 fw-bold text-white" style="text-shadow: 0 2px 4px rgba(0,0,0,0.3); font-size: 1.5rem;">
-                <i class="fas fa-bolt me-2"></i>Quick Actions
-            </h5>
-        </div>
-        <div class="col-md-3">
-            <a href="/bookings" class="quick-action-btn">
-                <i class="fas fa-calendar-plus fa-2x text-primary mb-3"></i>
-                <div class="fw-bold">New Appointment</div>
-                <small class="text-muted mt-1">Schedule a new booking</small>
-            </a>
-        </div>
-        <div class="col-md-3">
-            <a href="/clients" class="quick-action-btn">
-                <i class="fas fa-user-plus fa-2x text-success mb-3"></i>
-                <div class="fw-bold">Add Client</div>
-                <small class="text-muted mt-1">Register new client</small>
-            </a>
-        </div>
-        <div class="col-md-3">
-            <a href="/checkin" class="quick-action-btn">
-                <i class="fas fa-camera fa-2x text-info mb-3"></i>
-                <div class="fw-bold">Face Check-in</div>
-                <small class="text-muted mt-1">Facial recognition</small>
-            </a>
-        </div>
-        <div class="col-md-3">
-            <a href="/comprehensive_staff" class="quick-action-btn">
-                <i class="fas fa-users-cog fa-2x text-warning mb-3"></i>
-                <div class="fw-bold">Manage Staff</div>
-                <small class="text-muted mt-1">Staff administration</small>
-            </a>
-        </div>
+        {% endif %}
     </div>
 </div>
 {% endblock %}
 
-{% block extra_scripts %}
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+{% block extra_js %}
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Add dashboard class to body for styling
-    document.body.classList.add('dashboard-page');
-    
-    const retentionRate = {{ retention_metrics.retention_rate }};
-
-    const retentionCtx = document.getElementById('retentionChart');
-    if (retentionCtx) {
-        new Chart(retentionCtx, {
-            type: 'doughnut',
-            data: {
-                labels: ['Retained', 'Churned'],
-                datasets: [{
-                    data: [retentionRate, 100 - retentionRate],
-                    backgroundColor: [
-                        'rgba(17, 153, 142, 1)',
-                        'rgba(229, 231, 235, 0.5)'
-                    ],
-                    borderWidth: 0,
-                    borderRadius: 5
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: true,
-                cutout: '75%',
-                plugins: {
-                    legend: {
-                        display: false
-                    },
-                    tooltip: {
-                        callbacks: {
-                            label: function(context) {
-                                return context.label + ': ' + context.parsed + '%';
-                            }
-                        },
-                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                        padding: 12,
-                        borderRadius: 8,
-                        titleFont: {
-                            size: 14,
-                            weight: 'bold'
-                        },
-                        bodyFont: {
-                            size: 13
-                        }
-                    }
-                }
-            }
-        });
-    }
-
-    // Add smooth reveal animation on load
-    const cards = document.querySelectorAll('.modern-stat-card, .widget-card, .quick-action-btn');
-    cards.forEach((card, index) => {
-        card.style.opacity = '0';
-        card.style.transform = 'translateY(20px)';
-        setTimeout(() => {
-            card.style.transition = 'all 0.6s ease';
-            card.style.opacity = '1';
-            card.style.transform = 'translateY(0)';
-        }, index * 50);
-    });
-});
+// Auto-refresh dashboard every 5 minutes
+setTimeout(function() {
+    location.reload();
+}, 300000);
 </script>
 {% endblock %}
