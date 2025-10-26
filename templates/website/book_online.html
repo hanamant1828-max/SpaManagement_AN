@@ -113,6 +113,30 @@
         transform: translateY(-2px);
         box-shadow: 0 5px 15px rgba(40, 167, 69, 0.3);
     }
+
+    .alert {
+        border-radius: 10px;
+        padding: 1rem 1.5rem;
+        margin-bottom: 1.5rem;
+        border: none;
+        box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+    }
+
+    .alert-error, .alert-danger {
+        background: linear-gradient(135deg, #dc3545, #c82333);
+        color: #fff;
+    }
+
+    .alert-success {
+        background: linear-gradient(135deg, #28a745, #218838);
+        color: #fff;
+    }
+
+    small.text-muted {
+        display: block;
+        margin-top: 0.25rem;
+        font-size: 0.85rem;
+    }
 </style>
 {% endblock %}
 
@@ -130,6 +154,18 @@
     <div class="container">
         <div class="row justify-content-center">
             <div class="col-lg-8">
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                                <i class="fas fa-{{ 'check-circle' if category == 'success' else 'exclamation-triangle' }} me-2"></i>
+                                <strong>{{ message }}</strong>
+                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="alert" aria-label="Close"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+                
                 <div class="booking-form">
                     <div class="info-box">
                         <i class="fas fa-info-circle me-2"></i>
@@ -151,12 +187,18 @@
 
                             <div class="col-md-6">
                                 <label for="client_phone" class="form-label required-field">Phone Number</label>
-                                <input type="tel" class="form-control" id="client_phone" name="client_phone" placeholder="+1-555-123-4567" required>
+                                <input type="tel" class="form-control" id="client_phone" name="client_phone" 
+                                       placeholder="+1-555-123-4567" required 
+                                       pattern="[\d\s\-\+\(\)]+" 
+                                       title="Please enter a valid phone number">
+                                <small class="text-muted">Format: +1-234-567-8900 or 2345678900</small>
                             </div>
 
                             <div class="col-12">
                                 <label for="client_email" class="form-label">Email Address (Optional)</label>
-                                <input type="email" class="form-control" id="client_email" name="client_email" placeholder="your@email.com">
+                                <input type="email" class="form-control" id="client_email" name="client_email" 
+                                       placeholder="your@email.com">
+                                <small class="text-muted">We'll send your booking confirmation here</small>
                             </div>
 
                             <!-- Appointment Details -->
@@ -205,7 +247,10 @@
                                     <div class="col-md-6">
                                         <label class="form-label required-field">Preferred Date</label>
                                         <input type="date" class="form-control" name="services[0][appointment_date]" 
-                                               min="{{ available_dates[0] }}" required>
+                                               min="{{ available_dates[0] }}" 
+                                               max="{{ (available_dates|last) if available_dates else '' }}" 
+                                               required>
+                                        <small class="text-muted">Available for next 30 days</small>
                                     </div>
 
                                     <div class="col-md-6">
@@ -216,6 +261,7 @@
                                                 <option value="{{ slot }}">{{ slot }}</option>
                                             {% endfor %}
                                         </select>
+                                        <small class="text-muted">9:00 AM - 6:00 PM</small>
                                     </div>
 
                                     <div class="col-12">
@@ -309,7 +355,10 @@ function addService() {
                 <div class="col-md-6">
                     <label class="form-label required-field">Preferred Date</label>
                     <input type="date" class="form-control" name="services[${serviceIndex}][appointment_date]" 
-                           min="{{ available_dates[0] }}" required>
+                           min="{{ available_dates[0] }}" 
+                           max="{{ (available_dates|last) if available_dates else '' }}" 
+                           required>
+                    <small class="text-muted">Available for next 30 days</small>
                 </div>
 
                 <div class="col-md-6">
@@ -320,6 +369,7 @@ function addService() {
                             <option value="{{ slot }}">{{ slot }}</option>
                         {% endfor %}
                     </select>
+                    <small class="text-muted">9:00 AM - 6:00 PM</small>
                 </div>
 
                 <div class="col-12">
@@ -358,33 +408,74 @@ function updateServiceNumbers() {
     });
 }
 
-// Convert 12-hour format to 24-hour format
-    function convertTo24Hour(time12h) {
-        if (!time12h) return ''; // Handle empty time
-        const [time, modifier] = time12h.split(' ');
-        let [hours, minutes] = time.split(':');
+// Form validation and submission handling
+    const bookingForm = document.getElementById('bookingForm');
+    let isSubmitting = false;
 
-        hours = parseInt(hours, 10);
-
-        if (modifier === 'PM' && hours !== 12) {
-            hours = hours + 12;
-        } else if (modifier === 'AM' && hours === 12) {
-            hours = 0;
+    bookingForm.addEventListener('submit', function(e) {
+        // Prevent double submissions
+        if (isSubmitting) {
+            e.preventDefault();
+            return false;
         }
 
-        return `${String(hours).padStart(2, '0')}:${minutes}`;
-    }
+        // Validate phone number
+        const phoneInput = document.getElementById('client_phone');
+        const phoneValue = phoneInput.value.replace(/[^\d+]/g, '');
+        if (phoneValue.length < 10) {
+            e.preventDefault();
+            alert('Please enter a valid phone number (at least 10 digits).');
+            phoneInput.focus();
+            return false;
+        }
 
-    // Convert time to 24-hour format before form submission
-    document.getElementById('bookingForm').addEventListener('submit', function(e) {
-        // Convert all time selects from 12-hour to 24-hour format before submission
-        document.querySelectorAll('select[name*="appointment_time"]').forEach(function(select) {
-            if (select.value) {
-                const time24h = convertTo24Hour(select.value);
-                select.value = time24h;
+        // Validate email if provided
+        const emailInput = document.getElementById('client_email');
+        if (emailInput.value.trim()) {
+            const emailPattern = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+            if (!emailPattern.test(emailInput.value.trim())) {
+                e.preventDefault();
+                alert('Please enter a valid email address.');
+                emailInput.focus();
+                return false;
+            }
+        }
+
+        // Validate at least one complete service is filled
+        const serviceItems = document.querySelectorAll('.service-item');
+        let hasValidService = false;
+        
+        serviceItems.forEach((item, index) => {
+            const serviceSelect = item.querySelector('select[name*="service_id"]');
+            const dateInput = item.querySelector('input[name*="appointment_date"]');
+            const timeSelect = item.querySelector('select[name*="appointment_time"]');
+            
+            if (serviceSelect && serviceSelect.value && 
+                dateInput && dateInput.value && 
+                timeSelect && timeSelect.value) {
+                hasValidService = true;
             }
         });
-        // Let the form submit normally
+
+        if (!hasValidService) {
+            e.preventDefault();
+            alert('Please select at least one service with a date and time.');
+            return false;
+        }
+
+        // Show loading state
+        isSubmitting = true;
+        const submitBtn = bookingForm.querySelector('button[type="submit"]');
+        const originalBtnText = submitBtn.innerHTML;
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Processing...';
+        
+        // If validation fails on server, re-enable the button
+        setTimeout(() => {
+            isSubmitting = false;
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalBtnText;
+        }, 5000);
     });
 
 </script>

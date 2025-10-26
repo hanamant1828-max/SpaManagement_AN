@@ -47,9 +47,27 @@ def website_book_online():
             client_phone = data.get('client_phone', '').strip()
             client_email = data.get('client_email', '').strip()
 
-            if not all([client_name, client_phone]):
-                flash('Please fill in all required fields.', 'error')
+            # Validate required fields
+            if not client_name:
+                flash('Please enter your full name.', 'error')
                 return redirect(url_for('website_book_online'))
+            
+            if not client_phone:
+                flash('Please enter your phone number.', 'error')
+                return redirect(url_for('website_book_online'))
+            
+            # Clean and validate phone number
+            client_phone = re.sub(r'[^\d+]', '', client_phone)
+            if len(client_phone) < 10:
+                flash('Please enter a valid phone number (at least 10 digits).', 'error')
+                return redirect(url_for('website_book_online'))
+            
+            # Validate email format if provided
+            if client_email and client_email.strip():
+                email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+                if not re.match(email_pattern, client_email.strip()):
+                    flash('Please enter a valid email address.', 'error')
+                    return redirect(url_for('website_book_online'))
 
             # Parse multiple services from form data
             services_data = {}
@@ -66,7 +84,7 @@ def website_book_online():
                         services_data[index][field] = data.get(key, '').strip()
 
             if not services_data:
-                flash('Please select at least one service.', 'error')
+                flash('Please select at least one service with date and time.', 'error')
                 return redirect(url_for('website_book_online'))
 
             # Create or get customer - ALWAYS search by phone first
@@ -114,6 +132,8 @@ def website_book_online():
 
             # Create bookings for each service
             created_bookings = []
+            validation_errors = []
+            
             try:
                 for index in sorted(services_data.keys()):
                     service_info = services_data[index]
@@ -126,20 +146,39 @@ def website_book_online():
                     print(f"Processing service {index}: service_id={service_id}, date={appointment_date_str}, time={appointment_time_str}")
 
                     if not all([service_id, appointment_date_str, appointment_time_str]):
+                        validation_errors.append(f"Service #{index + 1}: Missing required information (service, date, or time)")
                         print(f"Skipping incomplete entry at index {index}")
                         continue  # Skip incomplete entries
 
                     service = Service.query.get(service_id)
                     if not service:
+                        validation_errors.append(f"Service #{index + 1}: Invalid service selected")
                         print(f"Service not found: {service_id}")
                         continue  # Skip invalid services
 
-                    appointment_date = datetime.strptime(appointment_date_str, '%Y-%m-%d').date()
-                    
-                    # Parse time - handle both formats
+                    # Validate appointment date is not in the past
                     try:
-                        appointment_time_obj = datetime.strptime(appointment_time_str, '%H:%M').time()
+                        appointment_date = datetime.strptime(appointment_date_str, '%Y-%m-%d').date()
+                        if appointment_date < date.today():
+                            validation_errors.append(f"Service #{index + 1}: Cannot book appointments in the past")
+                            print(f"Appointment date is in the past: {appointment_date}")
+                            continue
                     except ValueError:
+                        validation_errors.append(f"Service #{index + 1}: Invalid date format")
+                        print(f"Invalid date format: {appointment_date_str}")
+                        continue
+                    
+                    # Parse time - handle both 12-hour and 24-hour formats
+                    appointment_time_obj = None
+                    for time_format in ['%I:%M %p', '%H:%M', '%I:%M%p']:
+                        try:
+                            appointment_time_obj = datetime.strptime(appointment_time_str.strip(), time_format).time()
+                            break
+                        except ValueError:
+                            continue
+                    
+                    if not appointment_time_obj:
+                        validation_errors.append(f"Service #{index + 1}: Invalid time format")
                         print(f"Invalid time format: {appointment_time_str}")
                         continue
 
@@ -178,7 +217,11 @@ def website_book_online():
                     created_bookings.append(booking)
 
                 if not created_bookings:
-                    flash('No valid bookings were created. Please check your entries.', 'error')
+                    if validation_errors:
+                        error_msg = 'Please fix the following issues: ' + '; '.join(validation_errors)
+                        flash(error_msg, 'error')
+                    else:
+                        flash('No valid bookings were created. Please ensure all services have a date and time selected.', 'error')
                     return redirect(url_for('website_book_online'))
 
                 db.session.commit()
