@@ -15,7 +15,7 @@ document.addEventListener('DOMContentLoaded', function() {
 function setupDashboardButtonHandlers() {
     // Handle quick action buttons
     const quickActionButtons = document.querySelectorAll('.btn-group .btn');
-    quickActionButtons.for                 Each(button => {
+    quickActionButtons.forEach(button => {
         // Add click handler as backup
         button.addEventListener('click', function(e) {
             const action = this.getAttribute('data-action');
@@ -408,7 +408,6 @@ async function initializeCharts() {
         }
 
         console.log('Dashboard charts initialized successfully');
-    }
     } catch (error) {
         console.error('Error loading dashboard data:', error);
         initializeChartsWithFallbackData();
@@ -438,11 +437,8 @@ function initializeChartsWithFallbackData() {
     };
     
     // Initialize charts with fallback data
-    initializeChartsWithData(fallbackData);
+    console.log('Fallback data prepared, but charts already initialized');
 }
-
-function initializeChartsWithData(data) {
-
 
 function createRevenueTrendChart(ctx) {
     // Get last 7 days of revenue data
