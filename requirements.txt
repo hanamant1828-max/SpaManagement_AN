@@ -123,3 +123,4 @@ python-dotenv
 pytz
 weasyprint
 pillow
+Pillow
