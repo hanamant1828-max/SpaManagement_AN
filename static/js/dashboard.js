@@ -109,7 +109,6 @@ async function initializeCharts() {
         
         if (!response.ok) {
             console.error('API request failed:', response.status, response.statusText);
-            // Use fallback data if API fails
             initializeChartsWithFallbackData();
             return;
         }
@@ -122,160 +121,294 @@ async function initializeCharts() {
             return;
         }
 
-        // Revenue Chart - Last 7 days
-    const revenueCtx = document.getElementById('revenueChart');
-    if (revenueCtx && typeof Chart !== 'undefined') {
-        try {
-            if (chartInstances.revenueChart) {
-                chartInstances.revenueChart.destroy();
-            }
-            chartInstances.revenueChart = new Chart(revenueCtx.getContext('2d'), {
-                type: 'line',
-                data: {
-                    labels: data.revenue_chart.labels || [],
-                    datasets: [{
-                        label: 'Revenue',
-                        data: data.revenue_chart.data || [],
-                        borderColor: '#4F46E5',
-                        backgroundColor: 'rgba(79, 70, 229, 0.1)',
-                        tension: 0.4,
-                        fill: true
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: { display: false }
+        // Revenue Chart - Gradient Area Chart
+        const revenueCtx = document.getElementById('revenueChart');
+        if (revenueCtx && typeof Chart !== 'undefined') {
+            try {
+                if (chartInstances.revenueChart) {
+                    chartInstances.revenueChart.destroy();
+                }
+                
+                const gradient = revenueCtx.getContext('2d').createLinearGradient(0, 0, 0, 400);
+                gradient.addColorStop(0, 'rgba(102, 126, 234, 0.8)');
+                gradient.addColorStop(0.5, 'rgba(118, 75, 162, 0.4)');
+                gradient.addColorStop(1, 'rgba(118, 75, 162, 0.1)');
+                
+                chartInstances.revenueChart = new Chart(revenueCtx.getContext('2d'), {
+                    type: 'line',
+                    data: {
+                        labels: data.revenue_chart.labels || [],
+                        datasets: [{
+                            label: 'Revenue (₹)',
+                            data: data.revenue_chart.data || [],
+                            borderColor: '#667eea',
+                            backgroundColor: gradient,
+                            borderWidth: 3,
+                            tension: 0.4,
+                            fill: true,
+                            pointRadius: 6,
+                            pointBackgroundColor: '#fff',
+                            pointBorderColor: '#667eea',
+                            pointBorderWidth: 3,
+                            pointHoverRadius: 8
+                        }]
                     },
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            ticks: {
-                                callback: function(value) {
-                                    return '₹' + value.toFixed(0);
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { 
+                                display: true,
+                                labels: {
+                                    font: { size: 14, weight: 'bold' },
+                                    color: '#1f2937'
+                                }
+                            },
+                            tooltip: {
+                                backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                                padding: 12,
+                                titleFont: { size: 14, weight: 'bold' },
+                                bodyFont: { size: 13 },
+                                callbacks: {
+                                    label: function(context) {
+                                        return 'Revenue: ₹' + context.parsed.y.toLocaleString();
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                grid: {
+                                    color: 'rgba(0, 0, 0, 0.05)'
+                                },
+                                ticks: {
+                                    font: { size: 12, weight: 'bold' },
+                                    color: '#6b7280',
+                                    callback: function(value) {
+                                        return '₹' + value.toLocaleString();
+                                    }
+                                }
+                            },
+                            x: {
+                                grid: {
+                                    display: false
+                                },
+                                ticks: {
+                                    font: { size: 12, weight: 'bold' },
+                                    color: '#6b7280'
                                 }
                             }
                         }
                     }
-                }
-            });
-        } catch (error) {
-            console.warn('Revenue chart initialization failed:', error.message);
-        }
-    }
-
-    // Service Popularity Chart
-    const serviceCtx = document.getElementById('serviceChart');
-    if (serviceCtx && typeof Chart !== 'undefined') {
-        try {
-            if (chartInstances.serviceChart) {
-                chartInstances.serviceChart.destroy();
+                });
+            } catch (error) {
+                console.warn('Revenue chart initialization failed:', error.message);
             }
-            chartInstances.serviceChart = new Chart(serviceCtx.getContext('2d'), {
-                type: 'doughnut',
-                data: {
-                    labels: data.service_chart.labels || [],
-                    datasets: [{
-                        data: data.service_chart.data || [],
-                        backgroundColor: ['#4F46E5', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899']
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            position: 'bottom'
-                        }
-                    }
-                }
-            });
-        } catch (error) {
-            console.warn('Service chart initialization failed:', error.message);
         }
-    }
 
-    // Monthly Bookings Chart
-    const bookingsCtx = document.getElementById('bookingsChart');
-    if (bookingsCtx && typeof Chart !== 'undefined') {
-        try {
-            if (chartInstances.bookingsChart) {
-                chartInstances.bookingsChart.destroy();
-            }
-            chartInstances.bookingsChart = new Chart(bookingsCtx.getContext('2d'), {
-                type: 'bar',
-                data: {
-                    labels: data.bookings_chart.labels || [],
-                    datasets: [{
-                        label: 'Bookings',
-                        data: data.bookings_chart.data || [],
-                        backgroundColor: '#4F46E5',
-                        borderRadius: 6
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: { display: false }
+        // Service Popularity Chart - Colorful Pie Chart
+        const serviceCtx = document.getElementById('serviceChart');
+        if (serviceCtx && typeof Chart !== 'undefined') {
+            try {
+                if (chartInstances.serviceChart) {
+                    chartInstances.serviceChart.destroy();
+                }
+                chartInstances.serviceChart = new Chart(serviceCtx.getContext('2d'), {
+                    type: 'doughnut',
+                    data: {
+                        labels: data.service_chart.labels || [],
+                        datasets: [{
+                            data: data.service_chart.data || [],
+                            backgroundColor: [
+                                '#667eea',
+                                '#764ba2',
+                                '#f093fb',
+                                '#4facfe',
+                                '#43e97b',
+                                '#fa709a'
+                            ],
+                            borderWidth: 3,
+                            borderColor: '#fff',
+                            hoverBorderWidth: 5,
+                            hoverOffset: 15
+                        }]
                     },
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            ticks: {
-                                stepSize: 1
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: {
+                                    padding: 15,
+                                    font: { size: 12, weight: 'bold' },
+                                    color: '#1f2937',
+                                    usePointStyle: true,
+                                    pointStyle: 'circle'
+                                }
+                            },
+                            tooltip: {
+                                backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                                padding: 12,
+                                titleFont: { size: 14, weight: 'bold' },
+                                bodyFont: { size: 13 }
                             }
                         }
                     }
-                }
-            });
-        } catch (error) {
-            console.warn('Bookings chart initialization failed:', error.message);
-        }
-    }
-
-    // Staff Performance Chart
-    const staffCtx = document.getElementById('staffChart');
-    if (staffCtx && typeof Chart !== 'undefined') {
-        try {
-            if (chartInstances.staffChart) {
-                chartInstances.staffChart.destroy();
+                });
+            } catch (error) {
+                console.warn('Service chart initialization failed:', error.message);
             }
-            chartInstances.staffChart = new Chart(staffCtx.getContext('2d'), {
-                type: 'bar',
-                data: {
-                    labels: data.staff_chart.labels || [],
-                    datasets: [{
-                        label: 'Completed Services',
-                        data: data.staff_chart.data || [],
-                        backgroundColor: '#F59E0B',
-                        borderRadius: 6
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: { display: false }
+        }
+
+        // Monthly Bookings Chart - Gradient Bar Chart
+        const bookingsCtx = document.getElementById('bookingsChart');
+        if (bookingsCtx && typeof Chart !== 'undefined') {
+            try {
+                if (chartInstances.bookingsChart) {
+                    chartInstances.bookingsChart.destroy();
+                }
+                
+                const bookingGradient = bookingsCtx.getContext('2d').createLinearGradient(0, 0, 0, 350);
+                bookingGradient.addColorStop(0, '#4facfe');
+                bookingGradient.addColorStop(1, '#00f2fe');
+                
+                chartInstances.bookingsChart = new Chart(bookingsCtx.getContext('2d'), {
+                    type: 'bar',
+                    data: {
+                        labels: data.bookings_chart.labels || [],
+                        datasets: [{
+                            label: 'Bookings',
+                            data: data.bookings_chart.data || [],
+                            backgroundColor: bookingGradient,
+                            borderRadius: 10,
+                            borderSkipped: false,
+                            hoverBackgroundColor: '#00f2fe'
+                        }]
                     },
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            ticks: {
-                                stepSize: 1
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { 
+                                display: true,
+                                labels: {
+                                    font: { size: 14, weight: 'bold' },
+                                    color: '#1f2937'
+                                }
+                            },
+                            tooltip: {
+                                backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                                padding: 12,
+                                titleFont: { size: 14, weight: 'bold' },
+                                bodyFont: { size: 13 }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                grid: {
+                                    color: 'rgba(0, 0, 0, 0.05)'
+                                },
+                                ticks: {
+                                    stepSize: 5,
+                                    font: { size: 12, weight: 'bold' },
+                                    color: '#6b7280'
+                                }
+                            },
+                            x: {
+                                grid: {
+                                    display: false
+                                },
+                                ticks: {
+                                    font: { size: 12, weight: 'bold' },
+                                    color: '#6b7280'
+                                }
                             }
                         }
                     }
-                }
-            });
-        } catch (error) {
-            console.warn('Staff chart initialization failed:', error.message);
+                });
+            } catch (error) {
+                console.warn('Bookings chart initialization failed:', error.message);
+            }
         }
-    }
+
+        // Staff Performance Chart - Horizontal Bar Chart with Gradient
+        const staffCtx = document.getElementById('staffChart');
+        if (staffCtx && typeof Chart !== 'undefined') {
+            try {
+                if (chartInstances.staffChart) {
+                    chartInstances.staffChart.destroy();
+                }
+                
+                const staffGradient = staffCtx.getContext('2d').createLinearGradient(0, 0, 600, 0);
+                staffGradient.addColorStop(0, '#fa709a');
+                staffGradient.addColorStop(1, '#fee140');
+                
+                chartInstances.staffChart = new Chart(staffCtx.getContext('2d'), {
+                    type: 'bar',
+                    data: {
+                        labels: data.staff_chart.labels || [],
+                        datasets: [{
+                            label: 'Completed Services',
+                            data: data.staff_chart.data || [],
+                            backgroundColor: staffGradient,
+                            borderRadius: 10,
+                            borderSkipped: false,
+                            hoverBackgroundColor: '#fee140'
+                        }]
+                    },
+                    options: {
+                        indexAxis: 'y',
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { 
+                                display: true,
+                                labels: {
+                                    font: { size: 14, weight: 'bold' },
+                                    color: '#1f2937'
+                                }
+                            },
+                            tooltip: {
+                                backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                                padding: 12,
+                                titleFont: { size: 14, weight: 'bold' },
+                                bodyFont: { size: 13 }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                beginAtZero: true,
+                                grid: {
+                                    color: 'rgba(0, 0, 0, 0.05)'
+                                },
+                                ticks: {
+                                    stepSize: 5,
+                                    font: { size: 12, weight: 'bold' },
+                                    color: '#6b7280'
+                                }
+                            },
+                            y: {
+                                grid: {
+                                    display: false
+                                },
+                                ticks: {
+                                    font: { size: 12, weight: 'bold' },
+                                    color: '#6b7280'
+                                }
+                            }
+                        }
+                    }
+                });
+            } catch (error) {
+                console.warn('Staff chart initialization failed:', error.message);
+            }
+        }
 
         console.log('Dashboard charts initialized successfully');
-}
+    }
     } catch (error) {
         console.error('Error loading dashboard data:', error);
         initializeChartsWithFallbackData();
