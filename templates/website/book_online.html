@@ -378,78 +378,16 @@ function updateServiceNumbers() {
         return `${String(hours).padStart(2, '0')}:${minutes}`;
     }
 
-    // Form submission handler
-    document.getElementById('bookingForm').addEventListener('submit', async function(e) {
-        e.preventDefault();
-
-        const submitButton = this.querySelector('button[type="submit"]');
-        submitButton.disabled = true;
-        submitButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
-
-        const formData = new FormData(this);
-        const bookingData = {
-            services: []
-        };
-
-        // Collect all service bookings
-        document.querySelectorAll('.service-item').forEach((serviceDiv, index) => {
-            // Dynamically get names based on the structure
-            const serviceSelect = serviceDiv.querySelector('select[name^="services[' + index + '][service_id]"]');
-            const dateInput = serviceDiv.querySelector('input[name^="services[' + index + '][appointment_date]"]');
-            const timeSelect = serviceDiv.querySelector('select[name^="services[' + index + '][appointment_time]"]');
-            const notesTextarea = serviceDiv.querySelector('textarea[name^="services[' + index + '][notes]"]');
-
-            const service = serviceSelect ? serviceSelect.value : null;
-            const date = dateInput ? dateInput.value : null;
-            const time12h = timeSelect ? timeSelect.value : null;
-            const notes = notesTextarea ? notesTextarea.value : '';
-
-            if (service && date && time12h) {
-                // Convert 12-hour format to 24-hour format for backend
-                const time24h = convertTo24Hour(time12h);
-
-                bookingData.services.push({
-                    service_id: service,
-                    preferred_date: date,
-                    preferred_time: time24h,
-                    notes: notes
-                });
+    // Convert time to 24-hour format before form submission
+    document.getElementById('bookingForm').addEventListener('submit', function(e) {
+        // Convert all time selects from 12-hour to 24-hour format before submission
+        document.querySelectorAll('select[name*="appointment_time"]').forEach(function(select) {
+            if (select.value) {
+                const time24h = convertTo24Hour(select.value);
+                select.value = time24h;
             }
         });
-
-        // Add other form data
-        bookingData.client_name = formData.get('client_name');
-        bookingData.client_phone = formData.get('client_phone');
-        bookingData.client_email = formData.get('client_email');
-
-
-        try {
-            const response = await fetch('{{ url_for("website_book_online") }}', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(bookingData),
-            });
-
-            const result = await response.json();
-
-            if (response.ok) {
-                // Display success message and redirect or clear form
-                alert('Booking successful! We will contact you shortly to confirm.');
-                window.location.href = '{{ url_for("website_booking_confirmation") }}'; // Redirect to a confirmation page
-            } else {
-                // Display error message
-                alert(`Booking failed: ${result.message || 'Please check your details and try again.'}`);
-                submitButton.disabled = false;
-                submitButton.innerHTML = '<i class="fas fa-check-circle me-2"></i>Submit Booking Request';
-            }
-        } catch (error) {
-            console.error('Error submitting booking:', error);
-            alert('An unexpected error occurred. Please try again later.');
-            submitButton.disabled = false;
-            submitButton.innerHTML = '<i class="fas fa-check-circle me-2"></i>Submit Booking Request';
-        }
+        // Let the form submit normally
     });
 
 </script>
