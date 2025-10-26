@@ -208,7 +208,7 @@ def website_book_online():
     today = date.today()
     available_dates = [(today + timedelta(days=i)).strftime('%Y-%m-%d') for i in range(0, 30)]
 
-    # Generate time slots (9 AM to 6 PM, 30-minute intervals) in 12-hour format
+    # Generate time slots (9 AM to 6 PM, 15-minute intervals) in 12-hour format
     time_slots = []
     current_time = datetime.combine(date.today(), time(9, 0))
     end_time = datetime.combine(date.today(), time(18, 0))
@@ -216,7 +216,7 @@ def website_book_online():
     while current_time <= end_time:
         # Format as 12-hour with AM/PM
         time_slots.append(current_time.strftime('%I:%M %p'))
-        current_time += timedelta(minutes=30)
+        current_time += timedelta(minutes=15)
 
     return render_template('website/book_online.html',
                          services=services,
