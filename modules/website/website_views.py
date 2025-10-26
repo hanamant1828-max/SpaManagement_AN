@@ -74,7 +74,6 @@ def website_book_online():
             for key in data.keys():
                 if key.startswith('services['):
                     # Extract index and field name: services[0][service_id]
-                    import re
                     match = re.match(r'services\[(\d+)\]\[(\w+)\]', key)
                     if match:
                         index = int(match.group(1))
