@@ -15,6 +15,31 @@ from models import (
 )
 
 
+def format_time_12hr(time_str):
+    """
+    Convert 24-hour time string to 12-hour format with AM/PM.
+    
+    Args:
+        time_str (str): Time in 'HH:MM' format (24-hour)
+    
+    Returns:
+        str: Time in 'h:MM AM/PM' format (12-hour)
+    
+    Example:
+        '09:00' -> '9:00 AM'
+        '15:30' -> '3:30 PM'
+        '17:00' -> '5:00 PM'
+    """
+    try:
+        # Parse the time string
+        time_obj = datetime.strptime(time_str, '%H:%M').time()
+        # Format as 12-hour with AM/PM
+        return time_obj.strftime('%-I:%M %p')  # %-I removes leading zero
+    except:
+        # Fallback to original if conversion fails
+        return time_str
+
+
 def validate_against_shift(staff_id, date_obj, start_time_str, end_time_str):
     """
     Validate booking against shift rules (hours, breaks, out-of-office).
@@ -466,9 +491,11 @@ def validate_booking_for_acceptance(booking, staff_id):
                 # Overlapping appointments with other clients
                 conflicts = staff_conflict_result.get('conflicts', [])
                 for conflict in conflicts:
+                    start_12hr = format_time_12hr(conflict['start_time'])
+                    end_12hr = format_time_12hr(conflict['end_time'])
                     validation_errors.append({
                         'category': 'Staff Schedule Conflict',
-                        'message': f"{staff.first_name} {staff.last_name} already has an appointment from {conflict['start_time']} to {conflict['end_time']} with {conflict['client_name']}"
+                        'message': f"{staff.first_name} {staff.last_name} already has an appointment from {start_12hr} to {end_12hr} with {conflict['client_name']}"
                     })
 
         # VALIDATION 2: Check client conflicts (unpaid bookings, same-day time overlaps)
@@ -487,9 +514,11 @@ def validate_booking_for_acceptance(booking, staff_id):
 
             # Add time overlap conflicts
             for conflict in conflicts:
+                start_12hr = format_time_12hr(conflict['start_time'])
+                end_12hr = format_time_12hr(conflict['end_time'])
                 validation_errors.append({
                     'category': 'Client Schedule Conflict',
-                    'message': f"{booking.client_name} already has an appointment from {conflict['start_time']} to {conflict['end_time']} with {conflict['staff_name']} on {conflict['appointment_date']}"
+                    'message': f"{booking.client_name} already has an appointment from {start_12hr} to {end_12hr} with {conflict['staff_name']} on {conflict['appointment_date']}"
                 })
 
         return validation_errors
