@@ -264,21 +264,20 @@ function showTimeChangeSection() {
     const bookingIds = document.querySelectorAll('input[name="booking_ids[]"]');
     if (bookingIds.length > 0) {
         const firstBookingId = bookingIds[0].value;
-        {% if grouped_bookings and grouped_bookings[0].bookings %}
-        const booking = {{ grouped_bookings[0].bookings[0]|tojson }};
+        {% if serializable_groups and serializable_groups[0].serializable_bookings %}
+        const booking = {{ serializable_groups[0].serializable_bookings[0]|tojson }};
         originalBookingTime = {
             id: booking.id,
             start_time: booking.start_time,
             duration: booking.service_duration
         };
 
-        const timeObj = new Date(booking.start_time);
         const today = new Date();
         today.setHours(0, 0, 0, 0);
         
-        document.getElementById('newBookingDate').value = timeObj.toISOString().split('T')[0];
+        document.getElementById('newBookingDate').value = booking.appointment_date;
         document.getElementById('newBookingDate').min = today.toISOString().split('T')[0];
-        document.getElementById('newStartTime').value = timeObj.toTimeString().substr(0, 5);
+        document.getElementById('newStartTime').value = booking.start_time;
 
         updateEndTime();
         {% endif %}

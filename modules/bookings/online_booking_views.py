@@ -39,8 +39,30 @@ def accept_booking_page(group_id):
     # Get staff members for assignment
     staff_members = User.query.filter_by(is_active=True).order_by(User.first_name).all()
     
+    # Convert booking objects to dictionaries for JSON serialization
+    serializable_groups = []
+    for group in target_group:
+        serializable_bookings = []
+        for booking in group['bookings']:
+            serializable_bookings.append({
+                'id': booking.id,
+                'service_name': booking.service_name,
+                'service_duration': booking.service_duration,
+                'service_price': float(booking.service_price or 0),
+                'start_time': booking.start_time.strftime('%H:%M'),
+                'end_time': booking.end_time.strftime('%H:%M'),
+                'appointment_date': booking.appointment_date.strftime('%Y-%m-%d'),
+                'staff_name': booking.staff_name,
+                'client_name': booking.client_name
+            })
+        
+        serializable_group = group.copy()
+        serializable_group['serializable_bookings'] = serializable_bookings
+        serializable_groups.append(serializable_group)
+    
     return render_template('accept_booking.html',
                          grouped_bookings=target_group,
+                         serializable_groups=serializable_groups,
                          staff_members=staff_members)
 
 
