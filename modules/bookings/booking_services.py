@@ -317,14 +317,17 @@ def check_staff_conflicts(staff_id, appointment_date, start_time_str, end_time_s
         return {'error': str(e)}
 
 
-def check_client_conflicts(client_id, appointment_date, start_time_str, end_time_str):
+def check_client_conflicts(client_id, client_name, client_phone, appointment_date, start_time_str, end_time_str, exclude_booking_id=None):
     """Check for client scheduling conflicts
     
     Args:
-        client_id (int): ID of the client
+        client_id (int): ID of the client (can be None if client not linked yet)
+        client_name (str): Name of the client
+        client_phone (str): Phone number of the client
         appointment_date (date): Date of the appointment
         start_time_str (str): Start time in 'HH:MM' format
         end_time_str (str): End time in 'HH:MM' format
+        exclude_booking_id (int, optional): Booking ID to exclude from conflict check
     
     Returns:
         dict: Conflict information with has_conflict, message, and conflict details
@@ -340,36 +343,27 @@ def check_client_conflicts(client_id, appointment_date, start_time_str, end_time
 
         if end_datetime <= start_datetime:
             return {
-                'success': True,
-                'has_conflict': False,
+                'has_conflict': True,
                 'message': 'End time must be after start time'
             }
 
-        # Get client to find their name
-        client = Customer.query.get(client_id)
-        if not client:
-            return {
-                'success': True,
-                'has_conflict': False,
-                'message': 'Client not found'
-            }
-
-        # Check for conflicts in UnakiBooking table
-        conflicting_bookings = UnakiBooking.query.filter(
-            UnakiBooking.client_id == client_id
-        ).filter(
+        # Build query to find conflicting bookings
+        # Search by client_id OR phone number (to catch bookings before client was linked)
+        query = UnakiBooking.query.filter(
             db.or_(
-                # Same-day active appointments
-                db.and_(
-                    UnakiBooking.appointment_date == appointment_date,
-                    UnakiBooking.status.in_(['scheduled', 'confirmed', 'in_progress'])
-                ),
-                # All unpaid appointments (any date)
-                UnakiBooking.payment_status.in_(['pending', 'partial'])
+                UnakiBooking.client_id == client_id if client_id else False,
+                UnakiBooking.client_phone == client_phone if client_phone else False
             )
         ).filter(
             ~UnakiBooking.status.in_(['cancelled', 'no_show'])
-        ).all()
+        )
+        
+        # Exclude current booking if provided
+        if exclude_booking_id:
+            query = query.filter(UnakiBooking.id != exclude_booking_id)
+        
+        # Get all potential conflicting bookings
+        conflicting_bookings = query.all()
 
         # Check for conflicts
         conflicts = []
@@ -403,7 +397,7 @@ def check_client_conflicts(client_id, appointment_date, start_time_str, end_time
                     'appointment_date': booking.appointment_date.strftime('%Y-%m-%d'),
                     'start_time': booking.start_time.strftime('%I:%M %p'),
                     'end_time': booking.end_time.strftime('%I:%M %p'),
-                    'staff_name': booking.staff_name,
+                    'staff_name': booking.staff_name or 'Unknown',
                     'service_name': booking.service_name,
                     'payment_status': booking.payment_status,
                     'status': booking.status,
@@ -417,20 +411,18 @@ def check_client_conflicts(client_id, appointment_date, start_time_str, end_time
 
             if unpaid_conflicts:
                 conflict = unpaid_conflicts[0]
-                message = f"{client.full_name} has an unpaid appointment on {conflict['appointment_date']} ({conflict['start_time']} - {conflict['end_time']}). Please complete payment before booking new appointments."
+                message = f"{client_name} has an unpaid appointment on {conflict['appointment_date']} ({conflict['start_time']} - {conflict['end_time']}). Please complete payment before booking new appointments."
             else:
                 conflict = time_conflicts[0]
-                message = f"{client.full_name} already has an appointment from {conflict['start_time']} to {conflict['end_time']} with {conflict['staff_name']}"
+                message = f"{client_name} already has an appointment from {conflict['start_time']} to {conflict['end_time']} with {conflict['staff_name']} on {conflict['appointment_date']}"
 
             return {
-                'success': True,
                 'has_conflict': True,
                 'message': message,
                 'conflicts': conflicts
             }
 
         return {
-            'success': True,
             'has_conflict': False,
             'message': 'No conflicts found'
         }
@@ -440,7 +432,105 @@ def check_client_conflicts(client_id, appointment_date, start_time_str, end_time
         import traceback
         traceback.print_exc()
         return {
-            'success': False,
             'has_conflict': False,
             'error': str(e)
         }
+
+
+def validate_booking_for_acceptance(booking, staff_id):
+    """
+    Comprehensive validation for accepting a booking
+    Checks all possible conflicts: staff schedule, staff availability, client conflicts
+    
+    Args:
+        booking: UnakiBooking object to validate
+        staff_id (int): Staff member ID to assign
+    
+    Returns:
+        list: List of validation error dicts with 'category' and 'message', empty if valid
+    """
+    validation_errors = []
+    
+    try:
+        # Get staff details
+        staff = User.query.get(staff_id)
+        if not staff:
+            validation_errors.append({
+                'category': 'Staff Assignment',
+                'message': 'Selected staff member not found in system'
+            })
+            return validation_errors
+        
+        # Prepare time strings
+        start_time_str = booking.start_time.strftime('%H:%M')
+        end_time_str = booking.end_time.strftime('%H:%M')
+        appointment_date = booking.appointment_date
+        
+        # VALIDATION 1: Check staff scheduling conflicts
+        staff_conflict_result = check_staff_conflicts(
+            staff_id,
+            appointment_date,
+            start_time_str,
+            end_time_str,
+            exclude_id=booking.id
+        )
+        
+        if staff_conflict_result.get('has_conflicts'):
+            if staff_conflict_result.get('shift_violation'):
+                # Staff schedule issues (outside hours, during break, out of office, etc.)
+                validation_errors.append({
+                    'category': 'Staff Availability',
+                    'message': staff_conflict_result.get('reason', 'Staff is not available at this time')
+                })
+            else:
+                # Overlapping appointments with other clients
+                conflicts = staff_conflict_result.get('conflicts', [])
+                for conflict in conflicts:
+                    validation_errors.append({
+                        'category': 'Staff Schedule Conflict',
+                        'message': f"{staff.first_name} {staff.last_name} already has an appointment from {conflict['start_time']} to {conflict['end_time']} with {conflict['client_name']}"
+                    })
+        
+        # VALIDATION 2: Check client conflicts (unpaid bookings, same-day time overlaps)
+        client_conflict_result = check_client_conflicts(
+            client_id=booking.client_id,
+            client_name=booking.client_name,
+            client_phone=booking.client_phone,
+            appointment_date=appointment_date,
+            start_time_str=start_time_str,
+            end_time_str=end_time_str,
+            exclude_booking_id=booking.id
+        )
+        
+        if client_conflict_result.get('has_conflict'):
+            conflicts = client_conflict_result.get('conflicts', [])
+            
+            # Separate unpaid and time overlap conflicts
+            unpaid_conflicts = [c for c in conflicts if c.get('conflict_type') == 'unpaid']
+            time_overlap_conflicts = [c for c in conflicts if c.get('conflict_type') == 'time_overlap']
+            
+            # Add unpaid conflicts (high priority)
+            for conflict in unpaid_conflicts:
+                validation_errors.append({
+                    'category': 'Payment Required',
+                    'message': f"{booking.client_name} has an unpaid appointment on {conflict['appointment_date']} at {conflict['start_time']}. Please complete payment before accepting new bookings."
+                })
+            
+            # Add time overlap conflicts
+            for conflict in time_overlap_conflicts:
+                validation_errors.append({
+                    'category': 'Client Schedule Conflict',
+                    'message': f"{booking.client_name} already has an appointment from {conflict['start_time']} to {conflict['end_time']} with {conflict['staff_name']} on {conflict['appointment_date']}"
+                })
+        
+        return validation_errors
+        
+    except Exception as e:
+        print(f"Error in validate_booking_for_acceptance: {e}")
+        import traceback
+        traceback.print_exc()
+        validation_errors.append({
+            'category': 'System Error',
+            'message': f'Validation error: {str(e)}'
+        })
+        return validation_errors

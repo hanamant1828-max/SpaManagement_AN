@@ -9,7 +9,8 @@ from models import UnakiBooking, Customer, Service, User
 from modules.bookings.booking_services import (
     check_staff_conflicts, 
     check_client_conflicts,
-    validate_against_shift
+    validate_against_shift,
+    validate_booking_for_acceptance
 )
 
 

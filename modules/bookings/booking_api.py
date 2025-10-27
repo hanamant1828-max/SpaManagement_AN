@@ -503,12 +503,14 @@ def api_check_client_conflicts():
 
         # Get parameters
         client_id = data.get('client_id')
+        client_name = data.get('client_name', '')
+        client_phone = data.get('client_phone', '')
         appointment_date_str = data.get('appointment_date')
         start_time_str = data.get('start_time')
         end_time_str = data.get('end_time')
 
         # Validate required fields
-        if not all([client_id, appointment_date_str, start_time_str, end_time_str]):
+        if not all([appointment_date_str, start_time_str, end_time_str]):
             return jsonify({
                 'success': True,
                 'has_conflict': False,
@@ -527,8 +529,22 @@ def api_check_client_conflicts():
                 'message': 'Invalid date/time format'
             })
 
+        # Get client name and phone if not provided but client_id is
+        if client_id and not (client_name and client_phone):
+            client = Customer.query.get(client_id)
+            if client:
+                client_name = f"{client.first_name} {client.last_name}".strip()
+                client_phone = client.phone
+
         # Use the business logic function from booking_services
-        result = check_client_conflicts(client_id, appointment_date, start_time_str, end_time_str)
+        result = check_client_conflicts(
+            client_id=client_id,
+            client_name=client_name,
+            client_phone=client_phone,
+            appointment_date=appointment_date,
+            start_time_str=start_time_str,
+            end_time_str=end_time_str
+        )
         return jsonify(result)
 
     except Exception as e:
