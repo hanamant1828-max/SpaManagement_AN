@@ -138,7 +138,7 @@ def accept_booking(booking_id, staff_id=None, notes=None):
         if staff_conflict_result.get('shift_violation'):
             # Shift violations (outside hours, during break, etc.)
             validation_errors.append({
-                'category': 'Staff Schedule',
+                'category': 'Staff Availability',
                 'message': staff_conflict_result.get('reason', 'Staff scheduling conflict')
             })
         else:
@@ -146,9 +146,28 @@ def accept_booking(booking_id, staff_id=None, notes=None):
             conflicts = staff_conflict_result.get('conflicts', [])
             for conflict in conflicts:
                 validation_errors.append({
-                    'category': 'Staff Conflicts',
-                    'message': f"Staff {staff.full_name} already has an appointment from {conflict['start_time']} to {conflict['end_time']} with {conflict['client_name']}"
+                    'category': 'Staff Schedule Conflict',
+                    'message': f"{staff.full_name} already has an appointment from {conflict['start_time']} to {conflict['end_time']} with {conflict['client_name']}"
                 })
+
+    # VALIDATION 2: Check client conflicts (no double-booking the same client)
+    client_conflict_result = check_client_conflicts(
+        booking.client_id,
+        booking.client_phone,
+        booking.client_name,
+        appointment_date,
+        start_time_str,
+        end_time_str,
+        exclude_id=booking_id
+    )
+
+    if client_conflict_result.get('has_conflicts'):
+        conflicts = client_conflict_result.get('conflicts', [])
+        for conflict in conflicts:
+            validation_errors.append({
+                'category': 'Client Schedule Conflict',
+                'message': f"{booking.client_name} already has an appointment from {conflict['start_time']} to {conflict['end_time']} with {conflict['staff_name']} on {conflict['date']}"
+            })
 
     # If there are any validation errors, return them all
     if validation_errors:
