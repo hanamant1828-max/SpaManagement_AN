@@ -100,12 +100,19 @@ def accept_online_booking(booking_id):
     booking, error = accept_booking(booking_id, staff_id, notes)
     
     if booking:
-        flash(f'Booking #{booking_id} accepted successfully', 'success')
+        flash(f'✅ Booking #{booking_id} ({booking.client_name} - {booking.service_name}) accepted successfully', 'success')
         if request.is_json:
             return jsonify({'success': True, 'booking_id': booking_id})
         return redirect(url_for('online_bookings'))
     else:
-        flash(f'Error accepting booking: {error}', 'danger')
+        # Get booking details for better error context
+        failed_booking = get_online_booking_by_id(booking_id)
+        if failed_booking:
+            error_header = f"Cannot accept Booking #{booking_id} ({failed_booking.client_name} - {failed_booking.service_name}):"
+        else:
+            error_header = f"Cannot accept Booking #{booking_id}:"
+        
+        flash(f'❌ {error_header}\n{error}', 'danger')
         if request.is_json:
             return jsonify({'success': False, 'error': error}), 400
         return redirect(url_for('online_bookings'))
@@ -251,11 +258,21 @@ def accept_grouped_booking():
         
         if failed_count > 0:
             # Show comprehensive error messages for each failed booking
-            flash(f'❌ Failed to accept {failed_count} booking(s). Please review the errors below:', 'danger')
+            flash(f'❌ Failed to accept {failed_count} booking(s):', 'danger')
             for failed_booking in results['failed']:
-                # Format the error message for display (remove extra "Booking #X:" prefix if present)
+                # Get the booking details for context
+                booking_id = failed_booking['booking_id']
                 error_msg = failed_booking['error']
-                flash(error_msg, 'danger')
+                
+                # Create a user-friendly error message with booking ID
+                booking = get_online_booking_by_id(booking_id)
+                if booking:
+                    error_header = f"Booking #{booking_id} ({booking.client_name} - {booking.service_name}):"
+                else:
+                    error_header = f"Booking #{booking_id}:"
+                
+                # Flash the error with clear formatting
+                flash(f"{error_header}\n{error_msg}", 'danger')
         
         if request.is_json:
             return jsonify({'success': True, 'results': results})
