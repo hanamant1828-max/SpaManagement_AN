@@ -398,13 +398,25 @@ function acceptGroupBooking(groupId) {
     group.bookings.forEach((booking, index) => {
         const serviceDiv = document.createElement('div');
         serviceDiv.className = 'mb-3 p-3 border rounded';
+        
+        // Format the time properly - booking.start_time is already in ISO format
+        let timeDisplay = 'N/A';
+        if (booking.start_time) {
+            const timeObj = new Date(booking.start_time);
+            timeDisplay = timeObj.toLocaleTimeString('en-US', { 
+                hour: '2-digit', 
+                minute: '2-digit',
+                hour12: true 
+            });
+        }
+        
         serviceDiv.innerHTML = `
             <div class="row align-items-center">
                 <div class="col-md-6">
                     <h6 class="mb-1">${booking.service_name}</h6>
                     <small class="text-muted">
                         ${booking.service_duration} min |
-                        ${new Date(booking.start_time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })} |
+                        ${timeDisplay} |
                         $${parseFloat(booking.service_price || 0).toFixed(2)}
                     </small>
                 </div>
