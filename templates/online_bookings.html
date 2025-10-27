@@ -321,8 +321,8 @@
                     <div id="acceptFormErrors" class="alert alert-danger" style="display: none;"></div>
 
                     <!-- Conflict warning with time change option -->
-                    <div id="conflictWarning" class="alert alert-warning" style="display: none;">
-                        <div class="d-flex align-items-start">
+                    <div id="conflictWarning" class="alert alert-warning border-warning" style="display: none;">
+                        <div class="d-flex align-items-start mb-3">
                             <div class="flex-grow-1">
                                 <i class="fas fa-exclamation-triangle me-2"></i>
                                 <strong>Scheduling Conflicts Detected:</strong>
@@ -330,27 +330,37 @@
                             </div>
                         </div>
 
+                        <!-- Action Buttons -->
+                        <div class="d-flex gap-2 mb-3">
+                            <button type="button" class="btn btn-primary" onclick="toggleTimeChangeSection()">
+                                <i class="fas fa-clock me-2"></i>Change Time & Date
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary" onclick="forceConfirmBookings()">
+                                <i class="fas fa-exclamation-circle me-2"></i>Confirm Anyway
+                            </button>
+                        </div>
+
                         <!-- Time Change Section -->
-                        <div id="timeChangeSection" class="mt-3 p-3 border rounded bg-light" style="display: none;">
-                            <h6 class="mb-3">
-                                <i class="fas fa-clock me-2"></i>Change Booking Time
+                        <div id="timeChangeSection" class="mt-3 p-3 border rounded bg-white shadow-sm" style="display: none;">
+                            <h6 class="mb-3 text-primary">
+                                <i class="fas fa-clock me-2"></i>Select New Date & Time
                             </h6>
                             <div class="row g-3">
                                 <div class="col-md-4">
-                                    <label class="form-label small">New Date</label>
-                                    <input type="date" id="newBookingDate" class="form-control form-control-sm">
+                                    <label class="form-label fw-bold">New Date</label>
+                                    <input type="date" id="newBookingDate" class="form-control">
                                 </div>
                                 <div class="col-md-3">
-                                    <label class="form-label small">New Start Time</label>
-                                    <input type="time" id="newStartTime" class="form-control form-control-sm">
+                                    <label class="form-label fw-bold">Start Time</label>
+                                    <input type="time" id="newStartTime" class="form-control">
                                 </div>
                                 <div class="col-md-3">
-                                    <label class="form-label small">New End Time (Auto)</label>
-                                    <input type="time" id="newEndTime" class="form-control form-control-sm" readonly>
+                                    <label class="form-label fw-bold">End Time <small class="text-muted">(Auto)</small></label>
+                                    <input type="time" id="newEndTime" class="form-control" readonly style="background-color: #f8f9fa;">
                                 </div>
                                 <div class="col-md-2 d-flex align-items-end">
-                                    <button type="button" class="btn btn-sm btn-primary w-100" onclick="validateNewTime()">
-                                        <i class="fas fa-check me-1"></i>Validate
+                                    <button type="button" class="btn btn-success w-100" onclick="validateNewTime()">
+                                        <i class="fas fa-check me-1"></i>Check
                                     </button>
                                 </div>
                             </div>
@@ -366,15 +376,6 @@
                                 <div id="suggestedTimes" class="d-flex flex-wrap gap-2"></div>
                             </div>
                         </div>
-
-                        <div class="mt-3 d-flex gap-2">
-                            <button type="button" class="btn btn-sm btn-warning" onclick="toggleTimeChangeSection()">
-                                <i class="fas fa-edit me-2"></i>Change Time
-                            </button>
-                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="forceConfirmBookings()">
-                                <i class="fas fa-exclamation-circle me-2"></i>Confirm Anyway
-                            </button>
-                        </div>
                     </div>
 
                     <div id="servicesContainer">
@@ -382,7 +383,9 @@
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-2"></i>Cancel
+                    </button>
                     <button type="submit" class="btn btn-success" id="confirmBookingsBtn">
                         <i class="fas fa-check me-2"></i>Confirm All Bookings
                     </button>
@@ -491,6 +494,16 @@
 .customer-group-row { cursor: pointer; }
 .sub-appointments td { background-color: #f8f9fa; }
 .expand-btn { padding: 0; }
+
+/* Pulse animation for confirm button */
+@keyframes pulse {
+    0% { box-shadow: 0 0 0 0 rgba(40, 167, 69, 0.7); }
+    70% { box-shadow: 0 0 0 10px rgba(40, 167, 69, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(40, 167, 69, 0); }
+}
+.pulse-animation {
+    animation: pulse 2s infinite;
+}
 </style>
 
 <script>
@@ -649,6 +662,10 @@ function checkStaffConflicts(bookingId, staffId, bookingTime) {
     // Real-time validation could be added here if needed
 }
 
+// Store original booking time and conflict data
+let originalBookingTime = null;
+let conflictedBooking = null;
+
 // Toggle time change section visibility
 function toggleTimeChangeSection() {
     const section = document.getElementById('timeChangeSection');
@@ -683,6 +700,9 @@ function toggleTimeChangeSection() {
         }
     } else {
         section.style.display = 'none';
+        // Clear validation results when hiding
+        document.getElementById('timeValidationResult').style.display = 'none';
+        document.getElementById('suggestedTimesContainer').style.display = 'none';
     }
 }
 
@@ -752,13 +772,22 @@ function validateNewTime() {
         if (data.success) {
             if (data.valid) {
                 // No conflicts - time is valid
-                validationResult.innerHTML = '<i class="fas fa-check-circle me-2"></i>' + data.message;
-                validationResult.className = 'mt-3 alert alert-success';
+                validationResult.innerHTML = `
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-check-circle me-2 text-success" style="font-size: 1.5rem;"></i>
+                        <div>
+                            <strong>Perfect! This time is available.</strong><br>
+                            <small>Click "Confirm with New Time" below to book the appointment.</small>
+                        </div>
+                    </div>
+                `;
+                validationResult.className = 'mt-3 alert alert-success border-success';
 
-                // Enable "Confirm with New Time" button
-                document.getElementById('confirmBookingsBtn').disabled = false;
-                document.getElementById('confirmBookingsBtn').innerHTML = 
-                    '<i class="fas fa-check me-2"></i>Confirm with New Time';
+                // Enable "Confirm with New Time" button with clear styling
+                const confirmBtn = document.getElementById('confirmBookingsBtn');
+                confirmBtn.disabled = false;
+                confirmBtn.className = 'btn btn-success btn-lg pulse-animation';
+                confirmBtn.innerHTML = '<i class="fas fa-check-circle me-2"></i>Confirm with New Time';
 
                 // Store the new time for submission
                 conflictedBooking = {
