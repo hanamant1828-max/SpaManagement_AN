@@ -381,6 +381,9 @@ function validateNewTime() {
     });
 }
 
+// Initialize global variable for conflicted booking
+window.conflictedBooking = null;
+
 // Form submission handler
 document.addEventListener('DOMContentLoaded', function() {
     const acceptForm = document.getElementById('acceptBookingForm');
@@ -388,6 +391,7 @@ document.addEventListener('DOMContentLoaded', function() {
         acceptForm.addEventListener('submit', function(e) {
             e.preventDefault();
             
+            // Check if there's a validated time change
             if (window.conflictedBooking && window.conflictedBooking.validated) {
                 submitWithTimeChange();
                 return;
@@ -403,7 +407,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 method: 'POST',
                 body: formData
             })
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
             .then(data => {
                 if (data.success) {
                     window.location.href = '{{ url_for("online_bookings") }}';
