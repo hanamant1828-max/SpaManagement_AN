@@ -16,6 +16,34 @@ from .online_booking_queries import (
 )
 
 
+@app.route('/online-bookings/accept/<int:group_id>')
+@login_required
+def accept_booking_page(group_id):
+    """Dedicated page for accepting a booking group"""
+    if not current_user.can_access('bookings'):
+        flash('Access denied', 'danger')
+        return redirect(url_for('dashboard'))
+
+    # Get grouped bookings
+    grouped_bookings = get_grouped_online_bookings()
+    
+    # Find the specific group
+    target_group = None
+    if group_id > 0 and group_id <= len(grouped_bookings):
+        target_group = [grouped_bookings[group_id - 1]]
+    
+    if not target_group:
+        flash('Booking not found', 'danger')
+        return redirect(url_for('online_bookings'))
+    
+    # Get staff members for assignment
+    staff_members = User.query.filter_by(is_active=True).order_by(User.first_name).all()
+    
+    return render_template('accept_booking.html',
+                         grouped_bookings=target_group,
+                         staff_members=staff_members)
+
+
 @app.route('/online-bookings')
 @login_required
 def online_bookings():

@@ -1,0 +1,490 @@
+
+{% extends "base.html" %}
+
+{% block title %}Accept Booking - Spa Management{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="h3 mb-1">
+                        <i class="fas fa-check-circle me-2 text-success"></i>Accept Booking
+                    </h1>
+                    <p class="text-muted">Review and confirm booking details</p>
+                </div>
+                <a href="{{ url_for('online_bookings') }}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-2"></i>Back to Bookings
+                </a>
+            </div>
+        </div>
+    </div>
+
+    {% if grouped_bookings %}
+    <!-- Customer Information Card -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-primary">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-user me-2"></i>Customer Information
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <p class="mb-2">
+                                <strong>Name:</strong><br>
+                                <span class="fs-5">{{ grouped_bookings[0].customer_name }}</span>
+                                {% if grouped_bookings[0].client %}
+                                <span class="badge bg-success ms-2">Existing Customer</span>
+                                {% else %}
+                                <span class="badge bg-warning ms-2">New Customer</span>
+                                {% endif %}
+                            </p>
+                        </div>
+                        <div class="col-md-4">
+                            <p class="mb-2">
+                                <strong>Phone:</strong><br>
+                                <span class="fs-5">
+                                    <i class="fas fa-phone text-primary me-2"></i>{{ grouped_bookings[0].customer_phone }}
+                                </span>
+                            </p>
+                        </div>
+                        <div class="col-md-4">
+                            <p class="mb-2">
+                                <strong>Appointment Date:</strong><br>
+                                <span class="fs-5">
+                                    <i class="fas fa-calendar text-primary me-2"></i>{{ grouped_bookings[0].appointment_date.strftime('%b %d, %Y') }}
+                                </span>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Services to Book -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">
+                        <i class="fas fa-spa me-2"></i>Services ({{ grouped_bookings[0].bookings|length }})
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th style="width: 80px;">Booking ID</th>
+                                    <th>Service</th>
+                                    <th style="width: 120px;">Duration</th>
+                                    <th style="width: 150px;">Time</th>
+                                    <th style="width: 120px;">Price</th>
+                                    <th style="width: 200px;">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for booking in grouped_bookings[0].bookings %}
+                                <tr>
+                                    <td><strong>#{{ booking.id }}</strong></td>
+                                    <td>
+                                        <strong>{{ booking.service_name }}</strong>
+                                    </td>
+                                    <td>
+                                        <i class="fas fa-clock me-1"></i>{{ booking.service_duration }} min
+                                    </td>
+                                    <td>
+                                        <span class="text-primary">
+                                            <i class="far fa-clock me-1"></i>{{ booking.start_time.strftime('%I:%M %p') }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <strong class="text-success">${{ "%.2f"|format(booking.service_price or 0) }}</strong>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-warning">{{ booking.status.replace('_', ' ').title() }}</span>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                            <tfoot class="table-light">
+                                <tr>
+                                    <td colspan="4" class="text-end"><strong>Total Amount:</strong></td>
+                                    <td colspan="2">
+                                        <strong class="text-success fs-5">${{ "%.2f"|format(grouped_bookings[0].total_amount) }}</strong>
+                                    </td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Staff Assignment Form -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card border-success">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-user-check me-2"></i>Assign Staff Members
+                    </h5>
+                </div>
+                <form id="acceptBookingForm" method="POST" action="{{ url_for('accept_grouped_booking') }}">
+                    <div class="card-body">
+                        <div class="alert alert-info mb-4">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <strong>Important:</strong> Please assign a staff member to each service below before confirming.
+                        </div>
+
+                        <div id="breakTimeWarning" class="alert alert-warning" style="display: none;">
+                            <i class="fas fa-coffee me-2"></i>
+                            <strong>Break/Lunch Time Notice:</strong>
+                            <div id="breakTimeDetails"></div>
+                        </div>
+
+                        <div id="conflictWarning" class="alert alert-warning border-warning" style="display: none;">
+                            <div class="d-flex align-items-start mb-3">
+                                <div class="flex-grow-1">
+                                    <i class="fas fa-exclamation-triangle me-2"></i>
+                                    <strong>Scheduling Conflicts Detected:</strong>
+                                    <div id="conflictMessages" class="mt-2"></div>
+                                </div>
+                            </div>
+
+                            <div class="d-flex gap-2 mb-3">
+                                <button type="button" class="btn btn-primary btn-lg" onclick="showTimeChangeSection()">
+                                    <i class="fas fa-clock me-2"></i>Change Time & Date
+                                </button>
+                            </div>
+
+                            <div id="timeChangeSection" class="mt-3 p-3 border rounded bg-white shadow-sm" style="display: none;">
+                                <h6 class="mb-3 text-primary">
+                                    <i class="fas fa-clock me-2"></i>Select New Date & Time
+                                </h6>
+                                <div class="row g-3">
+                                    <div class="col-md-4">
+                                        <label class="form-label fw-bold">New Date</label>
+                                        <input type="date" id="newBookingDate" class="form-control" onchange="updateEndTime()">
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label fw-bold">Start Time</label>
+                                        <input type="time" id="newStartTime" class="form-control" onchange="updateEndTime()">
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label fw-bold">End Time <small class="text-muted">(Auto)</small></label>
+                                        <input type="time" id="newEndTime" class="form-control" readonly style="background-color: #f8f9fa;">
+                                    </div>
+                                    <div class="col-md-2 d-flex align-items-end">
+                                        <button type="button" class="btn btn-success w-100" onclick="validateNewTime()">
+                                            <i class="fas fa-check me-1"></i>Validate
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div id="timeValidationResult" class="mt-3" style="display: none;"></div>
+                                <div id="suggestedTimesContainer" class="mt-3" style="display: none;">
+                                    <h6 class="small mb-2">
+                                        <i class="fas fa-lightbulb me-2"></i>Suggested Available Times:
+                                    </h6>
+                                    <div id="suggestedTimes" class="d-flex flex-wrap gap-2"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Staff Assignment for Each Service -->
+                        {% for booking in grouped_bookings[0].bookings %}
+                        <div class="mb-4 p-3 border rounded bg-light">
+                            <div class="row align-items-center">
+                                <div class="col-md-6">
+                                    <h6 class="mb-1">
+                                        <i class="fas fa-spa me-2 text-primary"></i>{{ booking.service_name }}
+                                    </h6>
+                                    <small class="text-muted">
+                                        <i class="fas fa-clock me-1"></i>{{ booking.service_duration }} min |
+                                        <i class="far fa-clock me-1"></i>{{ booking.start_time.strftime('%I:%M %p') }} |
+                                        <i class="fas fa-dollar-sign me-1"></i>{{ "%.2f"|format(booking.service_price or 0) }}
+                                    </small>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label mb-1"><strong>Assign Staff Member *</strong></label>
+                                    <select name="staff_{{ booking.id }}" class="form-select form-select-lg" required>
+                                        <option value="">-- Select Staff Member --</option>
+                                        {% for staff in staff_members %}
+                                        <option value="{{ staff.id }}">{{ staff.full_name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                    <input type="hidden" name="booking_ids[]" value="{{ booking.id }}">
+                                    <small class="text-muted mt-1" style="display: block;">
+                                        <i class="fas fa-info-circle me-1"></i>Staff availability will be checked automatically
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    <div class="card-footer bg-white">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <a href="{{ url_for('online_bookings') }}" class="btn btn-outline-secondary btn-lg">
+                                <i class="fas fa-times me-2"></i>Cancel
+                            </a>
+                            <button type="submit" class="btn btn-success btn-lg px-5" id="confirmBookingsBtn">
+                                <i class="fas fa-check-circle me-2"></i>Confirm All Bookings
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="alert alert-warning">
+        <i class="fas fa-exclamation-triangle me-2"></i>
+        No booking data found. <a href="{{ url_for('online_bookings') }}">Return to bookings list</a>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+// Store original booking time and conflict data
+let originalBookingTime = null;
+
+function showTimeChangeSection() {
+    const section = document.getElementById('timeChangeSection');
+    section.style.display = 'block';
+
+    const bookingIds = document.querySelectorAll('input[name="booking_ids[]"]');
+    if (bookingIds.length > 0) {
+        const firstBookingId = bookingIds[0].value;
+        {% if grouped_bookings and grouped_bookings[0].bookings %}
+        const booking = {{ grouped_bookings[0].bookings[0]|tojson }};
+        originalBookingTime = {
+            id: booking.id,
+            start_time: booking.start_time,
+            duration: booking.service_duration
+        };
+
+        const timeObj = new Date(booking.start_time);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        document.getElementById('newBookingDate').value = timeObj.toISOString().split('T')[0];
+        document.getElementById('newBookingDate').min = today.toISOString().split('T')[0];
+        document.getElementById('newStartTime').value = timeObj.toTimeString().substr(0, 5);
+
+        updateEndTime();
+        {% endif %}
+    }
+
+    document.getElementById('timeValidationResult').style.display = 'none';
+    document.getElementById('suggestedTimesContainer').style.display = 'none';
+}
+
+function updateEndTime() {
+    const startTimeInput = document.getElementById('newStartTime');
+    const endTimeInput = document.getElementById('newEndTime');
+    
+    if (originalBookingTime && originalBookingTime.duration && startTimeInput.value) {
+        const [hours, minutes] = startTimeInput.value.split(':').map(Number);
+        const totalMinutes = hours * 60 + minutes + originalBookingTime.duration;
+        const endHours = Math.floor(totalMinutes / 60) % 24;
+        const endMinutes = totalMinutes % 60;
+        endTimeInput.value = `${String(endHours).padStart(2, '0')}:${String(endMinutes).padStart(2, '0')}`;
+    }
+}
+
+function validateNewTime() {
+    const bookingIds = document.querySelectorAll('input[name="booking_ids[]"]');
+    if (bookingIds.length === 0) {
+        alert('No booking selected');
+        return;
+    }
+
+    const bookingId = bookingIds[0].value;
+    const staffSelect = document.querySelector(`select[name="staff_${bookingId}"]`);
+    if (!staffSelect || !staffSelect.value) {
+        alert('Please assign a staff member first');
+        return;
+    }
+
+    const staffId = staffSelect.value;
+    const newDate = document.getElementById('newBookingDate').value;
+    const newStartTime = document.getElementById('newStartTime').value;
+    const newEndTime = document.getElementById('newEndTime').value;
+
+    if (!newDate || !newStartTime || !newEndTime) {
+        alert('Please select date and time');
+        return;
+    }
+
+    const validationResult = document.getElementById('timeValidationResult');
+    validationResult.innerHTML = '<div class="spinner-border spinner-border-sm me-2"></div>Validating...';
+    validationResult.className = 'mt-3 alert alert-info';
+    validationResult.style.display = 'block';
+
+    fetch('/api/validate-booking-time-change', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            booking_id: bookingId,
+            staff_id: staffId,
+            appointment_date: newDate,
+            start_time: newStartTime,
+            end_time: newEndTime
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success && data.valid) {
+            validationResult.innerHTML = `
+                <div class="d-flex align-items-center">
+                    <i class="fas fa-check-circle me-2 text-success" style="font-size: 1.5rem;"></i>
+                    <div>
+                        <strong>Perfect! This time is available.</strong><br>
+                        <small>Click "Confirm All Bookings" below to proceed.</small>
+                    </div>
+                </div>
+            `;
+            validationResult.className = 'mt-3 alert alert-success border-success';
+
+            const confirmBtn = document.getElementById('confirmBookingsBtn');
+            confirmBtn.disabled = false;
+            confirmBtn.className = 'btn btn-success btn-lg px-5 pulse-animation';
+
+            window.conflictedBooking = {
+                id: bookingId,
+                newDate: newDate,
+                newStartTime: newStartTime,
+                newEndTime: newEndTime,
+                staffId: staffId,
+                validated: true
+            };
+
+            document.getElementById('conflictWarning').style.display = 'none';
+        } else {
+            let errorHtml = '<i class="fas fa-exclamation-triangle me-2"></i>' + data.message;
+            validationResult.innerHTML = errorHtml;
+            validationResult.className = 'mt-3 alert alert-danger';
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        validationResult.innerHTML = '<i class="fas fa-times-circle me-2"></i>Failed to validate time. Please try again.';
+        validationResult.className = 'mt-3 alert alert-danger';
+    });
+}
+
+// Form submission handler
+document.addEventListener('DOMContentLoaded', function() {
+    const acceptForm = document.getElementById('acceptBookingForm');
+    if (acceptForm) {
+        acceptForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            if (window.conflictedBooking && window.conflictedBooking.validated) {
+                submitWithTimeChange();
+                return;
+            }
+            
+            const formData = new FormData(acceptForm);
+            const submitBtn = document.getElementById('confirmBookingsBtn');
+            
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Processing...';
+            
+            fetch(acceptForm.action, {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    window.location.href = '{{ url_for("online_bookings") }}';
+                } else if (data.has_conflicts) {
+                    displayConflicts(data.conflict_messages);
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = '<i class="fas fa-check-circle me-2"></i>Confirm All Bookings';
+                } else {
+                    alert('Error: ' + (data.error || 'Unknown error occurred'));
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = '<i class="fas fa-check-circle me-2"></i>Confirm All Bookings';
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error submitting form. Please try again.');
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fas fa-check-circle me-2"></i>Confirm All Bookings';
+            });
+        });
+    }
+});
+
+function displayConflicts(messages) {
+    const conflictWarning = document.getElementById('conflictWarning');
+    const conflictMessages = document.getElementById('conflictMessages');
+    
+    if (messages && messages.length > 0) {
+        conflictMessages.innerHTML = '<ul class="mb-0">' + 
+            messages.map(msg => `<li>${msg}</li>`).join('') + 
+            '</ul>';
+        conflictWarning.style.display = 'block';
+        conflictWarning.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+}
+
+function submitWithTimeChange() {
+    const submitBtn = document.getElementById('confirmBookingsBtn');
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Updating & Confirming...';
+
+    fetch(`/api/online-bookings/${window.conflictedBooking.id}/update-time`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            booking_id: window.conflictedBooking.id,
+            staff_id: window.conflictedBooking.staffId,
+            appointment_date: window.conflictedBooking.newDate,
+            start_time: window.conflictedBooking.newStartTime,
+            end_time: window.conflictedBooking.newEndTime
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('✅ ' + data.message);
+            window.location.href = '{{ url_for("online_bookings") }}';
+        } else {
+            alert('❌ Error: ' + data.error);
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="fas fa-check-circle me-2"></i>Confirm All Bookings';
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Failed to update booking. Please try again.');
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<i class="fas fa-check-circle me-2"></i>Confirm All Bookings';
+    });
+}
+</script>
+
+<style>
+@keyframes pulse {
+    0% { box-shadow: 0 0 0 0 rgba(40, 167, 69, 0.7); }
+    70% { box-shadow: 0 0 0 10px rgba(40, 167, 69, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(40, 167, 69, 0); }
+}
+.pulse-animation {
+    animation: pulse 2s infinite;
+}
+</style>
+{% endblock %}

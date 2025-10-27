@@ -228,10 +228,10 @@
                                                 <i class="fas fa-phone"></i>
                                             </a>
                                             {% if group.status == 'scheduled' %}
-                                            <button type="button" class="btn btn-success"
-                                                    onclick="acceptGroupBooking({{ group_id }})" title="Accept">
+                                            <a href="{{ url_for('accept_booking_page', group_id=group_id) }}" 
+                                               class="btn btn-success" title="Accept Booking">
                                                 <i class="fas fa-check"></i>
-                                            </button>
+                                            </a>
                                             <button type="button" class="btn btn-danger"
                                                     onclick="rejectGroupBooking({{ group_id }})" title="Reject">
                                                 <i class="fas fa-times"></i>
