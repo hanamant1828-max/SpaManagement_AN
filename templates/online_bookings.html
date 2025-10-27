@@ -467,52 +467,34 @@ function validateAcceptForm() {
     const staffSelects = form.querySelectorAll('select[name^="staff_"]');
     const errorDiv = document.getElementById('acceptFormErrors');
     const errors = [];
-
+    
     // Check if all staff members are assigned
     staffSelects.forEach((select, index) => {
         if (!select.value) {
             errors.push(`Service ${index + 1}: Please select a staff member`);
         }
     });
-
+    
     if (errors.length > 0) {
-        errorDiv.innerHTML = '<strong>Please fix the following errors:</strong><ul class="mb-0 mt-2">' +
+        errorDiv.innerHTML = '<strong>Please fix the following errors:</strong><ul class="mb-0 mt-2">' + 
             errors.map(err => `<li>${err}</li>`).join('') + '</ul>';
         errorDiv.style.display = 'block';
         return false;
     }
-
+    
     errorDiv.style.display = 'none';
-
+    
     // Show loading state
     const submitBtn = document.getElementById('confirmBookingsBtn');
     submitBtn.disabled = true;
     submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Processing...';
-
+    
     return true;
 }
 
 // Refresh bookings
 function refreshBookings() {
     location.reload();
-}
-
-// Placeholder for showToast function, assuming it's defined elsewhere globally or imported
-function showToast(message, type = 'info', duration = 5000) {
-    console.log(`Toast (${type}): ${message}`); // Replace with actual toast implementation
-    // Example using a hypothetical toast library:
-    // Toastify({
-    //   text: message,
-    //   duration: duration,
-    //   gravity: "top", // `top` or `bottom`
-    //   position: "right", // `left`, `center` or `right`
-    //   stopOnFocus: true, // Prevents dismissing of toast on hover
-    //   style: {
-    //     background: type === 'success' ? "linear-gradient(to right, #00b09b, #96c93d)" :
-    //                 type === 'error' ? "linear-gradient(to right, #ff5f6d, #ffc371)" :
-    //                 "linear-gradient(to right, #6a85b6, #50617e)",
-    //   }
-    // }).showToast();
 }
 </script>
 
