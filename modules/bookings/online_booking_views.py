@@ -495,72 +495,17 @@ def accept_grouped_booking():
             
             print("="*80 + "\n")
             
-            # Return conflict data to keep modal open and show time change UI
-            if request.is_json:
-                return jsonify({
-                    'success': False,
-                    'has_conflicts': True,
-                    'conflict_bookings': conflict_bookings,
-                    'conflict_messages': conflict_messages,
-                    'results': results
-                }), 200  # Return 200 to prevent error handling
-            else:
-                # For non-JSON requests, re-render the accept page with conflict data
-                # Get the grouped bookings for the failed booking(s)
-                first_failed_booking_id = results['failed'][0]['booking_id']
-                failed_booking_obj = get_online_booking_by_id(first_failed_booking_id)
-                
-                if failed_booking_obj:
-                    # Find all bookings for this customer/group
-                    grouped_bookings = get_grouped_online_bookings()
-                    target_group = None
-                    
-                    for group in grouped_bookings:
-                        for booking in group['bookings']:
-                            if booking.id == first_failed_booking_id:
-                                target_group = [group]
-                                break
-                        if target_group:
-                            break
-                    
-                    if target_group:
-                        # Convert booking objects to dictionaries for JSON serialization
-                        serializable_groups = []
-                        for group in target_group:
-                            serializable_bookings = []
-                            for booking in group['bookings']:
-                                serializable_bookings.append({
-                                    'id': booking.id,
-                                    'service_name': booking.service_name,
-                                    'service_duration': booking.service_duration,
-                                    'service_price': float(booking.service_price or 0),
-                                    'start_time': booking.start_time.strftime('%H:%M'),
-                                    'end_time': booking.end_time.strftime('%H:%M'),
-                                    'appointment_date': booking.appointment_date.strftime('%Y-%m-%d'),
-                                    'staff_name': booking.staff_name,
-                                    'client_name': booking.client_name
-                                })
-                            
-                            serializable_group = group.copy()
-                            serializable_group['serializable_bookings'] = serializable_bookings
-                            serializable_groups.append(serializable_group)
-                        
-                        # Get staff members for assignment
-                        staff_members = User.query.filter_by(is_active=True).order_by(User.first_name).all()
-                        
-                        # Re-render the accept page with conflict data
-                        return render_template('accept_booking.html',
-                                             grouped_bookings=target_group,
-                                             serializable_groups=serializable_groups,
-                                             staff_members=staff_members,
-                                             conflict_messages=conflict_messages,
-                                             conflict_bookings=conflict_bookings,
-                                             submitted_staff_assignments=booking_staff_map)
-                
-                # Fallback to redirect if we can't find the booking
-                return redirect(url_for('online_bookings'))
+            # Always return JSON for AJAX requests (the form uses fetch)
+            return jsonify({
+                'success': False,
+                'has_conflicts': True,
+                'conflict_bookings': conflict_bookings,
+                'conflict_messages': conflict_messages,
+                'results': results
+            }), 200  # Return 200 to prevent error handling
 
-        if request.is_json:
+        # Success - return appropriate response
+        if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
             return jsonify({'success': True, 'results': results})
 
         return redirect(url_for('online_bookings'))

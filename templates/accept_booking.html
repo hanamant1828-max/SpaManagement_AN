@@ -386,25 +386,6 @@ window.conflictedBooking = null;
 
 // Form submission handler
 document.addEventListener('DOMContentLoaded', function() {
-    // Check if conflict data was passed from backend (after validation failure)
-    {% if conflict_messages %}
-    const conflictMessages = {{ conflict_messages|tojson }};
-    if (conflictMessages && conflictMessages.length > 0) {
-        displayConflicts(conflictMessages);
-    }
-    {% endif %}
-    
-    // Restore previously selected staff assignments
-    {% if submitted_staff_assignments %}
-    const staffAssignments = {{ submitted_staff_assignments|tojson }};
-    for (const [bookingId, staffId] of Object.entries(staffAssignments)) {
-        const staffSelect = document.querySelector(`select[name="staff_${bookingId}"]`);
-        if (staffSelect && staffId) {
-            staffSelect.value = staffId;
-        }
-    }
-    {% endif %}
-    
     const acceptForm = document.getElementById('acceptBookingForm');
     if (acceptForm) {
         acceptForm.addEventListener('submit', function(e) {
