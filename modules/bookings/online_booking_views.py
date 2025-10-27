@@ -189,17 +189,6 @@ def online_booking_details(booking_id):
                          staff_members=staff_members)
 
 
-@app.route('/online-bookings/<int:booking_id>/callback', methods=['POST'])
-@login_required
-def log_booking_callback(booking_id):
-    """Log that customer was called back"""
-    if not current_user.can_access('bookings'):
-        return jsonify({'success': False, 'error': 'Access denied'}), 403
-
-    booking = get_online_booking_by_id(booking_id)
-
-
-
 @app.route('/api/validate-booking-time-change', methods=['POST'])
 @login_required
 def validate_booking_time_change():
