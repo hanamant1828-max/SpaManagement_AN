@@ -12,14 +12,14 @@ from datetime import datetime, date, time, timedelta
 def add_shifts_for_all_staff():
     """Add shift schedules for all active staff members"""
     with app.app_context():
-        # Get all active staff members (role='staff')
-        staff_members = User.query.filter_by(role='staff', is_active=True).all()
+        # Get all active users including admin and staff
+        staff_members = User.query.filter_by(is_active=True).all()
         
         if not staff_members:
-            print("❌ No active staff members found.")
+            print("❌ No active users found.")
             return
         
-        print(f"📋 Found {len(staff_members)} active staff members")
+        print(f"📋 Found {len(staff_members)} active users (including admin and staff)")
         print("=" * 80)
         
         # Define shift schedule parameters
