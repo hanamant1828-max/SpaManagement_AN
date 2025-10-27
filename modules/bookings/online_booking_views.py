@@ -274,6 +274,11 @@ def accept_grouped_booking():
                 booking = get_online_booking_by_id(booking_id)
                 if booking:
                     error_header = f"Booking #{booking_id} ({booking.client_name} - {booking.service_name}):"
+                    
+                    # Add helpful context for break/lunch time conflicts
+                    if 'break time' in error_msg.lower() or 'lunch time' in error_msg.lower():
+                        time_info = f"\n📅 Requested Time: {booking.start_time.strftime('%I:%M %p')} - {booking.end_time.strftime('%I:%M %p')}"
+                        error_msg = error_msg + time_info + f"\n💡 Suggestion: Please choose a time before or after the staff's break/lunch period."
                 else:
                     error_header = f"Booking #{booking_id}:"
 
