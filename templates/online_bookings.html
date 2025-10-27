@@ -332,7 +332,7 @@
 
                         <!-- Action Buttons -->
                         <div class="d-flex gap-2 mb-3">
-                            <button type="button" class="btn btn-primary" onclick="toggleTimeChangeSection()">
+                            <button type="button" class="btn btn-primary btn-lg" onclick="showTimeChangeSection()">
                                 <i class="fas fa-clock me-2"></i>Change Time & Date
                             </button>
                             <button type="button" class="btn btn-outline-secondary" onclick="forceConfirmBookings()">
@@ -348,11 +348,11 @@
                             <div class="row g-3">
                                 <div class="col-md-4">
                                     <label class="form-label fw-bold">New Date</label>
-                                    <input type="date" id="newBookingDate" class="form-control">
+                                    <input type="date" id="newBookingDate" class="form-control" onchange="updateEndTime()">
                                 </div>
                                 <div class="col-md-3">
                                     <label class="form-label fw-bold">Start Time</label>
-                                    <input type="time" id="newStartTime" class="form-control">
+                                    <input type="time" id="newStartTime" class="form-control" onchange="updateEndTime()">
                                 </div>
                                 <div class="col-md-3">
                                     <label class="form-label fw-bold">End Time <small class="text-muted">(Auto)</small></label>
@@ -360,7 +360,7 @@
                                 </div>
                                 <div class="col-md-2 d-flex align-items-end">
                                     <button type="button" class="btn btn-success w-100" onclick="validateNewTime()">
-                                        <i class="fas fa-check me-1"></i>Check
+                                        <i class="fas fa-check me-1"></i>Validate
                                     </button>
                                 </div>
                             </div>
@@ -646,7 +646,15 @@ function validateAcceptForm() {
 
     errorDiv.style.display = 'none';
 
-    // Show loading state
+    // Don't show loading if there are conflicts - let user change time
+    const conflictWarning = document.getElementById('conflictWarning');
+    if (conflictWarning && conflictWarning.style.display !== 'none') {
+        // Conflicts exist - don't submit, show time change option
+        showTimeChangeSection();
+        return false;
+    }
+
+    // Show loading state only if no conflicts
     const submitBtn = document.getElementById('confirmBookingsBtn');
     submitBtn.disabled = true;
     submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Processing...';
@@ -666,43 +674,57 @@ function checkStaffConflicts(bookingId, staffId, bookingTime) {
 let originalBookingTime = null;
 let conflictedBooking = null;
 
-// Toggle time change section visibility
-function toggleTimeChangeSection() {
+// Show time change section with pre-filled current booking time
+function showTimeChangeSection() {
     const section = document.getElementById('timeChangeSection');
-    if (section.style.display === 'none') {
-        section.style.display = 'block';
+    section.style.display = 'block';
 
-        // Get booking data from services container
-        const bookingIds = document.querySelectorAll('input[name="booking_ids[]"]');
-        if (bookingIds.length > 0) {
-            const firstBookingId = bookingIds[0].value;
-            const group = groupedBookings.find(g => 
-                g.bookings.some(b => b.id == firstBookingId)
-            );
+    // Get booking data from services container
+    const bookingIds = document.querySelectorAll('input[name="booking_ids[]"]');
+    if (bookingIds.length > 0) {
+        const firstBookingId = bookingIds[0].value;
+        const group = groupedBookings.find(g => 
+            g.bookings.some(b => b.id == firstBookingId)
+        );
 
-            if (group && group.bookings[0]) {
-                const booking = group.bookings[0];
-                originalBookingTime = {
-                    id: booking.id,
-                    start_time: booking.start_time,
-                    duration: booking.service_duration
-                };
+        if (group && group.bookings[0]) {
+            const booking = group.bookings[0];
+            originalBookingTime = {
+                id: booking.id,
+                start_time: booking.start_time,
+                duration: booking.service_duration
+            };
 
-                // Set current date and time
-                const timeObj = new Date(booking.start_time);
-                document.getElementById('newBookingDate').value = timeObj.toISOString().split('T')[0];
-                document.getElementById('newStartTime').value = timeObj.toTimeString().substr(0, 5);
+            // Set current date and time
+            const timeObj = new Date(booking.start_time);
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            
+            document.getElementById('newBookingDate').value = timeObj.toISOString().split('T')[0];
+            document.getElementById('newBookingDate').min = today.toISOString().split('T')[0];
+            document.getElementById('newStartTime').value = timeObj.toTimeString().substr(0, 5);
 
-                // Calculate and set end time
-                const endTime = new Date(timeObj.getTime() + booking.service_duration * 60000);
-                document.getElementById('newEndTime').value = endTime.toTimeString().substr(0, 5);
-            }
+            // Calculate and set end time
+            updateEndTime();
         }
-    } else {
-        section.style.display = 'none';
-        // Clear validation results when hiding
-        document.getElementById('timeValidationResult').style.display = 'none';
-        document.getElementById('suggestedTimesContainer').style.display = 'none';
+    }
+
+    // Clear previous validation results
+    document.getElementById('timeValidationResult').style.display = 'none';
+    document.getElementById('suggestedTimesContainer').style.display = 'none';
+}
+
+// Update end time based on start time and service duration
+function updateEndTime() {
+    const startTimeInput = document.getElementById('newStartTime');
+    const endTimeInput = document.getElementById('newEndTime');
+    
+    if (originalBookingTime && originalBookingTime.duration && startTimeInput.value) {
+        const [hours, minutes] = startTimeInput.value.split(':').map(Number);
+        const totalMinutes = hours * 60 + minutes + originalBookingTime.duration;
+        const endHours = Math.floor(totalMinutes / 60) % 24;
+        const endMinutes = totalMinutes % 60;
+        endTimeInput.value = `${String(endHours).padStart(2, '0')}:${String(endMinutes).padStart(2, '0')}`;
     }
 }
 
@@ -789,15 +811,18 @@ function validateNewTime() {
                 confirmBtn.className = 'btn btn-success btn-lg pulse-animation';
                 confirmBtn.innerHTML = '<i class="fas fa-check-circle me-2"></i>Confirm with New Time';
 
-                // Store the new time for submission
-                conflictedBooking = {
+                // Store the new time for submission with validated flag
+                window.conflictedBooking = {
                     id: bookingId,
                     newDate: newDate,
                     newStartTime: newStartTime,
                     newEndTime: newEndTime,
-                    staffId: staffId
+                    staffId: staffId,
+                    validated: true
                 };
 
+                // Hide conflict warning
+                document.getElementById('conflictWarning').style.display = 'none';
                 // Hide suggestions
                 document.getElementById('suggestedTimesContainer').style.display = 'none';
             } else {
@@ -870,20 +895,72 @@ function forceConfirmBookings() {
     }
 }
 
-// Override form submission to handle time changes
+// Override form submission to handle time changes and conflicts
 document.addEventListener('DOMContentLoaded', function() {
     const acceptForm = document.getElementById('acceptGroupForm');
     if (acceptForm) {
         acceptForm.addEventListener('submit', function(e) {
-            // If we have a time change pending, handle it via AJAX
-            if (conflictedBooking) {
-                e.preventDefault();
+            e.preventDefault();
+            
+            // If we have a validated time change, submit with new time
+            if (window.conflictedBooking && window.conflictedBooking.validated) {
                 submitWithTimeChange();
+                return;
             }
-            // Otherwise, let the normal form submission proceed
+            
+            // Otherwise, submit normally and check for conflicts
+            const formData = new FormData(acceptForm);
+            const submitBtn = document.getElementById('confirmBookingsBtn');
+            
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Checking...';
+            
+            fetch(acceptForm.action, {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Success - reload page
+                    location.reload();
+                } else if (data.has_conflicts) {
+                    // Conflicts detected - show conflict warning and keep modal open
+                    displayConflicts(data.conflict_messages);
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = '<i class="fas fa-check me-2"></i>Confirm All Bookings';
+                } else {
+                    // Other error
+                    alert('Error: ' + (data.error || 'Unknown error occurred'));
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = '<i class="fas fa-check me-2"></i>Confirm All Bookings';
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error submitting form. Please try again.');
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fas fa-check me-2"></i>Confirm All Bookings';
+            });
         });
     }
 });
+
+// Display conflict messages in the modal
+function displayConflicts(messages) {
+    const conflictWarning = document.getElementById('conflictWarning');
+    const conflictMessages = document.getElementById('conflictMessages');
+    
+    if (messages && messages.length > 0) {
+        conflictMessages.innerHTML = '<ul class="mb-0">' + 
+            messages.map(msg => `<li>${msg}</li>`).join('') + 
+            '</ul>';
+        conflictWarning.style.display = 'block';
+        
+        // Scroll to conflict warning
+        conflictWarning.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+}
 
 // Submit booking with time change
 function submitWithTimeChange() {

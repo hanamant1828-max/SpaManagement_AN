@@ -407,6 +407,7 @@ def accept_grouped_booking():
             
             # Store conflict data for modal display
             conflict_bookings = []
+            conflict_messages = []
             
             for failed_booking in results['failed']:
                 booking_id = failed_booking['booking_id']
@@ -421,38 +422,38 @@ def accept_grouped_booking():
                 booking = get_online_booking_by_id(booking_id)
                 if booking:
                     error_header = f"Booking #{booking_id} ({booking.client_name} - {booking.service_name}):"
+                    conflict_messages.append(error_msg)
                     
-                    # Check if this is a break/lunch time conflict
-                    is_break_conflict = 'break time' in error_msg.lower() or 'lunch time' in error_msg.lower()
-                    
-                    if is_break_conflict:
-                        # Store booking data for reschedule modal
-                        conflict_bookings.append({
-                            'id': booking_id,
-                            'client_name': booking.client_name,
-                            'service_name': booking.service_name,
-                            'current_date': booking.appointment_date.strftime('%Y-%m-%d'),
-                            'current_start_time': booking.start_time.strftime('%H:%M'),
-                            'current_end_time': booking.end_time.strftime('%H:%M'),
-                            'staff_id': request.form.get(f'staff_{booking_id}'),
-                            'error': error_msg
-                        })
+                    # Store all conflict booking data
+                    conflict_bookings.append({
+                        'id': booking_id,
+                        'client_name': booking.client_name,
+                        'service_name': booking.service_name,
+                        'current_date': booking.appointment_date.strftime('%Y-%m-%d'),
+                        'current_start_time': booking.start_time.strftime('%H:%M'),
+                        'current_end_time': booking.end_time.strftime('%H:%M'),
+                        'service_duration': booking.service_duration,
+                        'staff_id': request.form.get(f'staff_{booking_id}'),
+                        'error': error_msg
+                    })
                 else:
                     error_header = f"Booking #{booking_id}:"
+                    conflict_messages.append(error_msg)
 
                 # Flash the error with clear formatting
                 flash(f"{error_header}\n{error_msg}", 'danger')
             
             print("="*80 + "\n")
             
-            # If there are break conflicts, return special response to trigger reschedule modal
-            if conflict_bookings and request.is_json:
+            # Return conflict data to keep modal open and show time change UI
+            if request.is_json:
                 return jsonify({
                     'success': False,
                     'has_conflicts': True,
                     'conflict_bookings': conflict_bookings,
+                    'conflict_messages': conflict_messages,
                     'results': results
-                })
+                }), 200  # Return 200 to prevent error handling
 
         if request.is_json:
             return jsonify({'success': True, 'results': results})
