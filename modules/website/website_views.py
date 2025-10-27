@@ -45,7 +45,6 @@ def website_book_online():
 
             client_name = data.get('client_name', '').strip()
             client_phone = data.get('client_phone', '').strip()
-            client_email = data.get('client_email', '').strip()
 
             # Validate required fields
             if not client_name:
@@ -61,13 +60,6 @@ def website_book_online():
             if len(client_phone) < 10:
                 flash('Please enter a valid phone number (at least 10 digits).', 'error')
                 return redirect(url_for('website_book_online'))
-            
-            # Validate email format if provided
-            if client_email and client_email.strip():
-                email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
-                if not re.match(email_pattern, client_email.strip()):
-                    flash('Please enter a valid email address.', 'error')
-                    return redirect(url_for('website_book_online'))
 
             # Parse multiple services from form data
             services_data = {}
@@ -86,21 +78,10 @@ def website_book_online():
                 flash('Please select at least one service with date and time.', 'error')
                 return redirect(url_for('website_book_online'))
 
-            # Create or get customer - search by phone first, then check email for conflicts
+            # Create or get customer - search by phone
             customer = Customer.query.filter_by(phone=client_phone).first()
 
             if not customer:
-                # Customer doesn't exist by phone, check if email already exists
-                email_value = None
-                if client_email and client_email.strip():
-                    email_value = client_email.strip().lower()
-                    existing_email_customer = Customer.query.filter_by(email=email_value).first()
-                    
-                    if existing_email_customer:
-                        # Email exists but phone is different - this is a conflict
-                        flash(f'A customer with email {email_value} already exists with phone {existing_email_customer.phone}. Please use a different email or contact support.', 'error')
-                        return redirect(url_for('website_book_online'))
-                
                 # Safe to create new customer
                 name_parts = client_name.split(' ', 1)
                 first_name = name_parts[0]
@@ -110,30 +91,16 @@ def website_book_online():
                     first_name=first_name,
                     last_name=last_name,
                     phone=client_phone,
-                    email=email_value,
+                    email=None,
                     created_at=datetime.utcnow()
                 )
                 db.session.add(customer)
                 db.session.flush()
             else:
-                # Customer exists by phone - update name and email if needed
+                # Customer exists by phone - update name only
                 name_parts = client_name.split(' ', 1)
                 customer.first_name = name_parts[0]
                 customer.last_name = name_parts[1] if len(name_parts) > 1 else ''
-                
-                if client_email and client_email.strip():
-                    new_email = client_email.strip().lower()
-                    if customer.email != new_email:
-                        # Check if the new email is already used by another customer
-                        existing_email_customer = Customer.query.filter(
-                            Customer.email == new_email,
-                            Customer.id != customer.id
-                        ).first()
-                        if existing_email_customer:
-                            # Email conflict - keep old email
-                            flash(f'Email {new_email} is already registered to another customer. Using existing email {customer.email}.', 'warning')
-                        else:
-                            customer.email = new_email
                 db.session.flush()
 
             # Get available staff
@@ -197,16 +164,11 @@ def website_book_online():
                     start_datetime = datetime.combine(appointment_date, appointment_time_obj)
                     end_datetime = start_datetime + timedelta(minutes=service.duration)
 
-                    # Only set email if it's provided and not empty
-                    email_value = None
-                    if client_email and client_email.strip():
-                        email_value = client_email.strip().lower()
-
                     booking = UnakiBooking(
                         client_id=customer.id,
                         client_name=client_name,
                         client_phone=client_phone,
-                        client_email=email_value,
+                        client_email=None,
                         staff_id=available_staff.id,
                         staff_name=f"{available_staff.first_name} {available_staff.last_name}",
                         service_id=service.id,

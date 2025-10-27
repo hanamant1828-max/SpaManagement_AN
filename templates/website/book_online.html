@@ -165,7 +165,7 @@
                         {% endfor %}
                     {% endif %}
                 {% endwith %}
-                
+
                 <div class="booking-form">
                     <div class="info-box">
                         <i class="fas fa-info-circle me-2"></i>
@@ -192,13 +192,6 @@
                                        pattern="[\d\s\-\+\(\)]+" 
                                        title="Please enter a valid phone number">
                                 <small class="text-muted">Format: +1-234-567-8900 or 2345678900</small>
-                            </div>
-
-                            <div class="col-12">
-                                <label for="client_email" class="form-label">Email Address (Optional)</label>
-                                <input type="email" class="form-control" id="client_email" name="client_email" 
-                                       placeholder="your@email.com">
-                                <small class="text-muted">We'll send your booking confirmation here</small>
                             </div>
 
                             <!-- Appointment Details -->
@@ -444,12 +437,12 @@ function updateServiceNumbers() {
         // Validate at least one complete service is filled
         const serviceItems = document.querySelectorAll('.service-item');
         let hasValidService = false;
-        
+
         serviceItems.forEach((item, index) => {
             const serviceSelect = item.querySelector('select[name*="service_id"]');
             const dateInput = item.querySelector('input[name*="appointment_date"]');
             const timeSelect = item.querySelector('select[name*="appointment_time"]');
-            
+
             if (serviceSelect && serviceSelect.value && 
                 dateInput && dateInput.value && 
                 timeSelect && timeSelect.value) {
@@ -469,7 +462,7 @@ function updateServiceNumbers() {
         const originalBtnText = submitBtn.innerHTML;
         submitBtn.disabled = true;
         submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Processing...';
-        
+
         // If validation fails on server, re-enable the button
         setTimeout(() => {
             isSubmitting = false;
