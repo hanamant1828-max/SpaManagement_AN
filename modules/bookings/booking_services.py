@@ -373,48 +373,28 @@ def check_client_conflicts(client_id, client_name, client_phone, appointment_dat
                 continue
 
             is_same_date = booking.appointment_date == appointment_date
-            is_unpaid = booking.payment_status in ['pending', 'partial']
 
-            # Unpaid appointments are ALWAYS conflicts (any date, any time)
-            # Same-date appointments check for time overlap
-            is_conflict = False
-
-            if is_unpaid:
-                # Any unpaid appointment is a conflict
-                is_conflict = True
-            elif is_same_date:
+            # Only check same-date appointments for time overlap
+            if is_same_date:
                 # Same-date appointments: check time overlap
                 existing_start = datetime.combine(appointment_date, booking.start_time)
                 existing_end = datetime.combine(appointment_date, booking.end_time)
 
                 if start_datetime < existing_end and end_datetime > existing_start:
-                    is_conflict = True
-
-            if is_conflict:
-                conflict_type = 'unpaid' if is_unpaid else 'time_overlap'
-                conflicts.append({
-                    'id': booking.id,
-                    'appointment_date': booking.appointment_date.strftime('%Y-%m-%d'),
-                    'start_time': booking.start_time.strftime('%I:%M %p'),
-                    'end_time': booking.end_time.strftime('%I:%M %p'),
-                    'staff_name': booking.staff_name or 'Unknown',
-                    'service_name': booking.service_name,
-                    'payment_status': booking.payment_status,
-                    'status': booking.status,
-                    'conflict_type': conflict_type
-                })
+                    conflicts.append({
+                        'id': booking.id,
+                        'appointment_date': booking.appointment_date.strftime('%Y-%m-%d'),
+                        'start_time': booking.start_time.strftime('%I:%M %p'),
+                        'end_time': booking.end_time.strftime('%I:%M %p'),
+                        'staff_name': booking.staff_name or 'Unknown',
+                        'service_name': booking.service_name,
+                        'payment_status': booking.payment_status,
+                        'status': booking.status
+                    })
 
         if conflicts:
-            # Determine the primary conflict message
-            unpaid_conflicts = [c for c in conflicts if c['conflict_type'] == 'unpaid']
-            time_conflicts = [c for c in conflicts if c['conflict_type'] == 'time_overlap']
-
-            if unpaid_conflicts:
-                conflict = unpaid_conflicts[0]
-                message = f"{client_name} has an unpaid appointment on {conflict['appointment_date']} ({conflict['start_time']} - {conflict['end_time']}). Please complete payment before booking new appointments."
-            else:
-                conflict = time_conflicts[0]
-                message = f"{client_name} already has an appointment from {conflict['start_time']} to {conflict['end_time']} with {conflict['staff_name']} on {conflict['appointment_date']}"
+            conflict = conflicts[0]
+            message = f"{client_name} already has an appointment from {conflict['start_time']} to {conflict['end_time']} with {conflict['staff_name']} on {conflict['appointment_date']}"
 
             return {
                 'has_conflict': True,
@@ -505,19 +485,8 @@ def validate_booking_for_acceptance(booking, staff_id):
         if client_conflict_result.get('has_conflict'):
             conflicts = client_conflict_result.get('conflicts', [])
             
-            # Separate unpaid and time overlap conflicts
-            unpaid_conflicts = [c for c in conflicts if c.get('conflict_type') == 'unpaid']
-            time_overlap_conflicts = [c for c in conflicts if c.get('conflict_type') == 'time_overlap']
-            
-            # Add unpaid conflicts (high priority)
-            for conflict in unpaid_conflicts:
-                validation_errors.append({
-                    'category': 'Payment Required',
-                    'message': f"{booking.client_name} has an unpaid appointment on {conflict['appointment_date']} at {conflict['start_time']}. Please complete payment before accepting new bookings."
-                })
-            
             # Add time overlap conflicts
-            for conflict in time_overlap_conflicts:
+            for conflict in conflicts:
                 validation_errors.append({
                     'category': 'Client Schedule Conflict',
                     'message': f"{booking.client_name} already has an appointment from {conflict['start_time']} to {conflict['end_time']} with {conflict['staff_name']} on {conflict['appointment_date']}"
