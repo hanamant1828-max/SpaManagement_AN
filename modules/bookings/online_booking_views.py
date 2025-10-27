@@ -297,15 +297,18 @@ def update_booking_time(booking_id):
         start_time_obj = datetime.strptime(start_time, '%H:%M').time()
         end_time_obj = datetime.strptime(end_time, '%H:%M').time()
 
-        # Update booking times
+        # Update booking times and flush to database (but don't commit yet)
+        # flush() makes changes visible within the transaction without committing
         booking.appointment_date = appointment_date
         booking.start_time = start_time_obj
         booking.end_time = end_time_obj
+        db.session.flush()  # Make changes visible to accept_booking without committing
         
         # Now try to accept with the new time
         accepted_booking, error = accept_booking(booking_id, int(staff_id))
         
         if accepted_booking:
+            # Only commit if accept succeeds
             db.session.commit()
             return jsonify({
                 'success': True,
@@ -318,6 +321,7 @@ def update_booking_time(booking_id):
                 }
             })
         else:
+            # Roll back time changes if accept fails
             db.session.rollback()
             return jsonify({'success': False, 'error': error}), 400
 
