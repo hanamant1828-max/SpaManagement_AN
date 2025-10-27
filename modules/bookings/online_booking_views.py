@@ -200,10 +200,92 @@ def log_booking_callback(booking_id):
 
 
 
-@app.route('/api/online-bookings/<int:booking_id>/reschedule', methods=['POST'])
+@app.route('/api/validate-booking-time-change', methods=['POST'])
 @login_required
-def reschedule_online_booking(booking_id):
-    """Reschedule an online booking to a new time"""
+def validate_booking_time_change():
+    """Validate a booking time change without committing to database
+    
+    Returns conflict information and suggestions for alternative times
+    """
+    if not current_user.can_access('bookings'):
+        return jsonify({'success': False, 'error': 'Access denied'}), 403
+
+    try:
+        from modules.bookings.booking_services import validate_booking_for_acceptance, check_staff_conflicts
+        
+        data = request.get_json()
+        booking_id = data.get('booking_id')
+        staff_id = data.get('staff_id')
+        appointment_date = data.get('appointment_date')
+        start_time = data.get('start_time')
+        end_time = data.get('end_time')
+
+        if not all([booking_id, staff_id, appointment_date, start_time, end_time]):
+            return jsonify({'success': False, 'error': 'Missing required fields'}), 400
+
+        booking = get_online_booking_by_id(booking_id)
+        if not booking:
+            return jsonify({'success': False, 'error': 'Booking not found'}), 404
+
+        # Parse date and times
+        appointment_date = datetime.strptime(appointment_date, '%Y-%m-%d').date()
+        
+        # Create a temporary booking object with new times for validation
+        original_date = booking.appointment_date
+        original_start = booking.start_time
+        original_end = booking.end_time
+        
+        # Temporarily update booking times for validation
+        booking.appointment_date = appointment_date
+        booking.start_time = datetime.strptime(start_time, '%H:%M').time()
+        booking.end_time = datetime.strptime(end_time, '%H:%M').time()
+        
+        # Validate the new time
+        validation_errors = validate_booking_for_acceptance(booking, int(staff_id))
+        
+        # Restore original times
+        booking.appointment_date = original_date
+        booking.start_time = original_start
+        booking.end_time = original_end
+        
+        # Get conflict details and suggestions
+        staff_conflict_result = check_staff_conflicts(
+            int(staff_id),
+            appointment_date,
+            start_time,
+            end_time,
+            exclude_id=booking_id
+        )
+        
+        if validation_errors:
+            # Has conflicts
+            return jsonify({
+                'success': True,
+                'valid': False,
+                'has_conflicts': True,
+                'errors': validation_errors,
+                'suggestions': staff_conflict_result.get('suggestions', []),
+                'message': 'The selected time has conflicts. Please choose a different time or see suggestions.'
+            })
+        else:
+            # No conflicts - time is valid
+            return jsonify({
+                'success': True,
+                'valid': True,
+                'has_conflicts': False,
+                'message': 'Selected time is available! You can now confirm the booking.'
+            })
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/online-bookings/<int:booking_id>/update-time', methods=['POST'])
+@login_required
+def update_booking_time(booking_id):
+    """Update booking time and accept with new time"""
     if not current_user.can_access('bookings'):
         return jsonify({'success': False, 'error': 'Access denied'}), 403
 
@@ -222,12 +304,11 @@ def reschedule_online_booking(booking_id):
             return jsonify({'success': False, 'error': 'Booking not found'}), 404
 
         # Parse date and times
-        from datetime import datetime
         appointment_date = datetime.strptime(appointment_date, '%Y-%m-%d').date()
         start_time_obj = datetime.strptime(start_time, '%H:%M').time()
         end_time_obj = datetime.strptime(end_time, '%H:%M').time()
 
-        # Update booking
+        # Update booking times
         booking.appointment_date = appointment_date
         booking.start_time = start_time_obj
         booking.end_time = end_time_obj
@@ -239,7 +320,13 @@ def reschedule_online_booking(booking_id):
             db.session.commit()
             return jsonify({
                 'success': True,
-                'message': f'Booking rescheduled and accepted for {appointment_date.strftime("%b %d, %Y")} at {start_time}'
+                'message': f'Booking accepted with new time: {appointment_date.strftime("%b %d, %Y")} at {start_time}',
+                'booking': {
+                    'id': booking_id,
+                    'appointment_date': appointment_date.strftime('%Y-%m-%d'),
+                    'start_time': start_time,
+                    'end_time': end_time
+                }
             })
         else:
             db.session.rollback()
@@ -251,6 +338,16 @@ def reschedule_online_booking(booking_id):
         traceback.print_exc()
         return jsonify({'success': False, 'error': str(e)}), 500
 
+
+@app.route('/online-bookings/<int:booking_id>/callback', methods=['POST'])
+@login_required
+def log_booking_callback(booking_id):
+    """Log that customer was called back"""
+    if not current_user.can_access('bookings'):
+        return jsonify({'success': False, 'error': 'Access denied'}), 403
+
+    booking = get_online_booking_by_id(booking_id)
+    
     if not booking:
         return jsonify({'success': False, 'error': 'Booking not found'}), 404
 
