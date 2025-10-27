@@ -197,6 +197,60 @@ def log_booking_callback(booking_id):
         return jsonify({'success': False, 'error': 'Access denied'}), 403
 
     booking = get_online_booking_by_id(booking_id)
+
+
+
+@app.route('/api/online-bookings/<int:booking_id>/reschedule', methods=['POST'])
+@login_required
+def reschedule_online_booking(booking_id):
+    """Reschedule an online booking to a new time"""
+    if not current_user.can_access('bookings'):
+        return jsonify({'success': False, 'error': 'Access denied'}), 403
+
+    try:
+        data = request.get_json()
+        appointment_date = data.get('appointment_date')
+        start_time = data.get('start_time')
+        end_time = data.get('end_time')
+        staff_id = data.get('staff_id')
+
+        if not all([appointment_date, start_time, end_time, staff_id]):
+            return jsonify({'success': False, 'error': 'Missing required fields'}), 400
+
+        booking = get_online_booking_by_id(booking_id)
+        if not booking:
+            return jsonify({'success': False, 'error': 'Booking not found'}), 404
+
+        # Parse date and times
+        from datetime import datetime
+        appointment_date = datetime.strptime(appointment_date, '%Y-%m-%d').date()
+        start_time_obj = datetime.strptime(start_time, '%H:%M').time()
+        end_time_obj = datetime.strptime(end_time, '%H:%M').time()
+
+        # Update booking
+        booking.appointment_date = appointment_date
+        booking.start_time = start_time_obj
+        booking.end_time = end_time_obj
+        
+        # Now try to accept with the new time
+        accepted_booking, error = accept_booking(booking_id, int(staff_id))
+        
+        if accepted_booking:
+            db.session.commit()
+            return jsonify({
+                'success': True,
+                'message': f'Booking rescheduled and accepted for {appointment_date.strftime("%b %d, %Y")} at {start_time}'
+            })
+        else:
+            db.session.rollback()
+            return jsonify({'success': False, 'error': error}), 400
+
+    except Exception as e:
+        db.session.rollback()
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
     if not booking:
         return jsonify({'success': False, 'error': 'Booking not found'}), 404
 
@@ -261,6 +315,9 @@ def accept_grouped_booking():
             print(f"❌ VALIDATION ERRORS: {failed_count} booking(s) failed to accept")
             print("="*80)
             
+            # Store conflict data for modal display
+            conflict_bookings = []
+            
             for failed_booking in results['failed']:
                 booking_id = failed_booking['booking_id']
                 error_msg = failed_booking['error']
@@ -275,10 +332,21 @@ def accept_grouped_booking():
                 if booking:
                     error_header = f"Booking #{booking_id} ({booking.client_name} - {booking.service_name}):"
                     
-                    # Add helpful context for break/lunch time conflicts
-                    if 'break time' in error_msg.lower() or 'lunch time' in error_msg.lower():
-                        time_info = f"\n📅 Requested Time: {booking.start_time.strftime('%I:%M %p')} - {booking.end_time.strftime('%I:%M %p')}"
-                        error_msg = error_msg + time_info + f"\n💡 Suggestion: Please choose a time before or after the staff's break/lunch period."
+                    # Check if this is a break/lunch time conflict
+                    is_break_conflict = 'break time' in error_msg.lower() or 'lunch time' in error_msg.lower()
+                    
+                    if is_break_conflict:
+                        # Store booking data for reschedule modal
+                        conflict_bookings.append({
+                            'id': booking_id,
+                            'client_name': booking.client_name,
+                            'service_name': booking.service_name,
+                            'current_date': booking.appointment_date.strftime('%Y-%m-%d'),
+                            'current_start_time': booking.start_time.strftime('%H:%M'),
+                            'current_end_time': booking.end_time.strftime('%H:%M'),
+                            'staff_id': request.form.get(f'staff_{booking_id}'),
+                            'error': error_msg
+                        })
                 else:
                     error_header = f"Booking #{booking_id}:"
 
@@ -286,6 +354,15 @@ def accept_grouped_booking():
                 flash(f"{error_header}\n{error_msg}", 'danger')
             
             print("="*80 + "\n")
+            
+            # If there are break conflicts, return special response to trigger reschedule modal
+            if conflict_bookings and request.is_json:
+                return jsonify({
+                    'success': False,
+                    'has_conflicts': True,
+                    'conflict_bookings': conflict_bookings,
+                    'results': results
+                })
 
         if request.is_json:
             return jsonify({'success': True, 'results': results})

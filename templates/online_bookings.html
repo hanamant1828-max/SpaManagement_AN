@@ -364,6 +364,66 @@
     </div>
 </div>
 
+<!-- Reschedule Booking Modal (for break time conflicts) -->
+<div class="modal fade" id="rescheduleConflictModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-warning text-dark">
+                <h5 class="modal-title">
+                    <i class="fas fa-clock me-2"></i>Break Time Conflict - Reschedule Required
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="rescheduleConflictForm" method="POST" action="{{ url_for('accept_grouped_booking') }}">
+                <div class="modal-body">
+                    <div class="alert alert-warning">
+                        <i class="fas fa-coffee me-2"></i>
+                        <strong>The selected time overlaps with the staff's break/lunch time.</strong>
+                    </div>
+                    
+                    <div id="conflictBookingDetails" class="mb-3">
+                        <!-- Will be populated by JavaScript -->
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">New Date</label>
+                        <input type="date" id="rescheduleDate" class="form-control" required>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">New Start Time</label>
+                            <input type="time" id="rescheduleStartTime" class="form-control" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">New End Time</label>
+                            <input type="time" id="rescheduleEndTime" class="form-control" readonly>
+                        </div>
+                    </div>
+                    
+                    <div id="rescheduleConflictWarning" class="alert alert-danger" style="display: none;">
+                        <!-- Conflict warnings will appear here -->
+                    </div>
+                    
+                    <div class="alert alert-info">
+                        <i class="fas fa-lightbulb me-2"></i>
+                        <strong>Suggested time slots:</strong>
+                        <div id="suggestedTimeSlots" class="mt-2">
+                            <!-- Will be populated with suggested times -->
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success" id="confirmRescheduleBtn">
+                        <i class="fas fa-check me-2"></i>Reschedule & Accept Booking
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <!-- Reject Group Booking Modal -->
 <div class="modal fade" id="rejectGroupModal" tabindex="-1">
     <div class="modal-dialog">
@@ -551,6 +611,190 @@ function validateAcceptForm() {
     submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Processing...';
     
     return true;
+}
+
+// Handle reschedule modal for break time conflicts
+function showRescheduleModal(conflictBooking) {
+    const modal = new bootstrap.Modal(document.getElementById('rescheduleConflictModal'));
+    
+    // Populate booking details
+    const detailsDiv = document.getElementById('conflictBookingDetails');
+    detailsDiv.innerHTML = `
+        <div class="card">
+            <div class="card-body">
+                <h6 class="card-title">Booking Details</h6>
+                <p class="mb-1"><strong>Client:</strong> ${conflictBooking.client_name}</p>
+                <p class="mb-1"><strong>Service:</strong> ${conflictBooking.service_name}</p>
+                <p class="mb-1"><strong>Current Date:</strong> ${new Date(conflictBooking.current_date).toLocaleDateString()}</p>
+                <p class="mb-1"><strong>Current Time:</strong> ${conflictBooking.current_start_time} - ${conflictBooking.current_end_time}</p>
+                <div class="alert alert-warning mt-2 mb-0">
+                    <small>${conflictBooking.error}</small>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Set default values
+    document.getElementById('rescheduleDate').value = conflictBooking.current_date;
+    document.getElementById('rescheduleStartTime').value = conflictBooking.current_start_time;
+    document.getElementById('rescheduleEndTime').value = conflictBooking.current_end_time;
+    
+    // Store booking data for submission
+    document.getElementById('rescheduleConflictForm').dataset.bookingId = conflictBooking.id;
+    document.getElementById('rescheduleConflictForm').dataset.staffId = conflictBooking.staff_id;
+    
+    // Generate suggested time slots
+    generateSuggestedTimeSlots(conflictBooking);
+    
+    modal.show();
+}
+
+// Generate suggested time slots avoiding break times
+function generateSuggestedTimeSlots(booking) {
+    const slotsDiv = document.getElementById('suggestedTimeSlots');
+    const currentStart = booking.current_start_time;
+    const currentEnd = booking.current_end_time;
+    
+    // Calculate service duration
+    const [startH, startM] = currentStart.split(':').map(Number);
+    const [endH, endM] = currentEnd.split(':').map(Number);
+    const durationMinutes = (endH * 60 + endM) - (startH * 60 + startM);
+    
+    // Suggest slots before and after typical lunch break (12:00 - 14:00)
+    const suggestions = [
+        { label: 'Before Lunch', time: '10:00' },
+        { label: 'Before Lunch', time: '11:00' },
+        { label: 'After Lunch', time: '14:00' },
+        { label: 'After Lunch', time: '15:00' },
+        { label: 'After Lunch', time: '16:00' }
+    ];
+    
+    let html = '<div class="btn-group-vertical w-100" role="group">';
+    suggestions.forEach(slot => {
+        const endTime = calculateEndTime(slot.time, durationMinutes);
+        html += `
+            <button type="button" class="btn btn-outline-primary text-start" 
+                    onclick="applySuggestedTime('${slot.time}', '${endTime}')">
+                <i class="fas fa-clock me-2"></i>${slot.label}: ${slot.time} - ${endTime}
+            </button>
+        `;
+    });
+    html += '</div>';
+    
+    slotsDiv.innerHTML = html;
+}
+
+// Apply suggested time to form
+function applySuggestedTime(startTime, endTime) {
+    document.getElementById('rescheduleStartTime').value = startTime;
+    document.getElementById('rescheduleEndTime').value = endTime;
+    
+    // Check for conflicts with new time
+    checkRescheduleConflicts();
+}
+
+// Calculate end time based on duration
+function calculateEndTime(startTime, durationMinutes) {
+    const [hours, minutes] = startTime.split(':').map(Number);
+    const totalMinutes = hours * 60 + minutes + durationMinutes;
+    const endHours = Math.floor(totalMinutes / 60);
+    const endMinutes = totalMinutes % 60;
+    return `${String(endHours).padStart(2, '0')}:${String(endMinutes).padStart(2, '0')}`;
+}
+
+// Auto-calculate end time when start time changes
+document.addEventListener('DOMContentLoaded', function() {
+    const startTimeInput = document.getElementById('rescheduleStartTime');
+    if (startTimeInput) {
+        startTimeInput.addEventListener('change', function() {
+            const form = document.getElementById('rescheduleConflictForm');
+            const bookingId = form.dataset.bookingId;
+            
+            // Get original duration from conflict booking
+            const currentStart = document.getElementById('rescheduleStartTime').value;
+            const currentEnd = document.getElementById('rescheduleEndTime').value;
+            
+            if (currentStart && currentEnd) {
+                const [startH, startM] = currentStart.split(':').map(Number);
+                const [endH, endM] = currentEnd.split(':').map(Number);
+                const durationMinutes = (endH * 60 + endM) - (startH * 60 + startM);
+                
+                const newEndTime = calculateEndTime(this.value, durationMinutes);
+                document.getElementById('rescheduleEndTime').value = newEndTime;
+                
+                checkRescheduleConflicts();
+            }
+        });
+    }
+    
+    // Handle reschedule form submission
+    const rescheduleForm = document.getElementById('rescheduleConflictForm');
+    if (rescheduleForm) {
+        rescheduleForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            submitReschedule();
+        });
+    }
+});
+
+// Check for conflicts with rescheduled time
+function checkRescheduleConflicts() {
+    const form = document.getElementById('rescheduleConflictForm');
+    const staffId = form.dataset.staffId;
+    const date = document.getElementById('rescheduleDate').value;
+    const startTime = document.getElementById('rescheduleStartTime').value;
+    const endTime = document.getElementById('rescheduleEndTime').value;
+    
+    if (!staffId || !date || !startTime || !endTime) return;
+    
+    // In a real implementation, make AJAX call to check conflicts
+    // For now, just hide the warning
+    document.getElementById('rescheduleConflictWarning').style.display = 'none';
+}
+
+// Submit rescheduled booking
+function submitReschedule() {
+    const form = document.getElementById('rescheduleConflictForm');
+    const bookingId = form.dataset.bookingId;
+    const staffId = form.dataset.staffId;
+    const date = document.getElementById('rescheduleDate').value;
+    const startTime = document.getElementById('rescheduleStartTime').value;
+    const endTime = document.getElementById('rescheduleEndTime').value;
+    
+    const submitBtn = document.getElementById('confirmRescheduleBtn');
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Processing...';
+    
+    // Update booking time via AJAX
+    fetch(`/api/online-bookings/${bookingId}/reschedule`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            appointment_date: date,
+            start_time: startTime,
+            end_time: endTime,
+            staff_id: staffId
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Close modal and reload page
+            bootstrap.Modal.getInstance(document.getElementById('rescheduleConflictModal')).hide();
+            location.reload();
+        } else {
+            document.getElementById('rescheduleConflictWarning').innerHTML = 
+                `<i class="fas fa-exclamation-triangle me-2"></i>${data.error}`;
+            document.getElementById('rescheduleConflictWarning').style.display = 'block';
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="fas fa-check me-2"></i>Reschedule & Accept Booking';
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<i class="fas fa-check me-2"></i>Reschedule & Accept Booking';
+    });
 }
 
 // Refresh bookings
