@@ -320,34 +320,62 @@
                     
                     <div id="acceptFormErrors" class="alert alert-danger" style="display: none;"></div>
                     
-                    <!-- Server-side validation errors will appear here -->
-                    {% with messages = get_flashed_messages(with_categories=true) %}
-                        {% if messages %}
-                            {% for category, message in messages %}
-                                {% if category == 'danger' %}
-                                <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                                    <i class="fas fa-exclamation-triangle me-2"></i>
-                                    <div style="white-space: pre-wrap;">{{ message }}</div>
-                                    
-                                    {% if 'break time' in message.lower() or 'lunch time' in message.lower() %}
-                                    <div class="mt-3 p-3 bg-light rounded">
-                                        <h6 class="mb-2"><i class="fas fa-coffee me-2"></i>Staff Break/Lunch Time Conflict</h6>
-                                        <p class="mb-2 small">The selected time overlaps with the staff member's scheduled break/lunch time.</p>
-                                        <p class="mb-2 small text-muted">
-                                            <strong>Options:</strong><br>
-                                            • Choose a different time slot before or after the break<br>
-                                            • Assign a different staff member who is available<br>
-                                            • Contact the customer to reschedule
-                                        </p>
-                                    </div>
-                                    {% endif %}
-                                    
-                                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    <!-- Conflict warning with time change option -->
+                    <div id="conflictWarning" class="alert alert-warning" style="display: none;">
+                        <div class="d-flex align-items-start">
+                            <div class="flex-grow-1">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                <strong>Scheduling Conflicts Detected:</strong>
+                                <div id="conflictMessages" class="mt-2"></div>
+                            </div>
+                        </div>
+                        
+                        <!-- Time Change Section -->
+                        <div id="timeChangeSection" class="mt-3 p-3 border rounded bg-light" style="display: none;">
+                            <h6 class="mb-3">
+                                <i class="fas fa-clock me-2"></i>Change Booking Time
+                            </h6>
+                            <div class="row g-3">
+                                <div class="col-md-4">
+                                    <label class="form-label small">New Date</label>
+                                    <input type="date" id="newBookingDate" class="form-control form-control-sm">
                                 </div>
-                                {% endif %}
-                            {% endfor %}
-                        {% endif %}
-                    {% endwith %}
+                                <div class="col-md-3">
+                                    <label class="form-label small">New Start Time</label>
+                                    <input type="time" id="newStartTime" class="form-control form-control-sm">
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label small">New End Time (Auto)</label>
+                                    <input type="time" id="newEndTime" class="form-control form-control-sm" readonly>
+                                </div>
+                                <div class="col-md-2 d-flex align-items-end">
+                                    <button type="button" class="btn btn-sm btn-primary w-100" onclick="validateNewTime()">
+                                        <i class="fas fa-check me-1"></i>Validate
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <!-- Validation Result -->
+                            <div id="timeValidationResult" class="mt-3" style="display: none;"></div>
+                            
+                            <!-- Suggested Times -->
+                            <div id="suggestedTimesContainer" class="mt-3" style="display: none;">
+                                <h6 class="small mb-2">
+                                    <i class="fas fa-lightbulb me-2"></i>Suggested Available Times:
+                                </h6>
+                                <div id="suggestedTimes" class="d-flex flex-wrap gap-2"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-3 d-flex gap-2">
+                            <button type="button" class="btn btn-sm btn-warning" onclick="toggleTimeChangeSection()">
+                                <i class="fas fa-edit me-2"></i>Change Time
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="forceConfirmBookings()">
+                                <i class="fas fa-exclamation-circle me-2"></i>Confirm Anyway
+                            </button>
+                        </div>
+                    </div>
                     
                     <div id="servicesContainer">
                         <!-- Services will be dynamically added here -->
@@ -582,6 +610,10 @@ function rejectGroupBooking(groupId) {
     modal.show();
 }
 
+// Global variable to store conflicted booking info
+let conflictedBooking = null;
+let originalBookingTime = null;
+
 // Validate accept form before submission
 function validateAcceptForm() {
     const form = document.getElementById('acceptGroupForm');
@@ -611,6 +643,258 @@ function validateAcceptForm() {
     submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Processing...';
     
     return true;
+}
+
+// Check for conflicts when staff is assigned
+function checkStaffConflicts(bookingId, staffId, bookingTime) {
+    if (!staffId || !bookingTime) return;
+    
+    // For demonstration, we'll let the backend validate on submission
+    // Real-time validation could be added here if needed
+}
+
+// Toggle time change section visibility
+function toggleTimeChangeSection() {
+    const section = document.getElementById('timeChangeSection');
+    if (section.style.display === 'none') {
+        section.style.display = 'block';
+        
+        // Get booking data from services container
+        const bookingIds = document.querySelectorAll('input[name="booking_ids[]"]');
+        if (bookingIds.length > 0) {
+            const firstBookingId = bookingIds[0].value;
+            const group = groupedBookings.find(g => 
+                g.bookings.some(b => b.id == firstBookingId)
+            );
+            
+            if (group && group.bookings[0]) {
+                const booking = group.bookings[0];
+                originalBookingTime = {
+                    id: booking.id,
+                    start_time: booking.start_time,
+                    duration: booking.service_duration
+                };
+                
+                // Set current date and time
+                const timeObj = new Date(booking.start_time);
+                document.getElementById('newBookingDate').value = timeObj.toISOString().split('T')[0];
+                document.getElementById('newStartTime').value = timeObj.toTimeString().substr(0, 5);
+                
+                // Calculate and set end time
+                const endTime = new Date(timeObj.getTime() + booking.service_duration * 60000);
+                document.getElementById('newEndTime').value = endTime.toTimeString().substr(0, 5);
+            }
+        }
+    } else {
+        section.style.display = 'none';
+    }
+}
+
+// Auto-calculate end time when start time changes
+document.addEventListener('DOMContentLoaded', function() {
+    const newStartTimeInput = document.getElementById('newStartTime');
+    if (newStartTimeInput) {
+        newStartTimeInput.addEventListener('change', function() {
+            if (originalBookingTime && originalBookingTime.duration) {
+                const startTime = this.value;
+                const [hours, minutes] = startTime.split(':').map(Number);
+                const totalMinutes = hours * 60 + minutes + originalBookingTime.duration;
+                const endHours = Math.floor(totalMinutes / 60);
+                const endMinutes = totalMinutes % 60;
+                const endTime = `${String(endHours).padStart(2, '0')}:${String(endMinutes).padStart(2, '0')}`;
+                document.getElementById('newEndTime').value = endTime;
+            }
+        });
+    }
+});
+
+// Validate new time selection
+function validateNewTime() {
+    const bookingIds = document.querySelectorAll('input[name="booking_ids[]"]');
+    if (bookingIds.length === 0) {
+        alert('No booking selected');
+        return;
+    }
+    
+    const bookingId = bookingIds[0].value;
+    const staffSelect = document.querySelector(`select[name="staff_${bookingId}"]`);
+    if (!staffSelect || !staffSelect.value) {
+        alert('Please assign a staff member first');
+        return;
+    }
+    
+    const staffId = staffSelect.value;
+    const newDate = document.getElementById('newBookingDate').value;
+    const newStartTime = document.getElementById('newStartTime').value;
+    const newEndTime = document.getElementById('newEndTime').value;
+    
+    if (!newDate || !newStartTime || !newEndTime) {
+        alert('Please select date and time');
+        return;
+    }
+    
+    // Show loading state
+    const validationResult = document.getElementById('timeValidationResult');
+    validationResult.innerHTML = '<div class="spinner-border spinner-border-sm me-2"></div>Validating...';
+    validationResult.className = 'mt-3 alert alert-info';
+    validationResult.style.display = 'block';
+    
+    // Make AJAX request to validate
+    fetch('/api/validate-booking-time-change', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            booking_id: bookingId,
+            staff_id: staffId,
+            appointment_date: newDate,
+            start_time: newStartTime,
+            end_time: newEndTime
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            if (data.valid) {
+                // No conflicts - time is valid
+                validationResult.innerHTML = '<i class="fas fa-check-circle me-2"></i>' + data.message;
+                validationResult.className = 'mt-3 alert alert-success';
+                
+                // Enable "Confirm with New Time" button
+                document.getElementById('confirmBookingsBtn').disabled = false;
+                document.getElementById('confirmBookingsBtn').innerHTML = 
+                    '<i class="fas fa-check me-2"></i>Confirm with New Time';
+                
+                // Store the new time for submission
+                conflictedBooking = {
+                    id: bookingId,
+                    newDate: newDate,
+                    newStartTime: newStartTime,
+                    newEndTime: newEndTime,
+                    staffId: staffId
+                };
+                
+                // Hide suggestions
+                document.getElementById('suggestedTimesContainer').style.display = 'none';
+            } else {
+                // Still has conflicts
+                let errorHtml = '<i class="fas fa-exclamation-triangle me-2"></i>' + data.message;
+                if (data.errors && data.errors.length > 0) {
+                    errorHtml += '<ul class="mb-0 mt-2">';
+                    data.errors.forEach(err => {
+                        errorHtml += `<li><strong>${err.category}:</strong> ${err.message}</li>`;
+                    });
+                    errorHtml += '</ul>';
+                }
+                validationResult.innerHTML = errorHtml;
+                validationResult.className = 'mt-3 alert alert-danger';
+                
+                // Show suggestions if available
+                if (data.suggestions && data.suggestions.length > 0) {
+                    displaySuggestedTimes(data.suggestions);
+                }
+            }
+        } else {
+            validationResult.innerHTML = '<i class="fas fa-times-circle me-2"></i>Error: ' + data.error;
+            validationResult.className = 'mt-3 alert alert-danger';
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        validationResult.innerHTML = '<i class="fas fa-times-circle me-2"></i>Failed to validate time. Please try again.';
+        validationResult.className = 'mt-3 alert alert-danger';
+    });
+}
+
+// Display suggested available times
+function displaySuggestedTimes(suggestions) {
+    const container = document.getElementById('suggestedTimesContainer');
+    const timesDiv = document.getElementById('suggestedTimes');
+    
+    if (!suggestions || suggestions.length === 0) {
+        container.style.display = 'none';
+        return;
+    }
+    
+    let html = '';
+    suggestions.forEach(slot => {
+        html += `
+            <button type="button" class="btn btn-sm btn-outline-primary" 
+                    onclick="applySuggestedTimeSlot('${slot.start_time}', '${slot.end_time}')">
+                <i class="fas fa-clock me-1"></i>${slot.display}
+            </button>
+        `;
+    });
+    
+    timesDiv.innerHTML = html;
+    container.style.display = 'block';
+}
+
+// Apply a suggested time slot
+function applySuggestedTimeSlot(startTime, endTime) {
+    document.getElementById('newStartTime').value = startTime;
+    document.getElementById('newEndTime').value = endTime;
+    
+    // Automatically validate the suggested time
+    validateNewTime();
+}
+
+// Force confirm bookings (override conflict warning)
+function forceConfirmBookings() {
+    if (confirm('Are you sure you want to confirm this booking despite the conflicts? This may cause scheduling issues.')) {
+        document.getElementById('acceptGroupForm').submit();
+    }
+}
+
+// Override form submission to handle time changes
+document.addEventListener('DOMContentLoaded', function() {
+    const acceptForm = document.getElementById('acceptGroupForm');
+    if (acceptForm) {
+        acceptForm.addEventListener('submit', function(e) {
+            // If we have a time change pending, handle it via AJAX
+            if (conflictedBooking) {
+                e.preventDefault();
+                submitWithTimeChange();
+            }
+            // Otherwise, let the normal form submission proceed
+        });
+    }
+});
+
+// Submit booking with time change
+function submitWithTimeChange() {
+    const submitBtn = document.getElementById('confirmBookingsBtn');
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Updating & Confirming...';
+    
+    fetch(`/api/online-bookings/${conflictedBooking.id}/update-time`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            booking_id: conflictedBooking.id,
+            staff_id: conflictedBooking.staffId,
+            appointment_date: conflictedBooking.newDate,
+            start_time: conflictedBooking.newStartTime,
+            end_time: conflictedBooking.newEndTime
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Show success message and reload
+            alert('✅ ' + data.message);
+            location.reload();
+        } else {
+            alert('❌ Error: ' + data.error);
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="fas fa-check me-2"></i>Confirm All Bookings';
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Failed to update booking. Please try again.');
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<i class="fas fa-check me-2"></i>Confirm All Bookings';
+    });
 }
 
 // Handle reschedule modal for break time conflicts
