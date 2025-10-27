@@ -286,6 +286,19 @@ def accept_grouped_bookings(booking_staff_map):
             validation_errors = validate_booking_for_acceptance(booking, staff_id)
             if validation_errors:
                 error_message = f"Booking #{booking_id}: " + _format_validation_errors(validation_errors)
+                
+                # Log validation errors to console
+                print(f"\n⚠️ VALIDATION FAILED for Booking #{booking_id}")
+                print(f"   Client: {booking.client_name}")
+                print(f"   Service: {booking.service_name}")
+                print(f"   Date: {booking.appointment_date}")
+                print(f"   Time: {booking.start_time.strftime('%H:%M')} - {booking.end_time.strftime('%H:%M')}")
+                print(f"   Assigned Staff: {staff.first_name} {staff.last_name} (ID: {staff_id})")
+                print(f"   Errors:")
+                for err in validation_errors:
+                    print(f"      • {err['category']}: {err['message']}")
+                print("")
+                
                 results['failed'].append({
                     'booking_id': booking_id,
                     'error': error_message

@@ -256,14 +256,21 @@ def accept_grouped_booking():
             flash(f'✅ Successfully accepted {success_count} booking(s)', 'success')
 
         if failed_count > 0:
-            # Show comprehensive error messages for each failed booking
-            flash(f'❌ Failed to accept {failed_count} booking(s):', 'danger')
+            # Log detailed validation errors to console
+            print("\n" + "="*80)
+            print(f"❌ VALIDATION ERRORS: {failed_count} booking(s) failed to accept")
+            print("="*80)
+            
             for failed_booking in results['failed']:
-                # Get the booking details for context
                 booking_id = failed_booking['booking_id']
                 error_msg = failed_booking['error']
-
-                # Create a user-friendly error message with booking ID
+                
+                # Log to console with full details
+                print(f"\n📋 Booking #{booking_id}:")
+                print(f"   Error: {error_msg}")
+                print("-" * 80)
+                
+                # Get the booking details for context
                 booking = get_online_booking_by_id(booking_id)
                 if booking:
                     error_header = f"Booking #{booking_id} ({booking.client_name} - {booking.service_name}):"
@@ -272,6 +279,8 @@ def accept_grouped_booking():
 
                 # Flash the error with clear formatting
                 flash(f"{error_header}\n{error_msg}", 'danger')
+            
+            print("="*80 + "\n")
 
         if request.is_json:
             return jsonify({'success': True, 'results': results})

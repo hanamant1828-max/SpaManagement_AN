@@ -312,6 +312,22 @@
                         Please assign staff members to each service below before confirming the booking.
                     </div>
                     <div id="acceptFormErrors" class="alert alert-danger" style="display: none;"></div>
+                    
+                    <!-- Server-side validation errors will appear here -->
+                    {% with messages = get_flashed_messages(with_categories=true) %}
+                        {% if messages %}
+                            {% for category, message in messages %}
+                                {% if category == 'danger' %}
+                                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                                    <i class="fas fa-exclamation-triangle me-2"></i>
+                                    <pre style="white-space: pre-wrap; margin: 0;">{{ message }}</pre>
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                                </div>
+                                {% endif %}
+                            {% endfor %}
+                        {% endif %}
+                    {% endwith %}
+                    
                     <div id="servicesContainer">
                         <!-- Services will be dynamically added here -->
                     </div>
