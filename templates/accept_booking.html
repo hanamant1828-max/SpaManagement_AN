@@ -105,7 +105,7 @@
                                         </span>
                                     </td>
                                     <td>
-                                        <strong class="text-success">${{ "%.2f"|format(booking.service_price or 0) }}</strong>
+                                        <strong class="text-success">₹{{ "%.2f"|format(booking.service_price or 0) }}</strong>
                                     </td>
                                     <td>
                                         <span class="badge bg-warning">{{ booking.status.replace('_', ' ').title() }}</span>
@@ -117,7 +117,7 @@
                                 <tr>
                                     <td colspan="4" class="text-end"><strong>Total Amount:</strong></td>
                                     <td colspan="2">
-                                        <strong class="text-success fs-5">${{ "%.2f"|format(grouped_bookings[0].total_amount) }}</strong>
+                                        <strong class="text-success fs-5">₹{{ "%.2f"|format(grouped_bookings[0].total_amount) }}</strong>
                                     </td>
                                 </tr>
                             </tfoot>
@@ -210,7 +210,7 @@
                                     <small class="text-muted">
                                         <i class="fas fa-clock me-1"></i>{{ booking.service_duration }} min |
                                         <i class="far fa-clock me-1"></i>{{ booking.start_time.strftime('%I:%M %p') }} |
-                                        <i class="fas fa-dollar-sign me-1"></i>{{ "%.2f"|format(booking.service_price or 0) }}
+                                        <i class="fas fa-rupee-sign me-1"></i>{{ "%.2f"|format(booking.service_price or 0) }}
                                     </small>
                                 </div>
                                 <div class="col-md-6">
