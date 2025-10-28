@@ -220,7 +220,7 @@
                                                 <optgroup label="{{ category.display_name }}">
                                                     {% for service in services if service.category_id == category.id %}
                                                         <option value="{{ service.id }}">
-                                                            {{ service.name }} - {{ service.duration }}min - ${{ "%.2f"|format(service.price) }}
+                                                            {{ service.name }} - {{ service.duration }}min - ₹{{ "%.2f"|format(service.price) }}
                                                         </option>
                                                     {% endfor %}
                                                 </optgroup>
@@ -229,7 +229,7 @@
                                                 <optgroup label="Other Services">
                                                     {% for service in services if not service.category_id %}
                                                         <option value="{{ service.id }}">
-                                                            {{ service.name }} - {{ service.duration }}min - ${{ "%.2f"|format(service.price) }}
+                                                            {{ service.name }} - {{ service.duration }}min - ₹{{ "%.2f"|format(service.price) }}
                                                         </option>
                                                     {% endfor %}
                                                 </optgroup>
@@ -328,7 +328,7 @@ function addService() {
                             <optgroup label="{{ category.display_name }}">
                                 {% for service in services if service.category_id == category.id %}
                                     <option value="{{ service.id }}">
-                                        {{ service.name }} - {{ service.duration }}min - ${{ "%.2f"|format(service.price) }}
+                                        {{ service.name }} - {{ service.duration }}min - ₹{{ "%.2f"|format(service.price) }}
                                     </option>
                                 {% endfor %}
                             </optgroup>
@@ -337,7 +337,7 @@ function addService() {
                             <optgroup label="Other Services">
                                 {% for service in services if not service.category_id %}
                                     <option value="{{ service.id }}">
-                                        {{ service.name }} - {{ service.duration }}min - ${{ "%.2f"|format(service.price) }}
+                                        {{ service.name }} - {{ service.duration }}min - ₹{{ "%.2f"|format(service.price) }}
                                     </option>
                                 {% endfor %}
                             </optgroup>

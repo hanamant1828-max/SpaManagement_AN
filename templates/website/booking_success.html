@@ -178,7 +178,7 @@
                             </div>
                             <div class="mb-2">
                                 <i class="fas fa-dollar-sign text-muted me-2"></i>
-                                <strong>Price:</strong> ${{ "%.2f"|format(bkg.service_price) }}
+                                <strong>Price:</strong> ₹{{ "%.2f"|format(bkg.service_price) }}
                             </div>
                         </div>
                     </div>
@@ -200,7 +200,7 @@
             <div class="total-price text-center">
                 <h5 class="mb-0">
                     <i class="fas fa-receipt me-2"></i>Total Amount: 
-                    <strong>${{ "%.2f"|format(total_price) }}</strong>
+                    <strong>₹{{ "%.2f"|format(total_price) }}</strong>
                 </h5>
             </div>
             {% endif %}
