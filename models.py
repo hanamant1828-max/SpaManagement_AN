@@ -548,8 +548,13 @@ class Appointment(db.Model):
     end_time = db.Column(db.DateTime, nullable=False)
     status = db.Column(db.String(20), default='scheduled')  # scheduled, confirmed, in_progress, completed, cancelled, no_show
     notes = db.Column(db.Text)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Booking source tracking
+    booking_source = db.Column(db.String(50), default='manual')  # manual, online, phone, walk_in, unaki_system
+
+    # Timestamps
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(pytz.timezone('Asia/Kolkata')).replace(tzinfo=None))
+    updated_at = db.Column(db.DateTime, default=lambda: datetime.now(pytz.timezone('Asia/Kolkata')).replace(tzinfo=None), onupdate=lambda: datetime.now(pytz.timezone('Asia/Kolkata')).replace(tzinfo=None))
 
     # Billing
     amount = db.Column(db.Float)
@@ -559,8 +564,10 @@ class Appointment(db.Model):
     is_paid = db.Column(db.Boolean, default=False)
     inventory_deducted = db.Column(db.Boolean, default=False)  # Track if inventory was deducted
 
-    # Relationships - use existing backref from User model
-    # staff relationship is already created by User.appointments backref='assigned_staff'
+    # Relationships
+    client = db.relationship('Customer', backref='appointments', foreign_keys=[client_id])
+    service = db.relationship('Service', backref='appointments')
+    staff = db.relationship('User', backref='appointments', foreign_keys=[staff_id])
 
     def process_inventory_deduction(self):
         """Process inventory deduction when appointment is completed and billed"""

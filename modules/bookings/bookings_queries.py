@@ -180,7 +180,7 @@ def get_appointment_stats(filter_date):
 
 def create_appointment(appointment_data):
     """Create a new appointment
-    
+
     Returns:
         tuple: (appointment, error_message) where appointment is the created Appointment object or None,
                and error_message is a string describing the error or None if successful
@@ -200,23 +200,23 @@ def create_appointment(appointment_data):
             client_id = appointment_data['client_id']
             start_time = appointment_data['appointment_date']
             end_time = appointment_data['end_time']
-            
+
             if isinstance(start_time, str):
                 start_time = datetime.strptime(start_time, '%Y-%m-%d %H:%M')
             if isinstance(end_time, str):
                 end_time = datetime.strptime(end_time, '%Y-%m-%d %H:%M')
-            
+
             # Check existing appointments for this client
             existing_appointments = Appointment.query.filter(
                 Appointment.client_id == client_id,
                 Appointment.status.in_(['scheduled', 'confirmed']),
                 func.date(Appointment.appointment_date) == start_time.date()
             ).all()
-            
+
             for existing in existing_appointments:
                 existing_start = existing.appointment_date
                 existing_end = existing.end_time
-                
+
                 # Skip appointments without end_time or calculate it from service duration
                 if not existing_end:
                     if existing.service and existing.service.duration:
@@ -224,17 +224,33 @@ def create_appointment(appointment_data):
                     else:
                         # Skip if we can't determine the end time
                         continue
-                
+
                 # Check for overlap
                 if start_time < existing_end and end_time > existing_start:
                     error_msg = f'Client already has an appointment from {existing_start.strftime("%I:%M %p")} to {existing_end.strftime("%I:%M %p")}'
                     print(f"❌ Client conflict: {error_msg}")
                     return None, error_msg
 
-        appointment = Appointment(**appointment_data)
-        db.session.add(appointment)
+        # Fetch service details for amount calculation
+        service = None
+        if 'service_id' in appointment_data:
+            service = Service.query.get(appointment_data['service_id'])
+
+        new_appointment = Appointment(
+                client_id=appointment_data.get('client_id'),
+                service_id=appointment_data.get('service_id'),
+                staff_id=appointment_data.get('staff_id'),
+                appointment_date=appointment_data.get('appointment_date'),
+                end_time=appointment_data.get('end_time'),
+                notes=appointment_data.get('notes', ''),
+                status=appointment_data.get('status', 'scheduled'),
+                amount=service.price if service else 0,
+                payment_status=appointment_data.get('payment_status', 'pending'),
+                booking_source=appointment_data.get('booking_source', 'manual')
+            )
+        db.session.add(new_appointment)
         db.session.commit()
-        return appointment, None
+        return new_appointment, None
     except Exception as e:
         db.session.rollback()
         error_msg = f"Error creating appointment: {str(e)}"

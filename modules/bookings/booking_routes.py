@@ -136,7 +136,8 @@ def create_booking():
             'staff_id': form.staff_id.data,
             'appointment_date': form.appointment_date.data,
             'notes': form.notes.data or '',
-            'status': 'scheduled'
+            'status': 'scheduled',
+            'booking_source': 'manual'
         }
 
         appointment, error = create_appointment(appointment_data)
@@ -913,7 +914,8 @@ def appointments_book():
                 'notes': notes,
                 'status': 'scheduled',
                 'amount': service.price,
-                'payment_status': 'pending'
+                'payment_status': 'pending',
+                'booking_source': 'unaki_system'
             }
 
             appointment, error = create_appointment(appointment_data)
