@@ -10,6 +10,7 @@ from flask_login import LoginManager, login_required, current_user
 from datetime import datetime, date, timedelta, time
 import pytz
 from utils import format_currency
+
 # Department will be imported inside functions to avoid circular imports
 
 # IST Timezone Configuration
@@ -707,7 +708,13 @@ def unaki_schedule():
             staff_members = []
 
         # Get Unaki bookings for the target date
-        unaki_bookings = UnakiBooking.query.filter_by(appointment_date=target_date).all()
+        bookings = UnakiBooking.query.filter_by(appointment_date=target_date).all()
+
+        print(f"📋 Loading {len(bookings)} bookings for {target_date}")
+
+        bookings_list = []
+        for booking in bookings:
+            print(f"  📌 Booking {booking.id}: source='{booking.booking_source}', method='{booking.booking_method}'")
 
         # Enhanced shift logs integration for staff data
         staff_data = []
@@ -922,7 +929,7 @@ def unaki_schedule():
         # Format Unaki bookings data with proper IST time handling
         # Filter out completed and paid appointments - they are already billed
         appointments_data = []
-        for booking in unaki_bookings:
+        for booking in bookings:
             # Skip appointments that are completed AND paid (already billed)
             if booking.status == 'completed' and booking.payment_status == 'paid':
                 print(f"🚫 Hiding paid appointment: {booking.id} - {booking.client_name} - Status: {booking.status}, Payment: {booking.payment_status}")
@@ -1591,7 +1598,7 @@ def unaki_booking():
 
     # Get current date parameter and convert to date object
     selected_date_str = request.args.get('date', date.today().strftime('%Y-%m-%d'))
-    
+
     try:
         # Convert string to date object for template
         selected_date_obj = datetime.strptime(selected_date_str, '%Y-%m-%d').date()
@@ -2249,7 +2256,7 @@ def unaki_get_staff_shift_logs(staff_id, date_str):
         # Determine if this is an off day
         # If there's shift management but no shift log, it's an off day
         is_off_day = shift_management is not None and shift_log is None
-        
+
         # Prepare response
         response_data = {
             'success': True,

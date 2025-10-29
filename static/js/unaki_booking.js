@@ -567,38 +567,39 @@
                     let badgeText = '';
                     let badgeIcon = '';
                     
-                    switch(booking.booking_source) {
-                        case 'online':
-                        case 'website':  // Handle 'website' as online bookings
-                            badgeColor = '#3b82f6';
-                            badgeText = 'ONLINE';
-                            badgeIcon = '<i class="fas fa-globe"></i>';
-                            sourceTooltip = 'Online Booking from Website';
-                            break;
-                        case 'phone':
-                            badgeColor = '#f59e0b';
-                            badgeText = 'PHONE';
-                            badgeIcon = '<i class="fas fa-phone"></i>';
-                            sourceTooltip = 'Phone Booking';
-                            break;
-                        case 'walk_in':
-                            badgeColor = '#10b981';
-                            badgeText = 'WALK-IN';
-                            badgeIcon = '<i class="fas fa-walking"></i>';
-                            sourceTooltip = 'Walk-in Customer';
-                            break;
-                        case 'unaki_system':
-                        case 'manual':
-                            badgeColor = '#6b7280';
-                            badgeText = 'MANUAL';
-                            badgeIcon = '<i class="fas fa-desktop"></i>';
-                            sourceTooltip = 'Manual Booking (Internal System)';
-                            break;
-                        default:
-                            badgeColor = '#6b7280';
-                            badgeText = 'OTHER';
-                            badgeIcon = '<i class="fas fa-calendar-plus"></i>';
-                            sourceTooltip = 'anual Booking';
+                    // Debug log to see what booking_source value we're getting
+                    console.log(`🔍 Booking ${booking.id} source: "${booking.booking_source}" (type: ${typeof booking.booking_source})`);
+                    
+                    // Normalize booking source to lowercase for comparison
+                    const bookingSource = (booking.booking_source || '').toString().toLowerCase().trim();
+                    
+                    if (bookingSource === 'online' || bookingSource === 'website' || bookingSource === 'online_booking') {
+                        badgeColor = '#3b82f6';
+                        badgeText = 'ONLINE';
+                        badgeIcon = '<i class="fas fa-globe"></i>';
+                        sourceTooltip = 'Online Booking from Website';
+                    } else if (bookingSource === 'phone') {
+                        badgeColor = '#f59e0b';
+                        badgeText = 'PHONE';
+                        badgeIcon = '<i class="fas fa-phone"></i>';
+                        sourceTooltip = 'Phone Booking';
+                    } else if (bookingSource === 'walk_in' || bookingSource === 'walkin') {
+                        badgeColor = '#10b981';
+                        badgeText = 'WALK-IN';
+                        badgeIcon = '<i class="fas fa-walking"></i>';
+                        sourceTooltip = 'Walk-in Customer';
+                    } else if (bookingSource === 'unaki_system' || bookingSource === 'manual') {
+                        badgeColor = '#6b7280';
+                        badgeText = 'MANUAL';
+                        badgeIcon = '<i class="fas fa-desktop"></i>';
+                        sourceTooltip = 'Manual Booking (Internal System)';
+                    } else {
+                        // Default case - show what we received
+                        badgeColor = '#6b7280';
+                        badgeText = bookingSource.toUpperCase() || 'UNKNOWN';
+                        badgeIcon = '<i class="fas fa-calendar-plus"></i>';
+                        sourceTooltip = `Booking Source: ${bookingSource || 'Not specified'}`;
+                        console.warn(`⚠️ Unknown booking source: "${booking.booking_source}" for booking ${booking.id}`);
                     }
 
                     sourceBadge = `<span class="booking-source-badge" style="background: ${badgeColor}; color: white; padding: 2px 6px; border-radius: 3px; font-size: 9px; font-weight: bold; display: inline-flex; align-items: center; gap: 3px;" title="${sourceTooltip}">${badgeIcon} ${badgeText}</span>`;
