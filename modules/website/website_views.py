@@ -229,27 +229,21 @@ def website_book_online():
             flash(f'Booking error: {str(e)}. Please try again or contact us directly.', 'error')
             return redirect(url_for('website_book_online'))
 
+    # Get data for the booking form (same as multi-appointment booking)
     services = Service.query.filter_by(is_active=True).order_by(Service.name).all()
-    categories = Category.query.filter_by(category_type='service', is_active=True).order_by(Category.sort_order).all()
+    staff_members = User.query.filter_by(is_active=True).all()
+    clients = Customer.query.filter_by(is_active=True).order_by(Customer.first_name, Customer.last_name).all()
+    today = date.today().strftime('%Y-%m-%d')
+    
+    # Get system settings for business name
+    business_name = SystemSetting.query.filter_by(key='business_name').first()
 
-    today = date.today()
-    available_dates = [(today + timedelta(days=i)).strftime('%Y-%m-%d') for i in range(0, 30)]
-
-    # Generate time slots (9 AM to 6 PM, 15-minute intervals) in 12-hour format
-    time_slots = []
-    current_time = datetime.combine(date.today(), time(9, 0))
-    end_time = datetime.combine(date.today(), time(18, 0))
-
-    while current_time <= end_time:
-        # Format as 12-hour with AM/PM
-        time_slots.append(current_time.strftime('%I:%M %p'))
-        current_time += timedelta(minutes=15)
-
-    return render_template('website/book_online.html',
+    return render_template('website/online_booking.html',
                          services=services,
-                         categories=categories,
-                         available_dates=available_dates,
-                         time_slots=time_slots)
+                         staff_members=staff_members,
+                         clients=clients,
+                         today=today,
+                         business_name=business_name.value if business_name else 'Spa & Salon Suite')
 
 @app.route('/booking-success/<int:booking_id>')
 def website_booking_success(booking_id):
