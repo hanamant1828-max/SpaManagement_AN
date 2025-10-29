@@ -676,17 +676,8 @@
     async function validateBeforeAddingNew() {
         debugLog('Validating before adding new appointment');
 
-        const clientId = $("#clientSelect").val();
         const allCards = document.querySelectorAll(".appointment-card");
         const validationErrors = [];
-
-        // Check if client is selected
-        if (!clientId) {
-            showValidationError("❌ Please select a client first");
-            $("#clientSelect").parent().addClass("shake-animation");
-            setTimeout(() => $("#clientSelect").parent().removeClass("shake-animation"), 500);
-            return false;
-        }
 
         // Validate each existing appointment
         for (const card of allCards) {
@@ -736,21 +727,6 @@
                 const hasInternalConflict = !document.getElementById(`internal-conflict-${data.index}`)?.classList.contains("d-none");
                 if (hasInternalConflict) {
                     validationErrors.push(`Appointment ${idx + 1}: Time overlaps with another appointment`);
-                }
-
-                // Check client existing bookings
-                for (const booking of clientExistingBookings) {
-                    if (booking.appointment_date === data.date) {
-                        const overlap = checkTimeOverlap(data.startTime, data.endTime, booking.start_time, booking.end_time);
-
-                        if (overlap) {
-                            const isPaid = booking.payment_status === 'paid' || booking.payment_status === 'completed';
-                            const paymentLabel = isPaid ? 'PAID' : 'UNPAID';
-                            validationErrors.push(
-                                `Appointment ${idx + 1}: Client has ${paymentLabel} appointment "${booking.service_name}" from ${format12Hour(booking.start_time)} to ${format12Hour(booking.end_time)}`
-                            );
-                        }
-                    }
                 }
             }
         }
@@ -870,7 +846,7 @@
         // This is a public page, so we don't have access to existing client data
         const clientConflictAlert = document.getElementById(`client-conflict-${index}`);
         if (clientConflictAlert) clientConflictAlert.classList.add("d-none");
-        
+
         debugLog('Skipping client conflict check for online booking');
         return;
 
@@ -1440,9 +1416,9 @@
 
         const clientName = $("#clientName").val()?.trim();
         const clientPhone = $("#clientPhone").val()?.trim();
-        
+
         if (!clientName || !clientPhone) {
-            alert("❌ Please enter your name and phone number");
+            showValidationError("❌ Please enter your name and phone number");
             return;
         }
 
@@ -1459,8 +1435,8 @@
                 return;
             }
 
+            // Check for conflicts (only staff and internal conflicts, not client conflicts)
             if (!document.getElementById(`conflict-${data.index}`)?.classList.contains("d-none") ||
-                !document.getElementById(`client-conflict-${data.index}`)?.classList.contains("d-none") ||
                 !document.getElementById(`internal-conflict-${data.index}`)?.classList.contains("d-none")) {
                 isValid = false;
                 validationErrors.push(`Appointment ${idx + 1}: Has conflicts`);
@@ -1491,7 +1467,7 @@
         });
 
         if (!isValid) {
-            alert("❌ Validation Failed:\n\n" + validationErrors.join("\n"));
+            showValidationError("❌ Validation Failed:\n\n" + validationErrors.join("\n"));
             return;
         }
 
