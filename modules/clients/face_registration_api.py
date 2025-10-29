@@ -8,10 +8,17 @@ from app import app, db
 from models import Customer
 import base64
 import io
-from PIL import Image
-import numpy as np
 import json
 import threading
+
+# Lazy imports for PIL and numpy to avoid import errors
+try:
+    from PIL import Image
+    import numpy as np
+    PIL_AVAILABLE = True
+except ImportError:
+    PIL_AVAILABLE = False
+    print("⚠️ PIL/Pillow not available - face registration will be disabled")
 
 face_registration_bp = Blueprint('face_registration', __name__, url_prefix='/api/face-registration')
 
