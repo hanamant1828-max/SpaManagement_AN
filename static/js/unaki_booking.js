@@ -560,36 +560,53 @@
                     appointmentDiv.dataset.paymentStatus = booking.payment_status || 'pending';
                     appointmentDiv.draggable = true;
 
-                    // Determine booking source icon
-                    let sourceIcon = '';
+                    // Determine booking source badge with more visible styling
+                    let sourceBadge = '';
                     let sourceTooltip = '';
+                    let badgeColor = '';
+                    let badgeText = '';
+                    let badgeIcon = '';
+                    
                     switch(booking.booking_source) {
                         case 'online':
-                            sourceIcon = '<i class="fas fa-globe" style="color: #6366f1;"></i>';
-                            sourceTooltip = 'Online Booking';
+                            badgeColor = '#3b82f6';
+                            badgeText = 'ONLINE';
+                            badgeIcon = '<i class="fas fa-globe"></i>';
+                            sourceTooltip = 'Online Booking from Website';
                             break;
                         case 'phone':
-                            sourceIcon = '<i class="fas fa-phone" style="color: #f59e0b;"></i>';
+                            badgeColor = '#f59e0b';
+                            badgeText = 'PHONE';
+                            badgeIcon = '<i class="fas fa-phone"></i>';
                             sourceTooltip = 'Phone Booking';
                             break;
                         case 'walk_in':
-                            sourceIcon = '<i class="fas fa-walking" style="color: #10b981;"></i>';
-                            sourceTooltip = 'Walk-in';
+                            badgeColor = '#10b981';
+                            badgeText = 'WALK-IN';
+                            badgeIcon = '<i class="fas fa-walking"></i>';
+                            sourceTooltip = 'Walk-in Customer';
                             break;
                         case 'unaki_system':
-                            sourceIcon = '<i class="fas fa-desktop" style="color: #8b5cf6;"></i>';
-                            sourceTooltip = 'Unaki System';
+                        case 'manual':
+                            badgeColor = '#6b7280';
+                            badgeText = 'OFFLINE';
+                            badgeIcon = '<i class="fas fa-desktop"></i>';
+                            sourceTooltip = 'Manual Booking (Offline)';
                             break;
                         default:
-                            sourceIcon = '<i class="fas fa-calendar-plus" style="color: #6b7280;"></i>';
+                            badgeColor = '#6b7280';
+                            badgeText = 'OFFLINE';
+                            badgeIcon = '<i class="fas fa-calendar-plus"></i>';
                             sourceTooltip = 'Manual Booking';
                     }
+
+                    sourceBadge = `<span class="booking-source-badge" style="background: ${badgeColor}; color: white; padding: 2px 6px; border-radius: 3px; font-size: 9px; font-weight: bold; display: inline-flex; align-items: center; gap: 3px;" title="${sourceTooltip}">${badgeIcon} ${badgeText}</span>`;
 
                     appointmentDiv.innerHTML = `
                         <div class="appointment-header">
                             <div class="appointment-client">${booking.client_name}</div>
                             <div class="appointment-status">
-                                <span title="${sourceTooltip}">${sourceIcon}</span>
+                                ${sourceBadge}
                             </div>
                         </div>
                         <div class="appointment-service">${booking.service_names || booking.service_name || 'Service'}</div>
