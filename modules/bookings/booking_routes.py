@@ -377,6 +377,7 @@ def calendar_booking():
                         'css_class': 'bg-danger text-white appointment-block',
                         'schedule_info': f'{blocking_appointment.client.full_name if blocking_appointment.client else "Unknown"} - {blocking_appointment.service.name if blocking_appointment.service else "Service"}',
                         'appointment_duration': service_duration,
+                        'booking_source': blocking_appointment.booking_source if hasattr(blocking_appointment, 'booking_source') else None,
                         'can_book': False
                     }
                 else:
@@ -609,6 +610,7 @@ def staff_availability():
                         'css_class': 'bg-danger text-white appointment-block',
                         'schedule_info': f'{blocking_appointment.client.full_name if blocking_appointment.client else "Unknown"} - {blocking_appointment.service.name if blocking_appointment.service else "Service"}',
                         'appointment_duration': service_duration,
+                        'booking_source': blocking_appointment.booking_source if hasattr(blocking_appointment, 'booking_source') else None,
                         'can_book': False
                     }
                 else:

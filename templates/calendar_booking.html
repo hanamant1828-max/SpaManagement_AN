@@ -117,11 +117,19 @@
                             </div>
                             <div class="legend-item">
                                 <div class="legend-color bg-danger"></div>
-                                <span><i class="fas fa-user"></i> Booked appointment</span>
+                                <span><i class="fas fa-calendar-plus"></i> Manual booking</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-color bg-info"></div>
+                                <span><i class="fas fa-globe"></i> Online booking</span>
                             </div>
                             <div class="legend-item">
                                 <div class="legend-color bg-warning"></div>
-                                <span><i class="fas fa-coffee"></i> Break time</span>
+                                <span><i class="fas fa-phone"></i> Phone booking / Break</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-color" style="background-color: #198754;"></div>
+                                <span><i class="fas fa-walking"></i> Walk-in booking</span>
                             </div>
                             <div class="legend-item">
                                 <div class="legend-color bg-light border"></div>
@@ -190,12 +198,18 @@
                                                 <i class="fas fa-clock"></i>
                                             </button>
                                         {% elif availability.status == 'booked' %}
-                                            <div class="appointment-block {% if availability.booking_source == 'online' %}bg-info{% else %}bg-danger{% endif %} text-white p-1 w-100 text-center" 
+                                            <div class="appointment-block {% if availability.booking_source == 'online' %}bg-info{% elif availability.booking_source == 'phone' %}bg-warning text-dark{% elif availability.booking_source == 'walk_in' %}bg-success{% else %}bg-danger{% endif %} text-white p-1 w-100 text-center" 
                                                  style="font-size: 0.7rem; border-radius: 3px; min-height: 40px; cursor: pointer;"
                                                  onclick="showAppointmentDetails({{ availability.appointment_id }})"
-                                                 title="{{ availability.client_name }} - {{ availability.service_name }} ({{ availability.service_duration }}min){% if availability.booking_source == 'online' %} - Online Booking{% endif %} - Click to view details">
+                                                 title="{{ availability.client_name }} - {{ availability.service_name }} ({{ availability.service_duration }}min) - Source: {{ availability.booking_source or 'Manual' }} - Click to view details">
                                                 {% if availability.booking_source == 'online' %}
                                                 <small><i class="fas fa-globe"></i> Online</small><br>
+                                                {% elif availability.booking_source == 'phone' %}
+                                                <small><i class="fas fa-phone"></i> Phone</small><br>
+                                                {% elif availability.booking_source == 'walk_in' %}
+                                                <small><i class="fas fa-walking"></i> Walk-in</small><br>
+                                                {% elif availability.booking_source == 'unaki_system' %}
+                                                <small><i class="fas fa-calendar-plus"></i> System</small><br>
                                                 {% endif %}
                                                 <strong>{{ availability.client_name[:15] if availability.client_name|length > 15 else availability.client_name }}</strong><br>
                                                 <small>{{ availability.service_name[:12] if availability.service_name|length > 12 else availability.service_name }}</small><br>
