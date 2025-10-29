@@ -100,6 +100,13 @@ class AppointmentForm(FlaskForm):
         ('completed', 'Completed'),
         ('cancelled', 'Cancelled')
     ], default='pending')
+    booking_source = SelectField('Booking Source', choices=[
+        ('manual', 'Manual/Offline'),
+        ('online', 'Online Booking'),
+        ('phone', 'Phone Call'),
+        ('walk_in', 'Walk-in'),
+        ('unaki_system', 'Unaki System')
+    ], default='manual')
     notes = TextAreaField('Notes', validators=[Optional()])
     amount = FloatField('Amount', validators=[Optional(), NumberRange(min=0)])
     discount = FloatField('Discount', validators=[Optional(), NumberRange(min=0)])
