@@ -468,7 +468,7 @@ class Customer(db.Model):
     no_show_count = db.Column(db.Integer, default=0)
 
     # Relationships
-    appointments = db.relationship('Appointment', backref='client', lazy=True)
+    # Note: appointments relationship is defined in Appointment model via backref
     # Note: Customer package assignments will be handled separately with new package system
 
     @property
