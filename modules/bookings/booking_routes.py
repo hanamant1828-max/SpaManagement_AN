@@ -368,7 +368,7 @@ def calendar_booking():
                     end_time = blocking_appointment.appointment_date + timedelta(minutes=service_duration)
                     staff_availability[slot_key] = {
                         'status': 'booked',
-                        'appointment': blocking_appointment,
+                        'appointment_id': blocking_appointment.id,
                         'client_name': blocking_appointment.client.full_name if blocking_appointment.client else 'Unknown',
                         'service_name': blocking_appointment.service.name if blocking_appointment.service else 'Service',
                         'service_duration': service_duration,
@@ -600,7 +600,7 @@ def staff_availability():
                     end_time = blocking_appointment.appointment_date + timedelta(minutes=service_duration)
                     staff_availability[slot_key] = {
                         'status': 'booked',
-                        'appointment': blocking_appointment,
+                        'appointment_id': blocking_appointment.id,
                         'client_name': blocking_appointment.client.full_name if blocking_appointment.client else 'Unknown',
                         'service_name': blocking_appointment.service.name if blocking_appointment.service else 'Service',
                         'service_duration': service_duration,
@@ -801,10 +801,10 @@ def appointments_schedule():
             if booked_appointment:
                 staff_availability[slot_key] = {
                     'status': 'booked',
-                    'appointment': booked_appointment,
                     'client_name': booked_appointment.client.full_name if booked_appointment.client else 'Unknown',
-                    'service_name': booked_appointment.service.name if booked_appointment.service else 'Service',
-                    'time_range': f"{booked_appointment.appointment_date.strftime('%H:%M')} - {(booked_appointment.appointment_date + timedelta(minutes=booked_appointment.service.duration if booked_appointment.service else 60)).strftime('%H:%M')}"
+                    'service_name': booked_appointment.service.name if booked_appointment.service else 'Unknown Service',
+                    'service_duration': booked_appointment.service.duration if booked_appointment.service else 60,
+                    'reason': f'Booked: {booked_appointment.client.full_name if booked_appointment.client else "Unknown"}'
                 }
             else:
                 staff_availability[slot_key] = {
