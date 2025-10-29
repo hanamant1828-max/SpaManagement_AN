@@ -509,7 +509,7 @@ class Service(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     # Relationships
-    appointments = db.relationship('Appointment', backref='service', lazy=True)
+    # Note: appointments relationship is defined in Appointment model via backref
     # Note: Service-package relationships are handled differently in new package system
 
     def deduct_inventory_for_service(self):
