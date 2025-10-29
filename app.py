@@ -26,7 +26,7 @@ def convert_to_ist(dt):
     """Convert a datetime object to IST timezone
 
     WARNING: This function assumes naive datetimes are in UTC.
-    Since our database stores naive IST datetimes, do NOT use this 
+    Since our database stores naive IST datetimes, do NOT use this
     on database timestamps - they are already in IST!
     """
     if dt is None:
@@ -269,8 +269,8 @@ def unauthorized():
     content_type = request.headers.get('Content-Type', '')
     accept = request.headers.get('Accept', '')
 
-    if (request.is_json or 
-        request.headers.get('X-Requested-With') == 'XMLHttpRequest' or 
+    if (request.is_json or
+        request.headers.get('X-Requested-With') == 'XMLHttpRequest' or
         'application/json' in content_type or
         'application/json' in accept or
         request.path.startswith('/api/')):
@@ -953,7 +953,7 @@ def unaki_schedule():
                 'notes': booking.notes or '',
                 'amount': float(booking.service_price) if booking.service_price else 0.0,
                 'payment_status': booking.payment_status,
-                'booking_source': booking.booking_source
+                'booking_source': booking.booking_source or 'unaki_system'  # Default to unaki_system if not set
             }
             appointments_data.append(appointment_info)
 

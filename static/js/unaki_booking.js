@@ -165,14 +165,14 @@
                 if (datePicker && datePicker.value) {
                     currentDate = datePicker.value;
                     console.log('🔄 Updated currentDate from date picker:', currentDate);
-                    
+
                     const date = new Date(datePicker.value + 'T00:00:00');
                     const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
                     const formattedDate = date.toLocaleDateString('en-US', options);
                     document.getElementById('currentDateDisplay').textContent = formattedDate;
                     console.log('📅 Current viewing date:', formattedDate);
                 }
-                
+
                 initializeApp();
                 setupEventListeners();
                 setupTooltips();
@@ -566,13 +566,13 @@
                     let badgeColor = '';
                     let badgeText = '';
                     let badgeIcon = '';
-                    
+
                     // Debug log to see what booking_source value we're getting
                     console.log(`🔍 Booking ${booking.id} source: "${booking.booking_source}" (type: ${typeof booking.booking_source})`);
-                    
+
                     // Normalize booking source to lowercase for comparison
                     const bookingSource = (booking.booking_source || '').toString().toLowerCase().trim();
-                    
+
                     if (bookingSource === 'online' || bookingSource === 'website' || bookingSource === 'online_booking') {
                         badgeColor = '#3b82f6';
                         badgeText = 'ONLINE';
@@ -588,18 +588,23 @@
                         badgeText = 'WALK-IN';
                         badgeIcon = '<i class="fas fa-walking"></i>';
                         sourceTooltip = 'Walk-in Customer';
-                    } else if (bookingSource === 'unaki_system' || bookingSource === 'manual') {
+                    } else if (bookingSource === 'unaki_system') {
+                        badgeColor = '#8b5cf6';
+                        badgeText = 'SYSTEM';
+                        badgeIcon = '<i class="fas fa-desktop"></i>';
+                        sourceTooltip = 'Unaki System Booking';
+                    } else if (bookingSource === 'manual') {
                         badgeColor = '#6b7280';
                         badgeText = 'MANUAL';
-                        badgeIcon = '<i class="fas fa-desktop"></i>';
-                        sourceTooltip = 'Manual Booking (Internal System)';
+                        badgeIcon = '<i class="fas fa-user-edit"></i>';
+                        sourceTooltip = 'Manual Booking';
                     } else {
-                        // Default case - show what we received
-                        badgeColor = '#6b7280';
-                        badgeText = bookingSource.toUpperCase() || 'UNKNOWN';
-                        badgeIcon = '<i class="fas fa-calendar-plus"></i>';
-                        sourceTooltip = `Booking Source: ${bookingSource || 'Not specified'}`;
-                        console.warn(`⚠️ Unknown booking source: "${booking.booking_source}" for booking ${booking.id}`);
+                        // Default case - show "SYSTEM" for empty/unknown sources
+                        badgeColor = '#8b5cf6';
+                        badgeText = 'SYSTEM';
+                        badgeIcon = '<i class="fas fa-desktop"></i>';
+                        sourceTooltip = 'System Booking';
+                        console.warn(`⚠️ Unknown booking source: "${booking.booking_source}" for booking ${booking.id}, defaulting to SYSTEM`);
                     }
 
                     sourceBadge = `<span class="booking-source-badge" style="background: ${badgeColor}; color: white; padding: 2px 6px; border-radius: 3px; font-size: 9px; font-weight: bold; display: inline-flex; align-items: center; gap: 3px;" title="${sourceTooltip}">${badgeIcon} ${badgeText}</span>`;
