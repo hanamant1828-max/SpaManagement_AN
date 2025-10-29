@@ -374,7 +374,7 @@ class AppointmentContextMenu {
                     // If no client_id, find appointments by matching name and phone
                     if (!customerId) {
                         console.log('⚠️ No client_id, searching by name and phone...');
-                        
+
                         // Get all bookings for the date and filter by name/phone
                         fetch(`/api/unaki/schedule?date=${appointmentDate}`)
                             .then(response => response.json())
@@ -385,7 +385,7 @@ class AppointmentContextMenu {
                                         const nameMatch = apt.clientName === customerName;
                                         const phoneMatch = customerPhone && apt.clientPhone === customerPhone;
                                         const statusMatch = apt.status === 'scheduled' || apt.status === 'confirmed';
-                                        
+
                                         return (nameMatch || phoneMatch) && statusMatch;
                                     });
 
@@ -720,6 +720,30 @@ class AppointmentContextMenu {
     showAppointmentDetailsModal(appointment) {
         console.log('📋 Showing appointment details modal:', appointment);
 
+        // Helper function to get booking source badge
+        const getBookingSourceBadge = (source) => {
+            if (!source) return 'N/A';
+            let colorClass = 'secondary'; // Default
+            switch (source.toLowerCase()) {
+                case 'online':
+                    colorClass = 'primary';
+                    break;
+                case 'phone':
+                    colorClass = 'info';
+                    break;
+                case 'walk_in':
+                    colorClass = 'success';
+                    break;
+                case 'manual':
+                    colorClass = 'warning';
+                    break;
+                case 'unaki_system':
+                    colorClass = 'dark';
+                    break;
+            }
+            return `<span class="badge bg-${colorClass} text-capitalize">${source.replace('_', ' ')}</span>`;
+        };
+
         // Create modal HTML
         const modalHTML = `
             <div class="modal fade" id="appointmentDetailsModal" tabindex="-1">
@@ -779,6 +803,20 @@ class AppointmentContextMenu {
                                         <strong>Payment:</strong> 
                                         <span class="badge bg-${this.getPaymentBadgeClass(appointment.payment_status)}">${appointment.payment_status || 'pending'}</span>
                                     </div>
+                                </div>
+                            </div>
+                            <div class="row mt-3">
+                                <div class="col-md-4">
+                                    <label class="text-muted small">Status</label>
+                                    <div class="fw-bold text-capitalize">${appointment.status || 'Scheduled'}</div>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="text-muted small">Payment Status</label>
+                                    <div class="fw-bold text-capitalize ${appointment.payment_status === 'paid' ? 'text-success' : 'text-warning'}">${appointment.payment_status || 'Pending'}</div>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="text-muted small">Booking Source</label>
+                                    <div class="fw-bold text-capitalize">${getBookingSourceBadge(appointment.booking_source)}</div>
                                 </div>
                             </div>
                             ${appointment.notes ? `
@@ -970,7 +1008,7 @@ class AppointmentContextMenu {
                 const totalMinutes = hours * 60 + minutes + duration;
                 const endHours = Math.floor(totalMinutes / 60) % 24;
                 const endMinutes = totalMinutes % 60;
-                
+
                 endTimeInput.value = `${String(endHours).padStart(2, '0')}:${String(endMinutes).padStart(2, '0')}`;
             }
         };
@@ -983,14 +1021,14 @@ class AppointmentContextMenu {
             if (startTime && endTime) {
                 const [startHours, startMinutes] = startTime.split(':').map(Number);
                 const [endHours, endMinutes] = endTime.split(':').map(Number);
-                
+
                 let duration = (endHours * 60 + endMinutes) - (startHours * 60 + startMinutes);
-                
+
                 // Handle overnight appointments
                 if (duration < 0) {
                     duration += 24 * 60;
                 }
-                
+
                 durationInput.value = duration;
             }
         };

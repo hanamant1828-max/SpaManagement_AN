@@ -560,10 +560,37 @@
                     appointmentDiv.dataset.paymentStatus = booking.payment_status || 'pending';
                     appointmentDiv.draggable = true;
 
+                    // Determine booking source icon
+                    let sourceIcon = '';
+                    let sourceTooltip = '';
+                    switch(booking.booking_source) {
+                        case 'online':
+                            sourceIcon = '<i class="fas fa-globe" style="color: #6366f1;"></i>';
+                            sourceTooltip = 'Online Booking';
+                            break;
+                        case 'phone':
+                            sourceIcon = '<i class="fas fa-phone" style="color: #f59e0b;"></i>';
+                            sourceTooltip = 'Phone Booking';
+                            break;
+                        case 'walk_in':
+                            sourceIcon = '<i class="fas fa-walking" style="color: #10b981;"></i>';
+                            sourceTooltip = 'Walk-in';
+                            break;
+                        case 'unaki_system':
+                            sourceIcon = '<i class="fas fa-desktop" style="color: #8b5cf6;"></i>';
+                            sourceTooltip = 'Unaki System';
+                            break;
+                        default:
+                            sourceIcon = '<i class="fas fa-calendar-plus" style="color: #6b7280;"></i>';
+                            sourceTooltip = 'Manual Booking';
+                    }
+
                     appointmentDiv.innerHTML = `
                         <div class="appointment-header">
                             <div class="appointment-client">${booking.client_name}</div>
-                            <div class="appointment-status"></div>
+                            <div class="appointment-status">
+                                <span title="${sourceTooltip}">${sourceIcon}</span>
+                            </div>
                         </div>
                         <div class="appointment-service">${booking.service_names || booking.service_name || 'Service'}</div>
                         <div class="appointment-footer">
