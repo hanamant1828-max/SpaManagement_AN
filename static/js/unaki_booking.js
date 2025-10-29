@@ -569,6 +569,7 @@
                     
                     switch(booking.booking_source) {
                         case 'online':
+                        case 'website':  // Handle 'website' as online bookings
                             badgeColor = '#3b82f6';
                             badgeText = 'ONLINE';
                             badgeIcon = '<i class="fas fa-globe"></i>';
@@ -589,15 +590,15 @@
                         case 'unaki_system':
                         case 'manual':
                             badgeColor = '#6b7280';
-                            badgeText = 'OFFLINE';
+                            badgeText = 'MANUAL';
                             badgeIcon = '<i class="fas fa-desktop"></i>';
-                            sourceTooltip = 'Manual Booking (Offline)';
+                            sourceTooltip = 'Manual Booking (Internal System)';
                             break;
                         default:
                             badgeColor = '#6b7280';
-                            badgeText = 'OFFLINE';
+                            badgeText = 'OTHER';
                             badgeIcon = '<i class="fas fa-calendar-plus"></i>';
-                            sourceTooltip = 'Manual Booking';
+                            sourceTooltip = 'anual Booking';
                     }
 
                     sourceBadge = `<span class="booking-source-badge" style="background: ${badgeColor}; color: white; padding: 2px 6px; border-radius: 3px; font-size: 9px; font-weight: bold; display: inline-flex; align-items: center; gap: 3px;" title="${sourceTooltip}">${badgeIcon} ${badgeText}</span>`;

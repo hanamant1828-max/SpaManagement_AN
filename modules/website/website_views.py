@@ -50,11 +50,11 @@ def website_book_online():
             if not client_name:
                 flash('Please enter your full name.', 'error')
                 return redirect(url_for('website_book_online'))
-            
+
             if not client_phone:
                 flash('Please enter your phone number.', 'error')
                 return redirect(url_for('website_book_online'))
-            
+
             # Clean and validate phone number
             client_phone = re.sub(r'[^\d+]', '', client_phone)
             if len(client_phone) < 10:
@@ -112,7 +112,7 @@ def website_book_online():
             # Create bookings for each service
             created_bookings = []
             validation_errors = []
-            
+
             try:
                 for index in sorted(services_data.keys()):
                     service_info = services_data[index]
@@ -146,7 +146,7 @@ def website_book_online():
                         validation_errors.append(f"Service #{index + 1}: Invalid date format")
                         print(f"Invalid date format: {appointment_date_str}")
                         continue
-                    
+
                     # Parse time - handle both 12-hour and 24-hour formats
                     appointment_time_obj = None
                     for time_format in ['%I:%M %p', '%H:%M', '%I:%M%p']:
@@ -155,7 +155,7 @@ def website_book_online():
                             break
                         except ValueError:
                             continue
-                    
+
                     if not appointment_time_obj:
                         validation_errors.append(f"Service #{index + 1}: Invalid time format")
                         print(f"Invalid time format: {appointment_time_str}")
@@ -180,8 +180,8 @@ def website_book_online():
                         end_time=end_datetime.time(),
                         status='scheduled',  # Default to scheduled for online bookings - admin can confirm later
                         notes=notes,
-                        booking_source='online',
-                        booking_method='website',
+                        booking_source='online',  # Always 'online' for website bookings
+                        booking_method='online_booking',  # Changed from 'website' to 'online_booking'
                         amount_charged=service.price,
                         payment_status='pending',
                         created_at=datetime.utcnow()
@@ -234,7 +234,7 @@ def website_book_online():
     staff_members = User.query.filter_by(is_active=True).all()
     clients = Customer.query.filter_by(is_active=True).order_by(Customer.first_name, Customer.last_name).all()
     today = date.today().strftime('%Y-%m-%d')
-    
+
     # Get system settings for business name
     business_name = SystemSetting.query.filter_by(key='business_name').first()
 
