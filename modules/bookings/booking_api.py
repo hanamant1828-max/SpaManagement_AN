@@ -239,7 +239,7 @@ def api_unaki_book_appointment():
             end_time=end_time,
             status='scheduled',
             notes=data.get('notes', ''),
-            booking_source='unaki_system',
+            booking_source=data.get('booking_source', 'unaki_system'),
             booking_method='multi_service',
             amount_charged=float(data.get('amount_charged', data.get('service_price', 0))),
             payment_status='pending'
