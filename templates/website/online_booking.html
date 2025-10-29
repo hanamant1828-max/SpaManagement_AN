@@ -26,73 +26,34 @@
 
     <div class="row">
         <div class="col-lg-8">
-            <!-- Client Selection Card -->
+            <!-- Client Information Card -->
             <div class="card shadow-sm mb-4">
                 <div class="card-header bg-primary text-white">
                     <h5 class="mb-0">
-                        <i class="fas fa-user me-2"></i>Client Information
+                        <i class="fas fa-user me-2"></i>Your Information
                     </h5>
                 </div>
                 <div class="card-body">
                     <div class="row">
-                        <div class="col-md-10">
-                            <label class="form-label fw-semibold"
-                                >Select Client *</label
-                            >
-                            <select
-                                id="clientSelect"
-                                class="form-select select2-dropdown"
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-semibold">Full Name *</label>
+                            <input
+                                type="text"
+                                id="clientName"
+                                class="form-control"
+                                placeholder="Enter your full name"
                                 required
-                            >
-                                <option value="">Choose a client...</option>
-                                {% if clients %} {% for client in clients %}
-                                <option
-                                    value="{{ client.id }}"
-                                    data-phone="{{ client.phone }}"
-                                    data-email="{{ client.email or '' }}"
-                                >
-                                    {{ client.first_name }} {{ client.last_name
-                                    }} - {{ client.phone }}
-                                </option>
-                                {% endfor %} {% endif %}
-                            </select>
+                            />
                         </div>
-                        <div class="col-md-2">
-                            <label class="form-label fw-semibold">&nbsp;</label>
-                            <button
-                                type="button"
-                                class="btn btn-primary w-100"
-                                onclick="openQuickAddClient()"
-                            >
-                                <i class="fas fa-plus"></i> New
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Client Existing Appointments Alert -->
-                    <div
-                        id="clientExistingAppointments"
-                        class="mt-3"
-                        style="display: none"
-                    >
-                        <div class="alert alert-info">
-                            <div
-                                class="d-flex justify-content-between align-items-center mb-2"
-                            >
-                                <strong
-                                    ><i class="fas fa-calendar-check me-2"></i
-                                    >Existing Appointments</strong
-                                >
-                                <span
-                                    id="clientAppointmentsCount"
-                                    class="badge bg-primary"
-                                    >0</span
-                                >
-                            </div>
-                            <div
-                                id="clientAppointmentsList"
-                                style="max-height: 200px; overflow-y: auto"
-                            ></div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-semibold">Phone Number *</label>
+                            <input
+                                type="tel"
+                                id="clientPhone"
+                                class="form-control"
+                                placeholder="Enter your phone number"
+                                required
+                            />
                         </div>
                     </div>
                 </div>
@@ -239,90 +200,6 @@
     </div>
 </div>
 
-<!-- Quick Add Client Modal -->
-<div class="modal fade" id="quickAddClientModal" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">
-                    <i class="fas fa-user-plus me-2"></i>Quick Add New Client
-                </h5>
-                <button
-                    type="button"
-                    class="btn-close"
-                    data-bs-dismiss="modal"
-                ></button>
-            </div>
-            <div class="modal-body">
-                <form id="quickAddClientForm">
-                    <div class="row mb-3">
-                        <div class="col-md-6">
-                            <label class="form-label">First Name *</label>
-                            <input
-                                type="text"
-                                id="quickFirstName"
-                                class="form-control"
-                                required
-                            />
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Last Name *</label>
-                            <input
-                                type="text"
-                                id="quickLastName"
-                                class="form-control"
-                                required
-                            />
-                        </div>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Phone Number *</label>
-                        <input
-                            type="tel"
-                            id="quickPhone"
-                            class="form-control"
-                            required
-                        />
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Email</label>
-                        <input
-                            type="email"
-                            id="quickEmail"
-                            class="form-control"
-                        />
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Gender *</label>
-                        <select id="quickGender" class="form-select" required>
-                            <option value="">Select gender...</option>
-                            <option value="male">Male</option>
-                            <option value="female">Female</option>
-                            <option value="other">Other</option>
-                        </select>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button
-                    type="button"
-                    class="btn btn-secondary"
-                    data-bs-dismiss="modal"
-                >
-                    Cancel
-                </button>
-                <button
-                    type="button"
-                    id="saveQuickClientBtn"
-                    class="btn btn-primary"
-                    onclick="saveQuickClient()"
-                >
-                    <i class="fas fa-save me-2"></i>Save Client
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
 
 <style>
     .appointment-card {
@@ -598,29 +475,12 @@
 
     // ==================== INITIALIZATION ====================
     $(document).ready(function () {
-        debugLog('Initializing multi-booking page');
-
-        $("#clientSelect").select2({
-            placeholder: "Choose a client...",
-            allowClear: true,
-            width: "100%",
-        });
+        debugLog('Initializing online booking page');
 
         addAppointmentRow();
 
-        $("#clientSelect").on("change", function () {
-            const clientId = $(this).val();
-            debugLog('Client selected:', clientId);
-
-            if (clientId) {
-                loadClientAppointments(clientId);
-            } else {
-                $("#clientExistingAppointments").hide();
-                clientExistingBookings = [];
-            }
-
-            // Re-validate all appointments when client changes
-            validateAllAppointments();
+        // Add event listeners to client name and phone for validation
+        $("#clientName, #clientPhone").on("input", function () {
             updateSubmitButton();
         });
 
@@ -1006,19 +866,13 @@
     function checkClientConflicts(index) {
         debugLog(`Checking client conflicts for appointment ${index}`);
 
-        const clientId = $("#clientSelect").val();
-        const data = getAppointmentData(index);
+        // Skip client conflict checking for online booking (no client dropdown)
+        // This is a public page, so we don't have access to existing client data
         const clientConflictAlert = document.getElementById(`client-conflict-${index}`);
-        const card = document.querySelector(`[data-index="${index}"]`);
-
-        // Clear previous alert
         if (clientConflictAlert) clientConflictAlert.classList.add("d-none");
-
-        // Only check if all required data is present
-        if (!clientId || !data.date || !data.startTime || !data.endTime) {
-            debugLog('Incomplete data, skipping client conflict check');
-            return;
-        }
+        
+        debugLog('Skipping client conflict check for online booking');
+        return;
 
         let hasOverlap = false;
         let conflictDetails = null;
@@ -1470,7 +1324,8 @@
         const submitBtn = document.getElementById("submitBookingBtn");
         if (!submitBtn) return;
 
-        const clientId = $("#clientSelect").val();
+        const clientName = $("#clientName").val()?.trim();
+        const clientPhone = $("#clientPhone").val()?.trim();
         const hasConflicts = document.querySelectorAll(".appointment-card.has-conflict, .appointment-card.has-warning").length > 0;
 
         let allFilled = true;
@@ -1483,10 +1338,10 @@
             }
         });
 
-        if (!clientId) {
+        if (!clientName || !clientPhone) {
             submitBtn.disabled = true;
             submitBtn.className = "btn btn-lg btn-secondary";
-            submitBtn.innerHTML = '<i class="fas fa-user me-2"></i>Select Client First';
+            submitBtn.innerHTML = '<i class="fas fa-user me-2"></i>Enter Your Details First';
         } else if (hasConflicts) {
             submitBtn.disabled = true;
             submitBtn.className = "btn btn-lg btn-danger";
