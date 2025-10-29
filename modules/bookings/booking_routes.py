@@ -412,7 +412,7 @@ def calendar_booking():
 
     # Get today's stats for selected date
     today_appointments = get_appointments_by_date(selected_date)
-    today_revenue = sum(apt.amount for apt in today_appointments if apt.amount and getattr(apt, 'payment_status', 'pending') == 'paid')
+    today_revenue = sum(apt.amount or 0 for apt in today_appointments if apt.amount and getattr(apt, 'payment_status', 'pending') == 'paid')
 
     return render_template('calendar_booking.html',
                          selected_date=selected_date,
@@ -733,6 +733,9 @@ def appointments_schedule():
 
     # Get existing appointments for the selected date
     existing_appointments = get_appointments_by_date(selected_date)
+
+    # Also get UnakiBooking appointments for the same date
+    unaki_bookings = UnakiBooking.query.filter_by(appointment_date=selected_date).all()
 
     # Calculate appointment positioning for timeline view
     # Timeline starts at 9 AM, each hour is 80px wide
