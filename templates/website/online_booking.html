@@ -1436,11 +1436,13 @@
 
     // ==================== FORM SUBMISSION ====================
     function submitMultiBooking() {
-        debugLog('Submitting multi-booking');
+        debugLog('Submitting online booking');
 
-        const clientId = $("#clientSelect").val();
-        if (!clientId) {
-            alert("❌ Please select a client");
+        const clientName = $("#clientName").val()?.trim();
+        const clientPhone = $("#clientPhone").val()?.trim();
+        
+        if (!clientName || !clientPhone) {
+            alert("❌ Please enter your name and phone number");
             return;
         }
 
@@ -1471,10 +1473,10 @@
             const selectedStaff = staffSelect.options[staffSelect.selectedIndex];
 
             appointments.push({
-                client_id: clientId,
-                client_name: $("#clientSelect option:selected").text().split(" - ")[0],
-                client_phone: $("#clientSelect option:selected").data("phone"),
-                client_email: $("#clientSelect option:selected").data("email"),
+                client_id: null,
+                client_name: clientName,
+                client_phone: clientPhone,
+                client_email: null,
                 service_id: data.service,
                 service_name: selectedService.text.split(" (")[0],
                 service_duration: parseInt(selectedService.dataset.duration),
@@ -1484,7 +1486,7 @@
                 appointment_date: data.date,
                 start_time: data.startTime,
                 end_time: data.endTime,
-                notes: document.getElementById("bookingNotes").value,
+                notes: document.getElementById("bookingNotes")?.value || '',
             });
         });
 
@@ -1524,8 +1526,8 @@
                 const errors = results.filter((r) => !r.success).map((r) => r.error || "Unknown error");
 
                 if (failCount === 0) {
-                    alert(`✅ Successfully booked ${successCount} appointment(s)!`);
-                    window.location.href = '{{ url_for("unaki_booking") }}';
+                    alert(`✅ Successfully booked ${successCount} appointment(s)!\n\nWe will contact you at ${clientPhone} to confirm your appointment.`);
+                    window.location.href = '{{ url_for("website_home") }}';
                 } else {
                     alert(`⚠️ Booked ${successCount} appointments, ${failCount} failed:\n\n${errors.join("\n")}`);
                     window.location.reload();
