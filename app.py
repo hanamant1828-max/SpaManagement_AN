@@ -953,7 +953,7 @@ def unaki_schedule():
                 'notes': booking.notes or '',
                 'amount': float(booking.service_price) if booking.service_price else 0.0,
                 'payment_status': booking.payment_status,
-                'booking_source': booking.booking_source or 'unaki_system'  # Default to unaki_system if not set
+                'booking_source': booking.booking_source or 'manual'  # Default to manual if not set
             }
             appointments_data.append(appointment_info)
 
