@@ -573,7 +573,7 @@
                     // Normalize booking source to lowercase for comparison
                     const bookingSource = (booking.booking_source || '').toString().toLowerCase().trim();
 
-                    if (bookingSource === 'online' || bookingSource === 'website' || bookingSource === 'online_booking') {
+                    if (bookingSource === 'online' || bookingSource === 'website' || bookingSource === 'online_booking' || bookingSource === 'unaki_system') {
                         badgeColor = '#3b82f6';
                         badgeText = 'ONLINE';
                         badgeIcon = '<i class="fas fa-globe"></i>';
@@ -588,11 +588,6 @@
                         badgeText = 'WALK-IN';
                         badgeIcon = '<i class="fas fa-walking"></i>';
                         sourceTooltip = 'Walk-in Booking';
-                    } else if (bookingSource === 'unaki_system') {
-                        badgeColor = '#8b5cf6';
-                        badgeText = 'SYSTEM';
-                        badgeIcon = '<i class="fas fa-desktop"></i>';
-                        sourceTooltip = 'Unaki System Booking';
                     } else {
                         // Default case - treat empty/unknown sources as walk-in
                         badgeColor = '#10b981';
