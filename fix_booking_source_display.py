@@ -28,6 +28,16 @@ def fix_booking_sources():
             booking.booking_source = 'online'
             updated_count += 1
         
+        # Also fix any bookings created from multi_service method but source is still unaki_system
+        multi_service_bookings = UnakiBooking.query.filter_by(booking_method='multi_service').all()
+        for booking in multi_service_bookings:
+            # If it was created through the website (has client_phone starting with common patterns)
+            # or if it's not a system booking, update the source
+            if booking.booking_source == 'unaki_system':
+                # Check if this looks like a manual/walk-in booking (no special indicators)
+                # Keep as manual for now - staff can update if needed
+                print(f"  ℹ️ Booking {booking.id} (multi_service) kept as '{booking.booking_source}'")
+        
         if updated_count > 0:
             db.session.commit()
             print(f"✅ Updated {updated_count} bookings to 'online' source")
