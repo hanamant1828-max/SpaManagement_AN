@@ -567,7 +567,7 @@ class Appointment(db.Model):
     # Relationships
     client = db.relationship('Customer', backref='appointments', foreign_keys=[client_id])
     service = db.relationship('Service', backref='appointments')
-    staff = db.relationship('User', foreign_keys=[staff_id])
+    staff = db.relationship('User', foreign_keys=[staff_id], overlaps="appointments,assigned_staff")
 
     def process_inventory_deduction(self):
         """Process inventory deduction when appointment is completed and billed"""

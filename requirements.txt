@@ -166,3 +166,12 @@ werkzeug
 wtforms
 pillow
 pillow
+flask-wtf
+insightface
+numpy
+onnxruntime
+opencv-python-headless
+python-dotenv
+pytz
+weasyprint
+wtforms
