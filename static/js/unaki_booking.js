@@ -577,34 +577,29 @@
                         badgeColor = '#3b82f6';
                         badgeText = 'ONLINE';
                         badgeIcon = '<i class="fas fa-globe"></i>';
-                        sourceTooltip = 'Online Booking from Website';
+                        sourceTooltip = 'Online Booking via Website';
                     } else if (bookingSource === 'phone') {
                         badgeColor = '#f59e0b';
                         badgeText = 'PHONE';
                         badgeIcon = '<i class="fas fa-phone"></i>';
                         sourceTooltip = 'Phone Booking';
-                    } else if (bookingSource === 'walk_in' || bookingSource === 'walkin') {
+                    } else if (bookingSource === 'walk_in' || bookingSource === 'walkin' || bookingSource === 'manual' || bookingSource === 'manual/offline') {
                         badgeColor = '#10b981';
                         badgeText = 'WALK-IN';
                         badgeIcon = '<i class="fas fa-walking"></i>';
-                        sourceTooltip = 'Walk-in Customer';
+                        sourceTooltip = 'Walk-in Booking';
                     } else if (bookingSource === 'unaki_system') {
                         badgeColor = '#8b5cf6';
                         badgeText = 'SYSTEM';
                         badgeIcon = '<i class="fas fa-desktop"></i>';
                         sourceTooltip = 'Unaki System Booking';
-                    } else if (bookingSource === 'manual') {
-                        badgeColor = '#6b7280';
-                        badgeText = 'MANUAL';
-                        badgeIcon = '<i class="fas fa-user-edit"></i>';
-                        sourceTooltip = 'Manual Booking';
                     } else {
-                        // Default case - show "SYSTEM" for empty/unknown sources
-                        badgeColor = '#8b5cf6';
-                        badgeText = 'SYSTEM';
-                        badgeIcon = '<i class="fas fa-desktop"></i>';
-                        sourceTooltip = 'System Booking';
-                        console.warn(`⚠️ Unknown booking source: "${booking.booking_source}" for booking ${booking.id}, defaulting to SYSTEM`);
+                        // Default case - treat empty/unknown sources as walk-in
+                        badgeColor = '#10b981';
+                        badgeText = 'WALK-IN';
+                        badgeIcon = '<i class="fas fa-walking"></i>';
+                        sourceTooltip = 'Walk-in Booking';
+                        console.log(`ℹ️ No booking source specified for booking ${booking.id}, treating as walk-in`);
                     }
 
                     sourceBadge = `<span class="booking-source-badge" style="background: ${badgeColor}; color: white; padding: 2px 6px; border-radius: 3px; font-size: 9px; font-weight: bold; display: inline-flex; align-items: center; gap: 3px;" title="${sourceTooltip}">${badgeIcon} ${badgeText}</span>`;

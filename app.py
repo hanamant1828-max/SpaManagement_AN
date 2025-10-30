@@ -1701,7 +1701,8 @@ def api_unaki_get_bookings():
                 'status': booking.status,
                 'payment_status': booking.payment_status,
                 'checked_in': booking.checked_in,
-                'checked_in_at': booking.checked_in_at.isoformat() if booking.checked_in_at else None
+                'checked_in_at': booking.checked_in_at.isoformat() if booking.checked_in_at else None,
+                'booking_source': booking.booking_source
             })
 
         return jsonify({'success': True, 'bookings': bookings_data})

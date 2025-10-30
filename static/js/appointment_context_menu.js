@@ -722,26 +722,38 @@ class AppointmentContextMenu {
 
         // Helper function to get booking source badge
         const getBookingSourceBadge = (source) => {
-            if (!source) return 'N/A';
+            if (!source) source = 'walk_in'; // Default to walk-in if no source specified
             let colorClass = 'secondary'; // Default
+            let displayText = source.replace('_', ' ');
+            
             switch (source.toLowerCase()) {
                 case 'online':
+                case 'website':
+                case 'online_booking':
                     colorClass = 'primary';
+                    displayText = 'Online';
                     break;
                 case 'phone':
                     colorClass = 'info';
+                    displayText = 'Phone';
                     break;
                 case 'walk_in':
-                    colorClass = 'success';
-                    break;
+                case 'walkin':
                 case 'manual':
-                    colorClass = 'warning';
+                case 'manual/offline':
+                    colorClass = 'success';
+                    displayText = 'Walk-in';
                     break;
                 case 'unaki_system':
                     colorClass = 'dark';
+                    displayText = 'System';
+                    break;
+                default:
+                    colorClass = 'success';
+                    displayText = 'Walk-in';
                     break;
             }
-            return `<span class="badge bg-${colorClass} text-capitalize">${source.replace('_', ' ')}</span>`;
+            return `<span class="badge bg-${colorClass}">${displayText}</span>`;
         };
 
         // Create modal HTML
