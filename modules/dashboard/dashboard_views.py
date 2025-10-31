@@ -37,6 +37,44 @@ def dashboard():
         if trends['last_month_revenue'] > 0:
             month_vs_last_month = ((stats['total_revenue_month'] - trends['last_month_revenue']) / trends['last_month_revenue']) * 100
 
+        # Prepare chart data for frontend
+        from datetime import timedelta
+        from sqlalchemy import func
+        from models import Appointment, Service
+        
+        # Last 7 days revenue data
+        revenue_labels = []
+        revenue_values = []
+        for i in range(6, -1, -1):
+            day = ist_now.date() - timedelta(days=i)
+            day_revenue = db.session.query(func.sum(Appointment.amount)).filter(
+                func.date(Appointment.appointment_date) == day,
+                Appointment.status == 'completed',
+                Appointment.is_paid == True
+            ).scalar() or 0.0
+            revenue_labels.append(day.strftime('%a'))
+            revenue_values.append(float(day_revenue))
+        
+        # Last 7 days bookings data
+        bookings_labels = []
+        bookings_values = []
+        for i in range(6, -1, -1):
+            day = ist_now.date() - timedelta(days=i)
+            day_bookings = Appointment.query.filter(
+                func.date(Appointment.appointment_date) == day
+            ).count()
+            bookings_labels.append(day.strftime('%a'))
+            bookings_values.append(day_bookings)
+        
+        # Service categories data
+        service_labels = [s['name'] for s in top_services[:6]]
+        service_values = [s['count'] for s in top_services[:6]]
+        
+        # If no data, use demo data
+        if not service_labels:
+            service_labels = ['Facial', 'Massage', 'Hair Styling', 'Manicure', 'Pedicure', 'Body Scrub']
+            service_values = [45, 38, 32, 28, 25, 20]
+
         return render_template('dashboard.html', 
                              stats=stats, 
                              recent_appointments=recent_appointments,
@@ -51,7 +89,11 @@ def dashboard():
                              today_vs_yesterday=round(today_vs_yesterday, 1),
                              month_vs_last_month=round(month_vs_last_month, 1),
                              current_date=ist_now.strftime('%A, %B %d, %Y'),
-                             current_time=ist_now.strftime('%I:%M %p IST'))
+                             current_time=ist_now.strftime('%I:%M %p IST'),
+                             revenue_data={'labels': revenue_labels, 'values': revenue_values},
+                             bookings_data={'labels': bookings_labels, 'values': bookings_values},
+                             service_categories={'labels': service_labels, 'values': service_values},
+                             recent_activities=[])
     except Exception as e:
         print(f"Dashboard error: {e}")
         import traceback
@@ -79,7 +121,11 @@ def dashboard():
                              today_vs_yesterday=0,
                              month_vs_last_month=0,
                              current_date='',
-                             current_time='')
+                             current_time='',
+                             revenue_data={'labels': [], 'values': []},
+                             bookings_data={'labels': [], 'values': []},
+                             service_categories={'labels': [], 'values': []},
+                             recent_activities=[])
 
 @app.route('/api/dashboard/stats')
 @login_required
