@@ -1116,7 +1116,9 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log('Pre-selected customer ID:', {{ selected_customer.id }});
     // Ensure to use the correct function name and pass ID as string or number based on API
     loadCustomerPackages({{ selected_customer.id }});
+    {% if not edit_mode %}
     loadCustomerAppointments({{ selected_customer.id }});
+    {% endif %}
     {% endif %}
 
     {% if edit_mode and edit_invoice_data %}
@@ -1289,6 +1291,10 @@ async function loadCustomerPackages(customerId) {
 
 function loadCustomerAppointments(customerId) {
     const appointmentsDiv = document.getElementById('customerAppointments');
+    if (!appointmentsDiv) {
+        console.log('⚠️ Appointments div not found - skipping (likely in edit mode)');
+        return;
+    }
     appointmentsDiv.innerHTML = '<div style="padding: var(--spacing-md); text-align: center;"><small><i class="fas fa-spinner spinner"></i> Loading appointments...</small></div>';
 
     fetch(`/api/customer/${customerId}/appointments`)
