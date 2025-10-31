@@ -663,6 +663,7 @@ textarea.form-control {
                                 <div class="invalid-feedback">Please select a customer</div>
                             </div>
                         </div>
+                        {% if not edit_mode %}
                         <div class="col-md-6">
                             <div class="form-group">
                                 <label class="form-label">Booked Appointments111</label>
@@ -673,6 +674,7 @@ textarea.form-control {
                                 </div>
                             </div>
                         </div>
+                        {% endif %}
                         <div class="col-md-12 mt-3">
                             <div class="form-group">
                                 <label class="form-label">Active Packages</label>
