@@ -18,21 +18,25 @@
             --secondary-color: #FFD700;
             --dark-color: #000000;
             --light-color: #1a1a1a;
-            --text-color: #333;
+            --text-color: #D4AF37;
             --gold-gradient: linear-gradient(135deg, #D4AF37 0%, #FFD700 100%);
-            --black-gradient: linear-gradient(135deg, #000000 0%, #1a1a1a 100%);
+            --black-gradient: linear-gradient(135deg, #000000 0%, #0a0a0a 100%);
+        }
+        
+        * {
+            color: var(--primary-color) !important;
         }
         
         body {
             font-family: 'Poppins', sans-serif;
-            color: var(--text-color);
+            color: var(--primary-color) !important;
             line-height: 1.7;
-            background-color: #ffffff;
+            background-color: #000000 !important;
         }
         
         h1, h2, h3, h4, h5, h6 {
             font-family: 'Playfair Display', serif;
-            color: var(--dark-color);
+            color: var(--primary-color) !important;
         }
         
         .navbar {
@@ -148,12 +152,13 @@
             right: 30px;
             width: 60px;
             height: 60px;
-            background: #25d366;
+            background: var(--gold-gradient);
+            border: 3px solid var(--primary-color);
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            box-shadow: 0 4px 12px rgba(212,175,55,0.5);
             z-index: 1000;
             transition: all 0.3s;
             text-decoration: none;
@@ -161,11 +166,12 @@
         
         .whatsapp-float:hover {
             transform: scale(1.1);
-            box-shadow: 0 6px 20px rgba(37,211,102,0.4);
+            box-shadow: 0 6px 20px rgba(255,215,0,0.6);
+            background: var(--secondary-color);
         }
         
         .whatsapp-float i {
-            color: #fff;
+            color: #000000 !important;
             font-size: 30px;
         }
         
@@ -174,7 +180,7 @@
             margin-bottom: 1rem;
             position: relative;
             display: inline-block;
-            color: var(--dark-color);
+            color: var(--primary-color) !important;
             font-weight: 700;
         }
         
@@ -191,12 +197,57 @@
         .alert {
             border-radius: 10px;
             border: 2px solid var(--primary-color);
-            background: rgba(212,175,55,0.1);
+            background: rgba(0,0,0,0.8) !important;
+            color: var(--primary-color) !important;
         }
         
         hr {
             border-color: var(--primary-color);
-            opacity: 0.3;
+            opacity: 0.5;
+        }
+        
+        .card, .service-card, .gallery-item, .container, .row, .col, div {
+            background-color: #000000 !important;
+        }
+        
+        p, span, a, li, label, input, textarea, select {
+            color: var(--primary-color) !important;
+        }
+        
+        .bg-light, .bg-white {
+            background-color: #000000 !important;
+        }
+        
+        .text-muted, .text-secondary {
+            color: var(--primary-color) !important;
+        }
+        
+        input, textarea, select {
+            background-color: #000000 !important;
+            border: 2px solid var(--primary-color) !important;
+            color: var(--primary-color) !important;
+        }
+        
+        input::placeholder, textarea::placeholder {
+            color: var(--primary-color) !important;
+            opacity: 0.6;
+        }
+        
+        .card {
+            border: 2px solid var(--primary-color) !important;
+            background-color: #000000 !important;
+        }
+        
+        .navbar-toggler {
+            border-color: var(--primary-color) !important;
+        }
+        
+        .navbar-toggler-icon {
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='%23D4AF37' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e") !important;
+        }
+        
+        .btn-close {
+            filter: brightness(0) saturate(100%) invert(69%) sepia(45%) saturate(524%) hue-rotate(7deg) brightness(91%) contrast(86%);
         }
     </style>
     
@@ -286,9 +337,9 @@
                     <p><i class="fas fa-map-marker-alt me-2"></i>{{ business_address if business_address else '123 Main Street' }}</p>
                 </div>
             </div>
-            <hr class="mt-4" style="border-color: #555;">
+            <hr class="mt-4" style="border-color: #D4AF37; opacity: 0.5;">
             <div class="text-center">
-                <p class="mb-0">&copy; {{ current_year if current_year else '2025' }} Spa & Salon Suite. All rights reserved.</p>
+                <p class="mb-0" style="color: #D4AF37 !important;">&copy; {{ current_year if current_year else '2025' }} Spa & Salon Suite. All rights reserved.</p>
             </div>
         </div>
     </footer>
