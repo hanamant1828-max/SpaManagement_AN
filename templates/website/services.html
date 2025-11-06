@@ -225,6 +225,78 @@
     .service-description {
         color: var(--primary-color) !important;
     }
+    
+    /* Search Bar Styles */
+    .search-container {
+        max-width: 800px;
+        margin: 0 auto;
+    }
+    
+    .search-form {
+        width: 100%;
+    }
+    
+    .search-input-wrapper {
+        position: relative;
+        display: flex;
+        align-items: center;
+        background: #000000;
+        border: 3px solid var(--primary-color);
+        border-radius: 50px;
+        padding: 0.5rem 1rem;
+        transition: all 0.3s ease;
+    }
+    
+    .search-input-wrapper:focus-within {
+        border-color: var(--secondary-color);
+        box-shadow: 0 0 30px rgba(255,215,0,0.4);
+    }
+    
+    .search-icon {
+        color: var(--primary-color);
+        font-size: 1.2rem;
+        margin-right: 1rem;
+    }
+    
+    .search-input {
+        flex: 1;
+        background: transparent;
+        border: none;
+        outline: none;
+        color: var(--primary-color);
+        font-size: 1rem;
+        padding: 0.75rem 0;
+    }
+    
+    .search-input::placeholder {
+        color: var(--primary-color);
+        opacity: 0.6;
+    }
+    
+    .search-button {
+        background: var(--primary-color);
+        color: #000000;
+        border: none;
+        border-radius: 50%;
+        width: 45px;
+        height: 45px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        margin-left: 1rem;
+    }
+    
+    .search-button:hover {
+        background: var(--secondary-color);
+        transform: scale(1.1);
+        box-shadow: 0 5px 20px rgba(255,215,0,0.5);
+    }
+    
+    .search-button i {
+        font-size: 1rem;
+    }
 </style>
 {% endblock %}
 
@@ -246,6 +318,24 @@
 <section class="py-5">
     <div class="container">
         {% if not selected_category %}
+            <!-- Search Bar -->
+            <div class="search-container mb-5">
+                <form action="{{ url_for('website_services_search') }}" method="GET" class="search-form">
+                    <div class="search-input-wrapper">
+                        <i class="fas fa-search search-icon"></i>
+                        <input type="text" 
+                               name="q" 
+                               class="search-input" 
+                               placeholder="Search for services (e.g., massage, facial, hair)..." 
+                               required
+                               autocomplete="off">
+                        <button type="submit" class="search-button">
+                            <i class="fas fa-arrow-right"></i>
+                        </button>
+                    </div>
+                </form>
+            </div>
+            
             <!-- Category Selection View -->
             <div class="row g-4">
                 {% for item in categories %}

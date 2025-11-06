@@ -2,7 +2,10 @@ from flask import render_template, request, jsonify, redirect, url_for, flash
 from app import app, db
 from models import Service, Category, UnakiBooking, Customer, User, SystemSetting
 from datetime import datetime, date, time, timedelta
+from sqlalchemy import or_
 import re
+
+# Search functionality enabled
 
 @app.route('/')
 @app.route('/home')
@@ -42,18 +45,22 @@ def website_services():
                          selected_category=None,
                          uncategorized_count=uncategorized_count)
 
-@app.route('/our-services/category/<int:category_id>')
-def website_services_by_category(category_id):
-    """Show services for a specific category"""
-    category = Category.query.get_or_404(category_id)
+@app.route('/our-services/search')
+def website_services_search():
+    """Search services by name or description"""
+    search_query = request.args.get('q', '').strip()
     
-    # Verify this is an active service category
-    if category.category_type != 'service' or not category.is_active:
-        flash('Category not found or inactive.', 'error')
+    if not search_query:
         return redirect(url_for('website_services'))
     
-    # Get all services in this category
-    services = Service.query.filter_by(category_id=category_id, is_active=True).all()
+    # Search in service name and description (case-insensitive)
+    services = Service.query.filter(
+        Service.is_active == True,
+        or_(
+            Service.name.ilike(f'%{search_query}%'),
+            Service.description.ilike(f'%{search_query}%')
+        )
+    ).all()
     
     # Get all categories for navigation
     all_categories = Category.query.filter_by(category_type='service', is_active=True).order_by(Category.sort_order).all()
@@ -71,11 +78,18 @@ def website_services_by_category(category_id):
         (Service.category_id == None) | (Service.category_id == 0)
     ).count()
     
+    # Create a search result category object for display
+    class SearchResultCategory:
+        display_name = f"Search Results for '{search_query}'"
+        description = f"Found {len(services)} service{'s' if len(services) != 1 else ''}"
+        icon = "fas fa-search"
+    
     return render_template('website/services.html',
                          categories=categories_with_counts,
-                         selected_category=category,
+                         selected_category=SearchResultCategory(),
                          services=services,
-                         uncategorized_count=uncategorized_count)
+                         uncategorized_count=uncategorized_count,
+                         search_query=search_query)
 
 @app.route('/our-services/uncategorized')
 def website_services_uncategorized():
@@ -108,6 +122,41 @@ def website_services_uncategorized():
     return render_template('website/services.html',
                          categories=categories_with_counts,
                          selected_category=UncategorizedCategory(),
+                         services=services,
+                         uncategorized_count=uncategorized_count)
+
+@app.route('/our-services/category/<int:category_id>')
+def website_services_by_category(category_id):
+    """Show services for a specific category"""
+    category = Category.query.get_or_404(category_id)
+    
+    # Verify this is an active service category
+    if category.category_type != 'service' or not category.is_active:
+        flash('Category not found or inactive.', 'error')
+        return redirect(url_for('website_services'))
+    
+    # Get all services in this category
+    services = Service.query.filter_by(category_id=category_id, is_active=True).all()
+    
+    # Get all categories for navigation
+    all_categories = Category.query.filter_by(category_type='service', is_active=True).order_by(Category.sort_order).all()
+    categories_with_counts = []
+    for cat in all_categories:
+        service_count = Service.query.filter_by(category_id=cat.id, is_active=True).count()
+        if service_count > 0:
+            categories_with_counts.append({
+                'category': cat,
+                'count': service_count
+            })
+    
+    # Check for uncategorized services
+    uncategorized_count = Service.query.filter_by(is_active=True).filter(
+        (Service.category_id == None) | (Service.category_id == 0)
+    ).count()
+    
+    return render_template('website/services.html',
+                         categories=categories_with_counts,
+                         selected_category=category,
                          services=services,
                          uncategorized_count=uncategorized_count)
 
