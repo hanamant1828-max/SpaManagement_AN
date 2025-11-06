@@ -19,22 +19,97 @@ def website_home():
 
 @app.route('/our-services')
 def website_services():
-    """Public services page with categories"""
+    """Public services page - shows category selection"""
     categories = Category.query.filter_by(category_type='service', is_active=True).order_by(Category.sort_order).all()
-    services_by_category = {}
-
+    
+    # Count services in each category
+    categories_with_counts = []
     for category in categories:
-        services = Service.query.filter_by(category_id=category.id, is_active=True).all()
-        if services:
-            services_by_category[category] = services
+        service_count = Service.query.filter_by(category_id=category.id, is_active=True).count()
+        if service_count > 0:
+            categories_with_counts.append({
+                'category': category,
+                'count': service_count
+            })
+    
+    # Check for uncategorized services
+    uncategorized_count = Service.query.filter_by(is_active=True).filter(
+        (Service.category_id == None) | (Service.category_id == 0)
+    ).count()
+    
+    return render_template('website/services.html',
+                         categories=categories_with_counts,
+                         selected_category=None,
+                         uncategorized_count=uncategorized_count)
 
-    uncategorized_services = Service.query.filter_by(is_active=True).filter(
+@app.route('/our-services/category/<int:category_id>')
+def website_services_by_category(category_id):
+    """Show services for a specific category"""
+    category = Category.query.get_or_404(category_id)
+    
+    # Verify this is an active service category
+    if category.category_type != 'service' or not category.is_active:
+        flash('Category not found or inactive.', 'error')
+        return redirect(url_for('website_services'))
+    
+    # Get all services in this category
+    services = Service.query.filter_by(category_id=category_id, is_active=True).all()
+    
+    # Get all categories for navigation
+    all_categories = Category.query.filter_by(category_type='service', is_active=True).order_by(Category.sort_order).all()
+    categories_with_counts = []
+    for cat in all_categories:
+        service_count = Service.query.filter_by(category_id=cat.id, is_active=True).count()
+        if service_count > 0:
+            categories_with_counts.append({
+                'category': cat,
+                'count': service_count
+            })
+    
+    # Check for uncategorized services
+    uncategorized_count = Service.query.filter_by(is_active=True).filter(
+        (Service.category_id == None) | (Service.category_id == 0)
+    ).count()
+    
+    return render_template('website/services.html',
+                         categories=categories_with_counts,
+                         selected_category=category,
+                         services=services,
+                         uncategorized_count=uncategorized_count)
+
+@app.route('/our-services/uncategorized')
+def website_services_uncategorized():
+    """Show uncategorized services"""
+    # Get uncategorized services
+    services = Service.query.filter_by(is_active=True).filter(
         (Service.category_id == None) | (Service.category_id == 0)
     ).all()
-
+    
+    # Get all categories for navigation
+    all_categories = Category.query.filter_by(category_type='service', is_active=True).order_by(Category.sort_order).all()
+    categories_with_counts = []
+    for cat in all_categories:
+        service_count = Service.query.filter_by(category_id=cat.id, is_active=True).count()
+        if service_count > 0:
+            categories_with_counts.append({
+                'category': cat,
+                'count': service_count
+            })
+    
+    # Check for uncategorized services
+    uncategorized_count = len(services)
+    
+    # Create a fake category object for display
+    class UncategorizedCategory:
+        display_name = "Other Services"
+        description = "Additional services and treatments"
+        icon = "fas fa-spa"
+    
     return render_template('website/services.html',
-                         services_by_category=services_by_category,
-                         uncategorized_services=uncategorized_services)
+                         categories=categories_with_counts,
+                         selected_category=UncategorizedCategory(),
+                         services=services,
+                         uncategorized_count=uncategorized_count)
 
 @app.route('/book-online', methods=['GET', 'POST'])
 def website_book_online():

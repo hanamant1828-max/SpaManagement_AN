@@ -99,6 +99,132 @@
     .text-center h3 {
         color: var(--primary-color) !important;
     }
+    
+    /* Category Card Styles */
+    .category-card-link {
+        text-decoration: none;
+        display: block;
+        height: 100%;
+    }
+    
+    .category-card {
+        background: #000000 !important;
+        border: 3px solid var(--primary-color);
+        border-radius: 15px;
+        padding: 2.5rem;
+        text-align: center;
+        transition: all 0.4s ease;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .category-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(212,175,55,0.1), transparent);
+        transition: left 0.6s;
+    }
+    
+    .category-card:hover::before {
+        left: 100%;
+    }
+    
+    .category-card:hover {
+        transform: translateY(-10px);
+        border-color: var(--secondary-color);
+        box-shadow: 0 15px 40px rgba(255,215,0,0.6);
+    }
+    
+    .category-card-icon {
+        font-size: 4rem;
+        color: var(--primary-color);
+        margin-bottom: 1.5rem;
+        text-shadow: 0 0 30px rgba(212,175,55,0.5);
+        transition: all 0.4s;
+    }
+    
+    .category-card:hover .category-card-icon {
+        color: var(--secondary-color);
+        transform: scale(1.2);
+        text-shadow: 0 0 40px rgba(255,215,0,0.8);
+    }
+    
+    .category-card-title {
+        color: var(--primary-color) !important;
+        font-size: 1.5rem;
+        font-weight: 600;
+        margin-bottom: 1rem;
+        transition: all 0.3s;
+    }
+    
+    .category-card:hover .category-card-title {
+        color: var(--secondary-color) !important;
+    }
+    
+    .category-card-description {
+        color: var(--primary-color) !important;
+        opacity: 0.9;
+        margin-bottom: 1.5rem;
+        font-size: 0.95rem;
+    }
+    
+    .category-card-count {
+        color: var(--primary-color) !important;
+        font-weight: 500;
+        margin-top: auto;
+        padding-top: 1rem;
+        border-top: 2px solid var(--primary-color);
+        transition: all 0.3s;
+    }
+    
+    .category-card:hover .category-card-count {
+        border-top-color: var(--secondary-color);
+        color: var(--secondary-color) !important;
+    }
+    
+    .category-card-arrow {
+        color: var(--primary-color);
+        font-size: 1.5rem;
+        margin-top: 1rem;
+        transition: all 0.3s;
+    }
+    
+    .category-card:hover .category-card-arrow {
+        color: var(--secondary-color);
+        transform: translateX(10px);
+    }
+    
+    /* Back Button */
+    .back-button {
+        display: inline-block;
+        padding: 0.75rem 1.5rem;
+        background: #000000;
+        border: 2px solid var(--primary-color);
+        color: var(--primary-color) !important;
+        border-radius: 8px;
+        text-decoration: none;
+        font-weight: 500;
+        transition: all 0.3s;
+    }
+    
+    .back-button:hover {
+        background: var(--primary-color);
+        color: #000000 !important;
+        transform: translateX(-5px);
+        box-shadow: 0 5px 20px rgba(212,175,55,0.5);
+    }
+    
+    .service-description {
+        color: var(--primary-color) !important;
+    }
 </style>
 {% endblock %}
 
@@ -106,95 +232,119 @@
 <!-- Page Header -->
 <section class="page-header">
     <div class="container">
-        <h1><i class="fas fa-list me-3"></i>Our Services</h1>
-        <p class="lead">Discover our comprehensive range of beauty and wellness services</p>
+        {% if selected_category %}
+            <h1><i class="{{ selected_category.icon if selected_category.icon else 'fas fa-spa' }} me-3"></i>{{ selected_category.display_name }}</h1>
+            <p class="lead">{{ selected_category.description if selected_category.description else 'Explore our premium services' }}</p>
+        {% else %}
+            <h1><i class="fas fa-list me-3"></i>Our Services</h1>
+            <p class="lead">Select a category to view our services</p>
+        {% endif %}
     </div>
 </section>
 
 <!-- Services Content -->
 <section class="py-5">
     <div class="container">
-        {% if services_by_category %}
-            {% for category, services in services_by_category.items() %}
-            <div class="category-section">
-                <div class="category-header">
-                    <i class="{{ category.icon if category.icon else 'fas fa-spa' }} category-icon"></i>
-                    <div>
-                        <h2>{{ category.display_name }}</h2>
-                        {% if category.description %}
-                        <p class="text-muted mb-0">{{ category.description }}</p>
-                        {% endif %}
-                    </div>
-                </div>
-                
-                <div class="row">
-                    {% for service in services %}
-                    <div class="col-lg-6">
-                        <div class="service-item">
-                            <h4 class="service-name">{{ service.name }}</h4>
-                            <p class="text-muted">{{ service.description if service.description else 'Premium service tailored to your needs' }}</p>
-                            <div class="service-details">
-                                <div class="service-meta">
-                                    <span><i class="far fa-clock me-2"></i>{{ service.duration }} minutes</span>
-                                </div>
-                                <div class="service-price">
-                                    ₹{{ "%.2f"|format(service.price) }}
-                                </div>
+        {% if not selected_category %}
+            <!-- Category Selection View -->
+            <div class="row g-4">
+                {% for item in categories %}
+                <div class="col-md-6 col-lg-4">
+                    <a href="{{ url_for('website_services_by_category', category_id=item.category.id) }}" class="category-card-link">
+                        <div class="category-card">
+                            <div class="category-card-icon">
+                                <i class="{{ item.category.icon if item.category.icon else 'fas fa-spa' }}"></i>
+                            </div>
+                            <h3 class="category-card-title">{{ item.category.display_name }}</h3>
+                            {% if item.category.description %}
+                            <p class="category-card-description">{{ item.category.description }}</p>
+                            {% endif %}
+                            <div class="category-card-count">
+                                <i class="fas fa-list me-2"></i>{{ item.count }} Service{{ 's' if item.count != 1 else '' }}
+                            </div>
+                            <div class="category-card-arrow">
+                                <i class="fas fa-arrow-right"></i>
                             </div>
                         </div>
-                    </div>
-                    {% endfor %}
+                    </a>
                 </div>
+                {% endfor %}
+                
+                <!-- Uncategorized Services Card -->
+                {% if uncategorized_count > 0 %}
+                <div class="col-md-6 col-lg-4">
+                    <a href="{{ url_for('website_services_uncategorized') }}" class="category-card-link">
+                        <div class="category-card">
+                            <div class="category-card-icon">
+                                <i class="fas fa-spa"></i>
+                            </div>
+                            <h3 class="category-card-title">Other Services</h3>
+                            <p class="category-card-description">Additional services and treatments</p>
+                            <div class="category-card-count">
+                                <i class="fas fa-list me-2"></i>{{ uncategorized_count }} Service{{ 's' if uncategorized_count != 1 else '' }}
+                            </div>
+                            <div class="category-card-arrow">
+                                <i class="fas fa-arrow-right"></i>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+                {% endif %}
             </div>
-            {% endfor %}
-        {% endif %}
-        
-        {% if uncategorized_services %}
-        <div class="category-section">
-            <div class="category-header">
-                <i class="fas fa-spa category-icon"></i>
-                <div>
-                    <h2>More Services</h2>
-                </div>
+            
+            {% if not categories and uncategorized_count == 0 %}
+            <div class="text-center py-5">
+                <i class="fas fa-info-circle fa-3x mb-3" style="color: var(--primary-color);"></i>
+                <h3>Services Coming Soon</h3>
+                <p>Please contact us for more information about our services.</p>
+            </div>
+            {% endif %}
+        {% else %}
+            <!-- Services List View -->
+            <div class="mb-4">
+                <a href="{{ url_for('website_services') }}" class="back-button">
+                    <i class="fas fa-arrow-left me-2"></i>Back to Categories
+                </a>
             </div>
             
             <div class="row">
-                {% for service in uncategorized_services %}
+                {% for service in services %}
                 <div class="col-lg-6">
                     <div class="service-item">
                         <h4 class="service-name">{{ service.name }}</h4>
-                        <p class="text-muted">{{ service.description if service.description else 'Premium service tailored to your needs' }}</p>
+                        <p class="service-description">{{ service.description if service.description else 'Premium service tailored to your needs' }}</p>
                         <div class="service-details">
                             <div class="service-meta">
                                 <span><i class="far fa-clock me-2"></i>{{ service.duration }} minutes</span>
                             </div>
                             <div class="service-price">
-                                ${{ "%.2f"|format(service.price) }}
+                                ₹{{ "%.2f"|format(service.price) }}
                             </div>
                         </div>
                     </div>
                 </div>
                 {% endfor %}
             </div>
-        </div>
+            
+            {% if not services %}
+            <div class="text-center py-5">
+                <i class="fas fa-info-circle fa-3x mb-3" style="color: var(--primary-color);"></i>
+                <h3>No Services Available</h3>
+                <p>There are currently no services in this category.</p>
+                <a href="{{ url_for('website_services') }}" class="btn btn-primary mt-3">
+                    <i class="fas fa-arrow-left me-2"></i>Back to Categories
+                </a>
+            </div>
+            {% endif %}
+            
+            <!-- Call to Action -->
+            <div class="text-center mt-5 pt-4">
+                <h3 class="mb-4">Ready to book your treatment?</h3>
+                <a href="{{ url_for('website_book_online') }}" class="btn btn-primary btn-lg">
+                    <i class="fas fa-calendar-check me-2"></i>Book Appointment
+                </a>
+            </div>
         {% endif %}
-        
-        {% if not services_by_category and not uncategorized_services %}
-        <div class="text-center py-5">
-            <i class="fas fa-info-circle fa-3x text-muted mb-3"></i>
-            <h3>Services Coming Soon</h3>
-            <p class="text-muted">Please contact us for more information about our services.</p>
-            <a href="{{ url_for('website_contact') }}" class="btn btn-primary mt-3">Contact Us</a>
-        </div>
-        {% endif %}
-        
-        <!-- Call to Action -->
-        <div class="text-center mt-5 pt-4">
-            <h3 class="mb-4">Ready to book your treatment?</h3>
-            <a href="{{ url_for('website_book_online') }}" class="btn btn-primary btn-lg">
-                <i class="fas fa-calendar-check me-2"></i>Book Appointment
-            </a>
-        </div>
     </div>
 </section>
 {% endblock %}
