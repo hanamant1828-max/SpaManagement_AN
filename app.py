@@ -237,14 +237,15 @@ print(f"✅ Using SQLite database: {app.config['SQLALCHEMY_DATABASE_URI']}")
 app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
 app.config['WTF_CSRF_ENABLED'] = False  # Disable CSRF for API endpoints in development
 
-# Session configuration for Replit environment (iframe-compatible)
-app.config.update(
-    SECRET_KEY=os.environ.get("SESSION_SECRET"),  # No fallback for production security
-    SESSION_COOKIE_SAMESITE="None",  # Required for iframe in Replit
-    SESSION_COOKIE_SECURE=True,   # Required when SameSite=None
-    SESSION_COOKIE_HTTPONLY=True,
-    SESSION_PERMANENT=True  # Make session persistent
-)
+# Session configuration
+app.config['SESSION_TYPE'] = 'filesystem'
+app.config['SESSION_PERMANENT'] = True  # Changed to True for persistent sessions
+app.config['SESSION_USE_SIGNER'] = True
+app.config['SESSION_KEY_PREFIX'] = 'spa_session:'
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=7)
+app.config['SESSION_COOKIE_SECURE'] = False  # Set to False for development
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 
 # Initialize the app with the extension, flask-sqlalchemy >= 3.0.x
 db.init_app(app)

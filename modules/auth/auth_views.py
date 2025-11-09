@@ -157,11 +157,15 @@ def api_login():
             print(f"❌ API Login: Invalid password for user {user.username}")
             return jsonify({"success": False, "message": "Invalid credentials"}), 401
         
-        # Login successful - clear and set session 
+        # Login successful - set session and login user
         print(f"✅ API Login successful for user: {user.username}")
-        session.clear()
-        session["uid"] = user.id
+        
+        # Login the user first (this handles session creation)
         login_user(user, remember=True)
+        
+        # Then set additional session data
+        session["uid"] = user.id
+        session.permanent = True  # Make session permanent
         
         # Update last login time if column exists
         try:
@@ -170,6 +174,11 @@ def api_login():
                 db.session.commit()
         except Exception as e:
             print(f"Warning: Could not update last_login: {e}")
+        
+        # Force session to be saved
+        session.modified = True
+        
+        print(f"✅ Session established for user: {user.username}, session data: {dict(session)}")
         
         return jsonify({"success": True, "redirect": "/dashboard"}), 200
         
