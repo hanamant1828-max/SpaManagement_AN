@@ -239,13 +239,16 @@ app.config['WTF_CSRF_ENABLED'] = False  # Disable CSRF for API endpoints in deve
 
 # Session configuration
 app.config['SESSION_TYPE'] = 'filesystem'
-app.config['SESSION_PERMANENT'] = True  # Changed to True for persistent sessions
+app.config['SESSION_PERMANENT'] = True  # Persistent sessions
 app.config['SESSION_USE_SIGNER'] = True
 app.config['SESSION_KEY_PREFIX'] = 'spa_session:'
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=7)
+app.config['SESSION_COOKIE_NAME'] = 'spa_session'
 app.config['SESSION_COOKIE_SECURE'] = False  # Set to False for development
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+app.config['SESSION_COOKIE_PATH'] = '/'
+app.config['SESSION_REFRESH_EACH_REQUEST'] = True
 
 # Initialize the app with the extension, flask-sqlalchemy >= 3.0.x
 db.init_app(app)

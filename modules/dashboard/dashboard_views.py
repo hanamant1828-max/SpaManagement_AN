@@ -19,6 +19,8 @@ def dashboard():
     print(f"   - Current user authenticated: {current_user.is_authenticated}")
     print(f"   - Current user: {current_user.username if current_user.is_authenticated else 'Anonymous'}")
     print(f"   - User ID: {current_user.id if current_user.is_authenticated else 'N/A'}")
+    print(f"   - Session data: {dict(session)}")
+    print(f"   - Flask-Login user_id in session: {session.get('_user_id')}")
     print("="*80 + "\n")
     try:
         ist_now = get_ist_now()

@@ -182,13 +182,18 @@ def api_login():
         print(f"✅ Password verification PASSED for user: {user.username}")
         print(f"🔐 Creating session and logging in user...")
         
-        # Login the user first (this handles session creation)
-        login_user(user, remember=True)
-        print(f"   ✓ Flask-Login login_user() called")
+        # Clear any existing session data first
+        session.clear()
         
-        # Then set additional session data
+        # Set session as permanent BEFORE login_user
+        session.permanent = True
+        
+        # Login the user (this handles session creation)
+        login_user(user, remember=True, force=True, fresh=True)
+        print(f"   ✓ Flask-Login login_user() called with force=True")
+        
+        # Set additional session data
         session["uid"] = user.id
-        session.permanent = True  # Make session permanent
         print(f"   ✓ Session uid set to: {user.id}")
         print(f"   ✓ Session permanent set to: True")
         
