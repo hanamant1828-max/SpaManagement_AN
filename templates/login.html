@@ -132,15 +132,17 @@
 
                                 if (data.success) {
                                     console.log('✅ LOGIN SUCCESSFUL!');
-                                    console.log('   - Redirect URL:', data.redirect || '/dashboard');
-                                    showAlert('Login successful! Redirecting...', 'success');
+                                    console.log(`   - Redirect URL: ${data.redirect}`);
+                                    console.log(`   - Current cookies: ${document.cookie}`);
+                                    console.log('🔄 Redirecting in 1000ms to allow session cookie to be set...');
 
-                                    console.log('🔄 Redirecting in 500ms...');
+                                    // Longer delay to ensure session cookie is properly set
                                     setTimeout(() => {
-                                        console.log('🔄 Now redirecting to:', data.redirect || '/dashboard');
-                                        console.log('='.repeat(80) + '\n');
-                                        window.location.href = data.redirect || '/dashboard';
-                                    }, 500);
+                                        console.log(`🔄 Now redirecting to: ${data.redirect}`);
+                                        console.log(`   - Cookies before redirect: ${document.cookie}`);
+                                        // Use replace instead of href to prevent back button issues
+                                        window.location.replace(data.redirect);
+                                    }, 1000);
                                 } else {
                                     console.log('❌ LOGIN FAILED:', data.message || 'Unknown error');
                                     console.log('='.repeat(80) + '\n');

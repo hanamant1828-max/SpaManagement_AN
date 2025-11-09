@@ -14,6 +14,8 @@ from datetime import date, timedelta
 @app.route('/dashboard')
 @login_required
 def dashboard():
+    from flask import request
+    
     print("\n" + "="*80)
     print("📊 DASHBOARD ACCESS ATTEMPTED")
     print(f"   - Current user authenticated: {current_user.is_authenticated}")
@@ -22,14 +24,18 @@ def dashboard():
     print(f"   - Session data: {dict(session)}")
     print(f"   - Flask-Login user_id in session: {session.get('_user_id')}")
     print(f"   - Session permanent: {session.permanent}")
-    print(f"   - Request headers: {dict(request.headers)}")
-    print(f"   - Cookies: {request.cookies}")
+    print(f"   - Session cookie name: {app.config.get('SESSION_COOKIE_NAME')}")
+    print(f"   - Cookies in request: {list(request.cookies.keys())}")
+    print(f"   - Session cookie value: {request.cookies.get('spa_session', 'NOT FOUND')}")
+    print(f"   - Request method: {request.method}")
+    print(f"   - Request path: {request.path}")
     print("="*80 + "\n")
     
     # If not authenticated, this should have been caught by @login_required
     # but let's add explicit check and redirect
     if not current_user.is_authenticated:
         print("❌ Dashboard access denied - user not authenticated")
+        print("   - This means the session was lost between login and dashboard access")
         flash('Please log in to access the dashboard.', 'warning')
         return redirect(url_for('login'))
     

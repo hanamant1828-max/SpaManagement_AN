@@ -220,7 +220,21 @@ def api_login():
         print(f"\n🔄 REDIRECTING to /dashboard")
         print("="*80 + "\n")
         
-        return jsonify({"success": True, "redirect": "/dashboard"}), 200
+        # Create response with explicit session cookie settings
+        response = jsonify({"success": True, "redirect": "/dashboard"})
+        
+        # Ensure session cookie is set in the response
+        response.set_cookie(
+            'spa_session',
+            value=session.sid if hasattr(session, 'sid') else str(session.get('_id', '')),
+            max_age=timedelta(days=7).total_seconds(),
+            secure=False,  # Set to False for development
+            httponly=True,
+            samesite='Lax',
+            path='/'
+        )
+        
+        return response, 200
         
     except Exception as e:
         print(f"\n❌ API LOGIN ERROR:")
