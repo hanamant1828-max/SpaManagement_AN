@@ -248,7 +248,14 @@ app.config['SESSION_COOKIE_SECURE'] = False  # Set to False for development
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 app.config['SESSION_COOKIE_PATH'] = '/'
+app.config['SESSION_COOKIE_DOMAIN'] = None  # Allow cookies on all subdomains
 app.config['SESSION_REFRESH_EACH_REQUEST'] = True
+
+# Additional Flask-Login configuration
+app.config['REMEMBER_COOKIE_DURATION'] = timedelta(days=7)
+app.config['REMEMBER_COOKIE_SECURE'] = False
+app.config['REMEMBER_COOKIE_HTTPONLY'] = True
+app.config['REMEMBER_COOKIE_SAMESITE'] = 'Lax'
 
 # Initialize the app with the extension, flask-sqlalchemy >= 3.0.x
 db.init_app(app)
@@ -260,12 +267,20 @@ db.init_app(app)
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
+login_manager.session_protection = 'strong'  # Protect against session hijacking
+login_manager.refresh_view = 'login'
 
 @login_manager.user_loader
 def load_user(user_id):
     # Import inside function to avoid circular imports
     from models import User
-    return User.query.get(int(user_id))
+    print(f"🔍 Loading user with ID: {user_id}")
+    user = User.query.get(int(user_id))
+    if user:
+        print(f"✅ User loaded: {user.username}, Active: {user.is_active}")
+    else:
+        print(f"❌ User with ID {user_id} not found")
+    return user
 
 @login_manager.unauthorized_handler
 def unauthorized():

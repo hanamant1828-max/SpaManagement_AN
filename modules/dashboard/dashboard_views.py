@@ -21,7 +21,18 @@ def dashboard():
     print(f"   - User ID: {current_user.id if current_user.is_authenticated else 'N/A'}")
     print(f"   - Session data: {dict(session)}")
     print(f"   - Flask-Login user_id in session: {session.get('_user_id')}")
+    print(f"   - Session permanent: {session.permanent}")
+    print(f"   - Request headers: {dict(request.headers)}")
+    print(f"   - Cookies: {request.cookies}")
     print("="*80 + "\n")
+    
+    # If not authenticated, this should have been caught by @login_required
+    # but let's add explicit check and redirect
+    if not current_user.is_authenticated:
+        print("❌ Dashboard access denied - user not authenticated")
+        flash('Please log in to access the dashboard.', 'warning')
+        return redirect(url_for('login'))
+    
     try:
         ist_now = get_ist_now()
 
