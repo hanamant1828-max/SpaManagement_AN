@@ -116,12 +116,11 @@ def api_login():
             print("❌ API Login: No JSON data received")
             return jsonify({"success": False, "message": "Invalid request format"}), 400
         
-        # Normalize + lookup by username OR email (case-insensitive)    
+        # Get identifier and password
         identifier = data.get("identifier", "").strip()
         password = data.get("password", "")
-        ident_l = identifier.lower()
         
-        print(f"🔍 API Login attempt for identifier: '{identifier}' (normalized: '{ident_l}')")
+        print(f"🔍 API Login attempt for identifier: '{identifier}'")
         
         if not identifier or not password:
             print("❌ API Login: Missing identifier or password")
@@ -132,6 +131,7 @@ def api_login():
         from sqlalchemy import or_, func
         
         # Normalize + lookup by username OR email (case-insensitive)
+        ident_l = identifier.lower()
         user = (db.session.query(User)
                 .filter(or_(func.lower(User.username) == ident_l,
                            func.lower(User.email) == ident_l))
@@ -199,7 +199,7 @@ def dev_reset_admin():
         from werkzeug.security import generate_password_hash
         
         username = "admin"
-        email = "admin@example.com"
+        email = "admin@spa.com"
         plain = "admin123"
         
         # Find existing admin user (case-insensitive)
