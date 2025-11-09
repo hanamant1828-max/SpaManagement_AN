@@ -110,8 +110,14 @@ def login():
 def api_login():
     """API login endpoint that supports both username and email"""
     try:
+        print("\n" + "="*80)
+        print("🔐 LOGIN PROCESS STARTED")
+        print("="*80)
+        
         # Get JSON data from request
         data = request.get_json()
+        print(f"📥 Request data received: {data}")
+        
         if not data:
             print("❌ API Login: No JSON data received")
             return jsonify({"success": False, "message": "Invalid request format"}), 400
@@ -120,7 +126,8 @@ def api_login():
         identifier = data.get("identifier", "").strip()
         password = data.get("password", "")
         
-        print(f"🔍 API Login attempt for identifier: '{identifier}'")
+        print(f"🔍 Username/Email entered: '{identifier}'")
+        print(f"🔍 Password entered: {'*' * len(password)} (length: {len(password)})")
         
         if not identifier or not password:
             print("❌ API Login: Missing identifier or password")
@@ -132,17 +139,26 @@ def api_login():
         
         # Normalize + lookup by username OR email (case-insensitive)
         ident_l = identifier.lower()
+        print(f"🔍 Looking up user with normalized identifier: '{ident_l}'")
+        
         user = (db.session.query(User)
                 .filter(or_(func.lower(User.username) == ident_l,
                            func.lower(User.email) == ident_l))
                 .first())
         
-        print(f"🔍 User found: {user is not None}")
+        print(f"🔍 User found in database: {user is not None}")
         if user:
-            print(f"🔍 User details: username={user.username}, email={user.email}, active={user.is_active}")
+            print(f"✅ User details:")
+            print(f"   - ID: {user.id}")
+            print(f"   - Username: {user.username}")
+            print(f"   - Email: {user.email}")
+            print(f"   - Active: {user.is_active}")
+            print(f"   - Role: {getattr(user, 'role', 'N/A')}")
+            print(f"   - Has password hash: {user.password_hash is not None}")
         
         if not user:
-            print(f"❌ API Login: No user found for identifier '{identifier}'")
+            print(f"❌ API Login FAILED: No user found for identifier '{identifier}'")
+            print("="*80 + "\n")
             return jsonify({"success": False, "message": "Invalid credentials"}), 401
             
         # User status checks (don't silently fail)
@@ -151,41 +167,64 @@ def api_login():
             return jsonify({"success": False, "message": "Your account is inactive."}), 403
         
         # Password verification with fallback (hash drift)
-        print(f"🔍 Testing password for user: {user.username}")
+        print(f"🔐 Starting password verification for user: {user.username}")
+        print(f"   - Password hash type: {user.password_hash[:10] if user.password_hash else 'None'}...")
         
-        if not verify_pwd(user.password_hash, password):
-            print(f"❌ API Login: Invalid password for user {user.username}")
+        password_valid = verify_pwd(user.password_hash, password)
+        print(f"   - Password verification result: {password_valid}")
+        
+        if not password_valid:
+            print(f"❌ API Login FAILED: Invalid password for user {user.username}")
+            print("="*80 + "\n")
             return jsonify({"success": False, "message": "Invalid credentials"}), 401
         
         # Login successful - set session and login user
-        print(f"✅ API Login successful for user: {user.username}")
+        print(f"✅ Password verification PASSED for user: {user.username}")
+        print(f"🔐 Creating session and logging in user...")
         
         # Login the user first (this handles session creation)
         login_user(user, remember=True)
+        print(f"   ✓ Flask-Login login_user() called")
         
         # Then set additional session data
         session["uid"] = user.id
         session.permanent = True  # Make session permanent
+        print(f"   ✓ Session uid set to: {user.id}")
+        print(f"   ✓ Session permanent set to: True")
         
         # Update last login time if column exists
         try:
             if hasattr(user, 'last_login'):
                 user.last_login = datetime.utcnow()
                 db.session.commit()
+                print(f"   ✓ Updated last_login timestamp")
         except Exception as e:
-            print(f"Warning: Could not update last_login: {e}")
+            print(f"   ⚠️ Warning: Could not update last_login: {e}")
         
         # Force session to be saved
         session.modified = True
+        print(f"   ✓ Session modified flag set")
         
-        print(f"✅ Session established for user: {user.username}, session data: {dict(session)}")
+        print(f"\n✅ SESSION CREATED SUCCESSFULLY:")
+        print(f"   - User ID: {session.get('_user_id')}")
+        print(f"   - UID: {session.get('uid')}")
+        print(f"   - Permanent: {session.get('_permanent')}")
+        print(f"   - Remember: {session.get('_remember')}")
+        print(f"   - Full session data: {dict(session)}")
+        
+        print(f"\n🔄 REDIRECTING to /dashboard")
+        print("="*80 + "\n")
         
         return jsonify({"success": True, "redirect": "/dashboard"}), 200
         
     except Exception as e:
-        print(f"❌ API login error: {e}")
+        print(f"\n❌ API LOGIN ERROR:")
+        print(f"   Error type: {type(e).__name__}")
+        print(f"   Error message: {str(e)}")
+        print(f"   Full traceback:")
         import traceback
         traceback.print_exc()
+        print("="*80 + "\n")
         return jsonify({"success": False, "message": "An error occurred during login"}), 500
 
 @app.route('/logout')

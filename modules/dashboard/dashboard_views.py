@@ -14,6 +14,12 @@ from datetime import date, timedelta
 @app.route('/dashboard')
 @login_required
 def dashboard():
+    print("\n" + "="*80)
+    print("📊 DASHBOARD ACCESS ATTEMPTED")
+    print(f"   - Current user authenticated: {current_user.is_authenticated}")
+    print(f"   - Current user: {current_user.username if current_user.is_authenticated else 'Anonymous'}")
+    print(f"   - User ID: {current_user.id if current_user.is_authenticated else 'N/A'}")
+    print("="*80 + "\n")
     try:
         ist_now = get_ist_now()
 
