@@ -3,7 +3,7 @@ Dashboard views and routes
 """
 from flask import render_template, redirect, url_for, flash, jsonify
 from flask_login import login_required, current_user
-from app import app, get_ist_now, IST
+from app import app, db, get_ist_now, IST
 from .dashboard_queries import (
     get_dashboard_stats, get_recent_appointments, get_low_stock_items, 
     get_expiring_items, get_revenue_trends, get_peak_hours, get_top_services,
