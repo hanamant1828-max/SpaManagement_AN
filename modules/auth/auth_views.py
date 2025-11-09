@@ -161,7 +161,7 @@ def api_login():
         print(f"✅ API Login successful for user: {user.username}")
         session.clear()
         session["uid"] = user.id
-        login_user(user)
+        login_user(user, remember=True)
         
         # Update last login time if column exists
         try:
@@ -171,7 +171,7 @@ def api_login():
         except Exception as e:
             print(f"Warning: Could not update last_login: {e}")
         
-        return jsonify({"success": True}), 200
+        return jsonify({"success": True, "redirect": "/dashboard"}), 200
         
     except Exception as e:
         print(f"❌ API login error: {e}")
