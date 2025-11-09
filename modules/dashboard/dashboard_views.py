@@ -55,6 +55,12 @@ def dashboard():
             revenue_labels.append(day.strftime('%a'))
             revenue_values.append(float(day_revenue))
         
+        # Ensure revenue_data is a proper dictionary with lists
+        revenue_chart_data = {
+            'labels': revenue_labels,
+            'values': revenue_values
+        }
+        
         # Last 7 days bookings data
         bookings_labels = []
         bookings_values = []
@@ -90,7 +96,7 @@ def dashboard():
                              month_vs_last_month=round(month_vs_last_month, 1),
                              current_date=ist_now.strftime('%A, %B %d, %Y'),
                              current_time=ist_now.strftime('%I:%M %p IST'),
-                             revenue_data={'labels': revenue_labels, 'values': revenue_values},
+                             revenue_data=revenue_chart_data,
                              bookings_data={'labels': bookings_labels, 'values': bookings_values},
                              service_categories={'labels': service_labels, 'values': service_values},
                              recent_activities=[])
