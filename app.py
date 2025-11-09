@@ -359,6 +359,15 @@ def utility_processor():
         check_permission=check_permission
     )
 
+# Add root route
+@app.route('/')
+def index():
+    """Root route - redirect based on authentication"""
+    from flask_login import current_user
+    if current_user.is_authenticated:
+        return redirect(url_for('dashboard'))
+    return redirect(url_for('login'))
+
 # Add ping route for health check
 @app.route('/ping')
 def ping():
