@@ -8,7 +8,7 @@ from sqlalchemy import func, or_, and_
 from app import app, db
 from forms import LoginForm
 from .auth_queries import validate_user_credentials
-from datetime import datetime
+from datetime import datetime, timedelta
 
 # Password verification function with fallback (hash drift)
 def verify_pwd(stored, given):

@@ -681,10 +681,10 @@ document.addEventListener('DOMContentLoaded', function() {
         new Chart(revenueCtx, {
             type: 'line',
             data: {
-                labels: {{ revenue_data.labels|tojson }},
+                labels: {{ revenue_data['labels']|tojson }},
                 datasets: [{
                     label: 'Revenue',
-                    data: {{ revenue_data.values|tojson }},
+                    data: {{ revenue_data['values']|tojson }},
                     borderColor: '#2563eb',
                     backgroundColor: 'rgba(37, 99, 235, 0.1)',
                     borderWidth: 2,
@@ -704,10 +704,10 @@ document.addEventListener('DOMContentLoaded', function() {
         new Chart(appointmentsCtx, {
             type: 'bar',
             data: {
-                labels: {{ bookings_data.labels|tojson }},
+                labels: {{ bookings_data['labels']|tojson }},
                 datasets: [{
                     label: 'Appointments',
-                    data: {{ bookings_data.values|tojson }},
+                    data: {{ bookings_data['values']|tojson }},
                     backgroundColor: '#10b981',
                     borderRadius: 8,
                     borderSkipped: false
@@ -723,9 +723,9 @@ document.addEventListener('DOMContentLoaded', function() {
         new Chart(servicesCtx, {
             type: 'doughnut',
             data: {
-                labels: {{ service_categories.labels|tojson }},
+                labels: {{ service_categories['labels']|tojson }},
                 datasets: [{
-                    data: {{ service_categories.values|tojson }},
+                    data: {{ service_categories['values']|tojson }},
                     backgroundColor: [
                         '#2563eb',
                         '#10b981',
