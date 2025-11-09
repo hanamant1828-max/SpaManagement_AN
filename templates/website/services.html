@@ -49,16 +49,49 @@
         background: #000000 !important;
         border: 2px solid var(--primary-color) !important;
         border-radius: 10px;
-        padding: 1.25rem;
-        margin-bottom: 1.25rem;
+        padding: 0;
+        margin-bottom: 1rem;
         box-shadow: 0 5px 20px rgba(212,175,55,0.3);
         transition: all 0.3s;
+        overflow: hidden;
     }
     
     .service-item:hover {
-        transform: translateY(-5px);
         box-shadow: 0 10px 30px rgba(255,215,0,0.5);
         border-color: var(--secondary-color) !important;
+    }
+    
+    .service-header {
+        padding: 1rem 1.5rem;
+        cursor: pointer;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        transition: all 0.3s;
+    }
+    
+    .service-header:hover {
+        background: rgba(212,175,55,0.1);
+    }
+    
+    .service-header.collapsed::after {
+        content: '\f107';
+        font-family: 'Font Awesome 5 Free';
+        font-weight: 900;
+        color: var(--primary-color);
+        transition: transform 0.3s;
+    }
+    
+    .service-header:not(.collapsed)::after {
+        content: '\f106';
+        font-family: 'Font Awesome 5 Free';
+        font-weight: 900;
+        color: var(--primary-color);
+        transition: transform 0.3s;
+    }
+    
+    .service-content {
+        padding: 0 1.5rem 1.25rem 1.5rem;
     }
     
     .service-item h4, .service-item p, .service-item span {
@@ -66,9 +99,9 @@
     }
     
     .service-name {
-        font-size: 1.5rem;
+        font-size: 1.3rem;
         color: var(--primary-color) !important;
-        margin-bottom: 0.5rem;
+        margin-bottom: 0;
     }
     
     .service-details {
@@ -401,14 +434,20 @@
                 {% for service in services %}
                 <div class="col-lg-6">
                     <div class="service-item">
-                        <h4 class="service-name">{{ service.name }}</h4>
-                        <p class="service-description">{{ service.description if service.description else 'Premium service tailored to your needs' }}</p>
-                        <div class="service-details">
-                            <div class="service-meta">
-                                <span><i class="far fa-clock me-2"></i>{{ service.duration }} minutes</span>
-                            </div>
-                            <div class="service-price">
-                                ₹{{ "%.2f"|format(service.price) }}
+                        <div class="service-header collapsed" data-bs-toggle="collapse" data-bs-target="#service-{{ service.id }}" aria-expanded="false">
+                            <h4 class="service-name">{{ service.name }}</h4>
+                        </div>
+                        <div id="service-{{ service.id }}" class="collapse">
+                            <div class="service-content">
+                                <p class="service-description">{{ service.description if service.description else 'Premium service tailored to your needs' }}</p>
+                                <div class="service-details">
+                                    <div class="service-meta">
+                                        <span><i class="far fa-clock me-2"></i>{{ service.duration }} minutes</span>
+                                    </div>
+                                    <div class="service-price">
+                                        ₹{{ "%.2f"|format(service.price) }}
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
