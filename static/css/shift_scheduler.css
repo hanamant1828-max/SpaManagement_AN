@@ -146,19 +146,19 @@ body.page-shift-scheduler {
 
 /* Override spa-table styles for schedule management */
 .spa-table-container {
-    border: 1px solid #e5e7eb !important;
+    border: 1px solid var(--spa-gray-200) !important;
     border-radius: 6px !important;
     box-shadow: 0 1px 2px rgba(0,0,0,0.1) !important;
-    background: #ffffff !important;
+    background: var(--spa-white) !important;
     overflow: hidden;
     margin-bottom: 2rem;
 }
 
 .spa-table thead th {
-    background-color: #f8f9fa !important;
-    color: #333 !important;
+    background-color: var(--spa-gray-100) !important;
+    color: var(--spa-gray-900) !important;
     font-weight: bold !important;
-    border-bottom: 1px solid #ddd !important;
+    border-bottom: 1px solid var(--spa-gray-300) !important;
     padding: 16px 20px;
     font-size: 0.875rem;
     text-transform: none !important;
@@ -166,27 +166,27 @@ body.page-shift-scheduler {
 }
 
 .spa-table tbody td {
-    background-color: #ffffff !important;
-    color: #444 !important;
-    border-bottom: 1px solid #eee !important;
+    background-color: var(--spa-white) !important;
+    color: var(--spa-gray-800) !important;
+    border-bottom: 1px solid var(--spa-gray-200) !important;
     padding: 16px 20px;
     vertical-align: middle;
 }
 
 .spa-table tbody tr:hover {
-    background-color: #f1f5f9 !important;
+    background-color: var(--spa-gray-50) !important;
     transform: none !important;
     box-shadow: none !important;
 }
 
 .spa-table tbody tr:hover td {
-    background-color: #f1f5f9 !important;
+    background-color: var(--spa-gray-50) !important;
 }
 
 /* Badge Styling for Office Days */
 .badge-office-days {
-    background-color: #e0f2fe;
-    color: #0369a1;
+    background-color: var(--spa-info-light);
+    color: var(--spa-info-dark);
     padding: 6px 12px;
     border-radius: 20px;
     font-weight: 500;
@@ -196,8 +196,8 @@ body.page-shift-scheduler {
 
 /* Status Badge Styling */
 .badge-status-active {
-    background-color: #d1fae5;
-    color: #065f46;
+    background-color: var(--spa-success-light);
+    color: var(--spa-success-dark);
     padding: 6px 12px;
     border-radius: 20px;
     font-weight: 500;
@@ -206,8 +206,8 @@ body.page-shift-scheduler {
 }
 
 .badge-status-inactive {
-    background-color: #fee2e2;
-    color: #991b1b;
+    background-color: var(--spa-danger-light);
+    color: var(--spa-danger-dark);
     padding: 6px 12px;
     border-radius: 20px;
     font-weight: 500;
@@ -218,8 +218,8 @@ body.page-shift-scheduler {
 /* Action Buttons */
 .action-btn-view {
     background: transparent !important;
-    border: 1px solid #60a5fa !important;
-    color: #3b82f6 !important;
+    border: 1px solid var(--spa-primary-light) !important;
+    color: var(--spa-primary) !important;
     padding: 6px 12px;
     border-radius: 4px;
     font-size: 0.85rem;
@@ -229,15 +229,15 @@ body.page-shift-scheduler {
 }
 
 .action-btn-view:hover {
-    background-color: #eff6ff !important;
-    color: #3b82f6 !important;
-    border-color: #60a5fa !important;
+    background-color: var(--spa-primary-bg) !important;
+    color: var(--spa-primary) !important;
+    border-color: var(--spa-primary-light) !important;
 }
 
 .action-btn-edit {
-    background-color: #3b82f6 !important;
-    color: #fff !important;
-    border: 1px solid #3b82f6 !important;
+    background-color: var(--spa-primary) !important;
+    color: var(--spa-white) !important;
+    border: 1px solid var(--spa-primary) !important;
     padding: 6px 12px;
     border-radius: 4px;
     font-size: 0.85rem;
@@ -247,15 +247,15 @@ body.page-shift-scheduler {
 }
 
 .action-btn-edit:hover {
-    background-color: #2563eb !important;
-    border-color: #2563eb !important;
-    color: #fff !important;
+    background-color: var(--spa-primary-dark) !important;
+    border-color: var(--spa-primary-dark) !important;
+    color: var(--spa-white) !important;
 }
 
 .action-btn-delete {
     background: transparent !important;
-    border: 1px solid #ef4444 !important;
-    color: #ef4444 !important;
+    border: 1px solid var(--spa-danger) !important;
+    color: var(--spa-danger) !important;
     padding: 6px 12px;
     border-radius: 4px;
     font-size: 0.85rem;
@@ -265,9 +265,9 @@ body.page-shift-scheduler {
 }
 
 .action-btn-delete:hover {
-    background-color: #fee2e2 !important;
-    color: #ef4444 !important;
-    border-color: #ef4444 !important;
+    background-color: var(--spa-danger-light) !important;
+    color: var(--spa-danger) !important;
+    border-color: var(--spa-danger) !important;
 }
 
 /* Action buttons group */
@@ -279,45 +279,45 @@ body.page-shift-scheduler {
     flex-wrap: nowrap;
 }
 
-/* Legacy Table Design - White and Black (kept for compatibility) */
-.table-responsive {
-    border: 1px solid #000;
+/* Legacy Table Design - Scoped to specific pages only */
+body.page-shift-scheduler .table-responsive {
+    border: 1px solid var(--spa-gray-300);
     background: white;
 }
 
-.table {
+body.page-shift-scheduler .table {
     margin: 0;
     font-size: 0.9rem;
     background: white;
 }
 
-.table thead th {
-    background: #000;
+body.page-shift-scheduler .table thead th {
+    background: var(--spa-primary);
     color: white;
     font-weight: 600;
     padding: 12px 15px;
-    border: 1px solid #000;
+    border: 1px solid var(--spa-primary-dark);
     font-size: 0.85rem;
 }
 
-.table tbody td {
+body.page-shift-scheduler .table tbody td {
     padding: 12px 15px;
-    border: 1px solid #ccc;
+    border: 1px solid var(--spa-gray-300);
     vertical-align: middle;
     background: white;
-    color: #000;
+    color: var(--spa-gray-900);
 }
 
-.table tbody tr {
+body.page-shift-scheduler .table tbody tr {
     background: white;
 }
 
-.table tbody tr:hover {
-    background-color: #f5f5f5;
+body.page-shift-scheduler .table tbody tr:hover {
+    background-color: var(--spa-gray-50);
 }
 
-.table tbody tr:last-child td {
-    border-bottom: 1px solid #ccc;
+body.page-shift-scheduler .table tbody tr:last-child td {
+    border-bottom: 1px solid var(--spa-gray-300);
 }
 
 /* ============================
@@ -338,32 +338,32 @@ body.page-shift-scheduler {
 }
 
 .day-monday {
-    background: linear-gradient(135deg, #3b82f6, #2563eb);
+    background: linear-gradient(135deg, var(--spa-primary), var(--spa-primary-dark));
     color: white;
 }
 
 .day-tuesday {
-    background: linear-gradient(135deg, #06b6d4, #0891b2);
+    background: linear-gradient(135deg, var(--spa-info), var(--spa-info-dark));
     color: white;
 }
 
 .day-wednesday {
-    background: linear-gradient(135deg, #10b981, #059669);
+    background: linear-gradient(135deg, var(--spa-success), var(--spa-success-dark));
     color: white;
 }
 
 .day-thursday {
-    background: linear-gradient(135deg, #f59e0b, #d97706);
+    background: linear-gradient(135deg, var(--spa-warning), var(--spa-warning-dark));
     color: white;
 }
 
 .day-friday {
-    background: linear-gradient(135deg, #ef4444, #dc2626);
+    background: linear-gradient(135deg, var(--spa-danger), var(--spa-danger-dark));
     color: white;
 }
 
 .day-saturday, .day-sunday {
-    background: linear-gradient(135deg, #6b7280, #4b5563);
+    background: linear-gradient(135deg, var(--spa-gray-600), var(--spa-gray-700));
     color: white;
 }
 
@@ -403,59 +403,59 @@ body.page-shift-scheduler {
 }
 
 /* ============================
-   Simple Status Indicators - Black and White
+   Simple Status Indicators - Using Theme Colors
    ============================ */
 .status-badge {
     padding: 4px 8px;
     font-size: 0.8rem;
     font-weight: 500;
     display: inline-block;
-    border: 1px solid #000;
+    border: 1px solid var(--spa-gray-300);
     background: white;
-    color: #000;
+    color: var(--spa-gray-900);
 }
 
 .status-active {
-    background: white;
-    color: #000;
-    border: 1px solid #000;
+    background: var(--spa-success-light);
+    color: var(--spa-success-dark);
+    border: 1px solid var(--spa-success);
 }
 
 .status-inactive {
-    background: #f0f0f0;
-    color: #000;
-    border: 1px solid #000;
+    background: var(--spa-gray-100);
+    color: var(--spa-gray-900);
+    border: 1px solid var(--spa-gray-400);
 }
 
 .working-status {
-    color: #000;
+    color: var(--spa-success);
     font-weight: 600;
 }
 
 .off-status {
-    color: #666;
+    color: var(--spa-gray-600);
     font-weight: 600;
 }
 
 /* ============================
-   Simple Date & Time Displays - Black and White
+   Simple Date & Time Displays - Using Theme Colors
    ============================ */
 .date-display {
     font-weight: 500;
-    color: #000;
+    color: var(--spa-gray-900);
     background: white;
     padding: 6px 10px;
     font-size: 0.85rem;
-    border: 1px solid #000;
+    border: 1px solid var(--spa-gray-300);
 }
 
 .office-days-badge {
     background: white;
-    color: #000;
+    color: var(--spa-primary);
     padding: 6px 10px;
     font-weight: 500;
     font-size: 0.85rem;
-    border: 1px solid #000;
+    border: 1px solid var(--spa-primary-light);
     display: inline-flex;
     align-items: center;
     gap: 4px;
@@ -661,26 +661,26 @@ body.page-shift-scheduler {
 }
 
 .alert-success {
-    background: linear-gradient(135deg, #dcfce7, #bbf7d0);
-    color: #15803d;
+    background: linear-gradient(135deg, var(--spa-success-light), var(--spa-success-bg));
+    color: var(--spa-success-dark);
     border-left: 4px solid var(--success-color);
 }
 
 .alert-danger {
-    background: linear-gradient(135deg, #fef2f2, #fecaca);
-    color: #dc2626;
+    background: linear-gradient(135deg, var(--spa-danger-light), var(--spa-danger-bg));
+    color: var(--spa-danger-dark);
     border-left: 4px solid var(--danger-color);
 }
 
 .alert-warning {
-    background: linear-gradient(135deg, #fefbeb, #fef3c7);
-    color: #d97706;
+    background: linear-gradient(135deg, var(--spa-warning-light), var(--spa-warning-bg));
+    color: var(--spa-warning-dark);
     border-left: 4px solid var(--warning-color);
 }
 
 .alert-info {
-    background: linear-gradient(135deg, #f0f9ff, #e0f2fe);
-    color: #0891b2;
+    background: linear-gradient(135deg, var(--spa-info-light), var(--spa-info-bg));
+    color: var(--spa-info-dark);
     border-left: 4px solid var(--info-color);
 }
 
@@ -880,7 +880,7 @@ body.page-shift-scheduler {
 }
 
 .count-badge {
-    background: linear-gradient(135deg, var(--info-color), #0e7490);
+    background: linear-gradient(135deg, var(--info-color), var(--spa-info-dark));
     color: white;
     font-weight: 700;
     padding: 0.25rem 0.75rem;
