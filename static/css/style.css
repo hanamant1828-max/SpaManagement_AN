@@ -1214,6 +1214,13 @@ body.sidebar-minimized {
     font-weight: var(--font-weight-medium);
 }
 
+.out-of-office-form label,
+.out-of-office-form .form-label,
+.out-of-office-card label,
+.out-of-office-card .form-label {
+    color: var(--spa-white) !important;
+}
+
 .out-of-office-form .form-control,
 .out-of-office-form .form-select {
     background: var(--bg-primary) !important;
