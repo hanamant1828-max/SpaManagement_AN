@@ -26,7 +26,7 @@
     {% block extra_head %}{% endblock %}
     {% block extra_css %}{% endblock %}
 </head>
-<body>
+<body class="{% block body_class %}{% endblock %}">
     <!-- Top Navigation Bar -->
     {% if true %}
     <nav class="navbar navbar-dark bg-primary fixed-top">

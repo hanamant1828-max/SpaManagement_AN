@@ -1,15 +1,17 @@
 {% extends "base.html" %}
 
 {% block title %}Customer Management - Spa & Salon Management Suite{% endblock %}
+{% block body_class %}customers-page{% endblock %}
 
 {% block extra_css %}
 <style>
+/* Customer Management - Using Centralized Theme Tokens */
 .customer-management-header {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    padding: 2rem 0;
-    margin-bottom: 2rem;
-    border-radius: 0 0 1rem 1rem;
+    background: linear-gradient(135deg, var(--spa-primary), var(--spa-primary-darker));
+    color: var(--text-inverse);
+    padding: var(--space-8) 0;
+    margin-bottom: var(--space-8);
+    border-radius: 0 0 var(--radius-lg) var(--radius-lg);
 }
 
 .stats-overview {
