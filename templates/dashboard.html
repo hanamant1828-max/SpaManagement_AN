@@ -68,17 +68,17 @@
     }
 
     .btn-action.primary {
-        background: var(--color-primary);
+        background: var(--spa-primary);
         color: white;
     }
 
     .btn-action.primary:hover {
-        background: var(--color-primary-dark);
+        background: var(--spa-primary-dark);
     }
 
     .btn-action.secondary {
         background: white;
-        color: var(--color-primary);
+        color: var(--spa-primary);
         border: 1px solid var(--border-medium);
     }
 
@@ -135,19 +135,19 @@
     }
 
     .stat-card.primary .stat-icon {
-        background: linear-gradient(135deg, var(--color-primary), var(--color-primary-light));
+        background: linear-gradient(135deg, var(--spa-primary), var(--spa-primary-light));
     }
 
     .stat-card.success .stat-icon {
-        background: linear-gradient(135deg, #10b981, #34d399);
+        background: linear-gradient(135deg, var(--spa-success), var(--spa-success-light));
     }
 
     .stat-card.info .stat-icon {
-        background: linear-gradient(135deg, #06b6d4, #22d3ee);
+        background: linear-gradient(135deg, var(--spa-info), var(--spa-info-light));
     }
 
     .stat-card.warning .stat-icon {
-        background: linear-gradient(135deg, #f59e0b, #fbbf24);
+        background: linear-gradient(135deg, var(--spa-warning), var(--spa-warning-light));
     }
 
     .stat-value {
@@ -168,13 +168,13 @@
     }
 
     .stat-change.positive {
-        background: #d1fae5;
-        color: #065f46;
+        background: rgba(52, 168, 83, 0.1);
+        color: var(--spa-success-dark);
     }
 
     .stat-change.negative {
-        background: #fee2e2;
-        color: #991b1b;
+        background: rgba(234, 67, 53, 0.1);
+        color: var(--spa-danger-dark);
     }
 
     .stat-change.neutral {
@@ -237,22 +237,22 @@
     }
 
     .action-btn.primary i {
-        background: linear-gradient(135deg, var(--color-primary), var(--color-primary-light));
+        background: linear-gradient(135deg, var(--spa-primary), var(--spa-primary-light));
         color: white;
     }
 
     .action-btn.success i {
-        background: linear-gradient(135deg, #10b981, #34d399);
+        background: linear-gradient(135deg, var(--spa-success), var(--spa-success-light));
         color: white;
     }
 
     .action-btn.info i {
-        background: linear-gradient(135deg, #06b6d4, #22d3ee);
+        background: linear-gradient(135deg, var(--spa-info), var(--spa-info-light));
         color: white;
     }
 
     .action-btn.warning i {
-        background: linear-gradient(135deg, #f59e0b, #fbbf24);
+        background: linear-gradient(135deg, var(--spa-warning), var(--spa-warning-light));
         color: white;
     }
 
@@ -341,7 +341,7 @@
         justify-content: center;
         flex-shrink: 0;
         background: var(--bg-tertiary);
-        color: var(--color-primary);
+        color: var(--spa-primary);
     }
 
     .activity-content {

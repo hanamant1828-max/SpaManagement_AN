@@ -30,12 +30,12 @@
 .stat-number {
     font-size: 2.5rem;
     font-weight: 700;
-    color: #667eea;
+    color: var(--spa-primary);
     display: block;
 }
 
 .stat-label {
-    color: #6c757d;
+    color: var(--text-secondary);
     font-size: 0.9rem;
     text-transform: uppercase;
     letter-spacing: 1px;
@@ -56,7 +56,7 @@
 }
 
 .card-header-gradient {
-    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    background: linear-gradient(135deg, var(--spa-primary-light), var(--spa-danger));
     color: white;
     border: none;
     padding: 1.5rem;
@@ -64,7 +64,7 @@
 }
 
 .search-section {
-    background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+    background: linear-gradient(135deg, var(--spa-warning-light), var(--spa-warning));
     border-radius: 15px;
     padding: 2rem;
     margin-bottom: 2rem;
@@ -89,14 +89,14 @@
     right: 20px;
     top: 50%;
     transform: translateY(-50%);
-    color: #667eea;
+    color: var(--spa-primary);
 }
 
 .customer-avatar {
     width: 60px;
     height: 60px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, var(--spa-primary), var(--spa-primary-darker));
     display: flex;
     align-items: center;
     justify-content: center;
@@ -110,12 +110,12 @@
 
 .customer-info h5 {
     margin: 0;
-    color: #2d3748;
+    color: var(--text-primary);
     font-weight: 600;
 }
 
 .customer-meta {
-    color: #718096;
+    color: var(--text-tertiary);
     font-size: 0.9rem;
     margin-top: 5px;
 }
@@ -158,7 +158,7 @@
     bottom: -30px;
     left: 50%;
     transform: translateX(-50%);
-    background: #2d3748;
+    background: var(--spa-dark);
     color: white;
     padding: 5px 10px;
     border-radius: 5px;
@@ -175,7 +175,7 @@
 }
 
 .table-enhanced thead {
-    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    background: linear-gradient(135deg, var(--spa-info), var(--spa-info-light));
     color: white;
 }
 
@@ -203,7 +203,7 @@
 }
 
 .face-management-section {
-    background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+    background: linear-gradient(135deg, var(--spa-info-light), var(--spa-danger-light));
     border-radius: 15px;
     padding: 2rem;
     margin-bottom: 2rem;
@@ -226,7 +226,7 @@
     left: 0;
     right: 0;
     height: 5px;
-    background: linear-gradient(90deg, #667eea, #764ba2, #f093fb, #f5576c);
+    background: linear-gradient(90deg, var(--spa-primary), var(--spa-primary-darker), var(--spa-primary-light), var(--spa-danger));
 }
 
 .face-preview {
@@ -247,7 +247,7 @@
 .empty-state {
     text-align: center;
     padding: 4rem 2rem;
-    color: #718096;
+    color: var(--text-tertiary);
 }
 
 .empty-state i {
@@ -263,7 +263,7 @@
     width: 60px;
     height: 60px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, var(--spa-primary), var(--spa-primary-darker));
     border: none;
     color: white;
     font-size: 1.5rem;
@@ -285,7 +285,7 @@
 }
 
 .modal-modern .modal-header {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, var(--spa-primary), var(--spa-primary-darker));
     color: white;
     border: none;
     padding: 2rem;
@@ -314,13 +314,13 @@
 .form-floating-modern input:focus,
 .form-floating-modern select:focus,
 .form-floating-modern textarea:focus {
-    border-color: #667eea;
+    border-color: var(--spa-primary);
     box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
     background: white;
 }
 
 .form-floating-modern label {
-    color: #718096;
+    color: var(--text-tertiary);
     font-weight: 500;
     margin-bottom: 0.5rem;
 }
@@ -337,13 +337,13 @@
     border-radius: 10px;
     padding: 1rem 2rem;
     margin: 0 0.25rem;
-    color: #718096;
+    color: var(--text-tertiary);
     font-weight: 600;
     transition: all 0.3s ease;
 }
 
 .tabs-modern .nav-link.active {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, var(--spa-primary), var(--spa-primary-darker));
     color: white;
     box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
 }
@@ -490,7 +490,7 @@
                         {% if current_user.has_permission('clients_create') %}
                         <button type="button" class="btn btn-lg btn-primary px-4 py-3"
                                 data-bs-toggle="modal" data-bs-target="#addCustomerModal"
-                                style="border-radius: 25px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none;">
+                                style="border-radius: 25px; background: linear-gradient(135deg, var(--spa-primary), var(--spa-primary-darker)); border: none;">
                             <i class="fas fa-user-plus me-2"></i>Add New Customer
                         </button>
                         {% endif %}
