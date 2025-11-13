@@ -716,6 +716,24 @@ function loadBusinessGstDetails() {
 document.addEventListener('DOMContentLoaded', function() {
     loadLogo();
     
+    // Logo file preview on selection
+    const logoFileInput = document.getElementById('logoFile');
+    if (logoFileInput) {
+        logoFileInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file && file.type.startsWith('image/')) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    const logoImage = document.getElementById('logoImage');
+                    logoImage.src = event.target.result;
+                    logoImage.style.display = 'block';
+                    document.getElementById('noLogoMessage').style.display = 'none';
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+    }
+    
     // Logo upload form
     const logoUploadForm = document.getElementById('logoUploadForm');
     if (logoUploadForm) {
@@ -727,6 +745,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 alert('Please select a file to upload');
                 return;
             }
+            
+            const uploadBtn = document.getElementById('uploadLogoBtn');
+            const originalText = uploadBtn.innerHTML;
+            uploadBtn.disabled = true;
+            uploadBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Uploading...';
             
             const formData = new FormData();
             formData.append('logo', fileInput.files[0]);
@@ -741,7 +764,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 if (data.success) {
                     alert('Logo uploaded successfully!');
-                    loadLogo();
+                    await loadLogo();
                     fileInput.value = '';
                 } else {
                     alert('Error: ' + (data.message || 'Failed to upload logo'));
@@ -749,6 +772,9 @@ document.addEventListener('DOMContentLoaded', function() {
             } catch (error) {
                 console.error('Error uploading logo:', error);
                 alert('Error uploading logo. Please try again.');
+            } finally {
+                uploadBtn.disabled = false;
+                uploadBtn.innerHTML = originalText;
             }
         });
     }
@@ -770,7 +796,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 if (data.success) {
                     alert('Logo deleted successfully!');
-                    loadLogo();
+                    await loadLogo();
                 } else {
                     alert('Error: ' + (data.message || 'Failed to delete logo'));
                 }
@@ -780,11 +806,19 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+    
+    // Load logo when Settings tab is shown
+    const settingsTab = document.getElementById('settings-tab');
+    if (settingsTab) {
+        settingsTab.addEventListener('shown.bs.tab', function() {
+            loadLogo();
+        });
+    }
 });
 
 async function loadLogo() {
     try {
-        const response = await fetch('/api/settings/logo');
+        const response = await fetch('/api/settings/logo?t=' + new Date().getTime());
         const data = await response.json();
         
         const logoImage = document.getElementById('logoImage');
@@ -792,17 +826,29 @@ async function loadLogo() {
         const deleteLogoBtn = document.getElementById('deleteLogoBtn');
         
         if (data.success && data.logo_url) {
-            logoImage.src = data.logo_url;
+            // Add timestamp to prevent caching
+            logoImage.src = data.logo_url + '?t=' + new Date().getTime();
             logoImage.style.display = 'block';
+            logoImage.onload = function() {
+                console.log('Logo loaded successfully:', data.logo_url);
+            };
+            logoImage.onerror = function() {
+                console.error('Failed to load logo image:', data.logo_url);
+                logoImage.style.display = 'none';
+                noLogoMessage.style.display = 'block';
+            };
             noLogoMessage.style.display = 'none';
             deleteLogoBtn.style.display = 'inline-block';
         } else {
             logoImage.style.display = 'none';
+            logoImage.src = '';
             noLogoMessage.style.display = 'block';
             deleteLogoBtn.style.display = 'none';
         }
     } catch (error) {
         console.error('Error loading logo:', error);
+        document.getElementById('logoImage').style.display = 'none';
+        document.getElementById('noLogoMessage').style.display = 'block';
     }
 }
 </script>

@@ -603,6 +603,9 @@ def api_upload_logo():
         # Create uploads directory if it doesn't exist
         upload_dir = os.path.join('static', 'uploads', 'logos')
         os.makedirs(upload_dir, exist_ok=True)
+        
+        print(f"Upload directory: {upload_dir}")
+        print(f"Upload directory exists: {os.path.exists(upload_dir)}")
 
         # Generate unique filename
         from datetime import datetime
@@ -610,8 +613,12 @@ def api_upload_logo():
         new_filename = f'logo_{timestamp}.{file_ext}'
         file_path = os.path.join(upload_dir, new_filename)
         
+        print(f"Saving file to: {file_path}")
+        
         # Save file
         file.save(file_path)
+        
+        print(f"File saved successfully: {os.path.exists(file_path)}")
         
         # Store path in database
         logo_url = f'/static/uploads/logos/{new_filename}'
