@@ -532,6 +532,177 @@ def api_delete_gst_rate(rate_id):
             'message': str(e)
         }), 500
 
+# Logo Management API Routes
+@app.route('/api/settings/logo', methods=['GET'])
+@login_required
+def api_get_logo():
+    """Get current logo"""
+    try:
+        from models import SystemSetting
+        
+        logo_setting = SystemSetting.query.filter_by(key='business_logo').first()
+        
+        if logo_setting and logo_setting.value:
+            return jsonify({
+                'success': True,
+                'logo_url': logo_setting.value
+            })
+        
+        return jsonify({
+            'success': True,
+            'logo_url': None
+        })
+    except Exception as e:
+        print(f"Error getting logo: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@app.route('/api/settings/logo', methods=['POST'])
+@login_required
+def api_upload_logo():
+    """Upload business logo"""
+    try:
+        if not current_user.can_access('settings'):
+            return jsonify({
+                'success': False,
+                'message': 'Access denied'
+            }), 403
+
+        import os
+        from werkzeug.utils import secure_filename
+        from models import SystemSetting
+
+        # Check if file was uploaded
+        if 'logo' not in request.files:
+            return jsonify({
+                'success': False,
+                'message': 'No file uploaded'
+            }), 400
+
+        file = request.files['logo']
+        
+        if file.filename == '':
+            return jsonify({
+                'success': False,
+                'message': 'No file selected'
+            }), 400
+
+        # Validate file type
+        allowed_extensions = {'png', 'jpg', 'jpeg', 'gif', 'svg'}
+        filename = secure_filename(file.filename)
+        file_ext = filename.rsplit('.', 1)[1].lower() if '.' in filename else ''
+        
+        if file_ext not in allowed_extensions:
+            return jsonify({
+                'success': False,
+                'message': f'Invalid file type. Allowed types: {", ".join(allowed_extensions)}'
+            }), 400
+
+        # Create uploads directory if it doesn't exist
+        upload_dir = os.path.join('static', 'uploads', 'logos')
+        os.makedirs(upload_dir, exist_ok=True)
+
+        # Generate unique filename
+        from datetime import datetime
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        new_filename = f'logo_{timestamp}.{file_ext}'
+        file_path = os.path.join(upload_dir, new_filename)
+        
+        # Save file
+        file.save(file_path)
+        
+        # Store path in database
+        logo_url = f'/static/uploads/logos/{new_filename}'
+        logo_setting = SystemSetting.query.filter_by(key='business_logo').first()
+        
+        if logo_setting:
+            # Delete old logo file if it exists
+            if logo_setting.value:
+                old_file_path = logo_setting.value.replace('/static/', 'static/')
+                if os.path.exists(old_file_path):
+                    try:
+                        os.remove(old_file_path)
+                    except Exception as e:
+                        print(f"Warning: Could not delete old logo: {e}")
+            
+            logo_setting.value = logo_url
+        else:
+            logo_setting = SystemSetting(
+                key='business_logo',
+                value=logo_url,
+                category='business',
+                display_name='Business Logo',
+                data_type='string'
+            )
+            db.session.add(logo_setting)
+
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'message': 'Logo uploaded successfully',
+            'logo_url': logo_url
+        })
+
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error uploading logo: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            'success': False,
+            'message': str(e)
+        }), 500
+
+@app.route('/api/settings/logo', methods=['DELETE'])
+@login_required
+def api_delete_logo():
+    """Delete business logo"""
+    try:
+        if not current_user.can_access('settings'):
+            return jsonify({
+                'success': False,
+                'message': 'Access denied'
+            }), 403
+
+        import os
+        from models import SystemSetting
+
+        logo_setting = SystemSetting.query.filter_by(key='business_logo').first()
+        
+        if not logo_setting or not logo_setting.value:
+            return jsonify({
+                'success': False,
+                'message': 'No logo found'
+            }), 404
+
+        # Delete file from filesystem
+        file_path = logo_setting.value.replace('/static/', 'static/')
+        if os.path.exists(file_path):
+            try:
+                os.remove(file_path)
+            except Exception as e:
+                print(f"Warning: Could not delete logo file: {e}")
+
+        # Remove from database
+        logo_setting.value = None
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'message': 'Logo deleted successfully'
+        })
+
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error deleting logo: {e}")
+        return jsonify({
+            'success': False,
+            'message': str(e)
+        }), 500
+
 @app.route('/system_management')
 @login_required
 def system_management():

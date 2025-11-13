@@ -156,6 +156,45 @@
                 <!-- System Settings Tab Pane -->
                 <div class="tab-pane fade" id="settings-tab-pane" role="tabpanel" aria-labelledby="settings-tab" tabindex="0">
                     <div class="row mt-4">
+                        <!-- Logo Management Section -->
+                        <div class="col-lg-6 mb-4">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="mb-0">
+                                        <i class="fas fa-image me-2"></i>Business Logo
+                                    </h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="text-center mb-3">
+                                        <div id="logoPreview" class="mb-3" style="min-height: 150px; border: 2px dashed #dee2e6; border-radius: 8px; padding: 20px; background-color: #f8f9fa;">
+                                            <img id="logoImage" src="" alt="Business Logo" style="max-width: 100%; max-height: 200px; display: none;">
+                                            <div id="noLogoMessage" class="text-muted">
+                                                <i class="fas fa-image fa-3x mb-2"></i>
+                                                <p>No logo uploaded</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <form id="logoUploadForm" enctype="multipart/form-data">
+                                        <div class="mb-3">
+                                            <label for="logoFile" class="form-label">Upload Logo</label>
+                                            <input type="file" class="form-control" id="logoFile" name="logo" accept="image/png, image/jpeg, image/jpg, image/gif, image/svg+xml">
+                                            <small class="text-muted">Supported formats: PNG, JPG, JPEG, GIF, SVG. Max size: 5MB</small>
+                                        </div>
+                                        
+                                        <div class="d-flex gap-2">
+                                            <button type="submit" class="btn btn-primary" id="uploadLogoBtn">
+                                                <i class="fas fa-upload me-1"></i>Upload Logo
+                                            </button>
+                                            <button type="button" class="btn btn-danger" id="deleteLogoBtn" style="display: none;">
+                                                <i class="fas fa-trash me-1"></i>Delete Logo
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+
                         <div class="col-lg-12">
                             <div class="card">
                                 <div class="card-header d-flex justify-content-between align-items-center">
@@ -670,3 +709,100 @@ function loadBusinessGstDetails() {
 
 </script>
 {% endblock %}
+
+
+<script>
+// Logo Management
+document.addEventListener('DOMContentLoaded', function() {
+    loadLogo();
+    
+    // Logo upload form
+    const logoUploadForm = document.getElementById('logoUploadForm');
+    if (logoUploadForm) {
+        logoUploadForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const fileInput = document.getElementById('logoFile');
+            if (!fileInput.files || fileInput.files.length === 0) {
+                alert('Please select a file to upload');
+                return;
+            }
+            
+            const formData = new FormData();
+            formData.append('logo', fileInput.files[0]);
+            
+            try {
+                const response = await fetch('/api/settings/logo', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert('Logo uploaded successfully!');
+                    loadLogo();
+                    fileInput.value = '';
+                } else {
+                    alert('Error: ' + (data.message || 'Failed to upload logo'));
+                }
+            } catch (error) {
+                console.error('Error uploading logo:', error);
+                alert('Error uploading logo. Please try again.');
+            }
+        });
+    }
+    
+    // Delete logo button
+    const deleteLogoBtn = document.getElementById('deleteLogoBtn');
+    if (deleteLogoBtn) {
+        deleteLogoBtn.addEventListener('click', async function() {
+            if (!confirm('Are you sure you want to delete the logo?')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/settings/logo', {
+                    method: 'DELETE'
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert('Logo deleted successfully!');
+                    loadLogo();
+                } else {
+                    alert('Error: ' + (data.message || 'Failed to delete logo'));
+                }
+            } catch (error) {
+                console.error('Error deleting logo:', error);
+                alert('Error deleting logo. Please try again.');
+            }
+        });
+    }
+});
+
+async function loadLogo() {
+    try {
+        const response = await fetch('/api/settings/logo');
+        const data = await response.json();
+        
+        const logoImage = document.getElementById('logoImage');
+        const noLogoMessage = document.getElementById('noLogoMessage');
+        const deleteLogoBtn = document.getElementById('deleteLogoBtn');
+        
+        if (data.success && data.logo_url) {
+            logoImage.src = data.logo_url;
+            logoImage.style.display = 'block';
+            noLogoMessage.style.display = 'none';
+            deleteLogoBtn.style.display = 'inline-block';
+        } else {
+            logoImage.style.display = 'none';
+            noLogoMessage.style.display = 'block';
+            deleteLogoBtn.style.display = 'none';
+        }
+    } catch (error) {
+        console.error('Error loading logo:', error);
+    }
+}
+</script>
