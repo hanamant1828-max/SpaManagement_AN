@@ -2,6 +2,8 @@
 
 {% block title %}Out of Office Management - Spa & Salon Suite{% endblock %}
 
+{% block body_class %}page-out-of-office{% endblock %}
+
 {% block extra_head %}
 <link href="{{ url_for('static', filename='css/shift_scheduler.css') }}" rel="stylesheet">
 <style>
@@ -14,7 +16,7 @@
 }
 
 .ooo-header {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, var(--spa-primary), var(--spa-primary-dark));
     color: white;
     padding: 2rem;
     border-radius: 12px 12px 0 0;
@@ -22,17 +24,17 @@
 }
 
 .form-control:focus, .form-select:focus {
-    border-color: #667eea;
-    box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+    border-color: var(--spa-primary);
+    box-shadow: 0 0 0 0.2rem var(--spa-primary-shadow);
 }
 
 .btn-primary {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, var(--spa-primary), var(--spa-primary-dark));
     border: none;
 }
 
 .btn-primary:hover {
-    background: linear-gradient(135deg, #5568d3 0%, #653a8b 100%);
+    background: linear-gradient(135deg, var(--spa-primary-dark), var(--spa-primary-darker));
     transform: translateY(-1px);
 }
 
