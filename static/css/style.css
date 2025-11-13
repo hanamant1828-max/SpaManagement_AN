@@ -1202,15 +1202,15 @@ body.sidebar-minimized {
 /* ========== OUT OF OFFICE FORM STYLING ========== */
 .out-of-office-form,
 .out-of-office-card {
-    background: var(--spa-gray-800) !important;
-    color: var(--spa-white) !important;
+    background: var(--bg-primary) !important;
+    color: var(--text-primary) !important;
     border-radius: var(--radius-lg);
     padding: var(--space-6);
     box-shadow: var(--shadow-base);
 }
 
 .out-of-office-form .form-label {
-    color: var(--spa-white) !important;
+    color: var(--text-primary) !important;
     font-weight: var(--font-weight-medium);
 }
 
@@ -1218,7 +1218,7 @@ body.sidebar-minimized {
 .out-of-office-form .form-label,
 .out-of-office-card label,
 .out-of-office-card .form-label {
-    color: var(--spa-white) !important;
+    color: var(--text-primary) !important;
 }
 
 .out-of-office-form .form-control,
