@@ -1,16 +1,122 @@
 /* ========== SPA & SALON MANAGEMENT SUITE STYLES ========== */
 
-/* CSS Variables - Professional Dashboard Theme */
+/* ========== DESIGN TOKENS - SINGLE SOURCE OF TRUTH ========== */
+/* All color, spacing, and styling values should reference these tokens */
 :root {
+    /* ===== Core Brand Colors ===== */
     --spa-primary: #4285f4;
+    --spa-primary-light: #6ba2f6;
+    --spa-primary-dark: #2563eb;
+    --spa-primary-darker: #1e40af;
+    
     --spa-secondary: #8e9aaf;
+    --spa-secondary-light: #a8b6c7;
+    --spa-secondary-dark: #6b788e;
+    
+    /* ===== Semantic Status Colors ===== */
     --spa-success: #34a853;
+    --spa-success-light: #4ade80;
+    --spa-success-dark: #16a34a;
+    
     --spa-info: #4fc3f7;
+    --spa-info-light: #7dd3fc;
+    --spa-info-dark: #0284c7;
+    
     --spa-warning: #fbbc04;
+    --spa-warning-light: #fcd34d;
+    --spa-warning-dark: #f59e0b;
+    
     --spa-danger: #ea4335;
+    --spa-danger-light: #f87171;
+    --spa-danger-dark: #dc2626;
+    
+    /* ===== Neutral Colors ===== */
+    --spa-white: #ffffff;
     --spa-light: #f8f9fa;
+    --spa-lighter: #f1f5f9;
+    --spa-gray-100: #f8fafc;
+    --spa-gray-200: #e2e8f0;
+    --spa-gray-300: #cbd5e1;
+    --spa-gray-400: #94a3b8;
+    --spa-gray-500: #64748b;
+    --spa-gray-600: #475569;
+    --spa-gray-700: #334155;
+    --spa-gray-800: #1e293b;
+    --spa-gray-900: #0f172a;
     --spa-dark: #2c3e50;
+    
+    /* ===== Background Colors ===== */
+    --bg-primary: #ffffff;
+    --bg-secondary: #f8fafc;
+    --bg-tertiary: #f1f5f9;
+    --bg-hover: #f5f7fa;
+    --bg-active: #e8eef5;
+    
+    /* ===== Border Colors ===== */
+    --border-light: #e2e8f0;
+    --border-medium: #cbd5e1;
+    --border-dark: #94a3b8;
+    
+    /* ===== Text Colors ===== */
+    --text-primary: #1e293b;
+    --text-secondary: #64748b;
+    --text-tertiary: #94a3b8;
+    --text-muted: #70757a;
+    --text-inverse: #ffffff;
+    
+    /* ===== Shadow System ===== */
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    --shadow-base: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+    --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+    --shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    
+    /* ===== Border Radius System ===== */
+    --radius-sm: 0.375rem;
+    --radius-base: 0.5rem;
+    --radius-md: 0.75rem;
+    --radius-lg: 1rem;
+    --radius-xl: 1.5rem;
+    --radius-2xl: 2rem;
+    --radius-full: 9999px;
+    
+    /* ===== Spacing System ===== */
+    --space-1: 0.25rem;
+    --space-2: 0.5rem;
+    --space-3: 0.75rem;
+    --space-4: 1rem;
+    --space-5: 1.25rem;
+    --space-6: 1.5rem;
+    --space-8: 2rem;
+    --space-10: 2.5rem;
+    --space-12: 3rem;
+    --space-16: 4rem;
+    
+    /* ===== Typography System ===== */
+    --font-family-base: 'Google Sans', 'Segoe UI', Roboto, -apple-system, BlinkMacSystemFont, sans-serif;
+    --font-size-xs: 0.75rem;
+    --font-size-sm: 0.875rem;
+    --font-size-base: 1rem;
+    --font-size-lg: 1.125rem;
+    --font-size-xl: 1.25rem;
+    --font-size-2xl: 1.5rem;
+    --font-size-3xl: 1.875rem;
+    --font-size-4xl: 2.25rem;
+    
+    --font-weight-normal: 400;
+    --font-weight-medium: 500;
+    --font-weight-semibold: 600;
+    --font-weight-bold: 700;
+    
+    /* ===== Layout & Grid ===== */
+    --container-max-width: 1400px;
+    --sidebar-width: 280px;
+    --sidebar-width-mini: 80px;
+    --navbar-height: 56px;
     --bs-gutter-x: 30px;
+    
+    /* ===== Component-Specific Colors ===== */
     --table-border-color: #e8eaed;
     --table-hover-bg: #f8f9fa;
     --table-striped-bg: #fafbfc;
@@ -19,9 +125,20 @@
     --professional-border: #dadce0;
     --professional-text: #3c4043;
     --professional-muted: #70757a;
-    --accepted-green: #1e8e3e;
-    --pending-orange: #f29900;
-    --overdue-red: #d93025;
+    
+    /* ===== Status-Specific Colors ===== */
+    --status-accepted: #1e8e3e;
+    --status-pending: #f29900;
+    --status-overdue: #d93025;
+    --status-completed: #34a853;
+    --status-cancelled: #ea4335;
+    --status-active: #4285f4;
+    --status-inactive: #94a3b8;
+    
+    /* ===== Transition & Animation ===== */
+    --transition-base: all 0.2s ease;
+    --transition-slow: all 0.3s ease;
+    --transition-fast: all 0.15s ease;
 }
 
 /* ========== RESET & BASE STYLES ========== */
@@ -41,8 +158,308 @@ html, body {
 }
 
 /* Allow page-specific backgrounds to override */
-body.dashboard-page {
-    background: transparent !important;
+body.dashboard-page,
+body.customers-page,
+body.billing-page,
+body.reports-page,
+body.packages-page,
+body.services-page {
+    background: var(--bg-secondary) !important;
+}
+
+/* ========== REUSABLE COMPONENT CLASSES ========== */
+/* Use these classes to maintain consistency across all pages */
+
+/* === Page Containers === */
+.page-container {
+    max-width: var(--container-max-width);
+    margin: 0 auto;
+    padding: var(--space-8) var(--space-6);
+}
+
+/* === Page Headers === */
+.page-header {
+    background: var(--bg-primary);
+    border-radius: var(--radius-lg);
+    padding: var(--space-8);
+    margin-bottom: var(--space-8);
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--border-light);
+}
+
+.page-header-title {
+    font-size: var(--font-size-3xl);
+    font-weight: var(--font-weight-bold);
+    color: var(--text-primary);
+    margin-bottom: var(--space-2);
+}
+
+.page-header-subtitle {
+    font-size: var(--font-size-base);
+    color: var(--text-secondary);
+    margin-bottom: 0;
+}
+
+.page-header-actions {
+    display: flex;
+    gap: var(--space-3);
+    align-items: center;
+}
+
+/* === Cards === */
+.spa-card {
+    background: var(--bg-primary);
+    border-radius: var(--radius-lg);
+    padding: var(--space-6);
+    box-shadow: var(--shadow-base);
+    border: 1px solid var(--border-light);
+    transition: var(--transition-base);
+}
+
+.spa-card:hover {
+    box-shadow: var(--shadow-md);
+    transform: translateY(-2px);
+}
+
+.spa-card-header {
+    padding-bottom: var(--space-4);
+    margin-bottom: var(--space-4);
+    border-bottom: 1px solid var(--border-light);
+}
+
+.spa-card-title {
+    font-size: var(--font-size-xl);
+    font-weight: var(--font-weight-semibold);
+    color: var(--text-primary);
+    margin: 0;
+}
+
+.spa-card-body {
+    padding: var(--space-4) 0;
+}
+
+.spa-card-footer {
+    padding-top: var(--space-4);
+    margin-top: var(--space-4);
+    border-top: 1px solid var(--border-light);
+}
+
+/* === Stat Cards === */
+.stat-card {
+    background: var(--bg-primary);
+    border-radius: var(--radius-lg);
+    padding: var(--space-6);
+    box-shadow: var(--shadow-base);
+    border: 1px solid var(--border-light);
+    transition: var(--transition-base);
+    height: 100%;
+}
+
+.stat-card:hover {
+    box-shadow: var(--shadow-md);
+    transform: translateY(-2px);
+}
+
+.stat-card-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: var(--radius-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    margin-bottom: var(--space-4);
+}
+
+.stat-card-icon.primary { background: rgba(66, 133, 244, 0.1); color: var(--spa-primary); }
+.stat-card-icon.success { background: rgba(52, 168, 83, 0.1); color: var(--spa-success); }
+.stat-card-icon.warning { background: rgba(251, 188, 4, 0.1); color: var(--spa-warning); }
+.stat-card-icon.danger { background: rgba(234, 67, 53, 0.1); color: var(--spa-danger); }
+.stat-card-icon.info { background: rgba(79, 195, 247, 0.1); color: var(--spa-info); }
+
+.stat-card-value {
+    font-size: var(--font-size-3xl);
+    font-weight: var(--font-weight-bold);
+    color: var(--text-primary);
+    margin-bottom: var(--space-2);
+}
+
+.stat-card-label {
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+    font-weight: var(--font-weight-medium);
+}
+
+.stat-card-change {
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
+    margin-top: var(--space-2);
+}
+
+.stat-card-change.positive { color: var(--spa-success); }
+.stat-card-change.negative { color: var(--spa-danger); }
+
+/* === Buttons === */
+.btn-spa-primary {
+    background: linear-gradient(135deg, var(--spa-primary), var(--spa-primary-dark));
+    color: var(--text-inverse);
+    border: none;
+    padding: var(--space-3) var(--space-6);
+    border-radius: var(--radius-md);
+    font-weight: var(--font-weight-medium);
+    transition: var(--transition-base);
+    box-shadow: var(--shadow-sm);
+}
+
+.btn-spa-primary:hover {
+    background: linear-gradient(135deg, var(--spa-primary-light), var(--spa-primary));
+    box-shadow: var(--shadow-md);
+    transform: translateY(-1px);
+    color: var(--text-inverse);
+}
+
+/* === Forms === */
+.spa-form-group {
+    margin-bottom: var(--space-6);
+}
+
+.spa-form-label {
+    font-weight: var(--font-weight-medium);
+    color: var(--text-primary);
+    margin-bottom: var(--space-2);
+    display: block;
+}
+
+.spa-form-control {
+    width: 100%;
+    padding: var(--space-3) var(--space-4);
+    border: 1px solid var(--border-medium);
+    border-radius: var(--radius-md);
+    font-size: var(--font-size-base);
+    transition: var(--transition-base);
+}
+
+.spa-form-control:focus {
+    outline: none;
+    border-color: var(--spa-primary);
+    box-shadow: 0 0 0 3px rgba(66, 133, 244, 0.1);
+}
+
+/* === Tables === */
+.spa-table {
+    width: 100%;
+    background: var(--bg-primary);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    box-shadow: var(--shadow-base);
+}
+
+.spa-table th {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    font-weight: var(--font-weight-semibold);
+    font-size: var(--font-size-sm);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: var(--space-4);
+    border-bottom: 2px solid var(--border-medium);
+}
+
+.spa-table td {
+    padding: var(--space-4);
+    border-bottom: 1px solid var(--border-light);
+    color: var(--text-primary);
+}
+
+.spa-table tr:hover {
+    background: var(--bg-hover);
+}
+
+.spa-table tr:last-child td {
+    border-bottom: none;
+}
+
+/* === Badges === */
+.spa-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: var(--space-1) var(--space-3);
+    border-radius: var(--radius-full);
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-semibold);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.spa-badge.primary { background: rgba(66, 133, 244, 0.1); color: var(--spa-primary-dark); }
+.spa-badge.success { background: rgba(52, 168, 83, 0.1); color: var(--spa-success-dark); }
+.spa-badge.warning { background: rgba(251, 188, 4, 0.1); color: var(--spa-warning-dark); }
+.spa-badge.danger { background: rgba(234, 67, 53, 0.1); color: var(--spa-danger-dark); }
+.spa-badge.info { background: rgba(79, 195, 247, 0.1); color: var(--spa-info-dark); }
+.spa-badge.secondary { background: var(--bg-tertiary); color: var(--text-secondary); }
+
+/* === Status Badges === */
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 12px;
+    border-radius: var(--radius-full);
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-semibold);
+    text-transform: uppercase;
+}
+
+.status-badge.active { background: rgba(66, 133, 244, 0.1); color: var(--status-active); }
+.status-badge.inactive { background: rgba(148, 163, 184, 0.1); color: var(--status-inactive); }
+.status-badge.accepted,
+.status-badge.completed { background: rgba(30, 142, 62, 0.1); color: var(--status-accepted); }
+.status-badge.pending { background: rgba(242, 153, 0, 0.1); color: var(--status-pending); }
+.status-badge.overdue,
+.status-badge.cancelled { background: rgba(217, 48, 37, 0.1); color: var(--status-overdue); }
+
+/* === Alerts === */
+.spa-alert {
+    padding: var(--space-4) var(--space-6);
+    border-radius: var(--radius-md);
+    margin-bottom: var(--space-4);
+    border-left: 4px solid;
+}
+
+.spa-alert.success {
+    background: rgba(52, 168, 83, 0.1);
+    border-color: var(--spa-success);
+    color: var(--spa-success-dark);
+}
+
+.spa-alert.warning {
+    background: rgba(251, 188, 4, 0.1);
+    border-color: var(--spa-warning);
+    color: var(--spa-warning-dark);
+}
+
+.spa-alert.danger {
+    background: rgba(234, 67, 53, 0.1);
+    border-color: var(--spa-danger);
+    color: var(--spa-danger-dark);
+}
+
+.spa-alert.info {
+    background: rgba(66, 133, 244, 0.1);
+    border-color: var(--spa-primary);
+    color: var(--spa-primary-dark);
+}
+
+/* === Gradients (for special headers/cards) === */
+.gradient-primary {
+    background: linear-gradient(135deg, var(--spa-primary), var(--spa-primary-dark));
+}
+
+.gradient-success {
+    background: linear-gradient(135deg, var(--spa-success), var(--spa-success-dark));
+}
+
+.gradient-info {
+    background: linear-gradient(135deg, var(--spa-info), var(--spa-info-dark));
 }
 
 /* ========== LAYOUT SYSTEM ========== */
