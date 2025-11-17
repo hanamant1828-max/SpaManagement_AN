@@ -1113,34 +1113,6 @@ def api_update_category(category_id):
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
-@app.route('/api/inventory/locations/<location_id>', methods=['PUT'])
-@login_required
-def api_update_location(location_id):
-    """Update an existing location"""
-    try:
-        data = request.get_json()
-        location = InventoryLocation.query.get(location_id)
-
-        if not location:
-            return jsonify({'error': 'Location not found'}), 404
-
-        location.name = data.get('name', location.name)
-        location.type = data.get('type', location.type)
-        location.address = data.get('address', location.address)
-        location.contact = data.get('contact', location.contact) # Add contact field
-        location.phone = data.get('phone', location.phone)
-        location.status = data.get('status', location.status)
-
-        db.session.commit()
-
-        return jsonify({
-            'success': True,
-            'message': 'Location updated successfully'
-        })
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({'error': str(e)}), 500
-
 @app.route('/api/inventory/batches/<int:batch_id>', methods=['GET'])
 @login_required
 def api_get_batch(batch_id):
