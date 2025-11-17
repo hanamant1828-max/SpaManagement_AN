@@ -226,9 +226,9 @@
                                 (location.contact_person && location.contact_person.toLowerCase().includes(search)));
             const matchesType = !typeFilter || location.type === typeFilter;
             
-            // Fix: Properly compare status (ensure both location.status and statusFilter exist)
+            // Fix: Handle status filter - empty string means show all
             const locationStatus = (location.status || 'active').toLowerCase();
-            const matchesStatus = !statusFilter || locationStatus === statusFilter.toLowerCase();
+            const matchesStatus = statusFilter === '' || locationStatus === statusFilter.toLowerCase();
 
             return matchesSearch && matchesType && matchesStatus;
         });
@@ -551,10 +551,10 @@
             typeFilter.addEventListener('change', applyFilters);
             console.log('Type filter listener attached');
         }
-        // Status filter listeners - ensure immediate filtering
+        // Status filter listener - single event handler
         if (statusFilterElement) {
-            console.log('Status filter listeners attached (change)');
-            statusFilterElement.addEventListener('change', function() {
+            console.log('Status filter listener attached');
+            statusFilterElement.addEventListener('change', function(e) {
                 console.log('Status filter changed to:', this.value);
                 applyFilters();
             });
