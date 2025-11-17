@@ -1,7 +1,7 @@
 """
 Inventory Management Models
 """
-from datetime import datetime
+from datetime import datetime, date
 from app import db
 from sqlalchemy import func
 
