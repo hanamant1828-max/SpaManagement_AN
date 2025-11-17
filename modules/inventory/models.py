@@ -8,6 +8,7 @@ from sqlalchemy import func
 class InventoryLocation(db.Model):
     """Inventory storage locations (branches, warehouses, rooms)"""
     __tablename__ = 'inventory_locations'
+    __table_args__ = {'extend_existing': True}
 
     id = db.Column(db.String(50), primary_key=True)  # Use string ID for compatibility
     name = db.Column(db.String(100), nullable=False, unique=True)
@@ -42,6 +43,7 @@ class InventoryLocation(db.Model):
 class InventoryCategory(db.Model):
     """Product categories for better organization"""
     __tablename__ = 'inventory_categories'
+    __table_args__ = {'extend_existing': True}
 
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False, unique=True)
@@ -58,6 +60,7 @@ class InventoryCategory(db.Model):
 class InventoryProduct(db.Model):
     """Main product catalog - NO STOCK TRACKING (stock exists only at batch level)"""
     __tablename__ = 'inventory_products'
+    __table_args__ = {'extend_existing': True}
 
     id = db.Column(db.Integer, primary_key=True)
     sku = db.Column(db.String(50), unique=True, nullable=False)
@@ -112,6 +115,7 @@ class InventoryProduct(db.Model):
 class InventoryAlert(db.Model):
     """System alerts for inventory management"""
     __tablename__ = 'inventory_alerts'
+    __table_args__ = {'extend_existing': True}
 
     id = db.Column(db.Integer, primary_key=True)
     product_id = db.Column(db.Integer, db.ForeignKey('inventory_products.id'), nullable=False)
@@ -136,6 +140,7 @@ class InventoryAlert(db.Model):
 class InventoryBatch(db.Model):
     """Batch tracking - CENTRAL element for all stock transactions"""
     __tablename__ = 'inventory_batches'
+    __table_args__ = {'extend_existing': True}
 
     id = db.Column(db.Integer, primary_key=True)
 
@@ -201,6 +206,7 @@ class InventoryBatch(db.Model):
 class InventoryAuditLog(db.Model):
     """Comprehensive audit log for all batch stock changes"""
     __tablename__ = 'inventory_audit_log'
+    __table_args__ = {'extend_existing': True}
 
     id = db.Column(db.Integer, primary_key=True)
     batch_id = db.Column(db.Integer, db.ForeignKey('inventory_batches.id'), nullable=False)
@@ -229,6 +235,7 @@ class InventoryAuditLog(db.Model):
 class InventoryConsumption(db.Model):
     """Track consumption/usage of inventory items"""
     __tablename__ = 'inventory_consumption'
+    __table_args__ = {'extend_existing': True}
 
     id = db.Column(db.Integer, primary_key=True)
     batch_id = db.Column(db.Integer, db.ForeignKey('inventory_batches.id'), nullable=False)
@@ -247,6 +254,7 @@ class InventoryConsumption(db.Model):
 class InventoryAdjustment(db.Model):
     """Track inventory adjustments (adding/removing stock to/from batches)"""
     __tablename__ = 'inventory_adjustments'
+    __table_args__ = {'extend_existing': True}
 
     id = db.Column(db.Integer, primary_key=True)
     batch_id = db.Column(db.Integer, db.ForeignKey('inventory_batches.id'), nullable=False)
@@ -268,6 +276,7 @@ class InventoryAdjustment(db.Model):
 class InventoryTransferItem(db.Model):
     """Items in a transfer"""
     __tablename__ = 'inventory_transfer_items'
+    __table_args__ = {'extend_existing': True}
 
     id = db.Column(db.Integer, primary_key=True)
     transfer_id = db.Column(db.Integer, db.ForeignKey('inventory_transfers.id'), nullable=False)
@@ -283,6 +292,7 @@ class InventoryTransferItem(db.Model):
 class InventoryTransfer(db.Model):
     """Track inventory transfers between locations"""
     __tablename__ = 'inventory_transfers'
+    __table_args__ = {'extend_existing': True}
 
     id = db.Column(db.Integer, primary_key=True)
     transfer_id = db.Column(db.String(50), unique=True, nullable=False)  # Unique transfer identifier
