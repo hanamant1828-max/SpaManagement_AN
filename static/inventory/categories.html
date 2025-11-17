@@ -120,6 +120,17 @@
     // Isolated scope for categories tab
     let editingCategoryId = null;
 
+    // Function to escape HTML special characters
+    function escapeHtml(unsafe) {
+        if (!unsafe) return '';
+        return unsafe
+             .replace(/&/g, "&amp;")
+             .replace(/</g, "&lt;")
+             .replace(/>/g, "&gt;")
+             .replace(/"/g, "&quot;")
+             .replace(/'/g, "&#039;");
+    }
+
     // Fetch categories from the API
     async function loadCategories() {
         const tbody = document.getElementById('categoriesTableBody');
@@ -143,47 +154,38 @@
             const categoriesArray = Array.isArray(categories) ? categories : (categories.categories || []);
 
             categoriesArray.forEach(category => {
-                const productCount = products.filter(p => p.categoryId === category.id).length;
+                // This part is now handled by the backend in the API response itself
+                // const productCount = products.filter(p => p.categoryId === category.id).length;
 
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td>
-                        <div class="d-flex align-items-center">
-                            <span class="badge rounded-pill me-2" 
-                                  style="background-color: ${category.color_code}; width: 20px; height: 20px;">&nbsp;</span>
-                            <small class="text-muted">${category.color_code}</small>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="fw-medium">${category.name}</div>
-                    </td>
-                    <td>
-                        <span class="text-muted">${category.description || 'No description'}</span>
-                    </td>
-                    <td>
-                        <span class="badge bg-light text-dark">${productCount} products</span>
-                    </td>
-                    <td>
-                        <span class="badge bg-${category.is_active ? 'success' : 'secondary'}">
-                            ${category.is_active ? 'Active' : 'Inactive'}
-                        </span>
-                    </td>
-                    <td>
-                        <div class="btn-group btn-group-sm" role="group">
-                            <button class="btn btn-outline-info btn-sm" onclick="viewCategory('${category.id}')" title="View">
-                                <i class="fas fa-eye"></i>
-                            </button>
-                            <button class="btn btn-outline-primary btn-sm" onclick="editCategory('${category.id}')" title="Edit">
-                                <i class="fas fa-edit"></i>
-                            </button>
-                            <button class="btn btn-outline-danger btn-sm" onclick="deleteCategory('${category.id}')" title="Delete" 
-                                    ${productCount > 0 ? 'disabled' : ''}>
-                                <i class="fas fa-trash"></i>
-                            </button>
-                        </div>
-                    </td>
-                `;
-                tbody.appendChild(row);
+                const statusBadge = category.is_active ? 
+                    '<span class="badge bg-success">Active</span>' : 
+                    '<span class="badge bg-secondary">Inactive</span>';
+
+                let categoriesHTML = `
+                        <tr>
+                            <td>
+                                <div style="width: 30px; height: 30px; background-color: ${escapeHtml(category.color_code)}; border-radius: 4px; display: inline-block;"></div>
+                            </td>
+                            <td><strong>${escapeHtml(category.name)}</strong></td>
+                            <td>${escapeHtml(category.description || '')}</td>
+                            <td>${category.product_count || 0} products</td>
+                            <td>${statusBadge}</td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <button class="btn btn-outline-primary" onclick="viewCategory('${category.id}')" title="View">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                    <button class="btn btn-outline-warning" onclick="editCategory('${category.id}')" title="Edit">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn btn-outline-danger" onclick="deleteCategory('${category.id}')" title="Delete">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                tbody.innerHTML += categoriesHTML;
             });
 
             if (categoriesArray.length === 0) {
@@ -220,7 +222,7 @@
             // Fetch products to count them for this category
             const productsResponse = await fetch('/api/products');
             if (!productsResponse.ok) {
-                throw new Error(`HTTP error! status: ${productsResponse.status}`);
+                throw new Error(`HTTP error! status: ${response.status}`);
             }
             const products = await productsResponse.json();
             const productCount = products.filter(p => p.categoryId === categoryId).length;

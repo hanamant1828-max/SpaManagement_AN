@@ -170,7 +170,8 @@ def api_get_categories():
             'name': c.name,
             'description': c.description,
             'color_code': c.color_code,
-            'is_active': c.is_active
+            'is_active': c.is_active,
+            'product_count': len([p for p in c.products if p.is_active])
         } for c in categories])
     except Exception as e:
         return jsonify({'error': str(e)}), 500
