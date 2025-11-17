@@ -276,28 +276,33 @@ class InventoryTransferItem(db.Model):
     quantity = db.Column(db.Numeric(10, 2), nullable=False)
 
     # Relationships
+    transfer = db.relationship('InventoryTransfer', back_populates='items')
     batch = db.relationship('InventoryBatch')
     product = db.relationship('InventoryProduct')
 
 class InventoryTransfer(db.Model):
-    """Track inventory transfers between locations - batch to batch"""
+    """Track inventory transfers between locations"""
     __tablename__ = 'inventory_transfers'
 
     id = db.Column(db.Integer, primary_key=True)
-    source_batch_id = db.Column(db.Integer, db.ForeignKey('inventory_batches.id'), nullable=False)
-    dest_batch_id = db.Column(db.Integer, db.ForeignKey('inventory_batches.id'), nullable=True)  # Created during transfer
-    dest_location_id = db.Column(db.String(50), db.ForeignKey('inventory_locations.id'), nullable=False)
-
+    transfer_id = db.Column(db.String(50), unique=True, nullable=False)  # Unique transfer identifier
+    transfer_date = db.Column(db.Date, nullable=False, default=date.today)
+    
+    # Source and destination locations
+    from_location_id = db.Column(db.String(50), db.ForeignKey('inventory_locations.id'), nullable=False)
+    to_location_id = db.Column(db.String(50), db.ForeignKey('inventory_locations.id'), nullable=False)
+    
     # Transfer details
-    quantity = db.Column(db.Numeric(10, 2), nullable=False)
+    status = db.Column(db.String(20), default='pending')  # pending, completed, cancelled
     notes = db.Column(db.Text)
 
     # Tracking
     created_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    completed_at = db.Column(db.DateTime)
 
     # Relationships
-    source_batch = db.relationship('InventoryBatch', foreign_keys=[source_batch_id], backref='transfers_out')
-    dest_batch = db.relationship('InventoryBatch', foreign_keys=[dest_batch_id], backref='transfers_in')
-    dest_location = db.relationship('InventoryLocation', backref='transfers_received')
+    from_location = db.relationship('InventoryLocation', foreign_keys=[from_location_id], backref='transfers_from')
+    to_location = db.relationship('InventoryLocation', foreign_keys=[to_location_id], backref='transfers_to')
     user = db.relationship('User', backref='transfers')
+    items = db.relationship('InventoryTransferItem', back_populates='transfer', cascade='all, delete-orphan')
