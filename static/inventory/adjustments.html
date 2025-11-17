@@ -73,7 +73,7 @@
 
     <!-- Pagination -->
     <div class="d-flex justify-content-between align-items-center mt-3">
-        <div id="adjustmentsTableInfo"></div>
+        <div id="adjustmentsTableInfo" class="entries-info"></div>
         <nav>
             <ul class="pagination" id="adjustmentsPagination"></ul>
         </nav>
@@ -217,94 +217,162 @@
     let currentPage = 1;
     let pageSize = 25;
 
+    // Helper function for error display
+    function showError(message) {
+        console.error('Displaying error:', message);
+        // Ideally, this would display an alert or a toast notification
+        alert(`Error: ${message}`);
+    }
+
     function loadAdjustments() {
-        // Load from API instead of localStorage
-        fetch('/api/inventory/adjustments')
-            .then(response => response.json())
+        console.log('📥 Loading inventory adjustments...');
+
+        const fromDate = document.getElementById('adjustments-from-date')?.value || '';
+        const toDate = document.getElementById('adjustments-to-date')?.value || '';
+        const search = document.getElementById('adjustments-search')?.value || '';
+        pageSize = parseInt(document.getElementById('adjustments-page-size')?.value) || 25;
+
+        const params = new URLSearchParams();
+        if (fromDate) params.append('from_date', fromDate);
+        if (toDate) params.append('to_date', toDate);
+        if (search) params.append('search', search);
+        params.append('page_size', pageSize);
+        params.append('page', currentPage); // Ensure current page is sent
+
+        const url = `/api/inventory/adjustments?${params.toString()}`; // Corrected API endpoint
+        console.log('🔗 Fetching from:', url);
+
+        fetch(url)
+            .then(response => {
+                console.log('📡 Response status:', response.status);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
             .then(data => {
-                const adjustments = data.records || [];
-                displayAdjustments(adjustments);
+                console.log('📊 Adjustments data received:', data);
+
+                if (data.success) {
+                    const adjustments = data.records || [];
+                    console.log(`✅ Found ${adjustments.length} adjustments`);
+                    displayAdjustments(adjustments);
+                    updatePagination(data.total_pages, data.current_page); // Pass total pages and current page
+                } else {
+                    console.error('❌ Failed to load adjustments:', data.error);
+                    showError(data.error || 'Failed to load adjustments');
+                    displayAdjustments([]);
+                    updatePagination(0, 1); // Reset pagination if there's an error
+                }
             })
             .catch(error => {
-                console.error('Error loading adjustments:', error);
+                console.error('❌ Error loading adjustments:', error);
+                showError('Error loading adjustments: ' + error.message);
                 displayAdjustments([]);
+                updatePagination(0, 1); // Reset pagination on fetch error
             });
     }
 
     function displayAdjustments(adjustments) {
-        // Apply filters
-        const fromDate = document.getElementById('adjustments-from-date').value;
-        const toDate = document.getElementById('adjustments-to-date').value;
-        const searchTerm = document.getElementById('adjustments-search').value.toLowerCase();
-        pageSize = parseInt(document.getElementById('adjustments-page-size').value);
+        console.log('🖼️ Displaying adjustments:', adjustments.length);
 
-        let filteredAdjustments = adjustments.filter(adjustment => {
-            const adjustmentDate = new Date(adjustment.adjustment_date);
-            const matchesDateRange = (!fromDate || adjustmentDate >= new Date(fromDate)) &&
-                                   (!toDate || adjustmentDate <= new Date(toDate));
-            const matchesSearch = !searchTerm ||
-                                adjustment.reference_id.toLowerCase().includes(searchTerm) ||
-                                (adjustment.remarks && adjustment.remarks.toLowerCase().includes(searchTerm)) ||
-                                (adjustment.created_by && adjustment.created_by.toLowerCase().includes(searchTerm));
-
-            return matchesDateRange && matchesSearch;
-        });
-
-        // Sort by date (newest first)
-        filteredAdjustments.sort((a, b) => new Date(b.adjustment_date) - new Date(a.adjustment_date));
-
-        // Pagination
-        const totalItems = filteredAdjustments.length;
-        const totalPages = Math.ceil(totalItems / pageSize);
-        const startIndex = (currentPage - 1) * pageSize;
-        const endIndex = startIndex + pageSize;
-        const paginatedAdjustments = filteredAdjustments.slice(startIndex, endIndex);
-
-        // Update table
         const tbody = document.getElementById('adjustmentsTableBody');
+        if (!tbody) {
+            console.error('❌ Table body not found');
+            return;
+        }
+
         tbody.innerHTML = '';
 
-        paginatedAdjustments.forEach(adjustment => {
-            tbody.innerHTML += `
+        if (!adjustments || adjustments.length === 0) {
+            tbody.innerHTML = `
                 <tr>
-                    <td>${adjustment.reference_id || '-'}</td>
-                    <td>${adjustment.adjustment_date}</td>
-                    <td>${adjustment.batch_name || 'Unknown Batch'}</td>
-                    <td>${adjustment.product_name || 'Unknown Product'}</td>
-                    <td>${adjustment.quantity} pcs</td>
-                    <td>
-                        <span class="badge bg-success">ADD</span>
-                    </td>
-                    <td>${adjustment.remarks || '-'}</td>
-                    <td>${adjustment.created_by || 'System'}</td>
-                    <td>
-                        <div class="btn-group btn-group-sm" role="group">
-                            <button class="btn btn-outline-info btn-sm" onclick="viewAdjustment('${adjustment.id}')" title="View">
-                                <i class="fas fa-eye"></i>
-                            </button>
-                        </div>
+                    <td colspan="9" class="text-center py-4">
+                        <i class="bi bi-inbox" style="font-size: 2rem; color: #6c757d;"></i>
+                        <p class="mt-2 text-muted">No adjustments found</p>
+                        <p class="small text-muted">Try adjusting your search filters or create a new adjustment</p>
                     </td>
                 </tr>
             `;
-        });
-
-        if (paginatedAdjustments.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted">No adjustments found</td></tr>';
+            updateEntryCount(0, 0, 0); // Update entry count to 0 when no adjustments are found
+            return;
         }
 
-        // Update pagination info
-        document.getElementById('adjustmentsTableInfo').textContent =
-            `Showing ${startIndex + 1} to ${Math.min(endIndex, totalItems)} of ${totalItems} entries`;
+        adjustments.forEach((adj, index) => {
+            const row = document.createElement('tr');
+            // Ensure adjustment_type is correctly mapped to a badge color
+            const typeClass = adj.adjustment_type === 'add' ? 'success' : 
+                             adj.adjustment_type === 'remove' ? 'danger' : 'info';
 
-        // Update pagination controls
-        updatePagination(totalPages);
+            row.innerHTML = `
+                <td><strong>${escapeHtml(adj.reference_id)}</strong></td>
+                <td>${escapeHtml(adj.adjustment_date)}</td>
+                <td><code>${escapeHtml(adj.batch_name || 'N/A')}</code></td>
+                <td>${escapeHtml(adj.product_name || 'N/A')}</td>
+                <td class="text-end"><strong>${adj.quantity}</strong> ${escapeHtml(adj.unit || 'pcs')}</td>
+                <td>
+                    <span class="badge bg-${typeClass}">
+                        ${adj.adjustment_type.toUpperCase()}
+                    </span>
+                </td>
+                <td>${escapeHtml(adj.remarks)}</td>
+                <td>${escapeHtml(adj.created_by || 'System')}</td>
+                <td>
+                    <div class="btn-group btn-group-sm" role="group">
+                        <button class="btn btn-outline-info btn-sm" onclick="viewAdjustment(${adj.id})" title="View Details">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </div>
+                </td>
+            `;
+            tbody.appendChild(row);
+        });
+
+        // Update entry count based on the total number of records and current page/pageSize
+        const totalItems = parseInt(document.getElementById('adjustmentsTableInfo')?.getAttribute('data-total-items') || '0'); // Get total items from an attribute if available
+        const startItem = (currentPage - 1) * pageSize + 1;
+        const endItem = Math.min(currentPage * pageSize, totalItems);
+        updateEntryCount(startItem, endItem, totalItems);
+
+        console.log('✅ Adjustments displayed successfully');
     }
 
-    function updatePagination(totalPages) {
+    function escapeHtml(text) {
+        if (text === null || text === undefined) return '';
+        const map = {
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#039;'
+        };
+        return String(text).replace(/[&<>"']/g, m => map[m]);
+    }
+
+    function updateEntryCount(start, end, total) {
+        const countElement = document.getElementById('adjustmentsTableInfo');
+        if (countElement) {
+            if (total === 0) {
+                countElement.textContent = 'Showing 0 to 0 of 0 entries';
+            } else {
+                countElement.textContent = `Showing ${start} to ${end} of ${total} entries`;
+            }
+        }
+    }
+
+    function updatePagination(totalPages, currentPage) {
         const pagination = document.getElementById('adjustmentsPagination');
+        if (!pagination) return;
+
         pagination.innerHTML = '';
 
-        if (totalPages <= 1) return;
+        if (totalPages <= 1) {
+            // Hide pagination if only one page or less
+            document.querySelector('.pagination').style.display = 'none';
+            return;
+        } else {
+            document.querySelector('.pagination').style.display = ''; // Show pagination
+        }
 
         // Previous button
         pagination.innerHTML += `
@@ -334,7 +402,11 @@
         `;
     }
 
+
     window.changePage = function(page) {
+        const totalPages = Math.ceil(parseInt(document.getElementById('adjustmentsTableInfo')?.getAttribute('data-total-items') || '0') / pageSize);
+        if (page < 1 || page > totalPages) return;
+
         currentPage = page;
         loadAdjustments();
     }
@@ -431,13 +503,13 @@
             addInput.required = false;
             removeInput.required = true;
             removeInput.value = '';
-            
+
             // Set max value for remove input based on current stock
             const currentStock = parseFloat(document.getElementById('currentStockDisplay').value) || 0;
             removeInput.max = currentStock;
         }
     }
-    
+
     // Function to update batch info when batch is selected
     window.updateBatchInfo = function() {
         const batchSelect = document.getElementById('adjustmentBatch');
@@ -477,7 +549,7 @@
             if (batchInfo) {
                 batchInfo.textContent = '';
             }
-            
+
             const form = document.getElementById('adjustmentForm');
             if (form) {
                 form.dataset.selectedProductId = '';
@@ -500,17 +572,17 @@
         document.getElementById('adjustmentForm').reset();
         document.getElementById('adjustmentReferenceId').value = generateReferenceId();
         document.getElementById('adjustmentDate').value = new Date().toISOString().split('T')[0];
-        
+
         // Reset to "add" type by default
         document.getElementById('adjustmentTypeAdd').checked = true;
         toggleAdjustmentType();
-        
+
         // Clear batch info
         const batchInfo = document.getElementById('batchInfo');
         if (batchInfo) {
             batchInfo.textContent = '';
         }
-        
+
         // Reset current stock display
         const currentStockDisplay = document.getElementById('currentStockDisplay');
         const currentStockUnit = document.getElementById('currentStockUnit');
@@ -582,7 +654,7 @@
 
         fetch('/api/inventory/adjustments', {
             method: 'POST',
-            headers: { 
+            headers: {
                 'Content-Type': 'application/json',
                 'Accept': 'application/json'
             },
@@ -620,13 +692,13 @@
                     return;
                 }
 
-                document.getElementById('viewReferenceId').textContent = data.reference_id || '-';
-                document.getElementById('viewAdjustmentDate').textContent = data.adjustment_date || '-';
-                document.getElementById('viewBatch').textContent = data.batch_name || 'Unknown Batch';
-                document.getElementById('viewProduct').textContent = data.product_name || 'Unknown Product';
-                document.getElementById('viewQuantity').textContent = (data.quantity || 0) + 'pcs';
-                document.getElementById('viewCreatedBy').textContent = data.created_by || 'System';
-                document.getElementById('viewRemarks').textContent = data.remarks || 'No remarks';
+                document.getElementById('viewReferenceId').textContent = escapeHtml(data.reference_id || '-');
+                document.getElementById('viewAdjustmentDate').textContent = escapeHtml(data.adjustment_date || '-');
+                document.getElementById('viewBatch').textContent = escapeHtml(data.batch_name || 'Unknown Batch');
+                document.getElementById('viewProduct').textContent = escapeHtml(data.product_name || 'Unknown Product');
+                document.getElementById('viewQuantity').textContent = escapeHtml(data.quantity + (data.unit ? ' ' + data.unit : ' pcs'));
+                document.getElementById('viewCreatedBy').textContent = escapeHtml(data.created_by || 'System');
+                document.getElementById('viewRemarks').textContent = escapeHtml(data.remarks || 'No remarks');
 
                 const modal = new bootstrap.Modal(document.getElementById('viewAdjustmentModal'));
                 modal.show();
@@ -637,14 +709,14 @@
             });
     }
 
-    
+
 
     function resetFilters() {
         document.getElementById('adjustments-from-date').value = '';
         document.getElementById('adjustments-to-date').value = '';
         document.getElementById('adjustments-search').value = '';
         document.getElementById('adjustments-page-size').value = '25';
-        currentPage = 1;
+        currentPage = 1; // Reset to first page
         loadAdjustments();
     }
 
@@ -656,9 +728,9 @@
     document.getElementById('btnAddAdjustment').addEventListener('click', addAdjustment);
     document.getElementById('resetAdjustmentsFilters').addEventListener('click', resetFilters);
     document.getElementById('exportAdjustments').addEventListener('click', exportAdjustments);
-    document.getElementById('adjustments-from-date').addEventListener('change', loadAdjustments);
-    document.getElementById('adjustments-to-date').addEventListener('change', loadAdjustments);
-    document.getElementById('adjustments-search').addEventListener('input', loadAdjustments);
+    document.getElementById('adjustments-from-date').addEventListener('change', () => { currentPage = 1; loadAdjustments(); });
+    document.getElementById('adjustments-to-date').addEventListener('change', () => { currentPage = 1; loadAdjustments(); });
+    document.getElementById('adjustments-search').addEventListener('input', () => { currentPage = 1; loadAdjustments(); });
     document.getElementById('adjustments-page-size').addEventListener('change', () => {
         currentPage = 1;
         loadAdjustments();

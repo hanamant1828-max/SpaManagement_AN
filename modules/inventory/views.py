@@ -1164,9 +1164,6 @@ def api_get_products_simple():
         return jsonify({'error': str(e)}), 500
 
 
-
-
-
 @app.route('/modules/staff/inventory_punch_out', methods=['POST'])
 @login_required
 def inventory_punch_out():
@@ -1206,3 +1203,95 @@ def get_product_batches(product_id):
     except Exception as e:
         print(f"Error loading batches: {e}")
         return jsonify({'success': False, 'error': str(e)}), 404
+
+
+# ============ BATCH-CENTRIC ADJUSTMENTS DATA ENDPOINT ============
+@app.route('/inventory/adjustments/data')
+@login_required
+def inventory_adjustments_data():
+    """API endpoint to get inventory adjustments"""
+    try:
+        from datetime import datetime
+        from sqlalchemy import or_
+
+        # Get filter parameters
+        from_date = request.args.get('from_date')
+        to_date = request.args.get('to_date')
+        search = request.args.get('search', '').strip()
+
+        # Base query with eager loading
+        query = InventoryAdjustment.query.options(
+            joinedload(InventoryAdjustment.product),
+            joinedload(InventoryAdjustment.batch),
+            joinedload(InventoryAdjustment.created_by_user)
+        )
+
+        # Apply date filters only if provided
+        if from_date:
+            try:
+                from_date_obj = datetime.strptime(from_date, '%Y-%m-%d').date()
+                query = query.filter(InventoryAdjustment.adjustment_date >= from_date_obj)
+            except ValueError:
+                pass
+
+        if to_date:
+            try:
+                to_date_obj = datetime.strptime(to_date, '%Y-%m-%d').date()
+                query = query.filter(InventoryAdjustment.adjustment_date <= to_date_obj)
+            except ValueError:
+                pass
+
+        # Apply search filter
+        if search:
+            query = query.join(InventoryProduct).filter(
+                or_(
+                    InventoryAdjustment.reference_id.ilike(f'%{search}%'),
+                    InventoryAdjustment.remarks.ilike(f'%{search}%'),
+                    InventoryProduct.name.ilike(f'%{search}%')
+                )
+            )
+
+        # Get all adjustments ordered by date descending
+        adjustments = query.order_by(InventoryAdjustment.adjustment_date.desc(), InventoryAdjustment.id.desc()).all()
+
+        print(f"📊 Found {len(adjustments)} inventory adjustments")
+
+        # Format data for response
+        adjustments_data = []
+        for adj in adjustments:
+            try:
+                adjustment_info = {
+                    'id': adj.id,
+                    'reference_id': adj.reference_id or f'ADJ-{adj.id}',
+                    'adjustment_date': adj.adjustment_date.strftime('%Y-%m-%d') if adj.adjustment_date else 'N/A',
+                    'batch_number': adj.batch.batch_name if adj.batch else 'N/A',
+                    'product_name': adj.product.name if adj.product else 'Unknown Product',
+                    'quantity': float(adj.quantity) if adj.quantity else 0,
+                    'adjustment_type': adj.adjustment_type or 'manual',
+                    'remarks': adj.remarks or '',
+                    'created_by': adj.created_by_user.username if adj.created_by_user else 'System',
+                    'created_at': adj.created_at.strftime('%Y-%m-%d %H:%M') if adj.created_at else 'N/A'
+                }
+                adjustments_data.append(adjustment_info)
+            except Exception as item_error:
+                print(f"Error formatting adjustment {adj.id}: {item_error}")
+                continue
+
+        print(f"✅ Returning {len(adjustments_data)} formatted adjustments")
+
+        return jsonify({
+            'success': True,
+            'adjustments': adjustments_data,
+            'total': len(adjustments_data)
+        })
+
+    except Exception as e:
+        print(f"❌ Error loading adjustments data: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'adjustments': [],
+            'total': 0
+        }), 500
