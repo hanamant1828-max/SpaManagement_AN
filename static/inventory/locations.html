@@ -218,6 +218,8 @@
         const typeFilter = document.getElementById('typeFilter').value;
         const statusFilter = document.getElementById('statusFilter').value;
 
+        console.log('Filter applied - Status:', statusFilter, 'Type:', typeFilter, 'Search:', search);
+
         let filteredLocations = locationsCache.filter(location => {
             const matchesSearch = (location.name.toLowerCase().includes(search) ||
                                 (location.address && location.address.toLowerCase().includes(search)) ||
@@ -227,6 +229,8 @@
 
             return matchesSearch && matchesType && matchesStatus;
         });
+
+        console.log('Total locations:', locationsCache.length, 'Filtered:', filteredLocations.length);
 
         const tbody = document.getElementById('locationTableBody');
         tbody.innerHTML = '';
