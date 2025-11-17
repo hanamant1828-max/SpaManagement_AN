@@ -297,11 +297,11 @@ class InventoryTransfer(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     transfer_id = db.Column(db.String(50), unique=True, nullable=False)  # Unique transfer identifier
     transfer_date = db.Column(db.Date, nullable=False, default=date.today)
-    
+
     # Source and destination locations
     from_location_id = db.Column(db.String(50), db.ForeignKey('inventory_locations.id'), nullable=False)
     to_location_id = db.Column(db.String(50), db.ForeignKey('inventory_locations.id'), nullable=False)
-    
+
     # Transfer details
     status = db.Column(db.String(20), default='pending')  # pending, completed, cancelled
     notes = db.Column(db.Text)

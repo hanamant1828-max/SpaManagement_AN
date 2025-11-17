@@ -222,18 +222,25 @@ def api_get_locations():
     """Get all locations"""
     try:
         locations = get_all_locations()
+        # Count products per location for display
+        product_counts = {}
+        for batch in InventoryBatch.query.filter(InventoryBatch.location_id != None).all():
+            product_counts[batch.location_id] = product_counts.get(batch.location_id, 0) + 1
+
+        locations_data = [{
+            'id': loc.id,
+            'name': loc.name,
+            'type': loc.type,
+            'address': loc.address or '',
+            'contact': loc.contact or '',
+            'phone': loc.phone,
+            'status': loc.status,
+            'total_products': product_counts.get(loc.id, 0), # Use count from batches
+            'total_stock_value': loc.total_stock_value
+        } for loc in locations]
+
         return jsonify({
-            'locations': [{
-                'id': l.id,
-                'name': l.name,
-                'type': l.type,
-                'address': l.address,
-                'contact_person': l.contact_person,
-                'phone': l.phone,
-                'status': l.status,
-                'total_products': l.total_batches,
-                'total_stock_value': l.total_stock_value
-            } for l in locations]
+            'locations': locations_data
         })
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -263,6 +270,7 @@ def api_create_location():
             name=data.get('name'),
             type=data.get('type', 'warehouse'),  # Default type
             address=data.get('address', ''),
+            contact=data.get('contact', ''), # Add contact field
             status='active'
         )
 
@@ -273,6 +281,34 @@ def api_create_location():
             'success': True,
             'message': 'Location created successfully',
             'location_id': location.id
+        })
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/inventory/locations/<location_id>', methods=['PUT'])
+@login_required
+def api_update_location(location_id):
+    """Update an existing location"""
+    try:
+        data = request.get_json()
+        location = InventoryLocation.query.get(location_id)
+
+        if not location:
+            return jsonify({'error': 'Location not found'}), 404
+
+        location.name = data.get('name', location.name)
+        location.type = data.get('type', location.type)
+        location.address = data.get('address', location.address)
+        location.contact = data.get('contact', location.contact) # Add contact field
+        location.phone = data.get('phone', location.phone)
+        location.status = data.get('status', location.status)
+
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'message': 'Location updated successfully'
         })
     except Exception as e:
         db.session.rollback()
@@ -1091,7 +1127,7 @@ def api_update_location(location_id):
         location.name = data.get('name', location.name)
         location.type = data.get('type', location.type)
         location.address = data.get('address', location.address)
-        location.contact_person = data.get('contact_person', location.contact_person)
+        location.contact = data.get('contact', location.contact) # Add contact field
         location.phone = data.get('phone', location.phone)
         location.status = data.get('status', location.status)
 
@@ -1333,7 +1369,7 @@ def api_create_transfer():
                 return jsonify({'error': f'Batch {item_data["batch_id"]} not found'}), 404
 
             quantity = Decimal(str(item_data['quantity']))
-            
+
             if quantity > batch.qty_available:
                 db.session.rollback()
                 return jsonify({'error': f'Insufficient stock for batch {batch.batch_name}'}), 400
@@ -1438,12 +1474,12 @@ def api_complete_transfer(transfer_id):
                 base_name = source_batch.batch_name
                 new_batch_name = base_name
                 counter = 1
-                
+
                 # Check if batch name already exists, if so append a suffix
                 while InventoryBatch.query.filter_by(batch_name=new_batch_name).first():
                     new_batch_name = f"{base_name}-T{counter}"
                     counter += 1
-                
+
                 # Create new batch at destination with unique name
                 dest_batch = InventoryBatch(
                     batch_name=new_batch_name,
@@ -1649,12 +1685,12 @@ def api_inventory_status():
     """Get comprehensive inventory status"""
     try:
         from datetime import timedelta
-        
+
         # Get all products and batches
         products = InventoryProduct.query.all()
         batches = InventoryBatch.query.all()
         categories = InventoryCategory.query.all()
-        
+
         # Calculate overview statistics
         total_products = len(products)
         total_batches = len([b for b in batches if b.status == 'active' and (b.qty_available or 0) > 0])
@@ -1662,31 +1698,31 @@ def api_inventory_status():
             float(b.qty_available or 0) * float(b.unit_cost or 0) 
             for b in batches if b.status == 'active'
         )
-        
+
         # Stock status summary
         stock_summary = {
             'in_stock': len([p for p in products if p.total_stock > 10]),
             'low_stock': len([p for p in products if 0 < p.total_stock <= 10]),
             'out_of_stock': len([p for p in products if p.total_stock == 0])
         }
-        
+
         # Alerts
         today = date.today()
         expiring_soon_date = today + timedelta(days=30)
-        
+
         expired_batches = [b for b in batches if b.expiry_date and b.expiry_date < today and (b.qty_available or 0) > 0]
         expiring_soon_batches = [
             b for b in batches 
             if b.expiry_date and today <= b.expiry_date <= expiring_soon_date and (b.qty_available or 0) > 0
         ]
-        
+
         alerts = {
             'out_of_stock_count': stock_summary['out_of_stock'],
             'low_stock_count': stock_summary['low_stock'],
             'expired_batches_count': len(expired_batches),
             'expiring_soon_count': len(expiring_soon_batches)
         }
-        
+
         # Category breakdown
         category_breakdown = []
         for cat in categories:
@@ -1696,7 +1732,7 @@ def api_inventory_status():
                     'category': cat.name,
                     'product_count': product_count
                 })
-        
+
         # Recent activity (last 7 days)
         seven_days_ago = datetime.utcnow() - timedelta(days=7)
         recent_consumption = InventoryConsumption.query.filter(
@@ -1705,12 +1741,12 @@ def api_inventory_status():
         recent_adjustments = InventoryAdjustment.query.filter(
             InventoryAdjustment.created_at >= seven_days_ago
         ).count()
-        
+
         recent_activity = {
             'consumption_records': recent_consumption,
             'adjustments': recent_adjustments
         }
-        
+
         # Low stock items
         low_stock_items = []
         for p in products:
@@ -1721,7 +1757,7 @@ def api_inventory_status():
                     'current_stock': p.total_stock,
                     'status': 'low_stock'
                 })
-        
+
         # Expired batches data
         expired_batches_data = []
         for b in expired_batches[:10]:  # Limit to 10
@@ -1731,7 +1767,7 @@ def api_inventory_status():
                 'expiry_date': b.expiry_date.strftime('%Y-%m-%d'),
                 'qty_available': float(b.qty_available or 0)
             })
-        
+
         # Expiring soon data
         expiring_soon_data = []
         for b in expiring_soon_batches[:10]:  # Limit to 10
@@ -1742,7 +1778,7 @@ def api_inventory_status():
                 'expiry_date': b.expiry_date.strftime('%Y-%m-%d'),
                 'days_until_expiry': days_until_expiry
             })
-        
+
         # Product-wise data
         product_wise_data = []
         for p in products:
@@ -1761,7 +1797,7 @@ def api_inventory_status():
                     'total_value': total_value,
                     'status': p.stock_status
                 })
-        
+
         # Batch-wise data
         batch_wise_data = []
         for b in batches:
@@ -1778,7 +1814,7 @@ def api_inventory_status():
                     'mfg_date': b.mfg_date.strftime('%Y-%m-%d') if b.mfg_date else None,
                     'expiry_date': b.expiry_date.strftime('%Y-%m-%d') if b.expiry_date else None
                 })
-        
+
         return jsonify({
             'success': True,
             'overview': {
@@ -1796,7 +1832,7 @@ def api_inventory_status():
             'product_wise_data': product_wise_data,
             'batch_wise_data': batch_wise_data
         })
-    
+
     except Exception as e:
         print(f"Error getting inventory status: {e}")
         import traceback
