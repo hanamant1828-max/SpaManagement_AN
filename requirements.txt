@@ -196,3 +196,6 @@ requests
 sqlalchemy
 werkzeug
 wtforms
+insightface
+onnxruntime
+Pillow
