@@ -1031,6 +1031,36 @@ def api_get_adjustments():
             'total_pages': 1
         }), 500
 
+@app.route('/api/inventory/adjustments/<int:adjustment_id>', methods=['GET'])
+@login_required
+def api_get_adjustment_by_id(adjustment_id):
+    """Get a single adjustment by ID"""
+    try:
+        adjustment = InventoryAdjustment.query.get(adjustment_id)
+        if not adjustment:
+            return jsonify({'error': 'Adjustment not found'}), 404
+        
+        adjustment_data = {
+            'id': adjustment.id,
+            'batch_id': adjustment.batch_id,
+            'batch_name': adjustment.batch.batch_name if adjustment.batch else 'Unknown',
+            'product_name': adjustment.batch.product.name if adjustment.batch and adjustment.batch.product else 'Unknown',
+            'adjustment_type': adjustment.adjustment_type,
+            'quantity': float(adjustment.quantity),
+            'unit': adjustment.batch.product.unit_of_measure if adjustment.batch and adjustment.batch.product else 'pcs',
+            'remarks': adjustment.remarks or '',
+            'notes': adjustment.remarks or '',  # Fallback for notes field
+            'created_at': adjustment.created_at.isoformat() if adjustment.created_at else None,
+            'created_by_name': adjustment.user.full_name if adjustment.user else 'Unknown',
+            'reference_id': f'ADJ-{adjustment.id}',
+            'adjustment_date': adjustment.created_at.strftime('%Y-%m-%d') if adjustment.created_at else None
+        }
+        
+        return jsonify(adjustment_data)
+    except Exception as e:
+        print(f"Error in api_get_adjustment_by_id: {e}")
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/api/inventory/products/<int:product_id>', methods=['PUT'])
 @login_required
 def api_update_product(product_id):

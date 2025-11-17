@@ -526,7 +526,7 @@
             });
         }
 
-        // Filter event listeners
+        // Filter event listeners with multiple event types for compatibility
         const searchInput = document.getElementById('locationSearch');
         const typeFilter = document.getElementById('typeFilter');
         const statusFilter = document.getElementById('statusFilter');
@@ -543,14 +543,27 @@
         }
         if (typeFilter) {
             typeFilter.addEventListener('change', displayLocations);
+            typeFilter.addEventListener('click', displayLocations);
             console.log('Type filter listener attached');
         }
         if (statusFilter) {
-            statusFilter.addEventListener('change', function() {
-                console.log('Status filter changed!');
+            // Add multiple event listeners to ensure it works
+            statusFilter.addEventListener('change', function(e) {
+                console.log('Status filter changed! New value:', e.target.value);
                 displayLocations();
             });
-            console.log('Status filter listener attached');
+            statusFilter.addEventListener('click', function(e) {
+                // Delay to let the value update
+                setTimeout(() => {
+                    console.log('Status filter clicked! Value:', e.target.value);
+                    displayLocations();
+                }, 50);
+            });
+            statusFilter.addEventListener('input', function(e) {
+                console.log('Status filter input! New value:', e.target.value);
+                displayLocations();
+            });
+            console.log('Status filter listeners attached (change, click, input)');
         }
     }
 
