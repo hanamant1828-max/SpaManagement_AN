@@ -238,6 +238,17 @@
     let productModal = null;
     let allProducts = []; // To store all products for batch viewing
 
+    // Utility function to escape HTML
+    function escapeHtml(unsafe) {
+        if (!unsafe) return '';
+        return unsafe
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    }
+
     // Utility function to calculate total stock across all locations
     function calculateTotalStock(product) {
         if (product.locationStock) {
@@ -303,19 +314,19 @@
             filteredProducts.forEach(product => {
                 const stock = calculateTotalStock(product);
                 const statusBadge = getStatusBadge(product.status || product.stock_status || 'in_stock');
-                
+
                 // Use category_name from API response
                 const categoryBadge = product.category_name ? 
-                    `<span class="badge bg-primary">${product.category_name}</span>` : 
+                    `<span class="badge bg-primary">${escapeHtml(product.category_name)}</span>` : 
                     '<span class="text-muted">No Category</span>';
 
                 productsHTML += `
                     <tr>
-                        <td><strong>${product.sku}</strong></td>
-                        <td>${product.name}</td>
+                        <td><strong>${escapeHtml(product.sku)}</strong></td>
+                        <td>${escapeHtml(product.name)}</td>
                         <td>${categoryBadge}</td>
                         <td>
-                            <strong>${stock}</strong> ${product.unit_of_measure || product.unit || 'pcs'}
+                            <strong>${stock}</strong> ${escapeHtml(product.unit_of_measure || product.unit || 'pcs')}
                         </td>
                         <td>${statusBadge}</td>
                         <td>
@@ -385,14 +396,14 @@
         if (categoryFilter) {
             categoryFilter.innerHTML = '<option value="">All Categories</option>';
             categories.filter(cat => cat.is_active !== false).forEach(category => {
-                categoryFilter.innerHTML += `<option value="${category.id}">${category.name}</option>`;
+                categoryFilter.innerHTML += `<option value="${category.id}">${escapeHtml(category.name)}</option>`;
             });
         }
 
         if (productCategory) {
             productCategory.innerHTML = '<option value="">Select category</option>';
             categories.filter(cat => cat.is_active !== false).forEach(category => {
-                productCategory.innerHTML += `<option value="${category.id}">${category.name}</option>`;
+                productCategory.innerHTML += `<option value="${category.id}">${escapeHtml(category.name)}</option>`;
             });
         }
 
@@ -427,7 +438,7 @@
         if (productLocation) {
             productLocation.innerHTML = '<option value="">Select location</option>';
             locations.filter(loc => loc.status === 'active').forEach(location => {
-                productLocation.innerHTML += `<option value="${location.id}">${location.name}</option>`;
+                productLocation.innerHTML += `<option value="${location.id}">${escapeHtml(location.name)}</option>`;
             });
         }
 
@@ -465,7 +476,7 @@
                     // Try both categoryId and category_id formats
                     categorySelect.value = categoryId;
                     console.log('Category set to:', categoryId);
-                    
+
                     // If the value didn't set, try to find by text content
                     if (categorySelect.value !== categoryId) {
                         for (let option of categorySelect.options) {
@@ -485,7 +496,7 @@
                     // Try both locationId and location_id formats
                     locationSelect.value = locationId;
                     console.log('Location set to:', locationId);
-                    
+
                     // If the value didn't set, try to find by text content
                     if (locationSelect.value !== locationId) {
                         for (let option of locationSelect.options) {
@@ -514,33 +525,33 @@
             })
             .then(data => {
                 console.log('Received view product data:', data);
-                
+
                 if (data.error) {
                     alert('Error loading product details: ' + data.error);
                     return;
                 }
 
                 // Populate view modal with data using correct API field names and only existing HTML elements
-                document.getElementById('viewProductSku').textContent = data.sku || '-';
-                document.getElementById('viewProductName').textContent = data.name || '-';
-                document.getElementById('viewProductCategory').textContent = data.category_name || 'No category';
-                document.getElementById('viewProductUnit').textContent = data.unit_of_measure || 'pcs';
-                document.getElementById('viewProductLocation').textContent = data.location_name || 'No location specified';
-                
+                document.getElementById('viewProductSku').textContent = escapeHtml(data.sku || '-');
+                document.getElementById('viewProductName').textContent = escapeHtml(data.name || '-');
+                document.getElementById('viewProductCategory').textContent = escapeHtml(data.category_name || 'No category');
+                document.getElementById('viewProductUnit').textContent = escapeHtml(data.unit_of_measure || 'pcs');
+                document.getElementById('viewProductLocation').textContent = escapeHtml(data.location_name || 'No location specified');
+
                 // Determine status based on stock levels and show in the status field
                 let status = 'in_stock';
-                let statusText = `In Stock (${data.total_stock || 0} ${data.unit_of_measure || 'pcs'})`;
-                
+                let statusText = `In Stock (${data.total_stock || 0} ${escapeHtml(data.unit_of_measure || 'pcs')})`;
+
                 if (data.total_stock <= 0) {
                     status = 'out_of_stock';
-                    statusText = `Out of Stock (${data.total_stock || 0} ${data.unit_of_measure || 'pcs'})`;
+                    statusText = `Out of Stock (${data.total_stock || 0} ${escapeHtml(data.unit_of_measure || 'pcs')})`;
                 } else if (data.total_stock <= 5) {
                     status = 'low_stock';
-                    statusText = `Low Stock (${data.total_stock || 0} ${data.unit_of_measure || 'pcs'})`;
+                    statusText = `Low Stock (${data.total_stock || 0} ${escapeHtml(data.unit_of_measure || 'pcs')})`;
                 }
-                
+
                 document.getElementById('viewProductStatus').innerHTML = getStatusBadge(status) + ' ' + statusText;
-                document.getElementById('viewProductDescription').textContent = data.description || 'No description available';
+                document.getElementById('viewProductDescription').textContent = escapeHtml(data.description || 'No description available');
 
                 // Show modal
                 const modal = new bootstrap.Modal(document.getElementById('viewProductModal'));
@@ -555,12 +566,12 @@
     // Global functions for onclick handlers
     window.editProduct = function(productId) {
         console.log('Editing product with ID:', productId);
-        
+
         // Show loading indicator
         const modal = new bootstrap.Modal(document.getElementById('productModal'));
         document.getElementById('productModalTitle').textContent = 'Loading Product...';
         modal.show();
-        
+
         // Fetch product data from API
         fetch(`/api/inventory/products/${productId}`)
             .then(response => {
@@ -586,13 +597,13 @@
             // Set modal title and populate form
             document.getElementById('productModalTitle').textContent = 'Edit Product';
             document.getElementById('productId').value = product.id || '';
-            document.getElementById('productSku').value = product.sku || '';
-            document.getElementById('productName').value = product.name || '';
+            document.getElementById('productSku').value = escapeHtml(product.sku || '');
+            document.getElementById('productName').value = escapeHtml(product.name || '');
 
             // Populate form fields - use API field names with underscores
             document.getElementById('productUnit').value = product.unit_of_measure || 'pcs';
-            document.getElementById('productDescription').value = product.description || '';
-            document.getElementById('productBarcode').value = product.barcode || '';
+            document.getElementById('productDescription').value = escapeHtml(product.description || '');
+            document.getElementById('productBarcode').value = escapeHtml(product.barcode || '');
 
             // Boolean fields removed - no longer needed
 
@@ -712,7 +723,7 @@
             return;
         }
 
-        document.getElementById('productBatchesTitle').textContent = `Batches - ${product.name}`;
+        document.getElementById('productBatchesTitle').textContent = `Batches - ${escapeHtml(product.name)}`;
 
         fetch(`/api/inventory/products/${productId}/batches`)
             .then(response => {
@@ -743,12 +754,12 @@
                                           batch.status === 'blocked' ? 'bg-warning' : 'bg-secondary';
 
                         row.innerHTML = `
-                            <td><strong>${batch.batch_name}</strong></td>
-                            <td>${batch.location_name || '-'}</td>
-                            <td>${batch.qty_available} ${product.unit}</td>
+                            <td><strong>${escapeHtml(batch.batch_name)}</strong></td>
+                            <td>${escapeHtml(batch.location_name || '-')}</td>
+                            <td>${batch.qty_available} ${escapeHtml(product.unit)}</td>
                             <td>${mfgDate}</td>
                             <td>${expiryDate}</td>
-                            <td><span class="badge ${statusClass}">${batch.status}</span></td>
+                            <td><span class="badge ${statusClass}">${escapeHtml(batch.status)}</span></td>
                             <td>$${(batch.unit_cost || 0).toFixed(2)}</td>
                             <td>$${(batch.batch_value || 0).toFixed(2)}</td>
                         `;

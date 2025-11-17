@@ -31,15 +31,16 @@ def api_get_products_master():
             'name': p.name,
             'description': p.description,
             'category_id': p.category_id,
-            'category_name': p.category.name if p.category else '',
+            'category_name': p.category.name if p.category else 'No Category',
             'sku': p.sku,
             'unit_of_measure': p.unit_of_measure,
             'barcode': p.barcode,
-            'total_stock': p.total_stock,  # Dynamic property from batches
+            'total_stock': float(p.total_stock),  # Dynamic property from batches
             'batch_count': p.batch_count,  # Number of batches for this product
             'is_active': p.is_active,
             'is_service_item': p.is_service_item,
-            'is_retail_item': p.is_retail_item
+            'is_retail_item': p.is_retail_item,
+            'stock_status': p.stock_status  # Add stock status for better UI display
         } for p in products])
     except Exception as e:
         return jsonify({'error': str(e)}), 500
