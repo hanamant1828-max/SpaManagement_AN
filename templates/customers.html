@@ -1761,11 +1761,13 @@ function searchCustomers() {
         }
 
         if (contactInfoCell) {
-            const phoneElement = contactInfoCell.querySelector('.text-muted:first-child');
+            // Get phone - it's in a strong tag
+            const phoneElement = contactInfoCell.querySelector('strong');
             if (phoneElement) customerPhone = phoneElement.textContent || phoneElement.innerText;
             
-            const emailElement = contactInfoCell.querySelector('.text-muted:last-child');
-            if (emailElement) customerEmail = emailElement.textContent || emailElement.innerText;
+            // Get email - it's in the second div with text-muted class
+            const emailDiv = contactInfoCell.querySelector('.mt-1 .text-muted');
+            if (emailDiv) customerEmail = emailDiv.textContent || emailDiv.innerText;
         }
 
         // Search in name, phone, and email
@@ -1786,9 +1788,9 @@ function searchCustomers() {
             noResultsRow = table.insertRow();
             noResultsRow.id = 'noResultsRow';
             const cell = noResultsRow.insertCell(0);
-            cell.colSpan = table.rows[0] ? table.rows[0].cells.length : 6;
+            cell.colSpan = 6; // Match the number of columns
             cell.className = 'text-center text-muted py-4';
-            cell.innerHTML = '<i class="fas fa-search fa-2x mb-2"></i><br>No customers found matching your search.';
+            cell.innerHTML = '<i class="fas fa-search fa-2x mb-2 d-block"></i>No customers found matching "' + filter + '"';
         }
         noResultsRow.style.display = '';
     } else if (noResultsRow) {
