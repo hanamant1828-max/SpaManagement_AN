@@ -213,34 +213,40 @@
             });
     }
 
-    function displayLocations() {
+    function applyFilters() {
         const search = document.getElementById('locationSearch').value.toLowerCase();
         const typeFilter = document.getElementById('typeFilter').value;
         const statusFilter = document.getElementById('statusFilter').value;
 
-        console.log('Filter applied - Status:', statusFilter, 'Type:', typeFilter, 'Search:', search);
+        console.log(`// Filter applied - Status: ${statusFilter}, Type: ${typeFilter}, Search: ${search}`);
 
         let filteredLocations = locationsCache.filter(location => {
             const matchesSearch = (location.name.toLowerCase().includes(search) ||
                                 (location.address && location.address.toLowerCase().includes(search)) ||
                                 (location.contact_person && location.contact_person.toLowerCase().includes(search)));
             const matchesType = !typeFilter || location.type === typeFilter;
-            const matchesStatus = !statusFilter || location.status === statusFilter;
+            
+            // Apply status filter - convert to lowercase for comparison
+            const statusLower = statusFilter.toLowerCase();
+            const matchesStatus = !statusFilter || location.status.toLowerCase() === statusLower;
 
             return matchesSearch && matchesType && matchesStatus;
         });
 
         console.log('Total locations:', locationsCache.length, 'Filtered:', filteredLocations.length);
+        displayLocations(filteredLocations);
+    }
 
+    function displayLocations(locations) {
         const tbody = document.getElementById('locationTableBody');
         tbody.innerHTML = '';
 
-        if (filteredLocations.length === 0) {
+        if (locations.length === 0) {
             tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted">No locations found</td></tr>';
             return;
         }
 
-        filteredLocations.forEach(location => {
+        locations.forEach(location => {
             const statusBadge = location.status === 'active'
                 ? '<span class="badge bg-success">Active</span>'
                 : '<span class="badge bg-secondary">Inactive</span>';
@@ -478,7 +484,7 @@
         document.getElementById('locationSearch').value = '';
         document.getElementById('typeFilter').value = '';
         document.getElementById('statusFilter').value = '';
-        displayLocations(); // Just filter the cached data
+        applyFilters(); // Apply the cleared filters
     }
 
     function showToast(message, type = 'success') {
@@ -526,44 +532,32 @@
             });
         }
 
-        // Filter event listeners with multiple event types for compatibility
+        // Filter event listeners
         const searchInput = document.getElementById('locationSearch');
         const typeFilter = document.getElementById('typeFilter');
-        const statusFilter = document.getElementById('statusFilter');
+        const statusFilterElement = document.getElementById('statusFilter');
 
         console.log('Attaching event listeners:', {
             searchInput: !!searchInput,
             typeFilter: !!typeFilter,
-            statusFilter: !!statusFilter
+            statusFilter: !!statusFilterElement
         });
 
         if (searchInput) {
-            searchInput.addEventListener('input', displayLocations);
+            searchInput.addEventListener('input', applyFilters);
             console.log('Search input listener attached');
         }
         if (typeFilter) {
-            typeFilter.addEventListener('change', displayLocations);
-            typeFilter.addEventListener('click', displayLocations);
+            typeFilter.addEventListener('change', applyFilters);
             console.log('Type filter listener attached');
         }
-        if (statusFilter) {
-            // Add multiple event listeners to ensure it works
-            statusFilter.addEventListener('change', function(e) {
-                console.log('Status filter changed! New value:', e.target.value);
-                displayLocations();
+        // Status filter listeners - ensure immediate filtering
+        if (statusFilterElement) {
+            console.log('Status filter listeners attached (change)');
+            statusFilterElement.addEventListener('change', function() {
+                console.log('Status filter changed to:', this.value);
+                applyFilters();
             });
-            statusFilter.addEventListener('click', function(e) {
-                // Delay to let the value update
-                setTimeout(() => {
-                    console.log('Status filter clicked! Value:', e.target.value);
-                    displayLocations();
-                }, 50);
-            });
-            statusFilter.addEventListener('input', function(e) {
-                console.log('Status filter input! New value:', e.target.value);
-                displayLocations();
-            });
-            console.log('Status filter listeners attached (change, click, input)');
         }
     }
 
