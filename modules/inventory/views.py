@@ -169,7 +169,7 @@ def api_get_categories():
             'id': c.id,
             'name': c.name,
             'description': c.description,
-            'color': c.color_code,
+            'color_code': c.color_code,
             'is_active': c.is_active
         } for c in categories])
     except Exception as e:
