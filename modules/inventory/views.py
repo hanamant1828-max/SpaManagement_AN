@@ -1421,19 +1421,31 @@ def api_complete_transfer(transfer_id):
 
             source_batch.qty_available -= item.quantity
 
-            # Create or update batch at destination
+            # Find existing batch at destination with same product and batch details
             dest_batch = InventoryBatch.query.filter_by(
-                batch_name=source_batch.batch_name,
-                location_id=transfer.to_location_id
+                product_id=source_batch.product_id,
+                location_id=transfer.to_location_id,
+                mfg_date=source_batch.mfg_date,
+                expiry_date=source_batch.expiry_date
             ).first()
 
             if dest_batch:
                 # Update existing batch at destination
                 dest_batch.qty_available += item.quantity
             else:
-                # Create new batch at destination
+                # Generate unique batch name for destination
+                base_name = source_batch.batch_name
+                new_batch_name = base_name
+                counter = 1
+                
+                # Check if batch name already exists, if so append a suffix
+                while InventoryBatch.query.filter_by(batch_name=new_batch_name).first():
+                    new_batch_name = f"{base_name}-T{counter}"
+                    counter += 1
+                
+                # Create new batch at destination with unique name
                 dest_batch = InventoryBatch(
-                    batch_name=source_batch.batch_name,
+                    batch_name=new_batch_name,
                     product_id=source_batch.product_id,
                     location_id=transfer.to_location_id,
                     mfg_date=source_batch.mfg_date,
