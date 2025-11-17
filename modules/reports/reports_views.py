@@ -4,6 +4,7 @@ Reports views and routes
 from flask import render_template, request, redirect, url_for, flash, jsonify
 from flask_login import login_required, current_user
 from datetime import datetime, date, timedelta
+from sqlalchemy import func
 from app import app, db
 from models import Service, InvoiceItem, EnhancedInvoice
 from .reports_queries import (
