@@ -195,46 +195,7 @@
                             </div>
                         </div>
 
-                        <div class="col-lg-12">
-                            <div class="card">
-                                <div class="card-header d-flex justify-content-between align-items-center">
-                                    <h5 class="mb-0">
-                                        <i class="fas fa-cogs me-2"></i>System Settings
-                                    </h5>
-                                    <button class="btn btn-warning btn-sm">
-                                        <i class="fas fa-plus me-1"></i>Add Setting
-                                    </button>
-                                </div>
-                                <div class="card-body">
-                                    {% if system_settings %}
-                                    <div class="table-responsive">
-                                        <table class="table table-sm">
-                                            <thead>
-                                                <tr>
-                                                    <th>Key</th>
-                                                    <th>Value</th>
-                                                    <th>Actions</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                {% for setting in system_settings %}
-                                                <tr>
-                                                    <td>{{ setting.key }}</td>
-                                                    <td>{{ setting.value[:30] }}{{ '...' if setting.value|length > 30 else '' }}</td>
-                                                    <td>
-                                                        <button class="btn btn-sm btn-outline-primary">Edit</button>
-                                                    </td>
-                                                </tr>
-                                                {% endfor %}
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                    {% else %}
-                                    <p class="text-muted text-center">No system settings configured yet.</p>
-                                    {% endif %}
-                                </div>
-                            </div>
-                        </div>
+                        
                     </div>
                 </div>
 
