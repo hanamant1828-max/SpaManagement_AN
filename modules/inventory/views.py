@@ -1014,7 +1014,8 @@ def api_get_adjustments():
 
         return jsonify({
             'success': True,
-            'records': adjustments_data,
+            'adjustments': adjustments_data,
+            'records': adjustments_data,  # Keep for backwards compatibility
             'total': total,
             'total_pages': total_pages,
             'current_page': page,
