@@ -225,7 +225,8 @@
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
             const products = await productsResponse.json();
-            const productCount = products.filter(p => p.category_id === categoryId).length;
+            // Fix: Compare numbers to numbers, not string to number
+            const productCount = products.filter(p => p.category_id === parseInt(categoryId)).length;
 
             // Populate view modal with data
             document.getElementById('viewCategoryName').textContent = category.name || '-';
