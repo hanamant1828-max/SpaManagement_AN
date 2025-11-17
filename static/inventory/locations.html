@@ -531,9 +531,27 @@
         const typeFilter = document.getElementById('typeFilter');
         const statusFilter = document.getElementById('statusFilter');
 
-        if (searchInput) searchInput.addEventListener('input', displayLocations);
-        if (typeFilter) typeFilter.addEventListener('change', displayLocations);
-        if (statusFilter) statusFilter.addEventListener('change', displayLocations);
+        console.log('Attaching event listeners:', {
+            searchInput: !!searchInput,
+            typeFilter: !!typeFilter,
+            statusFilter: !!statusFilter
+        });
+
+        if (searchInput) {
+            searchInput.addEventListener('input', displayLocations);
+            console.log('Search input listener attached');
+        }
+        if (typeFilter) {
+            typeFilter.addEventListener('change', displayLocations);
+            console.log('Type filter listener attached');
+        }
+        if (statusFilter) {
+            statusFilter.addEventListener('change', function() {
+                console.log('Status filter changed!');
+                displayLocations();
+            });
+            console.log('Status filter listener attached');
+        }
     }
 
     // Initialize when content is loaded
