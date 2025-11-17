@@ -137,8 +137,7 @@ def api_get_product(product_id):
             'is_retail_item': product.is_retail_item,
             'location_id': primary_location_id,
             'location_name': primary_location_name,
-            'created_at': product.created_at.isoformat() if product.created_at else None,
-            'updated_at': product.updated_at.isoformat() if product.updated_at else None
+            'created_at': product.created_at.isoformat() if product.created_at else None
         })
     except Exception as e:
         return jsonify({'error': str(e)}), 500
