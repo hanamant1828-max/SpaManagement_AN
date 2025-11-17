@@ -253,16 +253,29 @@
             .then(data => {
                 console.log('📊 Adjustments data received:', data);
 
-                if (data.success) {
-                    const adjustments = data.records || [];
-                    console.log(`✅ Found ${adjustments.length} adjustments`);
-                    displayAdjustments(adjustments);
-                    updatePagination(data.total_pages, data.current_page); // Pass total pages and current page
+                // The API should return { success: true, records: [...], total_pages: X, current_page: Y }
+                // or { success: false, error: '...' }
+                // If the API returns a direct list, it's an error.
+                if (data && typeof data === 'object' && data.hasOwnProperty('success')) {
+                    if (data.success) {
+                        const adjustments = data.records || [];
+                        console.log(`✅ Found ${adjustments.length} adjustments`);
+                        // Store total items for pagination and entry count
+                        document.getElementById('adjustmentsTableInfo').setAttribute('data-total-items', data.total_records || adjustments.length);
+                        displayAdjustments(adjustments);
+                        updatePagination(data.total_pages, data.current_page); // Pass total pages and current page
+                    } else {
+                        console.error('❌ Failed to load adjustments:', data.error);
+                        showError(data.error || 'Failed to load adjustments');
+                        displayAdjustments([]);
+                        updatePagination(0, 1); // Reset pagination if there's an error
+                    }
                 } else {
-                    console.error('❌ Failed to load adjustments:', data.error);
-                    showError(data.error || 'Failed to load adjustments');
+                    // Handle unexpected response format (e.g., direct list instead of object)
+                    console.error('❌ Unexpected API response format:', data);
+                    showError('Received invalid data format from server.');
                     displayAdjustments([]);
-                    updatePagination(0, 1); // Reset pagination if there's an error
+                    updatePagination(0, 1); // Reset pagination
                 }
             })
             .catch(error => {
@@ -305,18 +318,18 @@
                              adj.adjustment_type === 'remove' ? 'danger' : 'info';
 
             row.innerHTML = `
-                <td><strong>${escapeHtml(adj.reference_id)}</strong></td>
-                <td>${escapeHtml(adj.adjustment_date)}</td>
+                <td><strong>${escapeHtml(adj.reference_id || 'ADJ-' + adj.id)}</strong></td>
+                <td>${escapeHtml(adj.adjustment_date || adj.created_at?.substring(0, 10) || 'N/A')}</td>
                 <td><code>${escapeHtml(adj.batch_name || 'N/A')}</code></td>
                 <td>${escapeHtml(adj.product_name || 'N/A')}</td>
                 <td class="text-end"><strong>${adj.quantity}</strong> ${escapeHtml(adj.unit || 'pcs')}</td>
                 <td>
                     <span class="badge bg-${typeClass}">
-                        ${adj.adjustment_type.toUpperCase()}
+                        ${(adj.adjustment_type || 'add').toUpperCase()}
                     </span>
                 </td>
-                <td>${escapeHtml(adj.remarks)}</td>
-                <td>${escapeHtml(adj.created_by || 'System')}</td>
+                <td>${escapeHtml(adj.remarks || adj.notes || '')}</td>
+                <td>${escapeHtml(adj.created_by_name || 'System')}</td>
                 <td>
                     <div class="btn-group btn-group-sm" role="group">
                         <button class="btn btn-outline-info btn-sm" onclick="viewAdjustment(${adj.id})" title="View Details">
@@ -329,7 +342,7 @@
         });
 
         // Update entry count based on the total number of records and current page/pageSize
-        const totalItems = parseInt(document.getElementById('adjustmentsTableInfo')?.getAttribute('data-total-items') || '0'); // Get total items from an attribute if available
+        const totalItems = parseInt(document.getElementById('adjustmentsTableInfo')?.getAttribute('data-total-items') || '0');
         const startItem = (currentPage - 1) * pageSize + 1;
         const endItem = Math.min(currentPage * pageSize, totalItems);
         updateEntryCount(startItem, endItem, totalItems);
@@ -404,7 +417,9 @@
 
 
     window.changePage = function(page) {
-        const totalPages = Math.ceil(parseInt(document.getElementById('adjustmentsTableInfo')?.getAttribute('data-total-items') || '0') / pageSize);
+        const totalItems = parseInt(document.getElementById('adjustmentsTableInfo')?.getAttribute('data-total-items') || '0');
+        const totalPages = Math.ceil(totalItems / pageSize);
+
         if (page < 1 || page > totalPages) return;
 
         currentPage = page;
@@ -685,7 +700,12 @@
 
     window.viewAdjustment = function(adjustmentId) {
         fetch(`/api/inventory/adjustments/${adjustmentId}`)
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
             .then(data => {
                 if (data.error) {
                     alert('Error loading adjustment details: ' + data.error);
@@ -696,9 +716,9 @@
                 document.getElementById('viewAdjustmentDate').textContent = escapeHtml(data.adjustment_date || '-');
                 document.getElementById('viewBatch').textContent = escapeHtml(data.batch_name || 'Unknown Batch');
                 document.getElementById('viewProduct').textContent = escapeHtml(data.product_name || 'Unknown Product');
-                document.getElementById('viewQuantity').textContent = escapeHtml(data.quantity + (data.unit ? ' ' + data.unit : ' pcs'));
-                document.getElementById('viewCreatedBy').textContent = escapeHtml(data.created_by || 'System');
-                document.getElementById('viewRemarks').textContent = escapeHtml(data.remarks || 'No remarks');
+                document.getElementById('viewQuantity').textContent = escapeHtml(data.quantity + (data.unit ? ' ' + data.unit : 'pcs'));
+                document.getElementById('viewCreatedBy').textContent = escapeHtml(data.created_by_name || 'System'); // Changed from created_by
+                document.getElementById('viewRemarks').textContent = escapeHtml(data.remarks || data.notes || ''); // Added fallback for notes
 
                 const modal = new bootstrap.Modal(document.getElementById('viewAdjustmentModal'));
                 modal.show();

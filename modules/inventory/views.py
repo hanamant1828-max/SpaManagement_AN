@@ -915,22 +915,83 @@ def api_update_consumption(consumption_id):
 @app.route('/api/inventory/adjustments', methods=['GET'])
 @login_required
 def api_get_adjustments():
-    """Get adjustment records"""
+    """Get adjustment records with pagination support"""
     try:
-        adjustments = InventoryAdjustment.query.order_by(desc(InventoryAdjustment.created_at)).limit(100).all()
-        return jsonify([{
-            'id': a.id,
-            'batch_id': a.batch_id,
-            'batch_name': a.batch.batch_name if a.batch else 'Unknown',
-            'product_name': a.batch.product.name if a.batch and a.batch.product else 'Unknown',
-            'adjustment_type': a.adjustment_type,
-            'quantity': float(a.quantity),
-            'notes': a.remarks,
-            'created_at': a.created_at.isoformat() if a.created_at else None,
-            'created_by_name': a.user.full_name if a.user else 'Unknown'
-        } for a in adjustments])
+        # Get pagination parameters
+        page = int(request.args.get('page', 1))
+        per_page = int(request.args.get('per_page', 25))
+        from_date = request.args.get('from_date', '')
+        to_date = request.args.get('to_date', '')
+        search = request.args.get('search', '')
+
+        # Build query
+        query = InventoryAdjustment.query
+
+        # Apply date filters
+        if from_date:
+            from datetime import datetime
+            start_date = datetime.strptime(from_date, '%Y-%m-%d')
+            query = query.filter(InventoryAdjustment.created_at >= start_date)
+
+        if to_date:
+            from datetime import datetime
+            end_date = datetime.strptime(to_date, '%Y-%m-%d').replace(hour=23, minute=59, second=59)
+            query = query.filter(InventoryAdjustment.created_at <= end_date)
+
+        # Apply search filter
+        if search:
+            query = query.join(InventoryBatch).filter(
+                or_(
+                    InventoryBatch.batch_name.ilike(f'%{search}%'),
+                    InventoryAdjustment.remarks.ilike(f'%{search}%')
+                )
+            )
+
+        # Order by created_at desc
+        query = query.order_by(desc(InventoryAdjustment.created_at))
+
+        # Get total count
+        total = query.count()
+        total_pages = (total + per_page - 1) // per_page
+
+        # Apply pagination
+        adjustments = query.offset((page - 1) * per_page).limit(per_page).all()
+
+        # Format response data
+        adjustments_data = []
+        for a in adjustments:
+            adjustments_data.append({
+                'id': a.id,
+                'batch_id': a.batch_id,
+                'batch_name': a.batch.batch_name if a.batch else 'Unknown',
+                'product_name': a.batch.product.name if a.batch and a.batch.product else 'Unknown',
+                'adjustment_type': a.adjustment_type,
+                'quantity': float(a.quantity),
+                'unit': a.batch.product.unit_of_measure if a.batch and a.batch.product else 'pcs',
+                'remarks': a.remarks or '',
+                'created_at': a.created_at.isoformat() if a.created_at else None,
+                'created_by_name': a.user.full_name if a.user else 'Unknown',
+                'reference_id': f'ADJ-{a.id}',
+                'adjustment_date': a.created_at.strftime('%Y-%m-%d') if a.created_at else None
+            })
+
+        return jsonify({
+            'success': True,
+            'records': adjustments_data,
+            'total': total,
+            'total_pages': total_pages,
+            'current_page': page,
+            'per_page': per_page
+        })
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        print(f"Error in api_get_adjustments: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'records': [],
+            'total': 0,
+            'total_pages': 1
+        }), 500
 
 @app.route('/api/inventory/products/<int:product_id>', methods=['PUT'])
 @login_required
