@@ -1760,38 +1760,29 @@ function searchCustomers() {
             continue;
         }
 
-        // Target specific cells for name, phone, and email
-        const nameCell = row.cells[0]; // First cell (customer info)
-        const contactInfoCell = row.cells[1]; // Second cell (contact info)
-
-        let customerName = '';
-        let customerPhone = '';
-        let customerEmail = '';
-
+        // Get all text content from the row
+        let rowText = '';
+        
+        // Get customer name from the first cell
+        const nameCell = row.cells[0];
         if (nameCell) {
             const nameElement = nameCell.querySelector('.customer-info h5');
-            if (nameElement) customerName = nameElement.textContent || nameElement.innerText;
+            if (nameElement) {
+                rowText += nameElement.textContent || nameElement.innerText;
+            }
         }
 
-        if (contactInfoCell) {
-            // Get phone - it's in a strong tag within the first div
-            const phoneElement = contactInfoCell.querySelector('div strong');
-            if (phoneElement) customerPhone = phoneElement.textContent || phoneElement.innerText;
-
-            // Get email - it's in the text-muted span within the second div
-            const emailElement = contactInfoCell.querySelector('div.mt-1 .text-muted');
-            if (emailElement) customerEmail = emailElement.textContent || emailElement.innerText;
+        // Get contact info from the second cell
+        const contactCell = row.cells[1];
+        if (contactCell) {
+            // Get all text from this cell (includes phone and email)
+            rowText += ' ' + (contactCell.textContent || contactCell.innerText);
         }
 
-        // Clean up the extracted text
-        customerName = customerName.trim();
-        customerPhone = customerPhone.trim();
-        customerEmail = customerEmail.trim();
+        // Clean and search
+        rowText = rowText.toLowerCase().replace(/\s+/g, ' ').trim();
 
-        // Search in name, phone, and email
-        const searchText = (customerName + ' ' + customerPhone + ' ' + customerEmail).toLowerCase();
-
-        if (filter === '' || searchText.includes(filter)) {
+        if (filter === '' || rowText.includes(filter)) {
             row.style.display = '';
             visibleCount++;
         } else {
@@ -1815,7 +1806,7 @@ function searchCustomers() {
         noResultsRow.style.display = 'none';
     }
 
-    console.log('Search completed. Visible rows:', visibleCount);
+    console.log('Search completed. Visible rows:', visibleCount, 'Filter:', filter);
 }
 
 // Initialize search functionality
