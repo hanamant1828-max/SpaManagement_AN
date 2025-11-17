@@ -220,12 +220,12 @@
             const category = await response.json();
 
             // Fetch products to count them for this category
-            const productsResponse = await fetch('/api/products');
+            const productsResponse = await fetch('/api/inventory/products');
             if (!productsResponse.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
             const products = await productsResponse.json();
-            const productCount = products.filter(p => p.categoryId === categoryId).length;
+            const productCount = products.filter(p => p.category_id === categoryId).length;
 
             // Populate view modal with data
             document.getElementById('viewCategoryName').textContent = category.name || '-';
@@ -307,12 +307,12 @@
     window.deleteCategory = async function(categoryId) {
         // Check for associated products before deleting
         try {
-            const productsResponse = await fetch('/api/products');
+            const productsResponse = await fetch('/api/inventory/products');
             if (!productsResponse.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
             const products = await productsResponse.json();
-            const productCount = products.filter(p => p.categoryId === categoryId).length;
+            const productCount = products.filter(p => p.category_id === categoryId).length;
 
             if (productCount > 0) {
                 alert('Cannot delete category with associated products. Please remove or reassign products first.');
