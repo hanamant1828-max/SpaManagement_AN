@@ -231,8 +231,8 @@ def api_get_locations():
             'name': loc.name,
             'type': loc.type,
             'address': loc.address or '',
-            'contact': loc.contact or '',
-            'phone': loc.phone,
+            'contact': loc.contact_person or '',
+            'phone': loc.phone or '',
             'status': loc.status,
             'total_products': product_counts.get(loc.id, 0), # Use count from batches
             'total_stock_value': loc.total_stock_value
@@ -269,7 +269,8 @@ def api_create_location():
             name=data.get('name'),
             type=data.get('type', 'warehouse'),  # Default type
             address=data.get('address', ''),
-            contact=data.get('contact', ''), # Add contact field
+            contact_person=data.get('contact', ''),
+            phone=data.get('phone', ''),
             status='active'
         )
 
@@ -299,7 +300,7 @@ def api_update_location(location_id):
         location.name = data.get('name', location.name)
         location.type = data.get('type', location.type)
         location.address = data.get('address', location.address)
-        location.contact = data.get('contact', location.contact) # Add contact field
+        location.contact_person = data.get('contact', location.contact_person)
         location.phone = data.get('phone', location.phone)
         location.status = data.get('status', location.status)
 
