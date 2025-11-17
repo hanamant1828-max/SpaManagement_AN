@@ -580,7 +580,20 @@
     }
 
     window.exportTransfers = function() {
-        alert('Excel export functionality will be implemented.');
+        const table = document.getElementById('transferTable');
+        if (!table) {
+            alert('No table found to export');
+            return;
+        }
+        
+        const today = new Date().toISOString().split('T')[0];
+        const filename = `inventory_transfers_${today}.csv`;
+        
+        if (typeof exportTableData === 'function') {
+            exportTableData(table, filename);
+        } else {
+            alert('Export functionality is not available. Please refresh the page.');
+        }
     }
 
     document.getElementById('btnNewTransfer').addEventListener('click', function() {
