@@ -218,7 +218,7 @@
         const typeFilter = document.getElementById('typeFilter').value;
         const statusFilter = document.getElementById('statusFilter').value;
 
-        console.log(`// Filter applied - Status: ${statusFilter}, Type: ${typeFilter}, Search: ${search}`);
+        console.log(`Filter applied - Status: ${statusFilter}, Type: ${typeFilter}, Search: ${search}`);
 
         let filteredLocations = locationsCache.filter(location => {
             const matchesSearch = (location.name.toLowerCase().includes(search) ||
@@ -226,9 +226,9 @@
                                 (location.contact_person && location.contact_person.toLowerCase().includes(search)));
             const matchesType = !typeFilter || location.type === typeFilter;
             
-            // Apply status filter - convert to lowercase for comparison
-            const statusLower = statusFilter.toLowerCase();
-            const matchesStatus = !statusFilter || location.status.toLowerCase() === statusLower;
+            // Fix: Properly compare status (ensure both location.status and statusFilter exist)
+            const locationStatus = (location.status || 'active').toLowerCase();
+            const matchesStatus = !statusFilter || locationStatus === statusFilter.toLowerCase();
 
             return matchesSearch && matchesType && matchesStatus;
         });

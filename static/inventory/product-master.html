@@ -306,7 +306,9 @@
                     product.categoryId === categoryFilter || 
                     product.category_id === categoryFilter;
 
-                const matchesStatus = !statusFilter || product.status === statusFilter;
+                // Fix status filter to check stock_status property
+                const productStatus = product.stock_status || product.status || 'in_stock';
+                const matchesStatus = !statusFilter || productStatus === statusFilter;
 
                 return matchesSearch && matchesCategory && matchesStatus;
             });
