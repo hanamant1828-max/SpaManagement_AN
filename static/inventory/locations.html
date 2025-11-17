@@ -203,7 +203,7 @@
                 }
 
                 locationsCache = data.locations || [];
-                displayLocations();
+                displayLocations(locationsCache);
                 console.log('Locations loaded from database:', locationsCache.length);
             })
             .catch(error => {
