@@ -723,6 +723,19 @@
                         </div>
                     </div>
                 </div>
+                <!-- Face Data Table -->
+                <div class="professional-card mt-4">
+                    <div class="card-header-gradient">
+                        <h5 class="mb-0"><i class="fas fa-id-card-alt me-2"></i>Registered Face Data</h5>
+                    </div>
+                    <div class="card-body p-0" id="faceTableContainer">
+                        <!-- Face data will be loaded here by JavaScript -->
+                        <div class="text-center py-4">
+                            <i class="fas fa-spinner fa-spin fa-2x text-primary"></i>
+                            <p class="text-muted mt-2">Loading face data...</p>
+                        </div>
+                    </div>
+                </div>
             </div>
             {% else %}
             <div class="professional-card mt-3">
@@ -1730,7 +1743,7 @@ function searchCustomers() {
 
     const filter = searchInput.value.toLowerCase().trim();
     const table = document.querySelector('.spa-table tbody');
-    
+
     if (!table) {
         console.error('Table not found');
         return;
@@ -1741,7 +1754,7 @@ function searchCustomers() {
 
     for (let i = 0; i < rows.length; i++) {
         const row = rows[i];
-        
+
         // Skip the "no results" row if it exists
         if (row.id === 'noResultsRow') {
             continue;
@@ -1761,19 +1774,24 @@ function searchCustomers() {
         }
 
         if (contactInfoCell) {
-            // Get phone - it's in a strong tag
-            const phoneElement = contactInfoCell.querySelector('strong');
+            // Get phone - it's in a strong tag within the first div
+            const phoneElement = contactInfoCell.querySelector('div strong');
             if (phoneElement) customerPhone = phoneElement.textContent || phoneElement.innerText;
-            
-            // Get email - it's in the second div with text-muted class
-            const emailDiv = contactInfoCell.querySelector('.mt-1 .text-muted');
-            if (emailDiv) customerEmail = emailDiv.textContent || emailDiv.innerText;
+
+            // Get email - it's in the text-muted span within the second div
+            const emailElement = contactInfoCell.querySelector('div.mt-1 .text-muted');
+            if (emailElement) customerEmail = emailElement.textContent || emailElement.innerText;
         }
 
+        // Clean up the extracted text
+        customerName = customerName.trim();
+        customerPhone = customerPhone.trim();
+        customerEmail = customerEmail.trim();
+
         // Search in name, phone, and email
-        const searchableText = (customerName + ' ' + customerPhone + ' ' + customerEmail).toLowerCase();
-        
-        if (filter === '' || searchableText.includes(filter)) {
+        const searchText = (customerName + ' ' + customerPhone + ' ' + customerEmail).toLowerCase();
+
+        if (filter === '' || searchText.includes(filter)) {
             row.style.display = '';
             visibleCount++;
         } else {
@@ -1806,51 +1824,19 @@ document.addEventListener('DOMContentLoaded', function() {
     if (searchInput) {
         // Add input event listener for real-time search
         searchInput.addEventListener('input', searchCustomers);
-        
+
         // Also support Enter key
         searchInput.addEventListener('keyup', function(e) {
             if (e.key === 'Enter') {
                 searchCustomers();
             }
         });
-        
+
         console.log('Search functionality initialized');
     } else {
         console.error('customerSearch input not found on page load');
     }
-});actInfoCell.querySelector('strong');
-            if (phoneElement) customerPhone = phoneElement.textContent || phoneElement.innerText;
-
-            const emailElement = contactInfoCell.querySelector('.text-muted');
-            if (emailElement) customerEmail = emailElement.textContent || emailElement.innerText;
-        }
-
-        const searchText = (customerName + ' ' + customerPhone + ' ' + customerEmail).toLowerCase();
-
-        if (filter === '' || searchText.indexOf(filter) > -1) {
-            row.style.display = '';
-            visibleCount++;
-        } else {
-            row.style.display = 'none';
-        }
-    }
-
-    // Remove existing "no results" row if it exists
-    const existingNoResultsRow = document.getElementById('noResultsRow');
-    if (existingNoResultsRow) {
-        existingNoResultsRow.remove();
-    }
-
-    // Show message if no results
-    if (visibleCount === 0 && filter !== '') {
-        const newRow = table.insertRow(0);
-        newRow.id = 'noResultsRow';
-        const cell = newRow.insertCell(0);
-        cell.colSpan = 6; // Match the number of columns in the table
-        cell.className = 'text-center text-muted py-4';
-        cell.innerHTML = '<i class="fas fa-search fa-2x mb-2 d-block"></i>No customers found matching "' + filter + '"';
-    }
-}
+});
 
 // Clear search function
 function clearSearch() {
