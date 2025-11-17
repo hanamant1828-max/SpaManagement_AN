@@ -1761,7 +1761,62 @@ function searchCustomers() {
         }
 
         if (contactInfoCell) {
-            const phoneElement = contactInfoCell.querySelector('strong');
+            const phoneElement = contactInfoCell.querySelector('.text-muted:first-child');
+            if (phoneElement) customerPhone = phoneElement.textContent || phoneElement.innerText;
+            
+            const emailElement = contactInfoCell.querySelector('.text-muted:last-child');
+            if (emailElement) customerEmail = emailElement.textContent || emailElement.innerText;
+        }
+
+        // Search in name, phone, and email
+        const searchableText = (customerName + ' ' + customerPhone + ' ' + customerEmail).toLowerCase();
+        
+        if (filter === '' || searchableText.includes(filter)) {
+            row.style.display = '';
+            visibleCount++;
+        } else {
+            row.style.display = 'none';
+        }
+    }
+
+    // Show/hide "no results" message
+    let noResultsRow = document.getElementById('noResultsRow');
+    if (visibleCount === 0 && filter !== '') {
+        if (!noResultsRow) {
+            noResultsRow = table.insertRow();
+            noResultsRow.id = 'noResultsRow';
+            const cell = noResultsRow.insertCell(0);
+            cell.colSpan = table.rows[0] ? table.rows[0].cells.length : 6;
+            cell.className = 'text-center text-muted py-4';
+            cell.innerHTML = '<i class="fas fa-search fa-2x mb-2"></i><br>No customers found matching your search.';
+        }
+        noResultsRow.style.display = '';
+    } else if (noResultsRow) {
+        noResultsRow.style.display = 'none';
+    }
+
+    console.log('Search completed. Visible rows:', visibleCount);
+}
+
+// Initialize search functionality
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('customerSearch');
+    if (searchInput) {
+        // Add input event listener for real-time search
+        searchInput.addEventListener('input', searchCustomers);
+        
+        // Also support Enter key
+        searchInput.addEventListener('keyup', function(e) {
+            if (e.key === 'Enter') {
+                searchCustomers();
+            }
+        });
+        
+        console.log('Search functionality initialized');
+    } else {
+        console.error('customerSearch input not found on page load');
+    }
+});actInfoCell.querySelector('strong');
             if (phoneElement) customerPhone = phoneElement.textContent || phoneElement.innerText;
 
             const emailElement = contactInfoCell.querySelector('.text-muted');
