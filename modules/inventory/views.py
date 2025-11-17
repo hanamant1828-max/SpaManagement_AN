@@ -269,7 +269,7 @@ def api_create_location():
             name=data.get('name'),
             type=data.get('type', 'warehouse'),  # Default type
             address=data.get('address', ''),
-            contact_person=data.get('contact', ''),
+            contact_person=data.get('contact_person', ''),
             phone=data.get('phone', ''),
             status='active'
         )
@@ -300,7 +300,7 @@ def api_update_location(location_id):
         location.name = data.get('name', location.name)
         location.type = data.get('type', location.type)
         location.address = data.get('address', location.address)
-        location.contact_person = data.get('contact', location.contact_person)
+        location.contact_person = data.get('contact_person', location.contact_person)
         location.phone = data.get('phone', location.phone)
         location.status = data.get('status', location.status)
 
