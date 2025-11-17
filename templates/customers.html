@@ -480,7 +480,7 @@
                     <div class="col-md-8">
                         <h4 class="mb-3 text-center">Find Your Customers</h4>
                         <form method="GET" class="search-input-group">
-                            <input type="text" class="form-control" name="search"
+                            <input type="text" class="form-control" id="customerSearch" name="search"
                                    placeholder="Search by name, phone, or email..."
                                    value="{{ search_query }}" onkeyup="searchCustomers()">
                             <i class="fas fa-search search-icon"></i>
@@ -1715,15 +1715,31 @@ window.addEventListener('error', function(e) {
 
 // Search customers function
 function searchCustomers() {
-    const searchInput = document.getElementById('customerSearch'); // Use the correct ID
-    const filter = searchInput.value.toLowerCase().trim();
-    const table = document.querySelector('.spa-table tbody'); // Target the specific table body
-    const rows = table.getElementsByTagName('tr');
+    const searchInput = document.getElementById('customerSearch');
+    if (!searchInput) {
+        console.error('Search input not found');
+        return;
+    }
 
+    const filter = searchInput.value.toLowerCase().trim();
+    const table = document.querySelector('.spa-table tbody');
+    
+    if (!table) {
+        console.error('Table not found');
+        return;
+    }
+
+    const rows = table.getElementsByTagName('tr');
     let visibleCount = 0;
 
     for (let i = 0; i < rows.length; i++) {
         const row = rows[i];
+        
+        // Skip the "no results" row if it exists
+        if (row.id === 'noResultsRow') {
+            continue;
+        }
+
         // Target specific cells for name, phone, and email
         const nameCell = row.cells[0]; // First cell (customer info)
         const contactInfoCell = row.cells[1]; // Second cell (contact info)
@@ -1755,17 +1771,18 @@ function searchCustomers() {
         }
     }
 
-    // Show message if no results
-    const noResultsRow = document.getElementById('noResultsRow');
-    if (noResultsRow) {
-        noResultsRow.remove();
+    // Remove existing "no results" row if it exists
+    const existingNoResultsRow = document.getElementById('noResultsRow');
+    if (existingNoResultsRow) {
+        existingNoResultsRow.remove();
     }
 
+    // Show message if no results
     if (visibleCount === 0 && filter !== '') {
         const newRow = table.insertRow(0);
         newRow.id = 'noResultsRow';
         const cell = newRow.insertCell(0);
-        cell.colSpan = 8; // Adjust colspan to match table columns
+        cell.colSpan = 6; // Match the number of columns in the table
         cell.className = 'text-center text-muted py-4';
         cell.innerHTML = '<i class="fas fa-search fa-2x mb-2 d-block"></i>No customers found matching "' + filter + '"';
     }
