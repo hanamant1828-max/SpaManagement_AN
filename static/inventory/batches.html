@@ -359,7 +359,13 @@ function getFilteredBatches() {
     const searchTerm = document.getElementById('searchBatch')?.value?.toLowerCase();
 
     if (statusFilter) {
-        filtered = filtered.filter(batch => batch.status === statusFilter);
+        if (statusFilter === 'expired') {
+            // Filter by is_expired flag for expired batches
+            filtered = filtered.filter(batch => batch.is_expired === true);
+        } else {
+            // Filter by status for other statuses
+            filtered = filtered.filter(batch => batch.status === statusFilter && !batch.is_expired);
+        }
     }
 
     if (assignmentFilter === 'assigned') {
