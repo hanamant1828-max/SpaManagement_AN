@@ -264,6 +264,21 @@ class InventoryAdjustment(db.Model):
     batch = db.relationship('InventoryBatch', backref='adjustments')
     user = db.relationship('User', backref='adjustments')
 
+
+class InventoryTransferItem(db.Model):
+    """Items in a transfer"""
+    __tablename__ = 'inventory_transfer_items'
+
+    id = db.Column(db.Integer, primary_key=True)
+    transfer_id = db.Column(db.Integer, db.ForeignKey('inventory_transfers.id'), nullable=False)
+    batch_id = db.Column(db.Integer, db.ForeignKey('inventory_batches.id'), nullable=False)
+    product_id = db.Column(db.Integer, db.ForeignKey('inventory_products.id'), nullable=False)
+    quantity = db.Column(db.Numeric(10, 2), nullable=False)
+
+    # Relationships
+    batch = db.relationship('InventoryBatch')
+    product = db.relationship('InventoryProduct')
+
 class InventoryTransfer(db.Model):
     """Track inventory transfers between locations - batch to batch"""
     __tablename__ = 'inventory_transfers'

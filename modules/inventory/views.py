@@ -1210,6 +1210,279 @@ def api_delete_batch(batch_id):
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
+# ============ TRANSFER ENDPOINTS ============
+
+@app.route('/api/inventory/transfers', methods=['GET'])
+@login_required
+def api_get_transfers():
+    """Get all transfers with pagination"""
+    try:
+        page = int(request.args.get('page', 1))
+        page_size = int(request.args.get('page_size', 25))
+        from_date = request.args.get('from_date', '')
+        to_date = request.args.get('to_date', '')
+        status = request.args.get('status', '')
+        search = request.args.get('search', '')
+
+        query = InventoryTransfer.query
+
+        if from_date:
+            from datetime import datetime
+            start_date = datetime.strptime(from_date, '%Y-%m-%d')
+            query = query.filter(InventoryTransfer.transfer_date >= start_date)
+
+        if to_date:
+            from datetime import datetime
+            end_date = datetime.strptime(to_date, '%Y-%m-%d')
+            query = query.filter(InventoryTransfer.transfer_date <= end_date)
+
+        if status:
+            query = query.filter(InventoryTransfer.status == status)
+
+        if search:
+            query = query.filter(
+                or_(
+                    InventoryTransfer.transfer_id.ilike(f'%{search}%'),
+                    InventoryTransfer.notes.ilike(f'%{search}%')
+                )
+            )
+
+        query = query.order_by(desc(InventoryTransfer.transfer_date))
+
+        total = query.count()
+        total_pages = (total + page_size - 1) // page_size
+
+        transfers = query.offset((page - 1) * page_size).limit(page_size).all()
+
+        transfers_data = []
+        for t in transfers:
+            transfers_data.append({
+                'id': t.id,
+                'transfer_id': t.transfer_id,
+                'transfer_date': t.transfer_date.strftime('%Y-%m-%d') if t.transfer_date else '',
+                'from_location_id': t.from_location_id,
+                'from_location_name': t.from_location.name if t.from_location else 'Unknown',
+                'to_location_id': t.to_location_id,
+                'to_location_name': t.to_location.name if t.to_location else 'Unknown',
+                'status': t.status,
+                'notes': t.notes or '',
+                'item_count': len(t.items) if t.items else 0,
+                'created_at': t.created_at.isoformat() if t.created_at else None
+            })
+
+        return jsonify({
+            'success': True,
+            'transfers': transfers_data,
+            'total': total,
+            'total_pages': total_pages,
+            'current_page': page
+        })
+    except Exception as e:
+        print(f"Error in api_get_transfers: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'transfers': []
+        }), 500
+
+@app.route('/api/inventory/transfers', methods=['POST'])
+@login_required
+def api_create_transfer():
+    """Create a new transfer"""
+    try:
+        from decimal import Decimal
+        data = request.get_json()
+
+        # Validate required fields
+        if not data.get('from_location_id') or not data.get('to_location_id'):
+            return jsonify({'error': 'Both from and to locations are required'}), 400
+
+        if data['from_location_id'] == data['to_location_id']:
+            return jsonify({'error': 'From and To locations must be different'}), 400
+
+        if not data.get('items') or len(data['items']) == 0:
+            return jsonify({'error': 'At least one item is required'}), 400
+
+        # Generate transfer ID if not provided
+        transfer_id = data.get('transfer_id')
+        if not transfer_id:
+            from datetime import datetime
+            now = datetime.now()
+            transfer_id = f"TRF-{now.strftime('%Y%m%d-%H%M')}"
+
+        # Create transfer
+        transfer = InventoryTransfer(
+            transfer_id=transfer_id,
+            transfer_date=datetime.strptime(data['transfer_date'], '%Y-%m-%d').date() if data.get('transfer_date') else date.today(),
+            from_location_id=data['from_location_id'],
+            to_location_id=data['to_location_id'],
+            status='pending',
+            notes=data.get('notes', ''),
+            created_by=current_user.id
+        )
+
+        db.session.add(transfer)
+        db.session.flush()
+
+        # Add transfer items
+        for item_data in data['items']:
+            batch = InventoryBatch.query.get(item_data['batch_id'])
+            if not batch:
+                db.session.rollback()
+                return jsonify({'error': f'Batch {item_data["batch_id"]} not found'}), 404
+
+            quantity = Decimal(str(item_data['quantity']))
+            
+            if quantity > batch.qty_available:
+                db.session.rollback()
+                return jsonify({'error': f'Insufficient stock for batch {batch.batch_name}'}), 400
+
+            # Create transfer item
+            from .models import InventoryTransferItem
+            transfer_item = InventoryTransferItem(
+                transfer_id=transfer.id,
+                batch_id=batch.id,
+                product_id=batch.product_id,
+                quantity=quantity
+            )
+            db.session.add(transfer_item)
+
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'message': 'Transfer created successfully',
+            'transfer_id': transfer.id
+        })
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error creating transfer: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/inventory/transfers/<int:transfer_id>', methods=['GET'])
+@login_required
+def api_get_transfer(transfer_id):
+    """Get transfer details"""
+    try:
+        transfer = InventoryTransfer.query.get(transfer_id)
+        if not transfer:
+            return jsonify({'error': 'Transfer not found'}), 404
+
+        items_data = []
+        for item in transfer.items:
+            items_data.append({
+                'batch_id': item.batch_id,
+                'batch_name': item.batch.batch_name if item.batch else 'Unknown',
+                'product_id': item.product_id,
+                'product_name': item.product.name if item.product else 'Unknown',
+                'quantity': float(item.quantity),
+                'unit': item.product.unit_of_measure if item.product else 'pcs'
+            })
+
+        return jsonify({
+            'success': True,
+            'transfer': {
+                'id': transfer.id,
+                'transfer_id': transfer.transfer_id,
+                'transfer_date': transfer.transfer_date.strftime('%Y-%m-%d') if transfer.transfer_date else '',
+                'from_location_id': transfer.from_location_id,
+                'from_location_name': transfer.from_location.name if transfer.from_location else 'Unknown',
+                'to_location_id': transfer.to_location_id,
+                'to_location_name': transfer.to_location.name if transfer.to_location else 'Unknown',
+                'status': transfer.status,
+                'notes': transfer.notes or '',
+                'items': items_data
+            }
+        })
+    except Exception as e:
+        print(f"Error getting transfer: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/inventory/transfers/<int:transfer_id>/complete', methods=['POST'])
+@login_required
+def api_complete_transfer(transfer_id):
+    """Complete a transfer - move stock between locations"""
+    try:
+        from decimal import Decimal
+        transfer = InventoryTransfer.query.get(transfer_id)
+        if not transfer:
+            return jsonify({'error': 'Transfer not found'}), 404
+
+        if transfer.status != 'pending':
+            return jsonify({'error': 'Only pending transfers can be completed'}), 400
+
+        # Process each item
+        for item in transfer.items:
+            # Reduce quantity from source batch
+            source_batch = item.batch
+            if source_batch.qty_available < item.quantity:
+                db.session.rollback()
+                return jsonify({'error': f'Insufficient stock in batch {source_batch.batch_name}'}), 400
+
+            source_batch.qty_available -= item.quantity
+
+            # Create or update batch at destination
+            dest_batch = InventoryBatch.query.filter_by(
+                batch_name=source_batch.batch_name,
+                location_id=transfer.to_location_id
+            ).first()
+
+            if dest_batch:
+                # Update existing batch at destination
+                dest_batch.qty_available += item.quantity
+            else:
+                # Create new batch at destination
+                dest_batch = InventoryBatch(
+                    batch_name=source_batch.batch_name,
+                    product_id=source_batch.product_id,
+                    location_id=transfer.to_location_id,
+                    mfg_date=source_batch.mfg_date,
+                    expiry_date=source_batch.expiry_date,
+                    qty_available=item.quantity,
+                    unit_cost=source_batch.unit_cost,
+                    selling_price=source_batch.selling_price,
+                    status='active'
+                )
+                db.session.add(dest_batch)
+
+        # Update transfer status
+        transfer.status = 'completed'
+        transfer.completed_at = datetime.utcnow()
+
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'message': 'Transfer completed successfully'
+        })
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error completing transfer: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/inventory/transfers/<int:transfer_id>/cancel', methods=['POST'])
+@login_required
+def api_cancel_transfer(transfer_id):
+    """Cancel a transfer"""
+    try:
+        transfer = InventoryTransfer.query.get(transfer_id)
+        if not transfer:
+            return jsonify({'error': 'Transfer not found'}), 404
+
+        if transfer.status != 'pending':
+            return jsonify({'error': 'Only pending transfers can be cancelled'}), 400
+
+        transfer.status = 'cancelled'
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'message': 'Transfer cancelled successfully'
+        })
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/api/products', methods=['GET'])
 @login_required
 def api_get_products_simple():
