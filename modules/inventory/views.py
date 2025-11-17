@@ -231,7 +231,7 @@ def api_get_locations():
             'name': loc.name,
             'type': loc.type,
             'address': loc.address or '',
-            'contact': loc.contact_person or '',
+            'contact_person': loc.contact_person or '',
             'phone': loc.phone or '',
             'status': loc.status,
             'total_products': product_counts.get(loc.id, 0), # Use count from batches
