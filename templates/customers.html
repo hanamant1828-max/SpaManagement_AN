@@ -482,7 +482,7 @@
                         <form method="GET" class="search-input-group">
                             <input type="text" class="form-control" id="customerSearch" name="search"
                                    placeholder="Search by name, phone, or email..."
-                                   value="{{ search_query }}" onkeyup="searchCustomers()">
+                                   value="{{ search_query }}">
                             <i class="fas fa-search search-icon"></i>
                         </form>
                     </div>
@@ -1010,6 +1010,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 this.dataset.initialized = 'true';
             }
         });
+    }
+
+    // Attach search event listener
+    const searchInput = document.getElementById('customerSearch');
+    if (searchInput) {
+        searchInput.addEventListener('keyup', searchCustomers);
+        console.log('Search event listener attached');
     }
 
     console.log('Customer Management: Ready');
