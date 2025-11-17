@@ -43,7 +43,7 @@
                             <th>SKU</th>
                             <th>Name</th>
                             <th>Category</th>
-                            <th>Unit</th>
+                            <th>Stock</th>
                             <th>Status</th>
                             <th>Batches</th>
                             <th>Actions</th>
@@ -302,10 +302,12 @@
 
             filteredProducts.forEach(product => {
                 const stock = calculateTotalStock(product);
-                const statusBadge = getStatusBadge(product.status || 'in_stock');
-                const categoryBadge = product.category ? 
-                    `<span class="badge" style="background-color: ${product.category_color || '#6c757d'}">${product.category}</span>` : 
-                    '<span class="text-muted">—</span>';
+                const statusBadge = getStatusBadge(product.status || product.stock_status || 'in_stock');
+                
+                // Use category_name from API response
+                const categoryBadge = product.category_name ? 
+                    `<span class="badge bg-primary">${product.category_name}</span>` : 
+                    '<span class="text-muted">No Category</span>';
 
                 productsHTML += `
                     <tr>
@@ -319,7 +321,6 @@
                         <td>
                             <span class="badge bg-info">${product.batch_count || 0} batches</span>
                         </td>
-                        <td>$${(product.cost_price || product.costPrice || 0).toFixed(2)}</td>
                         <td>
                             <div class="btn-group btn-group-sm">
                                 <button class="btn btn-outline-primary" onclick="viewProduct('${product.id}')" title="View Details">
