@@ -200,6 +200,7 @@
                                     <small class="opacity-75">Status</small>
                                 </div>
                             </div>
+                            <!-- Go to Billing button will be added dynamically by JavaScript -->
                         </div>
                     </div>
 
@@ -865,7 +866,7 @@ function recognizeFace(imageData) {
             if (overlay) {
                 overlay.classList.remove('scanning-animation');
                 overlay.classList.add('error');
-                overlay.style.border = '6px solid #dc3545'; // Red for error
+                overlay.style.border = '6px solid #dc3545';
                 overlay.style.boxShadow = '0 0 0 9999px rgba(0, 0, 0, 0.5), 0 0 30px rgba(220, 53, 69, 0.8)';
             }
         }
@@ -879,7 +880,7 @@ function recognizeFace(imageData) {
         if (overlay) {
             overlay.classList.remove('scanning-animation');
             overlay.classList.add('error');
-            overlay.style.border = '6px solid #dc3545'; // Red for error
+            overlay.style.border = '6px solid #dc3545';
             overlay.style.boxShadow = '0 0 0 9999px rgba(0, 0, 0, 0.5), 0 0 30px rgba(220, 53, 69, 0.8)';
         }
     });
