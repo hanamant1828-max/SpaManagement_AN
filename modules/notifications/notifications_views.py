@@ -154,6 +154,13 @@ def send_whatsapp_message():
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
 
+    # Check if Twilio is configured FIRST
+    from modules.notifications.notifications_queries import TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN
+    
+    if not TWILIO_ACCOUNT_SID or not TWILIO_AUTH_TOKEN:
+        flash('WhatsApp messaging is not configured. Please add Twilio credentials in Secrets (TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_WHATSAPP_NUMBER)', 'warning')
+        return redirect(url_for('notifications'))
+
     from .notifications_queries import send_whatsapp_message as send_msg
     from models import Customer
 
@@ -222,13 +229,6 @@ def send_whatsapp_message():
             else:
                 failed_count += 1
 
-    # Check if Twilio is configured
-    from modules.notifications.notifications_queries import TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN
-    
-    if not TWILIO_ACCOUNT_SID or not TWILIO_AUTH_TOKEN:
-        flash('WhatsApp messaging is not configured. Please add Twilio credentials in Secrets (TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_WHATSAPP_NUMBER)', 'danger')
-        return redirect(url_for('notifications'))
-    
     if sent_count > 0:
         flash(f'Successfully sent {sent_count} message(s)', 'success')
     if failed_count > 0:
