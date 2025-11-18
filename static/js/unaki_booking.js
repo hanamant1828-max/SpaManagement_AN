@@ -1046,7 +1046,7 @@
                 messageDiv.style.display = 'block';
                 messageDiv.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Checking in client...';
 
-                console.log('📤 Sending check-in request for client ID:', clientId);
+                console.log(' Idani Sending check-in request for client ID:', clientId);
 
                 fetch('/api/unaki/checkin/manual', {
                     method: 'POST',
@@ -1458,4 +1458,108 @@
                 }
 
                 return allValid && !hasRealConflicts;
+            }
+
+            function saveEditedAppointment() {
+                const appointmentId = document.getElementById('editAppointmentId').value;
+                console.log('💾 Saving changes for appointment', appointmentId);
+
+                // Get form elements
+                const clientNameInput = document.getElementById('editClientName') || document.querySelector('#editAppointmentModal input[placeholder*="Client"]');
+                const clientPhoneInput = document.getElementById('editClientPhone') || document.querySelector('#editAppointmentModal input[placeholder*="Phone"]');
+                const serviceNameInput = document.getElementById('editServiceName') || document.querySelector('#editAppointmentModal input[placeholder*="Service"]');
+                const staffIdInput = document.getElementById('editStaffSelect') || document.querySelector('#editAppointmentModal select'); // Assuming staff selection is also in editAppointmentModal
+                const startTimeInput = document.getElementById('editStartTime') || document.querySelector('#editAppointmentModal input[type="time"]');
+                const endTimeInput = document.getElementById('editEndTime') || document.querySelectorAll('#editAppointmentModal input[type="time"]')[1];
+                const notesInput = document.getElementById('editNotes') || document.querySelector('#editAppointmentModal textarea');
+                const dateInput = document.getElementById('editDate') || document.querySelector('#editAppointmentModal input[type="date"]');
+                const statusInput = document.getElementById('editStatus');
+                const paymentStatusInput = document.getElementById('editPaymentStatus');
+
+
+                // Collect updated appointment data
+                const updatedData = {
+                    clientName: clientNameInput ? clientNameInput.value.trim() : '',
+                    clientPhone: clientPhoneInput ? clientPhoneInput.value.trim() : '',
+                    serviceName: serviceNameInput ? serviceNameInput.value.trim() : '',
+                    staffId: staffIdInput ? staffIdInput.value : '',
+                    startTime: startTimeInput ? startTimeInput.value : '',
+                    endTime: endTimeInput ? endTimeInput.value : '',
+                    notes: notesInput ? notesInput.value.trim() : '',
+                    date: dateInput ? dateInput.value : currentDate,
+                    status: statusInput ? statusInput.value : 'scheduled',
+                    payment_status: paymentStatusInput ? paymentStatusInput.value : 'pending'
+                };
+
+                // Validate required fields
+                if (!updatedData.clientName) {
+                    showToast('Client name is required', 'error');
+                    return;
+                }
+                if (!updatedData.serviceName) {
+                    showToast('Service name is required', 'error');
+                    return;
+                }
+                if (!updatedData.staffId) {
+                    showToast('Staff selection is required', 'error');
+                    return;
+                }
+                if (!updatedData.startTime || !updatedData.endTime) {
+                    showToast('Start and end times are required', 'error');
+                    return;
+                }
+
+                // Find the selected service ID and its duration for potential recalculation if needed
+                const serviceSelectElement = document.getElementById('editServiceSelect');
+                const selectedServiceOption = serviceSelectElement ? serviceSelectElement.options[serviceSelectElement.selectedIndex] : null;
+                const serviceId = serviceSelectElement ? serviceSelectElement.value : null;
+                const serviceDuration = selectedServiceOption ? parseInt(selectedServiceOption.dataset.duration) : 60; // Default to 60 minutes
+
+                // Re-calculate end time if start time or duration changes implicitly
+                if (updatedData.startTime && serviceDuration) {
+                    const newEndTime = calculateEndTimeFromDuration(updatedData.startTime, serviceDuration);
+                    // Only update if it's different or if endTimeInput was not explicitly set otherwise
+                    if (endTimeInput && endTimeInput.value !== newEndTime) {
+                        endTimeInput.value = newEndTime;
+                        updatedData.endTime = newEndTime;
+                    }
+                }
+
+
+                console.log('📤 Sending update data:', updatedData);
+
+                // The API endpoint for updating a booking is likely /api/unaki/bookings/{id}
+                // Ensure the method is PUT or PATCH as appropriate for your API
+                fetch(`/api/unaki/bookings/${appointmentId}`, {
+                    method: 'PUT', // Or 'PATCH' if your API uses PATCH for updates
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(updatedData)
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        return response.json().then(err => { throw new Error(err.error || `HTTP error ${response.status}`) });
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('✅ Update response:', data);
+                    if (data.success) {
+                        showToast(data.message || 'Appointment updated successfully', 'success');
+                        // Close the modal
+                        const editModal = bootstrap.Modal.getInstance(document.getElementById('editAppointmentModal'));
+                        if (editModal) {
+                            editModal.hide();
+                        }
+                        // Refresh the booking list
+                        loadBookings();
+                    } else {
+                        showToast(data.error || 'Failed to update appointment', 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('❌ Error updating appointment:', error);
+                    showToast(`Error updating appointment: ${error.message}`, 'error');
+                });
             }
