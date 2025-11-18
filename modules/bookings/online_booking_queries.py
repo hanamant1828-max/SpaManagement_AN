@@ -17,7 +17,10 @@ from modules.bookings.booking_services import (
 def get_online_bookings(status_filter=None, date_from=None, date_to=None):
     """Get all online bookings with optional filters"""
     try:
-        query = UnakiBooking.query.filter_by(booking_source='online')
+        # Include both 'online' and 'website' sources
+        query = UnakiBooking.query.filter(
+            UnakiBooking.booking_source.in_(['online', 'website'])
+        )
 
         if status_filter:
             query = query.filter_by(status=status_filter)
@@ -78,9 +81,9 @@ def get_grouped_online_bookings(status_filter=None, date_from=None, date_to=None
 
 def get_online_booking_by_id(booking_id):
     """Get a specific online booking"""
-    return UnakiBooking.query.filter_by(
-        id=booking_id,
-        booking_source='online'
+    return UnakiBooking.query.filter(
+        UnakiBooking.id == booking_id,
+        UnakiBooking.booking_source.in_(['online', 'website'])
     ).first()
 
 
@@ -363,7 +366,10 @@ def get_online_booking_stats():
     from models import UnakiBooking
     
     # Get all online bookings and group them to count customer groups
-    all_bookings = UnakiBooking.query.filter_by(booking_source='online').all()
+    # Include both 'online' and 'website' sources since the website uses 'website' as booking_source
+    all_bookings = UnakiBooking.query.filter(
+        UnakiBooking.booking_source.in_(['online', 'website'])
+    ).all()
     
     # Group by customer + date
     unique_groups = set()
