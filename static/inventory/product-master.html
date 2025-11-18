@@ -590,8 +590,25 @@
                     
                     let batchesHTML = '';
                     batchesData.batches.forEach(batch => {
-                        const expiryDate = batch.expiry_date ? new Date(batch.expiry_date).toLocaleDateString('en-GB') : '-';
-                        const mfgDate = batch.mfg_date ? new Date(batch.mfg_date).toLocaleDateString('en-GB') : '-';
+                        // Parse dates - handle both ISO format and null values
+                        let mfgDate = '-';
+                        if (batch.mfg_date) {
+                            try {
+                                mfgDate = new Date(batch.mfg_date).toLocaleDateString('en-GB');
+                            } catch (e) {
+                                console.error('Error parsing mfg_date:', batch.mfg_date, e);
+                            }
+                        }
+                        
+                        let expiryDate = '-';
+                        if (batch.expiry_date) {
+                            try {
+                                expiryDate = new Date(batch.expiry_date).toLocaleDateString('en-GB');
+                            } catch (e) {
+                                console.error('Error parsing expiry_date:', batch.expiry_date, e);
+                            }
+                        }
+                        
                         const statusClass = batch.is_expired ? 'bg-danger' : 'bg-success';
                         
                         batchesHTML += `

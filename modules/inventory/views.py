@@ -1619,11 +1619,15 @@ def get_product_batches(product_id):
             'batches': [{
                 'id': b.id,
                 'batch_name': b.batch_name,
+                'mfg_date': b.mfg_date.isoformat() if b.mfg_date else None,
                 'expiry_date': b.expiry_date.isoformat() if b.expiry_date else None,
                 'qty_available': float(b.qty_available or 0),
                 'unit_cost': float(b.unit_cost or 0),
+                'selling_price': float(b.selling_price or 0) if b.selling_price else None,
                 'location_id': b.location_id,
-                'location_name': b.location.name if b.location else 'Unknown'
+                'location_name': b.location.name if b.location else 'Unknown',
+                'is_expired': b.is_expired,
+                'days_to_expiry': b.days_to_expiry
             } for b in batches]
         })
     except Exception as e:
