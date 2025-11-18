@@ -50,8 +50,10 @@ def create_service(data):
         if category_id:
             try:
                 category = Category.query.get(int(category_id))
-                if category:
+                if category and category.name:
                     category_name = category.name
+                else:
+                    print(f"Category {category_id} not found or has no name, using default")
             except Exception as e:
                 print(f"Error getting category: {e}")
                 pass  # Use default
@@ -62,22 +64,23 @@ def create_service(data):
         service.description = data.get('description', '')
         service.duration = data['duration']
         service.price = data['price']
-        service.category = category_name  # Set this BEFORE category_id
+        service.category = category_name  # Set this BEFORE category_id (required field)
         service.category_id = int(category_id) if category_id else None
         service.is_active = data.get('is_active', True)
         service.created_at = datetime.utcnow()
         
-        print(f"Creating service: {service.name}, price: {service.price}, duration: {service.duration}")
+        print(f"Creating service: {service.name}, category: {service.category}, price: {service.price}, duration: {service.duration}")
         
         db.session.add(service)
         db.session.commit()
+        db.session.refresh(service)  # Refresh to get the ID
         
-        print(f"Service created successfully with ID: {service.id}")
+        print(f"✅ Service created successfully with ID: {service.id}")
         return service
         
     except Exception as e:
         db.session.rollback()
-        print(f"Error creating service: {str(e)}")
+        print(f"❌ Error creating service: {str(e)}")
         raise e
 
 def update_service(service_id, data):
