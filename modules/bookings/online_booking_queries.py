@@ -362,38 +362,35 @@ def bulk_reject_bookings(booking_ids, reason):
 
 
 def get_online_booking_stats():
-    """Get statistics for online bookings"""
+    """Get statistics for online bookings - counts actual individual bookings"""
     from models import UnakiBooking
     
-    # Get all online bookings and group them to count customer groups
+    # Get all online bookings
     # Include both 'online' and 'website' sources since the website uses 'website' as booking_source
     all_bookings = UnakiBooking.query.filter(
         UnakiBooking.booking_source.in_(['online', 'website'])
     ).all()
     
-    # Group by customer + date
-    unique_groups = set()
-    pending_groups = set()
-    accepted_groups = set()
-    rejected_groups = set()
+    # Count individual bookings by status
+    total_count = len(all_bookings)
+    pending_count = 0
+    accepted_count = 0
+    rejected_count = 0
     
     for booking in all_bookings:
-        group_key = f"{booking.client_name}_{booking.client_phone}_{booking.appointment_date}"
-        unique_groups.add(group_key)
-        
         if booking.status == 'scheduled':
-            pending_groups.add(group_key)
+            pending_count += 1
         elif booking.status in ['confirmed', 'in_progress', 'completed']:
             # Count confirmed, in-progress, and completed bookings as accepted
             # These represent appointments that were accepted/confirmed
-            accepted_groups.add(group_key)
+            accepted_count += 1
         elif booking.status in ['cancelled', 'no_show']:
             # Count both cancelled and no-show as rejected
-            rejected_groups.add(group_key)
+            rejected_count += 1
     
     return {
-        'total': len(unique_groups),
-        'pending': len(pending_groups),
-        'accepted': len(accepted_groups),
-        'rejected': len(rejected_groups)
+        'total': total_count,
+        'pending': pending_count,
+        'accepted': accepted_count,
+        'rejected': rejected_count
     }
