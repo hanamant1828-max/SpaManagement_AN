@@ -156,7 +156,6 @@
                                     <th>Amount</th>
                                     <th>Received</th>
                                     <th>Status</th>
-                                    <th>Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -222,24 +221,7 @@
                                         <span class="badge bg-secondary">{{ group.status }}</span>
                                         {% endif %}
                                     </td>
-                                    <td>
-                                        <div class="btn-group btn-group-sm">
-                                            <a href="tel:{{ group.customer_phone }}" class="btn btn-primary" title="Call Customer">
-                                                <i class="fas fa-phone"></i>
-                                            </a>
-                                            {% if group.status == 'scheduled' %}
-                                            <a href="{{ url_for('accept_booking_page', group_id=group_id) }}" 
-                                               class="btn btn-success" title="Accept Booking">
-                                                <i class="fas fa-check"></i>
-                                            </a>
-                                            <button type="button" class="btn btn-danger"
-                                                    onclick="rejectGroupBooking({{ group_id }})" title="Reject">
-                                                <i class="fas fa-times"></i>
-                                            </button>
-                                            {% endif %}
-                                        </div>
-                                    </td>
-                                </tr>
+                                    </tr>
 
                                 <!-- Sub-appointments (hidden by default) -->
                                 {% if group.bookings|length > 1 %}
