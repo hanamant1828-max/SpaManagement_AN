@@ -100,11 +100,11 @@
         <div class="col-12">
             <div class="card">
                 <div class="card-body">
-                    <form method="GET" action="{{ url_for('online_bookings') }}" class="row g-3">
+                    <form method="GET" action="{{ url_for('online_bookings') }}" class="row g-3" id="filterForm">
                         <div class="col-md-3">
                             <label class="form-label">Status</label>
-                            <select name="status" class="form-select">
-                                <option value="all" {% if status_filter == 'all' %}selected{% endif %}>All Statuses</option>
+                            <select name="status" class="form-select" id="statusFilter" onchange="document.getElementById('filterForm').submit()">
+                                <option value="all" {% if not status_filter or status_filter == 'all' %}selected{% endif %}>All Statuses</option>
                                 <option value="scheduled" {% if status_filter == 'scheduled' %}selected{% endif %}>Pending Review</option>
                                 <option value="confirmed" {% if status_filter == 'confirmed' %}selected{% endif %}>Accepted</option>
                                 <option value="cancelled" {% if status_filter == 'cancelled' %}selected{% endif %}>Rejected</option>

@@ -75,7 +75,7 @@ def online_bookings():
         return redirect(url_for('dashboard'))
 
     # Get filters from query params
-    status_filter = request.args.get('status', 'scheduled')  # Default to 'scheduled' (pending review)
+    status_filter = request.args.get('status', 'all')  # Default to 'all' to show all bookings
 
     date_from = request.args.get('date_from')
     date_to = request.args.get('date_to')

@@ -361,61 +361,30 @@ def bulk_reject_bookings(booking_ids, reason):
 def get_online_booking_stats():
     """Get statistics for online bookings"""
     from models import UnakiBooking
-    from sqlalchemy import func, distinct
-
-    # Count unique customer groups (customer name + phone + date combinations)
-    # This gives us the number of customer booking sessions, not individual services
-    total_query = db.session.query(
-        func.count(distinct(
-            func.concat(
-                UnakiBooking.client_name,
-                '_',
-                UnakiBooking.client_phone,
-                '_',
-                UnakiBooking.appointment_date
-            )
-        ))
-    ).filter_by(booking_source='online').scalar() or 0
-
-    pending_query = db.session.query(
-        func.count(distinct(
-            func.concat(
-                UnakiBooking.client_name,
-                '_',
-                UnakiBooking.client_phone,
-                '_',
-                UnakiBooking.appointment_date
-            )
-        ))
-    ).filter_by(booking_source='online', status='scheduled').scalar() or 0
-
-    accepted_query = db.session.query(
-        func.count(distinct(
-            func.concat(
-                UnakiBooking.client_name,
-                '_',
-                UnakiBooking.client_phone,
-                '_',
-                UnakiBooking.appointment_date
-            )
-        ))
-    ).filter_by(booking_source='online', status='confirmed').scalar() or 0
-
-    rejected_query = db.session.query(
-        func.count(distinct(
-            func.concat(
-                UnakiBooking.client_name,
-                '_',
-                UnakiBooking.client_phone,
-                '_',
-                UnakiBooking.appointment_date
-            )
-        ))
-    ).filter_by(booking_source='online', status='cancelled').scalar() or 0
-
+    
+    # Get all online bookings and group them to count customer groups
+    all_bookings = UnakiBooking.query.filter_by(booking_source='online').all()
+    
+    # Group by customer + date
+    unique_groups = set()
+    pending_groups = set()
+    accepted_groups = set()
+    rejected_groups = set()
+    
+    for booking in all_bookings:
+        group_key = f"{booking.client_name}_{booking.client_phone}_{booking.appointment_date}"
+        unique_groups.add(group_key)
+        
+        if booking.status == 'scheduled':
+            pending_groups.add(group_key)
+        elif booking.status == 'confirmed':
+            accepted_groups.add(group_key)
+        elif booking.status == 'cancelled':
+            rejected_groups.add(group_key)
+    
     return {
-        'total': total_query,
-        'pending': pending_query,
-        'accepted': accepted_query,
-        'rejected': rejected_query
+        'total': len(unique_groups),
+        'pending': len(pending_groups),
+        'accepted': len(accepted_groups),
+        'rejected': len(rejected_groups)
     }
