@@ -1057,22 +1057,42 @@ class AppointmentContextMenu {
     saveAppointmentChanges(appointmentId, modal) {
         console.log(`💾 Saving changes for appointment ${appointmentId}`);
 
-        // Collect form data - using camelCase field names to match backend API
+        // Collect form data - using both camelCase and snake_case to ensure compatibility
         const formData = {
-            clientName: document.getElementById('editClientName').value,
-            clientPhone: document.getElementById('editClientPhone').value,
-            clientEmail: document.getElementById('editClientEmail').value,
-            serviceName: document.getElementById('editServiceName').value,
-            serviceDuration: parseInt(document.getElementById('editServiceDuration').value),
-            servicePrice: parseFloat(document.getElementById('editServicePrice').value),
+            // Client information
+            clientName: document.getElementById('editClientName').value.trim(),
+            client_name: document.getElementById('editClientName').value.trim(),
+            clientPhone: document.getElementById('editClientPhone').value.trim(),
+            client_phone: document.getElementById('editClientPhone').value.trim(),
+            clientEmail: document.getElementById('editClientEmail').value.trim(),
+            client_email: document.getElementById('editClientEmail').value.trim(),
+            
+            // Service information
+            serviceName: document.getElementById('editServiceName').value.trim(),
+            service_name: document.getElementById('editServiceName').value.trim(),
+            serviceDuration: parseInt(document.getElementById('editServiceDuration').value) || 60,
+            service_duration: parseInt(document.getElementById('editServiceDuration').value) || 60,
+            servicePrice: parseFloat(document.getElementById('editServicePrice').value) || 0,
+            service_price: parseFloat(document.getElementById('editServicePrice').value) || 0,
+            
+            // Staff and schedule
             staffId: parseInt(document.getElementById('editStaffId').value),
+            staff_id: parseInt(document.getElementById('editStaffId').value),
             date: document.getElementById('editAppointmentDate').value,
+            appointment_date: document.getElementById('editAppointmentDate').value,
             startTime: document.getElementById('editStartTime').value,
+            start_time: document.getElementById('editStartTime').value,
             endTime: document.getElementById('editEndTime').value,
+            end_time: document.getElementById('editEndTime').value,
+            
+            // Status and payment
             status: document.getElementById('editStatus').value,
             paymentStatus: document.getElementById('editPaymentStatus').value,
-            notes: document.getElementById('editNotes').value
+            payment_status: document.getElementById('editPaymentStatus').value,
+            notes: document.getElementById('editNotes').value.trim()
         };
+
+        console.log('📤 Sending update with data:', formData);
 
         // Send update request
         fetch(`/api/unaki/bookings/${appointmentId}`, {
@@ -1082,32 +1102,36 @@ class AppointmentContextMenu {
             },
             body: JSON.stringify(formData)
         })
-        .then(response => response.json())
+        .then(response => {
+            console.log('📥 Response status:', response.status);
+            return response.json();
+        })
         .then(data => {
+            console.log('📥 Response data:', data);
             if (data.success) {
                 console.log('✅ Appointment updated successfully');
                 modal.hide();
 
                 // Show success message
-                if (typeof showNotification === 'function') {
-                    showNotification('Appointment updated successfully', 'success');
-                } else {
-                    this.showToast('Appointment updated successfully!', 'success');
-                }
+                this.showToast('Appointment updated successfully!', 'success');
 
                 // Refresh schedule
-                if (typeof refreshSchedule === 'function') {
-                    refreshSchedule();
-                } else if (typeof location !== 'undefined') {
-                    location.reload();
-                }
+                setTimeout(() => {
+                    if (typeof loadBookings === 'function') {
+                        loadBookings();
+                    } else if (typeof refreshSchedule === 'function') {
+                        refreshSchedule();
+                    } else {
+                        location.reload();
+                    }
+                }, 500);
             } else {
-                console.error('Failed to update appointment:', data.error);
+                console.error('❌ Failed to update appointment:', data.error);
                 this.showToast('Failed to update appointment: ' + (data.error || 'Unknown error'), 'error');
             }
         })
         .catch(error => {
-            console.error('Error updating appointment:', error);
+            console.error('❌ Error updating appointment:', error);
             this.showToast('Error updating appointment. Please try again.', 'error');
         });
     }
