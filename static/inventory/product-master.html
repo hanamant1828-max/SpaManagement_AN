@@ -142,7 +142,7 @@
 
 <!-- View Product Modal -->
 <div class="modal fade" id="viewProductModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
+    <div class="modal-dialog modal-xl">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">Product Details</h5>
@@ -178,6 +178,33 @@
                         <label class="form-label"><strong>Description</strong></label>
                         <p id="viewProductDescription" class="form-control-plaintext border rounded p-2 bg-light" style="min-height: 80px;"></p>
                     </div>
+                </div>
+
+                <!-- Batches Section -->
+                <hr class="my-4">
+                <h6 class="mb-3"><i class="fas fa-box me-2"></i>Batches & Stock Levels</h6>
+                <div class="table-responsive">
+                    <table class="table table-sm table-bordered">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Batch Name</th>
+                                <th>Location</th>
+                                <th>Qty Available</th>
+                                <th>Mfg Date</th>
+                                <th>Expiry Date</th>
+                                <th>Status</th>
+                                <th>Unit Cost</th>
+                                <th>Batch Value</th>
+                            </tr>
+                        </thead>
+                        <tbody id="viewProductBatchesTableBody">
+                            <!-- Dynamic batches content -->
+                        </tbody>
+                    </table>
+                </div>
+                <div id="viewProductNoBatchesMessage" class="text-center text-muted py-3" style="display: none;">
+                    <i class="fas fa-inbox fa-2x mb-2"></i>
+                    <p>No batches found for this product</p>
                 </div>
             </div>
             <div class="modal-footer">
@@ -517,43 +544,79 @@
     window.viewProduct = function(productId) {
         console.log('Viewing product:', productId);
 
-        fetch(`/api/inventory/products/${productId}`)
-            .then(response => {
-                console.log('View API Response status:', response.status);
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-                }
-                return response.json();
-            })
-            .then(data => {
-                console.log('Received view product data:', data);
+        // Fetch product details and batches in parallel
+        Promise.all([
+            fetch(`/api/inventory/products/${productId}`).then(r => r.json()),
+            fetch(`/api/inventory/products/batches/${productId}`).then(r => r.json())
+        ])
+            .then(([productData, batchesData]) => {
+                console.log('Received product data:', productData);
+                console.log('Received batches data:', batchesData);
 
-                if (data.error) {
-                    alert('Error loading product details: ' + data.error);
+                if (productData.error) {
+                    alert('Error loading product details: ' + productData.error);
                     return;
                 }
 
-                // Populate view modal with data using correct API field names and only existing HTML elements
-                document.getElementById('viewProductSku').textContent = escapeHtml(data.sku || '-');
-                document.getElementById('viewProductName').textContent = escapeHtml(data.name || '-');
-                document.getElementById('viewProductCategory').textContent = escapeHtml(data.category_name || 'No category');
-                document.getElementById('viewProductUnit').textContent = escapeHtml(data.unit_of_measure || 'pcs');
-                document.getElementById('viewProductLocation').textContent = escapeHtml(data.location_name || 'No location specified');
+                // Populate basic product info
+                document.getElementById('viewProductSku').textContent = escapeHtml(productData.sku || '-');
+                document.getElementById('viewProductName').textContent = escapeHtml(productData.name || '-');
+                document.getElementById('viewProductCategory').textContent = escapeHtml(productData.category_name || 'No category');
+                document.getElementById('viewProductUnit').textContent = escapeHtml(productData.unit_of_measure || 'pcs');
+                document.getElementById('viewProductLocation').textContent = escapeHtml(productData.location_name || 'No location specified');
 
-                // Determine status based on stock levels and show in the status field
+                // Determine status based on stock levels
                 let status = 'in_stock';
-                let statusText = `In Stock (${data.total_stock || 0} ${escapeHtml(data.unit_of_measure || 'pcs')})`;
+                let statusText = `In Stock (${productData.total_stock || 0} ${escapeHtml(productData.unit_of_measure || 'pcs')})`;
 
-                if (data.total_stock <= 0) {
+                if (productData.total_stock <= 0) {
                     status = 'out_of_stock';
-                    statusText = `Out of Stock (${data.total_stock || 0} ${escapeHtml(data.unit_of_measure || 'pcs')})`;
-                } else if (data.total_stock <= 5) {
+                    statusText = `Out of Stock (${productData.total_stock || 0} ${escapeHtml(productData.unit_of_measure || 'pcs')})`;
+                } else if (productData.total_stock <= 5) {
                     status = 'low_stock';
-                    statusText = `Low Stock (${data.total_stock || 0} ${escapeHtml(data.unit_of_measure || 'pcs')})`;
+                    statusText = `Low Stock (${productData.total_stock || 0} ${escapeHtml(productData.unit_of_measure || 'pcs')})`;
                 }
 
                 document.getElementById('viewProductStatus').innerHTML = getStatusBadge(status) + ' ' + statusText;
-                document.getElementById('viewProductDescription').textContent = escapeHtml(data.description || 'No description available');
+                document.getElementById('viewProductDescription').textContent = escapeHtml(productData.description || 'No description available');
+
+                // Populate batches table
+                const batchesTableBody = document.getElementById('viewProductBatchesTableBody');
+                const noBatchesMessage = document.getElementById('viewProductNoBatchesMessage');
+                
+                if (batchesData.success && batchesData.batches && batchesData.batches.length > 0) {
+                    // Hide no batches message and show table
+                    noBatchesMessage.style.display = 'none';
+                    
+                    let batchesHTML = '';
+                    batchesData.batches.forEach(batch => {
+                        const expiryDate = batch.expiry_date ? new Date(batch.expiry_date).toLocaleDateString('en-GB') : '-';
+                        const mfgDate = batch.mfg_date ? new Date(batch.mfg_date).toLocaleDateString('en-GB') : '-';
+                        const statusClass = batch.is_expired ? 'bg-danger' : 'bg-success';
+                        
+                        batchesHTML += `
+                            <tr>
+                                <td><strong>${escapeHtml(batch.batch_name)}</strong></td>
+                                <td>${escapeHtml(batch.location_name || 'N/A')}</td>
+                                <td><strong>${batch.qty_available}</strong> ${escapeHtml(productData.unit_of_measure || 'pcs')}</td>
+                                <td>${mfgDate}</td>
+                                <td>${expiryDate}</td>
+                                <td>
+                                    <span class="badge ${statusClass}">${batch.is_expired ? 'Expired' : 'Active'}</span>
+                                    ${batch.days_to_expiry !== null && batch.days_to_expiry !== undefined && !batch.is_expired ? 
+                                        `<small class="text-muted ms-1">(${batch.days_to_expiry} days)</small>` : ''}
+                                </td>
+                                <td>₹${parseFloat(batch.unit_cost || 0).toFixed(2)}</td>
+                                <td>₹${(parseFloat(batch.qty_available || 0) * parseFloat(batch.unit_cost || 0)).toFixed(2)}</td>
+                            </tr>
+                        `;
+                    });
+                    batchesTableBody.innerHTML = batchesHTML;
+                } else {
+                    // Show no batches message and hide table content
+                    noBatchesMessage.style.display = 'block';
+                    batchesTableBody.innerHTML = '';
+                }
 
                 // Show modal
                 const modal = new bootstrap.Modal(document.getElementById('viewProductModal'));
