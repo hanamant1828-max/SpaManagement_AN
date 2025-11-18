@@ -26,23 +26,44 @@ def api_get_products_master():
     """Get all products for master view - BATCH-CENTRIC"""
     try:
         products = get_all_products()
-        return jsonify([{
-            'id': p.id,
-            'name': p.name,
-            'description': p.description,
-            'category_id': p.category_id,
-            'category_name': p.category.name if p.category else 'No Category',
-            'sku': p.sku,
-            'unit_of_measure': p.unit_of_measure,
-            'barcode': p.barcode,
-            'total_stock': float(p.total_stock),  # Dynamic property from batches
-            'batch_count': p.batch_count,  # Number of batches for this product
-            'is_active': p.is_active,
-            'is_service_item': p.is_service_item,
-            'is_retail_item': p.is_retail_item,
-            'stock_status': p.stock_status  # Add stock status for better UI display
-        } for p in products])
+        result = []
+        for p in products:
+            try:
+                # Calculate total stock from active batches
+                total_stock = sum(float(batch.qty_available or 0) for batch in p.batches if batch.status == 'active')
+                batch_count = len([b for b in p.batches if b.status == 'active'])
+                
+                # Determine stock status
+                if total_stock <= 0:
+                    stock_status = 'out_of_stock'
+                elif total_stock <= 10:
+                    stock_status = 'low_stock'
+                else:
+                    stock_status = 'in_stock'
+                
+                result.append({
+                    'id': p.id,
+                    'name': p.name,
+                    'description': p.description,
+                    'category_id': p.category_id,
+                    'category_name': p.category.name if p.category else 'No Category',
+                    'sku': p.sku,
+                    'unit_of_measure': p.unit_of_measure,
+                    'barcode': p.barcode,
+                    'total_stock': total_stock,
+                    'batch_count': batch_count,
+                    'is_active': p.is_active,
+                    'is_service_item': p.is_service_item,
+                    'is_retail_item': p.is_retail_item,
+                    'stock_status': stock_status
+                })
+            except Exception as product_error:
+                print(f"Error processing product {p.id}: {product_error}")
+                continue
+        
+        return jsonify(result)
     except Exception as e:
+        print(f"Error in api_get_products_master: {e}")
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/inventory/products', methods=['GET'])

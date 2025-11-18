@@ -328,7 +328,7 @@
                         <td>${escapeHtml(product.name)}</td>
                         <td>${categoryBadge}</td>
                         <td>
-                            <strong>${stock}</strong> ${escapeHtml(product.unit_of_measure || product.unit || 'pcs')}
+                            <strong>${product.total_stock || 0}</strong> ${escapeHtml(product.unit_of_measure || product.unit || 'pcs')}
                         </td>
                         <td>${statusBadge}</td>
                         <td>
