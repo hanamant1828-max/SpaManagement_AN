@@ -32,7 +32,7 @@ def billing_reports():
             pass
     
     # Revenue by date
-    revenue_by_date = db.session.query(
+    revenue_by_date_raw = db.session.query(
         func.date(EnhancedInvoice.invoice_date).label('date'),
         func.sum(EnhancedInvoice.total_amount).label('total_revenue'),
         func.count(EnhancedInvoice.id).label('invoice_count')
@@ -40,6 +40,20 @@ def billing_reports():
         EnhancedInvoice.invoice_date.between(start_date, end_date),
         EnhancedInvoice.payment_status == 'paid'
     ).group_by(func.date(EnhancedInvoice.invoice_date)).all()
+    
+    # Convert string dates to date objects
+    from datetime import datetime
+    revenue_by_date = []
+    for item in revenue_by_date_raw:
+        if isinstance(item.date, str):
+            date_obj = datetime.strptime(item.date, '%Y-%m-%d').date()
+        else:
+            date_obj = item.date
+        
+        # Create a new named tuple-like object with converted date
+        from collections import namedtuple
+        RevenueItem = namedtuple('RevenueItem', ['date', 'total_revenue', 'invoice_count'])
+        revenue_by_date.append(RevenueItem(date_obj, item.total_revenue, item.invoice_count))
     
     # Revenue by payment method
     revenue_by_method = db.session.query(
