@@ -50,13 +50,16 @@ def create_service(data):
         if category_id:
             try:
                 category = Category.query.get(int(category_id))
-                if category and category.name:
-                    category_name = category.name
+                if category:
+                    category_name = category.name  # Use the category's name field
+                    print(f"Found category: {category_name} (ID: {category_id})")
                 else:
-                    print(f"Category {category_id} not found or has no name, using default")
+                    print(f"Category {category_id} not found, using default")
             except Exception as e:
                 print(f"Error getting category: {e}")
                 pass  # Use default
+        else:
+            print("No category_id provided, using default 'general'")
         
         # Create service instance with only valid fields
         service = Service()
@@ -69,7 +72,7 @@ def create_service(data):
         service.is_active = data.get('is_active', True)
         service.created_at = datetime.utcnow()
         
-        print(f"Creating service: {service.name}, category: {service.category}, price: {service.price}, duration: {service.duration}")
+        print(f"Creating service: {service.name}, category: {service.category}, category_id: {service.category_id}, price: {service.price}, duration: {service.duration}")
         
         db.session.add(service)
         db.session.commit()
