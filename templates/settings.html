@@ -12,14 +12,36 @@
         </div>
     </div>
 
-    <!-- System Settings -->
-    <div class="row">
-        <div class="col-lg-6">
-            <div class="card shadow">
-                <div class="card-header py-3">
-                    <h6 class="m-0 font-weight-bold text-primary">System Settings</h6>
-                </div>
-                <div class="card-body">
+    <!-- Tabs Navigation -->
+    <ul class="nav nav-tabs mb-4" id="settingsTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="business-tab" data-bs-toggle="tab" data-bs-target="#business" type="button" role="tab">
+                <i class="fas fa-building me-2"></i>Business Settings
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="whatsapp-tab" data-bs-toggle="tab" data-bs-target="#whatsapp" type="button" role="tab">
+                <i class="fab fa-whatsapp me-2"></i>WhatsApp Configuration
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="system-tab" data-bs-toggle="tab" data-bs-target="#system" type="button" role="tab">
+                <i class="fas fa-info-circle me-2"></i>System Information
+            </button>
+        </li>
+    </ul>
+
+    <!-- Tab Content -->
+    <div class="tab-content" id="settingsTabContent">
+        <!-- Business Settings Tab -->
+        <div class="tab-pane fade show active" id="business" role="tabpanel">
+            <div class="row">
+                <div class="col-lg-8">
+                    <div class="card shadow">
+                        <div class="card-header py-3">
+                            <h6 class="m-0 font-weight-bold text-primary">Business Settings</h6>
+                        </div>
+                        <div class="card-body">
                     <form method="POST" action="{{ url_for('update_business_settings_route') }}">
                         {{ business_form.hidden_tag() }}
                         
@@ -67,50 +89,163 @@
                             <i class="fas fa-save me-2"></i>Update Settings
                         </button>
                     </form>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
         
-        <div class="col-lg-6">
-            <div class="card shadow">
-                <div class="card-header py-3">
-                    <h6 class="m-0 font-weight-bold text-primary">System Information</h6>
-                </div>
-                <div class="card-body">
-                    <div class="row">
-                        <div class="col-12">
-                            <div class="info-item mb-3">
-                                <strong>Application Version:</strong>
-                                <span class="text-muted">v2.0.0</span>
+        <!-- WhatsApp Configuration Tab -->
+        <div class="tab-pane fade" id="whatsapp" role="tabpanel">
+            <div class="row">
+                <div class="col-lg-8">
+                    <div class="card shadow">
+                        <div class="card-header py-3">
+                            <h6 class="m-0 font-weight-bold text-primary">
+                                <i class="fab fa-whatsapp me-2"></i>WhatsApp Configuration
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <!-- Configuration Status -->
+                            <div id="whatsapp-status" class="mb-4">
+                                <h6>Status: <span id="config-status-badge" class="badge bg-secondary">Checking...</span></h6>
                             </div>
-                            <div class="info-item mb-3">
-                                <strong>Database Status:</strong>
-                                <span class="badge bg-success">Connected</span>
+
+                            <!-- Setup Instructions -->
+                            <div class="alert alert-info" role="alert">
+                                <h5 class="alert-heading"><i class="fas fa-info-circle me-2"></i>Setup Instructions</h5>
+                                <p>To enable WhatsApp notifications for appointment bookings:</p>
+                                <ol>
+                                    <li>Create a <strong>Twilio account</strong> at <a href="https://www.twilio.com/try-twilio" target="_blank">twilio.com</a></li>
+                                    <li>Set up a <strong>WhatsApp Sandbox</strong> or get a WhatsApp Business number</li>
+                                    <li>Add the following secrets in <strong>Replit Secrets</strong> (Tools → Secrets):
+                                        <ul class="mt-2">
+                                            <li><code>TWILIO_ACCOUNT_SID</code> - Your Twilio Account SID</li>
+                                            <li><code>TWILIO_AUTH_TOKEN</code> - Your Twilio Auth Token</li>
+                                            <li><code>TWILIO_WHATSAPP_NUMBER</code> - Your WhatsApp number (e.g., whatsapp:+14155238886)</li>
+                                        </ul>
+                                    </li>
+                                </ol>
+                                <p class="mb-0"><strong>Note:</strong> After adding the secrets, refresh this page to see the updated status.</p>
                             </div>
-                            <div class="info-item mb-3">
-                                <strong>Last Backup:</strong>
-                                <span class="text-muted">Never</span>
-                            </div>
-                            <div class="info-item mb-3">
-                                <strong>System Health:</strong>
-                                <span class="badge bg-success">Good</span>
+
+                            <!-- Business WhatsApp Number Configuration -->
+                            <form method="POST" action="{{ url_for('update_whatsapp_settings') }}" id="whatsappForm">
+                                <h6 class="mt-4 mb-3">Business WhatsApp Number</h6>
+                                <div class="mb-3">
+                                    <label for="business_whatsapp_number" class="form-label">Your Business WhatsApp Number</label>
+                                    <input type="text" 
+                                           class="form-control" 
+                                           id="business_whatsapp_number" 
+                                           name="business_whatsapp_number" 
+                                           placeholder="+918746084638"
+                                           value="{{ whatsapp_settings.business_whatsapp_number if whatsapp_settings else '' }}">
+                                    <div class="form-text">This number will be displayed to customers for direct contact.</div>
+                                </div>
+
+                                <div class="mb-3 form-check">
+                                    <input type="checkbox" 
+                                           class="form-check-input" 
+                                           id="enable_notifications" 
+                                           name="enable_notifications"
+                                           {% if whatsapp_settings and whatsapp_settings.enable_notifications %}checked{% endif %}>
+                                    <label class="form-check-label" for="enable_notifications">
+                                        Enable automatic WhatsApp notifications for new bookings
+                                    </label>
+                                </div>
+
+                                <button type="submit" class="btn btn-success">
+                                    <i class="fas fa-save me-2"></i>Save WhatsApp Settings
+                                </button>
+                            </form>
+
+                            <!-- Test Section -->
+                            <div class="mt-4 pt-4 border-top">
+                                <h6 class="mb-3">Test WhatsApp Connection</h6>
+                                <div class="input-group mb-3">
+                                    <input type="text" 
+                                           class="form-control" 
+                                           id="test_phone_number" 
+                                           placeholder="+1234567890">
+                                    <button class="btn btn-outline-primary" type="button" onclick="testWhatsApp()">
+                                        <i class="fas fa-paper-plane me-2"></i>Send Test Message
+                                    </button>
+                                </div>
+                                <div id="test-result"></div>
                             </div>
                         </div>
                     </div>
-                    
-                    <hr>
-                    
-                    <h6 class="mb-3">Quick Actions</h6>
-                    <div class="d-grid gap-2">
-                        <a href="{{ url_for('system_management') }}" class="btn btn-outline-primary">
-                            <i class="fas fa-tools me-2"></i>System Management
-                        </a>
-                        <a href="{{ url_for('role_management') }}" class="btn btn-outline-info">
-                            <i class="fas fa-users-cog me-2"></i>Role Management
-                        </a>
-                        <button class="btn btn-outline-warning" onclick="clearCache()">
-                            <i class="fas fa-broom me-2"></i>Clear Cache
-                        </button>
+                </div>
+                
+                <div class="col-lg-4">
+                    <div class="card shadow">
+                        <div class="card-header py-3">
+                            <h6 class="m-0 font-weight-bold text-success">
+                                <i class="fas fa-lightbulb me-2"></i>Tips
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <h6>WhatsApp Messaging Features:</h6>
+                            <ul>
+                                <li>Automatic booking confirmations</li>
+                                <li>Appointment reminders</li>
+                                <li>Custom message templates</li>
+                                <li>Customer engagement</li>
+                            </ul>
+                            <hr>
+                            <h6>Security:</h6>
+                            <p class="small">Your Twilio credentials are stored securely in Replit Secrets and never exposed in the application code or database.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- System Information Tab -->
+        <div class="tab-pane fade" id="system" role="tabpanel">
+            <div class="row">
+                <div class="col-lg-6">
+                    <div class="card shadow">
+                        <div class="card-header py-3">
+                            <h6 class="m-0 font-weight-bold text-primary">System Information</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-12">
+                                    <div class="info-item mb-3">
+                                        <strong>Application Version:</strong>
+                                        <span class="text-muted">v2.0.0</span>
+                                    </div>
+                                    <div class="info-item mb-3">
+                                        <strong>Database Status:</strong>
+                                        <span class="badge bg-success">Connected</span>
+                                    </div>
+                                    <div class="info-item mb-3">
+                                        <strong>Last Backup:</strong>
+                                        <span class="text-muted">Never</span>
+                                    </div>
+                                    <div class="info-item mb-3">
+                                        <strong>System Health:</strong>
+                                        <span class="badge bg-success">Good</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <hr>
+                            
+                            <h6 class="mb-3">Quick Actions</h6>
+                            <div class="d-grid gap-2">
+                                <a href="{{ url_for('system_management') }}" class="btn btn-outline-primary">
+                                    <i class="fas fa-tools me-2"></i>System Management
+                                </a>
+                                <a href="{{ url_for('role_management') }}" class="btn btn-outline-info">
+                                    <i class="fas fa-users-cog me-2"></i>Role Management
+                                </a>
+                                <button class="btn btn-outline-warning" onclick="clearCache()">
+                                    <i class="fas fa-broom me-2"></i>Clear Cache
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -124,6 +259,63 @@ function clearCache() {
         // Implement cache clearing logic here
         alert('Cache cleared successfully!');
     }
+}
+
+// Check WhatsApp configuration status on page load
+document.addEventListener('DOMContentLoaded', function() {
+    checkWhatsAppStatus();
+});
+
+function checkWhatsAppStatus() {
+    fetch('/api/whatsapp/status')
+        .then(response => response.json())
+        .then(data => {
+            const statusBadge = document.getElementById('config-status-badge');
+            if (data.configured) {
+                statusBadge.className = 'badge bg-success';
+                statusBadge.textContent = 'Configured';
+            } else {
+                statusBadge.className = 'badge bg-warning';
+                statusBadge.textContent = 'Not Configured';
+            }
+        })
+        .catch(error => {
+            console.error('Error checking WhatsApp status:', error);
+            const statusBadge = document.getElementById('config-status-badge');
+            statusBadge.className = 'badge bg-danger';
+            statusBadge.textContent = 'Error';
+        });
+}
+
+function testWhatsApp() {
+    const phoneNumber = document.getElementById('test_phone_number').value;
+    const resultDiv = document.getElementById('test-result');
+    
+    if (!phoneNumber) {
+        resultDiv.innerHTML = '<div class="alert alert-warning">Please enter a phone number</div>';
+        return;
+    }
+    
+    resultDiv.innerHTML = '<div class="alert alert-info">Sending test message...</div>';
+    
+    fetch('/api/whatsapp/test', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ phone_number: phoneNumber })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            resultDiv.innerHTML = '<div class="alert alert-success"><i class="fas fa-check-circle me-2"></i>' + data.message + '</div>';
+        } else {
+            resultDiv.innerHTML = '<div class="alert alert-danger"><i class="fas fa-exclamation-circle me-2"></i>' + data.error + '</div>';
+        }
+    })
+    .catch(error => {
+        resultDiv.innerHTML = '<div class="alert alert-danger"><i class="fas fa-exclamation-circle me-2"></i>Error sending test message: ' + error.message + '</div>';
+    });
 }
 </script>
 {% endblock %}

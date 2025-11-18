@@ -768,13 +768,20 @@ def settings():
     except Exception as e:
         flash(f"Error fetching departments: {e}", "danger")
         departments = []
+    
+    # Get WhatsApp settings
+    whatsapp_settings = {
+        'business_whatsapp_number': get_setting_by_key('business_whatsapp_number') or '',
+        'enable_notifications': get_setting_by_key('whatsapp_enable_notifications') == 'true'
+    }
 
     return render_template('settings.html',
                          system_settings=system_settings,
                          business_settings=business_settings,
                          business_form=business_form,
                          system_form=system_form,
-                         departments=departments)
+                         departments=departments,
+                         whatsapp_settings=whatsapp_settings)
 
 
 @app.route('/settings/business', methods=['POST'])
@@ -958,3 +965,86 @@ def delete_department_api(department_id):
     except Exception as e:
         db.session.rollback()
         return jsonify({'success': False, 'message': str(e)}), 500
+
+# WhatsApp Configuration Routes
+@app.route('/api/whatsapp/status')
+@login_required
+def whatsapp_status_api():
+    """Check WhatsApp configuration status"""
+    import os
+    
+    twilio_sid = os.environ.get('TWILIO_ACCOUNT_SID')
+    twilio_token = os.environ.get('TWILIO_AUTH_TOKEN')
+    twilio_number = os.environ.get('TWILIO_WHATSAPP_NUMBER')
+    
+    configured = bool(twilio_sid and twilio_token and twilio_number)
+    
+    return jsonify({
+        'configured': configured,
+        'has_account_sid': bool(twilio_sid),
+        'has_auth_token': bool(twilio_token),
+        'has_whatsapp_number': bool(twilio_number)
+    })
+
+
+@app.route('/settings/whatsapp', methods=['POST'])
+@login_required
+def update_whatsapp_settings():
+    """Update WhatsApp configuration settings"""
+    if not current_user.can_access('settings'):
+        flash('Access denied', 'danger')
+        return redirect(url_for('settings'))
+    
+    try:
+        business_number = request.form.get('business_whatsapp_number', '').strip()
+        enable_notifications = request.form.get('enable_notifications') == 'on'
+        
+        # Save settings to database
+        update_setting('business_whatsapp_number', business_number)
+        update_setting('whatsapp_enable_notifications', 'true' if enable_notifications else 'false')
+        
+        flash('WhatsApp settings updated successfully!', 'success')
+    except Exception as e:
+        flash(f'Error updating WhatsApp settings: {str(e)}', 'danger')
+    
+    return redirect(url_for('settings'))
+
+
+@app.route('/api/whatsapp/test', methods=['POST'])
+@login_required
+def test_whatsapp_api():
+    """Test WhatsApp connection by sending a test message"""
+    if not current_user.can_access('settings'):
+        return jsonify({'success': False, 'error': 'Access denied'}), 403
+    
+    try:
+        data = request.get_json()
+        phone_number = data.get('phone_number')
+        
+        if not phone_number:
+            return jsonify({'success': False, 'error': 'Phone number is required'}), 400
+        
+        # Import WhatsApp function
+        from modules.notifications.notifications_queries import send_whatsapp_message
+        
+        # Send test message
+        test_message = f"🔔 This is a test message from {get_setting_by_key('business_name') or 'Spa & Salon Suite'}. Your WhatsApp integration is working correctly!"
+        
+        success = send_whatsapp_message(phone_number, test_message)
+        
+        if success:
+            return jsonify({
+                'success': True,
+                'message': 'Test message sent successfully! Check your WhatsApp.'
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'error': 'Failed to send message. Please check your Twilio credentials in Replit Secrets.'
+            }), 400
+            
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': f'Error sending test message: {str(e)}'
+        }), 500
