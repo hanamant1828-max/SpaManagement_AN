@@ -361,15 +361,61 @@ def bulk_reject_bookings(booking_ids, reason):
 def get_online_booking_stats():
     """Get statistics for online bookings"""
     from models import UnakiBooking
+    from sqlalchemy import func, distinct
 
-    total = UnakiBooking.query.filter_by(booking_source='online').count()
-    pending = UnakiBooking.query.filter_by(booking_source='online', status='scheduled').count()
-    accepted = UnakiBooking.query.filter_by(booking_source='online', status='confirmed').count()
-    rejected = UnakiBooking.query.filter_by(booking_source='online', status='cancelled').count()
+    # Count unique customer groups (customer name + phone + date combinations)
+    # This gives us the number of customer booking sessions, not individual services
+    total_query = db.session.query(
+        func.count(distinct(
+            func.concat(
+                UnakiBooking.client_name,
+                '_',
+                UnakiBooking.client_phone,
+                '_',
+                UnakiBooking.appointment_date
+            )
+        ))
+    ).filter_by(booking_source='online').scalar() or 0
+
+    pending_query = db.session.query(
+        func.count(distinct(
+            func.concat(
+                UnakiBooking.client_name,
+                '_',
+                UnakiBooking.client_phone,
+                '_',
+                UnakiBooking.appointment_date
+            )
+        ))
+    ).filter_by(booking_source='online', status='scheduled').scalar() or 0
+
+    accepted_query = db.session.query(
+        func.count(distinct(
+            func.concat(
+                UnakiBooking.client_name,
+                '_',
+                UnakiBooking.client_phone,
+                '_',
+                UnakiBooking.appointment_date
+            )
+        ))
+    ).filter_by(booking_source='online', status='confirmed').scalar() or 0
+
+    rejected_query = db.session.query(
+        func.count(distinct(
+            func.concat(
+                UnakiBooking.client_name,
+                '_',
+                UnakiBooking.client_phone,
+                '_',
+                UnakiBooking.appointment_date
+            )
+        ))
+    ).filter_by(booking_source='online', status='cancelled').scalar() or 0
 
     return {
-        'total': total,
-        'pending': pending,
-        'accepted': accepted,
-        'rejected': rejected
+        'total': total_query,
+        'pending': pending_query,
+        'accepted': accepted_query,
+        'rejected': rejected_query
     }
