@@ -993,9 +993,8 @@ textarea.form-control {
                             Save & Print
                         </button>
 
-                        <button type="button" class="btn btn-primary" onclick="previewInvoice()">
-                            <i class="fas fa-eye"></i>
-                            Preview
+                        <button type="button" class="btn btn-primary btn-lg w-100 mb-2" id="previewBtn" onclick="previewInvoice()">
+                            <i class="fas fa-eye me-2"></i>Preview
                         </button>
                     </div>
 
@@ -1094,7 +1093,7 @@ async function loadGSTSettings() {
             throw new Error('Failed to load GST settings');
         }
         const data = await response.json();
-        
+
         if (data.success && data.configuration) {
             GSTSettings = {
                 cgst_rate: data.configuration.default_cgst || 9,
@@ -1108,13 +1107,13 @@ async function loadGSTSettings() {
                 state: data.configuration.state || '',
                 enabled: data.configuration.gst_enabled || false
             };
-            
+
             console.log('✅ GST Settings loaded:', GSTSettings);
-            
+
             // Update display labels with dynamic percentages
             document.querySelector('.summary-row:has(#cgstAmount) .summary-label').textContent = `CGST (${GSTSettings.cgst_rate}%):`;
             document.querySelector('.summary-row:has(#sgstAmount) .summary-label').textContent = `SGST (${GSTSettings.sgst_rate}%):`;
-            
+
             // Trigger recalculation with new rates
             updateCalculations();
         }
@@ -2851,7 +2850,7 @@ function resetCustomerPackages() {
 
             if (result.success) {
                 console.log('✅ Invoice saved successfully:', result);
-                
+
                 // Show success message
                 showAlert('success', `Invoice ${result.invoice_number} saved successfully!`);
 
@@ -2859,7 +2858,7 @@ function resetCustomerPackages() {
                 if (result.invoice_id) {
                     const printUrl = `/integrated-billing/print-invoice/${result.invoice_id}`;
                     window.open(printUrl, '_blank');
-                    
+
                     // Redirect to invoice view after a short delay
                     setTimeout(() => {
                         window.location.href = `/integrated-billing/invoice/${result.invoice_id}`;
@@ -2872,7 +2871,7 @@ function resetCustomerPackages() {
         } catch (error) {
             console.error('❌ Error in saveAndPrint:', error);
             showAlert('error', error.message || 'Failed to save and print invoice');
-            
+
             // Re-enable button
             const printBtn = event.target;
             printBtn.disabled = false;
@@ -2884,7 +2883,7 @@ function resetCustomerPackages() {
     function showAlert(type, message) {
         const alertClass = type === 'success' ? 'alert-success' : 'alert-danger';
         const iconClass = type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle';
-        
+
         const alertHtml = `
             <div class="alert ${alertClass} alert-dismissible fade show" role="alert" style="position: fixed; top: 20px; right: 20px; z-index: 9999; min-width: 300px;">
                 <i class="fas ${iconClass} me-2"></i>
@@ -2892,11 +2891,11 @@ function resetCustomerPackages() {
                 <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             </div>
         `;
-        
+
         const alertDiv = document.createElement('div');
         alertDiv.innerHTML = alertHtml;
         document.body.appendChild(alertDiv);
-        
+
         // Auto-remove after 5 seconds
         setTimeout(() => {
             alertDiv.remove();
@@ -3244,5 +3243,57 @@ function resetCustomerPackages() {
                 showNotification('An error occurred while fetching appointments. Please check your connection.', 'danger');
             });
     }
+
+    function previewInvoice() {
+    console.log('🔍 Preview invoice called');
+
+    if (!validateForm()) {
+        console.log('❌ Validation failed');
+        return;
+    }
+
+    // Get form data
+    const formData = new FormData(document.getElementById('billingForm'));
+
+    // Add preview flag
+    formData.append('preview', 'true');
+
+    // Show loading state
+    const previewBtn = document.getElementById('previewBtn');
+    const originalText = previewBtn.innerHTML;
+    previewBtn.disabled = true;
+    previewBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Generating Preview...';
+
+    // Submit for preview
+    fetch('/integrated-billing/create', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Open preview in new window
+            if (data.invoice_id) {
+                window.open(`/integrated-billing/invoice/${data.invoice_id}?print=true`, '_blank');
+            } else if (data.preview_html) {
+                // Open preview HTML in new window
+                const previewWindow = window.open('', '_blank');
+                previewWindow.document.write(data.preview_html);
+                previewWindow.document.close();
+            }
+        } else {
+            alert('Error generating preview: ' + (data.message || 'Unknown error'));
+        }
+    })
+    .catch(error => {
+        console.error('Preview error:', error);
+        alert('Error generating preview: ' + error.message);
+    })
+    .finally(() => {
+        // Restore button state
+        previewBtn.disabled = false;
+        previewBtn.innerHTML = originalText;
+    });
+}
 </script>
 {% endblock %}

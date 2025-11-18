@@ -1221,7 +1221,7 @@ def create_professional_invoice():
         # Get tax rates from database settings (dynamic GST configuration)
         from modules.settings.settings_queries import get_gst_settings
         gst_config = get_gst_settings()
-        
+
         # Use form values if provided, otherwise use database defaults
         cgst_rate = float(request.form.get('cgst_rate', gst_config['cgst_rate'])) / 100
         sgst_rate = float(request.form.get('sgst_rate', gst_config['sgst_rate'])) / 100
@@ -1232,7 +1232,7 @@ def create_professional_invoice():
         # GST CALCULATION RULES FOR BILLING:
         # 1. SERVICES: GST is INCLUSIVE in price (extract 18% GST from total)
         # 2. PRODUCTS: MRP is final price (NO GST calculation - already included in MRP)
-        
+
         # For SERVICES: GST is INCLUSIVE (extract GST from price)
         if total_gst_rate > 0:
             service_base_amount = services_subtotal / (1 + total_gst_rate)
@@ -1651,20 +1651,22 @@ def create_professional_invoice():
 
             db.session.commit()
 
-            # Check if this is a save-and-print request
-            is_print_request = request.form.get('print_after_save') == 'true'
+            # Check if this is a preview request
+            is_preview = request.form.get('preview') == 'true'
+
+            # If preview mode, return invoice ID for preview
+            if is_preview:
+                return jsonify({
+                    'success': True,
+                    'message': 'Invoice preview generated',
+                    'invoice_id': invoice.id,
+                    'preview': True
+                })
 
             return jsonify({
                 'success': True,
                 'message': 'Invoice created successfully',
-                'invoice_id': invoice.id,
-                'invoice_number': invoice.invoice_number,
-                'service_items_created': service_items_created,
-                'inventory_items_created': inventory_items_created,
-                'completed_appointments': completed_appointments,
-                'package_deductions_applied': package_deductions_applied,
-                'updated_packages': updated_packages,
-                'print_invoice': is_print_request
+                'invoice_id': invoice.id
             })
 
         except Exception as e:
@@ -2011,10 +2013,19 @@ def integrated_invoice_detail(invoice_id):
         except:
             pass
 
-        return render_template('integrated_invoice_detail.html',
+        # Fetch customer details
+        customer = Customer.query.get(invoice.client_id)
+
+        # Check if print mode
+        print_mode = request.args.get('print') == 'true'
+        # Use print template if in print mode
+        template = 'professional_invoice_print.html' if print_mode else 'integrated_invoice_detail.html'
+
+        return render_template(template,
                              invoice=invoice,
                              invoice_items=invoice_items,
-                             tax_details=tax_details)
+                             tax_details=tax_details,
+                             customer=customer)
 
     except Exception as e:
         app.logger.error(f"Error loading invoice details: {str(e)}")
