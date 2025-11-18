@@ -43,14 +43,17 @@ def create_service(data):
     """Create new service"""
     from models import Service, Category
     try:
-        # Handle category field FIRST - it's required (NOT NULL)
+        # Handle category field - it's required (NOT NULL)
         category_name = 'general'  # default fallback
-        if data.get('category_id'):
+        category_id = data.get('category_id')
+        
+        if category_id:
             try:
-                category = Category.query.get(data['category_id'])
+                category = Category.query.get(int(category_id))
                 if category:
                     category_name = category.name
-            except:
+            except Exception as e:
+                print(f"Error getting category: {e}")
                 pass  # Use default
         
         # Create service instance with only valid fields
@@ -60,7 +63,7 @@ def create_service(data):
         service.duration = data['duration']
         service.price = data['price']
         service.category = category_name  # Set this BEFORE category_id
-        service.category_id = data.get('category_id')
+        service.category_id = int(category_id) if category_id else None
         service.is_active = data.get('is_active', True)
         service.created_at = datetime.utcnow()
         
