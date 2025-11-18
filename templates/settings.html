@@ -25,6 +25,16 @@
             </button>
         </li>
         <li class="nav-item" role="presentation">
+            <button class="nav-link" id="gst-tab" data-bs-toggle="tab" data-bs-target="#gst" type="button" role="tab">
+                <i class="fas fa-file-invoice me-2"></i>GST Settings
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="departments-tab" data-bs-toggle="tab" data-bs-target="#departments" type="button" role="tab">
+                <i class="fas fa-sitemap me-2"></i>Departments
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
             <button class="nav-link" id="system-tab" data-bs-toggle="tab" data-bs-target="#system" type="button" role="tab">
                 <i class="fas fa-info-circle me-2"></i>System Information
             </button>
@@ -100,78 +110,108 @@
             <div class="row">
                 <div class="col-lg-8">
                     <div class="card shadow">
-                        <div class="card-header py-3">
-                            <h6 class="m-0 font-weight-bold text-primary">
+                        <div class="card-header py-3 bg-success text-white">
+                            <h6 class="m-0 font-weight-bold">
                                 <i class="fab fa-whatsapp me-2"></i>WhatsApp Configuration
                             </h6>
                         </div>
                         <div class="card-body">
                             <!-- Configuration Status -->
-                            <div id="whatsapp-status" class="mb-4">
-                                <h6>Status: <span id="config-status-badge" class="badge bg-secondary">Checking...</span></h6>
+                            <div id="whatsapp-status" class="mb-4 p-3 border rounded">
+                                <h6 class="mb-2"><i class="fas fa-signal me-2"></i>Connection Status: <span id="config-status-badge" class="badge bg-secondary">Checking...</span></h6>
+                                <div id="config-details" class="small text-muted mt-2"></div>
                             </div>
 
                             <!-- Setup Instructions -->
                             <div class="alert alert-info" role="alert">
                                 <h5 class="alert-heading"><i class="fas fa-info-circle me-2"></i>Setup Instructions</h5>
-                                <p>To enable WhatsApp notifications for appointment bookings:</p>
-                                <ol>
-                                    <li>Create a <strong>Twilio account</strong> at <a href="https://www.twilio.com/try-twilio" target="_blank">twilio.com</a></li>
-                                    <li>Set up a <strong>WhatsApp Sandbox</strong> or get a WhatsApp Business number</li>
-                                    <li>Add the following secrets in <strong>Replit Secrets</strong> (Tools → Secrets):
-                                        <ul class="mt-2">
-                                            <li><code>TWILIO_ACCOUNT_SID</code> - Your Twilio Account SID</li>
-                                            <li><code>TWILIO_AUTH_TOKEN</code> - Your Twilio Auth Token</li>
-                                            <li><code>TWILIO_WHATSAPP_NUMBER</code> - Your WhatsApp number (e.g., whatsapp:+14155238886)</li>
+                                <p class="mb-2">To enable WhatsApp notifications for appointment bookings:</p>
+                                <ol class="mb-2">
+                                    <li class="mb-2">Create a <strong>Twilio account</strong> at <a href="https://www.twilio.com/try-twilio" target="_blank" class="alert-link">twilio.com <i class="fas fa-external-link-alt fa-xs"></i></a></li>
+                                    <li class="mb-2">Set up a <strong>WhatsApp Sandbox</strong> or get a WhatsApp Business number</li>
+                                    <li class="mb-2">Add the following secrets in <strong>Replit Secrets</strong> (Tools → Secrets):
+                                        <ul class="mt-2 mb-2">
+                                            <li><code class="bg-light px-2 py-1 rounded">TWILIO_ACCOUNT_SID</code> - Your Twilio Account SID</li>
+                                            <li><code class="bg-light px-2 py-1 rounded">TWILIO_AUTH_TOKEN</code> - Your Twilio Auth Token</li>
+                                            <li><code class="bg-light px-2 py-1 rounded">TWILIO_WHATSAPP_NUMBER</code> - Your WhatsApp number (e.g., whatsapp:+14155238886)</li>
                                         </ul>
                                     </li>
                                 </ol>
-                                <p class="mb-0"><strong>Note:</strong> After adding the secrets, refresh this page to see the updated status.</p>
+                                <div class="alert alert-warning mb-0">
+                                    <i class="fas fa-exclamation-triangle me-2"></i><strong>Important:</strong> After adding the secrets in Replit, refresh this page to see the updated status.
+                                </div>
                             </div>
 
                             <!-- Business WhatsApp Number Configuration -->
-                            <form method="POST" action="{{ url_for('update_whatsapp_settings') }}" id="whatsappForm">
-                                <h6 class="mt-4 mb-3">Business WhatsApp Number</h6>
+                            <form method="POST" action="{{ url_for('update_whatsapp_settings') }}" id="whatsappForm" class="needs-validation" novalidate>
+                                <hr class="my-4">
+                                <h6 class="mb-3"><i class="fas fa-cog me-2"></i>Business WhatsApp Configuration</h6>
+                                
                                 <div class="mb-3">
-                                    <label for="business_whatsapp_number" class="form-label">Your Business WhatsApp Number</label>
-                                    <input type="text" 
+                                    <label for="business_whatsapp_number" class="form-label fw-bold">
+                                        <i class="fab fa-whatsapp me-1"></i>Your Business WhatsApp Number
+                                    </label>
+                                    <input type="tel" 
                                            class="form-control" 
                                            id="business_whatsapp_number" 
                                            name="business_whatsapp_number" 
                                            placeholder="+918746084638"
+                                           pattern="\+?[0-9]{10,15}"
                                            value="{{ whatsapp_settings.business_whatsapp_number if whatsapp_settings else '' }}">
-                                    <div class="form-text">This number will be displayed to customers for direct contact.</div>
+                                    <div class="form-text">
+                                        <i class="fas fa-info-circle me-1"></i>This number will be displayed to customers for direct contact. Format: +[country code][number]
+                                    </div>
                                 </div>
 
-                                <div class="mb-3 form-check">
-                                    <input type="checkbox" 
-                                           class="form-check-input" 
-                                           id="enable_notifications" 
-                                           name="enable_notifications"
-                                           {% if whatsapp_settings and whatsapp_settings.enable_notifications %}checked{% endif %}>
-                                    <label class="form-check-label" for="enable_notifications">
-                                        Enable automatic WhatsApp notifications for new bookings
-                                    </label>
+                                <div class="mb-4">
+                                    <div class="form-check form-switch">
+                                        <input type="checkbox" 
+                                               class="form-check-input" 
+                                               id="enable_notifications" 
+                                               name="enable_notifications"
+                                               role="switch"
+                                               {% if whatsapp_settings and whatsapp_settings.enable_notifications %}checked{% endif %}>
+                                        <label class="form-check-label" for="enable_notifications">
+                                            <strong>Enable automatic WhatsApp notifications for new bookings</strong>
+                                        </label>
+                                    </div>
+                                    <div class="form-text ms-5">
+                                        When enabled, customers will receive automatic WhatsApp notifications for booking confirmations and reminders.
+                                    </div>
                                 </div>
 
-                                <button type="submit" class="btn btn-success">
-                                    <i class="fas fa-save me-2"></i>Save WhatsApp Settings
-                                </button>
+                                <div class="d-grid gap-2 d-md-flex">
+                                    <button type="submit" class="btn btn-success btn-lg">
+                                        <i class="fas fa-save me-2"></i>Save WhatsApp Settings
+                                    </button>
+                                    <button type="button" class="btn btn-outline-secondary btn-lg" onclick="document.getElementById('whatsappForm').reset();">
+                                        <i class="fas fa-undo me-2"></i>Reset
+                                    </button>
+                                </div>
                             </form>
 
                             <!-- Test Section -->
                             <div class="mt-4 pt-4 border-top">
-                                <h6 class="mb-3">Test WhatsApp Connection</h6>
-                                <div class="input-group mb-3">
-                                    <input type="text" 
-                                           class="form-control" 
-                                           id="test_phone_number" 
-                                           placeholder="+1234567890">
-                                    <button class="btn btn-outline-primary" type="button" onclick="testWhatsApp()">
-                                        <i class="fas fa-paper-plane me-2"></i>Send Test Message
-                                    </button>
+                                <h6 class="mb-3"><i class="fas fa-vial me-2"></i>Test WhatsApp Connection</h6>
+                                <p class="text-muted small mb-3">
+                                    Send a test message to verify your WhatsApp configuration is working correctly.
+                                </p>
+                                <div class="row">
+                                    <div class="col-md-8">
+                                        <div class="input-group mb-3">
+                                            <span class="input-group-text"><i class="fab fa-whatsapp"></i></span>
+                                            <input type="tel" 
+                                                   class="form-control" 
+                                                   id="test_phone_number" 
+                                                   placeholder="+1234567890"
+                                                   pattern="\+?[0-9]{10,15}">
+                                            <button class="btn btn-primary" type="button" onclick="testWhatsApp()">
+                                                <i class="fas fa-paper-plane me-2"></i>Send Test Message
+                                            </button>
+                                        </div>
+                                        <div id="test-result"></div>
+                                    </div>
                                 </div>
-                                <div id="test-result"></div>
                             </div>
                         </div>
                     </div>
@@ -271,19 +311,49 @@ function checkWhatsAppStatus() {
         .then(response => response.json())
         .then(data => {
             const statusBadge = document.getElementById('config-status-badge');
+            const detailsDiv = document.getElementById('config-details');
+            
             if (data.configured) {
                 statusBadge.className = 'badge bg-success';
-                statusBadge.textContent = 'Configured';
+                statusBadge.innerHTML = '<i class="fas fa-check-circle me-1"></i>Configured & Ready';
+                
+                detailsDiv.innerHTML = `
+                    <div class="alert alert-success mb-0 py-2">
+                        <i class="fas fa-check me-2"></i>All required Twilio credentials are configured.
+                        <br><small>✓ Account SID: ${data.has_account_sid ? 'Present' : 'Missing'}</small>
+                        <br><small>✓ Auth Token: ${data.has_auth_token ? 'Present' : 'Missing'}</small>
+                        <br><small>✓ WhatsApp Number: ${data.has_whatsapp_number ? 'Present' : 'Missing'}</small>
+                    </div>
+                `;
             } else {
-                statusBadge.className = 'badge bg-warning';
-                statusBadge.textContent = 'Not Configured';
+                statusBadge.className = 'badge bg-warning text-dark';
+                statusBadge.innerHTML = '<i class="fas fa-exclamation-triangle me-1"></i>Not Configured';
+                
+                const missing = [];
+                if (!data.has_account_sid) missing.push('TWILIO_ACCOUNT_SID');
+                if (!data.has_auth_token) missing.push('TWILIO_AUTH_TOKEN');
+                if (!data.has_whatsapp_number) missing.push('TWILIO_WHATSAPP_NUMBER');
+                
+                detailsDiv.innerHTML = `
+                    <div class="alert alert-warning mb-0 py-2">
+                        <i class="fas fa-exclamation-circle me-2"></i>Missing configuration: <code>${missing.join(', ')}</code>
+                        <br><small>Please add these secrets in Replit Secrets (Tools → Secrets) and refresh the page.</small>
+                    </div>
+                `;
             }
         })
         .catch(error => {
             console.error('Error checking WhatsApp status:', error);
             const statusBadge = document.getElementById('config-status-badge');
+            const detailsDiv = document.getElementById('config-details');
+            
             statusBadge.className = 'badge bg-danger';
-            statusBadge.textContent = 'Error';
+            statusBadge.innerHTML = '<i class="fas fa-times-circle me-1"></i>Error';
+            detailsDiv.innerHTML = `
+                <div class="alert alert-danger mb-0 py-2">
+                    <i class="fas fa-exclamation-triangle me-2"></i>Unable to check configuration status.
+                </div>
+            `;
         });
 }
 
