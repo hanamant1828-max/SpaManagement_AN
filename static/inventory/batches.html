@@ -522,13 +522,17 @@ function saveBatch(event) {
         status: 'active'
     };
 
-    // Add optional fields only if they have values
+    // Always include product_id and location_id (even if empty for updates)
     if (productSelect.value && productSelect.value !== '') {
         batchData.product_id = parseInt(productSelect.value);
+    } else if (isEdit) {
+        batchData.product_id = null; // Explicitly set to null if clearing
     }
 
     if (locationSelect.value && locationSelect.value !== '') {
         batchData.location_id = locationSelect.value;
+    } else if (isEdit) {
+        batchData.location_id = null; // Explicitly set to null if clearing
     }
 
     if (createdDate && createdDate !== '') {

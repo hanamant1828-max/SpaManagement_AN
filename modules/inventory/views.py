@@ -1198,6 +1198,20 @@ def api_update_batch(batch_id):
                 return jsonify({'error': 'Batch name must be unique'}), 400
             batch.batch_name = data['batch_name']
 
+        # Update product_id if provided
+        if 'product_id' in data:
+            if data['product_id'] and data['product_id'] != '':
+                batch.product_id = int(data['product_id'])
+            else:
+                batch.product_id = None
+
+        # Update location_id if provided
+        if 'location_id' in data:
+            if data['location_id'] and data['location_id'] != '':
+                batch.location_id = str(data['location_id'])
+            else:
+                batch.location_id = None
+
         if data.get('created_date'):
             batch.created_date = datetime.strptime(data['created_date'], '%Y-%m-%d').date()
 
