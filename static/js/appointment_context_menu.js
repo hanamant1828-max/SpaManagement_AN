@@ -1057,20 +1057,20 @@ class AppointmentContextMenu {
     saveAppointmentChanges(appointmentId, modal) {
         console.log(`💾 Saving changes for appointment ${appointmentId}`);
 
-        // Collect form data
+        // Collect form data - using camelCase field names to match backend API
         const formData = {
-            client_name: document.getElementById('editClientName').value,
-            client_phone: document.getElementById('editClientPhone').value,
-            client_email: document.getElementById('editClientEmail').value,
-            service_name: document.getElementById('editServiceName').value,
-            service_duration: parseInt(document.getElementById('editServiceDuration').value),
-            service_price: parseFloat(document.getElementById('editServicePrice').value),
-            staff_id: parseInt(document.getElementById('editStaffId').value),
-            appointment_date: document.getElementById('editAppointmentDate').value,
-            start_time: document.getElementById('editStartTime').value,
-            end_time: document.getElementById('editEndTime').value,
+            clientName: document.getElementById('editClientName').value,
+            clientPhone: document.getElementById('editClientPhone').value,
+            clientEmail: document.getElementById('editClientEmail').value,
+            serviceName: document.getElementById('editServiceName').value,
+            serviceDuration: parseInt(document.getElementById('editServiceDuration').value),
+            servicePrice: parseFloat(document.getElementById('editServicePrice').value),
+            staffId: parseInt(document.getElementById('editStaffId').value),
+            date: document.getElementById('editAppointmentDate').value,
+            startTime: document.getElementById('editStartTime').value,
+            endTime: document.getElementById('editEndTime').value,
             status: document.getElementById('editStatus').value,
-            payment_status: document.getElementById('editPaymentStatus').value,
+            paymentStatus: document.getElementById('editPaymentStatus').value,
             notes: document.getElementById('editNotes').value
         };
 
