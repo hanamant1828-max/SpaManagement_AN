@@ -337,20 +337,26 @@
 <script>
 function exportToExcel() {
     try {
+        // Check if XLSX library is loaded
+        if (typeof XLSX === 'undefined') {
+            showToast('Excel export library not loaded. Please refresh the page.', 'error');
+            return;
+        }
+
         const wb = XLSX.utils.book_new();
 
         // Summary data
         const summaryData = [
             ['Billing Summary Report'],
-            ['Date Range', '{{ start_date.strftime("%d/%m/%Y") }} - {{ end_date.strftime("%d/%m/%Y") }}'],
+            ['Date Range', '{{ start_date.strftime("%d/%m/%Y") }} to {{ end_date.strftime("%d/%m/%Y") }}'],
             [''],
             ['Metric', 'Value'],
-            ['Total Revenue', '₹{{ "{:,.2f}".format(total_revenue) }}'],
-            ['Total Invoices', '{{ total_invoices }}'],
-            ['Pending Amount', '₹{{ "{:,.2f}".format(pending_amount) }}'],
-            ['Avg Invoice Value', '₹{{ "{:,.2f}".format(avg_invoice_value) }}'],
-            ['Total Tax', '₹{{ "{:,.2f}".format(total_tax) }}'],
-            ['Package Deductions', '₹{{ "{:,.2f}".format(total_package_deductions) }}']
+            ['Total Revenue', {{ total_revenue }}],
+            ['Total Invoices', {{ total_invoices }}],
+            ['Pending Amount', {{ pending_amount }}],
+            ['Avg Invoice Value', {{ avg_invoice_value }}],
+            ['Total Tax', {{ total_tax }}],
+            ['Package Deductions', {{ total_package_deductions }}]
         ];
 
         // Top Customers
@@ -360,7 +366,7 @@ function exportToExcel() {
             ['Customer', 'Invoices', 'Total Spent']
         ];
         {% for customer in top_customers %}
-        customersData.push(['{{ customer.first_name }} {{ customer.last_name }}', '{{ customer.invoice_count }}', '{{ "{:,.2f}".format(customer.total_spent) }}']);
+        customersData.push(['{{ customer.first_name }} {{ customer.last_name }}', {{ customer.invoice_count }}, {{ customer.total_spent }}]);
         {% endfor %}
 
         // Top Services
@@ -370,7 +376,7 @@ function exportToExcel() {
             ['Service', 'Quantity', 'Revenue']
         ];
         {% for service in top_services %}
-        servicesData.push(['{{ service.name }}', '{{ service.total_quantity }}', '{{ "{:,.2f}".format(service.total_revenue) }}']);
+        servicesData.push(['{{ service.name }}', {{ service.total_quantity }}, {{ service.total_revenue }}]);
         {% endfor %}
 
         // Staff Performance
@@ -380,7 +386,7 @@ function exportToExcel() {
             ['Staff', 'Items Sold', 'Revenue']
         ];
         {% for staff in staff_performance %}
-        staffData.push(['{{ staff.first_name }} {{ staff.last_name }}', '{{ staff.item_count }}', '{{ "{:,.2f}".format(staff.total_revenue) }}']);
+        staffData.push(['{{ staff.first_name }} {{ staff.last_name }}', {{ staff.item_count }}, {{ staff.total_revenue }}]);
         {% endfor %}
 
         // Payment Methods
@@ -390,22 +396,36 @@ function exportToExcel() {
             ['Payment Method', 'Transactions', 'Total']
         ];
         {% for method in revenue_by_method %}
-        paymentData.push(['{{ method.payment_method|title }}', '{{ method.count }}', '{{ "{:,.2f}".format(method.total) }}']);
+        paymentData.push(['{{ method.payment_method|title }}', {{ method.count }}, {{ method.total }}]);
         {% endfor %}
 
         // Combine all data
         const allData = [...summaryData, ...customersData, ...servicesData, ...staffData, ...paymentData];
+        
+        // Create worksheet
         const ws = XLSX.utils.aoa_to_sheet(allData);
+        
+        // Set column widths
+        ws['!cols'] = [
+            { wch: 30 },
+            { wch: 15 },
+            { wch: 15 }
+        ];
+        
+        // Add worksheet to workbook
         XLSX.utils.book_append_sheet(wb, ws, 'Billing Report');
 
+        // Generate filename
         const fileName = `Billing_Report_{{ start_date.strftime("%Y%m%d") }}_{{ end_date.strftime("%Y%m%d") }}.xlsx`;
+        
+        // Write file
         XLSX.writeFile(wb, fileName);
 
         // Show success message
         showToast('Report exported successfully!', 'success');
     } catch (error) {
         console.error('Export error:', error);
-        showToast('Error exporting report. Please try again.', 'error');
+        showToast('Error exporting report: ' + error.message, 'error');
     }
 }
 
