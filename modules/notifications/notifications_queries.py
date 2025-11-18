@@ -19,13 +19,17 @@ def send_whatsapp_message(to_number, message_body):
         from twilio.rest import Client
         
         if not TWILIO_ACCOUNT_SID or not TWILIO_AUTH_TOKEN:
-            print("Twilio credentials not configured")
+            print("⚠️ Twilio credentials not configured - WhatsApp messages disabled")
+            print("💡 To enable WhatsApp: Add TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN to Secrets")
             return False
         
         client = Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
         
         # Format phone number for WhatsApp
         if not to_number.startswith('whatsapp:'):
+            # Ensure phone number starts with +
+            if not to_number.startswith('+'):
+                to_number = f'+{to_number}'
             to_number = f'whatsapp:{to_number}'
         
         message = client.messages.create(
@@ -34,10 +38,14 @@ def send_whatsapp_message(to_number, message_body):
             to=to_number
         )
         
-        print(f"WhatsApp message sent: {message.sid}")
+        print(f"✅ WhatsApp message sent: {message.sid}")
         return True
+    except ImportError:
+        print("⚠️ Twilio library not installed - WhatsApp messages disabled")
+        print("💡 To enable WhatsApp: Run 'pip install twilio'")
+        return False
     except Exception as e:
-        print(f"Error sending WhatsApp message: {e}")
+        print(f"❌ Error sending WhatsApp message: {e}")
         return False
 
 def get_recent_communications():

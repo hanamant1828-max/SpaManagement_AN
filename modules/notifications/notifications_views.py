@@ -38,12 +38,18 @@ def notifications():
     # Get expiring packages (placeholder for now)
     expiring_packages = []
 
+    import os
+    
     return render_template('notifications.html',
                          recent_communications=recent_communications,
                          pending_notifications=pending_notifications,
                          all_customers=all_customers,
                          upcoming_appointments=upcoming_appointments,
-                         expiring_packages=expiring_packages)
+                         expiring_packages=expiring_packages,
+                         config={
+                             'TWILIO_ACCOUNT_SID': os.environ.get('TWILIO_ACCOUNT_SID'),
+                             'TWILIO_AUTH_TOKEN': os.environ.get('TWILIO_AUTH_TOKEN')
+                         })
 
 @app.route('/notifications/send-reminders', methods=['POST'])
 @login_required
@@ -216,10 +222,17 @@ def send_whatsapp_message():
             else:
                 failed_count += 1
 
+    # Check if Twilio is configured
+    from modules.notifications.notifications_queries import TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN
+    
+    if not TWILIO_ACCOUNT_SID or not TWILIO_AUTH_TOKEN:
+        flash('WhatsApp messaging is not configured. Please add Twilio credentials in Secrets (TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_WHATSAPP_NUMBER)', 'danger')
+        return redirect(url_for('notifications'))
+    
     if sent_count > 0:
         flash(f'Successfully sent {sent_count} message(s)', 'success')
     if failed_count > 0:
-        flash(f'Failed to send {failed_count} message(s)', 'warning')
+        flash(f'Failed to send {failed_count} message(s). Please check Twilio credentials and phone number format.', 'warning')
 
     return redirect(url_for('notifications'))
 

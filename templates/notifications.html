@@ -5,6 +5,34 @@
 
 {% block content %}
 <div class="container-fluid">
+    <!-- WhatsApp Configuration Status -->
+    <div class="row mb-3">
+        <div class="col-12">
+            <div class="alert alert-info">
+                <h5 class="alert-heading"><i class="fas fa-info-circle me-2"></i>WhatsApp Configuration</h5>
+                <p class="mb-2">
+                    <strong>Status:</strong> 
+                    {% if not (config.get('TWILIO_ACCOUNT_SID') and config.get('TWILIO_AUTH_TOKEN')) %}
+                    <span class="badge bg-warning text-dark">Not Configured</span>
+                    {% else %}
+                    <span class="badge bg-success">Configured</span>
+                    {% endif %}
+                </p>
+                {% if not (config.get('TWILIO_ACCOUNT_SID') and config.get('TWILIO_AUTH_TOKEN')) %}
+                <hr>
+                <p class="mb-0">
+                    <strong>To enable WhatsApp messaging:</strong><br>
+                    1. Get a Twilio account at <a href="https://www.twilio.com" target="_blank">twilio.com</a><br>
+                    2. Add these secrets in Replit Secrets tool:<br>
+                    &nbsp;&nbsp;&nbsp;• <code>TWILIO_ACCOUNT_SID</code><br>
+                    &nbsp;&nbsp;&nbsp;• <code>TWILIO_AUTH_TOKEN</code><br>
+                    &nbsp;&nbsp;&nbsp;• <code>TWILIO_WHATSAPP_NUMBER</code> (e.g., whatsapp:+14155238886)
+                </p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
     <div class="row">
         <div class="col-12">
             <div class="d-flex justify-content-between align-items-center mb-4">
