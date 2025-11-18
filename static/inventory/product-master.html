@@ -302,9 +302,9 @@
                     product.name.toLowerCase().includes(searchTerm) ||
                     product.sku.toLowerCase().includes(searchTerm);
 
+                // Fix category filter - convert both to strings for comparison
                 const matchesCategory = !categoryFilter || 
-                    product.categoryId === categoryFilter || 
-                    product.category_id === categoryFilter;
+                    String(product.category_id) === String(categoryFilter);
 
                 // Fix status filter to check stock_status property
                 const productStatus = product.stock_status || product.status || 'in_stock';
