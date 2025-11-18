@@ -383,9 +383,12 @@ def get_online_booking_stats():
         
         if booking.status == 'scheduled':
             pending_groups.add(group_key)
-        elif booking.status == 'confirmed':
+        elif booking.status in ['confirmed', 'in_progress', 'completed']:
+            # Count confirmed, in-progress, and completed bookings as accepted
+            # These represent appointments that were accepted/confirmed
             accepted_groups.add(group_key)
-        elif booking.status == 'cancelled':
+        elif booking.status in ['cancelled', 'no_show']:
+            # Count both cancelled and no-show as rejected
             rejected_groups.add(group_key)
     
     return {
