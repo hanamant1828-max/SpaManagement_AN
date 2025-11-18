@@ -769,7 +769,7 @@ def settings():
         flash(f"Error fetching departments: {e}", "danger")
         departments = []
     
-    # Get WhatsApp settings
+    # Get WhatsApp settings from database
     whatsapp_settings = {
         'business_whatsapp_number': get_setting_by_key('business_whatsapp_number') or '',
         'enable_notifications': get_setting_by_key('whatsapp_enable_notifications') == 'true'
