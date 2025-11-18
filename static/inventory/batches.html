@@ -522,17 +522,25 @@ function saveBatch(event) {
         status: 'active'
     };
 
-    // Always include product_id and location_id (even if empty for updates)
-    if (productSelect.value && productSelect.value !== '') {
-        batchData.product_id = parseInt(productSelect.value);
-    } else if (isEdit) {
-        batchData.product_id = null; // Explicitly set to null if clearing
+    // Get product_id and location_id values
+    const productValue = productSelect.value;
+    const locationValue = locationSelect.value;
+
+    console.log('📊 Product dropdown value:', productValue);
+    console.log('📊 Location dropdown value:', locationValue);
+
+    // Include product_id - send the actual value or explicitly null
+    if (productValue && productValue !== '' && productValue !== 'null') {
+        batchData.product_id = parseInt(productValue);
+    } else {
+        batchData.product_id = null;
     }
 
-    if (locationSelect.value && locationSelect.value !== '') {
-        batchData.location_id = locationSelect.value;
-    } else if (isEdit) {
-        batchData.location_id = null; // Explicitly set to null if clearing
+    // Include location_id - send the actual value or explicitly null
+    if (locationValue && locationValue !== '' && locationValue !== 'null') {
+        batchData.location_id = locationValue;
+    } else {
+        batchData.location_id = null;
     }
 
     if (createdDate && createdDate !== '') {

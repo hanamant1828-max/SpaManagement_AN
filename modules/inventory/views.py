@@ -1198,19 +1198,21 @@ def api_update_batch(batch_id):
                 return jsonify({'error': 'Batch name must be unique'}), 400
             batch.batch_name = data['batch_name']
 
-        # Update product_id if provided
+        # Update product_id - handle both presence in data and its value
         if 'product_id' in data:
-            if data['product_id'] and data['product_id'] != '':
-                batch.product_id = int(data['product_id'])
-            else:
+            product_id = data['product_id']
+            if product_id is None or product_id == '' or product_id == 'null':
                 batch.product_id = None
-
-        # Update location_id if provided
-        if 'location_id' in data:
-            if data['location_id'] and data['location_id'] != '':
-                batch.location_id = str(data['location_id'])
             else:
+                batch.product_id = int(product_id)
+
+        # Update location_id - handle both presence in data and its value
+        if 'location_id' in data:
+            location_id = data['location_id']
+            if location_id is None or location_id == '' or location_id == 'null':
                 batch.location_id = None
+            else:
+                batch.location_id = str(location_id)
 
         if data.get('created_date'):
             batch.created_date = datetime.strptime(data['created_date'], '%Y-%m-%d').date()
@@ -1239,6 +1241,7 @@ def api_update_batch(batch_id):
         })
     except Exception as e:
         db.session.rollback()
+        print(f"❌ Error updating batch: {e}")
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/inventory/batches/<int:batch_id>', methods=['DELETE'])
