@@ -114,13 +114,6 @@ def create_service_route():
                 price = 0.0
         except (ValueError, TypeError):
             price = 0.0
-            
-        try:
-            commission_rate = float(request.form.get('commission_rate', 10))
-            if commission_rate < 0 or commission_rate > 100:
-                commission_rate = 10.0
-        except (ValueError, TypeError):
-            commission_rate = 10.0
         
         category_id = request.form.get('category_id')
         is_active = bool(request.form.get('is_active', False))
@@ -150,7 +143,6 @@ def create_service_route():
                 'duration': duration,
                 'price': price,
                 'category_id': int(category_id) if category_id else None,
-                'commission_rate': commission_rate,
                 'is_active': is_active
             })
             flash(f'Service "{service.name}" created successfully', 'success')
@@ -184,7 +176,6 @@ def edit_service(service_id):
         try:
             duration = int(request.form.get('duration', 60))
             price = float(request.form.get('price', 0))
-            commission_rate = float(request.form.get('commission_rate', 10))
         except (ValueError, TypeError):
             return jsonify({'success': False, 'message': 'Invalid numeric values provided'})
         
@@ -201,7 +192,6 @@ def edit_service(service_id):
             'duration': duration,
             'price': price,
             'category_id': int(request.form.get('category_id')) if request.form.get('category_id') else None,
-            'commission_rate': commission_rate,
             'is_active': request.form.get('is_active') == 'on'
         }
         
@@ -508,7 +498,6 @@ def get_service_api(service_id):
             'duration': service.duration,
             'price': service.price,
             'category_id': service.category_id,
-            'commission_rate': getattr(service, 'commission_rate', 10),
             'is_active': service.is_active
         })
     except Exception as e:

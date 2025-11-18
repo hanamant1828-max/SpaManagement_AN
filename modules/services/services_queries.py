@@ -43,7 +43,7 @@ def create_service(data):
     """Create new service"""
     from models import Service, Category
     try:
-        # Create service instance
+        # Create service instance with only valid fields
         service = Service()
         service.name = data['name']
         service.description = data.get('description', '')
@@ -65,10 +65,6 @@ def create_service(data):
                 service.category = 'general'  # fallback category
         else:
             service.category = 'general'  # fallback category
-        
-        # Add commission rate if it exists in the model
-        if hasattr(service, 'commission_rate'):
-            service.commission_rate = data.get('commission_rate', 10.0)
         
         print(f"Creating service: {service.name}, price: {service.price}, duration: {service.duration}")
         
