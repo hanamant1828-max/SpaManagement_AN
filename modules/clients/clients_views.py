@@ -1204,3 +1204,70 @@ def api_detect_duplicate_faces():
 
 # Log module load
 print("✅ Customer management routes loaded successfully")
+
+
+
+@app.route('/api/customers/search', methods=['GET'])
+@login_required
+def api_search_customer():
+    """Search for a customer by phone or name"""
+    try:
+        phone = request.args.get('phone', '').strip()
+        name = request.args.get('name', '').strip()
+        
+        customer = None
+        
+        # Search by phone first (more accurate)
+        if phone:
+            # Try exact match
+            customer = Customer.query.filter_by(phone=phone).first()
+            
+            # Try partial match if exact match fails
+            if not customer:
+                # Remove any formatting and try last 10 digits
+                phone_digits = ''.join(filter(str.isdigit, phone))
+                if len(phone_digits) >= 10:
+                    last_10 = phone_digits[-10:]
+                    customer = Customer.query.filter(
+                        Customer.phone.like(f'%{last_10}%')
+                    ).first()
+        
+        # Search by name if phone search failed
+        if not customer and name:
+            # Try exact match
+            name_parts = name.strip().split(' ', 1)
+            if len(name_parts) == 2:
+                first_name, last_name = name_parts
+                customer = Customer.query.filter_by(
+                    first_name=first_name,
+                    last_name=last_name
+                ).first()
+            
+            # Try partial match
+            if not customer:
+                customer = Customer.query.filter(
+                    (Customer.first_name + ' ' + Customer.last_name).like(f'%{name}%')
+                ).first()
+        
+        if customer:
+            return jsonify({
+                'success': True,
+                'customer': {
+                    'id': customer.id,
+                    'name': f"{customer.first_name} {customer.last_name}",
+                    'phone': customer.phone,
+                    'email': customer.email
+                }
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'message': 'Customer not found'
+            }), 404
+            
+    except Exception as e:
+        print(f"Error searching customer: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500

@@ -902,17 +902,37 @@ window.addEventListener('DOMContentLoaded', function() {
     const urlParams = new URLSearchParams(window.location.search);
     const customerIdFromUrl = urlParams.get('customer_id');
     
+    console.log('🔍 URL Parameters:', window.location.search);
+    console.log('🔍 Customer ID from URL:', customerIdFromUrl);
+    
     if (customerIdFromUrl) {
-        // Set the customer dropdown to the pre-selected customer
-        customerSelect.value = customerIdFromUrl;
-        console.log('✅ Auto-selected customer from URL:', customerIdFromUrl);
+        // Ensure the customer exists in the dropdown
+        const customerOption = Array.from(customerSelect.options).find(
+            option => option.value === customerIdFromUrl
+        );
         
-        // Trigger the change event to load packages and enable package selection
-        customerSelect.dispatchEvent(new Event('change'));
+        if (customerOption) {
+            // Set the customer dropdown to the pre-selected customer
+            customerSelect.value = customerIdFromUrl;
+            console.log('✅ Auto-selected customer from URL:', customerIdFromUrl);
+            console.log('✅ Customer name:', customerOption.text);
+            
+            // Trigger the change event to load packages and enable package selection
+            customerSelect.dispatchEvent(new Event('change'));
+            
+            // Validate form after selection
+            setTimeout(() => {
+                validateAssignForm();
+            }, 100);
+        } else {
+            console.warn('⚠️ Customer ID not found in dropdown:', customerIdFromUrl);
+            console.log('Available customer IDs:', Array.from(customerSelect.options).map(o => o.value));
+        }
     } else {
         // Fallback: check if customer is already selected in the dropdown (from server-side)
         const selectedCustomerId = customerSelect.value;
-        if (selectedCustomerId) {
+        console.log('🔍 Server-side selected customer:', selectedCustomerId);
+        if (selectedCustomerId && selectedCustomerId !== '') {
             customerSelect.dispatchEvent(new Event('change'));
         }
     }

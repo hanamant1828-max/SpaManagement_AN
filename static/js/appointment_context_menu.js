@@ -578,11 +578,61 @@ class AppointmentContextMenu {
         fetch(`/api/unaki/bookings/${appointmentId}`)
             .then(r=>r.json())
             .then(data => {
+                console.log('Appointment data for Assign & Pay:', data);
+                
                 if (data.success && data.booking) {
                     const booking = data.booking;
-                    if (booking.client_id) {
+                    let customerId = booking.client_id;
+                    
+                    console.log('Client ID from booking:', customerId);
+                    console.log('Client name from booking:', booking.client_name);
+                    console.log('Client phone from booking:', booking.client_phone);
+                    
+                    // If no client_id, try to find customer by phone or name
+                    if (!customerId && (booking.client_phone || booking.client_name)) {
+                        console.log('No client_id found, attempting to match customer by phone/name');
+                        
+                        // Try to match by phone first
+                        if (booking.client_phone) {
+                            fetch(`/api/customers/search?phone=${encodeURIComponent(booking.client_phone)}`)
+                                .then(r => r.json())
+                                .then(searchData => {
+                                    if (searchData.success && searchData.customer) {
+                                        customerId = searchData.customer.id;
+                                        console.log('✅ Found customer by phone:', customerId);
+                                        window.location.href = `/assign-packages?customer_id=${customerId}`;
+                                    } else if (booking.client_name) {
+                                        // Try by name
+                                        fetch(`/api/customers/search?name=${encodeURIComponent(booking.client_name)}`)
+                                            .then(r => r.json())
+                                            .then(nameData => {
+                                                if (nameData.success && nameData.customer) {
+                                                    customerId = nameData.customer.id;
+                                                    console.log('✅ Found customer by name:', customerId);
+                                                    window.location.href = `/assign-packages?customer_id=${customerId}`;
+                                                } else {
+                                                    this.showToast('Customer not found. Please create customer first.', 'warning');
+                                                    window.location.href = `/assign-packages`;
+                                                }
+                                            })
+                                            .catch(err => {
+                                                console.error('Error searching by name:', err);
+                                                window.location.href = `/assign-packages`;
+                                            });
+                                    } else {
+                                        this.showToast('Customer information not available.', 'warning');
+                                        window.location.href = `/assign-packages`;
+                                    }
+                                })
+                                .catch(err => {
+                                    console.error('Error searching by phone:', err);
+                                    window.location.href = `/assign-packages`;
+                                });
+                        }
+                    } else if (customerId) {
                         // Redirect to assign packages page with customer pre-selected
-                        window.location.href = `/assign-packages?customer_id=${booking.client_id}`;
+                        console.log('✅ Redirecting with customer_id:', customerId);
+                        window.location.href = `/assign-packages?customer_id=${customerId}`;
                     } else {
                         this.showToast('Customer information not available. Please assign from packages page.', 'warning');
                         window.location.href = `/assign-packages`;
