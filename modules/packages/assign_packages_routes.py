@@ -83,6 +83,9 @@ def assign_packages_page():
         'conditions': k.conditions
     } for k in KittyParty.query.filter_by(is_active=True).all()]
 
+    # Get customer_id from URL parameter if present
+    selected_customer_id = request.args.get('customer_id', type=int)
+
     return render_template('assign_packages.html',
                          customers=customers,
                          services=services,
@@ -91,7 +94,8 @@ def assign_packages_page():
                          memberships=memberships,
                          student_offers=student_offers,
                          yearly_memberships=yearly_memberships,
-                         kitty_parties=kitty_parties)
+                         kitty_parties=kitty_parties,
+                         selected_customer_id=selected_customer_id)
 
 
 @app.route('/packages/api/assign-and-pay', methods=['POST'])
@@ -177,7 +181,7 @@ def api_assign_and_pay():
             cgst_amount = tax_amount / 2  # 9% CGST
             sgst_amount = tax_amount / 2  # 9% SGST
             grand_total = taxable_amount + tax_amount
-            
+
             app.logger.info(f"✅ Service Package GST Applied:")
             app.logger.info(f"   - Base Amount: ₹{taxable_amount:.2f}")
             app.logger.info(f"   - CGST (9%): ₹{cgst_amount:.2f}")
@@ -191,7 +195,7 @@ def api_assign_and_pay():
             cgst_amount = 0
             sgst_amount = 0
             grand_total = taxable_amount  # Price is final, no tax added
-            
+
             app.logger.info(f"✅ No GST for {package_type.upper()}:")
             app.logger.info(f"   - Net Amount: ₹{taxable_amount:.2f}")
             app.logger.info(f"   - Grand Total: ₹{grand_total:.2f} (No GST)")

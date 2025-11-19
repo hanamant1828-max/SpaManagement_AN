@@ -26,12 +26,12 @@
                         </div>
                         <div class="card-body">
 
-                            <div class="form-group mb-3">
-                                <label for="customerId">Customer *</label>
-                                <select id="customerId" class="form-select" required>
+                            <div class="form-group">
+                                <label class="form-label required">Customer</label>
+                                <select class="form-select" id="customerId" name="customerId" required>
                                     <option value="">Select Customer...</option>
                                     {% for customer in customers %}
-                                    <option value="{{ customer.id }}" data-phone="{{ customer.phone }}" data-email="{{ customer.email }}">
+                                    <option value="{{ customer.id }}" {% if selected_customer_id and customer.id == selected_customer_id %}selected{% endif %}>
                                         {{ customer.name }} ({{ customer.phone }})
                                     </option>
                                     {% endfor %}
@@ -877,6 +877,49 @@ function handlePaymentStatusChange() {
     updatePaymentSummary();
 }
 
+// Load customer packages when customer is selected
+document.getElementById('customerId').addEventListener('change', function() {
+    const customerId = this.value;
+    if (customerId) {
+        // Assuming loadCustomerPackages function is defined elsewhere or needs to be implemented
+        // This function should fetch and populate packages for the given customer
+        // For now, this is a placeholder.
+        // loadCustomerPackages(customerId);
+    } else {
+        document.getElementById('packageType').value = ''; // Reset package type
+        document.getElementById('packageId').innerHTML = '<option value="">Select Package...</option>'; // Reset package
+        document.getElementById('packageSelectGroup').style.display = 'none'; // Hide package selection
+        document.getElementById('serviceSelectGroup').style.display = 'none'; // Hide service selection
+        recalculateTotals(); // Recalculate totals to reset to 0
+    }
+});
 
+// Auto-load packages if customer is pre-selected from URL
+window.addEventListener('DOMContentLoaded', function() {
+    const customerSelect = document.getElementById('customerId');
+    const selectedCustomerId = customerSelect.value;
+    if (selectedCustomerId) {
+        // Assuming loadCustomerPackages function is defined elsewhere or needs to be implemented
+        // This function should fetch and populate packages for the given customer
+        // For now, this is a placeholder.
+        // loadCustomerPackages(selectedCustomerId);
+
+        // Trigger the change event to also enable package selection and recalculate totals
+        customerSelect.dispatchEvent(new Event('change'));
+    }
+});
+
+// Placeholder function for loading customer packages.
+// This function would typically make an API call to fetch packages associated with a customer.
+function loadCustomerPackages(customerId) {
+    console.log(`Loading packages for customer ID: ${customerId}`);
+    // Example: fetch(`/api/customer/${customerId}/packages`)
+    //          .then(response => response.json())
+    //          .then(data => {
+    //              // Populate the packageType dropdown and potentially pre-select a package
+    //              // based on the customer's history or a parameter from the URL.
+    //              console.log('Customer packages loaded:', data);
+    //          });
+}
 </script>
 {% endblock %}
