@@ -74,9 +74,9 @@
                     >
                         Today
                     </button>
-                    <input 
-                        type="date" 
-                        id="datePicker" 
+                    <input
+                        type="date"
+                        id="datePicker"
                         class="date-picker-input"
                         value="{{ today_date.strftime('%Y-%m-%d') }}"
                         onchange="navigateToSelectedDate()"
@@ -387,6 +387,10 @@
             </div>
             <div class="context-menu-item" id="undoCheckinMenuItem" onclick="undoCheckin(selectedAppointmentId)" style="color: var(--warning-color); display: none;">
                 <i class="fas fa-undo"></i>Undo Check-In
+            </div>
+            <div class="context-menu-divider"></div>
+            <div class="context-menu-item" onclick="assignAndPayAppointment()">
+                <i class="fas fa-dollar-sign"></i>Assign & Pay
             </div>
             <div class="context-menu-divider"></div>
             <div class="context-menu-item danger" onclick="cancelAppointment()">

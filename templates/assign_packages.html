@@ -897,15 +897,24 @@ document.getElementById('customerId').addEventListener('change', function() {
 // Auto-load packages if customer is pre-selected from URL
 window.addEventListener('DOMContentLoaded', function() {
     const customerSelect = document.getElementById('customerId');
-    const selectedCustomerId = customerSelect.value;
-    if (selectedCustomerId) {
-        // Assuming loadCustomerPackages function is defined elsewhere or needs to be implemented
-        // This function should fetch and populate packages for the given customer
-        // For now, this is a placeholder.
-        // loadCustomerPackages(selectedCustomerId);
-
-        // Trigger the change event to also enable package selection and recalculate totals
+    
+    // Check if customer_id is in URL parameters (from context menu)
+    const urlParams = new URLSearchParams(window.location.search);
+    const customerIdFromUrl = urlParams.get('customer_id');
+    
+    if (customerIdFromUrl) {
+        // Set the customer dropdown to the pre-selected customer
+        customerSelect.value = customerIdFromUrl;
+        console.log('✅ Auto-selected customer from URL:', customerIdFromUrl);
+        
+        // Trigger the change event to load packages and enable package selection
         customerSelect.dispatchEvent(new Event('change'));
+    } else {
+        // Fallback: check if customer is already selected in the dropdown (from server-side)
+        const selectedCustomerId = customerSelect.value;
+        if (selectedCustomerId) {
+            customerSelect.dispatchEvent(new Event('change'));
+        }
     }
 });
 

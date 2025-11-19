@@ -725,7 +725,7 @@ class AppointmentContextMenu {
             if (!source) source = 'walk_in'; // Default to walk-in if no source specified
             let colorClass = 'secondary'; // Default
             let displayText = source.replace('_', ' ');
-            
+
             switch (source.toLowerCase()) {
                 case 'online':
                 case 'website':
@@ -1066,7 +1066,7 @@ class AppointmentContextMenu {
             client_phone: document.getElementById('editClientPhone').value.trim(),
             clientEmail: document.getElementById('editClientEmail').value.trim(),
             client_email: document.getElementById('editClientEmail').value.trim(),
-            
+
             // Service information
             serviceName: document.getElementById('editServiceName').value.trim(),
             service_name: document.getElementById('editServiceName').value.trim(),
@@ -1074,7 +1074,7 @@ class AppointmentContextMenu {
             service_duration: parseInt(document.getElementById('editServiceDuration').value) || 60,
             servicePrice: parseFloat(document.getElementById('editServicePrice').value) || 0,
             service_price: parseFloat(document.getElementById('editServicePrice').value) || 0,
-            
+
             // Staff and schedule
             staffId: parseInt(document.getElementById('editStaffId').value),
             staff_id: parseInt(document.getElementById('editStaffId').value),
@@ -1084,7 +1084,7 @@ class AppointmentContextMenu {
             start_time: document.getElementById('editStartTime').value,
             endTime: document.getElementById('editEndTime').value,
             end_time: document.getElementById('editEndTime').value,
-            
+
             // Status and payment
             status: document.getElementById('editStatus').value,
             paymentStatus: document.getElementById('editPaymentStatus').value,
