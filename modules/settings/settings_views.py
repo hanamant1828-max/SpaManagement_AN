@@ -1028,57 +1028,40 @@ def update_whatsapp_settings():
 @app.route('/settings/whatsapp/api-config', methods=['POST'])
 @login_required
 def save_whatsapp_api_config():
-    """Save comprehensive WhatsApp API configuration"""
+    """Save Twilio API configuration"""
     if not current_user.can_access('settings'):
         flash('Access denied', 'danger')
         return redirect(url_for('settings'))
     
     try:
-        # Twilio API Credentials
+        # Get form data
         twilio_account_sid = request.form.get('twilio_account_sid', '').strip()
         twilio_auth_token = request.form.get('twilio_auth_token', '').strip()
         twilio_whatsapp_number = request.form.get('twilio_whatsapp_number', '').strip()
-        
-        # Business Configuration
         business_whatsapp_number = request.form.get('business_whatsapp_number', '').strip()
-        business_name_whatsapp = request.form.get('business_name_whatsapp', '').strip()
         
-        # Message Settings
-        enable_notifications = request.form.get('enable_notifications') == 'on'
-        enable_booking_confirmation = request.form.get('enable_booking_confirmation') == 'on'
-        enable_appointment_reminders = request.form.get('enable_appointment_reminders') == 'on'
-        reminder_hours_before = request.form.get('reminder_hours_before', '24').strip()
+        # Validate required fields
+        if not twilio_account_sid or not twilio_auth_token or not business_whatsapp_number:
+            flash('Please fill in all required fields: Account SID, API Key, and Phone Number', 'warning')
+            return redirect(url_for('settings'))
         
-        # Message Templates
-        message_template_booking = request.form.get('message_template_booking', '').strip()
-        message_template_reminder = request.form.get('message_template_reminder', '').strip()
-        
-        # Save all settings to database
+        # Save settings to database
         settings_to_save = {
             'whatsapp_twilio_account_sid': twilio_account_sid,
             'whatsapp_twilio_auth_token': twilio_auth_token,
             'whatsapp_twilio_number': twilio_whatsapp_number,
-            'whatsapp_business_number': business_whatsapp_number,
-            'whatsapp_business_name': business_name_whatsapp,
-            'whatsapp_enable_notifications': 'true' if enable_notifications else 'false',
-            'whatsapp_enable_booking_confirmation': 'true' if enable_booking_confirmation else 'false',
-            'whatsapp_enable_appointment_reminders': 'true' if enable_appointment_reminders else 'false',
-            'whatsapp_reminder_hours_before': reminder_hours_before,
-            'whatsapp_message_template_booking': message_template_booking,
-            'whatsapp_message_template_reminder': message_template_reminder
+            'whatsapp_business_number': business_whatsapp_number
         }
         
         for key, value in settings_to_save.items():
             update_setting(key, value)
         
-        flash('WhatsApp API configuration saved successfully!', 'success')
-        
-        # Log configuration update
-        print(f"WhatsApp configuration updated by user {current_user.username}")
+        flash('Twilio API configured successfully!', 'success')
+        print(f"Twilio API configured by user {current_user.username}")
         
     except Exception as e:
-        flash(f'Error saving WhatsApp configuration: {str(e)}', 'danger')
-        print(f"Error saving WhatsApp config: {e}")
+        flash(f'Error saving configuration: {str(e)}', 'danger')
+        print(f"Error saving Twilio config: {e}")
     
     return redirect(url_for('settings'))
 
