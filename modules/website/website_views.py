@@ -229,6 +229,7 @@ def website_book_online():
                 # Update email if provided and customer doesn't have one
                 if client_email and '@' in client_email and not customer.email:
                     customer.email = client_email
+                    db.session.flush()  # Ensure update is saved
                     print(f"   Updated customer email to: {client_email}")
 
             # Get available staff
@@ -292,22 +293,12 @@ def website_book_online():
                     start_datetime = datetime.combine(appointment_date, appointment_time_obj)
                     end_datetime = start_datetime + timedelta(minutes=service.duration)
 
-                    # Ensure customer exists and get valid ID
+                    # Verify customer exists with valid ID
                     if not customer or not customer.id:
-                        # Create new customer if needed
-                        customer = Customer(
-                            first_name=client_name.split()[0] if client_name else 'Guest',
-                            last_name=' '.join(client_name.split()[1:]) if len(client_name.split()) > 1 else '',
-                            phone=client_phone,
-                            email=None, # Email handled above
-                            is_active=True
-                        )
-                        db.session.add(customer)
-                        db.session.flush()  # Get the ID
-                        print(f"✅ Created new customer: {customer.id} - {client_name}")
+                        raise Exception("Customer record missing or invalid - this should not happen")
 
                     booking = UnakiBooking(
-                        client_id=customer.id,  # Ensure valid customer ID
+                        client_id=customer.id,  # Link to customer record
                         client_name=client_name,
                         client_phone=client_phone,
                         client_email=customer.email, # Use customer's email
