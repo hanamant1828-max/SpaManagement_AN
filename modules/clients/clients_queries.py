@@ -110,5 +110,5 @@ create_client = create_customer
 update_client = update_customer
 delete_client = delete_customer
 get_client_appointments = get_customer_appointments
-get_client_communications = get_client_communications
+get_client_communications = get_customer_communications
 get_client_stats = get_customer_stats

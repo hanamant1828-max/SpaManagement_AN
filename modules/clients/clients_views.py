@@ -12,8 +12,9 @@ from app import app, db
 # Import face registration blueprint
 from .face_registration_api import face_registration_bp
 
-# Register face registration blueprint
-app.register_blueprint(face_registration_bp)
+# Register face registration blueprint only if not already registered
+if 'face_registration' not in [bp.name for bp in app.blueprints.values()]:
+    app.register_blueprint(face_registration_bp)
 
 # Import models - these should be available after app initialization
 from models import Customer, Appointment, ServicePackageAssignment
