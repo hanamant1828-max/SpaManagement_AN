@@ -483,9 +483,10 @@
                             <div class="search-input-group">
                                 <input type="text" class="form-control" id="customerSearch" name="search"
                                        placeholder="Search by name, phone, or email..."
-                                       value="{{ search_query }}"
-                                       autocomplete="off">
-                                <i class="fas fa-search search-icon" onclick="document.getElementById('customerSearchForm').submit()" style="cursor: pointer;"></i>
+                                       value="{{ search_query if search_query else '' }}"
+                                       autocomplete="off"
+                                       oninput="searchCustomers()">
+                                <i class="fas fa-search search-icon" onclick="submitSearch()" style="cursor: pointer;" title="Submit search"></i>
                             </div>
                         </form>
                     </div>
@@ -1736,7 +1737,7 @@ window.addEventListener('error', function(e) {
     }
 });
 
-// Search customers function
+// Search customers function - Client-side only for instant feedback
 function searchCustomers() {
     console.log('🔍 searchCustomers() called');
     
@@ -1767,7 +1768,7 @@ function searchCustomers() {
             continue;
         }
 
-        // Get all text content from the row
+        // Get all searchable text content from the row
         let rowText = '';
         
         // Get customer name from the first cell
@@ -1775,18 +1776,17 @@ function searchCustomers() {
         if (nameCell) {
             const nameElement = nameCell.querySelector('.customer-info h5');
             if (nameElement) {
-                rowText += nameElement.textContent || nameElement.innerText;
+                rowText += ' ' + (nameElement.textContent || nameElement.innerText);
             }
         }
 
         // Get contact info from the second cell (phone and email)
         const contactCell = row.cells[1];
         if (contactCell) {
-            // Get all text from this cell (includes phone and email)
             rowText += ' ' + (contactCell.textContent || contactCell.innerText);
         }
 
-        // Clean and search
+        // Clean and normalize the text for searching
         rowText = rowText.toLowerCase().replace(/\s+/g, ' ').trim();
 
         // Show/hide row based on match
@@ -1819,6 +1819,14 @@ function searchCustomers() {
     }
 
     console.log('✅ Search completed. Visible rows:', visibleCount, 'Filter:', filter);
+}
+
+// Submit search to server for persistent filtering
+function submitSearch() {
+    const searchForm = document.getElementById('customerSearchForm');
+    if (searchForm) {
+        searchForm.submit();
+    }
 }
 
 // Initialize search functionality - Multiple attempts to ensure it works

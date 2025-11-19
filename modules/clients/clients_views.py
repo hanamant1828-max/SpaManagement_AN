@@ -1208,6 +1208,44 @@ print("✅ Customer management routes loaded successfully")
 
 
 
+@app.route('/customers', methods=['GET'])
+@login_required
+def customers():
+    """Customer management page with search functionality"""
+    from modules.clients.clients_queries import get_all_clients
+    from modules.clients.forms import ClientForm, AdvancedClientForm
+    
+    # Get search query from request
+    search_query = request.args.get('search', '').strip()
+    
+    # Get all customers
+    all_customers = get_all_clients()
+    
+    # Filter customers if search query exists
+    if search_query:
+        search_lower = search_query.lower()
+        customers = [
+            c for c in all_customers
+            if (search_lower in c.first_name.lower() if c.first_name else False) or
+               (search_lower in c.last_name.lower() if c.last_name else False) or
+               (search_lower in (c.first_name + ' ' + c.last_name).lower() if c.first_name and c.last_name else False) or
+               (search_lower in c.phone if c.phone else False) or
+               (search_lower in c.email.lower() if c.email else False)
+        ]
+    else:
+        customers = all_customers
+    
+    form = ClientForm()
+    advanced_form = AdvancedClientForm()
+    
+    return render_template(
+        'customers.html',
+        customers=customers,
+        form=form,
+        advanced_form=advanced_form,
+        search_query=search_query
+    )
+
 @app.route('/api/customers/search', methods=['GET'])
 @login_required
 def api_search_customer():
