@@ -224,11 +224,49 @@ def api_unaki_book_appointment():
         else:
             service_duration = int(service_duration)
 
+        # Handle customer creation if needed
+        customer = None
+        client_phone = data.get('client_phone', '').strip() or data.get('clientPhone', '').strip()
+        client_email = data.get('client_email', '').strip() or data.get('clientEmail', '').strip()
+
+        # Try to find existing customer
+        if client_id:
+            try:
+                customer = Customer.query.get(int(client_id))
+            except (ValueError, TypeError):
+                pass
+
+        if not customer and client_phone:
+            customer = Customer.query.filter_by(phone=client_phone).first()
+
+        if not customer and client_email:
+            customer = Customer.query.filter_by(email=client_email).first()
+
+        # Create customer if needed and contact info provided
+        if not customer and (client_phone or client_email):
+            try:
+                name_parts = str(client_name).strip().split(' ', 1)
+                first_name = name_parts[0] if name_parts else 'Unknown'
+                last_name = name_parts[1] if len(name_parts) > 1 else ''
+
+                customer = Customer(
+                    first_name=first_name,
+                    last_name=last_name,
+                    phone=client_phone if client_phone else None,
+                    email=client_email if client_email else None,
+                    is_active=True
+                )
+                db.session.add(customer)
+                db.session.flush()
+                print(f"✅ Created new customer: {customer.full_name} (ID: {customer.id})")
+            except Exception as ce:
+                print(f"⚠️ Warning: Could not create customer record: {ce}")
+
         appointment = UnakiBooking(
-            client_id=int(client_id) if client_id else None,
+            client_id=customer.id if customer else None,
             client_name=client_name,
-            client_phone=data.get('client_phone', '') or data.get('clientPhone', ''),
-            client_email=data.get('client_email', '') or data.get('clientEmail', ''),
+            client_phone=client_phone or None,
+            client_email=client_email or None,
             staff_id=int(staff_id),
             staff_name=staff_name,
             service_name=service_name,
@@ -239,7 +277,7 @@ def api_unaki_book_appointment():
             end_time=end_time,
             status='scheduled',
             notes=data.get('notes', ''),
-            booking_source=data.get('booking_source', 'unaki_system'),
+            booking_source=data.get('booking_source', 'online'),
             booking_method='multi_service',
             amount_charged=float(data.get('amount_charged', data.get('service_price', 0))),
             payment_status='pending'
