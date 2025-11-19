@@ -588,56 +588,88 @@ class AppointmentContextMenu {
                     console.log('Client name from booking:', booking.client_name);
                     console.log('Client phone from booking:', booking.client_phone);
                     
-                    // If no client_id, try to find customer by phone or name
-                    if (!customerId && (booking.client_phone || booking.client_name)) {
-                        console.log('No client_id found, attempting to match customer by phone/name');
-                        
-                        // Try to match by phone first
-                        if (booking.client_phone) {
-                            fetch(`/api/customers/search?phone=${encodeURIComponent(booking.client_phone)}`)
-                                .then(r => r.json())
-                                .then(searchData => {
-                                    if (searchData.success && searchData.customer) {
-                                        customerId = searchData.customer.id;
-                                        console.log('✅ Found customer by phone:', customerId);
-                                        window.location.href = `/assign-packages?customer_id=${customerId}`;
-                                    } else if (booking.client_name) {
-                                        // Try by name
-                                        fetch(`/api/customers/search?name=${encodeURIComponent(booking.client_name)}`)
-                                            .then(r => r.json())
-                                            .then(nameData => {
-                                                if (nameData.success && nameData.customer) {
-                                                    customerId = nameData.customer.id;
-                                                    console.log('✅ Found customer by name:', customerId);
-                                                    window.location.href = `/assign-packages?customer_id=${customerId}`;
-                                                } else {
-                                                    this.showToast('Customer not found. Please create customer first.', 'warning');
-                                                    window.location.href = `/assign-packages`;
-                                                }
-                                            })
-                                            .catch(err => {
-                                                console.error('Error searching by name:', err);
-                                                window.location.href = `/assign-packages`;
-                                            });
-                                    } else {
-                                        this.showToast('Customer information not available.', 'warning');
-                                        window.location.href = `/assign-packages`;
-                                    }
-                                })
-                                .catch(err => {
-                                    console.error('Error searching by phone:', err);
-                                    window.location.href = `/assign-packages`;
-                                });
-                        }
-                    } else if (customerId) {
-                        // Redirect to assign packages page with customer pre-selected
-                        console.log('✅ Redirecting with customer_id:', customerId);
+                    // If we have a valid client_id, use it directly
+                    if (customerId && customerId > 0) {
+                        console.log('✅ Valid client_id found, redirecting with customer_id:', customerId);
                         window.location.href = `/assign-packages?customer_id=${customerId}`;
+                        return;
+                    }
+                    
+                    // If no valid client_id, try to find customer by phone or name
+                    console.log('No valid client_id found, attempting to match customer by phone/name');
+                    
+                    // Try to match by phone first (most reliable)
+                    if (booking.client_phone) {
+                        // Clean phone number - remove spaces, dashes, parentheses
+                        const cleanPhone = booking.client_phone.replace(/[\s\-\(\)]/g, '');
+                        
+                        fetch(`/api/customers/search?phone=${encodeURIComponent(cleanPhone)}`)
+                            .then(r => r.json())
+                            .then(searchData => {
+                                if (searchData.success && searchData.customer && searchData.customer.id) {
+                                    customerId = searchData.customer.id;
+                                    console.log('✅ Found customer by phone:', customerId, searchData.customer.name);
+                                    window.location.href = `/assign-packages?customer_id=${customerId}`;
+                                } else if (booking.client_name) {
+                                    // Try by name as fallback
+                                    const cleanName = booking.client_name.trim();
+                                    fetch(`/api/customers/search?name=${encodeURIComponent(cleanName)}`)
+                                        .then(r => r.json())
+                                        .then(nameData => {
+                                            if (nameData.success && nameData.customer && nameData.customer.id) {
+                                                customerId = nameData.customer.id;
+                                                console.log('✅ Found customer by name:', customerId, nameData.customer.name);
+                                                window.location.href = `/assign-packages?customer_id=${customerId}`;
+                                            } else {
+                                                console.warn('Customer not found by phone or name');
+                                                this.showToast('Customer not found. Please create customer first.', 'warning');
+                                                window.location.href = `/assign-packages`;
+                                            }
+                                        })
+                                        .catch(err => {
+                                            console.error('Error searching by name:', err);
+                                            this.showToast('Error finding customer.', 'error');
+                                            window.location.href = `/assign-packages`;
+                                        });
+                                } else {
+                                    console.warn('No customer information available');
+                                    this.showToast('Customer information not available.', 'warning');
+                                    window.location.href = `/assign-packages`;
+                                }
+                            })
+                            .catch(err => {
+                                console.error('Error searching by phone:', err);
+                                this.showToast('Error finding customer.', 'error');
+                                window.location.href = `/assign-packages`;
+                            });
+                    } else if (booking.client_name) {
+                        // No phone, try name only
+                        const cleanName = booking.client_name.trim();
+                        fetch(`/api/customers/search?name=${encodeURIComponent(cleanName)}`)
+                            .then(r => r.json())
+                            .then(nameData => {
+                                if (nameData.success && nameData.customer && nameData.customer.id) {
+                                    customerId = nameData.customer.id;
+                                    console.log('✅ Found customer by name:', customerId, nameData.customer.name);
+                                    window.location.href = `/assign-packages?customer_id=${customerId}`;
+                                } else {
+                                    console.warn('Customer not found by name');
+                                    this.showToast('Customer not found. Please create customer first.', 'warning');
+                                    window.location.href = `/assign-packages`;
+                                }
+                            })
+                            .catch(err => {
+                                console.error('Error searching by name:', err);
+                                this.showToast('Error finding customer.', 'error');
+                                window.location.href = `/assign-packages`;
+                            });
                     } else {
-                        this.showToast('Customer information not available. Please assign from packages page.', 'warning');
+                        console.warn('No customer information available');
+                        this.showToast('Customer information not available.', 'warning');
                         window.location.href = `/assign-packages`;
                     }
                 } else {
+                    console.error('Failed to load appointment details:', data.error);
                     this.showToast('Failed to load appointment details.', 'error');
                     window.location.href = `/assign-packages`;
                 }

@@ -1217,56 +1217,94 @@ def api_search_customer():
         
         customer = None
         
+        print(f"🔍 Customer search - Phone: {phone}, Name: {name}")
+        
         # Search by phone first (more accurate)
         if phone:
-            # Try exact match
-            customer = Customer.query.filter_by(phone=phone).first()
+            # Clean phone number - remove all non-digit characters
+            phone_digits = ''.join(filter(str.isdigit, phone))
+            
+            print(f"   Cleaned phone digits: {phone_digits}")
+            
+            # Try exact match first
+            customer = Customer.query.filter_by(phone=phone, is_active=True).first()
+            
+            if not customer and phone_digits:
+                # Try with just digits
+                customer = Customer.query.filter_by(phone=phone_digits, is_active=True).first()
             
             # Try partial match if exact match fails
-            if not customer:
-                # Remove any formatting and try last 10 digits
-                phone_digits = ''.join(filter(str.isdigit, phone))
-                if len(phone_digits) >= 10:
-                    last_10 = phone_digits[-10:]
-                    customer = Customer.query.filter(
-                        Customer.phone.like(f'%{last_10}%')
-                    ).first()
+            if not customer and len(phone_digits) >= 10:
+                last_10 = phone_digits[-10:]
+                print(f"   Trying last 10 digits: {last_10}")
+                
+                # Search for phone containing these digits
+                customers = Customer.query.filter(
+                    Customer.is_active == True
+                ).all()
+                
+                for c in customers:
+                    customer_digits = ''.join(filter(str.isdigit, c.phone))
+                    if last_10 in customer_digits or customer_digits.endswith(last_10):
+                        customer = c
+                        print(f"   ✅ Found match: {c.first_name} {c.last_name} (ID: {c.id})")
+                        break
         
         # Search by name if phone search failed
         if not customer and name:
-            # Try exact match
+            print(f"   Searching by name: {name}")
+            
+            # Try exact full name match
             name_parts = name.strip().split(' ', 1)
             if len(name_parts) == 2:
                 first_name, last_name = name_parts
-                customer = Customer.query.filter_by(
-                    first_name=first_name,
-                    last_name=last_name
+                customer = Customer.query.filter(
+                    Customer.first_name.ilike(first_name),
+                    Customer.last_name.ilike(last_name),
+                    Customer.is_active == True
                 ).first()
             
-            # Try partial match
+            # Try first name only
+            if not customer and name_parts:
+                first_name = name_parts[0]
+                customer = Customer.query.filter(
+                    Customer.first_name.ilike(first_name),
+                    Customer.is_active == True
+                ).first()
+            
+            # Try partial match on full name
             if not customer:
                 customer = Customer.query.filter(
-                    (Customer.first_name + ' ' + Customer.last_name).like(f'%{name}%')
+                    or_(
+                        (Customer.first_name + ' ' + Customer.last_name).ilike(f'%{name}%'),
+                        Customer.first_name.ilike(f'%{name}%'),
+                        Customer.last_name.ilike(f'%{name}%')
+                    ),
+                    Customer.is_active == True
                 ).first()
         
         if customer:
+            print(f"   ✅ Customer found: {customer.first_name} {customer.last_name} (ID: {customer.id})")
             return jsonify({
                 'success': True,
                 'customer': {
                     'id': customer.id,
                     'name': f"{customer.first_name} {customer.last_name}",
                     'phone': customer.phone,
-                    'email': customer.email
+                    'email': customer.email or ''
                 }
             })
         else:
+            print(f"   ❌ Customer not found")
             return jsonify({
                 'success': False,
                 'message': 'Customer not found'
             }), 404
             
     except Exception as e:
-        print(f"Error searching customer: {e}")
+        print(f"❌ Error searching customer: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({
             'success': False,
             'error': str(e)
