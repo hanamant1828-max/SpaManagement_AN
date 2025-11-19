@@ -605,10 +605,11 @@ except Exception as e:
     print(f"⚠️ Prepaid views import error: {e}")
 
 try:
-    from modules.packages.assign_packages_routes import *
-    print("✅ Assign packages routes imported")
+    from modules.packages.assign_packages_routes import assign_packages_bp
+    app.register_blueprint(assign_packages_bp)
+    print("✅ Assign packages blueprint registered")
 except Exception as e:
-    print(f"⚠️ Assign packages routes import error: {e}")
+    print(f"⚠️ Assign packages blueprint import error: {e}")
 
 # Student offer views module doesn't exist yet - commented out to prevent errors
 # try:

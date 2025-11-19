@@ -68,3 +68,6 @@ The application uses Flask and SQLAlchemy, following a modular design with featu
 
 ## Configured Integrations
 - **WhatsApp Notifications (Twilio):** ✅ Successfully configured on November 19, 2025. Twilio credentials are securely stored as environment secrets (TWILIO_ACCOUNT_SID, TWILIO_API_KEY, TWILIO_API_SECRET, TWILIO_WHATSAPP_NUMBER). The system can now send WhatsApp notifications for appointment confirmations, booking reminders, custom notifications, and bulk messaging to clients. Integration uses Twilio's WhatsApp API with proper authentication through API keys.
+
+## Recent Fixes
+- **November 19, 2025:** Fixed Internal Server Error caused by missing blueprint registration. The `assign_packages_bp` blueprint was imported but not registered with the Flask app, causing `BuildError` when trying to access the "Assign & Pay" navigation link. Fixed by adding `app.register_blueprint(assign_packages_bp)` in `app.py` line 612. All Flask blueprints must be explicitly registered to make their routes accessible.
