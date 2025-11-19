@@ -769,10 +769,25 @@ def settings():
         flash(f"Error fetching departments: {e}", "danger")
         departments = []
     
-    # Get WhatsApp settings from database
+    # Get comprehensive WhatsApp configuration from database
+    whatsapp_config = {
+        'twilio_account_sid': get_setting_by_key('whatsapp_twilio_account_sid') or '',
+        'twilio_auth_token': get_setting_by_key('whatsapp_twilio_auth_token') or '',
+        'twilio_whatsapp_number': get_setting_by_key('whatsapp_twilio_number') or '',
+        'business_whatsapp_number': get_setting_by_key('whatsapp_business_number') or get_setting_by_key('business_whatsapp_number') or '',
+        'business_name_whatsapp': get_setting_by_key('whatsapp_business_name') or '',
+        'enable_notifications': get_setting_by_key('whatsapp_enable_notifications') == 'true',
+        'enable_booking_confirmation': get_setting_by_key('whatsapp_enable_booking_confirmation') == 'true',
+        'enable_appointment_reminders': get_setting_by_key('whatsapp_enable_appointment_reminders') == 'true',
+        'reminder_hours_before': get_setting_by_key('whatsapp_reminder_hours_before') or '24',
+        'message_template_booking': get_setting_by_key('whatsapp_message_template_booking') or '',
+        'message_template_reminder': get_setting_by_key('whatsapp_message_template_reminder') or ''
+    }
+    
+    # Legacy support - also provide old format
     whatsapp_settings = {
-        'business_whatsapp_number': get_setting_by_key('business_whatsapp_number') or '',
-        'enable_notifications': get_setting_by_key('whatsapp_enable_notifications') == 'true'
+        'business_whatsapp_number': whatsapp_config['business_whatsapp_number'],
+        'enable_notifications': whatsapp_config['enable_notifications']
     }
 
     return render_template('settings.html',
@@ -781,7 +796,8 @@ def settings():
                          business_form=business_form,
                          system_form=system_form,
                          departments=departments,
-                         whatsapp_settings=whatsapp_settings)
+                         whatsapp_settings=whatsapp_settings,
+                         whatsapp_config=whatsapp_config)
 
 
 @app.route('/settings/business', methods=['POST'])
@@ -990,7 +1006,7 @@ def whatsapp_status_api():
 @app.route('/settings/whatsapp', methods=['POST'])
 @login_required
 def update_whatsapp_settings():
-    """Update WhatsApp configuration settings"""
+    """Update WhatsApp configuration settings (legacy endpoint)"""
     if not current_user.can_access('settings'):
         flash('Access denied', 'danger')
         return redirect(url_for('settings'))
@@ -1006,6 +1022,63 @@ def update_whatsapp_settings():
         flash('WhatsApp settings updated successfully!', 'success')
     except Exception as e:
         flash(f'Error updating WhatsApp settings: {str(e)}', 'danger')
+    
+    return redirect(url_for('settings'))
+
+@app.route('/settings/whatsapp/api-config', methods=['POST'])
+@login_required
+def save_whatsapp_api_config():
+    """Save comprehensive WhatsApp API configuration"""
+    if not current_user.can_access('settings'):
+        flash('Access denied', 'danger')
+        return redirect(url_for('settings'))
+    
+    try:
+        # Twilio API Credentials
+        twilio_account_sid = request.form.get('twilio_account_sid', '').strip()
+        twilio_auth_token = request.form.get('twilio_auth_token', '').strip()
+        twilio_whatsapp_number = request.form.get('twilio_whatsapp_number', '').strip()
+        
+        # Business Configuration
+        business_whatsapp_number = request.form.get('business_whatsapp_number', '').strip()
+        business_name_whatsapp = request.form.get('business_name_whatsapp', '').strip()
+        
+        # Message Settings
+        enable_notifications = request.form.get('enable_notifications') == 'on'
+        enable_booking_confirmation = request.form.get('enable_booking_confirmation') == 'on'
+        enable_appointment_reminders = request.form.get('enable_appointment_reminders') == 'on'
+        reminder_hours_before = request.form.get('reminder_hours_before', '24').strip()
+        
+        # Message Templates
+        message_template_booking = request.form.get('message_template_booking', '').strip()
+        message_template_reminder = request.form.get('message_template_reminder', '').strip()
+        
+        # Save all settings to database
+        settings_to_save = {
+            'whatsapp_twilio_account_sid': twilio_account_sid,
+            'whatsapp_twilio_auth_token': twilio_auth_token,
+            'whatsapp_twilio_number': twilio_whatsapp_number,
+            'whatsapp_business_number': business_whatsapp_number,
+            'whatsapp_business_name': business_name_whatsapp,
+            'whatsapp_enable_notifications': 'true' if enable_notifications else 'false',
+            'whatsapp_enable_booking_confirmation': 'true' if enable_booking_confirmation else 'false',
+            'whatsapp_enable_appointment_reminders': 'true' if enable_appointment_reminders else 'false',
+            'whatsapp_reminder_hours_before': reminder_hours_before,
+            'whatsapp_message_template_booking': message_template_booking,
+            'whatsapp_message_template_reminder': message_template_reminder
+        }
+        
+        for key, value in settings_to_save.items():
+            update_setting(key, value)
+        
+        flash('WhatsApp API configuration saved successfully!', 'success')
+        
+        # Log configuration update
+        print(f"WhatsApp configuration updated by user {current_user.username}")
+        
+    except Exception as e:
+        flash(f'Error saving WhatsApp configuration: {str(e)}', 'danger')
+        print(f"Error saving WhatsApp config: {e}")
     
     return redirect(url_for('settings'))
 

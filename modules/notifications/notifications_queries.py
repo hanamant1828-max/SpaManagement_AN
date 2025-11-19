@@ -7,23 +7,46 @@ from app import db
 from models import Communication, Customer, Appointment
 import os
 
-# WhatsApp configuration
+# WhatsApp configuration - prioritize environment variables, fallback to database
+def get_whatsapp_credentials():
+    """Get WhatsApp credentials from environment or database"""
+    from modules.settings.settings_queries import get_setting_by_key
+    
+    # Try environment variables first (more secure)
+    account_sid = os.environ.get('TWILIO_ACCOUNT_SID')
+    auth_token = os.environ.get('TWILIO_AUTH_TOKEN')
+    whatsapp_number = os.environ.get('TWILIO_WHATSAPP_NUMBER')
+    
+    # Fallback to database settings if not in environment
+    if not account_sid:
+        account_sid = get_setting_by_key('whatsapp_twilio_account_sid')
+    if not auth_token:
+        auth_token = get_setting_by_key('whatsapp_twilio_auth_token')
+    if not whatsapp_number:
+        whatsapp_number = get_setting_by_key('whatsapp_twilio_number') or 'whatsapp:+14155238886'
+    
+    return account_sid, auth_token, whatsapp_number
+
+# Legacy constants for backward compatibility
 TWILIO_ACCOUNT_SID = os.environ.get('TWILIO_ACCOUNT_SID')
 TWILIO_AUTH_TOKEN = os.environ.get('TWILIO_AUTH_TOKEN')
 TWILIO_WHATSAPP_NUMBER = os.environ.get('TWILIO_WHATSAPP_NUMBER', 'whatsapp:+14155238886')
 BUSINESS_WHATSAPP_NUMBER = '+918746084638'
 
 def send_whatsapp_message(to_number, message_body):
-    """Send WhatsApp message using Twilio"""
+    """Send WhatsApp message using Twilio (with database config support)"""
     try:
         from twilio.rest import Client
         
-        if not TWILIO_ACCOUNT_SID or not TWILIO_AUTH_TOKEN:
+        # Get credentials (environment or database)
+        account_sid, auth_token, from_number = get_whatsapp_credentials()
+        
+        if not account_sid or not auth_token:
             print("⚠️ Twilio credentials not configured - WhatsApp messages disabled")
-            print("💡 To enable WhatsApp: Add TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN to Secrets")
+            print("💡 To enable WhatsApp: Add credentials in Settings → WhatsApp Configuration")
             return False
         
-        client = Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
+        client = Client(account_sid, auth_token)
         
         # Format phone number for WhatsApp
         if not to_number.startswith('whatsapp:'):
@@ -33,7 +56,7 @@ def send_whatsapp_message(to_number, message_body):
             to_number = f'whatsapp:{to_number}'
         
         message = client.messages.create(
-            from_=TWILIO_WHATSAPP_NUMBER,
+            from_=from_number,
             body=message_body,
             to=to_number
         )
