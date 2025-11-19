@@ -18,7 +18,7 @@ assign_packages_bp = Blueprint('assign_packages', __name__, url_prefix='/assign-
 
 # The original code for assign_packages_page was replaced by the changes provided.
 # The following is the updated version from the changes.
-@assign_packages_bp.route('/assign-packages')
+@assign_packages_bp.route('/')
 @login_required
 def assign_packages():
     """Render assign packages page"""
