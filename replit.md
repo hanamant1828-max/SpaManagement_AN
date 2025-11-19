@@ -66,5 +66,5 @@ The application uses Flask and SQLAlchemy, following a modular design with featu
 - **Timezone:** pytz
 - **Utility Libraries:** Pandas, OpenAI, BeautifulSoup4, Requests
 
-## Pending Integrations
-- **WhatsApp Notifications (Twilio):** To enable WhatsApp notifications for appointment bookings, the Twilio integration needs to be set up through Replit's integration system. This will allow automatic WhatsApp messages to be sent to clients with their booking details (appointment time, service, staff, etc.). The integration setup was dismissed and needs to be completed for this feature to work.
+## Configured Integrations
+- **WhatsApp Notifications (Twilio):** ✅ Successfully configured on November 19, 2025. Twilio credentials are securely stored as environment secrets (TWILIO_ACCOUNT_SID, TWILIO_API_KEY, TWILIO_API_SECRET, TWILIO_WHATSAPP_NUMBER). The system can now send WhatsApp notifications for appointment confirmations, booking reminders, custom notifications, and bulk messaging to clients. Integration uses Twilio's WhatsApp API with proper authentication through API keys.
