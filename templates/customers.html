@@ -479,12 +479,13 @@
                 <div class="row align-items-center">
                     <div class="col-md-8">
                         <h4 class="mb-3 text-center">Find Your Customers</h4>
-                        <form method="GET" class="search-input-group">
+                        <div class="search-input-group">
                             <input type="text" class="form-control" id="customerSearch" name="search"
                                    placeholder="Search by name, phone, or email..."
-                                   value="{{ search_query }}">
-                            <i class="fas fa-search search-icon"></i>
-                        </form>
+                                   value="{{ search_query }}"
+                                   autocomplete="off">
+                            <i class="fas fa-search search-icon" onclick="searchCustomers()" style="cursor: pointer;"></i>
+                        </div>
                     </div>
                     <div class="col-md-4 text-center mt-3 mt-md-0">
                         {% if current_user.has_permission('clients_create') %}
@@ -1800,6 +1801,10 @@ function searchCustomers() {
             cell.colSpan = 6; // Match the number of columns
             cell.className = 'text-center text-muted py-4';
             cell.innerHTML = '<i class="fas fa-search fa-2x mb-2 d-block"></i>No customers found matching "' + filter + '"';
+        } else {
+            // Update the message with current search term
+            const cell = noResultsRow.cells[0];
+            cell.innerHTML = '<i class="fas fa-search fa-2x mb-2 d-block"></i>No customers found matching "' + filter + '"';
         }
         noResultsRow.style.display = '';
     } else if (noResultsRow) {
@@ -1809,23 +1814,52 @@ function searchCustomers() {
     console.log('Search completed. Visible rows:', visibleCount, 'Filter:', filter);
 }
 
-// Initialize search functionality
-document.addEventListener('DOMContentLoaded', function() {
+// Initialize search functionality - Multiple attempts to ensure it works
+function initializeSearch() {
     const searchInput = document.getElementById('customerSearch');
     if (searchInput) {
+        // Remove any existing event listeners
+        const newSearchInput = searchInput.cloneNode(true);
+        searchInput.parentNode.replaceChild(newSearchInput, searchInput);
+        
         // Add input event listener for real-time search
-        searchInput.addEventListener('input', searchCustomers);
+        newSearchInput.addEventListener('input', function() {
+            searchCustomers();
+        });
 
         // Also support Enter key
-        searchInput.addEventListener('keyup', function(e) {
+        newSearchInput.addEventListener('keyup', function(e) {
             if (e.key === 'Enter') {
                 searchCustomers();
             }
         });
 
-        console.log('Search functionality initialized');
+        // Support search icon click if it exists
+        const searchIcon = document.querySelector('.search-icon');
+        if (searchIcon) {
+            searchIcon.style.cursor = 'pointer';
+            searchIcon.addEventListener('click', searchCustomers);
+        }
+
+        console.log('✅ Search functionality initialized successfully');
+        return true;
     } else {
-        console.error('customerSearch input not found on page load');
+        console.error('❌ customerSearch input not found');
+        return false;
+    }
+}
+
+// Initialize on DOM ready
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('🔍 Initializing customer search...');
+    
+    // Try immediately
+    if (!initializeSearch()) {
+        // If it fails, try again after a short delay
+        setTimeout(function() {
+            console.log('🔄 Retrying search initialization...');
+            initializeSearch();
+        }, 500);
     }
 });
 
