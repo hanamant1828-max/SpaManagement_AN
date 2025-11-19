@@ -1211,7 +1211,7 @@ print("✅ Customer management routes loaded successfully")
 @app.route('/api/customers/search', methods=['GET'])
 @login_required
 def api_search_customer():
-    """Search for a customer by phone or name"""
+    """Search for a customer by phone or name - returns 404 if not found for proper error handling"""
     try:
         phone = request.args.get('phone', '').strip()
         name = request.args.get('name', '').strip()
@@ -1294,9 +1294,10 @@ def api_search_customer():
                     'phone': customer.phone,
                     'email': customer.email or ''
                 }
-            })
+            }), 200
         else:
             print(f"   ❌ Customer not found")
+            # Return 404 with proper JSON response for easier error handling
             return jsonify({
                 'success': False,
                 'message': 'Customer not found'
@@ -1308,5 +1309,6 @@ def api_search_customer():
         traceback.print_exc()
         return jsonify({
             'success': False,
-            'error': str(e)
+            'error': str(e),
+            'message': 'Error searching for customer'
         }), 500
