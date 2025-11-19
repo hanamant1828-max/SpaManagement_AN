@@ -905,37 +905,68 @@ window.addEventListener('DOMContentLoaded', function() {
     console.log('🔍 URL Parameters:', window.location.search);
     console.log('🔍 Customer ID from URL:', customerIdFromUrl);
     
-    if (customerIdFromUrl) {
-        // Ensure the customer exists in the dropdown
+    function trySelectCustomerFromUrl(customerId, retries = 3) {
         const customerOption = Array.from(customerSelect.options).find(
-            option => option.value === customerIdFromUrl
+            option => String(option.value) === String(customerId)
         );
         
         if (customerOption) {
             // Set the customer dropdown to the pre-selected customer
-            customerSelect.value = customerIdFromUrl;
-            console.log('✅ Auto-selected customer from URL:', customerIdFromUrl);
+            customerSelect.value = String(customerId);
+            console.log('✅ Auto-selected customer from URL:', customerId);
             console.log('✅ Customer name:', customerOption.text);
             
             // Trigger the change event to load packages and enable package selection
             customerSelect.dispatchEvent(new Event('change'));
             
-            // Validate form after selection
-            setTimeout(() => {
-                validateAssignForm();
-            }, 100);
+            // Call validateAssignForm to enable the assign button
+            requestAnimationFrame(() => {
+                if (typeof validateAssignForm === 'function') {
+                    validateAssignForm();
+                }
+            });
+            return true;
+        } else if (retries > 0) {
+            // Retry in case options are loaded asynchronously
+            console.log(`⏳ Customer option not found yet, retrying... (${retries} attempts left)`);
+            setTimeout(() => trySelectCustomerFromUrl(customerId, retries - 1), 100);
+            return false;
         } else {
-            console.warn('⚠️ Customer ID not found in dropdown:', customerIdFromUrl);
-            console.log('Available customer IDs:', Array.from(customerSelect.options).map(o => o.value));
-        }
-    } else {
-        // Fallback: check if customer is already selected in the dropdown (from server-side)
-        const selectedCustomerId = customerSelect.value;
-        console.log('🔍 Server-side selected customer:', selectedCustomerId);
-        if (selectedCustomerId && selectedCustomerId !== '') {
-            customerSelect.dispatchEvent(new Event('change'));
+            console.warn('⚠️ Customer ID not found in dropdown after retries:', customerId);
+            console.log('Available customer IDs:', Array.from(customerSelect.options).map(o => ({value: o.value, text: o.text})));
+            return false;
         }
     }
+    
+    // Use requestAnimationFrame to ensure DOM is fully rendered and server-side selection is applied
+    requestAnimationFrame(() => {
+        const currentValue = customerSelect.value;
+        
+        console.log('🔍 Current customer dropdown value:', currentValue);
+        console.log('🔍 Selected option text:', customerSelect.options[customerSelect.selectedIndex]?.text || 'None');
+        
+        // Check if a customer is already selected (value is not empty and not the placeholder)
+        if (currentValue && currentValue !== '' && currentValue !== 'Select Customer...') {
+            console.log('✅ Customer already selected by server:', currentValue);
+            const selectedOption = customerSelect.options[customerSelect.selectedIndex];
+            if (selectedOption) {
+                console.log('✅ Customer name:', selectedOption.text);
+            }
+            // Trigger change event to validate form and load packages
+            customerSelect.dispatchEvent(new Event('change'));
+            // Call validateAssignForm directly to enable the assign button
+            if (typeof validateAssignForm === 'function') {
+                validateAssignForm();
+            }
+        } 
+        // If not selected by server, try from URL parameter
+        else if (customerIdFromUrl) {
+            console.log('🔍 Attempting to select customer from URL parameter:', customerIdFromUrl);
+            trySelectCustomerFromUrl(customerIdFromUrl);
+        } else {
+            console.log('ℹ️ No customer pre-selected (neither from server nor URL)');
+        }
+    });
 });
 
 // Placeholder function for loading customer packages.
