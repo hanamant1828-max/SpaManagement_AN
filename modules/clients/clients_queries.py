@@ -6,29 +6,9 @@ from app import db
 from models import Customer, Appointment, Communication
 
 def get_all_customers():
-    """Get all active customers, excluding those who only have online bookings"""
-    from models import UnakiBooking
-    from sqlalchemy import and_
-    
-    # Get all active customers
-    all_customers = Customer.query.filter_by(is_active=True).order_by(Customer.first_name).all()
-    
-    # Filter out customers who ONLY have online bookings (no manual/in-person bookings)
-    filtered_customers = []
-    for customer in all_customers:
-        # Check if customer has any non-online bookings
-        has_manual_booking = UnakiBooking.query.filter(
-            and_(
-                UnakiBooking.client_id == customer.id,
-                UnakiBooking.booking_source.notin_(['online', 'website'])
-            )
-        ).first() is not None
-        
-        # Include customer if they have at least one manual booking OR no bookings at all
-        if has_manual_booking or not UnakiBooking.query.filter_by(client_id=customer.id).first():
-            filtered_customers.append(customer)
-    
-    return filtered_customers
+    """Get all active customers"""
+    # Get all active customers ordered by first name
+    return Customer.query.filter_by(is_active=True).order_by(Customer.first_name).all()
 
 def get_customer_by_id(customer_id):
     """Get customer by ID"""
@@ -45,12 +25,9 @@ def get_customer_by_email(email):
     return None
 
 def search_customers(query):
-    """Search customers by name, phone, or email, excluding online-only customers"""
-    from models import UnakiBooking
-    from sqlalchemy import and_
-    
-    # Search customers
-    search_results = Customer.query.filter(
+    """Search customers by name, phone, or email"""
+    # Search customers by name, phone, or email
+    return Customer.query.filter(
         Customer.is_active == True,
         or_(
             Customer.first_name.ilike(f'%{query}%'),
@@ -59,23 +36,6 @@ def search_customers(query):
             Customer.email.ilike(f'%{query}%')
         )
     ).order_by(Customer.first_name).all()
-    
-    # Filter out customers who ONLY have online bookings
-    filtered_results = []
-    for customer in search_results:
-        # Check if customer has any non-online bookings
-        has_manual_booking = UnakiBooking.query.filter(
-            and_(
-                UnakiBooking.client_id == customer.id,
-                UnakiBooking.booking_source.notin_(['online', 'website'])
-            )
-        ).first() is not None
-        
-        # Include customer if they have at least one manual booking OR no bookings at all
-        if has_manual_booking or not UnakiBooking.query.filter_by(client_id=customer.id).first():
-            filtered_results.append(customer)
-    
-    return filtered_results
 
 def create_customer(customer_data):
     """Create a new customer"""
