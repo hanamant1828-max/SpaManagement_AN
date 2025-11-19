@@ -288,8 +288,22 @@ def website_book_online():
                     start_datetime = datetime.combine(appointment_date, appointment_time_obj)
                     end_datetime = start_datetime + timedelta(minutes=service.duration)
 
+                    # Ensure customer exists and get valid ID
+                    if not customer or not customer.id:
+                        # Create new customer if needed
+                        customer = Customer(
+                            first_name=client_name.split()[0] if client_name else 'Guest',
+                            last_name=' '.join(client_name.split()[1:]) if len(client_name.split()) > 1 else '',
+                            phone=client_phone,
+                            email=None,
+                            is_active=True
+                        )
+                        db.session.add(customer)
+                        db.session.flush()  # Get the ID
+                        print(f"✅ Created new customer: {customer.id} - {client_name}")
+
                     booking = UnakiBooking(
-                        client_id=customer.id,
+                        client_id=customer.id,  # Ensure valid customer ID
                         client_name=client_name,
                         client_phone=client_phone,
                         client_email=None,
@@ -310,6 +324,8 @@ def website_book_online():
                         payment_status='pending',
                         created_at=datetime.utcnow()
                     )
+                    
+                    print(f"📋 Creating booking with client_id: {customer.id} ({client_name})")
 
                     db.session.add(booking)
                     created_bookings.append(booking)

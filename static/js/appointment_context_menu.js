@@ -589,11 +589,14 @@ class AppointmentContextMenu {
                     console.log('Client phone from booking:', booking.client_phone);
                     
                     // If we have a valid client_id, use it directly
-                    if (customerId && customerId > 0) {
+                    if (customerId && customerId > 0 && customerId !== null) {
                         console.log('✅ Valid client_id found, redirecting with customer_id:', customerId);
                         window.location.href = `/assign-packages?customer_id=${customerId}`;
                         return;
                     }
+                    
+                    // If client_id is missing or invalid, try to find by phone and name
+                    console.log('⚠️ Invalid or missing client_id, searching by contact info...');
                     
                     // If no valid client_id, try to find customer by phone or name
                     console.log('No valid client_id found, attempting to match customer by phone/name');

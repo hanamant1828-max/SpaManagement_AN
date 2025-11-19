@@ -29,16 +29,16 @@ def assign_packages():
         print(f"📋 Assign Packages Route - customer_id from URL: {selected_customer_id}")
 
         # Fetch all customers for dropdown
-        # Note: The original code used `Customer.query` but the changes use `Client.query`.
-        # Assuming `Client` is the correct model name based on the provided changes.
-        customers = Customer.query.filter_by(is_active=True).order_by(Customer.first_name).all() # Changed from Client.query based on original code's model usage
+        customers = Customer.query.filter_by(is_active=True).order_by(Customer.first_name).all()
 
-        # If customer_id provided, verify it exists
+        # If customer_id provided, verify it exists and is valid
         if selected_customer_id:
-            customer_exists = any(c.id == selected_customer_id for c in customers)
-            print(f"📋 Customer {selected_customer_id} exists: {customer_exists}")
-            if not customer_exists:
-                print(f"⚠️ Customer {selected_customer_id} not found in database")
+            # Double-check the customer exists in database
+            actual_customer = Customer.query.get(selected_customer_id)
+            if actual_customer and actual_customer.is_active:
+                print(f"✅ Customer {selected_customer_id} ({actual_customer.first_name} {actual_customer.last_name}) validated")
+            else:
+                print(f"⚠️ Customer {selected_customer_id} not found or inactive in database")
                 selected_customer_id = None
 
         # Fetch all package types
