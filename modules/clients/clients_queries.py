@@ -7,7 +7,6 @@ from models import Customer, Appointment, Communication
 
 def get_all_customers():
     """Get all active customers"""
-    # Get all active customers ordered by first name
     return Customer.query.filter_by(is_active=True).order_by(Customer.first_name).all()
 
 def get_customer_by_id(customer_id):
@@ -26,7 +25,6 @@ def get_customer_by_email(email):
 
 def search_customers(query):
     """Search customers by name, phone, or email"""
-    # Search customers by name, phone, or email
     return Customer.query.filter(
         Customer.is_active == True,
         or_(
@@ -90,13 +88,13 @@ def get_customer_stats(customer_id):
     customer = Customer.query.get(customer_id)
     if not customer:
         return None
-    
+
     total_appointments = Appointment.query.filter_by(client_id=customer_id).count()
     total_spent = db.session.query(func.sum(Appointment.amount)).filter(
         Appointment.client_id == customer_id,
         Appointment.is_paid == True
     ).scalar() or 0
-    
+
     return {
         'total_appointments': total_appointments,
         'total_spent': total_spent,
@@ -112,5 +110,5 @@ create_client = create_customer
 update_client = update_customer
 delete_client = delete_customer
 get_client_appointments = get_customer_appointments
-get_client_communications = get_customer_communications
+get_client_communications = get_client_communications
 get_client_stats = get_customer_stats
