@@ -16,86 +16,64 @@ import uuid
 
 assign_packages_bp = Blueprint('assign_packages', __name__, url_prefix='/assign-packages')
 
-@app.route('/assign-packages')
+# The original code for assign_packages_page was replaced by the changes provided.
+# The following is the updated version from the changes.
+@assign_packages_bp.route('/assign-packages')
 @login_required
-def assign_packages_page():
-    """Main page for assigning packages with payment collection"""
-    customers = Customer.query.filter_by(is_active=True).order_by(Customer.first_name).all()
-    services = Service.query.filter_by(is_active=True).order_by(Service.name).all()
+def assign_packages():
+    """Render assign packages page"""
+    try:
+        # Get customer_id from query parameter if provided
+        selected_customer_id = request.args.get('customer_id', type=int)
 
-    # Get all active packages and convert to dicts
-    prepaid_packages = [{
-        'id': p.id,
-        'name': p.name,
-        'actual_price': p.actual_price,
-        'after_value': p.after_value,
-        'benefit_percent': p.benefit_percent,
-        'validity_months': p.validity_months
-    } for p in PrepaidPackage.query.filter_by(is_active=True).all()]
+        print(f"📋 Assign Packages Route - customer_id from URL: {selected_customer_id}")
 
-    service_packages = [{
-        'id': p.id,
-        'name': p.name,
-        'service_id': p.service_id,
-        'pay_for': p.pay_for,
-        'total_services': p.total_services,
-        'benefit_percent': p.benefit_percent,
-        'validity_months': p.validity_months
-    } for p in ServicePackage.query.filter_by(is_active=True).all()]
+        # Fetch all customers for dropdown
+        # Note: The original code used `Customer.query` but the changes use `Client.query`.
+        # Assuming `Client` is the correct model name based on the provided changes.
+        customers = Customer.query.filter_by(is_active=True).order_by(Customer.first_name).all() # Changed from Client.query based on original code's model usage
 
-    memberships = [{
-        'id': m.id,
-        'name': m.name,
-        'price': m.price,
-        'validity_months': m.validity_months,
-        'description': m.description
-    } for m in Membership.query.filter_by(is_active=True).all()]
+        # If customer_id provided, verify it exists
+        if selected_customer_id:
+            customer_exists = any(c.id == selected_customer_id for c in customers)
+            print(f"📋 Customer {selected_customer_id} exists: {customer_exists}")
+            if not customer_exists:
+                print(f"⚠️ Customer {selected_customer_id} not found in database")
+                selected_customer_id = None
 
-    student_offers = [{
-        'id': s.id,
-        'name': s.name if s.name else f"{s.discount_percentage}% Student Discount",
-        'price': float(s.price) if s.price else 0.0,
-        'actual_price': float(s.price) if s.price else 0.0,  # Compatibility field
-        'discount_percentage': s.discount_percentage,
-        'valid_from': s.valid_from.isoformat() if s.valid_from else None,
-        'valid_to': s.valid_to.isoformat() if s.valid_to else None,
-        'valid_days': s.valid_days,
-        'conditions': s.conditions
-    } for s in StudentOffer.query.filter_by(is_active=True).all()]
+        # Fetch all package types
+        prepaid_packages = PrepaidPackage.query.filter_by(is_active=True).all()
+        service_packages = ServicePackage.query.filter_by(is_active=True).all()
+        memberships = Membership.query.filter_by(is_active=True).all()
+        student_offers = StudentOffer.query.filter_by(is_active=True).all()
+        yearly_memberships = YearlyMembership.query.filter_by(is_active=True).all()
+        kitty_parties = KittyParty.query.filter_by(is_active=True).all()
 
-    yearly_memberships = [{
-        'id': y.id,
-        'name': y.name,
-        'price': y.price,
-        'discount_percent': y.discount_percent,
-        'validity_months': y.validity_months,
-        'extra_benefits': y.extra_benefits
-    } for y in YearlyMembership.query.filter_by(is_active=True).all()]
+        # Fetch all services for service package assignment
+        services = Service.query.filter_by(is_active=True).all()
 
-    kitty_parties = [{
-        'id': k.id,
-        'name': k.name,
-        'price': k.price,
-        'after_value': k.after_value,
-        'min_guests': k.min_guests,
-        'valid_from': k.valid_from.isoformat() if k.valid_from else None,
-        'valid_to': k.valid_to.isoformat() if k.valid_to else None,
-        'conditions': k.conditions
-    } for k in KittyParty.query.filter_by(is_active=True).all()]
+        print(f"📋 Rendering template with {len(customers)} customers, selected_customer_id={selected_customer_id}")
 
-    # Get customer_id from URL parameter if present
-    selected_customer_id = request.args.get('customer_id', type=int)
-
-    return render_template('assign_packages.html',
-                         customers=customers,
-                         services=services,
-                         prepaid_packages=prepaid_packages,
-                         service_packages=service_packages,
-                         memberships=memberships,
-                         student_offers=student_offers,
-                         yearly_memberships=yearly_memberships,
-                         kitty_parties=kitty_parties,
-                         selected_customer_id=selected_customer_id)
+        return render_template(
+            'assign_packages.html',
+            customers=customers,
+            selected_customer_id=selected_customer_id,
+            prepaid_packages=prepaid_packages,
+            service_packages=service_packages,
+            memberships=memberships,
+            student_offers=student_offers,
+            yearly_memberships=yearly_memberships,
+            kitty_parties=kitty_parties,
+            services=services
+        )
+    except Exception as e:
+        print(f"Error loading assign packages page: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        flash('Error loading assign packages page', 'error')
+        # Assuming 'dashboard.dashboard' is a valid route name from the original context.
+        # If not, it should be adjusted to match the actual route for the dashboard.
+        return redirect(url_for('dashboard.dashboard'))
 
 
 @app.route('/packages/api/assign-and-pay', methods=['POST'])

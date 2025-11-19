@@ -905,41 +905,54 @@ window.addEventListener('DOMContentLoaded', function() {
     console.log('🔍 URL Parameters:', window.location.search);
     console.log('🔍 Customer ID from URL:', customerIdFromUrl);
     
-    function trySelectCustomerFromUrl(customerId, retries = 3) {
-        const customerOption = Array.from(customerSelect.options).find(
-            option => String(option.value) === String(customerId)
-        );
-        
-        if (customerOption) {
-            // Set the customer dropdown to the pre-selected customer
-            customerSelect.value = String(customerId);
-            console.log('✅ Auto-selected customer from URL:', customerId);
-            console.log('✅ Customer name:', customerOption.text);
+    function trySelectCustomerFromUrl(customerId, retries = 5) {
+        // Wait a bit to ensure options are loaded
+        setTimeout(() => {
+            console.log('🔍 Attempting to select customer:', customerId);
+            console.log('🔍 Total options available:', customerSelect.options.length);
             
-            // Trigger the change event to load packages and enable package selection
-            customerSelect.dispatchEvent(new Event('change'));
-            
-            // Call validateAssignForm to enable the assign button
-            requestAnimationFrame(() => {
-                if (typeof validateAssignForm === 'function') {
-                    validateAssignForm();
+            // Find the matching option
+            let foundOption = null;
+            for (let i = 0; i < customerSelect.options.length; i++) {
+                const option = customerSelect.options[i];
+                if (String(option.value) === String(customerId)) {
+                    foundOption = option;
+                    break;
                 }
-            });
-            return true;
-        } else if (retries > 0) {
-            // Retry in case options are loaded asynchronously
-            console.log(`⏳ Customer option not found yet, retrying... (${retries} attempts left)`);
-            setTimeout(() => trySelectCustomerFromUrl(customerId, retries - 1), 100);
-            return false;
-        } else {
-            console.warn('⚠️ Customer ID not found in dropdown after retries:', customerId);
-            console.log('Available customer IDs:', Array.from(customerSelect.options).map(o => ({value: o.value, text: o.text})));
-            return false;
-        }
+            }
+            
+            if (foundOption) {
+                // Set the customer dropdown to the pre-selected customer
+                customerSelect.value = String(customerId);
+                console.log('✅ Auto-selected customer from URL:', customerId);
+                console.log('✅ Customer name:', foundOption.text);
+                
+                // Trigger the change event to load packages and enable package selection
+                customerSelect.dispatchEvent(new Event('change', { bubbles: true }));
+                
+                // Call validateAssignForm to enable the assign button
+                setTimeout(() => {
+                    if (typeof validateAssignForm === 'function') {
+                        validateAssignForm();
+                        console.log('✅ Form validation triggered');
+                    }
+                }, 100);
+                return true;
+            } else if (retries > 0) {
+                // Retry in case options are loaded asynchronously
+                console.log(`⏳ Customer option not found yet, retrying... (${retries} attempts left)`);
+                trySelectCustomerFromUrl(customerId, retries - 1);
+                return false;
+            } else {
+                console.warn('⚠️ Customer ID not found in dropdown after retries:', customerId);
+                console.log('Available customer IDs:', Array.from(customerSelect.options).map(o => ({value: o.value, text: o.text})));
+                return false;
+            }
+        }, retries === 5 ? 200 : 100); // Longer initial delay
     }
     
-    // Use requestAnimationFrame to ensure DOM is fully rendered and server-side selection is applied
-    requestAnimationFrame(() => {
+    // Use a longer delay to ensure DOM is fully rendered
+    setTimeout(() => {
         const currentValue = customerSelect.value;
         
         console.log('🔍 Current customer dropdown value:', currentValue);
@@ -953,11 +966,13 @@ window.addEventListener('DOMContentLoaded', function() {
                 console.log('✅ Customer name:', selectedOption.text);
             }
             // Trigger change event to validate form and load packages
-            customerSelect.dispatchEvent(new Event('change'));
+            customerSelect.dispatchEvent(new Event('change', { bubbles: true }));
             // Call validateAssignForm directly to enable the assign button
-            if (typeof validateAssignForm === 'function') {
-                validateAssignForm();
-            }
+            setTimeout(() => {
+                if (typeof validateAssignForm === 'function') {
+                    validateAssignForm();
+                }
+            }, 100);
         } 
         // If not selected by server, try from URL parameter
         else if (customerIdFromUrl) {
@@ -966,7 +981,7 @@ window.addEventListener('DOMContentLoaded', function() {
         } else {
             console.log('ℹ️ No customer pre-selected (neither from server nor URL)');
         }
-    });
+    }, 300); // Wait 300ms for DOM to be fully ready
 });
 
 // Placeholder function for loading customer packages.
