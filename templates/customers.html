@@ -479,13 +479,15 @@
                 <div class="row align-items-center">
                     <div class="col-md-8">
                         <h4 class="mb-3 text-center">Find Your Customers</h4>
-                        <div class="search-input-group">
-                            <input type="text" class="form-control" id="customerSearch" name="search"
-                                   placeholder="Search by name, phone, or email..."
-                                   value="{{ search_query }}"
-                                   autocomplete="off">
-                            <i class="fas fa-search search-icon" onclick="searchCustomers()" style="cursor: pointer;"></i>
-                        </div>
+                        <form method="GET" action="{{ url_for('customers') }}" id="customerSearchForm">
+                            <div class="search-input-group">
+                                <input type="text" class="form-control" id="customerSearch" name="search"
+                                       placeholder="Search by name, phone, or email..."
+                                       value="{{ search_query }}"
+                                       autocomplete="off">
+                                <i class="fas fa-search search-icon" onclick="document.getElementById('customerSearchForm').submit()" style="cursor: pointer;"></i>
+                            </div>
+                        </form>
                     </div>
                     <div class="col-md-4 text-center mt-3 mt-md-0">
                         {% if current_user.has_permission('clients_create') %}
