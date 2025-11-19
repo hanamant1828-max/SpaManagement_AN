@@ -52,18 +52,63 @@ def assign_packages():
         # Fetch all services for service package assignment
         services = Service.query.filter_by(is_active=True).all()
 
+        # Convert package objects to dictionaries for JSON serialization
+        prepaid_packages_data = [{
+            'id': p.id,
+            'name': p.name,
+            'price': p.actual_price,
+            'actual_price': p.actual_price,
+            'after_value': p.after_value,
+            'benefit_percent': p.benefit_percent
+        } for p in prepaid_packages]
+
+        service_packages_data = [{
+            'id': p.id,
+            'name': p.name if hasattr(p, 'name') else p.package_name,
+            'price': p.price if hasattr(p, 'price') else 0,
+            'total_services': p.total_services if hasattr(p, 'total_services') else 0,
+            'pay_for': p.pay_for if hasattr(p, 'pay_for') else 0,
+            'freeServices': p.free_services if hasattr(p, 'free_services') else 0,
+            'payFor': p.pay_for if hasattr(p, 'pay_for') else 0
+        } for p in service_packages]
+
+        memberships_data = [{
+            'id': m.id,
+            'name': m.name,
+            'price': m.price if hasattr(m, 'price') else 0
+        } for m in memberships]
+
+        student_offers_data = [{
+            'id': s.id,
+            'name': s.name,
+            'price': s.price if hasattr(s, 'price') else 0,
+            'discount_percentage': s.discount_percentage if hasattr(s, 'discount_percentage') else 0
+        } for s in student_offers]
+
+        yearly_memberships_data = [{
+            'id': y.id,
+            'name': y.name,
+            'price': y.price if hasattr(y, 'price') else 0
+        } for y in yearly_memberships]
+
+        kitty_parties_data = [{
+            'id': k.id,
+            'name': k.name,
+            'price': k.price if hasattr(k, 'price') else 0
+        } for k in kitty_parties]
+
         print(f"📋 Rendering template with {len(customers)} customers, selected_customer_id={selected_customer_id}")
 
         return render_template(
             'assign_packages.html',
             customers=customers,
             selected_customer_id=selected_customer_id,
-            prepaid_packages=prepaid_packages,
-            service_packages=service_packages,
-            memberships=memberships,
-            student_offers=student_offers,
-            yearly_memberships=yearly_memberships,
-            kitty_parties=kitty_parties,
+            prepaid_packages=prepaid_packages_data,
+            service_packages=service_packages_data,
+            memberships=memberships_data,
+            student_offers=student_offers_data,
+            yearly_memberships=yearly_memberships_data,
+            kitty_parties=kitty_parties_data,
             services=services
         )
     except Exception as e:
@@ -71,9 +116,7 @@ def assign_packages():
         import traceback
         traceback.print_exc()
         flash('Error loading assign packages page', 'error')
-        # Assuming 'dashboard.dashboard' is a valid route name from the original context.
-        # If not, it should be adjusted to match the actual route for the dashboard.
-        return redirect(url_for('dashboard.dashboard'))
+        return redirect(url_for('dashboard'))
 
 
 @app.route('/packages/api/assign-and-pay', methods=['POST'])
