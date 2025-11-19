@@ -48,6 +48,16 @@ def get_grouped_online_bookings(status_filter=None, date_from=None, date_to=None
         # Group bookings by customer identifier (name + phone + date)
         grouped = {}
         for booking in bookings:
+            # Debug: Log customer linkage
+            if booking.client_id:
+                customer = Customer.query.get(booking.client_id)
+                if customer:
+                    print(f"✅ Booking #{booking.id} linked to Customer #{customer.id}: {customer.first_name} {customer.last_name}")
+                else:
+                    print(f"⚠️ Booking #{booking.id} has invalid client_id: {booking.client_id}")
+            else:
+                print(f"❌ Booking #{booking.id} has NO client_id - Customer: {booking.client_name}, Phone: {booking.client_phone}")
+            
             # Create a unique key for customer + date (includes name to prevent incorrect grouping)
             key = f"{booking.client_name}_{booking.client_phone}_{booking.appointment_date}"
 
@@ -57,7 +67,7 @@ def get_grouped_online_bookings(status_filter=None, date_from=None, date_to=None
                     'customer_phone': booking.client_phone,
                     'customer_email': booking.client_email,
                     'appointment_date': booking.appointment_date,
-                    'client': booking.client,
+                    'client': booking.client,  # This will be None if client_id is not set
                     'total_amount': 0,
                     'created_at': booking.created_at,
                     'status': booking.status,

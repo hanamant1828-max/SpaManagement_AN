@@ -24,7 +24,7 @@ def website_home():
 def website_services():
     """Public services page - shows category selection"""
     categories = Category.query.filter_by(category_type='service', is_active=True).order_by(Category.sort_order).all()
-    
+
     # Count services in each category
     categories_with_counts = []
     for category in categories:
@@ -34,12 +34,12 @@ def website_services():
                 'category': category,
                 'count': service_count
             })
-    
+
     # Check for uncategorized services
     uncategorized_count = Service.query.filter_by(is_active=True).filter(
         (Service.category_id == None) | (Service.category_id == 0)
     ).count()
-    
+
     return render_template('website/services.html',
                          categories=categories_with_counts,
                          selected_category=None,
@@ -49,10 +49,10 @@ def website_services():
 def website_services_search():
     """Search services by name or description"""
     search_query = request.args.get('q', '').strip()
-    
+
     if not search_query:
         return redirect(url_for('website_services'))
-    
+
     # Search in service name and description (case-insensitive)
     services = Service.query.filter(
         Service.is_active == True,
@@ -61,7 +61,7 @@ def website_services_search():
             Service.description.ilike(f'%{search_query}%')
         )
     ).all()
-    
+
     # Get all categories for navigation
     all_categories = Category.query.filter_by(category_type='service', is_active=True).order_by(Category.sort_order).all()
     categories_with_counts = []
@@ -72,18 +72,18 @@ def website_services_search():
                 'category': cat,
                 'count': service_count
             })
-    
+
     # Check for uncategorized services
     uncategorized_count = Service.query.filter_by(is_active=True).filter(
         (Service.category_id == None) | (Service.category_id == 0)
     ).count()
-    
+
     # Create a search result category object for display
     class SearchResultCategory:
         display_name = f"Search Results for '{search_query}'"
         description = f"Found {len(services)} service{'s' if len(services) != 1 else ''}"
         icon = "fas fa-search"
-    
+
     return render_template('website/services.html',
                          categories=categories_with_counts,
                          selected_category=SearchResultCategory(),
@@ -98,7 +98,7 @@ def website_services_uncategorized():
     services = Service.query.filter_by(is_active=True).filter(
         (Service.category_id == None) | (Service.category_id == 0)
     ).all()
-    
+
     # Get all categories for navigation
     all_categories = Category.query.filter_by(category_type='service', is_active=True).order_by(Category.sort_order).all()
     categories_with_counts = []
@@ -109,16 +109,16 @@ def website_services_uncategorized():
                 'category': cat,
                 'count': service_count
             })
-    
+
     # Check for uncategorized services
     uncategorized_count = len(services)
-    
+
     # Create a fake category object for display
     class UncategorizedCategory:
         display_name = "Other Services"
         description = "Additional services and treatments"
         icon = "fas fa-spa"
-    
+
     return render_template('website/services.html',
                          categories=categories_with_counts,
                          selected_category=UncategorizedCategory(),
@@ -129,15 +129,15 @@ def website_services_uncategorized():
 def website_services_by_category(category_id):
     """Show services for a specific category"""
     category = Category.query.get_or_404(category_id)
-    
+
     # Verify this is an active service category
     if category.category_type != 'service' or not category.is_active:
         flash('Category not found or inactive.', 'error')
         return redirect(url_for('website_services'))
-    
+
     # Get all services in this category
     services = Service.query.filter_by(category_id=category_id, is_active=True).all()
-    
+
     # Get all categories for navigation
     all_categories = Category.query.filter_by(category_type='service', is_active=True).order_by(Category.sort_order).all()
     categories_with_counts = []
@@ -148,12 +148,12 @@ def website_services_by_category(category_id):
                 'category': cat,
                 'count': service_count
             })
-    
+
     # Check for uncategorized services
     uncategorized_count = Service.query.filter_by(is_active=True).filter(
         (Service.category_id == None) | (Service.category_id == 0)
     ).count()
-    
+
     return render_template('website/services.html',
                          categories=categories_with_counts,
                          selected_category=category,
@@ -169,6 +169,7 @@ def website_book_online():
 
             client_name = data.get('client_name', '').strip()
             client_phone = data.get('client_phone', '').strip()
+            client_email = data.get('client_email', '').strip() # Added email retrieval
 
             # Validate required fields
             if not client_name:
@@ -202,30 +203,33 @@ def website_book_online():
                 flash('Please select at least one service with date and time.', 'error')
                 return redirect(url_for('website_book_online'))
 
-            # Create or get customer - search by phone
+            # Get or create customer - CRITICAL: Ensure customer record exists and is linked
             customer = Customer.query.filter_by(phone=client_phone).first()
-
             if not customer:
-                # Safe to create new customer
-                name_parts = client_name.split(' ', 1)
-                first_name = name_parts[0]
+                # Create new customer with proper name parsing
+                name_parts = client_name.strip().split(maxsplit=1)
+                first_name = name_parts[0] if name_parts else 'Guest'
                 last_name = name_parts[1] if len(name_parts) > 1 else ''
 
                 customer = Customer(
                     first_name=first_name,
                     last_name=last_name,
                     phone=client_phone,
-                    email=None,
-                    created_at=datetime.utcnow()
+                    email=client_email if client_email and '@' in client_email else None,
+                    is_active=True,
+                    total_visits=0,
+                    total_spent=0.0
                 )
                 db.session.add(customer)
-                db.session.flush()
+                db.session.flush()  # Get the customer ID immediately
+
+                print(f"✅ Created new customer: {customer.first_name} {customer.last_name} (ID: {customer.id}, Phone: {customer.phone})")
             else:
-                # Customer exists by phone - update name only
-                name_parts = client_name.split(' ', 1)
-                customer.first_name = name_parts[0]
-                customer.last_name = name_parts[1] if len(name_parts) > 1 else ''
-                db.session.flush()
+                print(f"✅ Found existing customer: {customer.first_name} {customer.last_name} (ID: {customer.id}, Phone: {customer.phone})")
+                # Update email if provided and customer doesn't have one
+                if client_email and '@' in client_email and not customer.email:
+                    customer.email = client_email
+                    print(f"   Updated customer email to: {client_email}")
 
             # Get available staff
             available_staff = User.query.filter_by(is_active=True).first()
@@ -295,7 +299,7 @@ def website_book_online():
                             first_name=client_name.split()[0] if client_name else 'Guest',
                             last_name=' '.join(client_name.split()[1:]) if len(client_name.split()) > 1 else '',
                             phone=client_phone,
-                            email=None,
+                            email=None, # Email handled above
                             is_active=True
                         )
                         db.session.add(customer)
@@ -306,7 +310,7 @@ def website_book_online():
                         client_id=customer.id,  # Ensure valid customer ID
                         client_name=client_name,
                         client_phone=client_phone,
-                        client_email=None,
+                        client_email=customer.email, # Use customer's email
                         staff_id=available_staff.id,
                         staff_name=f"{available_staff.first_name} {available_staff.last_name}",
                         service_id=service.id,
@@ -319,12 +323,12 @@ def website_book_online():
                         status='scheduled',  # Default to scheduled for online bookings - admin can confirm later
                         notes=notes,
                         booking_source='online',  # Always 'online' for website bookings
-                        booking_method='online_booking',  # Changed from 'website' to 'online_booking'
+                        booking_method='online_booking',
                         amount_charged=service.price,
                         payment_status='pending',
                         created_at=datetime.utcnow()
                     )
-                    
+
                     print(f"📋 Creating booking with client_id: {customer.id} ({client_name})")
 
                     db.session.add(booking)
