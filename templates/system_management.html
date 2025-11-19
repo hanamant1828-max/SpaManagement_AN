@@ -27,6 +27,12 @@
                         <i class="fas fa-file-invoice-dollar me-1"></i> GST
                     </button>
                 </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="whatsapp-tab" data-bs-toggle="tab" 
+                            data-bs-target="#whatsapp" type="button" role="tab">
+                        <i class="fab fa-whatsapp me-2"></i>WhatsApp
+                    </button>
+                </li>
             </ul>
 
             <!-- Tab Content -->
@@ -174,14 +180,14 @@
                                             </div>
                                         </div>
                                     </div>
-                                    
+
                                     <form id="logoUploadForm" enctype="multipart/form-data">
                                         <div class="mb-3">
                                             <label for="logoFile" class="form-label">Upload Logo</label>
                                             <input type="file" class="form-control" id="logoFile" name="logo" accept="image/png, image/jpeg, image/jpg, image/gif, image/svg+xml">
                                             <small class="text-muted">Supported formats: PNG, JPG, JPEG, GIF, SVG. Max size: 5MB</small>
                                         </div>
-                                        
+
                                         <div class="d-flex gap-2">
                                             <button type="submit" class="btn btn-primary" id="uploadLogoBtn">
                                                 <i class="fas fa-upload me-1"></i>Upload Logo
@@ -195,7 +201,7 @@
                             </div>
                         </div>
 
-                        
+
                     </div>
                 </div>
 
@@ -286,9 +292,173 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- WhatsApp Configuration Tab -->
+                <div class="tab-pane fade" id="whatsapp" role="tabpanel">
+                    <div class="row">
+                        <div class="col-lg-8">
+                            <div class="card shadow">
+                                <div class="card-header py-3 bg-success text-white">
+                                    <h6 class="m-0 font-weight-bold">
+                                        <i class="fab fa-whatsapp me-2"></i>WhatsApp API Configuration
+                                    </h6>
+                                </div>
+                                <div class="card-body">
+                                    <p class="text-muted mb-4">Configure your Twilio WhatsApp API credentials to enable messaging features.</p>
+
+                                    <!-- Configuration Status -->
+                                    <div id="whatsapp-status" class="mb-4 p-3 border rounded bg-light">
+                                        <h6 class="mb-2">
+                                            <i class="fas fa-signal me-2"></i>Connection Status: 
+                                            <span id="config-status-badge" class="badge bg-secondary">Checking...</span>
+                                        </h6>
+                                        <div id="config-details" class="small text-muted mt-2"></div>
+                                    </div>
+
+                                    <!-- Twilio API Configuration Form -->
+                                    <form method="POST" action="{{ url_for('save_whatsapp_api_config') }}" id="whatsappApiForm">
+                                        <!-- Account SID -->
+                                        <div class="mb-3">
+                                            <label for="twilio_account_sid" class="form-label">Account SID <span class="text-danger">*</span></label>
+                                            <input type="text" 
+                                                   class="form-control" 
+                                                   id="twilio_account_sid" 
+                                                   name="twilio_account_sid" 
+                                                   placeholder="Enter your Twilio Account SID"
+                                                   required>
+                                            <small class="form-text text-muted">Find this in your Twilio Console</small>
+                                        </div>
+
+                                        <!-- Auth Token -->
+                                        <div class="mb-3">
+                                            <label for="twilio_auth_token" class="form-label">Auth Token <span class="text-danger">*</span></label>
+                                            <div class="input-group">
+                                                <input type="password" 
+                                                       class="form-control" 
+                                                       id="twilio_auth_token" 
+                                                       name="twilio_auth_token" 
+                                                       placeholder="Enter your Twilio Auth Token"
+                                                       required>
+                                                <button class="btn btn-outline-secondary" 
+                                                        type="button" 
+                                                        onclick="togglePasswordVisibility('twilio_auth_token')">
+                                                    <i class="fas fa-eye" id="twilio_auth_token_icon"></i>
+                                                </button>
+                                            </div>
+                                            <small class="form-text text-muted">Your secret authentication token</small>
+                                        </div>
+
+                                        <!-- WhatsApp Number -->
+                                        <div class="mb-3">
+                                            <label for="twilio_whatsapp_number" class="form-label">Twilio WhatsApp Number</label>
+                                            <input type="text" 
+                                                   class="form-control" 
+                                                   id="twilio_whatsapp_number" 
+                                                   name="twilio_whatsapp_number" 
+                                                   placeholder="whatsapp:+14155238886">
+                                            <small class="form-text text-muted">Format: whatsapp:+1234567890 (optional for sandbox)</small>
+                                        </div>
+
+                                        <!-- Business Phone Number -->
+                                        <div class="mb-4">
+                                            <label for="business_whatsapp_number" class="form-label">Business Phone Number <span class="text-danger">*</span></label>
+                                            <input type="text" 
+                                                   class="form-control" 
+                                                   id="business_whatsapp_number" 
+                                                   name="business_whatsapp_number" 
+                                                   placeholder="+918746084638"
+                                                   required>
+                                            <small class="form-text text-muted">Your business WhatsApp number with country code</small>
+                                        </div>
+
+                                        <!-- Save Button -->
+                                        <div class="d-grid gap-2">
+                                            <button type="submit" class="btn btn-success btn-lg">
+                                                <i class="fas fa-save me-2"></i>Save Configuration
+                                            </button>
+                                        </div>
+                                    </form>
+
+                                    <!-- Test Section -->
+                                    <div class="mt-4 pt-4 border-top">
+                                        <h6 class="mb-3"><i class="fas fa-vial me-2"></i>Test WhatsApp Connection</h6>
+                                        <p class="text-muted small mb-3">
+                                            Send a test message to verify your configuration is working correctly.
+                                        </p>
+                                        <div class="row">
+                                            <div class="col-md-8">
+                                                <div class="input-group mb-3">
+                                                    <span class="input-group-text"><i class="fab fa-whatsapp"></i></span>
+                                                    <input type="tel" 
+                                                           class="form-control" 
+                                                           id="test_phone_number" 
+                                                           placeholder="+1234567890"
+                                                           pattern="\+?[0-9]{10,15}">
+                                                    <button class="btn btn-primary" type="button" onclick="testWhatsAppConnection()">
+                                                        <i class="fas fa-paper-plane me-2"></i>Send Test Message
+                                                    </button>
+                                                </div>
+                                                <div id="test-result"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-lg-4">
+                            <div class="card shadow mb-4">
+                                <div class="card-header py-3">
+                                    <h6 class="m-0 font-weight-bold text-success">
+                                        <i class="fas fa-lightbulb me-2"></i>Quick Guide
+                                    </h6>
+                                </div>
+                                <div class="card-body">
+                                    <h6>Setup Steps:</h6>
+                                    <ol class="small">
+                                        <li>Sign up for Twilio account</li>
+                                        <li>Get WhatsApp sandbox or approved number</li>
+                                        <li>Copy Account SID and Auth Token</li>
+                                        <li>Enter credentials here</li>
+                                        <li>Test the connection</li>
+                                    </ol>
+                                    <hr>
+                                    <h6>Features Enabled:</h6>
+                                    <ul class="small">
+                                        <li>Appointment confirmations</li>
+                                        <li>Booking reminders</li>
+                                        <li>Custom notifications</li>
+                                        <li>Bulk messaging</li>
+                                    </ul>
+                                </div>
+                            </div>
+
+                            <div class="card shadow">
+                                <div class="card-header py-3">
+                                    <h6 class="m-0 font-weight-bold text-info">
+                                        <i class="fas fa-question-circle me-2"></i>Need Help?
+                                    </h6>
+                                </div>
+                                <div class="card-body">
+                                    <p class="small mb-3">
+                                        <strong>Getting Twilio Credentials:</strong><br>
+                                        1. Go to <a href="https://www.twilio.com/console" target="_blank">Twilio Console</a><br>
+                                        2. Copy Account SID<br>
+                                        3. Copy Auth Token<br>
+                                        4. Get WhatsApp number
+                                    </p>
+                                    <a href="https://www.twilio.com/docs/whatsapp/quickstart" target="_blank" class="btn btn-sm btn-outline-info w-100">
+                                        <i class="fas fa-book me-1"></i>View Twilio Docs
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
             </div>
 
-            
+
 
             <!-- GST Configuration Modal -->
             <div class="modal fade" id="gstConfigModal" tabindex="-1">
@@ -383,7 +553,7 @@
                 </div>
             </div>
 
-            
+
 
             </div>
     </div>
@@ -591,7 +761,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    
+
 
     // Load GST configuration when GST tab is shown
     const gstTab = document.getElementById('gst-tab');
@@ -601,13 +771,26 @@ document.addEventListener('DOMContentLoaded', function() {
             loadAndDisplayGstConfig();
         });
     }
-    
+
     // Check if GST tab is active on page load
     const activeTab = document.querySelector('#systemManagementTabs .nav-link.active');
     if (activeTab && activeTab.id === 'gst-tab') {
         console.log('GST tab is active on page load - loading configuration');
         loadAndDisplayGstConfig();
     }
+
+    // Load GST rates when GST tab is shown
+    document.getElementById('gst-tab').addEventListener('shown.bs.tab', function() {
+        console.log('GST tab shown - loading configuration');
+        loadGSTConfiguration();
+        loadGSTRates();
+    });
+
+    // Load WhatsApp status when WhatsApp tab is shown
+    document.getElementById('whatsapp-tab').addEventListener('shown.bs.tab', function() {
+        console.log('WhatsApp tab shown - checking status');
+        checkWhatsAppStatus();
+    });
 });
 
 function loadAndDisplayGstConfig() {
@@ -616,7 +799,7 @@ function loadAndDisplayGstConfig() {
         .then(data => {
             if (data.success && data.configuration) {
                 const config = data.configuration;
-                
+
                 // Update display fields
                 document.getElementById('displayGstinNumber').textContent = config.gstin_number || '-';
                 document.getElementById('displayBusinessName').textContent = config.business_name || '-';
@@ -624,7 +807,7 @@ function loadAndDisplayGstConfig() {
                 document.getElementById('displayPhone').textContent = config.phone || '-';
                 document.getElementById('displayEmail').textContent = config.email || '-';
                 document.getElementById('displayState').textContent = config.state || '-';
-                
+
                 // Update GST enabled status
                 const gstEnabledDiv = document.getElementById('displayGstEnabled');
                 if (config.gst_enabled) {
@@ -632,7 +815,7 @@ function loadAndDisplayGstConfig() {
                 } else {
                     gstEnabledDiv.innerHTML = '<span class="badge bg-secondary">Disabled</span>';
                 }
-                
+
                 // Update default rates
                 document.getElementById('displayCgst').textContent = config.default_cgst + '%';
                 document.getElementById('displaySgst').textContent = config.default_sgst + '%';
@@ -667,16 +850,125 @@ function loadBusinessGstDetails() {
         });
 }
 
+function loadGSTConfiguration() {
+    // This function seems to be a duplicate or placeholder.
+    // loadAndDisplayGstConfig() already loads and displays the main configuration.
+    // If there's a specific need for this function, it should be defined.
+    console.warn("loadGSTConfiguration called but might be redundant with loadAndDisplayGstConfig");
+}
+
+function loadGSTRates() {
+    // This function seems to be a duplicate or placeholder.
+    // loadAndDisplayGstConfig() already loads and displays the rates.
+    // If there's a specific need for this function, it should be defined.
+    console.warn("loadGSTRates called but might be redundant with loadAndDisplayGstConfig");
+}
+
+// WhatsApp Configuration Functions
+function checkWhatsAppStatus() {
+    fetch('/api/whatsapp/status')
+        .then(response => response.json())
+        .then(data => {
+            const statusBadge = document.getElementById('config-status-badge');
+            const detailsDiv = document.getElementById('config-details');
+
+            if (data.configured) {
+                statusBadge.className = 'badge bg-success';
+                statusBadge.innerHTML = '<i class="fas fa-check-circle me-1"></i>Configured & Ready';
+
+                detailsDiv.innerHTML = `
+                    <div class="alert alert-success mb-0 py-2">
+                        <i class="fas fa-check me-2"></i>All required Twilio credentials are configured.
+                    </div>
+                `;
+            } else {
+                statusBadge.className = 'badge bg-warning text-dark';
+                statusBadge.innerHTML = '<i class="fas fa-exclamation-triangle me-1"></i>Not Configured';
+
+                const missing = [];
+                if (!data.has_account_sid) missing.push('Account SID');
+                if (!data.has_auth_token) missing.push('Auth Token');
+                if (!data.has_whatsapp_number) missing.push('WhatsApp Number');
+
+                detailsDiv.innerHTML = `
+                    <div class="alert alert-warning mb-0 py-2">
+                        <i class="fas fa-exclamation-circle me-2"></i>Missing: ${missing.join(', ')}
+                        <br><small>Please configure the required fields above.</small>
+                    </div>
+                `;
+            }
+        })
+        .catch(error => {
+            console.error('Error checking WhatsApp status:', error);
+            const statusBadge = document.getElementById('config-status-badge');
+            const detailsDiv = document.getElementById('config-details');
+
+            statusBadge.className = 'badge bg-danger';
+            statusBadge.innerHTML = '<i class="fas fa-times-circle me-1"></i>Error';
+            detailsDiv.innerHTML = `
+                <div class="alert alert-danger mb-0 py-2">
+                    <i class="fas fa-exclamation-triangle me-2"></i>Unable to check configuration status.
+                </div>
+            `;
+        });
+}
+
+function togglePasswordVisibility(fieldId) {
+    const field = document.getElementById(fieldId);
+    const icon = document.getElementById(fieldId + '_icon');
+
+    if (field.type === 'password') {
+        field.type = 'text';
+        if (icon) {
+            icon.classList.remove('fa-eye');
+            icon.classList.add('fa-eye-slash');
+        }
+    } else {
+        field.type = 'password';
+        if (icon) {
+            icon.classList.remove('fa-eye-slash');
+            icon.classList.add('fa-eye');
+        }
+    }
+}
+
+function testWhatsAppConnection() {
+    const phoneNumber = document.getElementById('test_phone_number').value;
+    const resultDiv = document.getElementById('test-result');
+
+    if (!phoneNumber) {
+        resultDiv.innerHTML = '<div class="alert alert-warning">Please enter a phone number</div>';
+        return;
+    }
+
+    resultDiv.innerHTML = '<div class="alert alert-info">Sending test message...</div>';
+
+    fetch('/api/whatsapp/test', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ phone_number: phoneNumber })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            resultDiv.innerHTML = '<div class="alert alert-success"><i class="fas fa-check-circle me-2"></i>' + data.message + '</div>';
+        } else {
+            resultDiv.innerHTML = '<div class="alert alert-danger"><i class="fas fa-exclamation-circle me-2"></i>' + data.error + '</div>';
+        }
+    })
+    .catch(error => {
+        resultDiv.innerHTML = '<div class="alert alert-danger"><i class="fas fa-exclamation-circle me-2"></i>Error sending test message: ' + error.message + '</div>';
+    });
+}
 
 </script>
-{% endblock %}
-
-
 <script>
 // Logo Management
 document.addEventListener('DOMContentLoaded', function() {
     loadLogo();
-    
+
     // Logo file preview on selection
     const logoFileInput = document.getElementById('logoFile');
     if (logoFileInput) {
@@ -694,35 +986,35 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
-    
+
     // Logo upload form
     const logoUploadForm = document.getElementById('logoUploadForm');
     if (logoUploadForm) {
         logoUploadForm.addEventListener('submit', async function(e) {
             e.preventDefault();
-            
+
             const fileInput = document.getElementById('logoFile');
             if (!fileInput.files || fileInput.files.length === 0) {
                 alert('Please select a file to upload');
                 return;
             }
-            
+
             const uploadBtn = document.getElementById('uploadLogoBtn');
             const originalText = uploadBtn.innerHTML;
             uploadBtn.disabled = true;
             uploadBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Uploading...';
-            
+
             const formData = new FormData();
             formData.append('logo', fileInput.files[0]);
-            
+
             try {
                 const response = await fetch('/api/settings/logo', {
                     method: 'POST',
                     body: formData
                 });
-                
+
                 const data = await response.json();
-                
+
                 if (data.success) {
                     alert('Logo uploaded successfully!');
                     await loadLogo();
@@ -739,7 +1031,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
-    
+
     // Delete logo button
     const deleteLogoBtn = document.getElementById('deleteLogoBtn');
     if (deleteLogoBtn) {
@@ -747,14 +1039,14 @@ document.addEventListener('DOMContentLoaded', function() {
             if (!confirm('Are you sure you want to delete the logo?')) {
                 return;
             }
-            
+
             try {
                 const response = await fetch('/api/settings/logo', {
                     method: 'DELETE'
                 });
-                
+
                 const data = await response.json();
-                
+
                 if (data.success) {
                     alert('Logo deleted successfully!');
                     await loadLogo();
@@ -767,7 +1059,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
-    
+
     // Load logo when Settings tab is shown
     const settingsTab = document.getElementById('settings-tab');
     if (settingsTab) {
@@ -781,11 +1073,11 @@ async function loadLogo() {
     try {
         const response = await fetch('/api/settings/logo?t=' + new Date().getTime());
         const data = await response.json();
-        
+
         const logoImage = document.getElementById('logoImage');
         const noLogoMessage = document.getElementById('noLogoMessage');
         const deleteLogoBtn = document.getElementById('deleteLogoBtn');
-        
+
         if (data.success && data.logo_url) {
             // Add timestamp to prevent caching
             logoImage.src = data.logo_url + '?t=' + new Date().getTime();
@@ -813,3 +1105,4 @@ async function loadLogo() {
     }
 }
 </script>
+{% endblock %}
