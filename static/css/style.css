@@ -878,14 +878,14 @@ body.sidebar-minimized {
 }
 
 .btn-success {
-    background-color: var(--accepted-green);
-    border: 1px solid var(--accepted-green);
+    background-color: var(--spa-success);
+    border: 1px solid var(--spa-success);
     color: white;
 }
 
 .btn-success:hover {
-    background-color: #137333;
-    border-color: #137333;
+    background-color: var(--spa-success-dark);
+    border-color: var(--spa-success-dark);
 }
 
 .btn-warning {
@@ -1351,13 +1351,13 @@ body.sidebar-minimized {
 .status-scheduled { background-color: var(--spa-info) !important; }
 .status-confirmed { background-color: var(--spa-primary) !important; }
 .status-in-progress { background-color: var(--pending-orange) !important; }
-.status-completed { background-color: var(--accepted-green) !important; }
+.status-completed { background-color: var(--spa-success) !important; }
 .status-cancelled { background-color: var(--overdue-red) !important; }
 .status-no-show { background-color: var(--professional-muted) !important; }
 
 /* Professional status badges */
 .badge.badge-accepted {
-    background-color: var(--accepted-green) !important;
+    background-color: var(--spa-success) !important;
     color: white !important;
 }
 
@@ -1372,7 +1372,7 @@ body.sidebar-minimized {
 }
 
 .badge.badge-paid {
-    background-color: var(--accepted-green) !important;
+    background-color: var(--spa-success) !important;
     color: white !important;
 }
 
