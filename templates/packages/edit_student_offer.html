@@ -259,8 +259,8 @@
 <script>
 // Page-specific initialization
 document.addEventListener('DOMContentLoaded', function() {
-    const urlParams = new URLSearchParams(window.location.search);
-    const offerId = urlParams.get('id');
+    // Get offer ID from Flask template variable
+    const offerId = {{ offer_id }};
     
     if (offerId) {
         initializeEditStudentOfferPage(offerId);
