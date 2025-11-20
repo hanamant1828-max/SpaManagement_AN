@@ -1,4 +1,3 @@
-
 {% extends "base.html" %}
 
 {% block title %}Edit Student Offer - Management Suite{% endblock %}
@@ -115,7 +114,7 @@
                 <div class="form-section">
                     <h5><i class="fas fa-spa me-2"></i>Select Services</h5>
                     <p class="text-muted mb-3">Choose the services that will be eligible for this student discount</p>
-                    
+
                     <div class="service-selection-card">
                         <div id="servicesContainer">
                             <div class="text-center p-3">
@@ -172,7 +171,7 @@
                             <div id="discountError" class="error-message"></div>
                             <div class="form-text">Enter discount between 1% and 100%</div>
                         </div>
-                        
+
                         <div class="col-md-6">
                             <label for="validDays" class="form-label">Valid Days</label>
                             <select class="form-select form-select-lg" id="validDays" name="valid_days">
@@ -261,7 +260,7 @@
 document.addEventListener('DOMContentLoaded', function() {
     // Get offer ID from Flask template variable
     const offerId = {{ offer_id }};
-    
+
     if (offerId) {
         initializeEditStudentOfferPage(offerId);
     } else {
@@ -274,16 +273,16 @@ async function initializeEditStudentOfferPage(offerId) {
     try {
         // Load services first
         await loadServicesForPage();
-        
+
         // Load offer data
         await loadOfferData(offerId);
-        
+
         // Setup event listeners
         setupPageEventListeners();
-        
+
         // Hide loading overlay
         document.getElementById('loadingOverlay').style.display = 'none';
-        
+
         console.log('Edit Student Offer page initialized');
     } catch (error) {
         console.error('Error initializing page:', error);
@@ -306,7 +305,7 @@ async function loadServicesForPage() {
         if (data.success && data.services) {
             const container = document.getElementById('servicesContainer');
             container.innerHTML = '';
-            
+
             data.services.forEach(service => {
                 const checkboxDiv = document.createElement('div');
                 checkboxDiv.className = 'service-checkbox';
@@ -321,7 +320,7 @@ async function loadServicesForPage() {
                 `;
                 container.appendChild(checkboxDiv);
             });
-            
+
             // Add event listeners to checkboxes
             container.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
                 checkbox.addEventListener('change', validateEditStudentOfferForm);
@@ -340,7 +339,7 @@ async function loadOfferData(offerId) {
 
         if (data.success && data.offer) {
             const offer = data.offer;
-            
+
             // Populate form fields
             document.getElementById('offerId').value = offer.id;
             document.getElementById('offerName').value = offer.name || '';
@@ -403,6 +402,76 @@ function setupPageEventListeners() {
     form.addEventListener('submit', handleEditFormSubmit);
 }
 
+function validateEditStudentOfferForm() {
+    // Use checkboxes for edit form (services container)
+    const servicesCheckboxes = document.querySelectorAll('input[name="service_ids"]:checked');
+    const priceInput = document.getElementById('packagePrice');
+    const discountInput = document.getElementById('discountPercentage');
+    const validFromInput = document.getElementById('validFrom');
+    const validToInput = document.getElementById('validTo');
+    const updateBtn = document.getElementById('updateStudentOfferBtn');
+
+    let errors = [];
+
+    // Service validation
+    if (servicesCheckboxes.length === 0) {
+        errors.push('At least one service must be selected.');
+    }
+
+    // Price validation
+    let priceValue = priceInput ? parseFloat(priceInput.value) : NaN;
+    if (isNaN(priceValue) || priceValue < 0) {
+        errors.push('Package price is required and must be 0 or greater.');
+    }
+
+    // Discount validation
+    let discountValue = discountInput ? parseFloat(discountInput.value) : NaN;
+    if (isNaN(discountValue) || discountValue < 1 || discountValue > 100) {
+        errors.push('Discount percentage must be between 1 and 100.');
+    }
+
+    // Date validation
+    let validFromDate = validFromInput ? new Date(validFromInput.value) : null;
+    let validToDate = validToInput ? new Date(validToInput.value) : null;
+
+    if (!validFromDate || isNaN(validFromDate.getTime())) {
+        errors.push('Valid From date is required.');
+    }
+    if (!validToDate || isNaN(validToDate.getTime())) {
+        errors.push('Valid Until date is required.');
+    }
+    if (validFromDate && validToDate && validToDate < validFromDate) {
+        errors.push('Valid Until date must be on or after Valid From date.');
+    }
+
+    // Display errors
+    const errorDiv = document.getElementById('editStudentOfferFormError');
+    if (errorDiv) {
+        if (errors.length > 0) {
+            errorDiv.innerHTML = errors.join('<br>');
+            errorDiv.style.display = 'block';
+        } else {
+            errorDiv.style.display = 'none';
+        }
+    }
+
+    // Enable/disable update button with visual feedback
+    if (updateBtn) {
+        if (errors.length > 0) {
+            updateBtn.disabled = true;
+            updateBtn.classList.remove('btn-warning');
+            updateBtn.classList.add('btn-secondary');
+            updateBtn.style.opacity = '0.6';
+        } else {
+            updateBtn.disabled = false;
+            updateBtn.classList.remove('btn-secondary');
+            updateBtn.classList.add('btn-warning');
+            updateBtn.style.opacity = '1';
+        }
+    }
+}
+
+
 async function handleEditFormSubmit(event) {
     event.preventDefault();
 
@@ -414,7 +483,7 @@ async function handleEditFormSubmit(event) {
     try {
         const formData = new FormData(event.target);
         const offerId = document.getElementById('offerId').value;
-        
+
         // Handle valid days
         const validDaysSelect = document.getElementById('validDays');
         const customValidDays = document.getElementById('customValidDays');
