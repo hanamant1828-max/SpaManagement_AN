@@ -91,12 +91,27 @@ def membership_add_submit():
             flash('Please select at least one service for the membership', 'error')
             return redirect(url_for('membership_add'))
         
+        # Get service names for the services_included field
+        from models import Service
+        service_names = []
+        for service_id in selected_services:
+            if service_id and service_id.strip():
+                try:
+                    service = Service.query.get(int(service_id))
+                    if service:
+                        service_names.append(service.name)
+                except (ValueError, TypeError):
+                    continue
+        
+        # Create services summary
+        services_summary = ', '.join(service_names) if service_names else services_included
+        
         # Create membership
         membership = Membership(
             name=name,
             price=price,
             validity_months=validity_months,
-            services_included=services_included,
+            services_included=services_summary,
             description=description,
             is_active=is_active,
             created_at=datetime.utcnow()
@@ -180,14 +195,28 @@ def membership_edit_submit(membership_id):
         # Remove existing services
         MembershipService.query.filter_by(membership_id=membership_id).delete()
         
+        # Get service names for the services_included field
+        from models import Service
+        service_names = []
+        
         # Add new selected services
         for service_id in selected_services:
             if service_id:
-                membership_service = MembershipService(
-                    membership_id=membership_id,
-                    service_id=int(service_id)
-                )
-                db.session.add(membership_service)
+                try:
+                    service = Service.query.get(int(service_id))
+                    if service:
+                        service_names.append(service.name)
+                        membership_service = MembershipService(
+                            membership_id=membership_id,
+                            service_id=int(service_id)
+                        )
+                        db.session.add(membership_service)
+                except (ValueError, TypeError):
+                    continue
+        
+        # Update services_included field with actual service names
+        if service_names:
+            membership.services_included = ', '.join(service_names)
         
         db.session.commit()
         flash(f'Membership "{membership.name}" updated successfully!', 'success')
