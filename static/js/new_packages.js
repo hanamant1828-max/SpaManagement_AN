@@ -236,3 +236,10 @@ function openAssignSimple(packageId, packageType) {
     const assignModal = new bootstrap.Modal(document.getElementById('assignPackageModal'));
     assignModal.show();
 }
+
+// Assign membership to customer
+window.assignMembershipToCustomer = function(membershipId) {
+    console.log('Assign membership to customer:', membershipId);
+    // Redirect to assign packages page
+    window.location.href = '/assign-packages/';
+};
