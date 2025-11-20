@@ -504,9 +504,6 @@ document.addEventListener('DOMContentLoaded', function() {
     if (document.getElementById('tblStudentOffers')) {
         loadStudentPackages();
     }
-
-    // Initialize student offer modals
-    initializeStudentOfferModals();
 });
 
 
