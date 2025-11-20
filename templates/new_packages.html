@@ -2862,6 +2862,109 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
+// Load services for student offer display
+function loadStudentOfferServices() {
+    console.log('Loading services for student offers...');
+    fetch('/api/services/active')
+        .then(response => response.json())
+        .then(data => {
+            console.log('Services API response:', data);
+
+            if (data.success && data.services) {
+                window.availableServices = data.services;
+                console.log(`Loaded ${data.services.length} services`);
+            } else {
+                console.error('Failed to load services:', data.error);
+                window.availableServices = [];
+            }
+        })
+        .catch(error => {
+            console.error('Error loading services:', error);
+            window.availableServices = [];
+        });
+}
+
+function loadStudentPackages() {
+    console.log('Loading student packages...');
+    fetch('/api/packages/student-offers')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && data.offers) {
+                console.log(`Loaded ${data.offers.length} student offers`);
+                renderStudentOffers(data.offers);
+            } else {
+                console.error('Failed to load student offers:', data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error loading student packages:', error);
+        });
+}
+
+function renderStudentOffers(offers) {
+    const tbody = document.getElementById('studentOffersTableBody');
+    if (!tbody) {
+        console.error('Student offers table body not found');
+        return;
+    }
+
+    tbody.innerHTML = '';
+
+    offers.forEach(offer => {
+        const row = document.createElement('tr');
+
+        const validityBadgeClass = offer.validity_days <= 30 ? 'Mon-Fri' :
+                                   offer.validity_days <= 90 ? 'Mon-Sat' :
+                                   'Weekends';
+
+        // Get services for this offer
+        let servicesDisplay = '<span class="text-muted">No services</span>';
+        if (offer.services && offer.services.length > 0) {
+            servicesDisplay = offer.services.map(s => s.name).join(', ');
+        } else if (offer.service_ids && offer.service_ids.length > 0 && window.availableServices) {
+            const serviceNames = offer.service_ids.map(id => {
+                const service = window.availableServices.find(s => s.id === id);
+                return service ? service.name : '';
+            }).filter(name => name);
+
+            if (serviceNames.length > 0) {
+                servicesDisplay = serviceNames.join(', ');
+            }
+        }
+
+        row.innerHTML = `
+            <td><strong>${offer.name || 'Unnamed Offer'}</strong></td>
+            <td>${servicesDisplay}</td>
+            <td>₹${offer.price || '0.00'}</td>
+            <td><span class="badge bg-success">${offer.discount_percent || 0}%</span></td>
+            <td>
+                <strong>From:</strong> ${offer.validity_start ? new Date(offer.validity_start).toLocaleDateString() : 'N/A'}<br>
+                <strong>To:</strong> ${offer.validity_end ? new Date(offer.validity_end).toLocaleDateString() : 'N/A'}
+            </td>
+            <td><span class="badge ${validityBadgeClass}">${validityBadgeClass}</span></td>
+            <td class="action-buttons">
+                <button class="btn btn-sm btn-outline-primary" onclick="editStudentOffer(${offer.id})" title="Edit">
+                    <i class="fas fa-edit"></i>
+                </button>
+                <button class="btn btn-sm btn-outline-danger" onclick="deleteStudentOffer(${offer.id})" title="Delete">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </td>
+        `;
+
+        tbody.appendChild(row);
+    });
+}
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', function() {
+    // Load services first, then load packages
+    loadStudentOfferServices();
+    setTimeout(() => {
+        loadStudentPackages();
+    }, 500);
+});
+
 </script>
 
 {% endblock %}
