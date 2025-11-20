@@ -76,33 +76,59 @@
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label">Select Services Covered by Membership</label>
+                        <label class="form-label">Services & Sessions *</label>
                         <div class="alert alert-info">
                             <i class="fas fa-info-circle"></i>
                             <strong>Important:</strong> Membership benefits will ONLY apply to the services you select below. 
                             Services not selected will be charged at full price.
                         </div>
-                        <div class="border rounded p-3" style="max-height: 300px; overflow-y: auto;">
-                            {% for service in services %}
-                            <div class="form-check mb-2">
-                                <input class="form-check-input" type="checkbox" 
-                                       name="service_ids" value="{{ service.id }}" 
-                                       id="service_{{ service.id }}">
-                                <label class="form-check-label d-flex justify-content-between align-items-center" 
-                                       for="service_{{ service.id }}">
-                                    <span>
-                                        <strong>{{ service.name }}</strong>
-                                        {% if service.description %}
-                                        <br><small class="text-muted">{{ service.description }}</small>
-                                        {% endif %}
-                                    </span>
-                                    <span class="badge bg-primary">₹{{ "{:,.0f}".format(service.price) }}</span>
-                                </label>
+                        
+                        <!-- Dropdown Button -->
+                        <div class="dropdown mb-3">
+                            <button class="btn btn-outline-secondary dropdown-toggle w-100 text-start" type="button" id="servicesDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="fas fa-spa me-2"></i>Select Services...
+                            </button>
+                            <div class="dropdown-menu w-100 p-3" aria-labelledby="servicesDropdown" style="max-height: 400px; overflow-y: auto;">
+                                <!-- Search box -->
+                                <div class="mb-2">
+                                    <input type="text" class="form-control form-control-sm" id="serviceSearch" placeholder="Search services..." onkeyup="filterServices()">
+                                </div>
+                                <hr class="my-2">
+                                <!-- Service checkboxes -->
+                                <div id="servicesList">
+                                    {% for service in services %}
+                                    <div class="form-check mb-2 service-item">
+                                        <input class="form-check-input" type="checkbox" 
+                                               name="service_ids" value="{{ service.id }}" 
+                                               id="service_{{ service.id }}"
+                                               onchange="updateSelectedServices()">
+                                        <label class="form-check-label d-flex justify-content-between align-items-center w-100" 
+                                               for="service_{{ service.id }}">
+                                            <span>
+                                                <strong>{{ service.name }}</strong>
+                                                {% if service.description %}
+                                                <br><small class="text-muted">{{ service.description[:50] }}...</small>
+                                                {% endif %}
+                                            </span>
+                                            <span class="badge bg-primary ms-2">₹{{ "{:,.0f}".format(service.price) }}</span>
+                                        </label>
+                                    </div>
+                                    {% endfor %}
+                                </div>
                             </div>
-                            {% endfor %}
                         </div>
+                        
+                        <!-- Selected Services Display -->
+                        <div id="selectedServicesDisplay" class="border rounded p-2" style="min-height: 50px; display: none;">
+                            <small class="text-muted">Selected Services:</small>
+                            <div id="selectedServicesList" class="mt-2"></div>
+                        </div>
+                        
                         <div class="form-text mt-2">
-                            Select all services that should be covered by this membership package.
+                            <span id="selectedCount">0</span> service(s) selected. Click dropdown to add more.
+                        </div>
+                        <div id="servicesError" class="invalid-feedback" style="display: none;">
+                            Please select at least one service
                         </div>
                     </div>
 
@@ -123,165 +149,72 @@
 </div>
 
 <script>
-// Store selected services
-let selectedServices = {};
-
-// Add service to membership
-function addServiceToMembership(serviceId) {
-    if (!serviceId) return;
-
-    const select = document.getElementById('serviceSelector');
-    const option = select.options[select.selectedIndex];
-    const serviceName = option.dataset.name;
-    const servicePrice = option.dataset.price;
-    const serviceDuration = option.dataset.duration;
-
-    // Check if already added
-    if (selectedServices[serviceId]) {
-        alert('This service is already added');
-        select.value = '';
-        return;
-    }
-
-    // Add to selected services
-    selectedServices[serviceId] = {
-        name: serviceName,
-        price: servicePrice,
-        duration: serviceDuration,
-        sessions: 1
-    };
-
-    // Update UI
-    updateSelectedServicesUI();
-
-    // Reset dropdown
-    select.value = '';
-}
-
-// Update selected services UI
-function updateSelectedServicesUI() {
-    const container = document.getElementById('servicesContainer');
-    const listDiv = document.getElementById('selectedServicesList');
-
-    if (Object.keys(selectedServices).length === 0) {
-        listDiv.style.display = 'none';
-        return;
-    }
-
-    listDiv.style.display = 'block';
-    container.innerHTML = '';
-
-    Object.keys(selectedServices).forEach(serviceId => {
-        const service = selectedServices[serviceId];
-        const serviceDiv = document.createElement('div');
-        serviceDiv.className = 'card mb-2';
-        serviceDiv.innerHTML = `
-            <div class="card-body p-3">
-                <div class="row align-items-center">
-                    <div class="col-md-5">
-                        <strong>${service.name}</strong>
-                        <br><small class="text-muted">₹${service.price} - ${service.duration} min</small>
-                    </div>
-                    <div class="col-md-5">
-                        <label class="form-label small mb-1">Sessions</label>
-                        <input type="number" class="form-control form-control-sm" 
-                               min="1" value="${service.sessions}" 
-                               onchange="updateServiceSessions(${serviceId}, this.value)">
-                    </div>
-                    <div class="col-md-2 text-end">
-                        <button type="button" class="btn btn-sm btn-outline-danger" 
-                                onclick="removeService(${serviceId})">
-                            <i class="fas fa-times"></i>
-                        </button>
-                    </div>
-                </div>
-            </div>
-        `;
-        container.appendChild(serviceDiv);
+// Filter services in dropdown
+function filterServices() {
+    const searchInput = document.getElementById('serviceSearch');
+    const filter = searchInput.value.toLowerCase();
+    const serviceItems = document.querySelectorAll('.service-item');
+    
+    serviceItems.forEach(item => {
+        const text = item.textContent.toLowerCase();
+        item.style.display = text.includes(filter) ? '' : 'none';
     });
 }
 
-// Update service sessions
-function updateServiceSessions(serviceId, sessions) {
-    const sessionCount = parseInt(sessions);
-    if (sessionCount < 1) {
-        alert('Sessions must be at least 1');
-        updateSelectedServicesUI();
-        return;
+// Update selected services display
+function updateSelectedServices() {
+    const checkboxes = document.querySelectorAll('input[name="service_ids"]:checked');
+    const count = checkboxes.length;
+    const display = document.getElementById('selectedServicesDisplay');
+    const list = document.getElementById('selectedServicesList');
+    const countSpan = document.getElementById('selectedCount');
+    const dropdownBtn = document.getElementById('servicesDropdown');
+    
+    countSpan.textContent = count;
+    
+    if (count > 0) {
+        display.style.display = 'block';
+        list.innerHTML = '';
+        
+        checkboxes.forEach(checkbox => {
+            const label = document.querySelector(`label[for="${checkbox.id}"]`);
+            const serviceName = label.querySelector('strong').textContent;
+            const badge = document.createElement('span');
+            badge.className = 'badge bg-success me-1 mb-1';
+            badge.innerHTML = `<i class="fas fa-check me-1"></i>${serviceName}`;
+            list.appendChild(badge);
+        });
+        
+        dropdownBtn.innerHTML = `<i class="fas fa-spa me-2"></i>${count} service(s) selected`;
+    } else {
+        display.style.display = 'none';
+        dropdownBtn.innerHTML = '<i class="fas fa-spa me-2"></i>Select Services...';
     }
-    selectedServices[serviceId].sessions = sessionCount;
 }
 
-// Remove service
-function removeService(serviceId) {
-    delete selectedServices[serviceId];
-    updateSelectedServicesUI();
-}
+// Prevent dropdown from closing when clicking inside
+document.addEventListener('DOMContentLoaded', function() {
+    const dropdown = document.querySelector('.dropdown-menu');
+    if (dropdown) {
+        dropdown.addEventListener('click', function(e) {
+            e.stopPropagation();
+        });
+    }
+});
 
 // Form validation
 document.getElementById('membershipForm').addEventListener('submit', function(e) {
-    e.preventDefault();
-
-    // Validate form fields
-    const name = document.getElementById('name').value.trim();
-    const price = parseFloat(document.getElementById('price').value);
-    const validityFrom = document.getElementById('validity_from').value;
-    const validityTo = document.getElementById('validity_to').value;
-
-    let isValid = true;
-
-    // Name validation
-    if (!name) {
-        document.getElementById('nameError').style.display = 'block';
-        isValid = false;
+    const checkboxes = document.querySelectorAll('input[name="service_ids"]:checked');
+    const servicesError = document.getElementById('servicesError');
+    
+    if (checkboxes.length === 0) {
+        e.preventDefault();
+        servicesError.style.display = 'block';
+        document.getElementById('servicesDropdown').classList.add('is-invalid');
+        return false;
     } else {
-        document.getElementById('nameError').style.display = 'none';
-    }
-
-    // Price validation
-    if (!price || price <= 0) {
-        document.getElementById('priceError').style.display = 'block';
-        isValid = false;
-    } else {
-        document.getElementById('priceError').style.display = 'none';
-    }
-
-    // Date validation
-    if (!validityFrom) {
-        document.getElementById('fromDateError').style.display = 'block';
-        isValid = false;
-    } else {
-        document.getElementById('fromDateError').style.display = 'none';
-    }
-
-    if (!validityTo) {
-        document.getElementById('toDateError').style.display = 'block';
-        isValid = false;
-    } else if (validityTo <= validityFrom) {
-        document.getElementById('toDateError').textContent = 'To date must be after from date';
-        document.getElementById('toDateError').style.display = 'block';
-        isValid = false;
-    } else {
-        document.getElementById('toDateError').style.display = 'none';
-    }
-
-    // Services validation
-    if (Object.keys(selectedServices).length === 0) {
-        document.getElementById('servicesError').style.display = 'block';
-        isValid = false;
-    } else {
-        document.getElementById('servicesError').style.display = 'none';
-    }
-
-    if (isValid) {
-        // Add services data to form
-        const servicesInput = document.createElement('input');
-        servicesInput.type = 'hidden';
-        servicesInput.name = 'services';
-        servicesInput.value = JSON.stringify(selectedServices);
-        this.appendChild(servicesInput);
-
-        this.submit();
+        servicesError.style.display = 'none';
+        document.getElementById('servicesDropdown').classList.remove('is-invalid');
     }
 });
 </script>
