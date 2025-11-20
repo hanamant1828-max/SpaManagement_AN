@@ -80,9 +80,6 @@ function loadStudentPackages() {
                         <td><span class="badge bg-info">${offer.valid_days}</span></td>
                         <td>
                             <div class="btn-group btn-group-sm">
-                                <button class="btn btn-success btn-sm" onclick="assignStudentOffer(${offer.id})" title="Assign to Customer">
-                                    <i class="fas fa-user-plus"></i> Assign
-                                </button>
                                 <button class="btn btn-outline-primary" onclick="editStudentOffer(${offer.id})" title="Edit Offer">
                                     <i class="fas fa-edit"></i>
                                 </button>
