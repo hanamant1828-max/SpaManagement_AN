@@ -212,6 +212,16 @@
     visibility: visible !important;
 }
 
+/* Ensure all form action buttons are always visible */
+.btn-update,
+.btn-save,
+button[type="submit"],
+.form-section button {
+    opacity: 1 !important;
+    visibility: visible !important;
+    display: inline-block !important;
+}
+
 .btn-outline-primary:hover {
     background-color: #667eea;
     border-color: #667eea;

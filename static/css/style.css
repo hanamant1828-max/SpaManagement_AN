@@ -326,6 +326,17 @@ body.services-page {
     display: inline-flex !important;
 }
 
+/* Ensure all form submit and action buttons are always visible */
+.btn-update,
+.btn-save,
+button[type="submit"],
+.btn-lg,
+.form-section .btn {
+    opacity: 1 !important;
+    visibility: visible !important;
+    display: inline-block !important;
+}
+
 /* === Forms === */
 .spa-form-group {
     margin-bottom: var(--space-6);
