@@ -686,6 +686,38 @@ def api_get_yearly_memberships():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/yearly-memberships/<int:membership_id>', methods=['GET'])
+@login_required
+def api_get_yearly_membership(membership_id):
+    """Get a single yearly membership by ID"""
+    try:
+        membership = get_yearly_membership_by_id(membership_id)
+        if not membership:
+            return jsonify({
+                'success': False,
+                'error': 'Yearly membership not found'
+            }), 404
+        
+        return jsonify({
+            'success': True,
+            'membership': {
+                'id': membership.id,
+                'name': membership.name,
+                'price': membership.price,
+                'discount_percent': membership.discount_percent,
+                'validity_months': membership.validity_months,
+                'extra_benefits': membership.extra_benefits,
+                'is_active': membership.is_active,
+                'created_at': membership.created_at.isoformat()
+            }
+        })
+    except Exception as e:
+        logging.error(f"Error getting yearly membership: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
 @app.route('/api/yearly-memberships', methods=['POST'])
 @login_required
 def api_create_yearly_membership():
