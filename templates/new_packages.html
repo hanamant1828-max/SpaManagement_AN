@@ -1044,7 +1044,17 @@ function submitServiceForm() {
             alert(data.message);
             const modal = bootstrap.Modal.getInstance(document.getElementById('serviceModal'));
             modal.hide();
-
+            location.reload();
+        } else {
+            alert('Error: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error creating service package');
+    });
+}
+</script>
 
 <!-- Edit Prepaid Package Modal -->
 <div class="modal fade" id="editPrepaidModal" tabindex="-1">
