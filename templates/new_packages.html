@@ -213,10 +213,10 @@
                                             <td>{{ membership.validity_months }} months</td>
                                             <td>
                                                 {% if membership.services_included %}
-                                                    {{ membership.services_included[:50] }}{{ '...' if membership.services_included|length > 50 else '' }}
+                                                    {{ membership.services_included|truncate(50) }}
                                                 {% elif membership.membership_services %}
                                                     {% set service_names = membership.membership_services|map(attribute='service.name')|list %}
-                                                    {{ service_names|join(', ')[:50] }}{{ '...' if service_names|join(', ')|length > 50 else '' }}
+                                                    {{ service_names|join(', ')|truncate(50) }}
                                                 {% else %}
                                                     No services specified
                                                 {% endif %}
@@ -323,7 +323,7 @@
                                             <td>₹{{ "{:,.0f}".format(membership.price) }}</td>
                                             <td>{{ membership.discount_percent }}%</td>
                                             <td>{{ membership.validity_months }} months</td>
-                                            <td>{{ membership.extra_benefits[:30] if membership.extra_benefits else 'None' }}...</td>
+                                            <td>{{ membership.extra_benefits|truncate(30) if membership.extra_benefits else 'None' }}</td>
                                             <td>
                                                 <div class="btn-group btn-group-sm">
                                                     <button class="btn btn-outline-primary" onclick="editYearly({{ membership.id }})">
@@ -394,8 +394,7 @@
                                             </td>
                                             <td>
                                                 <small>
-                                                    {{ party.conditions[:40] if party.conditions else 'No conditions' }}
-                                                    {% if party.conditions and party.conditions|length > 40 %}...{% endif %}
+                                                    {{ party.conditions|truncate(40) if party.conditions else 'No conditions' }}
                                                 </small>
                                             </td>
                                             <td>
