@@ -244,21 +244,42 @@ window.editService = function(packageId) {
         .then(data => {
             console.log('Service data received:', data);
             if (data && data.id) {
-                // Populate edit modal
-                document.getElementById('editServiceId').value = data.id;
-                document.getElementById('editServiceName').value = data.name;
-                document.getElementById('editServicePayFor').value = data.pay_for;
-                document.getElementById('editServiceFreeServices').value = data.free_services;
-                document.getElementById('editServiceValidityMonths').value = data.validity_months;
+                // Check if edit modal exists
+                const editModal = document.getElementById('editServiceModal');
+                if (!editModal) {
+                    console.error('Edit service modal not found in DOM');
+                    alert('Edit modal not found. Please refresh the page.');
+                    return;
+                }
+
+                // Safely populate edit modal fields
+                const fields = {
+                    'editServiceId': data.id,
+                    'editServiceName': data.name,
+                    'editServicePayFor': data.pay_for,
+                    'editServiceFreeServices': data.free_services,
+                    'editServiceValidityMonths': data.validity_months
+                };
+
+                for (const [fieldId, value] of Object.entries(fields)) {
+                    const field = document.getElementById(fieldId);
+                    if (field) {
+                        field.value = value || '';
+                    } else {
+                        console.warn(`Field ${fieldId} not found in edit modal`);
+                    }
+                }
                 
                 // Show modal
-                const editModal = new bootstrap.Modal(document.getElementById('editServiceModal'));
-                editModal.show();
+                const modal = new bootstrap.Modal(editModal);
+                modal.show();
+            } else {
+                alert('Service package data not found');
             }
         })
         .catch(error => {
             console.error('Error loading service package:', error);
-            alert('Error loading service package details');
+            alert('Error loading service package details: ' + error.message);
         });
 };
 
