@@ -261,6 +261,29 @@ def api_create_service_package():
         logging.error(f"Error creating service package: {e}")
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/service-packages/<int:package_id>', methods=['GET'])
+@login_required
+def api_get_service_package(package_id):
+    """Get service package details"""
+    try:
+        package = ServicePackage.query.get(package_id)
+        if not package:
+            return jsonify({'error': 'Service package not found'}), 404
+        
+        return jsonify({
+            'success': True,
+            'id': package.id,
+            'name': package.name,
+            'pay_for': package.pay_for,
+            'free_services': package.free_services,
+            'total_services': package.total_services,
+            'validity_months': package.validity_months,
+            'is_active': package.is_active
+        })
+    except Exception as e:
+        logging.error(f"Error fetching service package: {e}")
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/api/service-packages/<int:package_id>', methods=['PUT'])
 @login_required
 def api_update_service_package(package_id):
