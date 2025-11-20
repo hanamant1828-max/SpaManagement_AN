@@ -121,6 +121,17 @@ def integrated_billing(customer_id=None):
     client_name = request.args.get('client_name', '')
     client_phone = request.args.get('client_phone', '')
     appointment_id = request.args.get('appointment_id', '')
+    
+    # If appointment_id is provided, get customer from appointment
+    if appointment_id and not customer_id:
+        try:
+            from models import UnakiBooking
+            booking = UnakiBooking.query.get(int(appointment_id))
+            if booking and booking.client_id:
+                customer_id = booking.client_id
+                app.logger.info(f"Auto-selected customer {customer_id} from appointment {appointment_id}")
+        except Exception as e:
+            app.logger.error(f"Error getting customer from appointment: {e}")
 
     # Get data for billing interface
     customers = Customer.query.filter_by(is_active=True).order_by(Customer.first_name, Customer.last_name).all()

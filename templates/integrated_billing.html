@@ -592,7 +592,10 @@ textarea.form-control {
                                 <select class="form-select form-select-lg" id="client_id" name="client_id" required>
                                     <option value="">-- Select Customer --</option>
                                     {% for customer in customers %}
-                                    <option value="{{ customer.id }}" {{ 'selected' if selected_customer and customer.id == selected_customer.id else '' }}>
+                                    <option value="{{ customer.id }}" 
+                                            {{ 'selected' if (selected_customer and customer.id == selected_customer.id) or (preselected_client_id and customer.id == preselected_client_id|int) else '' }}
+                                            data-phone="{{ customer.phone }}"
+                                            data-email="{{ customer.email }}">
                                         {{ customer.full_name }} - {{ customer.phone }}
                                     </option>
                                     {% endfor %}
@@ -1050,11 +1053,37 @@ document.addEventListener('DOMContentLoaded', function() {
 
     {% if selected_customer %}
     console.log('Pre-selected customer ID:', {{ selected_customer.id }});
-    // Ensure to use the correct function name and pass ID as string or number based on API
+    console.log('Pre-selected customer name:', '{{ selected_customer.full_name }}');
+    
+    // Ensure customer dropdown shows the selected customer
+    const clientSelect = document.getElementById('client_id');
+    if (clientSelect) {
+        clientSelect.value = '{{ selected_customer.id }}';
+        console.log('Set client dropdown to:', clientSelect.value);
+        console.log('Selected option text:', clientSelect.options[clientSelect.selectedIndex]?.text);
+        
+        // Trigger change event to load packages and appointments
+        clientSelect.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+    
+    // Also load packages and appointments directly
     loadCustomerPackages({{ selected_customer.id }});
     {% if not edit_mode %}
     loadCustomerAppointments({{ selected_customer.id }});
     {% endif %}
+    {% elif preselected_client_id %}
+    console.log('Pre-selected customer ID from URL:', {{ preselected_client_id }});
+    
+    // Set customer dropdown if preselected from URL parameter
+    const clientSelect = document.getElementById('client_id');
+    if (clientSelect) {
+        clientSelect.value = '{{ preselected_client_id }}';
+        console.log('Set client dropdown to:', clientSelect.value);
+        console.log('Selected option text:', clientSelect.options[clientSelect.selectedIndex]?.text);
+        
+        // Trigger change event
+        clientSelect.dispatchEvent(new Event('change', { bubbles: true }));
+    }
     {% endif %}
 
     {% if edit_mode and edit_invoice_data %}
