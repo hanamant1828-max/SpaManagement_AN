@@ -791,6 +791,37 @@ def api_get_kitty_parties():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/kitty-parties/<int:party_id>', methods=['GET'])
+@login_required
+def api_get_kitty_party(party_id):
+    """Get single kitty party by ID"""
+    try:
+        party = get_kitty_party_by_id(party_id)
+        if not party:
+            return jsonify({'success': False, 'error': 'Kitty party not found'}), 404
+
+        return jsonify({
+            'success': True,
+            'party': {
+                'id': party.id,
+                'name': party.name,
+                'price': float(party.price) if party.price else 0,
+                'after_value': float(party.after_value) if party.after_value else 0,
+                'min_guests': party.min_guests,
+                'validity_months': party.validity_months if hasattr(party, 'validity_months') else 12,
+                'inclusions': party.inclusions if hasattr(party, 'inclusions') else '',
+                'conditions': party.conditions if hasattr(party, 'conditions') else '',
+                'valid_from': party.valid_from.isoformat() if party.valid_from else None,
+                'valid_to': party.valid_to.isoformat() if party.valid_to else None,
+                'is_active': party.is_active,
+                'services': [{'id': kps.service.id, 'name': kps.service.name, 'price': float(kps.service.price) if kps.service.price else 0}
+                            for kps in party.kittyparty_services] if hasattr(party, 'kittyparty_services') else []
+            }
+        })
+    except Exception as e:
+        logging.error(f"Error getting kitty party {party_id}: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 @app.route('/api/kitty-parties', methods=['POST'])
 @login_required
 def api_create_kitty_party():

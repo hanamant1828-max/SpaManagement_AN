@@ -416,24 +416,37 @@ window.editKitty = function(partyId) {
     console.log('Edit kitty party:', partyId);
 
     fetch(`/api/kitty-parties/${partyId}`)
-        .then(response => response.json())
-        .then(data => {
-            if (data.success && data.party) {
-                const party = data.party;
-                document.getElementById('editKittyId').value = party.id;
-                document.getElementById('editKittyName').value = party.name;
-                document.getElementById('editKittyPrice').value = party.price;
-                document.getElementById('editKittyMinGuests').value = party.min_guests;
-                document.getElementById('editKittyValidityMonths').value = party.validity_months;
-                document.getElementById('editKittyInclusions').value = party.inclusions || '';
-
-                const editModal = new bootstrap.Modal(document.getElementById('editKittyModal'));
-                editModal.show();
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
             }
+            return response.json();
+        })
+        .then(data => {
+            console.log('Kitty party data received:', data);
+            
+            // Handle both response formats
+            const party = data.party || data;
+            
+            if (!party || !party.id) {
+                throw new Error('Invalid party data received');
+            }
+
+            // Populate form fields
+            document.getElementById('editKittyId').value = party.id;
+            document.getElementById('editKittyName').value = party.name || '';
+            document.getElementById('editKittyPrice').value = party.price || 0;
+            document.getElementById('editKittyMinGuests').value = party.min_guests || 1;
+            document.getElementById('editKittyValidityMonths').value = party.validity_months || 12;
+            document.getElementById('editKittyInclusions').value = party.inclusions || '';
+
+            // Show the edit modal
+            const editModal = new bootstrap.Modal(document.getElementById('editKittyModal'));
+            editModal.show();
         })
         .catch(error => {
             console.error('Error loading kitty party:', error);
-            alert('Error loading kitty party details');
+            alert('Error loading kitty party details: ' + error.message);
         });
 };
 
