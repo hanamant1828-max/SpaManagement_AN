@@ -436,9 +436,22 @@ window.editKitty = function(partyId) {
             document.getElementById('editKittyId').value = party.id;
             document.getElementById('editKittyName').value = party.name || '';
             document.getElementById('editKittyPrice').value = party.price || 0;
+            document.getElementById('editKittyAfterValue').value = party.after_value || 0;
             document.getElementById('editKittyMinGuests').value = party.min_guests || 1;
-            document.getElementById('editKittyValidityMonths').value = party.validity_months || 12;
-            document.getElementById('editKittyInclusions').value = party.inclusions || '';
+            
+            // Handle date fields
+            if (party.valid_from) {
+                document.getElementById('editKittyValidFrom').value = party.valid_from;
+            }
+            if (party.valid_to) {
+                document.getElementById('editKittyValidTo').value = party.valid_to;
+            }
+            
+            document.getElementById('editKittyConditions').value = party.conditions || '';
+            document.getElementById('editKittyIsActive').checked = party.is_active !== false;
+
+            // Load services and pre-select the ones associated with this kitty party
+            loadServicesForEditKittyParty(party.services || []);
 
             // Show the edit modal
             const editModal = new bootstrap.Modal(document.getElementById('editKittyModal'));
@@ -450,16 +463,96 @@ window.editKitty = function(partyId) {
         });
 };
 
+// Load services for edit kitty party modal
+function loadServicesForEditKittyParty(selectedServices) {
+    console.log('Loading services for edit kitty party modal...', selectedServices);
+    
+    fetch('/packages/api/services')
+        .then(response => {
+            console.log('Services API response status:', response.status);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log('Services API response data:', data);
+            
+            const container = document.getElementById('editKittyPartyServices');
+            if (!container) {
+                console.error('Edit kitty party services container not found');
+                return;
+            }
+
+            // Clear loading message
+            container.innerHTML = '';
+
+            if (data.success && data.services && data.services.length > 0) {
+                console.log(`Loading ${data.services.length} services for edit`);
+                
+                // Create a set of selected service IDs for quick lookup
+                const selectedServiceIds = new Set(selectedServices.map(s => s.id));
+                
+                data.services.forEach(service => {
+                    const checkboxDiv = document.createElement('div');
+                    checkboxDiv.className = 'mb-2';
+                    
+                    const isChecked = selectedServiceIds.has(service.id);
+
+                    checkboxDiv.innerHTML = `
+                        <div class="form-check border rounded p-2">
+                            <input class="form-check-input" type="checkbox" name="service_ids" value="${service.id}" id="edit_kitty_service_${service.id}" ${isChecked ? 'checked' : ''}>
+                            <label class="form-check-label w-100" for="edit_kitty_service_${service.id}">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span class="fw-medium">${service.name}</span>
+                                    <span class="badge bg-primary">₹${service.price || 0}</span>
+                                </div>
+                            </label>
+                        </div>
+                    `;
+
+                    container.appendChild(checkboxDiv);
+                });
+                
+                console.log('Services loaded successfully for edit modal');
+            } else {
+                console.warn('No services available or API returned unsuccessful response');
+                container.innerHTML = '<div class="text-muted text-center py-3">No services available</div>';
+            }
+        })
+        .catch(error => {
+            console.error('Error loading services for edit kitty party:', error);
+            const container = document.getElementById('editKittyPartyServices');
+            if (container) {
+                container.innerHTML = '<div class="text-danger text-center py-3">Error loading services. Please try again.</div>';
+            }
+        });
+}
+
 // Update kitty party
 window.updateKitty = function() {
     const partyId = document.getElementById('editKittyId').value;
+    
+    // Get selected services
+    const selectedServices = Array.from(
+        document.querySelectorAll('#editKittyPartyServices input[name="service_ids"]:checked')
+    ).map(cb => parseInt(cb.value));
+
+    if (selectedServices.length === 0) {
+        alert('Please select at least one service for this kitty party');
+        return;
+    }
+
     const formData = {
         name: document.getElementById('editKittyName').value,
         price: parseFloat(document.getElementById('editKittyPrice').value),
+        after_value: parseFloat(document.getElementById('editKittyAfterValue').value) || 0,
         min_guests: parseInt(document.getElementById('editKittyMinGuests').value),
-        validity_months: parseInt(document.getElementById('editKittyValidityMonths').value),
-        inclusions: document.getElementById('editKittyInclusions').value,
-        is_active: true
+        valid_from: document.getElementById('editKittyValidFrom').value,
+        valid_to: document.getElementById('editKittyValidTo').value,
+        conditions: document.getElementById('editKittyConditions').value,
+        is_active: document.getElementById('editKittyIsActive').checked,
+        service_ids: selectedServices
     };
 
     fetch(`/api/kitty-parties/${partyId}`, {
@@ -471,6 +564,8 @@ window.updateKitty = function() {
     .then(result => {
         if (result.success) {
             alert('Kitty party updated successfully!');
+            const modal = bootstrap.Modal.getInstance(document.getElementById('editKittyModal'));
+            modal.hide();
             location.reload();
         } else {
             alert('Error: ' + (result.error || 'Unknown error'));
