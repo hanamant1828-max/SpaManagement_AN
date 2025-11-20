@@ -587,7 +587,7 @@ window.assignMembershipToCustomer = function(membershipId) {
 // Save Yearly Membership function
 window.saveYearlyMembership = function() {
     console.log('Saving yearly membership...');
-    
+
     const form = document.getElementById('yearlyForm');
     if (!form) {
         console.error('Yearly membership form not found');
@@ -596,7 +596,7 @@ window.saveYearlyMembership = function() {
     }
 
     const formData = new FormData(form);
-    
+
     const membershipData = {
         name: formData.get('name'),
         price: parseFloat(formData.get('price')),
@@ -631,7 +631,7 @@ window.saveYearlyMembership = function() {
                 modal.hide();
             }
             form.reset();
-            
+
             if (typeof loadYearlyPackages === 'function') {
                 loadYearlyPackages();
             } else {
@@ -650,3 +650,55 @@ window.saveYearlyMembership = function() {
         saveBtn.innerHTML = originalText;
     });
 };
+
+function openKittyPartyModal() {
+    const modal = new bootstrap.Modal(document.getElementById('addKittyPartyModal'));
+    modal.show();
+
+    // Load services for the kitty party immediately
+    setTimeout(() => loadServicesForKittyParty(), 100);
+}
+
+function loadServicesForKittyParty() {
+    const servicesContainer = document.getElementById('kittyPartyServices');
+    if (!servicesContainer) {
+        console.warn('Kitty party services container not found');
+        return;
+    }
+
+    console.log('Loading services for Kitty Party...');
+    servicesContainer.innerHTML = '<div class="text-center text-muted py-3"><i class="fas fa-spinner fa-spin me-2"></i>Loading services...</div>';
+
+    fetch('/api/services')
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            return response.json();
+        })
+        .then(services => {
+            console.log(`Loaded ${services.length} services for Kitty Party`);
+
+            if (services && services.length > 0) {
+                const servicesHTML = services.map(service => `
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="checkbox" name="service_ids" value="${service.id}" id="kitty_service_${service.id}">
+                        <label class="form-check-label" for="kitty_service_${service.id}">
+                            <strong>${service.name}</strong> - <span class="text-success">$${service.price.toFixed(2)}</span>
+                        </label>
+                    </div>
+                `).join('');
+
+                servicesContainer.innerHTML = `
+                    <div class="mb-2 text-muted small">Select multiple services for this kitty party</div>
+                    ${servicesHTML}
+                `;
+            } else {
+                servicesContainer.innerHTML = '<div class="alert alert-warning mb-0"><i class="fas fa-exclamation-triangle me-2"></i>No services available. Please add services first.</div>';
+            }
+        })
+        .catch(error => {
+            console.error('Error loading services:', error);
+            servicesContainer.innerHTML = `<div class="alert alert-danger mb-0"><i class="fas fa-exclamation-circle me-2"></i>Error loading services: ${error.message}</div>`;
+        });
+}
