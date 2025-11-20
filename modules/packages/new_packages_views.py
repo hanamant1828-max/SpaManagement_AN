@@ -426,7 +426,9 @@ def api_get_student_offers():
             'valid_from': s.valid_from.isoformat() if s.valid_from else None,
             'valid_to': s.valid_to.isoformat() if s.valid_to else None,
             'valid_days': s.valid_days or 'Mon-Sun',
-            'conditions': s.conditions or 'Valid with Student ID'
+            'conditions': s.conditions or 'Valid with Student ID',
+            'services': [{'id': sos.service.id, 'name': sos.service.name, 'price': float(sos.service.price) if sos.service.price else 0.0}
+                        for sos in s.student_offer_services if sos.service]
         } for s in StudentOffer.query.filter_by(is_active=True).all()]
         return jsonify(student_offers)
     except Exception as e:
