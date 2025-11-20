@@ -102,8 +102,15 @@ def create_service_package(data):
     try:
         # Safe numeric parsing - handle both field naming conventions
         pay_for = int(data.get('pay_for') or data.get('paid_sessions') or 0)
-        free_services = int(data.get('free_services') or data.get('free_sessions') or 0)
-        total_services = int(data.get('total_services') or (pay_for + free_services))
+        total_services = int(data.get('total_services') or 0)
+        
+        # Calculate free_services if not provided
+        free_services_input = data.get('free_services') or data.get('free_sessions')
+        if free_services_input is not None and str(free_services_input).strip():
+            free_services = int(free_services_input)
+        else:
+            # Auto-calculate: free_services = total_services - pay_for
+            free_services = max(total_services - pay_for, 0)
         
         # Calculate benefit percentage
         benefit_percent = 0
@@ -144,10 +151,24 @@ def update_service_package(package_id, data):
         package.package_type = data.get('package_type', package.package_type)
 
         # Safe numeric updates
-        if 'paid_sessions' in data:
-            package.paid_sessions = int(data.get('paid_sessions') or 0)
-        if 'free_sessions' in data:
-            package.free_sessions = int(data.get('free_sessions') or 0)
+        if 'pay_for' in data or 'paid_sessions' in data:
+            package.pay_for = int(data.get('pay_for') or data.get('paid_sessions') or 0)
+        
+        if 'total_services' in data:
+            package.total_services = int(data.get('total_services') or 0)
+        
+        # Calculate free_services if not explicitly provided
+        free_services_input = data.get('free_services') or data.get('free_sessions')
+        if free_services_input is not None and str(free_services_input).strip():
+            package.free_services = int(free_services_input)
+        elif 'total_services' in data and 'pay_for' in data:
+            # Auto-calculate: free_services = total_services - pay_for
+            package.free_services = max(package.total_services - package.pay_for, 0)
+        
+        # Recalculate benefit percentage
+        if package.pay_for > 0:
+            package.benefit_percent = (package.free_services / package.pay_for) * 100
+        
         if 'price' in data:
             price_val = data.get('price')
             package.price = float(price_val) if price_val and str(price_val).strip() else 0.0
