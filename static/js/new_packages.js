@@ -583,3 +583,70 @@ window.assignMembershipToCustomer = function(membershipId) {
     // Redirect to assign packages page
     window.location.href = '/assign-packages/';
 };
+
+// Save Yearly Membership function
+window.saveYearlyMembership = function() {
+    console.log('Saving yearly membership...');
+    
+    const form = document.getElementById('yearlyForm');
+    if (!form) {
+        console.error('Yearly membership form not found');
+        alert('Form not found. Please refresh the page and try again.');
+        return;
+    }
+
+    const formData = new FormData(form);
+    
+    const membershipData = {
+        name: formData.get('name'),
+        price: parseFloat(formData.get('price')),
+        discount_percent: parseFloat(formData.get('discount_percent')),
+        validity_months: parseInt(formData.get('validity_months')),
+        extra_benefits: formData.get('extra_benefits') || ''
+    };
+
+    if (!membershipData.name || !membershipData.price || !membershipData.discount_percent || !membershipData.validity_months) {
+        alert('Please fill in all required fields');
+        return;
+    }
+
+    const saveBtn = document.getElementById('saveYearlyMembershipBtn');
+    const originalText = saveBtn.innerHTML;
+    saveBtn.disabled = true;
+    saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Saving...';
+
+    fetch('/api/yearly-memberships', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(membershipData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success || data.id) {
+            alert('Yearly membership saved successfully!');
+            const modal = bootstrap.Modal.getInstance(document.getElementById('yearlyModal'));
+            if (modal) {
+                modal.hide();
+            }
+            form.reset();
+            
+            if (typeof loadYearlyPackages === 'function') {
+                loadYearlyPackages();
+            } else {
+                location.reload();
+            }
+        } else {
+            alert('Error saving yearly membership: ' + (data.error || 'Unknown error'));
+        }
+    })
+    .catch(error => {
+        console.error('Error saving yearly membership:', error);
+        alert('Error saving yearly membership. Please try again.');
+    })
+    .finally(() => {
+        saveBtn.disabled = false;
+        saveBtn.innerHTML = originalText;
+    });
+};
