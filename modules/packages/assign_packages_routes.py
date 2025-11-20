@@ -192,7 +192,14 @@ def api_assign_and_pay():
             app.logger.info(f"   - Actual price: {getattr(package, 'actual_price', 'NOT SET')}")
 
         # Calculate pricing with consistent GST logic
-        subtotal = float(assignment_data.get('price_paid', 0))
+        # For memberships and other packages, get price from package if not provided
+        if assignment_data.get('price_paid'):
+            subtotal = float(assignment_data.get('price_paid', 0))
+        else:
+            # Get price from package
+            package_price = getattr(package, 'price', 0) or getattr(package, 'actual_price', 0)
+            subtotal = float(package_price) if package_price else 0
+        
         discount = float(assignment_data.get('discount', 0))
 
         # Calculate taxable amount (subtotal - discount)
