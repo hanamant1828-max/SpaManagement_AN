@@ -100,18 +100,27 @@ def get_service_package_by_id(package_id):
 def create_service_package(data):
     """Create new service package"""
     try:
-        # Safe numeric parsing
-        paid_sessions = int(data.get('paid_sessions') or 0)
-        free_sessions = int(data.get('free_sessions') or 0)
+        # Safe numeric parsing - handle both field naming conventions
+        pay_for = int(data.get('pay_for') or data.get('paid_sessions') or 0)
+        free_services = int(data.get('free_services') or data.get('free_sessions') or 0)
+        total_services = int(data.get('total_services') or (pay_for + free_services))
+        
+        # Calculate benefit percentage
+        benefit_percent = 0
+        if pay_for > 0:
+            benefit_percent = (free_services / pay_for) * 100
+        
         price_val = data.get('price', 0)
         price = float(price_val) if price_val and str(price_val).strip() else 0.0
         validity_months = int(data.get('validity_months') or 12)
 
         package = ServicePackage(
             name=data['name'],
-            package_type=data.get('package_type', 'service'),
-            paid_sessions=paid_sessions,
-            free_sessions=free_sessions,
+            package_type=data.get('package_type', 'service_package'),
+            pay_for=pay_for,
+            total_services=total_services,
+            free_services=free_services,
+            benefit_percent=benefit_percent,
             price=price,
             validity_months=validity_months,
             is_active=data.get('is_active', True)

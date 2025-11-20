@@ -162,10 +162,10 @@
                                                     <small class="text-muted d-block">Service: {{ package.service.name }}</small>
                                                 {% endif %}
                                             </td>
-                                            <td>{{ package.pay_for }}</td>
-                                            <td>{{ package.total_services }}</td>
-                                            <td class="text-success">{{ package.free_services }}</td>
-                                            <td>{{ package.benefit_percent }}%</td>
+                                            <td>{{ package.pay_for if package.pay_for else 0 }}</td>
+                                            <td>{{ package.total_services if package.total_services else 0 }}</td>
+                                            <td class="text-success"><strong>{{ package.free_services if package.free_services else 0 }}</strong></td>
+                                            <td>{{ "%.1f"|format(package.benefit_percent) if package.benefit_percent else 0 }}%</td>
                                             <td>{{ package.validity_months }} months</td>
                                             <td>
                                                 <div class="btn-group btn-group-sm">
