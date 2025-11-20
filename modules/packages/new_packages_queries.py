@@ -104,13 +104,9 @@ def create_service_package(data):
         pay_for = int(data.get('pay_for') or data.get('paid_sessions') or 0)
         total_services = int(data.get('total_services') or 0)
         
-        # Calculate free_services if not provided
-        free_services_input = data.get('free_services') or data.get('free_sessions')
-        if free_services_input is not None and str(free_services_input).strip():
-            free_services = int(free_services_input)
-        else:
-            # Auto-calculate: free_services = total_services - pay_for
-            free_services = max(total_services - pay_for, 0)
+        # ALWAYS calculate free_services = total_services - pay_for
+        # This ensures consistency regardless of what was submitted
+        free_services = max(total_services - pay_for, 0)
         
         # Calculate benefit percentage
         benefit_percent = 0
@@ -134,6 +130,8 @@ def create_service_package(data):
         )
         db.session.add(package)
         db.session.commit()
+        
+        logging.info(f"Created service package: {package.name} - Pay for: {pay_for}, Total: {total_services}, Free: {free_services}")
         return package
     except Exception as e:
         db.session.rollback()
@@ -157,17 +155,14 @@ def update_service_package(package_id, data):
         if 'total_services' in data:
             package.total_services = int(data.get('total_services') or 0)
         
-        # Calculate free_services if not explicitly provided
-        free_services_input = data.get('free_services') or data.get('free_sessions')
-        if free_services_input is not None and str(free_services_input).strip():
-            package.free_services = int(free_services_input)
-        elif 'total_services' in data and 'pay_for' in data:
-            # Auto-calculate: free_services = total_services - pay_for
-            package.free_services = max(package.total_services - package.pay_for, 0)
+        # ALWAYS recalculate free_services based on total_services and pay_for
+        package.free_services = max(package.total_services - package.pay_for, 0)
         
         # Recalculate benefit percentage
         if package.pay_for > 0:
             package.benefit_percent = (package.free_services / package.pay_for) * 100
+        else:
+            package.benefit_percent = 0
         
         if 'price' in data:
             price_val = data.get('price')
@@ -183,6 +178,7 @@ def update_service_package(package_id, data):
                 package.is_active = bool(is_active_raw)
 
         db.session.commit()
+        logging.info(f"Updated service package: {package.name} - Pay for: {package.pay_for}, Total: {package.total_services}, Free: {package.free_services}")
         return package
     except Exception as e:
         db.session.rollback()
