@@ -67,8 +67,10 @@
                                                 <br><span class="text-muted">+{{ membership.membership_services|length - 2 }} more</span>
                                             {% endif %}
                                         </small>
+                                        {% elif membership.services_included %}
+                                        <small>{{ membership.services_included }}</small>
                                         {% else %}
-                                        <span class="text-muted">No services</span>
+                                        <span class="text-muted">No services specified</span>
                                         {% endif %}
                                     </td>
                                     <td>

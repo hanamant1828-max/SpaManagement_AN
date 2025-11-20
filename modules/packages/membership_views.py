@@ -103,8 +103,8 @@ def membership_add_submit():
                 except (ValueError, TypeError):
                     continue
         
-        # Create services summary
-        services_summary = ', '.join(service_names) if service_names else services_included
+        # Create services summary - always use actual service names
+        services_summary = ', '.join(service_names) if service_names else 'No services selected'
         
         # Create membership
         membership = Membership(
