@@ -6,11 +6,7 @@
 // Global functions for student offer management
 window.editStudentOffer = function(offerId) {
     console.log('Edit student offer:', offerId);
-    if (typeof loadStudentOfferForEdit === 'function') {
-        loadStudentOfferForEdit(offerId);
-    } else {
-        alert('Edit functionality coming soon');
-    }
+    window.location.href = `/packages/student-offers/edit/${offerId}`;
 };
 
 window.deleteStudentOffer = function(offerId) {
@@ -103,7 +99,7 @@ function loadStudentPackages() {
 // Edit student offer - redirect to dedicated edit page
 function editStudentOffer(offerId) {
     console.log('Editing student offer:', offerId);
-    window.location.href = `/student-offers/edit?id=${offerId}`;
+    window.location.href = `/packages/student-offers/edit/${offerId}`;
 }
 
 // Delete student offer

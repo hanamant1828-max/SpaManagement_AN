@@ -476,8 +476,8 @@ async function handleEditFormSubmit(event) {
  */
 function editStudentOffer(offerId) {
     console.log('Editing student offer:', offerId);
-    // Option 1: Redirect to a dedicated edit page
-    window.location.href = `/student-offers/edit?id=${offerId}`;
+    // Redirect to the dedicated edit page
+    window.location.href = `/packages/student-offers/edit/${offerId}`;
 }
 
 /**

@@ -2150,7 +2150,7 @@ async function loadStudentPackages() {
 
 function editStudentOffer(offerId) {
     console.log('Edit student offer:', offerId);
-    showToast('Edit functionality will be available soon', 'info');
+    window.location.href = `/packages/student-offers/edit/${offerId}`;
 }
 
 function deleteStudentOffer(offerId) {
