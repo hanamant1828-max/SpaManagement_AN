@@ -943,9 +943,68 @@ function submitPrepaidForm() {
 
 // Function to edit prepaid package
 function editPrepaid(packageId) {
-    // Implementation for editing prepaid package
     console.log('Edit prepaid package:', packageId);
-    // You can add modal opening logic here
+    
+    // Fetch package data
+    fetch(`/api/prepaid-packages/${packageId}`)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            // Populate form fields
+            document.getElementById('editPrepaidId').value = data.id;
+            document.getElementById('editPrepaidName').value = data.name;
+            document.getElementById('editPrepaidActualPrice').value = data.actual_price;
+            document.getElementById('editPrepaidAfterValue').value = data.after_value;
+            document.getElementById('editPrepaidBenefitPercent').value = data.benefit_percent;
+            document.getElementById('editPrepaidValidityMonths').value = data.validity_months;
+            
+            // Show modal
+            const modal = new bootstrap.Modal(document.getElementById('editPrepaidModal'));
+            modal.show();
+        })
+        .catch(error => {
+            console.error('Error loading prepaid package:', error);
+            alert('Error loading prepaid package details');
+        });
+}
+
+// Function to update prepaid package
+function updatePrepaid() {
+    const packageId = document.getElementById('editPrepaidId').value;
+    const data = {
+        name: document.getElementById('editPrepaidName').value,
+        actual_price: document.getElementById('editPrepaidActualPrice').value,
+        after_value: document.getElementById('editPrepaidAfterValue').value,
+        benefit_percent: document.getElementById('editPrepaidBenefitPercent').value,
+        validity_months: document.getElementById('editPrepaidValidityMonths').value
+    };
+    
+    fetch(`/api/prepaid-packages/${packageId}`, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(result => {
+        if (result.success) {
+            alert(result.message);
+            const modal = bootstrap.Modal.getInstance(document.getElementById('editPrepaidModal'));
+            modal.hide();
+            location.reload();
+        } else {
+            alert('Error: ' + result.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error updating package');
+    });
 }
 
 // Function to delete prepaid package
