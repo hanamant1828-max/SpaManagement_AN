@@ -113,6 +113,29 @@ def api_get_prepaid_packages():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/prepaid-packages/<int:package_id>', methods=['GET'])
+@login_required
+def api_get_prepaid_package(package_id):
+    """Get single prepaid package by ID"""
+    try:
+        package = get_prepaid_package_by_id(package_id)
+        if not package:
+            return jsonify({'success': False, 'error': 'Package not found'}), 404
+        
+        return jsonify({
+            'id': package.id,
+            'name': package.name,
+            'actual_price': package.actual_price,
+            'after_value': package.after_value,
+            'benefit_percent': package.benefit_percent,
+            'validity_months': package.validity_months,
+            'money_saved': package.money_saved,
+            'is_active': package.is_active,
+            'created_at': package.created_at.isoformat() if package.created_at else None
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 @app.route('/api/prepaid-packages', methods=['POST'])
 @login_required
 def api_create_prepaid_package():
@@ -161,6 +184,31 @@ def api_update_prepaid_package(package_id):
     except Exception as e:
         logging.error(f"Error updating prepaid package: {e}")
         return jsonify({'error': str(e)}), 500
+
+@app.route('/api/prepaid-packages/<int:package_id>', methods=['PUT'])
+@login_required
+def api_update_prepaid_package(package_id):
+    """Update prepaid package"""
+    try:
+        data = request.get_json()
+        package = update_prepaid_package(package_id, data)
+        
+        return jsonify({
+            'success': True,
+            'message': 'Prepaid package updated successfully',
+            'package': {
+                'id': package.id,
+                'name': package.name,
+                'actual_price': package.actual_price,
+                'after_value': package.after_value,
+                'benefit_percent': package.benefit_percent,
+                'validity_months': package.validity_months
+            }
+        })
+    except ValueError as e:
+        return jsonify({'success': False, 'error': str(e)}), 404
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/api/prepaid-packages/<int:package_id>', methods=['DELETE'])
 @login_required
