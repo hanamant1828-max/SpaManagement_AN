@@ -1210,17 +1210,7 @@ function submitServiceForm() {
     </div>
 </div>
 
-            location.reload();
-        } else {
-            alert('Error: ' + data.error);
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        alert('Error creating package');
-    });
-}
-
+<script>
 // Service package CRUD functions
 function editService(packageId) {
     console.log('Edit service package:', packageId);
