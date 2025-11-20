@@ -153,6 +153,322 @@ function assignStudentOffer(offerId) {
     assignModal.show();
 }
 
+// Edit prepaid package
+window.editPrepaid = function(packageId) {
+    console.log('Edit prepaid package:', packageId);
+    
+    fetch(`/api/prepaid-packages/${packageId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data && data.id) {
+                // Populate edit modal fields
+                document.getElementById('editPrepaidId').value = data.id;
+                document.getElementById('editPrepaidName').value = data.name;
+                document.getElementById('editPrepaidActualPrice').value = data.actual_price;
+                document.getElementById('editPrepaidAfterValue').value = data.after_value;
+                document.getElementById('editPrepaidBenefitPercent').value = data.benefit_percent;
+                document.getElementById('editPrepaidValidityMonths').value = data.validity_months;
+                
+                // Show edit modal
+                const editModal = new bootstrap.Modal(document.getElementById('editPrepaidModal'));
+                editModal.show();
+            }
+        })
+        .catch(error => {
+            console.error('Error loading prepaid package:', error);
+            alert('Error loading prepaid package details');
+        });
+};
+
+// Update prepaid package
+window.updatePrepaid = function() {
+    const packageId = document.getElementById('editPrepaidId').value;
+    const formData = {
+        name: document.getElementById('editPrepaidName').value,
+        actual_price: parseFloat(document.getElementById('editPrepaidActualPrice').value),
+        after_value: parseFloat(document.getElementById('editPrepaidAfterValue').value),
+        benefit_percent: parseFloat(document.getElementById('editPrepaidBenefitPercent').value),
+        validity_months: parseInt(document.getElementById('editPrepaidValidityMonths').value),
+        is_active: true
+    };
+
+    fetch(`/api/prepaid-packages/${packageId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData)
+    })
+    .then(response => response.json())
+    .then(result => {
+        if (result.success) {
+            alert('Prepaid package updated successfully!');
+            location.reload();
+        } else {
+            alert('Error: ' + (result.error || 'Unknown error'));
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error updating prepaid package');
+    });
+};
+
+// Delete prepaid package
+window.deletePrepaid = function(packageId) {
+    if (!confirm('Are you sure you want to delete this prepaid package?')) return;
+    
+    fetch(`/api/prepaid-packages/${packageId}`, { method: 'DELETE' })
+        .then(response => response.json())
+        .then(result => {
+            if (result.success) {
+                alert('Prepaid package deleted successfully!');
+                location.reload();
+            } else {
+                alert('Error: ' + (result.error || 'Unknown error'));
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error deleting prepaid package');
+        });
+};
+
+// Edit service package
+window.editService = function(packageId) {
+    console.log('Editing service:', packageId);
+    
+    fetch(`/api/service-packages/${packageId}`)
+        .then(response => {
+            console.log('Response status:', response.status);
+            return response.json();
+        })
+        .then(data => {
+            console.log('Service data received:', data);
+            if (data && data.id) {
+                // Populate edit modal
+                document.getElementById('editServiceId').value = data.id;
+                document.getElementById('editServiceName').value = data.name;
+                document.getElementById('editServicePayFor').value = data.pay_for;
+                document.getElementById('editServiceFreeServices').value = data.free_services;
+                document.getElementById('editServiceValidityMonths').value = data.validity_months;
+                
+                // Show modal
+                const editModal = new bootstrap.Modal(document.getElementById('editServiceModal'));
+                editModal.show();
+            }
+        })
+        .catch(error => {
+            console.error('Error loading service package:', error);
+            alert('Error loading service package details');
+        });
+};
+
+// Update service package
+window.updateService = function() {
+    const packageId = document.getElementById('editServiceId').value;
+    const formData = {
+        name: document.getElementById('editServiceName').value,
+        pay_for: parseInt(document.getElementById('editServicePayFor').value),
+        free_services: parseInt(document.getElementById('editServiceFreeServices').value),
+        validity_months: parseInt(document.getElementById('editServiceValidityMonths').value),
+        is_active: true
+    };
+
+    fetch(`/api/service-packages/${packageId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData)
+    })
+    .then(response => response.json())
+    .then(result => {
+        if (result.success) {
+            alert('Service package updated successfully!');
+            location.reload();
+        } else {
+            alert('Error: ' + (result.error || 'Unknown error'));
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error updating service package');
+    });
+};
+
+// Delete service package
+window.deleteService = function(packageId) {
+    if (!confirm('Are you sure you want to delete this service package?')) return;
+    
+    fetch(`/api/service-packages/${packageId}`, { method: 'DELETE' })
+        .then(response => response.json())
+        .then(result => {
+            if (result.success) {
+                alert('Service package deleted successfully!');
+                location.reload();
+            } else {
+                alert('Error: ' + (result.error || 'Unknown error'));
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error deleting service package');
+        });
+};
+
+// Edit yearly membership
+window.editYearly = function(membershipId) {
+    console.log('Edit yearly membership:', membershipId);
+    
+    fetch(`/api/yearly-memberships/${membershipId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && data.membership) {
+                const membership = data.membership;
+                document.getElementById('editYearlyId').value = membership.id;
+                document.getElementById('editYearlyName').value = membership.name;
+                document.getElementById('editYearlyPrice').value = membership.price;
+                document.getElementById('editYearlyDiscountPercent').value = membership.discount_percent;
+                document.getElementById('editYearlyValidityMonths').value = membership.validity_months;
+                document.getElementById('editYearlyExtraBenefits').value = membership.extra_benefits || '';
+                
+                const editModal = new bootstrap.Modal(document.getElementById('editYearlyModal'));
+                editModal.show();
+            }
+        })
+        .catch(error => {
+            console.error('Error loading yearly membership:', error);
+            alert('Error loading yearly membership details');
+        });
+};
+
+// Update yearly membership
+window.updateYearly = function() {
+    const membershipId = document.getElementById('editYearlyId').value;
+    const formData = {
+        name: document.getElementById('editYearlyName').value,
+        price: parseFloat(document.getElementById('editYearlyPrice').value),
+        discount_percent: parseFloat(document.getElementById('editYearlyDiscountPercent').value),
+        validity_months: parseInt(document.getElementById('editYearlyValidityMonths').value),
+        extra_benefits: document.getElementById('editYearlyExtraBenefits').value,
+        is_active: true
+    };
+
+    fetch(`/api/yearly-memberships/${membershipId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData)
+    })
+    .then(response => response.json())
+    .then(result => {
+        if (result.success) {
+            alert('Yearly membership updated successfully!');
+            location.reload();
+        } else {
+            alert('Error: ' + (result.error || 'Unknown error'));
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error updating yearly membership');
+    });
+};
+
+// Delete yearly membership
+window.deleteYearly = function(membershipId) {
+    if (!confirm('Are you sure you want to delete this yearly membership?')) return;
+    
+    fetch(`/api/yearly-memberships/${membershipId}`, { method: 'DELETE' })
+        .then(response => response.json())
+        .then(result => {
+            if (result.success) {
+                alert('Yearly membership deleted successfully!');
+                location.reload();
+            } else {
+                alert('Error: ' + (result.error || 'Unknown error'));
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error deleting yearly membership');
+        });
+};
+
+// Edit kitty party
+window.editKitty = function(partyId) {
+    console.log('Edit kitty party:', partyId);
+    
+    fetch(`/api/kitty-parties/${partyId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && data.party) {
+                const party = data.party;
+                document.getElementById('editKittyId').value = party.id;
+                document.getElementById('editKittyName').value = party.name;
+                document.getElementById('editKittyPrice').value = party.price;
+                document.getElementById('editKittyMinGuests').value = party.min_guests;
+                document.getElementById('editKittyValidityMonths').value = party.validity_months;
+                document.getElementById('editKittyInclusions').value = party.inclusions || '';
+                
+                const editModal = new bootstrap.Modal(document.getElementById('editKittyModal'));
+                editModal.show();
+            }
+        })
+        .catch(error => {
+            console.error('Error loading kitty party:', error);
+            alert('Error loading kitty party details');
+        });
+};
+
+// Update kitty party
+window.updateKitty = function() {
+    const partyId = document.getElementById('editKittyId').value;
+    const formData = {
+        name: document.getElementById('editKittyName').value,
+        price: parseFloat(document.getElementById('editKittyPrice').value),
+        min_guests: parseInt(document.getElementById('editKittyMinGuests').value),
+        validity_months: parseInt(document.getElementById('editKittyValidityMonths').value),
+        inclusions: document.getElementById('editKittyInclusions').value,
+        is_active: true
+    };
+
+    fetch(`/api/kitty-parties/${partyId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData)
+    })
+    .then(response => response.json())
+    .then(result => {
+        if (result.success) {
+            alert('Kitty party updated successfully!');
+            location.reload();
+        } else {
+            alert('Error: ' + (result.error || 'Unknown error'));
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error updating kitty party');
+    });
+};
+
+// Delete kitty party
+window.deleteKitty = function(partyId) {
+    if (!confirm('Are you sure you want to delete this kitty party?')) return;
+    
+    fetch(`/api/kitty-parties/${partyId}`, { method: 'DELETE' })
+        .then(response => response.json())
+        .then(result => {
+            if (result.success) {
+                alert('Kitty party deleted successfully!');
+                location.reload();
+            } else {
+                alert('Error: ' + (result.error || 'Unknown error'));
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error deleting kitty party');
+        });
+};
+
 // Initialize when page loads
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Student offers JavaScript loaded');

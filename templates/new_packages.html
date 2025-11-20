@@ -997,6 +997,160 @@ function submitServiceForm() {
             alert(data.message);
             const modal = bootstrap.Modal.getInstance(document.getElementById('serviceModal'));
             modal.hide();
+
+
+<!-- Edit Prepaid Package Modal -->
+<div class="modal fade" id="editPrepaidModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Edit Prepaid Package</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="editPrepaidId">
+                <div class="mb-3">
+                    <label class="form-label">Package Name</label>
+                    <input type="text" id="editPrepaidName" class="form-control" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Actual Price (₹)</label>
+                    <input type="number" id="editPrepaidActualPrice" class="form-control" step="0.01" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">After Value (₹)</label>
+                    <input type="number" id="editPrepaidAfterValue" class="form-control" step="0.01" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Benefit Percent (%)</label>
+                    <input type="number" id="editPrepaidBenefitPercent" class="form-control" step="0.01" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Validity (Months)</label>
+                    <input type="number" id="editPrepaidValidityMonths" class="form-control" required>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="updatePrepaid()">Update</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Service Package Modal -->
+<div class="modal fade" id="editServiceModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Edit Service Package</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="editServiceId">
+                <div class="mb-3">
+                    <label class="form-label">Package Name</label>
+                    <input type="text" id="editServiceName" class="form-control" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Pay For (Sessions)</label>
+                    <input type="number" id="editServicePayFor" class="form-control" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Free Services</label>
+                    <input type="number" id="editServiceFreeServices" class="form-control" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Validity (Months)</label>
+                    <input type="number" id="editServiceValidityMonths" class="form-control" required>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="updateService()">Update</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Yearly Membership Modal -->
+<div class="modal fade" id="editYearlyModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Edit Yearly Membership</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="editYearlyId">
+                <div class="mb-3">
+                    <label class="form-label">Membership Name</label>
+                    <input type="text" id="editYearlyName" class="form-control" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Price (₹)</label>
+                    <input type="number" id="editYearlyPrice" class="form-control" step="0.01" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Discount Percent (%)</label>
+                    <input type="number" id="editYearlyDiscountPercent" class="form-control" step="0.01" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Validity (Months)</label>
+                    <input type="number" id="editYearlyValidityMonths" class="form-control" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Extra Benefits</label>
+                    <textarea id="editYearlyExtraBenefits" class="form-control" rows="3"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="updateYearly()">Update</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Kitty Party Modal -->
+<div class="modal fade" id="editKittyModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Edit Kitty Party</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="editKittyId">
+                <div class="mb-3">
+                    <label class="form-label">Party Name</label>
+                    <input type="text" id="editKittyName" class="form-control" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Price (₹)</label>
+                    <input type="number" id="editKittyPrice" class="form-control" step="0.01" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Minimum Guests</label>
+                    <input type="number" id="editKittyMinGuests" class="form-control" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Validity (Months)</label>
+                    <input type="number" id="editKittyValidityMonths" class="form-control" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Inclusions</label>
+                    <textarea id="editKittyInclusions" class="form-control" rows="3"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="updateKitty()">Update</button>
+            </div>
+        </div>
+    </div>
+</div>
+
             location.reload();
         } else {
             alert('Error: ' + data.error);
