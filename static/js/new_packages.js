@@ -103,7 +103,7 @@ function loadStudentPackages() {
 // Edit student offer - redirect to dedicated edit page
 function editStudentOffer(offerId) {
     console.log('Editing student offer:', offerId);
-    window.location.href = `/packages/student-offers/edit?id=${offerId}`;
+    window.location.href = `/student-offers/edit?id=${offerId}`;
 }
 
 // Delete student offer
