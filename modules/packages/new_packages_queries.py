@@ -99,35 +99,66 @@ def get_service_package_by_id(package_id):
 
 def create_service_package(data):
     """Create new service package"""
-    package = ServicePackage(
-        name=data['name'],
-        service_id=int(data['service_id']) if data.get('service_id') else None,
-        pay_for=int(data['pay_for']),
-        total_services=int(data['total_services']),
-        benefit_percent=float(data['benefit_percent']),
-        validity_months=int(data.get('validity_months')) if data.get('validity_months') else None,
-        is_active=data.get('is_active', True)
-    )
-    db.session.add(package)
-    db.session.commit()
-    return package
+    try:
+        # Safe numeric parsing
+        paid_sessions = int(data.get('paid_sessions') or 0)
+        free_sessions = int(data.get('free_sessions') or 0)
+        price_val = data.get('price', 0)
+        price = float(price_val) if price_val and str(price_val).strip() else 0.0
+        validity_months = int(data.get('validity_months') or 12)
+
+        package = ServicePackage(
+            name=data['name'],
+            package_type=data.get('package_type', 'service'),
+            paid_sessions=paid_sessions,
+            free_sessions=free_sessions,
+            price=price,
+            validity_months=validity_months,
+            is_active=data.get('is_active', True)
+        )
+        db.session.add(package)
+        db.session.commit()
+        return package
+    except Exception as e:
+        db.session.rollback()
+        logging.error(f"Error creating service package: {e}")
+        raise
 
 def update_service_package(package_id, data):
-    """Update service package"""
-    package = ServicePackage.query.get(package_id)
-    if not package:
-        raise ValueError("Service package not found")
+    """Update existing service package"""
+    try:
+        package = ServicePackage.query.get(package_id)
+        if not package:
+            raise ValueError("Package not found")
 
-    package.name = data['name']
-    package.service_id = int(data['service_id']) if data.get('service_id') else None
-    package.pay_for = int(data['pay_for'])
-    package.total_services = int(data['total_services'])
-    package.benefit_percent = float(data['benefit_percent'])
-    package.validity_months = int(data.get('validity_months')) if data.get('validity_months') else None
-    package.is_active = data.get('is_active', True)
+        package.name = data.get('name', package.name)
+        package.package_type = data.get('package_type', package.package_type)
 
-    db.session.commit()
-    return package
+        # Safe numeric updates
+        if 'paid_sessions' in data:
+            package.paid_sessions = int(data.get('paid_sessions') or 0)
+        if 'free_sessions' in data:
+            package.free_sessions = int(data.get('free_sessions') or 0)
+        if 'price' in data:
+            price_val = data.get('price')
+            package.price = float(price_val) if price_val and str(price_val).strip() else 0.0
+        if 'validity_months' in data:
+            package.validity_months = int(data.get('validity_months') or 12)
+        
+        if 'is_active' in data:
+            is_active_raw = data.get('is_active')
+            if isinstance(is_active_raw, str):
+                package.is_active = is_active_raw.lower() in ('true', '1', 'yes', 'on', 'checked')
+            else:
+                package.is_active = bool(is_active_raw)
+
+        db.session.commit()
+        return package
+    except Exception as e:
+        db.session.rollback()
+        logging.error(f"Error updating service package: {e}")
+        raise
+
 
 def delete_service_package(package_id):
     """Delete service package"""

@@ -169,12 +169,12 @@
                                             <td>{{ package.validity_months }} months</td>
                                             <td>
                                                 <div class="btn-group btn-group-sm">
-                                                    <button class="btn btn-outline-primary btn-sm" 
+                                                    <button class="btn btn-outline-primary btn-sm"
                                                             onclick="editService({{ package.id }})"
                                                             title="Edit Package">
                                                         <i class="fas fa-edit"></i>
                                                     </button>
-                                                    <button class="btn btn-outline-danger btn-sm" 
+                                                    <button class="btn btn-outline-danger btn-sm"
                                                             onclick="deleteService({{ package.id }})"
                                                             title="Delete Package">
                                                         <i class="fas fa-trash"></i>
@@ -506,7 +506,7 @@
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Free Services</label>
-                        <input type="number" class="form-control" name="free_services" required>
+                        <input type="number" class="form-control" name="free_services" min="0" value="0" required>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Benefit Percentage</label>
