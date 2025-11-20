@@ -123,17 +123,19 @@ def api_get_prepaid_package(package_id):
             return jsonify({'success': False, 'error': 'Package not found'}), 404
         
         return jsonify({
+            'success': True,
             'id': package.id,
             'name': package.name,
-            'actual_price': package.actual_price,
-            'after_value': package.after_value,
-            'benefit_percent': package.benefit_percent,
-            'validity_months': package.validity_months,
-            'money_saved': package.money_saved,
+            'actual_price': float(package.actual_price) if package.actual_price else 0,
+            'after_value': float(package.after_value) if package.after_value else 0,
+            'benefit_percent': float(package.benefit_percent) if package.benefit_percent else 0,
+            'validity_months': int(package.validity_months) if package.validity_months else 12,
+            'money_saved': float(package.money_saved) if hasattr(package, 'money_saved') and package.money_saved else 0,
             'is_active': package.is_active,
             'created_at': package.created_at.isoformat() if package.created_at else None
-        })
+        }), 200
     except Exception as e:
+        logging.error(f"Error getting prepaid package {package_id}: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/api/prepaid-packages', methods=['POST'])

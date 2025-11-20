@@ -158,25 +158,33 @@ window.editPrepaid = function(packageId) {
     console.log('Edit prepaid package:', packageId);
     
     fetch(`/api/prepaid-packages/${packageId}`)
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
         .then(data => {
-            if (data && data.id) {
+            console.log('Prepaid package data received:', data);
+            if (data && data.success && data.id) {
                 // Populate edit modal fields
                 document.getElementById('editPrepaidId').value = data.id;
-                document.getElementById('editPrepaidName').value = data.name;
-                document.getElementById('editPrepaidActualPrice').value = data.actual_price;
-                document.getElementById('editPrepaidAfterValue').value = data.after_value;
-                document.getElementById('editPrepaidBenefitPercent').value = data.benefit_percent;
-                document.getElementById('editPrepaidValidityMonths').value = data.validity_months;
+                document.getElementById('editPrepaidName').value = data.name || '';
+                document.getElementById('editPrepaidActualPrice').value = data.actual_price || 0;
+                document.getElementById('editPrepaidAfterValue').value = data.after_value || 0;
+                document.getElementById('editPrepaidBenefitPercent').value = data.benefit_percent || 0;
+                document.getElementById('editPrepaidValidityMonths').value = data.validity_months || 12;
                 
                 // Show edit modal
                 const editModal = new bootstrap.Modal(document.getElementById('editPrepaidModal'));
                 editModal.show();
+            } else {
+                alert('Error: ' + (data.error || 'Package data not found'));
             }
         })
         .catch(error => {
             console.error('Error loading prepaid package:', error);
-            alert('Error loading prepaid package details');
+            alert('Error loading prepaid package details: ' + error.message);
         });
 };
 
