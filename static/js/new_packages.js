@@ -40,12 +40,12 @@ window.deleteStudentOffer = function(offerId) {
     });
 };
 
-// Assign student offer
-function assignStudentOffer(offerId) {
+// Assign student offer - redirect to assign packages page
+window.assignStudentOffer = function(offerId) {
     console.log('Assigning student offer:', offerId);
     // Redirect to assign packages page with pre-selected student offer
     window.location.href = `/assign-packages/?package_type=student_offer&package_id=${offerId}`;
-}
+};
 
 // Load student packages data
 function loadStudentPackages() {

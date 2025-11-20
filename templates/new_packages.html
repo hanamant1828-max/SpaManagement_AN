@@ -272,7 +272,7 @@
                                             <td><span class="badge bg-info">{{ offer.valid_days }}</span></td>
                                             <td>
                                                 <div class="btn-group btn-group-sm">
-                                                    <a href="{{ url_for('assign_package_page', package_type='student', package_id=offer.id) }}" class="btn btn-success btn-sm"
+                                                    <a href="/assign-packages/?package_type=student_offer&package_id={{ offer.id }}" class="btn btn-success btn-sm"
                                                             title="Assign to Customer">
                                                         <i class="fas fa-user-plus"></i> Assign
                                                     </a>
@@ -321,7 +321,7 @@
                                             <td>{{ membership.extra_benefits[:30] if membership.extra_benefits else 'None' }}...</td>
                                             <td>
                                                 <div class="btn-group btn-group-sm">
-                                                    <a href="{{ url_for('assign_package_page', package_type='yearly', package_id=membership.id) }}" class="btn btn-success btn-sm"
+                                                    <a href="/assign-packages/?package_type=yearly&package_id={{ membership.id }}" class="btn btn-success btn-sm"
                                                             title="Assign to Customer">
                                                         <i class="fas fa-user-plus"></i> Assign
                                                     </a>
@@ -407,7 +407,7 @@
                                             <td>
                                                 <div class="btn-group btn-group-sm">
                                                     {% if party.is_active %}
-                                                    <a href="{{ url_for('assign_package_page', package_type='kitty', package_id=party.id) }}" class="btn btn-success btn-sm"
+                                                    <a href="/assign-packages/?package_type=kitty&package_id={{ party.id }}" class="btn btn-success btn-sm"
                                                             title="Assign to Customer">
                                                         <i class="fas fa-user-plus"></i> Assign
                                                     </a>
