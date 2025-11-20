@@ -318,6 +318,14 @@ body.services-page {
     color: var(--text-inverse);
 }
 
+/* Ensure all dropdown toggles are always visible */
+.dropdown .dropdown-toggle,
+.btn.dropdown-toggle {
+    opacity: 1 !important;
+    visibility: visible !important;
+    display: inline-flex !important;
+}
+
 /* === Forms === */
 .spa-form-group {
     margin-bottom: var(--space-6);

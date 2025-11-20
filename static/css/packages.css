@@ -206,6 +206,12 @@
     margin-right: 0;
 }
 
+/* Ensure dropdown buttons are always visible */
+.dropdown-toggle {
+    opacity: 1 !important;
+    visibility: visible !important;
+}
+
 .btn-outline-primary:hover {
     background-color: #667eea;
     border-color: #667eea;
