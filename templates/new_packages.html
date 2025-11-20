@@ -1296,7 +1296,7 @@ function deleteService(packageId) {
 function submitMembershipForm() {
     console.log('Submitting membership form...');
 
-    if (!validateForm()) {
+    if (!validateMembershipForm()) {
         console.log('Form validation failed, not submitting');
         return;
     }
@@ -1555,7 +1555,7 @@ function renderServiceList(services) {
                 // Only validate if form exists
                 const form = document.getElementById('membershipForm');
                 if (form) {
-                    setTimeout(() => validateForm(), 10);
+                    setTimeout(() => validateMembershipForm(), 10);
                 }
             } catch (error) {
                 console.error('Error in checkbox change handler:', error);
@@ -1570,7 +1570,7 @@ function renderServiceList(services) {
                 // Only validate if form exists
                 const form = document.getElementById('membershipForm');
                 if (form) {
-                    setTimeout(() => validateForm(), 10);
+                    setTimeout(() => validateMembershipForm(), 10);
                 }
             } catch (error) {
                 console.error('Error in sessions input handler:', error);
@@ -1583,7 +1583,7 @@ function renderServiceList(services) {
                 // Only validate if form exists
                 const form = document.getElementById('membershipForm');
                 if (form) {
-                    setTimeout(() => validateForm(), 10);
+                    setTimeout(() => validateMembershipForm(), 10);
                 }
             } catch (error) {
                 console.error('Error in sessions change handler:', error);
@@ -1594,7 +1594,7 @@ function renderServiceList(services) {
     console.log(`Rendered ${services.length} services with event listeners`);
 }
 
-function validateForm() {
+function validateMembershipForm() {
     try {
         const form = document.getElementById('membershipForm');
         if (!form) {
@@ -2754,8 +2754,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
 
                 // Add form validation listeners only when modal is open
-                form.addEventListener('input', () => validateForm());
-                form.addEventListener('change', () => validateForm());
+                form.addEventListener('input', () => validateMembershipForm());
+                form.addEventListener('change', () => validateMembershipForm());
             }
         });
 
