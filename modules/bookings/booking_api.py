@@ -226,8 +226,8 @@ def api_unaki_book_appointment():
 
         # Handle customer creation if needed
         customer = None
-        client_phone = data.get('client_phone', '').strip() or data.get('clientPhone', '').strip()
-        client_email = data.get('client_email', '').strip() or data.get('clientEmail', '').strip()
+        client_phone = (data.get('client_phone') or '').strip() or (data.get('clientPhone') or '').strip()
+        client_email = (data.get('client_email') or '').strip() or (data.get('clientEmail') or '').strip()
 
         # Try to find existing customer
         if client_id:
