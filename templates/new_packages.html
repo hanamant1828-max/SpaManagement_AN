@@ -34,7 +34,8 @@
                                 <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#yearlyModal">
                                     <i class="fas fa-calendar-alt me-2"></i>Yearly Membership
                                 </a></li>
-                                <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#kittyModal">
+                                <!-- Kitty Party option hidden -->
+                                <li style="display: none;"><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#kittyModal">
                                     <i class="fas fa-users me-2"></i>Kitty Party
                                 </a></li>
                             </ul>
@@ -76,7 +77,8 @@
                                 <span class="badge bg-dark ms-1">{{ stats.yearly_memberships }}</span>
                             </button>
                         </li>
-                        <li class="nav-item" role="presentation">
+                        <!-- Kitty Parties tab hidden -->
+                        <li class="nav-item" role="presentation" style="display: none;">
                             <button class="nav-link" id="kitty-tab" data-bs-toggle="tab" data-bs-target="#kitty" type="button" role="tab">
                                 <i class="fas fa-users"></i> Kitty Parties
                                 <span class="badge bg-danger ms-1">{{ stats.kitty_parties }}</span>
