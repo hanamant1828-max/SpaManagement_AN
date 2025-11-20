@@ -1520,7 +1520,7 @@ def unaki_create_appointment():
                 'error': f'Time slot conflicts with existing appointment(s) for {staff.full_name}: {", ".join(conflict_details)}'
             }), 400
 
-        # Handle customer data
+        # Handle customer data - ALWAYS create customer if not exists
         customer = None
         client_phone = data.get('clientPhone', '').strip() or data.get('client_phone', '').strip()
         client_email = data.get('clientEmail', '').strip() or data.get('client_email', '').strip()
@@ -1539,25 +1539,34 @@ def unaki_create_appointment():
         if not customer and client_email:
             customer = Customer.query.filter_by(email=client_email).first()
 
-        # Create customer if needed and contact info provided
-        if not customer and (client_phone or client_email):
+        # ALWAYS create customer if not found - this ensures visibility in Customer Management
+        if not customer:
             try:
                 name_parts = str(client_name).strip().split(' ', 1)
                 first_name = name_parts[0] if name_parts else 'Unknown'
                 last_name = name_parts[1] if len(name_parts) > 1 else ''
 
+                # Extract gender from client_name or use default
+                gender = data.get('gender', 'other').lower()
+                
                 customer = Customer(
                     first_name=first_name,
                     last_name=last_name,
                     phone=client_phone if client_phone else None,
                     email=client_email if client_email else None,
-                    is_active=True
+                    gender=gender if gender in ['male', 'female', 'other'] else 'other',
+                    is_active=True,
+                    total_visits=0,
+                    total_spent=0.0
                 )
                 db.session.add(customer)
                 db.session.flush()
-                print(f"Created new customer: {customer.full_name}")
+                print(f"✅ Created new customer: {customer.full_name} (ID: {customer.id}, Phone: {customer.phone})")
             except Exception as ce:
-                print(f"Warning: Could not create customer record: {ce}")
+                print(f"❌ Error creating customer: {ce}")
+                # Don't fail the booking if customer creation fails
+                import traceback
+                traceback.print_exc()
 
         # Create UnakiBooking entry (timestamps will use IST from model defaults)
         unaki_booking = UnakiBooking(
