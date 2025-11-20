@@ -573,52 +573,41 @@ class AppointmentContextMenu {
 
     handleAssignPay(appointmentId) {
         console.log('🎬 Context menu action: assign_pay for appointment', appointmentId);
-        console.log('Redirecting to billing for appointment', appointmentId);
+        console.log('Redirecting to assign packages page for appointment', appointmentId);
 
         // Get appointment data first
         fetch(`/api/unaki/bookings/${appointmentId}`)
             .then(response => response.json())
             .then(data => {
-                console.log('Appointment data for billing:', data);
+                console.log('Appointment data for package assignment:', data);
 
                 if (data.success && data.booking) {
                     const booking = data.booking;
-                    const bookingSource = booking.booking_source;
+                    const clientId = booking.client_id;
+                    const clientName = booking.client_name;
+                    const clientPhone = booking.client_phone;
 
-                    console.log('Booking source:', bookingSource);
+                    console.log('Client ID from booking:', clientId);
+                    console.log('Client name from booking:', clientName);
+                    console.log('Client phone from booking:', clientPhone);
 
-                    // For online bookings, go directly to integrated billing
-                    if (bookingSource === 'online') {
-                        console.log('✅ Online booking detected, redirecting to integrated billing');
-                        window.location.href = `/integrated-billing?appointment_id=${appointmentId}`;
+                    // If we have a valid client_id, redirect with it
+                    if (clientId && clientId > 0) {
+                        console.log('✅ Valid client_id found, redirecting to assign-packages with customer_id:', clientId);
+                        window.location.href = `/assign-packages?customer_id=${clientId}`;
                     } else {
-                        // For other bookings, check if customer exists
-                        const clientId = booking.client_id;
-                        const clientName = booking.client_name;
-                        const clientPhone = booking.client_phone;
-
-                        console.log('Client ID from booking:', clientId);
-                        console.log('Client name from booking:', clientName);
-                        console.log('Client phone from booking:', clientPhone);
-
-                        // If we have a valid client_id, use it
-                        if (clientId && clientId > 0) {
-                            console.log('✅ Valid client_id found, redirecting to billing with customer_id:', clientId);
-                            window.location.href = `/integrated-billing?appointment_id=${appointmentId}&customer_id=${clientId}`;
-                        } else {
-                            // If no client_id, go to billing and it will handle customer creation
-                            console.log('⚠️ No client_id, redirecting to billing to create customer');
-                            window.location.href = `/integrated-billing?appointment_id=${appointmentId}`;
-                        }
+                        // If no client_id, redirect to assign-packages without customer pre-selection
+                        console.log('⚠️ No client_id, redirecting to assign-packages');
+                        window.location.href = `/assign-packages`;
                     }
                 } else {
                     console.error('Failed to get appointment data:', data);
-                    alert('Error loading appointment details');
+                    this.showToast('Error loading appointment details', 'error');
                 }
             })
             .catch(error => {
                 console.error('Error fetching appointment:', error);
-                alert('Error loading appointment details');
+                this.showToast('Error loading appointment details', 'error');
             });
     }
 
