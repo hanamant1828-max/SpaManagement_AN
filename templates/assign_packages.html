@@ -49,12 +49,12 @@
                                 <label for="packageType">Package Type *</label>
                                 <select id="packageType" class="form-control" required>
                                     <option value="">Select Package Type...</option>
-                                    <option value="prepaid">Prepaid Package</option>
-                                    <option value="service_package">Service Package</option>
-                                    <option value="membership">Membership</option>
-                                    <option value="student_offer">Student Offer</option>
-                                    <option value="yearly">Yearly Membership</option>
-                                    <option value="kitty">Kitty Party</option>
+                                    <option value="prepaid" {% if selected_package_type == 'prepaid' %}selected{% endif %}>Prepaid Package</option>
+                                    <option value="service_package" {% if selected_package_type == 'service_package' %}selected{% endif %}>Service Package</option>
+                                    <option value="membership" {% if selected_package_type == 'membership' %}selected{% endif %}>Membership</option>
+                                    <option value="student_offer" {% if selected_package_type == 'student_offer' %}selected{% endif %}>Student Offer</option>
+                                    <option value="yearly" {% if selected_package_type == 'yearly' %}selected{% endif %}>Yearly Membership</option>
+                                    <option value="kitty" {% if selected_package_type == 'kitty' %}selected{% endif %}>Kitty Party</option>
                                 </select>
                             </div>
 
@@ -904,20 +904,20 @@ document.getElementById('customerId').addEventListener('change', function() {
 // Auto-load packages if customer is pre-selected from URL
 window.addEventListener('DOMContentLoaded', function() {
     const customerSelect = document.getElementById('customerId');
-    
+
     // Check if customer_id is in URL parameters (from context menu)
     const urlParams = new URLSearchParams(window.location.search);
     const customerIdFromUrl = urlParams.get('customer_id');
-    
+
     console.log('🔍 URL Parameters:', window.location.search);
     console.log('🔍 Customer ID from URL:', customerIdFromUrl);
-    
+
     function trySelectCustomerFromUrl(customerId, retries = 5) {
         // Wait a bit to ensure options are loaded
         setTimeout(() => {
             console.log('🔍 Attempting to select customer:', customerId);
             console.log('🔍 Total options available:', customerSelect.options.length);
-            
+
             // Find the matching option
             let foundOption = null;
             for (let i = 0; i < customerSelect.options.length; i++) {
@@ -927,16 +927,16 @@ window.addEventListener('DOMContentLoaded', function() {
                     break;
                 }
             }
-            
+
             if (foundOption) {
                 // Set the customer dropdown to the pre-selected customer
                 customerSelect.value = String(customerId);
                 console.log('✅ Auto-selected customer from URL:', customerId);
                 console.log('✅ Customer name:', foundOption.text);
-                
+
                 // Trigger the change event to load packages and enable package selection
                 customerSelect.dispatchEvent(new Event('change', { bubbles: true }));
-                
+
                 // Call validateAssignForm to enable the assign button
                 setTimeout(() => {
                     if (typeof validateAssignForm === 'function') {
@@ -957,14 +957,14 @@ window.addEventListener('DOMContentLoaded', function() {
             }
         }, retries === 5 ? 200 : 100); // Longer initial delay
     }
-    
+
     // Use a longer delay to ensure DOM is fully rendered
     setTimeout(() => {
         const currentValue = customerSelect.value;
-        
+
         console.log('🔍 Current customer dropdown value:', currentValue);
         console.log('🔍 Selected option text:', customerSelect.options[customerSelect.selectedIndex]?.text || 'None');
-        
+
         // Check if a customer is already selected (value is not empty and not the placeholder)
         if (currentValue && currentValue !== '' && currentValue !== 'Select Customer...') {
             console.log('✅ Customer already selected by server:', currentValue);

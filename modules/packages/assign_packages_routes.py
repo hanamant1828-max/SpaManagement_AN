@@ -25,8 +25,11 @@ def assign_packages():
     try:
         # Get customer_id from query parameter if provided
         selected_customer_id = request.args.get('customer_id', type=int)
+        selected_package_type = request.args.get('package_type')
+        selected_package_id = request.args.get('package_id', type=int)
 
         print(f"📋 Assign Packages Route - customer_id from URL: {selected_customer_id}")
+        print(f"📋 Pre-selected package: type={selected_package_type}, id={selected_package_id}")
 
         # Fetch all customers for dropdown
         customers = Customer.query.filter_by(is_active=True).order_by(Customer.first_name).all()
@@ -103,6 +106,8 @@ def assign_packages():
             'assign_packages.html',
             customers=customers,
             selected_customer_id=selected_customer_id,
+            selected_package_type=selected_package_type,
+            selected_package_id=selected_package_id,
             prepaid_packages=prepaid_packages_data,
             service_packages=service_packages_data,
             memberships=memberships_data,
@@ -367,6 +372,13 @@ def api_assign_and_pay():
             app.logger.info(f"✅ Benefit tracker created: TOTAL={total_sessions} sessions, REMAINING={total_sessions}, USED=0 (Package had {paid_sessions} paid + {free_sessions} free)")
 
         elif package_type == 'membership':
+            # Get membership details for validity
+            from models import Membership
+            membership = Membership.query.get(package_id)
+            
+            # Calculate expiry based on membership validity
+            membership_expiry = expires_on or (datetime.utcnow() + timedelta(days=membership.validity_months * 30 if membership else 365))
+            
             # Membership - unlimited access
             benefit_tracker = PackageBenefitTracker(
                 customer_id=customer.id,
@@ -377,7 +389,7 @@ def api_assign_and_pay():
                 used_count=0,
                 remaining_count=999999,
                 valid_from=datetime.utcnow(),
-                valid_to=expires_on or (datetime.utcnow() + timedelta(days=365)),
+                valid_to=membership_expiry,
                 is_active=True
             )
 

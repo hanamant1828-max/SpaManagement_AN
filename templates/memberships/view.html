@@ -193,4 +193,10 @@
 
 {% block scripts %}
 <script src="{{ url_for('static', filename='js/new_packages.js') }}"></script>
+<script>
+function assignMembershipToCustomer(membershipId) {
+    // Redirect to assign packages page with membership pre-selected
+    window.location.href = '/assign-packages?package_type=membership&package_id=' + membershipId;
+}
+</script>
 {% endblock %}
