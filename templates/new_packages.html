@@ -28,7 +28,7 @@
                                 <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#membershipModal">
                                     <i class="fas fa-id-card me-2"></i>Membership
                                 </a></li>
-                                <li><a class="dropdown-item" href="#" onclick="alert('Please use the Student Offers Management tab to create new student offers')">
+                                <li><a class="dropdown-item" href="{{ url_for('add_student_offer') }}">
                                     <i class="fas fa-graduation-cap me-2"></i>Student Offer
                                 </a></li>
                                 <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#yearlyModal">
@@ -233,9 +233,9 @@
                         <div class="tab-pane fade" id="student" role="tabpanel">
                             <div class="d-flex justify-content-between mb-3">
                                 <h5>Student Offers Management</h5>
-                                <button class="btn btn-primary" onclick="alert('Please use the Student Offers Management tab to create new student offers')">
+                                <a href="{{ url_for('add_student_offer') }}" class="btn btn-primary">
                                     <i class="fas fa-plus"></i> Add Student Offer
-                                </button>
+                                </a>
                             </div>
                             <div class="table-responsive">
                                 <table class="table table-striped">
