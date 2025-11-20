@@ -217,9 +217,9 @@
                                                     <a href="#" class="btn btn-outline-info btn-sm" onclick="viewMembership({{ membership.id }})" title="View Details">
                                                         <i class="fas fa-eye"></i>
                                                     </a>
-                                                    <a href="{{ url_for('membership_edit', membership_id=membership.id) }}" class="btn btn-outline-primary btn-sm" title="Edit Membership">
+                                                    <button class="btn btn-outline-primary btn-sm" onclick="editMembership({{ membership.id }})" title="Edit Membership">
                                                         <i class="fas fa-edit"></i>
-                                                    </a>
+                                                    </button>
                                                 </div>
                                             </td>
                                         </tr>

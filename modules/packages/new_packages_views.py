@@ -179,22 +179,6 @@ def api_update_prepaid_package(package_id):
         flash('Prepaid package updated successfully!', 'success')
         return jsonify({
             'success': True,
-            'message': 'Prepaid package updated successfully'
-        })
-    except Exception as e:
-        logging.error(f"Error updating prepaid package: {e}")
-        return jsonify({'error': str(e)}), 500
-
-@app.route('/api/prepaid-packages/<int:package_id>', methods=['PUT'])
-@login_required
-def api_update_prepaid_package(package_id):
-    """Update prepaid package"""
-    try:
-        data = request.get_json()
-        package = update_prepaid_package(package_id, data)
-        
-        return jsonify({
-            'success': True,
             'message': 'Prepaid package updated successfully',
             'package': {
                 'id': package.id,
@@ -208,6 +192,7 @@ def api_update_prepaid_package(package_id):
     except ValueError as e:
         return jsonify({'success': False, 'error': str(e)}), 404
     except Exception as e:
+        logging.error(f"Error updating prepaid package: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/api/prepaid-packages/<int:package_id>', methods=['DELETE'])
