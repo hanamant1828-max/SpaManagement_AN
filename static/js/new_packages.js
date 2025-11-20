@@ -156,7 +156,7 @@ function assignStudentOffer(offerId) {
 // Edit prepaid package
 window.editPrepaid = function(packageId) {
     console.log('Edit prepaid package:', packageId);
-    
+
     fetch(`/api/prepaid-packages/${packageId}`)
         .then(response => {
             if (!response.ok) {
@@ -174,7 +174,7 @@ window.editPrepaid = function(packageId) {
                 document.getElementById('editPrepaidAfterValue').value = data.after_value || 0;
                 document.getElementById('editPrepaidBenefitPercent').value = data.benefit_percent || 0;
                 document.getElementById('editPrepaidValidityMonths').value = data.validity_months || 12;
-                
+
                 // Show edit modal
                 const editModal = new bootstrap.Modal(document.getElementById('editPrepaidModal'));
                 editModal.show();
@@ -223,7 +223,7 @@ window.updatePrepaid = function() {
 // Delete prepaid package
 window.deletePrepaid = function(packageId) {
     if (!confirm('Are you sure you want to delete this prepaid package?')) return;
-    
+
     fetch(`/api/prepaid-packages/${packageId}`, { method: 'DELETE' })
         .then(response => response.json())
         .then(result => {
@@ -243,7 +243,7 @@ window.deletePrepaid = function(packageId) {
 // Edit service package
 window.editService = function(packageId) {
     console.log('Editing service:', packageId);
-    
+
     fetch(`/api/service-packages/${packageId}`)
         .then(response => {
             console.log('Response status:', response.status);
@@ -277,7 +277,7 @@ window.editService = function(packageId) {
                         console.warn(`Field ${fieldId} not found in edit modal`);
                     }
                 }
-                
+
                 // Show modal
                 const modal = new bootstrap.Modal(editModal);
                 modal.show();
@@ -325,7 +325,7 @@ window.updateService = function() {
 // Delete service package
 window.deleteService = function(packageId) {
     if (!confirm('Are you sure you want to delete this service package?')) return;
-    
+
     fetch(`/api/service-packages/${packageId}`, { method: 'DELETE' })
         .then(response => response.json())
         .then(result => {
@@ -345,7 +345,7 @@ window.deleteService = function(packageId) {
 // Edit yearly membership
 window.editYearly = function(membershipId) {
     console.log('Edit yearly membership:', membershipId);
-    
+
     fetch(`/api/yearly-memberships/${membershipId}`)
         .then(response => response.json())
         .then(data => {
@@ -357,7 +357,7 @@ window.editYearly = function(membershipId) {
                 document.getElementById('editYearlyDiscountPercent').value = membership.discount_percent;
                 document.getElementById('editYearlyValidityMonths').value = membership.validity_months;
                 document.getElementById('editYearlyExtraBenefits').value = membership.extra_benefits || '';
-                
+
                 const editModal = new bootstrap.Modal(document.getElementById('editYearlyModal'));
                 editModal.show();
             }
@@ -403,7 +403,7 @@ window.updateYearly = function() {
 // Delete yearly membership
 window.deleteYearly = function(membershipId) {
     if (!confirm('Are you sure you want to delete this yearly membership?')) return;
-    
+
     fetch(`/api/yearly-memberships/${membershipId}`, { method: 'DELETE' })
         .then(response => response.json())
         .then(result => {
@@ -423,7 +423,7 @@ window.deleteYearly = function(membershipId) {
 // Edit kitty party
 window.editKitty = function(partyId) {
     console.log('Edit kitty party:', partyId);
-    
+
     fetch(`/api/kitty-parties/${partyId}`)
         .then(response => response.json())
         .then(data => {
@@ -435,7 +435,7 @@ window.editKitty = function(partyId) {
                 document.getElementById('editKittyMinGuests').value = party.min_guests;
                 document.getElementById('editKittyValidityMonths').value = party.validity_months;
                 document.getElementById('editKittyInclusions').value = party.inclusions || '';
-                
+
                 const editModal = new bootstrap.Modal(document.getElementById('editKittyModal'));
                 editModal.show();
             }
@@ -481,7 +481,7 @@ window.updateKitty = function() {
 // Delete kitty party
 window.deleteKitty = function(partyId) {
     if (!confirm('Are you sure you want to delete this kitty party?')) return;
-    
+
     fetch(`/api/kitty-parties/${partyId}`, { method: 'DELETE' })
         .then(response => response.json())
         .then(result => {
