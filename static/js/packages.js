@@ -87,6 +87,13 @@ function openAssignModal() {
  */
 function openAssignSimple(packageId, packageType) {
     console.log('Opening simple assign modal for:', packageId, packageType);
+    
+    // Ensure packageType is set correctly
+    if (!packageType) {
+        console.error('Package type is required');
+        showToast('Package type is missing', 'error');
+        return;
+    }
 
     // Try to use the existing assignPackageModal first
     let modal = document.getElementById('assignPackageModal');
@@ -107,10 +114,15 @@ function openAssignSimple(packageId, packageType) {
     if (offerTypeInput) {
         offerTypeInput.value = packageType;
         console.log('Set package type:', packageType);
+    } else {
+        console.error('Package type input field not found');
     }
+    
     if (offerRefInput) {
         offerRefInput.value = packageId;
         console.log('Set package ID:', packageId);
+    } else {
+        console.error('Package ID input field not found');
     }
 
     // Auto-populate price from package data
