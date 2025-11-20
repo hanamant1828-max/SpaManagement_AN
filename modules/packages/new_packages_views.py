@@ -972,7 +972,14 @@ def api_get_customers():
 def api_get_services():
     """Get available services"""
     try:
-        services = Service.query.filter_by(is_active=True).order_by(Service.name).all()
+        from modules.services.services_queries import get_active_services
+        
+        # Try using the services query function first
+        services = get_active_services()
+        
+        if not services:
+            # Fallback to direct query
+            services = Service.query.filter_by(is_active=True).order_by(Service.name).all()
 
         service_list = []
         for s in services:
@@ -983,6 +990,8 @@ def api_get_services():
                 'duration': s.duration if s.duration else 0
             })
 
+        logging.info(f"Returning {len(service_list)} services")
+        
         return jsonify({
             'success': True,
             'services': service_list
@@ -990,6 +999,8 @@ def api_get_services():
 
     except Exception as e:
         logging.error(f"Error fetching services: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/packages/api/templates', methods=['POST'])
