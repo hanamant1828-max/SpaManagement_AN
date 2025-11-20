@@ -260,7 +260,7 @@ class AppointmentContextMenu {
                 this.bookNewAppointment(this.currentAppointmentId);
                 break;
             case 'assign_pay':
-                this.goToAssignAndPay(this.currentAppointmentId);
+                this.handleAssignPay(this.currentAppointmentId);
                 break;
             case 'client_management':
                 this.goToClientManagement(this.currentAppointmentId);
@@ -571,162 +571,57 @@ class AppointmentContextMenu {
             });
     }
 
-    goToAssignAndPay(appointmentId) {
-        console.log(`Redirecting to Assign & Pay for appointment ${appointmentId}`);
+    handleAssignPay(appointmentId) {
+        console.log('🎬 Context menu action: assign_pay for appointment', appointmentId);
+        console.log('Redirecting to billing for appointment', appointmentId);
 
-        // Fetch appointment details to get customer ID
+        // Get appointment data first
         fetch(`/api/unaki/bookings/${appointmentId}`)
-            .then(r=>r.json())
+            .then(response => response.json())
             .then(data => {
-                console.log('Appointment data for Assign & Pay:', data);
-                
+                console.log('Appointment data for billing:', data);
+
                 if (data.success && data.booking) {
                     const booking = data.booking;
-                    let customerId = booking.client_id;
-                    
-                    console.log('Client ID from booking:', customerId);
-                    console.log('Client name from booking:', booking.client_name);
-                    console.log('Client phone from booking:', booking.client_phone);
-                    
-                    // If we have a valid client_id, use it directly
-                    if (customerId && customerId > 0 && customerId !== null) {
-                        console.log('✅ Valid client_id found, redirecting with customer_id:', customerId);
-                        window.location.href = `/assign-packages?customer_id=${customerId}`;
-                        return;
-                    }
-                    
-                    // If client_id is missing or invalid, try to find by phone and name
-                    console.log('⚠️ Invalid or missing client_id, searching by contact info...');
-                    
-                    // Helper function to handle search and redirect
-                    const handleCustomerFound = (searchData, searchMethod) => {
-                        if (searchData.success && searchData.customer && searchData.customer.id) {
-                            customerId = searchData.customer.id;
-                            console.log(`✅ Found customer by ${searchMethod}:`, customerId, searchData.customer.name);
-                            window.location.href = `/assign-packages?customer_id=${customerId}`;
-                            return true;
-                        }
-                        return false;
-                    };
-                    
-                    // Helper function to handle customer not found
-                    const handleCustomerNotFound = () => {
-                        console.warn('Customer not found in database');
-                        this.showToast('Customer not found. Redirecting to Assign & Pay page...', 'info');
-                        // Still redirect to assign-packages page so user can select customer manually
-                        window.location.href = `/assign-packages`;
-                    };
-                    
-                    // Try to match by phone first (most reliable)
-                    if (booking.client_phone) {
-                        // Clean phone number - remove spaces, dashes, parentheses
-                        const cleanPhone = booking.client_phone.replace(/[\s\-\(\)]/g, '');
-                        
-                        fetch(`/api/customers/search?phone=${encodeURIComponent(cleanPhone)}`)
-                            .then(r => {
-                                // Handle both success and 404 responses
-                                if (r.ok) {
-                                    return r.json();
-                                } else if (r.status === 404) {
-                                    // Customer not found by phone, return empty result
-                                    return { success: false, message: 'Not found' };
-                                } else {
-                                    throw new Error(`HTTP ${r.status}`);
-                                }
-                            })
-                            .then(searchData => {
-                                if (!handleCustomerFound(searchData, 'phone') && booking.client_name) {
-                                    // Try by name as fallback
-                                    const cleanName = booking.client_name.trim();
-                                    fetch(`/api/customers/search?name=${encodeURIComponent(cleanName)}`)
-                                        .then(r => {
-                                            if (r.ok) {
-                                                return r.json();
-                                            } else if (r.status === 404) {
-                                                return { success: false, message: 'Not found' };
-                                            } else {
-                                                throw new Error(`HTTP ${r.status}`);
-                                            }
-                                        })
-                                        .then(nameData => {
-                                            if (!handleCustomerFound(nameData, 'name')) {
-                                                handleCustomerNotFound();
-                                            }
-                                        })
-                                        .catch(err => {
-                                            console.error('Error searching by name:', err);
-                                            handleCustomerNotFound();
-                                        });
-                                } else if (!searchData.success) {
-                                    handleCustomerNotFound();
-                                }
-                            })
-                            .catch(err => {
-                                console.error('Error searching by phone:', err);
-                                // Try name search as fallback
-                                if (booking.client_name) {
-                                    const cleanName = booking.client_name.trim();
-                                    fetch(`/api/customers/search?name=${encodeURIComponent(cleanName)}`)
-                                        .then(r => {
-                                            if (r.ok) {
-                                                return r.json();
-                                            } else if (r.status === 404) {
-                                                return { success: false, message: 'Not found' };
-                                            } else {
-                                                throw new Error(`HTTP ${r.status}`);
-                                            }
-                                        })
-                                        .then(nameData => {
-                                            if (!handleCustomerFound(nameData, 'name')) {
-                                                handleCustomerNotFound();
-                                            }
-                                        })
-                                        .catch(err => {
-                                            console.error('Error searching by name:', err);
-                                            handleCustomerNotFound();
-                                        });
-                                } else {
-                                    handleCustomerNotFound();
-                                }
-                            });
-                    } else if (booking.client_name) {
-                        // No phone, try name only
-                        const cleanName = booking.client_name.trim();
-                        fetch(`/api/customers/search?name=${encodeURIComponent(cleanName)}`)
-                            .then(r => {
-                                if (r.ok) {
-                                    return r.json();
-                                } else if (r.status === 404) {
-                                    return { success: false, message: 'Not found' };
-                                } else {
-                                    throw new Error(`HTTP ${r.status}`);
-                                }
-                            })
-                            .then(nameData => {
-                                if (!handleCustomerFound(nameData, 'name')) {
-                                    handleCustomerNotFound();
-                                }
-                            })
-                            .catch(err => {
-                                console.error('Error searching by name:', err);
-                                handleCustomerNotFound();
-                            });
+                    const bookingSource = booking.booking_source;
+
+                    console.log('Booking source:', bookingSource);
+
+                    // For online bookings, go directly to integrated billing
+                    if (bookingSource === 'online') {
+                        console.log('✅ Online booking detected, redirecting to integrated billing');
+                        window.location.href = `/integrated-billing?appointment_id=${appointmentId}`;
                     } else {
-                        console.warn('No customer information available');
-                        handleCustomerNotFound();
+                        // For other bookings, check if customer exists
+                        const clientId = booking.client_id;
+                        const clientName = booking.client_name;
+                        const clientPhone = booking.client_phone;
+
+                        console.log('Client ID from booking:', clientId);
+                        console.log('Client name from booking:', clientName);
+                        console.log('Client phone from booking:', clientPhone);
+
+                        // If we have a valid client_id, use it
+                        if (clientId && clientId > 0) {
+                            console.log('✅ Valid client_id found, redirecting to billing with customer_id:', clientId);
+                            window.location.href = `/integrated-billing?appointment_id=${appointmentId}&customer_id=${clientId}`;
+                        } else {
+                            // If no client_id, go to billing and it will handle customer creation
+                            console.log('⚠️ No client_id, redirecting to billing to create customer');
+                            window.location.href = `/integrated-billing?appointment_id=${appointmentId}`;
+                        }
                     }
                 } else {
-                    console.error('Failed to load appointment details:', data.error);
-                    this.showToast('Failed to load appointment details.', 'error');
-                    window.location.href = `/assign-packages`;
+                    console.error('Failed to get appointment data:', data);
+                    alert('Error loading appointment details');
                 }
             })
             .catch(error => {
-                console.error('Error loading assign & pay:', error);
-                this.showToast('Error loading assign & pay page.', 'error');
-                window.location.href = `/assign-packages`;
+                console.error('Error fetching appointment:', error);
+                alert('Error loading appointment details');
             });
     }
+
 
     goToClientManagement(appointmentId) {
         console.log(`Redirecting to Client Management for appointment ${appointmentId}`);
