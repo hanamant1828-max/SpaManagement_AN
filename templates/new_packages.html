@@ -2754,8 +2754,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
 
                 // Add form validation listeners only when modal is open
-                form.addEventListener('input', validateForm);
-                form.addEventListener('change', validateForm);
+                form.addEventListener('input', () => validateForm());
+                form.addEventListener('change', () => validateForm());
             }
         });
 
