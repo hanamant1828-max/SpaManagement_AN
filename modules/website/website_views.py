@@ -169,7 +169,7 @@ def website_book_online():
 
             client_name = data.get('client_name', '').strip()
             client_phone = data.get('client_phone', '').strip()
-            client_email = data.get('client_email', '').strip() # Added email retrieval
+            client_email = data.get('client_email', '').strip()  # Optional, not collected in form
 
             # Validate required fields
             if not client_name:
