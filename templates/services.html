@@ -531,15 +531,32 @@ function editService(serviceId) {
         .then(service => {
             console.log('Service data received:', service);
             if (service && !service.error) {
-                // Populate edit modal
-                document.getElementById('editServiceId').value = serviceId;
-                document.getElementById('editServiceName').value = service.name || '';
-                document.getElementById('editServiceDescription').value = service.description || '';
-                document.getElementById('editServiceDuration').value = service.duration || 60;
-                document.getElementById('editServicePrice').value = service.price || 0;
-                document.getElementById('editServiceCategory').value = service.category_id || '';
+                // Populate edit modal with null checks
+                const setFieldValue = (fieldId, value) => {
+                    const field = document.getElementById(fieldId);
+                    if (field) {
+                        field.value = value;
+                    } else {
+                        console.warn(`Field ${fieldId} not found in edit modal`);
+                    }
+                };
                 
-                document.getElementById('editServiceActive').checked = service.is_active;
+                const setCheckboxValue = (fieldId, checked) => {
+                    const field = document.getElementById(fieldId);
+                    if (field) {
+                        field.checked = checked;
+                    } else {
+                        console.warn(`Checkbox ${fieldId} not found in edit modal`);
+                    }
+                };
+                
+                setFieldValue('editServiceId', serviceId);
+                setFieldValue('editServiceName', service.name || '');
+                setFieldValue('editServiceDescription', service.description || '');
+                setFieldValue('editServiceDuration', service.duration || 60);
+                setFieldValue('editServicePrice', service.price || 0);
+                setFieldValue('editServiceCategory', service.category_id || '');
+                setCheckboxValue('editServiceActive', service.is_active);
                 
                 // Show modal
                 const modal = new bootstrap.Modal(document.getElementById('editServiceModal'));
