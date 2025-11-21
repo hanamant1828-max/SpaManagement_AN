@@ -3289,69 +3289,132 @@ function resetCustomerPackages() {
         return;
     }
 
-    // Get form data using FormData for easier handling of file uploads or complex data
-    const form = document.getElementById('billingForm');
-    const formData = new FormData(form);
-
-    // Add a flag to indicate this is a preview request
-    formData.append('preview', 'true');
-
     // Show loading state on the preview button
     const previewBtn = document.getElementById('previewBtn');
-    const originalText = previewBtn.innerHTML; // Store original button text
+    const originalText = previewBtn.innerHTML;
     previewBtn.disabled = true;
-    previewBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Generating Preview...'; // Show spinner and loading text
+    previewBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Generating Preview...';
 
-    // Submit the form data using fetch API
-    fetch(form.action, {
+    // Collect customer info
+    const customerSelect = document.getElementById('customer_id');
+    const selectedCustomerOption = customerSelect.options[customerSelect.selectedIndex];
+    const customerName = selectedCustomerOption ? selectedCustomerOption.text.split(' - ')[0] : 'Customer';
+    const customerPhone = document.getElementById('customer_phone')?.value || 'N/A';
+    const isInterstate = document.getElementById('is_interstate')?.checked || false;
+
+    // Collect services
+    const services = [];
+    document.querySelectorAll('.service-row').forEach((row, index) => {
+        const serviceSelect = row.querySelector('select[name="services[]"]');
+        const qtyInput = row.querySelector('input[name="service_qty[]"]');
+        const staffSelect = row.querySelector('select[name="service_staff[]"]');
+        
+        if (serviceSelect && serviceSelect.value) {
+            const selectedOption = serviceSelect.options[serviceSelect.selectedIndex];
+            const serviceName = selectedOption.text.split(' - ')[0];
+            const price = parseFloat(selectedOption.dataset.price || 0);
+            const qty = parseInt(qtyInput?.value || 1);
+            
+            services.push({
+                service_id: serviceSelect.value,
+                service_name: serviceName,
+                quantity: qty,
+                price: price,
+                total: price * qty,
+                staff_id: staffSelect?.value || null,
+                staff_name: staffSelect?.options[staffSelect.selectedIndex]?.text || 'N/A'
+            });
+        }
+    });
+
+    // Collect products
+    const products = [];
+    document.querySelectorAll('.product-row').forEach((row, index) => {
+        const productSelect = row.querySelector('select[name="products[]"]');
+        const qtyInput = row.querySelector('input[name="product_qty[]"]');
+        const batchSelect = row.querySelector('select[name="product_batches[]"]');
+        
+        if (productSelect && productSelect.value && batchSelect && batchSelect.value) {
+            const selectedOption = productSelect.options[productSelect.selectedIndex];
+            const productName = selectedOption.text;
+            const selectedBatch = batchSelect.options[batchSelect.selectedIndex];
+            const price = parseFloat(selectedBatch.dataset.price || 0);
+            const qty = parseInt(qtyInput?.value || 1);
+            
+            products.push({
+                product_id: productSelect.value,
+                product_name: productName,
+                quantity: qty,
+                price: price,
+                total: price * qty,
+                batch_id: batchSelect.value
+            });
+        }
+    });
+
+    // Collect totals
+    const servicesSubtotal = parseFloat(document.getElementById('servicesSubtotal')?.textContent.replace(/[₹,]/g, '') || 0);
+    const productsSubtotal = parseFloat(document.getElementById('productsSubtotal')?.textContent.replace(/[₹,]/g, '') || 0);
+    const packageDeductions = parseFloat(document.getElementById('packageDeductionsAmount')?.textContent.replace(/[₹,]/g, '') || 0);
+    const discountAmount = parseFloat(document.getElementById('discountAmount')?.textContent.replace(/[₹,]/g, '') || 0);
+    const additionalCharges = parseFloat(document.getElementById('additionalCharges')?.value || 0);
+    const tips = parseFloat(document.getElementById('tips')?.value || 0);
+
+    // Prepare JSON payload
+    const previewData = {
+        customer_name: customerName,
+        customer_phone: customerPhone,
+        is_interstate: isInterstate,
+        services: services,
+        products: products,
+        services_subtotal: servicesSubtotal,
+        products_subtotal: productsSubtotal,
+        package_deductions: packageDeductions,
+        discount_amount: discountAmount,
+        additional_charges: additionalCharges,
+        tips: tips
+    };
+
+    console.log('📊 Preview data:', previewData);
+
+    // Call the preview API endpoint
+    fetch('/api/invoice-preview', {
         method: 'POST',
-        body: formData
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(previewData)
     })
     .then(response => {
-        // Check if the response is okay (e.g., 200 status code)
         if (!response.ok) {
-            // If not okay, throw an error to be caught by the .catch block
             throw new Error(`HTTP error ${response.status}: ${response.statusText}`);
         }
-        // Parse the JSON response from the server
         return response.json();
     })
     .then(data => {
         console.log('✅ Preview generation response:', data);
-        // Check if the server returned a success status and preview HTML
         if (data.success && data.preview_html) {
-            // Open a new browser window for the preview
-            // Specify dimensions for the preview window
             const previewWindow = window.open('', '_blank', 'width=900,height=700');
-            // Check if the window was successfully opened (pop-up blockers might prevent this)
             if (previewWindow) {
-                // Write the HTML content to the new window
                 previewWindow.document.write(data.preview_html);
-                // Close the document stream, essential for rendering
                 previewWindow.document.close();
                 console.log('👍 Preview opened successfully.');
             } else {
-                // Alert the user if pop-ups are blocked
                 alert('Please allow pop-ups to view the preview');
                 console.warn('⚠️ Pop-up blocked, could not open preview window.');
             }
         } else {
-            // Display an alert if preview generation failed on the server side
-            alert('Failed to generate preview: ' + (data.message || 'Unknown error'));
-            console.error('❌ Preview generation failed:', data.message || 'Unknown error');
+            alert('Failed to generate preview: ' + (data.error || data.message || 'Unknown error'));
+            console.error('❌ Preview generation failed:', data.error || data.message || 'Unknown error');
         }
     })
     .catch(error => {
-        // Log any errors that occur during the fetch operation or JSON parsing
         console.error('❌ Error during preview generation:', error);
-        // Alert the user about the error
         alert('Error generating preview: ' + error.message);
     })
     .finally(() => {
-        // This block always executes, whether the request succeeded or failed
-        // Restore the preview button to its original state
-        previewBtn.disabled = false; // Re-enable the button
-        previewBtn.innerHTML = originalText; // Restore original text and icon
+        previewBtn.disabled = false;
+        previewBtn.innerHTML = originalText;
         console.log('👍 Preview button state restored.');
     });
 }
