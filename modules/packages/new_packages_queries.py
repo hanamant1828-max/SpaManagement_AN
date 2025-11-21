@@ -340,18 +340,30 @@ def create_student_offer(data):
 def update_student_offer(offer_id, data):
     """Update an existing student offer"""
     try:
-        from models import StudentOffer, Service
+        from models import StudentOffer, Service, StudentOfferService
+        from datetime import datetime
 
         offer = StudentOffer.query.get(offer_id)
         if not offer:
             return None
 
         # Update basic fields
-        offer.name = data.get('name', offer.name)
-        offer.discount_percentage = float(data.get('discount_percentage', offer.discount_percentage))
-        offer.validity_days = int(data.get('validity_days', offer.validity_days)) if data.get('validity_days') else None
-        offer.max_uses_per_student = int(data.get('max_uses_per_student', offer.max_uses_per_student)) if data.get('max_uses_per_student') else None
-        offer.is_active = data.get('is_active', offer.is_active)
+        if 'name' in data:
+            offer.name = data['name']
+        if 'price' in data:
+            offer.price = float(data['price'])
+        if 'discount_percentage' in data:
+            offer.discount_percentage = float(data['discount_percentage'])
+        if 'valid_from' in data:
+            offer.valid_from = datetime.strptime(data['valid_from'], '%Y-%m-%d').date()
+        if 'valid_to' in data:
+            offer.valid_to = datetime.strptime(data['valid_to'], '%Y-%m-%d').date()
+        if 'valid_days' in data:
+            offer.valid_days = data['valid_days']
+        if 'conditions' in data:
+            offer.conditions = data['conditions']
+        if 'is_active' in data:
+            offer.is_active = bool(data['is_active'])
 
         # Update services if provided
         if 'service_ids' in data:
@@ -361,9 +373,16 @@ def update_student_offer(offer_id, data):
             elif not isinstance(service_ids, list):
                 service_ids = [int(service_ids)]
 
-            # Get new services
-            new_services = Service.query.filter(Service.id.in_(service_ids)).all()
-            offer.services = new_services
+            # Clear existing service relationships
+            StudentOfferService.query.filter_by(student_offer_id=offer_id).delete()
+
+            # Add new service relationships
+            for service_id in service_ids:
+                offer_service = StudentOfferService(
+                    student_offer_id=offer_id,
+                    service_id=service_id
+                )
+                db.session.add(offer_service)
 
         db.session.commit()
         return offer
