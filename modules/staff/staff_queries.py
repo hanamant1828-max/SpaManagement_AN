@@ -290,12 +290,18 @@ def create_staff_performance_record(staff_id, month, year, metrics):
     return performance
 
 def get_staff_members():
-    """Get all active staff members for Unaki API"""
+    """Get all active staff members for Unaki API - returns User objects"""
     try:
-        from models import UnakiStaff
-        return UnakiStaff.query.filter_by(active=True).order_by(UnakiStaff.name).all()
+        # Get all active users who can provide services (staff, therapists, etc.)
+        staff_members = User.query.filter(
+            User.is_active == True
+        ).order_by(User.first_name).all()
+        print(f"📊 get_staff_members: Found {len(staff_members)} active users")
+        return staff_members
     except Exception as e:
         print(f"Error getting staff members: {e}")
+        import traceback
+        traceback.print_exc()
         return []
 
 def get_staff_performance_data(staff_id):
