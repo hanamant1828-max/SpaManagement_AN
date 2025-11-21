@@ -70,7 +70,9 @@ def services():
         category_filter = request.args.get('category', '').strip()
         print(f"Category filter from request: '{category_filter}'")
         
-        services_list = get_all_services(category_filter)
+        # Pass None if empty string to show all services
+        filter_value = category_filter if category_filter else None
+        services_list = get_all_services(filter_value)
         print(f"Retrieved {len(services_list)} services from database")
         
         # Get categories for the dropdown

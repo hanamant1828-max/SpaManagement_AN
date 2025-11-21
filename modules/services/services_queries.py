@@ -14,7 +14,7 @@ def get_all_services(category_filter=''):
     """Get all services with optional category filtering"""
     try:
         query = Service.query.filter_by(is_active=True)
-        
+
         # Only apply category filter if it's provided and not empty
         if category_filter and category_filter.strip():
             if category_filter.isdigit():
@@ -24,7 +24,7 @@ def get_all_services(category_filter=''):
                 category = Category.query.filter_by(name=category_filter).first()
                 if category:
                     query = query.filter_by(category_id=category.id)
-        
+
         services = query.order_by(Service.name).all()
         print(f"Retrieved {len(services)} services from database (filter: '{category_filter}')")
         return services
@@ -47,7 +47,7 @@ def create_service(data):
         # Handle category field - it's required (NOT NULL)
         category_name = 'general'  # default fallback
         category_id = data.get('category_id')
-        
+
         if category_id:
             try:
                 category = Category.query.get(int(category_id))
@@ -62,7 +62,7 @@ def create_service(data):
                 pass  # Use default
         else:
             print("No category_id provided, using default 'general'")
-        
+
         # Validate required data
         if not data.get('name'):
             raise ValueError("Service name is required")
@@ -70,7 +70,7 @@ def create_service(data):
             raise ValueError("Service duration is required")
         if not data.get('price'):
             raise ValueError("Service price is required")
-        
+
         # Create service instance with only valid fields
         service = Service()
         service.name = data['name']
@@ -81,16 +81,16 @@ def create_service(data):
         service.category_id = int(category_id) if category_id else None
         service.is_active = data.get('is_active', True)
         service.created_at = datetime.utcnow()
-        
+
         print(f"Creating service: {service.name}, category: {service.category}, category_id: {service.category_id}, price: {service.price}, duration: {service.duration}")
-        
+
         db.session.add(service)
         db.session.commit()
         db.session.refresh(service)  # Refresh to get the ID
-        
+
         print(f"✅ Service created successfully with ID: {service.id}")
         return service
-        
+
     except Exception as e:
         db.session.rollback()
         print(f"❌ Error creating service: {str(e)}")
@@ -103,17 +103,17 @@ def update_service(service_id, data):
         service = Service.query.get(service_id)
         if not service:
             raise ValueError("Service not found")
-        
+
         for key, value in data.items():
             if hasattr(service, key):
                 setattr(service, key, value)
-        
+
         # Handle legacy category field
         if 'category_id' in data and data['category_id']:
             category = Category.query.get(data['category_id'])
             if category:
                 service.category = category.name
-        
+
         db.session.commit()
         return service
     except Exception as e:
@@ -127,10 +127,10 @@ def delete_service(service_id):
         service = Service.query.get(service_id)
         if not service:
             return {'success': False, 'message': 'Service not found'}
-        
+
         # Check if service is used in appointments
         appointments_count = Appointment.query.filter_by(service_id=service_id).count()
-        
+
         if appointments_count > 0:
             # Soft delete - mark as inactive
             service.is_active = False
@@ -153,7 +153,7 @@ def get_all_service_categories():
             category_type='service',
             is_active=True
         ).order_by(Category.sort_order, Category.display_name).all()
-        
+
         print(f"Retrieved {len(categories)} service categories from database")
         return categories
     except Exception as e:
@@ -182,7 +182,7 @@ def create_category(data):
             sort_order=data.get('sort_order', 0),
             created_at=datetime.utcnow()
         )
-        
+
         db.session.add(category)
         db.session.commit()
         return category
@@ -196,11 +196,11 @@ def update_category(category_id, data):
         category = Category.query.get(category_id)
         if not category:
             raise ValueError("Category not found")
-        
+
         for key, value in data.items():
             if hasattr(category, key):
                 setattr(category, key, value)
-        
+
         db.session.commit()
         return category
     except Exception as e:
@@ -213,12 +213,12 @@ def delete_category(category_id):
         category = Category.query.get(category_id)
         if not category:
             return {'success': False, 'message': 'Category not found'}
-        
+
         # Check if category has associated services
         service_count = Service.query.filter_by(category_id=category_id).count()
         if service_count > 0:
             return {'success': False, 'message': f'Cannot delete category with {service_count} associated services'}
-        
+
         db.session.delete(category)
         db.session.commit()
         return {'success': True, 'message': 'Category deleted successfully'}
@@ -233,7 +233,7 @@ def reorder_category(category_ids):
             category = Category.query.get(category_id)
             if category:
                 category.sort_order = index
-        
+
         db.session.commit()
         return True
     except Exception as e:
@@ -245,16 +245,16 @@ def export_services_csv(category_filter=''):
     """Export services to CSV format"""
     try:
         services = get_all_services(category_filter)
-        
+
         output = StringIO()
         writer = csv.writer(output)
-        
+
         # Header
         writer.writerow([
             'ID', 'Name', 'Description', 'Duration (min)', 
             'Price', 'Category', 'Commission Rate', 'Status', 'Created Date'
         ])
-        
+
         # Data rows
         for service in services:
             category_name = ''
@@ -262,7 +262,7 @@ def export_services_csv(category_filter=''):
                 category_name = service.service_category.display_name
             elif hasattr(service, 'category') and service.category:
                 category_name = service.category.replace('_', ' ').title()
-            
+
             writer.writerow([
                 service.id,
                 service.name,
@@ -274,7 +274,7 @@ def export_services_csv(category_filter=''):
                 'Active' if service.is_active else 'Inactive',
                 service.created_at.strftime('%Y-%m-%d %H:%M:%S') if hasattr(service, 'created_at') and service.created_at else ''
             ])
-        
+
         return output.getvalue()
     except Exception as e:
         raise e
@@ -283,16 +283,16 @@ def export_categories_csv():
     """Export categories to CSV format"""
     try:
         categories = get_all_service_categories()
-        
+
         output = StringIO()
         writer = csv.writer(output)
-        
+
         # Header
         writer.writerow([
             'ID', 'Name', 'Display Name', 'Description', 
             'Color', 'Sort Order', 'Status', 'Created Date'
         ])
-        
+
         # Data rows
         for category in categories:
             writer.writerow([
@@ -305,7 +305,7 @@ def export_categories_csv():
                 'Active' if category.is_active else 'Inactive',
                 category.created_at.strftime('%Y-%m-%d %H:%M:%S') if hasattr(category, 'created_at') and category.created_at else ''
             ])
-        
+
         return output.getvalue()
     except Exception as e:
         raise e
@@ -315,17 +315,17 @@ def search_services(search_term, category_filter=None):
     """Search services by name or description"""
     try:
         query = Service.query.filter_by(is_active=True)
-        
+
         if category_filter:
             query = query.filter_by(category_id=category_filter)
-        
+
         if search_term:
             search_filter = or_(
                 Service.name.ilike(f'%{search_term}%'),
                 Service.description.ilike(f'%{search_term}%')
             )
             query = query.filter(search_filter)
-        
+
         return query.order_by(Service.name).all()
     except Exception as e:
         print(f"Error searching services: {e}")
@@ -339,16 +339,16 @@ def get_services_by_price_range(min_price=None, max_price=None, category_filter=
     """Get services within price range"""
     try:
         query = Service.query.filter_by(is_active=True)
-        
+
         if category_filter:
             query = query.filter_by(category_id=category_filter)
-        
+
         if min_price is not None:
             query = query.filter(Service.price >= min_price)
-        
+
         if max_price is not None:
             query = query.filter(Service.price <= max_price)
-        
+
         return query.order_by(Service.price).all()
     except Exception as e:
         print(f"Error filtering services by price: {e}")
