@@ -2027,6 +2027,19 @@ def integrated_invoice_detail(invoice_id):
         # Fetch customer details
         customer = Customer.query.get(invoice.client_id)
 
+        # Get GST configuration
+        from models import GSTConfig
+        gst_config = GSTConfig.query.first()
+        if not gst_config:
+            # Create default GST config if none exists
+            gst_config = GSTConfig(
+                business_name='Your Business',
+                gstin_number='',
+                cgst_rate=9.0,
+                sgst_rate=9.0,
+                enabled=False
+            )
+
         # Check if print mode
         print_mode = request.args.get('print') == 'true'
         # Use print template if in print mode
@@ -2036,7 +2049,8 @@ def integrated_invoice_detail(invoice_id):
                              invoice=invoice,
                              invoice_items=invoice_items,
                              tax_details=tax_details,
-                             customer=customer)
+                             customer=customer,
+                             gst_config=gst_config)
 
     except Exception as e:
         app.logger.error(f"Error loading invoice details: {str(e)}")
