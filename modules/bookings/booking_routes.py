@@ -675,11 +675,11 @@ def multi_appointment_booking():
 
     try:
         from modules.staff.staff_queries import get_staff_members
-        from modules.services.services_queries import get_active_services
+        from modules.services.services_queries import get_all_services
         from modules.clients.clients_queries import get_all_customers
 
         staff_members = get_staff_members()
-        services = get_active_services()
+        services = get_all_services()
         clients = get_all_customers()
         today = date.today().strftime('%Y-%m-%d')
 
