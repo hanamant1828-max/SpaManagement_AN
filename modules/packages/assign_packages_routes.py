@@ -486,17 +486,32 @@ def api_assign_and_pay():
 @login_required
 def view_receipt(receipt_id):
     """View receipt in HTML format (printable)"""
-    receipt = Receipt.query.get_or_404(receipt_id)
-    customer = receipt.customer
-    assignment = receipt.assignment
-    package = assignment.get_package_template() if assignment else None
-
-    return render_template('receipt.html',
-                         receipt=receipt,
-                         customer=customer,
-                         assignment=assignment,
-                         package=package,
-                         issuer=receipt.issuer)
+    try:
+        receipt = Receipt.query.get_or_404(receipt_id)
+        customer = receipt.customer
+        assignment = receipt.assignment
+        package = None
+        
+        # Safely get package template
+        if assignment:
+            try:
+                package = assignment.get_package_template()
+            except Exception as e:
+                app.logger.error(f"Error getting package template for assignment {assignment.id}: {e}")
+                package = None
+        
+        return render_template('receipt.html',
+                             receipt=receipt,
+                             customer=customer,
+                             assignment=assignment,
+                             package=package,
+                             issuer=receipt.issuer)
+    except Exception as e:
+        app.logger.error(f"Error viewing receipt {receipt_id}: {e}")
+        import traceback
+        traceback.print_exc()
+        flash(f'Error loading receipt: {str(e)}', 'error')
+        return redirect(url_for('assign_packages.assign_packages'))
 
 
 @app.route('/receipts/<int:receipt_id>/download')
@@ -619,8 +634,12 @@ def api_get_assignments():
                 if benefit_percent > 0:
                     savings = (assignment.price_paid * benefit_percent) / 100
 
+            # Get receipt for this assignment
+            receipt = Receipt.query.filter_by(assignment_id=assignment.id).first()
+            
             item = {
                 'id': assignment.id,
+                'receipt_id': receipt.id if receipt else None,
                 'customer': {
                     'id': customer.id,
                     'name': f"{customer.first_name} {customer.last_name}",

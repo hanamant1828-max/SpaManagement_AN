@@ -783,9 +783,9 @@ function renderRows(items){
                 <td>
                     <div class="btn-group btn-group-sm">
                         <button class="btn btn-outline-primary" title="Usage" onclick="AP_openUsage(${x.id})"><i class="fas fa-history"></i></button>
-                        <a class="btn btn-outline-secondary" title="Receipt" href="/receipts/${x.id}" target="_blank">
+                        ${x.receipt_id ? `<a class="btn btn-outline-secondary" title="Receipt" href="/receipts/${x.receipt_id}" target="_blank">
                             <i class="fas fa-file-invoice"></i>
-                        </a>
+                        </a>` : '<button class="btn btn-outline-secondary" disabled title="No receipt"><i class="fas fa-file-invoice"></i></button>'}
                     </div>
                 </td>
             </tr>
