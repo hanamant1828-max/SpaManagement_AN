@@ -66,7 +66,11 @@ def services():
         #     flash('Access denied', 'danger')
         #     return redirect(url_for('dashboard'))
         
-        services_list = get_all_services()
+        # Get category filter from query parameters
+        category_filter = request.args.get('category', '').strip()
+        print(f"Category filter from request: '{category_filter}'")
+        
+        services_list = get_all_services(category_filter)
         print(f"Retrieved {len(services_list)} services from database")
         
         # Get categories for the dropdown
@@ -81,6 +85,7 @@ def services():
         return render_template('services.html', 
                              services=services_list,
                              categories=categories,
+                             category_filter=category_filter,
                              form=form)
     except Exception as e:
         print(f"Error in services route: {str(e)}")

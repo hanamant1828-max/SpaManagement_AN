@@ -15,7 +15,8 @@ def get_all_services(category_filter=''):
     try:
         query = Service.query.filter_by(is_active=True)
         
-        if category_filter:
+        # Only apply category filter if it's provided and not empty
+        if category_filter and category_filter.strip():
             if category_filter.isdigit():
                 query = query.filter_by(category_id=int(category_filter))
             else:
@@ -25,7 +26,7 @@ def get_all_services(category_filter=''):
                     query = query.filter_by(category_id=category.id)
         
         services = query.order_by(Service.name).all()
-        print(f"Retrieved {len(services)} services from database")
+        print(f"Retrieved {len(services)} services from database (filter: '{category_filter}')")
         return services
     except Exception as e:
         print(f"Error retrieving services: {e}")

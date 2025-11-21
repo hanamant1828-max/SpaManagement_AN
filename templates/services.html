@@ -509,7 +509,7 @@ document.addEventListener('DOMContentLoaded', function() {
 function filterServices() {
     const categoryFilter = document.getElementById('categoryFilter').value;
     const url = new URL(window.location);
-    if (categoryFilter) {
+    if (categoryFilter && categoryFilter !== '') {
         url.searchParams.set('category', categoryFilter);
     } else {
         url.searchParams.delete('category');
