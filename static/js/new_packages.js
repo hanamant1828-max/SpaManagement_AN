@@ -424,10 +424,10 @@ window.editKitty = function(partyId) {
         })
         .then(data => {
             console.log('Kitty party data received:', data);
-            
+
             // Handle both response formats
             const party = data.party || data;
-            
+
             if (!party || !party.id) {
                 throw new Error('Invalid party data received');
             }
@@ -438,7 +438,7 @@ window.editKitty = function(partyId) {
             document.getElementById('editKittyPrice').value = party.price || 0;
             document.getElementById('editKittyAfterValue').value = party.after_value || 0;
             document.getElementById('editKittyMinGuests').value = party.min_guests || 1;
-            
+
             // Handle date fields
             if (party.valid_from) {
                 document.getElementById('editKittyValidFrom').value = party.valid_from;
@@ -446,7 +446,7 @@ window.editKitty = function(partyId) {
             if (party.valid_to) {
                 document.getElementById('editKittyValidTo').value = party.valid_to;
             }
-            
+
             document.getElementById('editKittyConditions').value = party.conditions || '';
             document.getElementById('editKittyIsActive').checked = party.is_active !== false;
 
@@ -466,7 +466,7 @@ window.editKitty = function(partyId) {
 // Load services for edit kitty party modal
 function loadServicesForEditKittyParty(selectedServices) {
     console.log('Loading services for edit kitty party modal...', selectedServices);
-    
+
     fetch('/packages/api/services')
         .then(response => {
             console.log('Services API response status:', response.status);
@@ -477,7 +477,7 @@ function loadServicesForEditKittyParty(selectedServices) {
         })
         .then(data => {
             console.log('Services API response data:', data);
-            
+
             const container = document.getElementById('editKittyPartyServices');
             if (!container) {
                 console.error('Edit kitty party services container not found');
@@ -489,14 +489,14 @@ function loadServicesForEditKittyParty(selectedServices) {
 
             if (data.success && data.services && data.services.length > 0) {
                 console.log(`Loading ${data.services.length} services for edit`);
-                
+
                 // Create a set of selected service IDs for quick lookup
                 const selectedServiceIds = new Set(selectedServices.map(s => s.id));
-                
+
                 data.services.forEach(service => {
                     const checkboxDiv = document.createElement('div');
                     checkboxDiv.className = 'mb-2';
-                    
+
                     const isChecked = selectedServiceIds.has(service.id);
 
                     checkboxDiv.innerHTML = `
@@ -513,7 +513,7 @@ function loadServicesForEditKittyParty(selectedServices) {
 
                     container.appendChild(checkboxDiv);
                 });
-                
+
                 console.log('Services loaded successfully for edit modal');
             } else {
                 console.warn('No services available or API returned unsuccessful response');
@@ -532,7 +532,7 @@ function loadServicesForEditKittyParty(selectedServices) {
 // Update kitty party
 window.updateKitty = function() {
     const partyId = document.getElementById('editKittyId').value;
-    
+
     // Get selected services
     const selectedServices = Array.from(
         document.querySelectorAll('#editKittyPartyServices input[name="service_ids"]:checked')
