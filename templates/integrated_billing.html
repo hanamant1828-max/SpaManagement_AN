@@ -2906,8 +2906,8 @@ function resetCustomerPackages() {
             saveBtn.disabled = false;
 
             if (data.success) {
-                // Redirect to invoice detail page with print parameter
-                window.location.href = `/integrated-billing/invoice/${data.invoice_id}?print=true`;
+                // Redirect to invoice detail page with print parameter and autoprint hash
+                window.location.href = `/integrated-billing/invoice/${data.invoice_id}?print=true#autoprint`;
             } else {
                 alert(`❌ Error: ${data.message || 'Failed to create invoice'}`);
             }
