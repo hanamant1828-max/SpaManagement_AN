@@ -1107,10 +1107,10 @@ def api_get_customers():
 def api_get_services():
     """Get available services"""
     try:
-        from modules.services.services_queries import get_active_services
+        from modules.services.services_queries import get_all_services
 
         # Try using the services query function first
-        services = get_active_services()
+        services = get_all_services()
 
         if not services:
             # Fallback to direct query
