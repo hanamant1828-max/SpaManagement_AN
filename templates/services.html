@@ -43,7 +43,7 @@
                     <select class="form-select me-3" id="categoryFilter" onchange="filterServices()" style="width: 200px;">
                         <option value="">All Categories</option>
                         {% for category in categories %}
-                        <option value="{{ category.name }}" {{ 'selected' if category_filter == category.name else '' }}>
+                        <option value="{{ category.id }}" {{ 'selected' if category_filter == category.id else '' }}>
                             {{ category.display_name }}
                         </option>
                         {% endfor %}
@@ -59,11 +59,67 @@
                 </div>
             </div>
 
+            <!-- Search and Filter Section -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <input
+                            type="text"
+                            class="form-control"
+                            id="serviceSearch"
+                            placeholder="Search services by name, code, or description..."
+                            onkeyup="filterServices()"
+                        />
+                    </div>
+                    <div class="col-md-3">
+                        <select
+                            class="form-select"
+                            id="categoryFilter"
+                            onchange="filterServices()"
+                        >
+                            <option value="">All Categories</option>
+                            {% for category in categories %}
+                            <option value="{{ category.id }}">
+                                {{ category.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <select
+                            class="form-select"
+                            id="statusFilter"
+                            onchange="filterServices()"
+                        >
+                            <option value="">All Status</option>
+                            <option value="active">Active</option>
+                            <option value="inactive">Inactive</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <button
+                            type="button"
+                            class="btn btn-outline-secondary w-100"
+                            onclick="clearServiceFilters()"
+                        >
+                            <i class="fas fa-times me-1"></i>Clear
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
             <div class="card">
+                <div class="card-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">All Services</h5>
+                        <span id="serviceStats" class="text-muted"></span>
+                    </div>
+                </div>
                 <div class="card-body">
-                    {% if services %}
-                    <div class="spa-table-container">
-                        <div class="spa-table-responsive">
+                    <div id="servicesTableContainer">
+                        <div class="spa-table-container">
                             <table class="spa-table">
                                 <thead>
                                     <tr>
@@ -76,61 +132,42 @@
                                         <th>Actions</th>
                                     </tr>
                                 </thead>
-                                <tbody>
-                                    {% for service in services %}
-                                    <tr>
-                                    <td>
-                                        <strong>{{ service.name }}</strong>
-                                        {% if service.service_category %}
-                                        <br><span class="badge" style="background-color: {{ service.service_category.color }}; font-size: 0.7rem;">
-                                            {{ service.service_category.display_name }}
-                                        </span>
-                                        {% endif %}
-                                    </td>
-                                    <td>
-                                        {% if service.service_category %}
-                                        <span class="badge" style="background-color: {{ service.service_category.color }}">
-                                            {{ service.service_category.display_name }}
-                                        </span>
-                                        {% else %}
-                                        <span class="text-muted">No Category</span>
-                                        {% endif %}
-                                    </td>
-                                    <td>{{ service.duration }} min</td>
-                                    <td>${{ "%.2f"|format(service.price) }}</td>
-                                    <td>{{ (service.description[:50] + '...') if service.description and service.description|length > 50 else (service.description or '-') }}</td>
-                                    <td>
-                                        <span class="badge bg-{{ 'success' if service.is_active else 'secondary' }}">
-                                            {{ 'Active' if service.is_active else 'Inactive' }}
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <button class="btn btn-sm btn-outline-primary me-1" onclick="editService({{ service.id }})" data-bs-toggle="tooltip" title="Edit service details" type="button">
-                                            <i class="fas fa-edit"></i>
-                                        </button>
-                                        <button class="btn btn-sm btn-outline-{{ 'warning' if service.is_active else 'success' }} me-1" onclick="toggleService({{ service.id }})" data-bs-toggle="tooltip" title="{{ 'Deactivate service' if service.is_active else 'Activate service' }}" type="button">
-                                            <i class="fas fa-{{ 'toggle-off' if service.is_active else 'toggle-on' }}"></i>
-                                            <span class="ms-1">{{ 'Deactivate' if service.is_active else 'Activate' }}</span>
-                                        </button>
-                                        <button class="btn btn-sm btn-outline-danger" onclick="deleteService({{ service.id }})" data-bs-toggle="tooltip" title="Delete service permanently" type="button">
-                                            <i class="fas fa-trash"></i>
-                                        </button>
-                                    </td>
-                                </tr>
-                                    {% endfor %}
+                                <tbody id="servicesTableBody">
+                                    <!-- Service rows will be rendered here by JavaScript -->
                                 </tbody>
                             </table>
                         </div>
                     </div>
-                    {% else %}
-                    <div class="spa-table-container">
-                        <div class="spa-table-empty">
-                            <i class="fas fa-spa"></i>
-                            <h5>No services found</h5>
-                            <p class="text-muted">Create your first service to get started.</p>
+
+                    <!-- Loading State -->
+                    <div id="loadingState" class="text-center py-5" style="display: none;">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
                         </div>
+                        <p class="text-muted mt-2">Loading services...</p>
                     </div>
-                    {% endif %}
+
+                    <!-- Empty State -->
+                    <div
+                        id="emptyState"
+                        class="text-center py-5"
+                        style="display: none"
+                    >
+                        <i class="fas fa-concierge-bell fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted">No services found</h5>
+                        <p class="text-muted">
+                            No services available. Click 'Add New Service' to get started.
+                        </p>
+                        <button
+                            type="button"
+                            class="btn btn-primary btn-lg"
+                            data-bs-toggle="modal"
+                            data-bs-target="#addServiceModal"
+                            onclick="showAddModal()"
+                        >
+                            <i class="fas fa-plus me-2"></i>Add Your First Service
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -189,7 +226,6 @@
                                             <i class="fas fa-trash"></i>
                                         </button>
                                     </td>
-</old_str>
                                 </tr>
                                 {% endfor %}
                             </tbody>
@@ -475,23 +511,358 @@
 </div>
 
 <script>
-// Handle edit form submission
+// Global variables for data management
+let allServices = [];
+let allCategories = [];
+let filteredServices = [];
+let serviceStats = { total: 0, active: 0, inactive: 0 };
+
+// Utility function to show notifications
+function showNotification(message, type = "info", duration = 5000) {
+    const toastContainer = document.getElementById('toastContainer') || createToastContainer();
+    const toastId = `toast-${Date.now()}`;
+    const toastElement = document.createElement('div');
+    toastElement.className = `toast align-items-center text-white bg-${type} border-0`;
+    toastElement.id = toastId;
+    toastElement.setAttribute('role', 'alert');
+    toastElement.setAttribute('aria-live', 'assertive');
+    toastElement.setAttribute('data-bs-autohide', 'true');
+    toastElement.setAttribute('data-bs-delay', duration);
+    toastElement.innerHTML = `
+        <div class="d-flex">
+            <div class="toast-body">${message}</div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+    `;
+    toastContainer.appendChild(toastElement);
+    const toast = new bootstrap.Toast(toastElement);
+    toast.show();
+}
+
+function createToastContainer() {
+    const container = document.createElement('div');
+    container.id = 'toastContainer';
+    container.className = 'toast-container position-fixed top-0 end-0 p-3';
+    container.style.zIndex = '1060'; // Ensure it's above other elements
+    document.body.appendChild(container);
+    return container;
+}
+
+// Utility function to show/hide loading indicator
+function showLoading(isLoading) {
+    const loadingState = document.getElementById("loadingState");
+    const servicesTableContainer = document.getElementById("servicesTableContainer");
+    const emptyState = document.getElementById("emptyState");
+
+    if (loadingState) {
+        loadingState.style.display = isLoading ? "block" : "none";
+    }
+    if (servicesTableContainer) {
+        servicesTableContainer.style.display = isLoading ? "none" : "block";
+    }
+    if (emptyState) {
+        emptyState.style.display = "none"; // Always hide empty state when loading
+    }
+}
+
+// Update statistics and display them
+function updateStats() {
+    serviceStats.total = allServices.length;
+    serviceStats.active = allServices.filter(s => s.is_active).length;
+    serviceStats.inactive = allServices.length - serviceStats.active;
+
+    const statsElement = document.getElementById('serviceStats');
+    if (statsElement) {
+        statsElement.innerHTML = `Total: ${serviceStats.total}, Active: ${serviceStats.active}, Inactive: ${serviceStats.inactive}`;
+    }
+}
+
+// Update category filter options
+function updateCategoryFilter() {
+    const categoryFilter = document.getElementById('categoryFilter');
+    if (!categoryFilter) return;
+
+    // Clear existing options except the first one
+    categoryFilter.innerHTML = '<option value="">All Categories</option>';
+
+    // Add categories from the loaded data
+    const sortedCategories = [...allCategories].sort((a, b) => a.display_name.localeCompare(b.display_name));
+    sortedCategories.forEach(category => {
+        const option = document.createElement('option');
+        option.value = category.id;
+        option.textContent = category.display_name;
+        categoryFilter.appendChild(option);
+    });
+}
+
+
+// Create a single row for the services table
+function createServiceRow(service) {
+    const row = document.createElement('tr');
+    const category = allCategories.find(cat => cat.id === service.category_id);
+
+    row.innerHTML = `
+        <td>
+            <strong>${service.name}</strong>
+            ${category ? `<br><span class="badge" style="background-color: ${category.color}; font-size: 0.7rem;">${category.display_name}</span>` : ''}
+        </td>
+        <td>
+            ${category ? `<span class="badge" style="background-color: ${category.color}">${category.display_name}</span>` : '<span class="text-muted">No Category</span>'}
+        </td>
+        <td>${service.duration || '-'} min</td>
+        <td>$${service.price !== null && service.price !== undefined ? service.price.toFixed(2) : '-.--'}</td>
+        <td>${(service.description && service.description.length > 50) ? service.description.substring(0, 50) + '...' : (service.description || '-')}</td>
+        <td>
+            <span class="badge bg-${service.is_active ? 'success' : 'secondary'}">
+                ${service.is_active ? 'Active' : 'Inactive'}
+            </span>
+        </td>
+        <td>
+            <button class="btn btn-sm btn-outline-primary me-1" onclick="editService(${service.id})" data-bs-toggle="tooltip" title="Edit service details" type="button">
+                <i class="fas fa-edit"></i>
+            </button>
+            <button class="btn btn-sm btn-outline-${service.is_active ? 'warning' : 'success'} me-1" onclick="toggleService(${service.id})" data-bs-toggle="tooltip" title="${service.is_active ? 'Deactivate' : 'Activate'} service" type="button">
+                <i class="fas fa-${service.is_active ? 'toggle-off' : 'toggle-on'}"></i>
+                <span class="ms-1">${service.is_active ? 'Deactivate' : 'Activate'}</span>
+            </button>
+            <button class="btn btn-sm btn-outline-danger" onclick="deleteService(${service.id})" data-bs-toggle="tooltip" title="Delete service permanently" type="button">
+                <i class="fas fa-trash"></i>
+            </button>
+        </td>
+    `;
+    return row;
+}
+
+// Render the services table based on filteredServices
+function renderServicesTable() {
+        console.log("Rendering services table with", filteredServices.length, "services");
+        const tbody = document.getElementById("servicesTableBody");
+        const emptyState = document.getElementById("emptyState");
+        const tableContainer = document.getElementById("servicesTableContainer");
+        const loadingState = document.getElementById("loadingState");
+
+        // Hide loading state
+        if (loadingState) {
+            loadingState.style.display = "none";
+        }
+
+        if (!tbody) {
+            console.error("Table body not found");
+            return;
+        }
+
+        tbody.innerHTML = "";
+
+        if (filteredServices.length === 0) {
+            console.log("No services to display, showing empty state");
+            if (tableContainer) tableContainer.style.display = "none";
+            if (emptyState) {
+                emptyState.style.display = "block";
+                // Update empty state message based on whether filters are active
+                const hasActiveFilters =
+                    document.getElementById("serviceSearch").value ||
+                    document.getElementById("categoryFilter").value ||
+                    document.getElementById("statusFilter").value;
+
+                const emptyMessage = emptyState.querySelector("p");
+                if (emptyMessage) {
+                    if (hasActiveFilters) {
+                        emptyMessage.textContent = "No services match your search criteria. Try adjusting your filters.";
+                    } else {
+                        emptyMessage.textContent = "No services available. Click 'Add New Service' to get started.";
+                    }
+                }
+            }
+            return;
+        }
+
+        console.log("Showing table with", filteredServices.length, "services");
+        if (tableContainer) tableContainer.style.display = "block";
+        if (emptyState) emptyState.style.display = "none";
+
+        filteredServices.forEach((service) => {
+            const row = createServiceRow(service);
+            tbody.appendChild(row);
+        });
+    }
+
+
+// Filter services based on search term, category, and status
+function filterServices() {
+        console.log("Filtering services...");
+        const searchTerm = document
+            .getElementById("serviceSearch")
+            .value.toLowerCase();
+        const categoryFilter = document.getElementById("categoryFilter").value;
+        const statusFilter = document.getElementById("statusFilter").value;
+
+        let filtered = allServices.filter((service) => {
+            const matchesSearch =
+                !searchTerm ||
+                service.name.toLowerCase().includes(searchTerm) ||
+                (service.service_code &&
+                    service.service_code.toLowerCase().includes(searchTerm)) ||
+                (service.description &&
+                    service.description.toLowerCase().includes(searchTerm));
+
+            const matchesCategory =
+                !categoryFilter ||
+                service.category_id == categoryFilter;
+
+            const matchesStatus =
+                !statusFilter ||
+                (statusFilter === "active" && service.is_active) ||
+                (statusFilter === "inactive" && !service.is_active);
+
+            return matchesSearch && matchesCategory && matchesStatus;
+        });
+
+        console.log(`Filtered ${filtered.length} services from ${allServices.length} total`);
+        filteredServices = filtered;
+        renderServicesTable();
+    }
+
+    function clearServiceFilters() {
+        document.getElementById("serviceSearch").value = "";
+        document.getElementById("categoryFilter").value = "";
+        document.getElementById("statusFilter").value = "";
+        filterServices();
+    }
+
+// Clear the search input and re-filter
+function clearSearch() {
+    document.getElementById('serviceSearch').value = '';
+    filterServices();
+}
+
+
+// Load initial data for services and categories
+async function loadServicesData() {
+        try {
+            console.log("Loading services data...");
+            showLoading(true);
+            const response = await fetch("/api/services");
+
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+
+            const data = await response.json();
+            console.log("Received data:", data);
+
+            if (data.success) {
+                allServices = data.services || [];
+                allCategories = data.categories || [];
+                filteredServices = [...allServices];
+
+                console.log(`Loaded ${allServices.length} services and ${allCategories.length} categories`);
+
+                updateStats();
+                renderServicesTable();
+                updateCategoryFilter();
+
+                if (allServices.length > 0) {
+                    showNotification(`${allServices.length} services loaded successfully`, "success", 3000);
+                }
+            } else {
+                throw new Error(data.error || "Failed to load services");
+            }
+        } catch (error) {
+            console.error("Error loading services:", error);
+            showNotification("Error loading services: " + error.message, "error");
+            // Show empty state on error
+            const emptyState = document.getElementById("emptyState");
+            const tableContainer = document.getElementById("servicesTableContainer");
+            if (tableContainer) tableContainer.style.display = "none";
+            if (emptyState) emptyState.style.display = "block";
+        } finally {
+            showLoading(false);
+        }
+    }
+
+// Fetch and populate the edit service modal
+function editService(serviceId) {
+    console.log('Editing service:', serviceId);
+
+    if (!serviceId) {
+        alert('Invalid service ID');
+        return;
+    }
+
+    fetch(`/api/services/${serviceId}`)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            return response.json();
+        })
+        .then(service => {
+            if (!service || service.error) {
+                throw new Error(service?.error || 'Service not found');
+            }
+
+            const modalElement = document.getElementById('editServiceModal');
+            if (!modalElement) {
+                throw new Error('Edit modal element not found');
+            }
+            const modal = new bootstrap.Modal(modalElement);
+            modal.show();
+
+            // Use setTimeout to ensure modal is fully rendered before populating
+            setTimeout(() => {
+                const setFieldValue = (fieldId, value) => {
+                    const field = document.getElementById(fieldId);
+                    if (field) field.value = value ?? '';
+                    else console.warn(`Field ${fieldId} not found in edit modal.`);
+                };
+
+                const setCheckboxValue = (fieldId, checked) => {
+                    const field = document.getElementById(fieldId);
+                    if (field) field.checked = Boolean(checked);
+                    else console.warn(`Checkbox ${fieldId} not found in edit modal.`);
+                };
+
+                setFieldValue('editServiceId', service.id);
+                setFieldValue('editServiceName', service.name);
+                setFieldValue('editServiceDescription', service.description);
+                setFieldValue('editServiceDuration', service.duration ?? 60);
+                setFieldValue('editServicePrice', service.price ?? 0);
+                setFieldValue('editServiceCategory', service.category_id);
+                setCheckboxValue('editServiceActive', service.is_active);
+
+                // Update form action dynamically
+                const editForm = document.getElementById('editServiceForm');
+                if (editForm) {
+                    editForm.action = `/services/${service.id}/edit`;
+                } else {
+                    console.error('Edit form element not found.');
+                }
+
+                console.log('Edit form populated successfully');
+            }, 150); // A small delay to allow the modal to transition
+        })
+        .catch(error => {
+            console.error('Error in editService:', error);
+            alert('Error loading service data: ' + (error.message || 'Unknown error'));
+        });
+}
+
+// Handle the submission of the edit service form
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize Bootstrap tooltips
     var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"], [title]'));
     var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
         return new bootstrap.Tooltip(tooltipTriggerEl);
     });
-    
+
     const editForm = document.getElementById('editServiceForm');
     if (editForm) {
         editForm.addEventListener('submit', function(e) {
             e.preventDefault();
             const serviceId = document.getElementById('editServiceId').value;
-            
-            // Create FormData from the form
+
             const formData = new FormData(this);
-            
+
             fetch(`/services/${serviceId}/edit`, {
                 method: 'POST',
                 body: formData
@@ -499,9 +870,9 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    // Hide modal and reload
                     const modal = bootstrap.Modal.getInstance(document.getElementById('editServiceModal'));
                     modal.hide();
+                    showNotification('Service updated successfully', 'success');
                     location.reload();
                 } else {
                     alert('Error: ' + data.message);
@@ -513,148 +884,20 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         });
     }
+
+    // Initial data load when the page is ready
+    loadServicesData();
 });
-function filterServices() {
-    const searchTerm = document.getElementById('serviceSearch').value.toLowerCase();
-    const categoryFilter = document.getElementById('categoryFilter').value;
-    const serviceRows = document.querySelectorAll('#services-pane tbody tr');
-    let visibleCount = 0;
 
-    serviceRows.forEach(row => {
-        const serviceName = row.cells[0].textContent.toLowerCase();
-        const serviceDescription = row.cells[4].textContent.toLowerCase();
-        const categoryCell = row.cells[1];
-        const categoryName = categoryCell.querySelector('.badge') ? 
-            categoryCell.querySelector('.badge').textContent.toLowerCase().trim() : '';
-
-        const matchesSearch = serviceName.includes(searchTerm) || serviceDescription.includes(searchTerm);
-        const matchesCategory = !categoryFilter || categoryName.includes(categoryFilter.toLowerCase());
-
-        if (matchesSearch && matchesCategory) {
-            row.style.display = '';
-            visibleCount++;
-        } else {
-            row.style.display = 'none';
-        }
-    });
-
-    // Show/hide "no services" message
-    const tbody = document.querySelector('#services-pane tbody');
-    const noServicesMsg = document.getElementById('noServicesMessage');
-    
-    if (visibleCount === 0 && tbody) {
-        if (!noServicesMsg) {
-            const msgRow = document.createElement('tr');
-            msgRow.id = 'noServicesMessage';
-            msgRow.innerHTML = `
-                <td colspan="7" class="text-center text-muted py-4">
-                    <i class="fas fa-search fa-2x mb-2 d-block"></i>
-                    <p>No services found matching your search criteria.</p>
-                </td>
-            `;
-            tbody.appendChild(msgRow);
-        }
-    } else if (noServicesMsg) {
-        noServicesMsg.remove();
-    }
-}
-
-function clearSearch() {
-    document.getElementById('serviceSearch').value = '';
-    filterServices();
-}
-
-function editService(serviceId) {
-    console.log('Editing service:', serviceId);
-    
-    if (!serviceId) {
-        alert('Invalid service ID');
-        return;
-    }
-    
-    // Get service data and populate edit modal
-    fetch(`/api/services/${serviceId}`)
-        .then(response => {
-            console.log('Response status:', response.status);
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-            }
-            return response.json();
-        })
-        .then(service => {
-            console.log('Service data received:', service);
-            if (!service || service.error) {
-                throw new Error(service?.error || 'Service not found');
-            }
-            
-            // Show modal first
-            const modalElement = document.getElementById('editServiceModal');
-            if (!modalElement) {
-                throw new Error('Edit modal not found in page');
-            }
-            const modal = new bootstrap.Modal(modalElement);
-            modal.show();
-            
-            // Wait for modal to fully render in DOM before populating fields
-            setTimeout(() => {
-                try {
-                    // Populate edit modal with robust null checks
-                    const setFieldValue = (fieldId, value) => {
-                        try {
-                            const field = document.getElementById(fieldId);
-                            if (field && field !== null) {
-                                field.value = value ?? '';
-                            } else {
-                                console.warn(`Field ${fieldId} not found in edit modal`);
-                            }
-                        } catch (e) {
-                            console.error(`Error setting field ${fieldId}:`, e);
-                        }
-                    };
-                    
-                    const setCheckboxValue = (fieldId, checked) => {
-                        try {
-                            const field = document.getElementById(fieldId);
-                            if (field && field !== null) {
-                                field.checked = Boolean(checked);
-                            } else {
-                                console.warn(`Checkbox ${fieldId} not found in edit modal`);
-                            }
-                        } catch (e) {
-                            console.error(`Error setting checkbox ${fieldId}:`, e);
-                        }
-                    };
-                    
-                    setFieldValue('editServiceId', serviceId);
-                    setFieldValue('editServiceName', service.name);
-                    setFieldValue('editServiceDescription', service.description);
-                    setFieldValue('editServiceDuration', service.duration ?? 60);
-                    setFieldValue('editServicePrice', service.price ?? 0);
-                    setFieldValue('editServiceCategory', service.category_id);
-                    setCheckboxValue('editServiceActive', service.is_active);
-                    
-                    console.log('Edit form populated successfully');
-                } catch (e) {
-                    console.error('Error populating form:', e);
-                    modal.hide();
-                    throw e;
-                }
-            }, 150);
-        })
-        .catch(error => {
-            console.error('Error in editService:', error);
-            alert('Error loading service data: ' + (error.message || 'Unknown error'));
-        });
-}
-
+// Toggle service active status
 function toggleService(serviceId) {
     if (!serviceId) {
         alert('Invalid service ID');
         return;
     }
-    
+
     console.log('Toggling service:', serviceId);
-    
+
     fetch(`/services/${serviceId}/toggle`, {
         method: 'POST',
         headers: {
@@ -662,7 +905,6 @@ function toggleService(serviceId) {
         }
     })
     .then(response => {
-        console.log('Toggle response status:', response.status);
         if (!response.ok) {
             throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
@@ -671,7 +913,7 @@ function toggleService(serviceId) {
     .then(data => {
         console.log('Toggle response:', data);
         if (data.success) {
-            alert(data.message);
+            showNotification(data.message, 'success');
             location.reload();
         } else {
             alert('Error: ' + (data.message || 'Unknown error'));
@@ -683,15 +925,16 @@ function toggleService(serviceId) {
     });
 }
 
+// Delete a service
 function deleteService(serviceId) {
     if (!serviceId) {
         alert('Invalid service ID');
         return;
     }
-    
+
     if (confirm('Are you sure you want to delete this service? This action cannot be undone.')) {
         console.log('Deleting service:', serviceId);
-        
+
         fetch(`/services/${serviceId}/delete`, {
             method: 'POST',
             headers: {
@@ -699,7 +942,6 @@ function deleteService(serviceId) {
             }
         })
         .then(response => {
-            console.log('Delete response status:', response.status);
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
@@ -708,7 +950,7 @@ function deleteService(serviceId) {
         .then(data => {
             console.log('Delete response:', data);
             if (data.success) {
-                alert(data.message || 'Service deleted successfully');
+                showNotification(data.message || 'Service deleted successfully', 'success');
                 location.reload();
             } else {
                 alert('Error: ' + (data.message || 'Unknown error'));
@@ -721,27 +963,29 @@ function deleteService(serviceId) {
     }
 }
 
+// Fetch and populate the edit category modal
 function editCategory(categoryId) {
-    // Fetch category data and populate edit modal
     fetch(`/api/categories/${categoryId}`)
-    .then(response => response.json())
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        return response.json();
+    })
     .then(data => {
         if (data.error) {
             alert('Error: ' + data.error);
             return;
         }
-        
-        // Populate modal fields
+
         document.getElementById('editCategoryDisplayName').value = data.display_name || '';
         document.getElementById('editCategoryDescription').value = data.description || '';
         document.getElementById('editCategoryColor').value = data.color || '#007bff';
         document.getElementById('editCategorySortOrder').value = data.sort_order || 0;
         document.getElementById('editCategoryIsActive').checked = data.is_active;
-        
-        // Set form action
+
         document.getElementById('editCategoryForm').action = `/service-categories/${categoryId}/edit`;
-        
-        // Show modal
+
         new bootstrap.Modal(document.getElementById('editCategoryModal')).show();
     })
     .catch(error => {
@@ -750,6 +994,7 @@ function editCategory(categoryId) {
     });
 }
 
+// Toggle category active status
 function toggleCategory(categoryId) {
     fetch(`/service-categories/${categoryId}/toggle`, {
         method: 'POST',
@@ -757,9 +1002,15 @@ function toggleCategory(categoryId) {
             'Content-Type': 'application/json',
         }
     })
-    .then(response => response.json())
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        return response.json();
+    })
     .then(data => {
         if (data.success) {
+            showNotification('Category status updated', 'success');
             location.reload();
         } else {
             alert('Error: ' + data.message);
@@ -771,6 +1022,7 @@ function toggleCategory(categoryId) {
     });
 }
 
+// Delete a category
 function deleteCategory(categoryId) {
     if (confirm('Are you sure you want to delete this category? This action cannot be undone.')) {
         fetch(`/service-categories/${categoryId}/delete`, {
@@ -779,9 +1031,15 @@ function deleteCategory(categoryId) {
                 'Content-Type': 'application/json',
             }
         })
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            return response.json();
+        })
         .then(data => {
             if (data.success) {
+                showNotification('Category deleted', 'success');
                 location.reload();
             } else {
                 alert('Error: ' + data.message);
