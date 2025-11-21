@@ -2108,8 +2108,11 @@ def update_integrated_invoice(invoice_id):
         # Get the invoice
         invoice = EnhancedInvoice.query.get_or_404(invoice_id)
 
-        # Delete existing invoice items
-        InvoiceItem.query.filter_by(invoice_id=invoice_id).delete()
+        # Delete existing invoice items individually to avoid FK constraint issues
+        existing_items = InvoiceItem.query.filter_by(invoice_id=invoice_id).all()
+        for item in existing_items:
+            db.session.delete(item)
+        db.session.flush()  # Ensure deletions are processed before inserting new items
 
         # Parse services data (same as create)
         services_data = []
