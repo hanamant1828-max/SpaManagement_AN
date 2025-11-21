@@ -421,7 +421,7 @@ def add_student_offer():
 def edit_student_offer(offer_id):
     """Edit student offer page"""
     try:
-        from modules.packages.new_packages_queries import get_student_offer, update_student_offer
+        from modules.packages.new_packages_queries import get_student_offer_by_id, update_student_offer
         from modules.services.services_queries import get_active_services
 
         if request.method == 'POST':
@@ -438,15 +438,15 @@ def edit_student_offer(offer_id):
 
             if offer:
                 flash('Student offer updated successfully!', 'success')
-                return redirect(url_for('student_offers'))
+                return redirect(url_for('packages'))
             else:
                 flash('Error updating student offer. Please try again.', 'error')
 
-        offer = get_student_offer(offer_id)
+        offer = get_student_offer_by_id(offer_id)
 
         if not offer:
             flash('Student offer not found', 'error')
-            return redirect(url_for('student_offers'))
+            return redirect(url_for('packages'))
 
         services = get_active_services()
 
@@ -458,7 +458,7 @@ def edit_student_offer(offer_id):
         import traceback
         traceback.print_exc()
         flash('An error occurred while loading the student offer', 'error')
-        return redirect(url_for('student_offers'))
+        return redirect(url_for('packages'))
 
 # ========================================
 # STUDENT OFFERS ENDPOINTS
