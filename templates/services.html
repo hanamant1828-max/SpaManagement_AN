@@ -74,16 +74,16 @@
                                     <tr>
                                     <td>
                                         <strong>{{ service.name }}</strong>
-                                        {% if service.category %}
-                                        <br><span class="badge" style="background-color: {{ service.category.color }}; font-size: 0.7rem;">
-                                            {{ service.category.display_name }}
+                                        {% if service.service_category %}
+                                        <br><span class="badge" style="background-color: {{ service.service_category.color }}; font-size: 0.7rem;">
+                                            {{ service.service_category.display_name }}
                                         </span>
                                         {% endif %}
                                     </td>
                                     <td>
-                                        {% if service.category %}
-                                        <span class="badge" style="background-color: {{ service.category.color }}">
-                                            {{ service.category.display_name }}
+                                        {% if service.service_category %}
+                                        <span class="badge" style="background-color: {{ service.service_category.color }}">
+                                            {{ service.service_category.display_name }}
                                         </span>
                                         {% else %}
                                         <span class="text-muted">No Category</span>
