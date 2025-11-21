@@ -119,7 +119,6 @@ def create_service_package(data):
 
         package = ServicePackage(
             name=data['name'],
-            package_type=data.get('package_type', 'service_package'),
             pay_for=pay_for,
             total_services=total_services,
             free_services=free_services,
@@ -146,7 +145,6 @@ def update_service_package(package_id, data):
             raise ValueError("Package not found")
 
         package.name = data.get('name', package.name)
-        package.package_type = data.get('package_type', package.package_type)
 
         # Safe numeric updates
         if 'pay_for' in data or 'paid_sessions' in data:
