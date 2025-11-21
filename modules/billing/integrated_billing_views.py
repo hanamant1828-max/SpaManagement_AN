@@ -2050,7 +2050,8 @@ def integrated_invoice_detail(invoice_id):
                              invoice_items=invoice_items,
                              tax_details=tax_details,
                              customer=customer,
-                             gst_config=gst_config)
+                             gst_config=gst_config,
+                             total_amount_words=number_to_words)
 
     except Exception as e:
         app.logger.error(f"Error loading invoice details: {str(e)}")
