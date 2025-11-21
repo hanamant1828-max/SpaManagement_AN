@@ -372,6 +372,7 @@ document.getElementById('serviceId').addEventListener('change', function() {
         price: parseFloat(option.dataset.price || 0)
     } : null;
     recalculateTotals();
+    validateAssignForm();
 });
 
 // Handle customer selection
