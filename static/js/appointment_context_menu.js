@@ -555,19 +555,19 @@ class AppointmentContextMenu {
             .then(data => {
                 if (data.success && data.booking) {
                     const booking = data.booking;
-                    // Redirect to booking page with customer pre-selected
+                    // Redirect to multi-appointment booking page with customer pre-selected
                     if (booking.client_id) {
-                        window.location.href = `/unaki-booking?customer_id=${booking.client_id}`;
+                        window.location.href = `/multi-appointment-booking?customer_id=${booking.client_id}`;
                     } else {
-                        window.location.href = `/unaki-booking`;
+                        window.location.href = `/multi-appointment-booking`;
                     }
                 } else {
-                    window.location.href = `/unaki-booking`;
+                    window.location.href = `/multi-appointment-booking`;
                 }
             })
             .catch(error => {
                 console.error('Error loading booking page:', error);
-                window.location.href = `/unaki-booking`;
+                window.location.href = `/multi-appointment-booking`;
             });
     }
 
