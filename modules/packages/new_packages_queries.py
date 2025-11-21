@@ -337,7 +337,47 @@ def create_student_offer(data):
         logging.error(f"Error creating student offer: {e}")
         raise
 
-# Update student offer function removed - users should delete and recreate offers instead
+def update_student_offer(offer_id, data):
+    """Update student offer"""
+    try:
+        from models import StudentOffer, StudentOfferService, Service
+        from datetime import datetime
+        
+        offer = StudentOffer.query.get(offer_id)
+        if not offer:
+            raise ValueError("Student offer not found")
+        
+        # Validate and get price
+        price = float(data.get('price', 0))
+        if price < 0:
+            raise ValueError("Price cannot be negative")
+        
+        # Update basic fields
+        offer.name = data.get('offer_name', '').strip() or offer.name
+        offer.price = price
+        offer.discount_percentage = float(data['discount_percentage'])
+        offer.valid_from = datetime.strptime(data['valid_from'], '%Y-%m-%d').date()
+        offer.valid_to = datetime.strptime(data['valid_to'], '%Y-%m-%d').date()
+        offer.valid_days = data.get('valid_days', 'Mon-Fri')
+        offer.conditions = data.get('conditions', 'Valid with Student ID')
+        offer.is_active = data.get('is_active', True)
+        
+        # Update services - remove old ones and add new ones
+        StudentOfferService.query.filter_by(offer_id=offer_id).delete()
+        for service_id in data.get('service_ids', []):
+            offer_service = StudentOfferService(
+                offer_id=offer_id,
+                service_id=service_id
+            )
+            db.session.add(offer_service)
+        
+        db.session.commit()
+        return offer
+        
+    except Exception as e:
+        db.session.rollback()
+        logging.error(f"Error updating student offer: {e}")
+        raise
 
 def delete_student_offer(offer_id):
     """Delete student offer"""
