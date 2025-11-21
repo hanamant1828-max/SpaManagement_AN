@@ -284,16 +284,18 @@
                     document.addEventListener('DOMContentLoaded', function() {
                         {% for category, message in messages %}
                             // Convert Flask flash categories to notification types
-                            let type = '{{ category }}';
-                            if (type === 'danger') type = 'error';
-                            if (type === 'warning') type = 'warning';
-                            if (type === 'success') type = 'success';
-                            if (type === 'info') type = 'info';
+                            (function() {
+                                let notificationType = '{{ category }}';
+                                if (notificationType === 'danger') notificationType = 'error';
+                                if (notificationType === 'warning') notificationType = 'warning';
+                                if (notificationType === 'success') notificationType = 'success';
+                                if (notificationType === 'info') notificationType = 'info';
 
-                            // Show toast notification
-                            if (typeof showNotification === 'function') {
-                                showNotification('{{ message | safe }}', type, 5000);
-                            }
+                                // Show toast notification
+                                if (typeof showNotification === 'function') {
+                                    showNotification('{{ message | safe }}', notificationType, 5000);
+                                }
+                            })();
                         {% endfor %}
                     });
                 </script>
