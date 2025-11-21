@@ -33,6 +33,13 @@
         <div class="tab-pane fade show active" id="services-pane" role="tabpanel">
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <div class="d-flex align-items-center">
+                    <div class="input-group me-3" style="width: 300px;">
+                        <span class="input-group-text"><i class="fas fa-search"></i></span>
+                        <input type="text" class="form-control" id="serviceSearch" placeholder="Search services..." onkeyup="filterServices()">
+                        <button class="btn btn-outline-secondary" type="button" onclick="clearSearch()" title="Clear search">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
                     <select class="form-select me-3" id="categoryFilter" onchange="filterServices()" style="width: 200px;">
                         <option value="">All Categories</option>
                         {% for category in categories %}
@@ -508,15 +515,53 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 function filterServices() {
+    const searchTerm = document.getElementById('serviceSearch').value.toLowerCase();
     const categoryFilter = document.getElementById('categoryFilter').value;
-    console.log('Filtering by category:', categoryFilter);
-    const url = new URL(window.location);
-    if (categoryFilter) {
-        url.searchParams.set('category', categoryFilter);
-    } else {
-        url.searchParams.delete('category');
+    const serviceRows = document.querySelectorAll('#services-pane tbody tr');
+    let visibleCount = 0;
+
+    serviceRows.forEach(row => {
+        const serviceName = row.cells[0].textContent.toLowerCase();
+        const serviceDescription = row.cells[4].textContent.toLowerCase();
+        const categoryCell = row.cells[1];
+        const categoryName = categoryCell.querySelector('.badge') ? 
+            categoryCell.querySelector('.badge').textContent.toLowerCase().trim() : '';
+
+        const matchesSearch = serviceName.includes(searchTerm) || serviceDescription.includes(searchTerm);
+        const matchesCategory = !categoryFilter || categoryName.includes(categoryFilter.toLowerCase());
+
+        if (matchesSearch && matchesCategory) {
+            row.style.display = '';
+            visibleCount++;
+        } else {
+            row.style.display = 'none';
+        }
+    });
+
+    // Show/hide "no services" message
+    const tbody = document.querySelector('#services-pane tbody');
+    const noServicesMsg = document.getElementById('noServicesMessage');
+    
+    if (visibleCount === 0 && tbody) {
+        if (!noServicesMsg) {
+            const msgRow = document.createElement('tr');
+            msgRow.id = 'noServicesMessage';
+            msgRow.innerHTML = `
+                <td colspan="7" class="text-center text-muted py-4">
+                    <i class="fas fa-search fa-2x mb-2 d-block"></i>
+                    <p>No services found matching your search criteria.</p>
+                </td>
+            `;
+            tbody.appendChild(msgRow);
+        }
+    } else if (noServicesMsg) {
+        noServicesMsg.remove();
     }
-    window.location.href = url.toString();
+}
+
+function clearSearch() {
+    document.getElementById('serviceSearch').value = '';
+    filterServices();
 }
 
 function editService(serviceId) {
