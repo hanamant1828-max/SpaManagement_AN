@@ -154,10 +154,12 @@ def get_all_service_categories():
             is_active=True
         ).order_by(Category.sort_order, Category.display_name).all()
 
-        print(f"Retrieved {len(categories)} service categories from database")
+        print(f"✅ Retrieved {len(categories)} active service categories from database")
+        for cat in categories:
+            print(f"   - {cat.display_name} (ID: {cat.id}, Name: {cat.name}, Active: {cat.is_active})")
         return categories
     except Exception as e:
-        print(f"Error retrieving service categories: {e}")
+        print(f"❌ Error retrieving service categories: {e}")
         return []
 
 def get_category_by_id(category_id):

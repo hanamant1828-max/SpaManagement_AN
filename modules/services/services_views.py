@@ -367,23 +367,45 @@ def create_service_category():
     """Create new service category"""
     try:
         from models import Category
+        from datetime import datetime
+        
+        # Get form data with proper validation
+        name = request.form.get('name', '').strip()
+        display_name = request.form.get('display_name', '').strip()
+        
+        if not name or not display_name:
+            flash('Category name and display name are required', 'danger')
+            return redirect(url_for('services'))
+        
+        # Convert name to lowercase with underscores
+        internal_name = name.lower().replace(' ', '_')
+        
+        # Check if category already exists
+        existing = Category.query.filter_by(name=internal_name, category_type='service').first()
+        if existing:
+            flash(f'Category "{internal_name}" already exists', 'warning')
+            return redirect(url_for('services'))
         
         category = Category(
-            name=request.form.get('name'),
-            display_name=request.form.get('display_name'),
-            description=request.form.get('description'),
+            name=internal_name,
+            display_name=display_name,
+            description=request.form.get('description', ''),
             category_type='service',
             color=request.form.get('color', '#007bff'),
             sort_order=int(request.form.get('sort_order', 0)),
-            is_active=bool(request.form.get('is_active'))
+            is_active=True if request.form.get('is_active') == 'on' else False,
+            created_at=datetime.utcnow()
         )
         
         db.session.add(category)
         db.session.commit()
-        flash('Category created successfully!', 'success')
+        
+        print(f"✅ Category created: {category.name} (ID: {category.id}, Active: {category.is_active})")
+        flash(f'Category "{display_name}" created successfully!', 'success')
         
     except Exception as e:
         db.session.rollback()
+        print(f"❌ Error creating category: {str(e)}")
         flash(f'Error creating category: {str(e)}', 'danger')
     
     return redirect(url_for('services'))
