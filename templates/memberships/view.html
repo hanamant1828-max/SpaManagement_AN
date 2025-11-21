@@ -178,11 +178,6 @@
                         <a href="{{ url_for('membership_edit', membership_id=membership.id) }}" class="btn btn-primary">
                             <i class="fas fa-edit me-2"></i>Edit Membership
                         </a>
-                        <button type="button" class="btn btn-outline-success" 
-                                onclick="assignMembershipToCustomer({{ membership.id }})"
-                                title="Assign this membership to a customer">
-                            <i class="fas fa-user-plus me-2"></i>Assign to Customer
-                        </button>
                     </div>
                 </div>
             </div>
@@ -193,10 +188,4 @@
 
 {% block scripts %}
 <script src="{{ url_for('static', filename='js/new_packages.js') }}"></script>
-<script>
-function assignMembershipToCustomer(membershipId) {
-    // Redirect to assign packages page with membership pre-selected
-    window.location.href = '/assign-packages?package_type=membership&package_id=' + membershipId;
-}
-</script>
 {% endblock %}
