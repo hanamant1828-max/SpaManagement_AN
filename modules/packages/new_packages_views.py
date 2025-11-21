@@ -1250,7 +1250,7 @@ def assign_package():
 
         # Create package assignment based on type
         package_type = data['package_type']
-        package_id = data['package_id'] # Use package_id from data
+        package_id = int(data['package_id']) # Ensure it's an integer
 
         if package_type == 'membership':
             # Get membership details
@@ -1323,13 +1323,19 @@ def assign_package():
 
         elif package_type == 'service_package':
             # Get service package template
-            service_pkg = ServicePackage.query.get(data['package_id'])
+            service_pkg = ServicePackage.query.get(package_id)
             if not service_pkg:
                 return jsonify({'success': False, 'error': 'Service package not found'}), 404
 
             # Service ID is required for service packages
-            if not data.get('service_id'):
-                return jsonify({'success': False, 'error': 'Service selection is required for service packages'}), 400
+            service_id = data.get('service_id')
+            if not service_id:
+                return jsonify({'success': False, 'error': 'Please select a service for this service package'}), 400
+
+            # Validate service exists
+            service = Service.query.get(int(service_id))
+            if not service:
+                return jsonify({'success': False, 'error': 'Selected service not found'}), 404
 
             # Calculate expiry date
             expiry_date = None
@@ -1338,18 +1344,25 @@ def assign_package():
             elif service_pkg.validity_months:
                 expiry_date = datetime.utcnow() + timedelta(days=service_pkg.validity_months * 30)
 
+            # Build payment notes
+            payment_notes = f"Payment: {payment_method.upper()} | Status: {payment_status.upper()} | Amount Paid: ₹{amount_paid} | Balance: ₹{balance_due}"
+            if transaction_ref:
+                payment_notes += f" | Ref: {transaction_ref}"
+            if data.get('notes'):
+                payment_notes += f"\n{data.get('notes')}"
+
             # Create assignment record
             assignment = ServicePackageAssignment(
                 customer_id=customer_id,
                 package_type='service_package',
                 package_reference_id=service_pkg.id,
-                service_id=data['service_id'],
+                service_id=int(service_id),
                 assigned_on=datetime.utcnow(),
                 expires_on=expiry_date,
                 price_paid=float(data['price_paid']),
                 discount=float(data.get('discount', 0)),
                 status='active',
-                notes=data.get('notes', ''),
+                notes=payment_notes,
                 # Service package uses session tracking
                 total_sessions=service_pkg.total_services,
                 used_sessions=0,
@@ -1358,6 +1371,8 @@ def assign_package():
                 used_credit=0,
                 remaining_credit=0
             )
+
+            logging.info(f"Creating service package assignment: customer_id={customer_id}, package_id={service_pkg.id}, service_id={service_id}, total_sessions={service_pkg.total_services}")
 
         elif package_type == 'yearly' or package_type == 'yearly_membership':
             # Get yearly membership template
@@ -1464,16 +1479,28 @@ def assign_package():
         db.session.add(assignment)
         db.session.commit()
 
+        # Get package name for response
+        package_template = assignment.get_package_template()
+        package_name = package_template.name if package_template else f"{package_type.title()} Package"
+
         return jsonify({
             'success': True,
-            'message': f'{package_type.title()} assigned successfully to {customer.full_name}',
-            'assignment_id': assignment.id
+            'message': f'{package_name} assigned successfully to {customer.full_name}',
+            'assignment_id': assignment.id,
+            'package_type': package_type,
+            'customer_name': customer.full_name
         })
 
+    except ValueError as ve:
+        logging.error(f"Validation error assigning package: {ve}")
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(ve)}), 400
     except Exception as e:
         logging.error(f"Error assigning package: {e}")
+        import traceback
+        traceback.print_exc()
         db.session.rollback()
-        return jsonify({'success': False, 'error': 'Failed to assign package'}), 500
+        return jsonify({'success': False, 'error': f'Failed to assign package: {str(e)}'}), 500
 
 @app.route('/packages/api/assigned-customers/<package_type>/<int:package_id>', methods=['GET'])
 @login_required
