@@ -283,9 +283,16 @@ document.addEventListener('DOMContentLoaded', function() {
         
         try {
             const formData = new FormData(form);
+            
+            // Get the package price - ensure it's a valid number
+            const price = parseFloat(formData.get('price'));
+            if (isNaN(price) || price < 0) {
+                throw new Error('Please enter a valid package price');
+            }
+            
             const data = {
                 name: formData.get('offer_name'),
-                price: parseFloat(formData.get('price')),
+                price: price,
                 discount_percentage: parseFloat(formData.get('discount_percentage')),
                 valid_from: formData.get('valid_from'),
                 valid_to: formData.get('valid_to'),
@@ -295,16 +302,30 @@ document.addEventListener('DOMContentLoaded', function() {
                 service_ids: Array.from(selectedServices).map(cb => parseInt(cb.value))
             };
             
+            console.log('Sending update data:', data);
+            
             const offerId = document.getElementById('offerId').value;
-            const response = await fetch(`/api/student-offers/${offerId}`, {
+            const response = await fetch(`/packages/api/student-offers/${offerId}`, {
                 method: 'PUT',
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
                 },
                 body: JSON.stringify(data)
             });
             
+            console.log('Response status:', response.status);
+            
+            // Handle non-JSON responses
+            const contentType = response.headers.get('content-type');
+            if (!contentType || !contentType.includes('application/json')) {
+                const text = await response.text();
+                console.error('Non-JSON response:', text);
+                throw new Error('Server returned an invalid response. Please check the console for details.');
+            }
+            
             const result = await response.json();
+            console.log('Update result:', result);
             
             if (result.success || response.ok) {
                 alert('Student offer updated successfully!');
@@ -313,7 +334,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 throw new Error(result.error || 'Failed to update student offer');
             }
         } catch (error) {
-            console.error('Error:', error);
+            console.error('Error updating student offer:', error);
             const errorDiv = document.getElementById('editStudentOfferFormError');
             errorDiv.textContent = 'Error updating student offer: ' + error.message;
             errorDiv.style.display = 'block';
