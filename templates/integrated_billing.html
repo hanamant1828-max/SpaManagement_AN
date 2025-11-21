@@ -686,7 +686,7 @@ textarea.form-control {
                                                             <small>{{ package.valid_from }} to<br>{{ package.valid_to }}</small>
                                                             {% if package.conditions %}
                                                             <br><button type="button" class="btn btn-sm btn-outline-info mt-1"
-                                                                    onclick="showStudentOfferDetails('{{ package.name }}', '{{ package.discount_percentage }}', '{{ package.applicable_service_names }}', '{{ package.valid_from }}', '{{ package.valid_to }}', '{{ package.valid_days }}', '{{ package.conditions }}')">
+                                                                    onclick="showStudentOfferDetails({{ package.name|tojson }}, '{{ package.discount_percentage }}', {{ package.applicable_service_names|tojson }}, '{{ package.valid_from }}', '{{ package.valid_to }}', '{{ package.valid_days }}', {{ package.conditions|tojson }})">
                                                                 <i class="fas fa-info-circle"></i> Details
                                                             </button>
                                                             {% endif %}
@@ -1422,7 +1422,10 @@ function displayCustomerPackagesTable(packages) {
             expiryDate = `<small>${pkg.valid_from} to<br>${pkg.valid_to}</small>`;
             // Add details button if conditions exist
             if (pkg.conditions) {
-                expiryDate += `<br><button type="button" class="btn btn-sm btn-outline-info mt-1" onclick="showStudentOfferDetails('${pkg.name}', '${pkg.discount_percentage}', '${pkg.applicable_service_names}', '${pkg.valid_from}', '${pkg.valid_to}', '${pkg.valid_days}', '${pkg.conditions}')"><i class="fas fa-info-circle"></i> Details</button>`;
+                const escapedName = JSON.stringify(pkg.name || '');
+                const escapedServiceNames = JSON.stringify(pkg.applicable_service_names || '');
+                const escapedConditions = JSON.stringify(pkg.conditions || '');
+                expiryDate += `<br><button type="button" class="btn btn-sm btn-outline-info mt-1" onclick="showStudentOfferDetails(${escapedName}, '${pkg.discount_percentage}', ${escapedServiceNames}, '${pkg.valid_from}', '${pkg.valid_to}', '${pkg.valid_days}', ${escapedConditions})"><i class="fas fa-info-circle"></i> Details</button>`;
             }
         } else {
             expiryDate = (pkg.valid_to || pkg.expires_on) ?
