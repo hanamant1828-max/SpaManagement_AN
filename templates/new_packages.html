@@ -283,9 +283,6 @@
                                             <td><span class="badge bg-info">{{ offer.valid_days }}</span></td>
                                             <td>
                                                 <div class="btn-group btn-group-sm">
-                                                    <a href="{{ url_for('edit_student_offer', id=offer.id) }}" class="btn btn-sm btn-outline-primary" title="Edit">
-                                                        <i class="fas fa-edit"></i>
-                                                    </a>
                                                     <button class="btn btn-sm btn-outline-danger" onclick="deleteStudentOffer({{ offer.id }})" title="Delete">
                                                         <i class="fas fa-trash"></i>
                                                     </button>

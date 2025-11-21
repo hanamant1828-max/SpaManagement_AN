@@ -103,16 +103,16 @@ def create_service_package(data):
         # Safe numeric parsing - handle both field naming conventions
         pay_for = int(data.get('pay_for') or data.get('paid_sessions') or 0)
         total_services = int(data.get('total_services') or 0)
-        
+
         # ALWAYS calculate free_services = total_services - pay_for
         # This ensures consistency regardless of what was submitted
         free_services = max(total_services - pay_for, 0)
-        
+
         # Calculate benefit percentage
         benefit_percent = 0
         if pay_for > 0:
             benefit_percent = (free_services / pay_for) * 100
-        
+
         price_val = data.get('price', 0)
         price = float(price_val) if price_val and str(price_val).strip() else 0.0
         validity_months = int(data.get('validity_months') or 12)
@@ -130,7 +130,7 @@ def create_service_package(data):
         )
         db.session.add(package)
         db.session.commit()
-        
+
         logging.info(f"Created service package: {package.name} - Pay for: {pay_for}, Total: {total_services}, Free: {free_services}")
         return package
     except Exception as e:
@@ -151,25 +151,25 @@ def update_service_package(package_id, data):
         # Safe numeric updates
         if 'pay_for' in data or 'paid_sessions' in data:
             package.pay_for = int(data.get('pay_for') or data.get('paid_sessions') or 0)
-        
+
         if 'total_services' in data:
             package.total_services = int(data.get('total_services') or 0)
-        
+
         # ALWAYS recalculate free_services based on total_services and pay_for
         package.free_services = max(package.total_services - package.pay_for, 0)
-        
+
         # Recalculate benefit percentage
         if package.pay_for > 0:
             package.benefit_percent = (package.free_services / package.pay_for) * 100
         else:
             package.benefit_percent = 0
-        
+
         if 'price' in data:
             price_val = data.get('price')
             package.price = float(price_val) if price_val and str(price_val).strip() else 0.0
         if 'validity_months' in data:
             package.validity_months = int(data.get('validity_months') or 12)
-        
+
         if 'is_active' in data:
             is_active_raw = data.get('is_active')
             if isinstance(is_active_raw, str):
@@ -337,49 +337,7 @@ def create_student_offer(data):
         logging.error(f"Error creating student offer: {e}")
         raise
 
-def update_student_offer(offer_id, data):
-    """Update student offer"""
-    try:
-        from models import StudentOffer, StudentOfferService
-        from datetime import datetime
-
-        student_offer = StudentOffer.query.get_or_404(offer_id)
-
-        # Update price if provided
-        if 'price' in data:
-            price = float(data['price'])
-            if price < 0:
-                raise ValueError("Price cannot be negative")
-            student_offer.price = price
-
-        # Update name if provided
-        if 'offer_name' in data and data['offer_name'].strip():
-            student_offer.name = data['offer_name'].strip()
-
-        # Update basic fields
-        student_offer.discount_percentage = float(data['discount_percentage'])
-        student_offer.valid_from = datetime.strptime(data['valid_from'], '%Y-%m-%d').date()
-        student_offer.valid_to = datetime.strptime(data['valid_to'], '%Y-%m-%d').date()
-        student_offer.valid_days = data.get('valid_days', 'Mon-Fri')
-        student_offer.conditions = data.get('conditions', 'Valid with Student ID')
-        student_offer.is_active = data.get('is_active', True)
-
-        # Update services
-        StudentOfferService.query.filter_by(offer_id=offer_id).delete()
-        for service_id in data.get('service_ids', []):
-            offer_service = StudentOfferService(
-                offer_id=offer_id,
-                service_id=service_id
-            )
-            db.session.add(offer_service)
-
-        db.session.commit()
-        return student_offer
-
-    except Exception as e:
-        db.session.rollback()
-        logging.error(f"Error updating student offer: {e}")
-        raise
+# Update student offer function removed - users should delete and recreate offers instead
 
 def delete_student_offer(offer_id):
     """Delete student offer"""

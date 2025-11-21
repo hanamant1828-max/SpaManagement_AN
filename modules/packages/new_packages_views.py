@@ -269,7 +269,7 @@ def api_get_service_package(package_id):
         package = ServicePackage.query.get(package_id)
         if not package:
             return jsonify({'error': 'Service package not found'}), 404
-        
+
         return jsonify({
             'success': True,
             'id': package.id,
@@ -415,20 +415,7 @@ def add_student_offer():
 
     return render_template('packages/add_student_offer.html')
 
-@app.route('/student-offers/edit')
-@login_required
-def edit_student_offer():
-    """Edit student offer page"""
-    if not hasattr(current_user, 'can_access') or not current_user.can_access('packages'):
-        flash('Access denied', 'danger')
-        return redirect(url_for('dashboard'))
-
-    offer_id = request.args.get('id')
-    if not offer_id:
-        flash('Student offer ID is required', 'error')
-        return redirect(url_for('packages'))
-
-    return render_template('packages/edit_student_offer.html', offer_id=offer_id)
+# Edit student offer route removed
 
 # ========================================
 # STUDENT OFFERS ENDPOINTS
@@ -536,106 +523,9 @@ def create_student_offer():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
-@app.route('/api/student-offers/<int:offer_id>', methods=['GET'])
-@login_required
-def api_get_student_offer(offer_id):
-    """Get specific student offer by ID"""
-    try:
-        offer = get_student_offer_by_id(offer_id)
-        if not offer:
-            return jsonify({'success': False, 'error': 'Student offer not found'}), 404
+# Get student offer API endpoint removed
 
-        # Get the price - student offers MUST have a price field
-        offer_price = float(offer.price) if offer.price is not None else 0.0
-
-        # Log for debugging
-        logging.info(f"Student offer {offer_id} price: {offer_price}")
-
-        return jsonify({
-            'success': True,
-            'offer': {
-                'id': offer.id,
-                'name': offer.name or f"Student Discount {offer.discount_percentage}%",
-                'price': offer_price,  # Primary price field
-                'actual_price': offer_price,  # Compatibility with prepaid
-                'package_price': offer_price,  # Compatibility with kitty party
-                'amount': offer_price,  # Compatibility with membership
-                'discount_percentage': float(offer.discount_percentage) if offer.discount_percentage else 0.0,
-                'valid_from': offer.valid_from.isoformat() if offer.valid_from else None,
-                'valid_to': offer.valid_to.isoformat() if offer.valid_to else None,
-                'valid_days': offer.valid_days,
-                'conditions': offer.conditions,
-                'services': [{'id': sos.service.id, 'name': sos.service.name, 'price': float(sos.service.price) if sos.service.price else 0.0}
-                            for sos in offer.student_offer_services],
-                'is_active': offer.is_active
-            }
-        })
-    except Exception as e:
-        logging.error(f"Error getting student offer {offer_id}: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
-
-@app.route('/api/student-offers/<int:offer_id>', methods=['PUT'])
-@login_required
-def api_update_student_offer(offer_id):
-    """Update student offer"""
-    try:
-        # Handle both JSON and form data
-        if request.is_json:
-            data = request.get_json()
-        else:
-            data = request.form.to_dict()
-            # Handle multiple service selection from form data
-            if 'service_ids' in request.form:
-                data['service_ids'] = request.form.getlist('service_ids')
-
-        # Validate required fields (same as create)
-        if not data.get('service_ids') or len(data['service_ids']) == 0:
-            return jsonify({'success': False, 'error': 'Please select at least one service'}), 400
-
-        if 'price' not in data or data.get('price') == '':
-            return jsonify({'success': False, 'error': 'Package price is required'}), 400
-
-        # Validate price
-        try:
-            price = float(data['price'])
-            if price < 0:
-                return jsonify({'success': False, 'error': 'Package price must be 0 or greater'}), 400
-        except (ValueError, TypeError):
-            return jsonify({'success': False, 'error': 'Invalid price format'}), 400
-
-        if not data.get('discount_percentage'):
-            return jsonify({'success': False, 'error': 'Discount percentage is required'}), 400
-
-        # Validate discount percentage range
-        try:
-            discount = float(data['discount_percentage'])
-            if discount < 1 or discount > 100:
-                return jsonify({'success': False, 'error': 'Discount percentage must be between 1 and 100'}), 400
-        except (ValueError, TypeError):
-            return jsonify({'success': False, 'error': 'Invalid discount percentage format'}), 400
-
-        if not data.get('valid_from') or not data.get('valid_to'):
-            return jsonify({'success': False, 'error': 'Valid from and to dates are required'}), 400
-
-        # Validate date range
-        try:
-            from datetime import datetime
-            valid_from = datetime.strptime(data['valid_from'], '%Y-%m-%d').date()
-            valid_to = datetime.strptime(data['valid_to'], '%Y-%m-%d').date()
-            if valid_to < valid_from:
-                return jsonify({'success': False, 'error': 'Valid To Date must be greater than or equal to Valid From Date'}), 400
-        except ValueError:
-            return jsonify({'success': False, 'error': 'Invalid date format. Please use YYYY-MM-DD format'}), 400
-
-        offer = update_student_offer(offer_id, data)
-        flash('Student offer updated successfully!', 'success')
-        return jsonify({
-            'success': True,
-            'message': 'Student offer updated successfully'
-        })
-    except Exception as e:
-        logging.error(f"Error updating student offer: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+# Update student offer API endpoint removed
 
 @app.route('/api/student-offers/<int:offer_id>', methods=['DELETE'])
 @login_required
@@ -697,7 +587,7 @@ def api_get_yearly_membership(membership_id):
                 'success': False,
                 'error': 'Yearly membership not found'
             }), 404
-        
+
         return jsonify({
             'success': True,
             'membership': {
@@ -1059,10 +949,10 @@ def api_get_services():
     """Get available services"""
     try:
         from modules.services.services_queries import get_active_services
-        
+
         # Try using the services query function first
         services = get_active_services()
-        
+
         if not services:
             # Fallback to direct query
             services = Service.query.filter_by(is_active=True).order_by(Service.name).all()
@@ -1077,7 +967,7 @@ def api_get_services():
             })
 
         logging.info(f"Returning {len(service_list)} services")
-        
+
         return jsonify({
             'success': True,
             'services': service_list

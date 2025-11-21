@@ -472,12 +472,10 @@ async function handleEditFormSubmit(event) {
 }
 
 /**
- * Edit student offer - redirect to dedicated page or handle in modal
+ * Edit student offer - disabled
  */
 function editStudentOffer(offerId) {
-    console.log('Editing student offer:', offerId);
-    // Redirect to the dedicated edit page
-    window.location.href = `/packages/student-offers/edit/${offerId}`;
+    alert('Edit functionality has been removed. Please delete and create a new offer instead.');
 }
 
 /**
