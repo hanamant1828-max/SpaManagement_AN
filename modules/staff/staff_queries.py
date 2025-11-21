@@ -292,7 +292,8 @@ def create_staff_performance_record(staff_id, month, year, metrics):
 def get_staff_members():
     """Get all active staff members for Unaki API"""
     try:
-        return User.query.filter_by(is_active=True).order_by(User.first_name).all()
+        from models import UnakiStaff
+        return UnakiStaff.query.filter_by(active=True).order_by(UnakiStaff.name).all()
     except Exception as e:
         print(f"Error getting staff members: {e}")
         return []
