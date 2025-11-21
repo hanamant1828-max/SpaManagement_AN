@@ -338,56 +338,58 @@ def create_student_offer(data):
         raise
 
 def update_student_offer(offer_id, data):
-    """Update student offer"""
+    """Update an existing student offer"""
     try:
-        from models import StudentOffer, StudentOfferService, Service
-        from datetime import datetime
-        
+        from models import StudentOffer, Service
+
         offer = StudentOffer.query.get(offer_id)
         if not offer:
-            raise ValueError("Student offer not found")
-        
-        # Validate and get price
-        price = float(data.get('price', 0))
-        if price < 0:
-            raise ValueError("Price cannot be negative")
-        
+            return None
+
         # Update basic fields
-        offer.name = data.get('offer_name', '').strip() or offer.name
-        offer.price = price
-        offer.discount_percentage = float(data['discount_percentage'])
-        offer.valid_from = datetime.strptime(data['valid_from'], '%Y-%m-%d').date()
-        offer.valid_to = datetime.strptime(data['valid_to'], '%Y-%m-%d').date()
-        offer.valid_days = data.get('valid_days', 'Mon-Fri')
-        offer.conditions = data.get('conditions', 'Valid with Student ID')
-        offer.is_active = data.get('is_active', True)
-        
-        # Update services - remove old ones and add new ones
-        StudentOfferService.query.filter_by(offer_id=offer_id).delete()
-        for service_id in data.get('service_ids', []):
-            offer_service = StudentOfferService(
-                offer_id=offer_id,
-                service_id=service_id
-            )
-            db.session.add(offer_service)
-        
+        offer.name = data.get('name', offer.name)
+        offer.discount_percentage = float(data.get('discount_percentage', offer.discount_percentage))
+        offer.validity_days = int(data.get('validity_days', offer.validity_days)) if data.get('validity_days') else None
+        offer.max_uses_per_student = int(data.get('max_uses_per_student', offer.max_uses_per_student)) if data.get('max_uses_per_student') else None
+        offer.is_active = data.get('is_active', offer.is_active)
+
+        # Update services if provided
+        if 'service_ids' in data:
+            service_ids = data['service_ids']
+            if isinstance(service_ids, str):
+                service_ids = [int(id) for id in service_ids.split(',') if id.strip()]
+            elif not isinstance(service_ids, list):
+                service_ids = [int(service_ids)]
+
+            # Get new services
+            new_services = Service.query.filter(Service.id.in_(service_ids)).all()
+            offer.services = new_services
+
         db.session.commit()
         return offer
-        
     except Exception as e:
         db.session.rollback()
-        logging.error(f"Error updating student offer: {e}")
-        raise
+        print(f"Error updating student offer: {e}")
+        import traceback
+        traceback.print_exc()
+        return None
+
 
 def delete_student_offer(offer_id):
-    """Delete student offer"""
-    offer = StudentOffer.query.get(offer_id)
-    if not offer:
-        raise ValueError("Student offer not found")
+    """Delete a student offer"""
+    try:
+        offer = StudentOffer.query.get(offer_id)
+        if not offer:
+            return False
 
-    offer.is_active = False
-    db.session.commit()
-    return True
+        db.session.delete(offer)
+        db.session.commit()
+        return True
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error deleting student offer: {e}")
+        return False
+
 
 # ========================================
 # YEARLY MEMBERSHIPS CRUD

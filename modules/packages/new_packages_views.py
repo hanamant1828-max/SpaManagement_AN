@@ -415,7 +415,50 @@ def add_student_offer():
 
     return render_template('packages/add_student_offer.html')
 
-# Edit student offer route removed
+# Edit student offer route
+@app.route('/packages/student-offers/edit/<int:offer_id>', methods=['GET', 'POST'])
+@login_required
+def edit_student_offer(offer_id):
+    """Edit student offer page"""
+    try:
+        from modules.packages.new_packages_queries import get_student_offer, update_student_offer
+        from modules.services.services_queries import get_active_services
+
+        if request.method == 'POST':
+            data = {
+                'name': request.form.get('name'),
+                'discount_percentage': request.form.get('discount_percentage'),
+                'validity_days': request.form.get('validity_days'),
+                'max_uses_per_student': request.form.get('max_uses_per_student'),
+                'service_ids': request.form.getlist('service_ids'),
+                'is_active': request.form.get('is_active') == 'on'
+            }
+
+            offer = update_student_offer(offer_id, data)
+
+            if offer:
+                flash('Student offer updated successfully!', 'success')
+                return redirect(url_for('student_offers'))
+            else:
+                flash('Error updating student offer. Please try again.', 'error')
+
+        offer = get_student_offer(offer_id)
+
+        if not offer:
+            flash('Student offer not found', 'error')
+            return redirect(url_for('student_offers'))
+
+        services = get_active_services()
+
+        return render_template('packages/edit_student_offer.html',
+                             offer=offer,
+                             services=services)
+    except Exception as e:
+        print(f"Error in edit_student_offer: {e}")
+        import traceback
+        traceback.print_exc()
+        flash('An error occurred while loading the student offer', 'error')
+        return redirect(url_for('student_offers'))
 
 # ========================================
 # STUDENT OFFERS ENDPOINTS
