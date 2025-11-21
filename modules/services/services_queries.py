@@ -51,7 +51,8 @@ def create_service(data):
             try:
                 category = Category.query.get(int(category_id))
                 if category:
-                    category_name = category.name  # Use the category's name field
+                    # Use the category's name field (internal name like 'facial', 'massage')
+                    category_name = category.name
                     print(f"Found category: {category_name} (ID: {category_id})")
                 else:
                     print(f"Category {category_id} not found, using default")
@@ -61,13 +62,21 @@ def create_service(data):
         else:
             print("No category_id provided, using default 'general'")
         
+        # Validate required data
+        if not data.get('name'):
+            raise ValueError("Service name is required")
+        if not data.get('duration'):
+            raise ValueError("Service duration is required")
+        if not data.get('price'):
+            raise ValueError("Service price is required")
+        
         # Create service instance with only valid fields
         service = Service()
         service.name = data['name']
         service.description = data.get('description', '')
-        service.duration = data['duration']
-        service.price = data['price']
-        service.category = category_name  # Set this BEFORE category_id (required field)
+        service.duration = int(data['duration'])
+        service.price = float(data['price'])
+        service.category = category_name  # Set the required category field
         service.category_id = int(category_id) if category_id else None
         service.is_active = data.get('is_active', True)
         service.created_at = datetime.utcnow()
