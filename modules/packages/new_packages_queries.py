@@ -374,12 +374,12 @@ def update_student_offer(offer_id, data):
                 service_ids = [int(service_ids)]
 
             # Clear existing service relationships
-            StudentOfferService.query.filter_by(student_offer_id=offer_id).delete()
+            StudentOfferService.query.filter_by(offer_id=offer_id).delete()
 
             # Add new service relationships
             for service_id in service_ids:
                 offer_service = StudentOfferService(
-                    student_offer_id=offer_id,
+                    offer_id=offer_id,
                     service_id=service_id
                 )
                 db.session.add(offer_service)
