@@ -36,9 +36,14 @@ def get_face_app():
                     _face_app = FaceAnalysis(providers=['CPUExecutionProvider'], allowed_modules=['detection', 'recognition'])
                     _face_app.prepare(ctx_id=0, det_size=(320, 320), det_thresh=0.5)
                     print("✅ InsightFace model initialized successfully")
+                except ImportError as import_err:
+                    print(f"❌ InsightFace library not installed: {import_err}")
+                    raise ImportError("Face recognition library (insightface) is not installed. Please contact administrator.")
                 except Exception as e:
                     print(f"❌ Failed to initialize InsightFace: {e}")
-                    raise
+                    import traceback
+                    traceback.print_exc()
+                    raise Exception(f"Face recognition initialization failed: {str(e)}")
 
     return _face_app
 
@@ -50,16 +55,39 @@ def recognize_face():
     """
     try:
         # Log authentication status for debugging
-        print(f"🔐 Authenticated user for face recognition: {current_user.username if current_user.is_authenticated else 'Anonymous'}")
+        print(f"🔐 Face recognition request from user: {current_user.username if current_user.is_authenticated else 'Anonymous'}")
+        
         if not current_user.is_authenticated:
             print("❌ Access denied: User not authenticated.")
             return jsonify({
                 'success': False,
-                'error': 'Access denied'
+                'recognized': False,
+                'error': 'Access denied',
+                'message': 'Please log in to access this feature'
             }), 401
+        
         print(f"✅ User: {current_user.username} (ID: {current_user.id}) is authenticated.")
 
-        data = request.get_json()
+        # Get JSON data with error handling
+        try:
+            data = request.get_json()
+            if not data:
+                print("❌ No JSON data in request")
+                return jsonify({
+                    'success': False,
+                    'recognized': False,
+                    'error': 'No data provided',
+                    'message': 'Invalid request format'
+                }), 400
+        except Exception as json_error:
+            print(f"❌ JSON parsing error: {json_error}")
+            return jsonify({
+                'success': False,
+                'recognized': False,
+                'error': 'Invalid JSON data',
+                'message': 'Request data is not valid JSON'
+            }), 400
+        
         # Accept both 'image' and 'face_image' keys for compatibility
         face_image = data.get('image') or data.get('face_image')
 
@@ -68,7 +96,9 @@ def recognize_face():
             print(f"Request data keys: {list(data.keys())}")
             return jsonify({
                 'success': False,
-                'error': 'No face image provided'
+                'recognized': False,
+                'error': 'No face image provided',
+                'message': 'Face image is required for recognition'
             }), 400
 
         print("📸 Face image received, proceeding with recognition.")
@@ -219,9 +249,21 @@ def recognize_face():
             }
         }), 200
 
-    except Exception as e:
-        app.logger.error(f"Face recognition error: {e}")
+    except ImportError as import_error:
+        app.logger.error(f"Face recognition library import error: {import_error}")
         return jsonify({
             'success': False,
-            'error': 'Face recognition service encountered an error. Please try again.'
+            'recognized': False,
+            'error': 'Face recognition library not available',
+            'message': 'The face recognition service is not properly installed. Please contact administrator.'
+        }), 500
+    except Exception as e:
+        app.logger.error(f"Face recognition error: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            'success': False,
+            'recognized': False,
+            'error': 'Face recognition service error',
+            'message': 'The face recognition service encountered an error. Please try again or contact support.'
         }), 500

@@ -587,11 +587,17 @@ async function performRecognition(videoElement) { // Renamed parameter to avoid 
         // Check if response is JSON
         const contentType = response.headers.get('content-type');
         if (!contentType || !contentType.includes('application/json')) {
-            throw new Error('Server returned non-JSON response. The API endpoint may not be available.');
+            console.error('Non-JSON response received from server');
+            throw new Error('The face recognition service is not responding correctly. Please refresh the page and try again.');
         }
 
         const result = await response.json();
         console.log('Recognition result:', result);
+        
+        // Handle explicit service unavailable errors
+        if (!result.success && (result.error === 'Face recognition library not available' || result.message?.includes('not available'))) {
+            throw new Error('The face recognition service is not available. Please contact your administrator to install the required libraries.');
+        }
 
         const overlay = document.getElementById('cameraOverlay');
 
@@ -725,11 +731,16 @@ async function performRecognition(videoElement) { // Renamed parameter to avoid 
         let errorTitle = 'Connection Error';
         let errorMessage = '';
 
-        if (err.message && err.message.includes('non-JSON response')) {
+        if (err.message && (err.message.includes('not available') || err.message.includes('Service Unavailable'))) {
             errorTitle = 'Service Unavailable';
-            errorMessage = 'The face recognition service is not available. Please refresh the page and try again.';
+            errorMessage = 'The face recognition service is not available. Please contact your administrator or try again later.';
+        } else if (err.message && err.message.includes('not responding correctly')) {
+            errorTitle = 'Service Error';
+            errorMessage = err.message;
         } else if (err.message && err.message.includes('NetworkError')) {
             errorMessage = 'Network connection failed. Please check your internet connection and try again.';
+        } else if (err.message) {
+            errorMessage = err.message;
         } else {
             errorMessage = 'An unexpected error occurred. Please try again or contact support if the problem persists.';
         }
