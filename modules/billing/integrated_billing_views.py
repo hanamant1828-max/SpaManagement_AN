@@ -121,7 +121,7 @@ def integrated_billing(customer_id=None):
     client_name = request.args.get('client_name', '')
     client_phone = request.args.get('client_phone', '')
     appointment_id = request.args.get('appointment_id', '')
-    
+
     # If appointment_id is provided, get customer from appointment
     if appointment_id and not customer_id:
         try:
@@ -2029,7 +2029,7 @@ def integrated_invoice_detail(invoice_id):
 
         # Get GST configuration from SystemSetting
         from models import SystemSetting
-        
+
         # Create a gst_config object from SystemSetting
         class GSTConfig:
             def __init__(self):
@@ -2041,7 +2041,7 @@ def integrated_invoice_detail(invoice_id):
                 cgst = SystemSetting.query.filter_by(key='default_cgst').first()
                 sgst = SystemSetting.query.filter_by(key='default_sgst').first()
                 gst_enabled = SystemSetting.query.filter_by(key='gst_enabled').first()
-                
+
                 self.gstin_number = gstin.value if gstin else ''
                 self.business_name = business_name.value if business_name else 'Your Business'
                 self.business_address = business_addr.value if business_addr else ''
@@ -2050,7 +2050,7 @@ def integrated_invoice_detail(invoice_id):
                 self.cgst_rate = float(cgst.value) if cgst else 9.0
                 self.sgst_rate = float(sgst.value) if sgst else 9.0
                 self.enabled = gst_enabled.value == 'true' if gst_enabled else False
-        
+
         gst_config = GSTConfig()
 
         # Check if print mode
@@ -2320,7 +2320,7 @@ def print_professional_invoice(invoice_id):
         staffs = User.query.filter(User.id.in_(service_staff_ids)).all()
         staff_names = {staff.id: staff.full_name for staff in staffs}
 
-    # Fetch GST business information from database
+    # Get GST business information from database
     from modules.settings.settings_queries import get_gst_settings
     gst_config = get_gst_settings()
 
@@ -2365,34 +2365,113 @@ def print_professional_invoice(invoice_id):
 @login_required
 def generate_invoice_preview():
     """Generate professional invoice preview"""
-    # Allow all authenticated users to preview invoices
     if not current_user.is_active:
         return jsonify({'error': 'Access denied'}), 403
 
     try:
+        from modules.settings.settings_queries import get_gst_settings
+
         data = request.json or {}
+        gst_config = get_gst_settings()
+
+        # Extract data from request
+        customer_name = data.get('customer_name', 'Customer Name')
+        customer_phone = data.get('customer_phone', 'N/A')
+        is_interstate = data.get('is_interstate', False)
+
+        # Get services and products
+        services = data.get('services', [])
+        products = data.get('products', [])
+
+        # Calculate totals
+        services_subtotal = float(data.get('services_subtotal', 0))
+        products_subtotal = float(data.get('products_subtotal', 0))
+        subtotal = services_subtotal + products_subtotal
+        package_deductions = float(data.get('package_deductions', 0))
+        discount_amount = float(data.get('discount_amount', 0))
+        additional_charges = float(data.get('additional_charges', 0))
+        tips = float(data.get('tips', 0))
+
+        # Calculate taxable amount
+        taxable_amount = subtotal - package_deductions - discount_amount
+
+        # Calculate GST
+        if is_interstate:
+            igst_amount = taxable_amount * (gst_config.igst_rate / 100)
+            cgst_amount = 0
+            sgst_amount = 0
+        else:
+            cgst_amount = taxable_amount * (gst_config.cgst_rate / 100)
+            sgst_amount = taxable_amount * (gst_config.sgst_rate / 100)
+            igst_amount = 0
+
+        total_tax = cgst_amount + sgst_amount + igst_amount
+        grand_total = taxable_amount + total_tax + additional_charges + tips
+
+        # Build services HTML
+        services_html = ""
+        for idx, service in enumerate(services, 1):
+            if service.get('service_id'):
+                services_html += f"""
+                <tr>
+                    <td>{idx}. {service.get('service_name', 'Service')}</td>
+                    <td>{service.get('quantity', 1)}</td>
+                    <td>₹{float(service.get('price', 0)):.2f}</td>
+                    <td>₹{float(service.get('total', 0)):.2f}</td>
+                </tr>
+                """
+
+        # Build products HTML
+        for idx, product in enumerate(products, len(services) + 1):
+            if product.get('product_id'):
+                services_html += f"""
+                <tr>
+                    <td>{idx}. {product.get('product_name', 'Product')}</td>
+                    <td>{product.get('quantity', 1)}</td>
+                    <td>₹{float(product.get('price', 0)):.2f}</td>
+                    <td>₹{float(product.get('total', 0)):.2f}</td>
+                </tr>
+                """
+
+        if not services_html:
+            services_html = '<tr><td colspan="4" class="text-center text-muted">No items added yet</td></tr>'
+
         # Generate preview HTML
         preview_html = f"""
-        <div class="professional-invoice">
-            <div class="invoice-header text-center mb-4">
-                <h2>TAX INVOICE</h2>
-                <h4>Your Spa & Wellness Center</h4>
-                <p>GST No: 29XXXXX1234Z1Z5 | Contact: +91-XXXXXXXXXX</p>
-            </div>
-            <div class="row mb-3">
-                <div class="col-6">
-                    <strong>Bill To:</strong><br>
-                    {data.get('customer_name', 'Customer Name')}<br>
-                    Contact: {data.get('customer_phone', 'Phone Number')}
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <title>Invoice Preview</title>
+            <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+            <style>
+                body {{ font-family: Arial, sans-serif; padding: 20px; }}
+                .invoice-header {{ border-bottom: 2px solid #333; padding-bottom: 10px; margin-bottom: 20px; }}
+                .table {{ font-size: 14px; }}
+                .summary-row {{ font-weight: bold; background-color: #f8f9fa; }}
+            </style>
+        </head>
+        <body>
+            <div class="professional-invoice">
+                <div class="invoice-header text-center mb-4">
+                    <h2>TAX INVOICE - PREVIEW</h2>
+                    <h4>{gst_config.business_name or 'Your Spa & Wellness Center'}</h4>
+                    <p>GSTIN: {gst_config.gstin_number or 'N/A'} | Contact: {gst_config.business_phone or 'N/A'}</p>
                 </div>
-                <div class="col-6 text-end">
-                    <strong>Invoice Details:</strong><br>
-                    Invoice No: PREVIEW<br>
-                    Date: {datetime.now().strftime('%d-%m-%Y')}<br>
-                    GST Treatment: {'Interstate' if data.get('is_interstate') else 'Intrastate'}
+                <div class="row mb-3">
+                    <div class="col-6">
+                        <strong>Bill To:</strong><br>
+                        {customer_name}<br>
+                        Contact: {customer_phone}
+                    </div>
+                    <div class="col-6 text-end">
+                        <strong>Invoice Details:</strong><br>
+                        Invoice No: PREVIEW<br>
+                        Date: {datetime.now().strftime('%d-%m-%Y')}<br>
+                        GST Treatment: {'Interstate (IGST)' if is_interstate else 'Intrastate (CGST+SGST)'}
+                    </div>
                 </div>
-            </div>
-            <div class="tax-calculation-preview">
+
                 <table class="table table-bordered">
                     <thead class="table-dark">
                         <tr>
@@ -2403,11 +2482,35 @@ def generate_invoice_preview():
                         </tr>
                     </thead>
                     <tbody>
-                        <tr><td colspan="4" class="text-center text-muted">Preview items will appear here</td></tr>
+                        {services_html}
+                        <tr class="summary-row">
+                            <td colspan="3" class="text-end">Subtotal:</td>
+                            <td>₹{subtotal:.2f}</td>
+                        </tr>
+                        {f'<tr><td colspan="3" class="text-end">Package Deduction:</td><td>- ₹{package_deductions:.2f}</td></tr>' if package_deductions > 0 else ''}
+                        {f'<tr><td colspan="3" class="text-end">Discount:</td><td>- ₹{discount_amount:.2f}</td></tr>' if discount_amount > 0 else ''}
+                        <tr class="summary-row">
+                            <td colspan="3" class="text-end">Taxable Amount:</td>
+                            <td>₹{taxable_amount:.2f}</td>
+                        </tr>
+                        {f'<tr><td colspan="3" class="text-end">CGST ({gst_config.cgst_rate}%):</td><td>₹{cgst_amount:.2f}</td></tr>' if not is_interstate else ''}
+                        {f'<tr><td colspan="3" class="text-end">SGST ({gst_config.sgst_rate}%):</td><td>₹{sgst_amount:.2f}</td></tr>' if not is_interstate else ''}
+                        {f'<tr><td colspan="3" class="text-end">IGST ({gst_config.igst_rate}%):</td><td>₹{igst_amount:.2f}</td></tr>' if is_interstate else ''}
+                        {f'<tr><td colspan="3" class="text-end">Additional Charges:</td><td>₹{additional_charges:.2f}</td></tr>' if additional_charges > 0 else ''}
+                        {f'<tr><td colspan="3" class="text-end">Tips:</td><td>₹{tips:.2f}</td></tr>' if tips > 0 else ''}
+                        <tr class="summary-row table-success">
+                            <td colspan="3" class="text-end"><strong>Grand Total:</strong></td>
+                            <td><strong>₹{grand_total:.2f}</strong></td>
+                        </tr>
                     </tbody>
                 </table>
+
+                <div class="mt-4 text-center">
+                    <p class="text-muted">This is a preview only. Save the invoice to generate a final copy.</p>
+                </div>
             </div>
-        </div>
+        </body>
+        </html>
         """
 
         return jsonify({
@@ -2416,7 +2519,13 @@ def generate_invoice_preview():
         })
 
     except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
+        print(f"Preview generation error: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
 
 @app.route('/invoices')
 @app.route('/invoices/list')

@@ -1054,18 +1054,18 @@ document.addEventListener('DOMContentLoaded', function() {
     {% if selected_customer %}
     console.log('Pre-selected customer ID:', {{ selected_customer.id }});
     console.log('Pre-selected customer name:', '{{ selected_customer.full_name }}');
-    
+
     // Ensure customer dropdown shows the selected customer
     const clientSelect = document.getElementById('client_id');
     if (clientSelect) {
         clientSelect.value = '{{ selected_customer.id }}';
         console.log('Set client dropdown to:', clientSelect.value);
         console.log('Selected option text:', clientSelect.options[clientSelect.selectedIndex]?.text);
-        
+
         // Trigger change event to load packages and appointments
         clientSelect.dispatchEvent(new Event('change', { bubbles: true }));
     }
-    
+
     // Also load packages and appointments directly
     loadCustomerPackages({{ selected_customer.id }});
     {% if not edit_mode %}
@@ -1073,14 +1073,14 @@ document.addEventListener('DOMContentLoaded', function() {
     {% endif %}
     {% elif preselected_client_id %}
     console.log('Pre-selected customer ID from URL:', {{ preselected_client_id }});
-    
+
     // Set customer dropdown if preselected from URL parameter
     const clientSelect = document.getElementById('client_id');
     if (clientSelect) {
         clientSelect.value = '{{ preselected_client_id }}';
         console.log('Set client dropdown to:', clientSelect.value);
         console.log('Selected option text:', clientSelect.options[clientSelect.selectedIndex]?.text);
-        
+
         // Trigger change event
         clientSelect.dispatchEvent(new Event('change', { bubbles: true }));
     }
@@ -2848,6 +2848,13 @@ function resetCustomerPackages() {
                 // Show success message
                 alert(`✅ ${data.message}\n\nInvoice ID: ${data.invoice_id}`);
 
+                // Refresh package balances after successful invoice creation
+                const customerId = document.getElementById('client_id').value;
+                if (customerId) {
+                    refreshCustomerPackages(customerId, data.updated_packages); // Pass updated_packages if available
+                }
+
+
                 // Redirect to invoice detail page
                 window.location.href = `/integrated-billing/invoice/${data.invoice_id}`;
             } else {
@@ -2909,6 +2916,12 @@ function resetCustomerPackages() {
             saveBtn.disabled = false;
 
             if (data.success) {
+                // Refresh package balances after successful invoice creation
+                const customerId = document.getElementById('client_id').value;
+                if (customerId) {
+                    refreshCustomerPackages(customerId, data.updated_packages); // Pass updated_packages if available
+                }
+
                 // Redirect to invoice detail page with print parameter and autoprint hash
                 window.location.href = `/integrated-billing/invoice/${data.invoice_id}?print=true#autoprint`;
             } else {
@@ -3270,52 +3283,76 @@ function resetCustomerPackages() {
     function previewInvoice() {
     console.log('🔍 Preview invoice called');
 
-    if (!validateForm()) {
+    // Use performValidation to check form validity
+    if (!performValidation()) {
         console.log('❌ Validation failed');
         return;
     }
 
-    // Get form data
-    const formData = new FormData(document.getElementById('billingForm'));
+    // Get form data using FormData for easier handling of file uploads or complex data
+    const form = document.getElementById('billingForm');
+    const formData = new FormData(form);
 
-    // Add preview flag
+    // Add a flag to indicate this is a preview request
     formData.append('preview', 'true');
 
-    // Show loading state
+    // Show loading state on the preview button
     const previewBtn = document.getElementById('previewBtn');
-    const originalText = previewBtn.innerHTML;
+    const originalText = previewBtn.innerHTML; // Store original button text
     previewBtn.disabled = true;
-    previewBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Generating Preview...';
+    previewBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Generating Preview...'; // Show spinner and loading text
 
-    // Submit for preview
-    fetch('/integrated-billing/create', {
+    // Submit the form data using fetch API
+    fetch(form.action, {
         method: 'POST',
         body: formData
     })
-    .then(response => response.json())
+    .then(response => {
+        // Check if the response is okay (e.g., 200 status code)
+        if (!response.ok) {
+            // If not okay, throw an error to be caught by the .catch block
+            throw new Error(`HTTP error ${response.status}: ${response.statusText}`);
+        }
+        // Parse the JSON response from the server
+        return response.json();
+    })
     .then(data => {
-        if (data.success) {
-            // Open preview in new window
-            if (data.invoice_id) {
-                window.open(`/integrated-billing/invoice/${data.invoice_id}?print=true`, '_blank');
-            } else if (data.preview_html) {
-                // Open preview HTML in new window
-                const previewWindow = window.open('', '_blank');
+        console.log('✅ Preview generation response:', data);
+        // Check if the server returned a success status and preview HTML
+        if (data.success && data.preview_html) {
+            // Open a new browser window for the preview
+            // Specify dimensions for the preview window
+            const previewWindow = window.open('', '_blank', 'width=900,height=700');
+            // Check if the window was successfully opened (pop-up blockers might prevent this)
+            if (previewWindow) {
+                // Write the HTML content to the new window
                 previewWindow.document.write(data.preview_html);
+                // Close the document stream, essential for rendering
                 previewWindow.document.close();
+                console.log('👍 Preview opened successfully.');
+            } else {
+                // Alert the user if pop-ups are blocked
+                alert('Please allow pop-ups to view the preview');
+                console.warn('⚠️ Pop-up blocked, could not open preview window.');
             }
         } else {
-            alert('Error generating preview: ' + (data.message || 'Unknown error'));
+            // Display an alert if preview generation failed on the server side
+            alert('Failed to generate preview: ' + (data.message || 'Unknown error'));
+            console.error('❌ Preview generation failed:', data.message || 'Unknown error');
         }
     })
     .catch(error => {
-        console.error('Preview error:', error);
+        // Log any errors that occur during the fetch operation or JSON parsing
+        console.error('❌ Error during preview generation:', error);
+        // Alert the user about the error
         alert('Error generating preview: ' + error.message);
     })
     .finally(() => {
-        // Restore button state
-        previewBtn.disabled = false;
-        previewBtn.innerHTML = originalText;
+        // This block always executes, whether the request succeeded or failed
+        // Restore the preview button to its original state
+        previewBtn.disabled = false; // Re-enable the button
+        previewBtn.innerHTML = originalText; // Restore original text and icon
+        console.log('👍 Preview button state restored.');
     });
 }
 </script>
