@@ -708,8 +708,8 @@ def unaki_schedule():
     """Get schedule data for Unaki booking with shift logs integration"""
     try:
         from datetime import datetime, date, timedelta
-        from modules.staff.staff_queries import get_staff_members
         from models import UnakiBooking, ShiftManagement, ShiftLogs
+        from models import User # Import User model here
 
         # Get date parameter and clean it
         date_str = request.args.get('date', date.today().strftime('%Y-%m-%d')).strip()
@@ -729,9 +729,9 @@ def unaki_schedule():
         # Debug: Log the date we're querying for
         print(f"🗓️  Querying Unaki bookings for date: {target_date} (from parameter: {date_str})")
 
-        # Get staff members with error handling
+        # Get active staff using User model
         try:
-            staff_members = get_staff_members()
+            staff_members = User.query.filter_by(is_active=True).order_by(User.first_name, User.last_name).all()
         except Exception as e:
             print(f"Error getting staff members: {e}")
             staff_members = []
@@ -1548,7 +1548,7 @@ def unaki_create_appointment():
 
                 # Extract gender from client_name or use default
                 gender = data.get('gender', 'other').lower()
-                
+
                 customer = Customer(
                     first_name=first_name,
                     last_name=last_name,
@@ -1901,7 +1901,6 @@ def unaki_get_bookings():
     """Get all Unaki bookings with optional filters"""
     try:
         from models import UnakiBooking
-        from datetime import datetime, date
 
         # Get filter parameters
         date_filter = request.args.get('date')
