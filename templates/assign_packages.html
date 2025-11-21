@@ -582,6 +582,7 @@ document.getElementById('btnAssignAndPay').addEventListener('click', async funct
     const paymentReference = document.getElementById('paymentReference').value;
     const generateReceipt = document.getElementById('generateReceipt').checked;
 
+    const subtotal = parseFloat(document.getElementById('displaySubtotal').textContent.replace('₹', ''));
     const grandTotal = parseFloat(document.getElementById('displayGrandTotal').textContent.replace('₹', ''));
     const discount = parseFloat(document.getElementById('displayDiscount').textContent.replace('₹', ''));
     const netPrice = parseFloat(document.getElementById('displayNetPrice').textContent.replace('₹', ''));
