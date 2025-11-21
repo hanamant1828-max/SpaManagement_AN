@@ -519,6 +519,11 @@ function filterServices() {
 function editService(serviceId) {
     console.log('Editing service:', serviceId);
     
+    if (!serviceId) {
+        alert('Invalid service ID');
+        return;
+    }
+    
     // Get service data and populate edit modal
     fetch(`/api/services/${serviceId}`)
         .then(response => {
@@ -530,44 +535,67 @@ function editService(serviceId) {
         })
         .then(service => {
             console.log('Service data received:', service);
-            if (service && !service.error) {
-                // Populate edit modal with null checks
-                const setFieldValue = (fieldId, value) => {
-                    const field = document.getElementById(fieldId);
-                    if (field) {
-                        field.value = value;
-                    } else {
-                        console.warn(`Field ${fieldId} not found in edit modal`);
-                    }
-                };
-                
-                const setCheckboxValue = (fieldId, checked) => {
-                    const field = document.getElementById(fieldId);
-                    if (field) {
-                        field.checked = checked;
-                    } else {
-                        console.warn(`Checkbox ${fieldId} not found in edit modal`);
-                    }
-                };
-                
-                setFieldValue('editServiceId', serviceId);
-                setFieldValue('editServiceName', service.name || '');
-                setFieldValue('editServiceDescription', service.description || '');
-                setFieldValue('editServiceDuration', service.duration || 60);
-                setFieldValue('editServicePrice', service.price || 0);
-                setFieldValue('editServiceCategory', service.category_id || '');
-                setCheckboxValue('editServiceActive', service.is_active);
-                
-                // Show modal
-                const modal = new bootstrap.Modal(document.getElementById('editServiceModal'));
-                modal.show();
-            } else {
-                alert('Service not found: ' + (service.error || 'Unknown error'));
+            if (!service || service.error) {
+                throw new Error(service?.error || 'Service not found');
             }
+            
+            // Show modal first
+            const modalElement = document.getElementById('editServiceModal');
+            if (!modalElement) {
+                throw new Error('Edit modal not found in page');
+            }
+            const modal = new bootstrap.Modal(modalElement);
+            modal.show();
+            
+            // Wait a moment for modal to be fully rendered in DOM
+            setTimeout(() => {
+                try {
+                    // Populate edit modal with robust null checks
+                    const setFieldValue = (fieldId, value) => {
+                        try {
+                            const field = document.getElementById(fieldId);
+                            if (field && field !== null) {
+                                field.value = value ?? '';
+                            } else {
+                                console.warn(`Field ${fieldId} not found in edit modal`);
+                            }
+                        } catch (e) {
+                            console.error(`Error setting field ${fieldId}:`, e);
+                        }
+                    };
+                    
+                    const setCheckboxValue = (fieldId, checked) => {
+                        try {
+                            const field = document.getElementById(fieldId);
+                            if (field && field !== null) {
+                                field.checked = Boolean(checked);
+                            } else {
+                                console.warn(`Checkbox ${fieldId} not found in edit modal`);
+                            }
+                        } catch (e) {
+                            console.error(`Error setting checkbox ${fieldId}:`, e);
+                        }
+                    };
+                    
+                    setFieldValue('editServiceId', serviceId);
+                    setFieldValue('editServiceName', service.name);
+                    setFieldValue('editServiceDescription', service.description);
+                    setFieldValue('editServiceDuration', service.duration ?? 60);
+                    setFieldValue('editServicePrice', service.price ?? 0);
+                    setFieldValue('editServiceCategory', service.category_id);
+                    setCheckboxValue('editServiceActive', service.is_active);
+                    
+                    console.log('Edit form populated successfully');
+                } catch (e) {
+                    console.error('Error populating form:', e);
+                    modal.hide();
+                    throw e;
+                }
+            }, 100);
         })
         .catch(error => {
-            console.error('Error:', error);
-            alert('Error loading service data: ' + error.message);
+            console.error('Error in editService:', error);
+            alert('Error loading service data: ' + (error.message || 'Unknown error'));
         });
 }
 
