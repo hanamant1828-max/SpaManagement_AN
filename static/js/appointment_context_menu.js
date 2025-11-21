@@ -35,7 +35,6 @@ class AppointmentContextMenu {
                     <li class="context-menu-item" data-action="edit">
                         <i class="fas fa-edit"></i> Edit Appointment
                     </li>
-                    <li class="context-menu-divider"></li>
                     <li class="context-menu-item" data-action="billing">
                         <i class="fas fa-dollar-sign"></i> Go to Billing
                     </li>
@@ -547,7 +546,8 @@ class AppointmentContextMenu {
     }
 
     bookNewAppointment(appointmentId) {
-        console.log(`Opening booking page from appointment ${appointmentId}`);
+        console.log(`Opening multi-appointment booking page from appointment ${appointmentId}`);
+        this.hideContextMenu(); // Hide context menu before redirecting
 
         // Fetch appointment details to pre-fill customer info
         fetch(`/api/unaki/bookings/${appointmentId}`)
