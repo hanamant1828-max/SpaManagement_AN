@@ -2031,7 +2031,13 @@ function viewCustomer(customerId) {
     if (!validateCustomerId(customerId, 'viewCustomer')) return;
 
     const modal = new bootstrap.Modal(document.getElementById('viewCustomerModal'));
-    const details = document.getElementById('customerDetails');
+    const details = document.getElementById('viewCustomerContent');
+
+    if (!details) {
+        console.error('❌ View customer content container not found');
+        showToast('Error: Modal content area not found', 'danger');
+        return;
+    }
 
     details.innerHTML = '<div class="text-center py-4"><i class="fas fa-spinner fa-spin fa-2x text-primary" aria-hidden="true"></i><p class="text-muted mt-2">Loading customer details...</p></div>';
     modal.show();
