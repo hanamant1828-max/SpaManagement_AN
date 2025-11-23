@@ -2350,7 +2350,13 @@ function handleEditCustomerSubmit(event) {
         form.action = `/clients/update/${customerId}`;
     }
 
-    // Submit form normally - let Flask handle it with proper redirect and flash messages
+    // Hide the modal before submitting
+    const modal = bootstrap.Modal.getInstance(document.getElementById('editCustomerModal'));
+    if (modal) {
+        modal.hide();
+    }
+
+    // Submit form normally - Flask will redirect with flash messages
     form.submit();
 }
 
