@@ -653,7 +653,8 @@
                 console.error("Staff modal element not found");
             }
 
-            // Load initial data
+            // Load initial data immediately on page load
+            console.log("Starting initial staff data load...");
             loadStaffData();
             loadMetadata();
 
@@ -1093,7 +1094,7 @@
     // Load all staff data from API with comprehensive error handling
     async function loadStaffData() {
         try {
-            console.log("Loading staff data...");
+            console.log("📊 Loading staff data from API...");
             showLoading(true);
 
             const response = await fetch("/api/staff");
@@ -1111,9 +1112,9 @@
                 rolesData = Array.isArray(data.roles) ? data.roles : [];
                 departmentsData = Array.isArray(data.departments) ? data.departments : [];
 
-                console.log("Staff data loaded:", allStaff.length, "staff members");
-                console.log("Roles data received:", rolesData.length, "roles");
-                console.log("Departments data received:", departmentsData.length, "departments");
+                console.log("✅ Staff data loaded:", allStaff.length, "staff members");
+                console.log("✅ Roles data received:", rolesData.length, "roles");
+                console.log("✅ Departments data received:", departmentsData.length, "departments");
 
                 // Update UI components safely
                 try {
@@ -1121,15 +1122,17 @@
                     updateStats();
                     renderStaffTable();
                 } catch (uiError) {
-                    console.error("Error updating UI components:", uiError);
+                    console.error("❌ Error updating UI components:", uiError);
                     showNotification("Data loaded but UI update failed", "warning");
                 }
 
                 // Decide what to show based on data
                 if (allStaff.length > 0) {
+                    console.log("✅ Showing staff table with", allStaff.length, "members");
                     showTable(true);
                     showNotification(`${allStaff.length} staff members loaded successfully`, "success", 3000);
                 } else {
+                    console.log("⚠️ No staff members found, showing empty state");
                     showEmptyState();
                     showNotification("No staff members found", "info", 3000);
                 }
@@ -1225,10 +1228,11 @@
 
     // Render staff table
     function renderStaffTable() {
+        console.log("🎨 Rendering staff table with", allStaff.length, "staff members");
         // Initialize filteredStaff with all staff data
         filteredStaff = [...allStaff];
-        // Apply filters immediately after loading data
-        filterStaff();
+        // Immediately render the filtered staff (which is all staff initially)
+        renderFilteredStaff();
     }
 
     // Create staff table row
