@@ -327,10 +327,10 @@
                             </div>
                         </div>
 
-                        <!-- Department & Designation -->
+                        <!-- Department -->
                         <div class="col-md-6">
                             <h6 class="text-primary border-bottom pb-2">
-                                Department & Designation
+                                Department
                             </h6>
                             <div class="mb-3">
                                 <label class="form-label">Department</label>
@@ -338,16 +338,6 @@
                                     <option value="">Select Department</option>
                                 </select>
                             </div>
-                            <div class="mb-3">
-                                <label class="form-label">Designation</label>
-                                <input
-                                    type="text"
-                                    class="form-control"
-                                    id="designation"
-                                    placeholder="e.g., Therapist, Beautician, Senior Hair Stylist"
-                                />
-                            </div>
-
                         </div>
 
                         <!-- Personal Details -->
@@ -1027,7 +1017,6 @@
             role: 'staff',  // Always set to staff
             role_id: null,  // No dynamic role needed
             department_id: getFieldValue("departmentId") || null,
-            designation: getFieldValue("designation") || "Staff Member",
             gender: getFieldValue("gender") || "other",
             date_of_birth: getFieldValue("dateOfBirth") || null,
             date_of_joining: getFieldValue("dateOfJoining") || null,
@@ -1227,7 +1216,6 @@
         </td>
         <td>
             <div><strong>${staff.department_display}</strong></div>
-            <div><span class="badge bg-info">${staff.designation || "Staff Member"}</span></div>
         </td>
         <td>
             <div>${staff.email || "No email"}</div>
@@ -1619,7 +1607,6 @@
             "lastName": staff.last_name || "",
             "email": staff.email || "",
             "phone": staff.phone || "",
-            "designation": staff.designation || "",
             "gender": staff.gender || "",
             "dateOfBirth": staff.date_of_birth || "",
             "dateOfJoining": staff.date_of_joining || "",
