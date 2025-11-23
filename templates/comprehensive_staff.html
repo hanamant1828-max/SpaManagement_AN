@@ -360,6 +360,7 @@
                                     type="text"
                                     class="form-control"
                                     id="designation"
+                                    placeholder="e.g., Therapist"
                                 />
                             </div>
 
@@ -395,29 +396,16 @@
                                     />
                                 </div>
                             </div>
-                            <div class="row mb-3">
-                                <div class="col-6">
-                                    <label class="form-label"
-                                        >Date of Joining *</label
-                                    >
-                                    <input
-                                        type="date"
-                                        class="form-control"
-                                        id="dateOfJoining"
-                                        required
-                                    />
-                                </div>
-                                <div class="col-6">
-                                    <label class="form-label"
-                                        >Designation</label
-                                    >
-                                    <input
-                                        type="text"
-                                        class="form-control"
-                                        id="designation"
-                                        placeholder="e.g., Therapist"
-                                    />
-                                </div>
+                            <div class="mb-3">
+                                <label class="form-label"
+                                    >Date of Joining *</label
+                                >
+                                <input
+                                    type="date"
+                                    class="form-control"
+                                    id="dateOfJoining"
+                                    required
+                                />
                             </div>
                         </div>
 
@@ -1231,7 +1219,17 @@
         console.log("🎨 Rendering staff table with", allStaff.length, "staff members");
         // Initialize filteredStaff with all staff data
         filteredStaff = [...allStaff];
-        console.log("📋 Calling renderFilteredStaff with", filteredStaff.length, "staff members");
+        console.log("📋 Initializing table display with", filteredStaff.length, "staff members");
+        
+        // Force table visibility immediately
+        const tableContainer = document.getElementById("staffTableContainer");
+        const loadingState = document.getElementById("loadingState");
+        const emptyState = document.getElementById("emptyState");
+        
+        if (loadingState) loadingState.style.display = "none";
+        if (emptyState) emptyState.style.display = "none";
+        if (tableContainer) tableContainer.style.display = "block";
+        
         // Immediately render the filtered staff (which is all staff initially)
         renderFilteredStaff();
     }
