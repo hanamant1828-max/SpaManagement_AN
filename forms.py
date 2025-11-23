@@ -48,17 +48,6 @@ class CustomerForm(FlaskForm):
         Optional(),
         Length(max=500, message='Address must be less than 500 characters.')
     ])
-        Length(max=1000, message='Preferences must be less than 1000 characters.')
-    ])
-    allergies = TextAreaField('Allergies', validators=[
-        Optional(),
-        Length(max=1000, message='Allergies must be less than 1000 characters.')
-    ])
-    notes = TextAreaField('Notes', validators=[
-        Optional(),
-        Length(max=1000, message='Notes must be less than 1000 characters.')
-    ])
-    is_active = BooleanField('Active', default=True)
     submit = SubmitField('Save Customer')
 
     def validate_phone(self, field):
@@ -68,13 +57,6 @@ class CustomerForm(FlaskForm):
             digits = re.sub(r'[^\d]', '', field.data)
             if len(digits) < 10:
                 raise ValidationError('Phone number must contain at least 10 digits.')
-
-    def validate_date_of_birth(self, field):
-        """Custom date of birth validation"""
-        if field.data:
-            from datetime import date
-            if field.data > date.today():
-                raise ValidationError('Date of birth cannot be in the future.')
 
 class ServiceForm(FlaskForm):
     """Service form"""
