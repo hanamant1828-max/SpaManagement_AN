@@ -975,12 +975,21 @@ def api_get_customers_with_faces():
 # ============================================
 
 def extract_customer_data_from_form():
-    """Extract and clean customer data from form - only essential fields"""
+    """Extract and clean customer data from form - only essential fields (strict whitelist)"""
+    # Only accept these specific fields - reject any others
+    allowed_fields = {'first_name', 'last_name', 'phone', 'gender', 'address'}
+    
+    # Check for any disallowed fields being submitted
+    submitted_fields = set(request.form.keys())
+    disallowed = submitted_fields - allowed_fields
+    if disallowed:
+        app.logger.warning(f"Attempt to submit disallowed fields: {disallowed}")
+    
     customer_data = {
         'first_name': request.form.get('first_name', '').strip().title(),
         'last_name': request.form.get('last_name', '').strip().title(),
         'phone': request.form.get('phone', '').strip(),
-        'gender': request.form.get('gender', '').strip() or None,
+        'gender': request.form.get('gender', '').strip().lower() if request.form.get('gender') else None,
         'address': request.form.get('address', '').strip() or None,
     }
 
@@ -988,40 +997,60 @@ def extract_customer_data_from_form():
 
 
 def validate_customer_data(data):
-    """Validate customer data - returns dict with field-specific errors"""
+    """Validate customer data - returns dict with field-specific errors (strict validation)"""
+    import re
     errors = {}
 
-    # Validate required fields
-    if not data.get('first_name'):
+    # Validate first_name (required)
+    first_name = data.get('first_name', '').strip()
+    if not first_name:
         errors['first_name'] = 'First name is required.'
-    elif len(data.get('first_name', '')) > 50:
+    elif len(first_name) < 2:
+        errors['first_name'] = 'First name must be at least 2 characters.'
+    elif len(first_name) > 50:
         errors['first_name'] = 'First name must be less than 50 characters.'
+    elif not re.match(r'^[a-zA-Z\s\'-]+$', first_name):
+        errors['first_name'] = 'First name contains invalid characters.'
     
-    if not data.get('last_name'):
+    # Validate last_name (required)
+    last_name = data.get('last_name', '').strip()
+    if not last_name:
         errors['last_name'] = 'Last name is required.'
-    elif len(data.get('last_name', '')) > 50:
+    elif len(last_name) < 2:
+        errors['last_name'] = 'Last name must be at least 2 characters.'
+    elif len(last_name) > 50:
         errors['last_name'] = 'Last name must be less than 50 characters.'
+    elif not re.match(r'^[a-zA-Z\s\'-]+$', last_name):
+        errors['last_name'] = 'Last name contains invalid characters.'
     
-    if not data.get('phone'):
+    # Validate phone (required, strict format)
+    phone = data.get('phone', '').strip()
+    if not phone:
         errors['phone'] = 'Phone number is required.'
     else:
-        # Validate phone number format
-        import re
-        phone = data.get('phone', '')
-        digits = re.sub(r'[^\d]', '', phone)
-        if len(digits) < 10:
+        # Extract only digits
+        digits_only = re.sub(r'[^\d]', '', phone)
+        if len(digits_only) < 10:
             errors['phone'] = 'Phone number must contain at least 10 digits.'
+        elif len(digits_only) > 15:
+            errors['phone'] = 'Phone number must not exceed 15 digits.'
         elif len(phone) > 20:
-            errors['phone'] = 'Phone number must be less than 20 characters.'
+            errors['phone'] = 'Phone number format is too long (max 20 characters including formatting).'
     
-    if not data.get('gender'):
+    # Validate gender (required, strict choices)
+    gender = data.get('gender', '').strip().lower() if data.get('gender') else None
+    if not gender:
         errors['gender'] = 'Gender is required.'
-    elif data.get('gender') not in ['male', 'female', 'other']:
-        errors['gender'] = 'Please select a valid gender.'
+    elif gender not in ['male', 'female', 'other']:
+        errors['gender'] = 'Invalid gender selection. Please choose Male, Female, or Other.'
     
     # Validate optional address field
-    if data.get('address') and len(data.get('address', '')) > 500:
-        errors['address'] = 'Address must be less than 500 characters.'
+    address = data.get('address', '').strip() if data.get('address') else None
+    if address:
+        if len(address) < 10:
+            errors['address'] = 'Address must be at least 10 characters if provided.'
+        elif len(address) > 500:
+            errors['address'] = 'Address must be less than 500 characters.'
 
     return errors
 
