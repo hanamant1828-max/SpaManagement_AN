@@ -2481,7 +2481,7 @@ async function startFaceCamera() {
             'NotFoundError': 'No camera found on this device.',
             'NotReadableError': 'Camera is already in use by another application.',
             'OverconstrainedError': 'Camera does not support the requested constraints.',
-            ''default': 'Please check your camera and permissions.'
+            'default': 'Please check your camera and permissions.'
         };
 
         showToast('Camera access failed. ' + (messages[error.name] || messages.default), 'danger');
