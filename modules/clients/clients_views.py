@@ -975,7 +975,7 @@ def api_get_customers_with_faces():
 # ============================================
 
 def extract_customer_data_from_form():
-    """Extract and clean customer data from form - only essential fields (strict whitelist)"""
+    """Extract and clean customer data from form - only allowed fields (strict whitelist)"""
     # Only accept these specific fields - reject any others
     allowed_fields = {'first_name', 'last_name', 'phone', 'gender', 'address'}
     

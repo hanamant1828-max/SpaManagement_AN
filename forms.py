@@ -25,31 +25,29 @@ class UserForm(FlaskForm):
     submit = SubmitField('Save User')
 
 class CustomerForm(FlaskForm):
-    """Customer form with enhanced validation and defensive coding"""
+    """Customer form with only essential fields"""
     first_name = StringField('First Name', validators=[
-        DataRequired(message='First name is required. Please enter the customer\'s first name.'),
-        Length(max=50, message='First name must be less than 50 characters.')
+        DataRequired(message='First name is required.'),
+        Length(min=2, max=50, message='First name must be between 2-50 characters.')
     ])
     last_name = StringField('Last Name', validators=[
-        DataRequired(message='Last name is required. Please enter the customer\'s last name.'),
-        Length(max=50, message='Last name must be less than 50 characters.')
+        DataRequired(message='Last name is required.'),
+        Length(min=2, max=50, message='Last name must be between 2-50 characters.')
     ])
     phone = StringField('Phone', validators=[
-        DataRequired(message='Phone number is required. Please enter a valid phone number.'),
+        DataRequired(message='Phone number is required.'),
         Length(min=10, max=20, message='Phone number must be between 10-20 characters.')
     ])
-    email = StringField('Email', validators=[
-        Optional(),
-        Email(message='Please enter a valid email address format.')
-    ])
+    gender = SelectField('Gender', choices=[
+        ('', 'Select Gender'), 
+        ('male', 'Male'), 
+        ('female', 'Female'), 
+        ('other', 'Other')
+    ], validators=[DataRequired(message='Gender is required.')])
     address = TextAreaField('Address', validators=[
         Optional(),
         Length(max=500, message='Address must be less than 500 characters.')
     ])
-    date_of_birth = DateField('Date of Birth', validators=[Optional()])
-    gender = SelectField('Gender', choices=[('', 'Select...'), ('male', 'Male'), ('female', 'Female'), ('other', 'Other')], validators=[DataRequired(message='Gender is required. Please select a gender.')])
-    preferences = TextAreaField('Preferences', validators=[
-        Optional(),
         Length(max=1000, message='Preferences must be less than 1000 characters.')
     ])
     allergies = TextAreaField('Allergies', validators=[

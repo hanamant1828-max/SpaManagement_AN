@@ -2284,19 +2284,15 @@ function populateEditForm(customer) {
     try {
         // Clear form first
         form.reset();
+        clearFormErrors('edit');
 
-        // Populate form fields with safe fallbacks
+        // Only populate the allowed fields
         const fields = {
             'first_name': customer.first_name || '',
             'last_name': customer.last_name || '',
             'phone': customer.phone || '',
-            'email': customer.email || '',
-            'address': customer.address || '',
-            'date_of_birth': customer.date_of_birth || '',
             'gender': customer.gender || '',
-            'preferences': customer.preferences || '',
-            'allergies': customer.allergies || '',
-            'notes': customer.notes || ''
+            'address': customer.address || ''
         };
 
         // Set each field value
@@ -2304,6 +2300,7 @@ function populateEditForm(customer) {
             const field = form.querySelector(`[name="${fieldName}"]`);
             if (field) {
                 field.value = value;
+                field.classList.remove('is-invalid');
                 console.log(`Set ${fieldName} to:`, value);
             } else {
                 console.warn(`Field ${fieldName} not found in form`);
