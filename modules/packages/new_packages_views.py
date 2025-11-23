@@ -54,11 +54,15 @@ logger = logging.getLogger(__name__)
 @login_required
 def packages():
     """Main packages page with tabbed interface"""
-    # Check access permissions (admins and managers always have access)
-    if hasattr(current_user, 'role') and current_user.role not in ['admin', 'super_admin', 'manager']:
-        if not hasattr(current_user, 'can_access') or not current_user.can_access('packages'):
-            flash('Access denied', 'danger')
-            return redirect(url_for('dashboard'))
+    # Check access permissions (admins always have access)
+    # Allow access if user is admin or has packages permission
+    user_role = getattr(current_user, 'role', None)
+    is_admin = user_role in ['admin', 'super_admin', 'manager']
+    has_permission = hasattr(current_user, 'can_access') and current_user.can_access('packages')
+    
+    if not is_admin and not has_permission:
+        flash('Access denied', 'danger')
+        return redirect(url_for('dashboard'))
 
     # Get all package data for tabs
     stats = get_all_package_statistics()
