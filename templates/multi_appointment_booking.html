@@ -1,5 +1,5 @@
-{% extends "base.html" %} 
-{% block title %}Book Multiple Appointments - Spa Management{% endblock %} 
+{% extends "base.html" %}
+{% block title %}Book Multiple Appointments - Spa Management{% endblock %}
 {% block content %}
 <div class="container-fluid py-4">
     <div class="row mb-4">
@@ -545,10 +545,10 @@
     /**
      * Checks if two time ranges overlap
      * Returns TRUE if there's a REAL overlap (not just touching)
-     * 
+     *
      * ALLOWED (back-to-back):
      * - 10:30-11:30 and 11:30-13:00 → FALSE (no overlap)
-     * 
+     *
      * NOT ALLOWED (overlapping):
      * - 10:30-11:30 and 11:00-12:00 → TRUE (overlap)
      * - 10:00-12:00 and 11:00-13:00 → TRUE (overlap)
@@ -615,7 +615,17 @@
 
     // ==================== INITIALIZATION ====================
     $(document).ready(function () {
-        debugLog('Initializing multi-booking page');
+        debugLog('Initializing multi-appointment booking page');
+
+        // Check for pre-selected customer from URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const customerId = urlParams.get('customer_id');
+
+        if (customerId) {
+            // Auto-select the customer
+            $('#clientSelect').val(customerId).trigger('change');
+            debugLog('Auto-selected customer:', customerId);
+        }
 
         $("#clientSelect").select2({
             placeholder: "Choose a client...",
@@ -689,8 +699,8 @@
                         <option value="">Select service...</option>
                         {% if services %}
                             {% for service in services %}
-                            <option value="{{ service.id }}" 
-                                    data-duration="{{ service.duration or 60 }}" 
+                            <option value="{{ service.id }}"
+                                    data-duration="{{ service.duration or 60 }}"
                                     data-price="{{ service.price }}">
                                 {{ service.name }} ({{ service.duration or 60 }} min - ₹{{ "%.2f"|format(service.price) }})
                             </option>
@@ -726,7 +736,7 @@
                             <i class="fas fa-check-circle"></i>
                         </span>
                     </label>
-                    <input type="date" class="form-control date-input" data-index="${index}" 
+                    <input type="date" class="form-control date-input" data-index="${index}"
                            value="{{ today }}" required min="{{ today }}">
                 </div>
                 <div class="col-md-4 mb-3">
@@ -955,9 +965,9 @@
 
             // Check for time overlap
             const overlap = checkTimeOverlap(
-                currentData.startTime, 
-                currentData.endTime, 
-                otherData.startTime, 
+                currentData.startTime,
+                currentData.endTime,
+                otherData.startTime,
                 otherData.endTime
             );
 
@@ -999,7 +1009,7 @@
             debugLog('No internal conflicts found');
 
             // Check if there are other types of conflicts
-            const hasOtherConflicts = 
+            const hasOtherConflicts =
                 !document.getElementById(`conflict-${currentIndex}`)?.classList.contains("d-none") ||
                 !document.getElementById(`client-conflict-${currentIndex}`)?.classList.contains("d-none");
 
@@ -1044,9 +1054,9 @@
         for (const booking of clientExistingBookings) {
             if (booking.appointment_date === data.date) {
                 const overlap = checkTimeOverlap(
-                    data.startTime, 
-                    data.endTime, 
-                    booking.start_time, 
+                    data.startTime,
+                    data.endTime,
+                    booking.start_time,
                     booking.end_time
                 );
 
@@ -1061,7 +1071,7 @@
 
         if (hasOverlap && conflictDetails) {
             const isPaid = conflictDetails.payment_status === 'paid' || conflictDetails.payment_status === 'completed';
-            const paymentBadge = isPaid 
+            const paymentBadge = isPaid
                 ? `<span class="badge bg-success">PAID - ₹${conflictDetails.service_price.toFixed(2)}</span>`
                 : `<span class="badge bg-warning text-dark">UNPAID - ₹${conflictDetails.service_price.toFixed(2)}</span>`;
 
@@ -1528,8 +1538,8 @@
             .then((data) => {
                 if (data.success && data.bookings?.length > 0) {
                     clientExistingBookings = data.bookings.filter(
-                        (b) => b.status === "scheduled" || 
-                               b.status === "confirmed" || 
+                        (b) => b.status === "scheduled" ||
+                               b.status === "confirmed" ||
                                b.payment_status === "pending" ||
                                b.payment_status === "partial"
                     );
@@ -1565,7 +1575,7 @@
                 ? `<span class="badge bg-success">PAID - ₹${(booking.service_price || 0).toFixed(2)}</span>`
                 : `<span class="badge bg-warning text-dark">UNPAID - ₹${(booking.service_price || 0).toFixed(2)}</span>`;
 
-            const statusBadge = booking.status 
+            const statusBadge = booking.status
                 ? `<span class="badge bg-info">${booking.status.toUpperCase()}</span>`
                 : '';
 
@@ -1575,7 +1585,7 @@
                     <div class="flex-grow-1">
                         <strong>${booking.service_name}</strong><br>
                         <small class="text-muted">
-                            <i class="fas fa-calendar me-1"></i>${booking.appointment_date} 
+                            <i class="fas fa-calendar me-1"></i>${booking.appointment_date}
                             <i class="fas fa-clock ms-2 me-1"></i>${format12Hour(booking.start_time)} - ${format12Hour(booking.end_time)}
                             <br>
                             <i class="fas fa-user-md me-1"></i>${booking.staff_name}

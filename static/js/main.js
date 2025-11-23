@@ -1943,8 +1943,8 @@ function checkUpcomingAppointmentsNotifications() {
 // Customer management functions
 function bookAppointment(customerId) {
     try {
-        // Redirect to bookings page with customer pre-selected
-        window.location.href = `/bookings?customer_id=${customerId}`;
+        // Redirect to multi-appointment booking page with customer pre-selected
+        window.location.href = `/multi-appointment-booking?customer_id=${customerId}`;
     } catch (error) {
         console.error('Error booking appointment:', error);
         showNotification('Error navigating to bookings page', 'error');
