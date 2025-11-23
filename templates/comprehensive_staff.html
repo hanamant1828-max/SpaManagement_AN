@@ -391,7 +391,7 @@
                                                 class="btn btn-outline-secondary"
                                                 type="button"
                                                 id="togglePassword"
-                                                onclick="togglePasswordVisibility()"
+                                                onclick="togglePasswordVisibilityInForm()"
                                             >
                                                 <i class="fas fa-eye" id="passwordIcon"></i>
                                             </button>
@@ -1971,11 +1971,11 @@
                                 <span id="passwordDisplay" class="font-monospace">${staff.default_password ? '••••••••' : 'N/A'}</span>
                                 ${staff.default_password ? `
                                 <button class="btn btn-sm btn-outline-secondary" 
-                                        onclick="togglePasswordVisibility(${staff.id})" 
+                                        onclick="toggleViewPasswordVisibility()" 
                                         id="togglePasswordBtn"
                                         type="button"
                                         title="Show/Hide Password">
-                                    <i class="bi bi-eye" id="passwordIcon"></i>
+                                    <i class="fas fa-eye" id="passwordIconView"></i>
                                 </button>
                                 <input type="hidden" id="actualPassword" value="${staff.default_password}">
                                 ` : ''}

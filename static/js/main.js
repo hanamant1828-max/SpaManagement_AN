@@ -132,7 +132,7 @@ function initializeApp() {
     }
 
     // Only initialize face capture on relevant pages
-    const isFacePage = window.location.pathname.includes('/staff') || 
+    const isFacePage = window.location.pathname.includes('/staff') ||
                        window.location.pathname.includes('/customers') ||
                        window.location.pathname.includes('/face');
 
@@ -182,7 +182,7 @@ function setupGlobalEventListeners() {
 // Face Capture Functionality - only initialize when needed
 function initializeFaceCapture() {
     // Check if we're on a page that could have face capture (customers or staff page)
-    const isRelevantPage = window.location.pathname.includes('/customers') || 
+    const isRelevantPage = window.location.pathname.includes('/customers') ||
                            window.location.pathname.includes('/clients') ||
                            window.location.pathname.includes('/staff') ||
                            window.location.pathname.includes('/comprehensive_staff');
@@ -3073,7 +3073,7 @@ function addUnakiAppointmentToBill(appointmentId, serviceName, servicePrice, sta
     const isFirstRowEmpty = !serviceSelect.value && !qtyInput.value;
 
     if (isFirstRowEmpty) {
-        const serviceOption = Array.from(serviceSelect.options).find(opt => 
+        const serviceOption = Array.from(serviceSelect.options).find(opt =>
             opt.text.toLowerCase().includes(serviceName.toLowerCase())
         );
 
@@ -3083,7 +3083,7 @@ function addUnakiAppointmentToBill(appointmentId, serviceName, servicePrice, sta
         }
 
         if (staffName && staffSelect) {
-            const staffOption = Array.from(staffSelect.options).find(opt => 
+            const staffOption = Array.from(staffSelect.options).find(opt =>
                 opt.text.toLowerCase().includes(staffName.toLowerCase())
             );
             if (staffOption) {
@@ -3113,7 +3113,7 @@ function addUnakiAppointmentToBill(appointmentId, serviceName, servicePrice, sta
         container.appendChild(newRow);
 
         // Populate the new row
-        const serviceOption = Array.from(newServiceSelect.options).find(opt => 
+        const serviceOption = Array.from(newServiceSelect.options).find(opt =>
             opt.text.toLowerCase().includes(serviceName.toLowerCase())
         );
 
@@ -3123,7 +3123,7 @@ function addUnakiAppointmentToBill(appointmentId, serviceName, servicePrice, sta
         }
 
         if (staffName && newStaffSelect) {
-            const staffOption = Array.from(newStaffSelect.options).find(opt => 
+            const staffOption = Array.from(newStaffSelect.options).find(opt =>
                 opt.text.toLowerCase().includes(staffName.toLowerCase())
             );
             if (staffOption) {
@@ -3153,5 +3153,53 @@ function handleCustomerChange(customerId) {
     const appointmentsList = document.getElementById('customerAppointments');
     if (appointmentsList) {
         appointmentsList.innerHTML = '<div class="text-center text-muted py-3"><i class="fas fa-spinner fa-spin me-2"></i>Loading appointments...</div>';
+    }
+}
+
+
+// Toggle password visibility in edit form
+function togglePasswordVisibilityInForm() {
+    const passwordField = document.getElementById("password");
+    const passwordIcon = document.getElementById("passwordIcon");
+
+    if (passwordField && passwordIcon) {
+        if (passwordField.type === "password") {
+            passwordField.type = "text";
+            passwordIcon.classList.remove("fa-eye");
+            passwordIcon.classList.add("fa-eye-slash");
+        } else {
+            passwordField.type = "password";
+            passwordIcon.classList.remove("fa-eye-slash");
+            passwordIcon.classList.add("fa-eye");
+        }
+    }
+}
+
+// Toggle password visibility (legacy function for compatibility)
+function togglePasswordVisibility() {
+    togglePasswordVisibilityInForm();
+}
+
+// Toggle password visibility in view staff modal
+function toggleViewPasswordVisibility() {
+    const passwordDisplay = document.getElementById('passwordDisplay');
+    const passwordIcon = document.getElementById('passwordIconView');
+    const actualPassword = document.getElementById('actualPassword');
+
+    if (!passwordDisplay || !passwordIcon || !actualPassword) {
+        console.error('Password elements not found');
+        return;
+    }
+
+    const isCurrentlyHidden = passwordDisplay.textContent === '••••••••';
+
+    if (isCurrentlyHidden) {
+        passwordDisplay.textContent = actualPassword.value;
+        passwordIcon.classList.remove('fa-eye');
+        passwordIcon.classList.add('fa-eye-slash');
+    } else {
+        passwordDisplay.textContent = '••••••••';
+        passwordIcon.classList.remove('fa-eye-slash');
+        passwordIcon.classList.add('fa-eye');
     }
 }
