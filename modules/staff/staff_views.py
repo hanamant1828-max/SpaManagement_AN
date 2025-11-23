@@ -848,6 +848,7 @@ def api_get_all_staff():
             staff_data.append({
                 'id': staff.id,
                 'username': staff.username,
+                'default_password': staff.default_password,
                 'first_name': staff.first_name,
                 'last_name': staff.last_name,
                 'full_name': f"{staff.first_name} {staff.last_name}",
@@ -932,6 +933,7 @@ def api_get_staff(staff_id):
         staff_data = {
             'id': staff.id,
             'username': staff.username,
+            'default_password': staff.default_password or '',
             'first_name': staff.first_name,
             'last_name': staff.last_name,
             'email': staff.email,

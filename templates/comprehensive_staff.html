@@ -1964,6 +1964,22 @@
                     <div class="card-body">
                         <div class="mb-2"><strong>Staff Code:</strong> ${staff.staff_code || "N/A"}</div>
                         <div class="mb-2"><strong>Username:</strong> ${staff.username}</div>
+                        <div class="mb-2">
+                            <strong>Password:</strong> 
+                            <span class="d-inline-flex align-items-center gap-2">
+                                <span id="passwordDisplay" class="font-monospace">${staff.default_password ? '••••••••' : 'N/A'}</span>
+                                ${staff.default_password ? `
+                                <button class="btn btn-sm btn-outline-secondary" 
+                                        onclick="togglePasswordVisibility(${staff.id})" 
+                                        id="togglePasswordBtn"
+                                        type="button"
+                                        title="Show/Hide Password">
+                                    <i class="bi bi-eye" id="passwordIcon"></i>
+                                </button>
+                                <input type="hidden" id="actualPassword" value="${staff.default_password}">
+                                ` : ''}
+                            </span>
+                        </div>
                         <div class="mb-2"><strong>Email:</strong> ${staff.email || "N/A"}</div>
                         <div class="mb-2"><strong>Phone:</strong> ${staff.phone || "N/A"}</div>
                         <div class="mb-2"><strong>Gender:</strong> ${staff.gender ? staff.gender.charAt(0).toUpperCase() + staff.gender.slice(1) : "N/A"}</div>
@@ -2004,6 +2020,30 @@
             document.getElementById("performanceModal"),
         );
         modal.show();
+    }
+
+    // Toggle password visibility in staff details modal
+    function togglePasswordVisibility(staffId) {
+        const passwordDisplay = document.getElementById('passwordDisplay');
+        const passwordIcon = document.getElementById('passwordIcon');
+        const actualPassword = document.getElementById('actualPassword');
+        
+        if (!passwordDisplay || !passwordIcon || !actualPassword) {
+            console.error('Password elements not found');
+            return;
+        }
+        
+        const isCurrentlyHidden = passwordDisplay.textContent === '••••••••';
+        
+        if (isCurrentlyHidden) {
+            passwordDisplay.textContent = actualPassword.value;
+            passwordIcon.classList.remove('bi-eye');
+            passwordIcon.classList.add('bi-eye-slash');
+        } else {
+            passwordDisplay.textContent = '••••••••';
+            passwordIcon.classList.remove('bi-eye-slash');
+            passwordIcon.classList.add('bi-eye');
+        }
     }
 
     // Refresh staff data and show notification

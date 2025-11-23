@@ -113,6 +113,7 @@ class User(UserMixin, db.Model):
     username = db.Column(db.String(64), unique=True, nullable=False, index=True)
     email = db.Column(db.String(120), unique=False, nullable=True, index=True)
     password_hash = db.Column(db.String(256))
+    default_password = db.Column(db.String(128))  # Initial password for admin reference only
     first_name = db.Column(db.String(50), nullable=False)
     last_name = db.Column(db.String(50), nullable=False)
 
