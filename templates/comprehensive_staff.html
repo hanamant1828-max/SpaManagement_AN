@@ -1104,6 +1104,9 @@
                 console.log("✅ Roles data received:", rolesData.length, "roles");
                 console.log("✅ Departments data received:", departmentsData.length, "departments");
 
+                // Hide loading state before updating UI
+                showLoading(false);
+
                 // Update UI components safely
                 try {
                     populateDropdowns();
@@ -1131,6 +1134,9 @@
         } catch (error) {
             console.error("Error loading staff data:", error);
 
+            // Hide loading state before showing error
+            showLoading(false);
+
             // Provide user-friendly error messages
             let errorMessage = "Error loading staff data";
             if (error.message.includes("fetch")) {
@@ -1149,9 +1155,6 @@
             filteredStaff = [];
             rolesData = [];
             departmentsData = [];
-
-        } finally {
-            showLoading(false);
         }
     }
 
