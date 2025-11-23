@@ -78,7 +78,7 @@ def get_dashboard_stats():
 
         # This month's revenue from EnhancedInvoice table (Primary billing system)
         monthly_enhanced_invoice_revenue = db.session.query(func.sum(EnhancedInvoice.total_amount)).filter(
-            func.strftime('%Y-%m', EnhancedInvoice.invoice_date) == today.strftime('%Y-%m'),
+            EnhancedInvoice.invoice_date >= first_day_of_month,
             EnhancedInvoice.payment_status == 'paid'
         ).scalar() or 0.0
 
@@ -224,7 +224,8 @@ def get_revenue_trends():
         ).scalar() or 0.0
         
         last_month_enhanced_revenue = db.session.query(func.sum(EnhancedInvoice.total_amount)).filter(
-            func.strftime('%Y-%m', EnhancedInvoice.invoice_date) == first_day_last_month.strftime('%Y-%m'),
+            func.date(EnhancedInvoice.invoice_date) >= first_day_last_month,
+            func.date(EnhancedInvoice.invoice_date) <= last_day_last_month,
             EnhancedInvoice.payment_status == 'paid'
         ).scalar() or 0.0
         
