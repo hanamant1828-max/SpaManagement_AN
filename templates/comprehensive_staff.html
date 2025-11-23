@@ -97,11 +97,11 @@
                 <div class="card-body">
                     <div class="d-flex justify-content-between">
                         <div>
-                            <h5 class="card-title">Roles</h5>
+                            <h5 class="card-title">Total Staff</h5>
                             <h3 class="mb-0" id="roleCount">0</h3>
                         </div>
                         <div class="align-self-center">
-                            <i class="fas fa-user-tag fa-2x"></i>
+                            <i class="fas fa-users fa-2x"></i>
                         </div>
                     </div>
                 </div>
@@ -125,17 +125,7 @@
                                 onkeyup="filterStaff()"
                             />
                         </div>
-                        <div class="col-md-2">
-                            <label class="form-label">Role</label>
-                            <select
-                                class="form-select"
-                                id="roleFilter"
-                                onchange="filterStaff()"
-                            >
-                                <option value="">All Roles</option>
-                            </select>
-                        </div>
-                        <div class="col-md-2">
+                        <div class="col-md-3">
                             <label class="form-label">Department</label>
                             <select
                                 class="form-select"
@@ -196,7 +186,7 @@
                                 <thead>
                                     <tr>
                                         <th>Staff Info</th>
-                                        <th>Role & Department</th>
+                                        <th>Department & Designation</th>
                                         <th>Contact</th>
                                         <th>Actions</th>
                                     </tr>
@@ -337,17 +327,11 @@
                             </div>
                         </div>
 
-                        <!-- Role & Department -->
+                        <!-- Department & Designation -->
                         <div class="col-md-6">
                             <h6 class="text-primary border-bottom pb-2">
-                                Role & Department
+                                Department & Designation
                             </h6>
-                            <div class="mb-3">
-                                <label class="form-label">Role</label>
-                                <select class="form-select" id="roleId">
-                                    <option value="">Select Role</option>
-                                </select>
-                            </div>
                             <div class="mb-3">
                                 <label class="form-label">Department</label>
                                 <select class="form-select" id="departmentId">
@@ -360,7 +344,7 @@
                                     type="text"
                                     class="form-control"
                                     id="designation"
-                                    placeholder="e.g., Therapist"
+                                    placeholder="e.g., Therapist, Beautician, Senior Hair Stylist"
                                 />
                             </div>
 
@@ -1040,7 +1024,8 @@
             email: getFieldValue("email") || '',  // Use empty string instead of null
             phone: getFieldValue("phone") || null,
             password: getFieldValue("password"),
-            role_id: getFieldValue("roleId") || null,
+            role: 'staff',  // Always set to staff
+            role_id: null,  // No dynamic role needed
             department_id: getFieldValue("departmentId") || null,
             designation: getFieldValue("designation") || "Staff Member",
             gender: getFieldValue("gender") || "other",
@@ -1160,30 +1145,7 @@
 
     // Populate dropdown menus
     function populateDropdowns() {
-        console.log("Populating dropdowns with roles:", rolesData.length, "departments:", departmentsData.length);
-
-        // Populate role dropdowns
-        const roleSelects = ["roleFilter", "roleId"];
-        roleSelects.forEach((selectId) => {
-            const select = document.getElementById(selectId);
-            if (select) {
-                // Clear existing options (except first)
-                const firstOption = select.firstElementChild;
-                select.innerHTML = "";
-                if (firstOption) {
-                    select.appendChild(firstOption);
-                }
-
-                rolesData.forEach((role) => {
-                    const option = document.createElement("option");
-                    option.value = role.id;
-                    option.textContent = role.display_name;
-                    select.appendChild(option);
-                });
-                
-                console.log(`Populated ${selectId} with ${select.options.length} options`);
-            }
-        });
+        console.log("Populating dropdowns with departments:", departmentsData.length);
 
         // Populate department dropdowns
         const deptSelects = ["departmentFilter", "departmentId"];
@@ -1218,7 +1180,7 @@
         document.getElementById("activeStaffCount").textContent = activeStaff;
         document.getElementById("departmentCount").textContent =
             departmentsData.length;
-        document.getElementById("roleCount").textContent = rolesData.length;
+        document.getElementById("roleCount").textContent = totalStaff;
     }
 
     // Render staff table
@@ -1264,9 +1226,8 @@
             </div>
         </td>
         <td>
-            <div><strong>${staff.role_display}</strong></div>
-            <div><small class="text-muted">${staff.department_display}</small></div>
-            <div><span class="badge bg-secondary">${staff.designation || "No Designation"}</span></div>
+            <div><strong>${staff.department_display}</strong></div>
+            <div><span class="badge bg-info">${staff.designation || "Staff Member"}</span></div>
         </td>
         <td>
             <div>${staff.email || "No email"}</div>
@@ -1311,13 +1272,6 @@
                     (staff.phone && staff.phone.includes(searchTerm)),
             );
             console.log("After search filter:", filtered.length);
-        }
-
-        // Role filter
-        const roleFilter = document.getElementById("roleFilter").value;
-        if (roleFilter) {
-            filtered = filtered.filter((staff) => staff.role_id == roleFilter);
-            console.log("After role filter:", filtered.length);
         }
 
         // Department filter
@@ -1418,7 +1372,6 @@
     // Clear all filters
     function clearFilters() {
         document.getElementById("searchInput").value = "";
-        document.getElementById("roleFilter").value = "";
         document.getElementById("departmentFilter").value = "";
         document.getElementById("statusFilter").value = "";
         filterStaff(); // Re-apply filters (which will now be empty)
@@ -1686,15 +1639,6 @@
             }
         });
 
-        // Handle role dropdown - set the value explicitly
-        const roleSelect = document.getElementById("roleId");
-        if (roleSelect && staff.role_id) {
-            roleSelect.value = staff.role_id;
-            console.log("Set role dropdown to:", staff.role_id, "Options available:", roleSelect.options.length);
-        } else {
-            console.log("Role select element or staff.role_id not found");
-        }
-
         // Handle department dropdown - set the value explicitly
         const deptSelect = document.getElementById("departmentId");
         if (deptSelect && staff.department_id) {
@@ -1958,12 +1902,11 @@
             <div class="col-md-6">
                 <div class="card border-info mb-3">
                     <div class="card-header bg-info text-white">
-                        <h6 class="mb-0">Role & Department</h6>
+                        <h6 class="mb-0">Department & Work Info</h6>
                     </div>
                     <div class="card-body">
-                        <div class="mb-2"><strong>Role:</strong> ${staff.role_display}</div>
                         <div class="mb-2"><strong>Department:</strong> ${staff.department_display}</div>
-                        <div class="mb-2"><strong>Designation:</strong> ${staff.designation || "N/A"}</div>
+                        <div class="mb-2"><strong>Designation:</strong> ${staff.designation || "Staff Member"}</div>
                         <div class="mb-2"><strong>Date of Joining:</strong> ${staff.date_of_joining ? new Date(staff.date_of_joining).toLocaleDateString() : "N/A"}</div>
                     </div>
                 </div>
