@@ -184,15 +184,9 @@ def customers():
 @app.route('/api/customers/create', methods=['POST'])
 @login_required
 def create_customer_route():
-    """Create a new customer with validation"""
-    # Handle API requests differently
-    is_api_request = request.path.startswith('/api/')
-
+    """Create a new customer with validation - returns JSON for inline validation"""
     if not current_user.has_permission('clients_create'):
-        if is_api_request:
-            return jsonify({'success': False, 'error': 'Permission denied'}), 403
-        flash('You do not have permission to create customers.', 'danger')
-        return redirect(url_for('customers'))
+        return jsonify({'success': False, 'errors': {'_form': 'Permission denied'}}), 403
 
     try:
         # Extract and clean form data
@@ -201,66 +195,50 @@ def create_customer_route():
         # Validate data
         validation_errors = validate_customer_data(customer_data)
         if validation_errors:
-            for error in validation_errors:
-                flash(error, 'danger')
-            return redirect(url_for('customers'))
+            return jsonify({'success': False, 'errors': validation_errors}), 400
 
         # Check for duplicates
         if customer_data.get('phone'):
             existing = get_customer_by_phone(customer_data['phone'])
             if existing:
-                flash('A customer with this phone number already exists.', 'danger')
-                return redirect(url_for('customers'))
-
-        if customer_data.get('email'):
-            existing = get_customer_by_email(customer_data['email'])
-            if existing:
-                flash('A customer with this email address already exists.', 'danger')
-                return redirect(url_for('customers'))
+                return jsonify({
+                    'success': False,
+                    'errors': {'phone': 'A customer with this phone number already exists.'}
+                }), 400
 
         # Create customer
         new_customer = create_customer_query(customer_data)
         full_name = f"{new_customer.first_name} {new_customer.last_name}"
 
-        if is_api_request:
-            return jsonify({
-                'success': True,
-                'message': f'Customer "{full_name}" created successfully!',
-                'customer': {
-                    'id': new_customer.id,
-                    'first_name': new_customer.first_name,
-                    'last_name': new_customer.last_name,
-                    'phone': new_customer.phone,
-                    'email': getattr(new_customer, 'email', '') or ''
-                }
-            }), 200
-
-        flash(f'Customer "{full_name}" created successfully!', 'success')
+        return jsonify({
+            'success': True,
+            'message': f'Customer "{full_name}" created successfully!',
+            'customer': {
+                'id': new_customer.id,
+                'first_name': new_customer.first_name,
+                'last_name': new_customer.last_name,
+                'phone': new_customer.phone,
+                'gender': new_customer.gender,
+                'address': new_customer.address or ''
+            }
+        }), 200
 
     except Exception as e:
         db.session.rollback()
         app.logger.error(f"Customer creation error: {str(e)}")
-
-        if is_api_request:
-            return jsonify({'success': False, 'error': str(e)}), 500
-
-        flash('Error creating customer. Please try again.', 'danger')
-
-    return redirect(url_for('customers'))
+        return jsonify({'success': False, 'errors': {'_form': 'Error creating customer. Please try again.'}}), 500
 
 
 @app.route('/clients/update/<int:id>', methods=['POST'])
 @login_required
 def update_client_route(id):
-    """Update existing customer with validation"""
+    """Update existing customer with validation - returns JSON for inline validation"""
     if not current_user.has_permission('clients_edit'):
-        flash('You do not have permission to edit customers.', 'danger')
-        return redirect(url_for('customers'))
+        return jsonify({'success': False, 'errors': {'_form': 'Permission denied'}}), 403
 
     customer = get_customer_by_id(id)
     if not customer:
-        flash('Customer not found.', 'danger')
-        return redirect(url_for('customers'))
+        return jsonify({'success': False, 'errors': {'_form': 'Customer not found.'}}), 404
 
     try:
         # Get form data
@@ -269,34 +247,38 @@ def update_client_route(id):
         # Validate
         validation_errors = validate_customer_data(customer_data)
         if validation_errors:
-            for error in validation_errors:
-                flash(error, 'danger')
-            return redirect(url_for('customers'))
+            return jsonify({'success': False, 'errors': validation_errors}), 400
 
         # Check duplicates (excluding current)
         if customer_data.get('phone'):
             existing = get_customer_by_phone(customer_data['phone'])
             if existing and existing.id != id:
-                flash('A customer with this phone number already exists.', 'danger')
-                return redirect(url_for('customers'))
-
-        if customer_data.get('email'):
-            existing = get_customer_by_email(customer_data['email'])
-            if existing and existing.id != id:
-                flash('A customer with this email address already exists.', 'danger')
-                return redirect(url_for('customers'))
+                return jsonify({
+                    'success': False,
+                    'errors': {'phone': 'A customer with this phone number already exists.'}
+                }), 400
 
         # Update
         updated_customer = update_customer_query(id, customer_data)
         full_name = f"{updated_customer.first_name} {updated_customer.last_name}"
-        flash(f'Customer "{full_name}" updated successfully!', 'success')
+        
+        return jsonify({
+            'success': True,
+            'message': f'Customer "{full_name}" updated successfully!',
+            'customer': {
+                'id': updated_customer.id,
+                'first_name': updated_customer.first_name,
+                'last_name': updated_customer.last_name,
+                'phone': updated_customer.phone,
+                'gender': updated_customer.gender,
+                'address': updated_customer.address or ''
+            }
+        }), 200
 
     except Exception as e:
         db.session.rollback()
         app.logger.error(f"Customer update error: {str(e)}")
-        flash('Error updating customer. Please try again.', 'danger')
-
-    return redirect(url_for('customers'))
+        return jsonify({'success': False, 'errors': {'_form': 'Error updating customer. Please try again.'}}), 500
 
 
 @app.route('/clients/delete/<int:id>', methods=['POST', 'DELETE'])
@@ -993,51 +975,53 @@ def api_get_customers_with_faces():
 # ============================================
 
 def extract_customer_data_from_form():
-    """Extract and clean customer data from form"""
+    """Extract and clean customer data from form - only essential fields"""
     customer_data = {
         'first_name': request.form.get('first_name', '').strip().title(),
         'last_name': request.form.get('last_name', '').strip().title(),
         'phone': request.form.get('phone', '').strip(),
-        'email': request.form.get('email', '').strip().lower() or None,
-        'address': request.form.get('address', '').strip() or None,
         'gender': request.form.get('gender', '').strip() or None,
-        'emergency_contact': request.form.get('emergency_contact', '').strip() or None,
-        'emergency_phone': request.form.get('emergency_phone', '').strip() or None,
-        'medical_conditions': request.form.get('medical_conditions', '').strip() or None,
-        'allergies': request.form.get('allergies', '').strip() or None,
-        'notes': request.form.get('notes', '').strip() or None
+        'address': request.form.get('address', '').strip() or None,
     }
-
-    # Parse date of birth
-    dob_str = request.form.get('date_of_birth')
-    if dob_str:
-        try:
-            customer_data['date_of_birth'] = datetime.strptime(dob_str, '%Y-%m-%d').date()
-        except ValueError:
-            customer_data['date_of_birth'] = None
-    else:
-        customer_data['date_of_birth'] = None
 
     return customer_data
 
 
 def validate_customer_data(data):
-    """Validate customer data"""
-    errors = []
+    """Validate customer data - returns dict with field-specific errors"""
+    errors = {}
 
+    # Validate required fields
     if not data.get('first_name'):
-        errors.append('First name is required.')
+        errors['first_name'] = 'First name is required.'
+    elif len(data.get('first_name', '')) > 50:
+        errors['first_name'] = 'First name must be less than 50 characters.'
+    
     if not data.get('last_name'):
-        errors.append('Last name is required.')
+        errors['last_name'] = 'Last name is required.'
+    elif len(data.get('last_name', '')) > 50:
+        errors['last_name'] = 'Last name must be less than 50 characters.'
+    
     if not data.get('phone'):
-        errors.append('Phone number is required.')
+        errors['phone'] = 'Phone number is required.'
+    else:
+        # Validate phone number format
+        import re
+        phone = data.get('phone', '')
+        digits = re.sub(r'[^\d]', '', phone)
+        if len(digits) < 10:
+            errors['phone'] = 'Phone number must contain at least 10 digits.'
+        elif len(phone) > 20:
+            errors['phone'] = 'Phone number must be less than 20 characters.'
+    
     if not data.get('gender'):
-        errors.append('Gender is required.')
-
-    # Validate email if provided
-    if data.get('email'):
-        if '@' not in data['email'] or '.' not in data['email']:
-            errors.append('Please enter a valid email address.')
+        errors['gender'] = 'Gender is required.'
+    elif data.get('gender') not in ['male', 'female', 'other']:
+        errors['gender'] = 'Please select a valid gender.'
+    
+    # Validate optional address field
+    if data.get('address') and len(data.get('address', '')) > 500:
+        errors['address'] = 'Address must be less than 500 characters.'
 
     return errors
 
