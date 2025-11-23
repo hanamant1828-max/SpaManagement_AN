@@ -2082,7 +2082,7 @@ function renderCustomerDetails(customer, container) {
 
     // Create main wrapper
     const wrapper = document.createElement('div');
-    
+
     // Header section with avatar and name
     const headerSection = document.createElement('div');
     headerSection.className = 'text-center mb-4 pb-3 border-bottom';
@@ -2347,15 +2347,15 @@ function deleteCustomer(customerId, customerName) {
 }
 
 /**
- * Book appointment for customer
- * @param {number} customerId - Customer ID
+ * Book appointment for a customer
  */
 function bookAppointment(customerId) {
     console.log('📅 Book appointment for customer:', customerId);
 
     if (!validateCustomerId(customerId, 'bookAppointment')) return;
 
-    window.location.href = `/bookings?customer_id=${customerId}`;
+    // Redirect to multi-appointment booking page with customer pre-selected
+    window.location.href = `/multi-appointment-booking?customer_id=${customerId}`;
 }
 
 /**
