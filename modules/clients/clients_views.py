@@ -232,15 +232,13 @@ def create_customer_route():
 @app.route('/clients/update/<int:id>', methods=['POST'])
 @login_required
 def update_client_route(id):
-    """Update existing customer with validation"""
+    """Update existing customer with validation - returns JSON for inline validation"""
     if not current_user.has_permission('clients_edit'):
-        flash('You do not have permission to edit customers.', 'danger')
-        return redirect(url_for('customers'))
+        return jsonify({'success': False, 'errors': {'_form': 'Permission denied'}}), 403
 
     customer = get_customer_by_id(id)
     if not customer:
-        flash('Customer not found.', 'danger')
-        return redirect(url_for('customers'))
+        return jsonify({'success': False, 'errors': {'_form': 'Customer not found'}}), 404
 
     try:
         # Get form data
@@ -249,30 +247,38 @@ def update_client_route(id):
         # Validate
         validation_errors = validate_customer_data(customer_data)
         if validation_errors:
-            # Show first error as flash message
-            first_error = next(iter(validation_errors.values()))
-            flash(f'Validation error: {first_error}', 'danger')
-            return redirect(url_for('customers'))
+            return jsonify({'success': False, 'errors': validation_errors}), 400
 
         # Check duplicates (excluding current)
         if customer_data.get('phone'):
             existing = get_customer_by_phone(customer_data['phone'])
             if existing and existing.id != id:
-                flash('A customer with this phone number already exists.', 'warning')
-                return redirect(url_for('customers'))
+                return jsonify({
+                    'success': False,
+                    'errors': {'phone': 'A customer with this phone number already exists.'}
+                }), 400
 
         # Update
         updated_customer = update_customer_query(id, customer_data)
         full_name = f"{updated_customer.first_name} {updated_customer.last_name}"
         
-        flash(f'Customer "{full_name}" updated successfully!', 'success')
-        return redirect(url_for('customers'))
+        return jsonify({
+            'success': True,
+            'message': f'Customer "{full_name}" updated successfully!',
+            'customer': {
+                'id': updated_customer.id,
+                'first_name': updated_customer.first_name,
+                'last_name': updated_customer.last_name,
+                'phone': updated_customer.phone,
+                'gender': getattr(updated_customer, 'gender', '') or '',
+                'address': getattr(updated_customer, 'address', '') or ''
+            }
+        }), 200
 
     except Exception as e:
         db.session.rollback()
         app.logger.error(f"Customer update error: {str(e)}")
-        flash('Error updating customer. Please try again.', 'danger')
-        return redirect(url_for('customers'))
+        return jsonify({'success': False, 'errors': {'_form': 'Error updating customer. Please try again.'}}), 500
 
 
 @app.route('/clients/delete/<int:id>', methods=['POST', 'DELETE'])
