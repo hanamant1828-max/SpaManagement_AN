@@ -1242,35 +1242,25 @@
     </div>
 </div>
 
-<!-- Enhanced View Customer Modal -->
-<div class="modal fade modal-modern" 
-     id="viewCustomerModal" 
-     tabindex="-1" 
-     aria-labelledby="viewCustomerModalLabel" 
-     aria-hidden="true">
-    <div class="modal-dialog modal-lg" role="document">
+<!-- View Customer Modal (Professional Design) -->
+<div class="modal fade" id="viewCustomerModal" tabindex="-1" aria-labelledby="viewCustomerModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="viewCustomerModalLabel">
-                    <i class="fas fa-user me-2" aria-hidden="true"></i>Customer Profile
+                    <i class="fas fa-user-circle"></i> Customer Profile
                 </h5>
-                <button type="button" 
-                        class="btn-close btn-close-white" 
-                        data-bs-dismiss="modal" 
-                        aria-label="Close"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <div class="modal-body" id="customerDetails">
-                <div class="text-center py-4">
-                    <i class="fas fa-spinner fa-spin fa-2x text-primary" aria-hidden="true"></i>
-                    <p class="text-muted mt-2">Loading...</p>
-                </div>
+            <div class="modal-body" id="viewCustomerContent">
+                <!-- Dynamic customer details will be loaded here -->
             </div>
-            <div class="modal-footer justify-content-between">
-                <button type="button" class="btn btn-secondary btn-lg" data-bs-dismiss="modal">
-                    <i class="fas fa-times me-2" aria-hidden="true"></i>Close
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-2"></i>Close
                 </button>
-                <button type="button" class="btn btn-primary btn-lg" onclick="bookAppointmentFromModal()">
-                    <i class="fas fa-calendar-plus me-2" aria-hidden="true"></i>Book Appointment
+                <button type="button" class="btn btn-primary" onclick="bookAppointmentFromModal()">
+                    <i class="fas fa-calendar-check me-2"></i>Book Appointment
                 </button>
             </div>
         </div>
@@ -1515,10 +1505,10 @@ function validateEmail(email) {
 function validateField(fieldId, value, rules) {
     const field = document.getElementById(fieldId);
     if (!field) return true;
-    
+
     const feedback = field.parentElement.querySelector('.invalid-feedback');
     let error = '';
-    
+
     if (rules.required && !value.trim()) {
         error = `${rules.label} is required`;
     } else if (value.trim()) {
@@ -1534,7 +1524,7 @@ function validateField(fieldId, value, rules) {
             error = 'Please enter a valid email address';
         }
     }
-    
+
     if (error) {
         field.classList.add('is-invalid');
         if (feedback) feedback.textContent = error;
@@ -1555,7 +1545,7 @@ function validateField(fieldId, value, rules) {
  */
 function validateCustomerForm(formPrefix) {
     let isValid = true;
-    
+
     // Validate first name
     const firstName = document.getElementById(`${formPrefix}_first_name`);
     if (firstName) {
@@ -1566,7 +1556,7 @@ function validateCustomerForm(formPrefix) {
             maxLength: 50
         }) && isValid;
     }
-    
+
     // Validate last name
     const lastName = document.getElementById(`${formPrefix}_last_name`);
     if (lastName) {
@@ -1577,7 +1567,7 @@ function validateCustomerForm(formPrefix) {
             maxLength: 50
         }) && isValid;
     }
-    
+
     // Validate phone
     const phone = document.getElementById(`${formPrefix}_phone`);
     if (phone) {
@@ -1587,7 +1577,7 @@ function validateCustomerForm(formPrefix) {
             type: 'phone'
         }) && isValid;
     }
-    
+
     // Validate gender
     const gender = document.getElementById(`${formPrefix}_gender`);
     if (gender) {
@@ -1596,7 +1586,7 @@ function validateCustomerForm(formPrefix) {
             label: 'Gender'
         }) && isValid;
     }
-    
+
     // Validate address (optional, but check length if provided)
     const address = document.getElementById(`${formPrefix}_address`);
     if (address && address.value.trim()) {
@@ -1606,7 +1596,7 @@ function validateCustomerForm(formPrefix) {
             maxLength: 500
         }) && isValid;
     }
-    
+
     return isValid;
 }
 
@@ -1692,7 +1682,7 @@ function displayFormErrors(formPrefix, errors) {
     Object.entries(errors).forEach(([fieldName, errorMessage]) => {
         const fieldId = `${formPrefix}_${fieldName}`;
         const field = document.getElementById(fieldId);
-        
+
         if (field) {
             field.classList.add('is-invalid');
             field.setAttribute('aria-invalid', 'true');
@@ -1700,7 +1690,7 @@ function displayFormErrors(formPrefix, errors) {
             if (feedback) {
                 feedback.textContent = errorMessage;
             }
-            
+
             // Focus first invalid field
             if (!document.querySelector('.is-invalid:focus')) {
                 field.focus();
@@ -1736,26 +1726,26 @@ function showFieldError(fieldId, message) {
  */
 function handleAddCustomerSubmit(event) {
     event.preventDefault();
-    
+
     const form = event.target;
     const submitButton = form.querySelector('button[type="submit"]');
-    
+
     // Check if already submitting
     if (submitButton.dataset.submitting === 'true') {
         console.log('⚠️ Form already submitting, ignoring...');
         return false;
     }
-    
+
     // Clear previous errors
     clearFormErrors('add');
-    
+
     // Validate form
     if (!validateCustomerForm('add')) {
         console.log('❌ Form validation failed');
         showToast('Please fix the errors in the form', 'warning');
         return false;
     }
-    
+
     const formData = new FormData(form);
 
     // Mark as submitting
@@ -1785,15 +1775,15 @@ function handleAddCustomerSubmit(event) {
         if (data.success) {
             // Show success toast
             showToast(data.message || 'Customer added successfully!', 'success');
-            
+
             // Close modal
             const modal = bootstrap.Modal.getInstance(document.getElementById('addCustomerModal'));
             if (modal) modal.hide();
-            
+
             // Reset form
             form.reset();
             clearFormErrors('add');
-            
+
             // Reload page
             setTimeout(() => window.location.reload(), CustomerManagement.config.reloadDelay);
         } else {
@@ -1822,26 +1812,26 @@ function handleAddCustomerSubmit(event) {
  */
 function handleEditCustomerSubmit(event) {
     event.preventDefault();
-    
+
     const form = event.target;
     const submitButton = form.querySelector('button[type="submit"]');
-    
+
     // Check if already submitting
     if (submitButton.dataset.submitting === 'true') {
         console.log('⚠️ Form already submitting, ignoring...');
         return false;
     }
-    
+
     // Clear previous errors
     clearFormErrors('edit');
-    
+
     // Validate form
     if (!validateCustomerForm('edit')) {
         console.log('❌ Form validation failed');
         showToast('Please fix the errors in the form', 'warning');
         return false;
     }
-    
+
     const formData = new FormData(form);
 
     // Mark as submitting
@@ -1871,11 +1861,11 @@ function handleEditCustomerSubmit(event) {
         if (data.success) {
             // Show success toast
             showToast(data.message || 'Customer updated successfully!', 'success');
-            
+
             // Close modal
             const modal = bootstrap.Modal.getInstance(document.getElementById('editCustomerModal'));
             if (modal) modal.hide();
-            
+
             // Reload page
             setTimeout(() => window.location.reload(), CustomerManagement.config.reloadDelay);
         } else {
@@ -1927,20 +1917,20 @@ function initToastContainer() {
  */
 function showToast(message, type = 'info', duration = null) {
     const toastKey = `${type}:${message}`;
-    
+
     // Prevent duplicate toasts
     if (CustomerManagement.state.activeToasts.has(toastKey)) {
         console.log('⚠️ Prevented duplicate toast:', message);
         return;
     }
-    
+
     CustomerManagement.state.activeToasts.add(toastKey);
-    
+
     const container = initToastContainer();
     const toastDuration = duration || CustomerManagement.config.toastDuration;
-    
+
     const toastId = 'toast-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
-    
+
     const icons = {
         success: 'check-circle',
         warning: 'exclamation-triangle',
@@ -1948,7 +1938,7 @@ function showToast(message, type = 'info', duration = null) {
         error: 'times-circle',
         info: 'info-circle'
     };
-    
+
     const bgColors = {
         success: 'bg-success',
         warning: 'bg-warning',
@@ -1956,7 +1946,7 @@ function showToast(message, type = 'info', duration = null) {
         error: 'bg-danger',
         info: 'bg-info'
     };
-    
+
     const titles = {
         success: 'Success',
         warning: 'Warning',
@@ -1964,14 +1954,14 @@ function showToast(message, type = 'info', duration = null) {
         error: 'Error',
         info: 'Information'
     };
-    
+
     const toastElement = document.createElement('div');
     toastElement.id = toastId;
     toastElement.className = 'toast';
     toastElement.setAttribute('role', 'alert');
     toastElement.setAttribute('aria-live', 'assertive');
     toastElement.setAttribute('aria-atomic', 'true');
-    
+
     toastElement.innerHTML = `
         <div class="toast-header ${bgColors[type]} text-white">
             <i class="fas fa-${icons[type]} me-2" aria-hidden="true"></i>
@@ -1982,24 +1972,24 @@ function showToast(message, type = 'info', duration = null) {
             ${escapeHtml(message)}
         </div>
     `;
-    
+
     container.appendChild(toastElement);
-    
+
     // Initialize Bootstrap toast
     const bsToast = new bootstrap.Toast(toastElement, {
         autohide: true,
         delay: toastDuration
     });
-    
+
     // Show toast
     bsToast.show();
-    
+
     // Remove from active toasts and DOM when hidden
     toastElement.addEventListener('hidden.bs.toast', function() {
         CustomerManagement.state.activeToasts.delete(toastKey);
         toastElement.remove();
     });
-    
+
     // Handle manual close
     const closeBtn = toastElement.querySelector('.btn-close');
     if (closeBtn) {
@@ -2087,44 +2077,44 @@ function renderCustomerDetails(customer, container) {
     // Create elements safely using DOM methods
     const wrapper = document.createElement('div');
     wrapper.className = 'row';
-    
+
     // Column 1: Avatar and Status
     const col1 = document.createElement('div');
     col1.className = 'col-md-3 text-center';
-    
+
     const avatar = document.createElement('div');
     avatar.className = 'customer-avatar mx-auto mb-3';
     avatar.style.cssText = 'width: 80px; height: 80px; font-size: 1.5rem;';
     avatar.textContent = initials;
     avatar.setAttribute('aria-label', `Avatar for ${customer.full_name}`);
     col1.appendChild(avatar);
-    
+
     if (customer.is_vip) {
         const vipBadge = document.createElement('span');
         vipBadge.className = 'badge bg-warning';
         vipBadge.innerHTML = '<i class="fas fa-crown" aria-hidden="true"></i> VIP';
         col1.appendChild(vipBadge);
     }
-    
+
     const statusBadge = document.createElement('span');
     statusBadge.className = `badge ${customer.is_active ? 'bg-success' : 'bg-secondary'} mt-2`;
     statusBadge.textContent = customer.is_active ? 'Active' : 'Inactive';
     col1.appendChild(statusBadge);
-    
+
     // Column 2: Customer Information
     const col2 = document.createElement('div');
     col2.className = 'col-md-9';
-    
+
     const name = document.createElement('h4');
     name.className = 'mb-1';
     name.textContent = customer.full_name;
     col2.appendChild(name);
-    
+
     const status = document.createElement('p');
     status.className = 'text-muted mb-3';
     status.textContent = customer.status;
     col2.appendChild(status);
-    
+
     // Contact Information
     const contactRow = document.createElement('div');
     contactRow.className = 'mb-3';
@@ -2135,7 +2125,7 @@ function renderCustomerDetails(customer, container) {
         </a>
     `;
     col2.appendChild(contactRow);
-    
+
     // Personal Information
     const personalRow = document.createElement('div');
     personalRow.className = 'row mb-3';
@@ -2150,7 +2140,7 @@ function renderCustomerDetails(customer, container) {
         </div>
     `;
     col2.appendChild(personalRow);
-    
+
     // Address
     if (customer.address) {
         const addressDiv = document.createElement('div');
@@ -2162,7 +2152,7 @@ function renderCustomerDetails(customer, container) {
         addressDiv.appendChild(addressText);
         col2.appendChild(addressDiv);
     }
-    
+
     // Statistics
     const statsRow = document.createElement('div');
     statsRow.className = 'row mb-3';
@@ -2187,7 +2177,7 @@ function renderCustomerDetails(customer, container) {
         </div>
     `;
     col2.appendChild(statsRow);
-    
+
     // Emergency Contact
     if (customer.emergency_contact) {
         const emergencyDiv = document.createElement('div');
@@ -2199,7 +2189,7 @@ function renderCustomerDetails(customer, container) {
         emergencyDiv.appendChild(emergencyText);
         col2.appendChild(emergencyDiv);
     }
-    
+
     // Allergies
     if (customer.allergies) {
         const allergiesDiv = document.createElement('div');
@@ -2209,7 +2199,7 @@ function renderCustomerDetails(customer, container) {
         allergiesDiv.appendChild(allergiesText);
         col2.appendChild(allergiesDiv);
     }
-    
+
     // Notes
     if (customer.notes) {
         const notesDiv = document.createElement('div');
@@ -2221,10 +2211,10 @@ function renderCustomerDetails(customer, container) {
         notesDiv.appendChild(notesText);
         col2.appendChild(notesDiv);
     }
-    
+
     wrapper.appendChild(col1);
     wrapper.appendChild(col2);
-    
+
     container.innerHTML = '';
     container.appendChild(wrapper);
 }
@@ -2437,7 +2427,7 @@ async function startFaceCamera() {
                 track.enabled = false;
             });
             CustomerManagement.state.faceStream = null;
-            
+
             // Add delay to ensure cleanup
             await new Promise(resolve => setTimeout(resolve, CustomerManagement.config.cameraCleanupDelay));
         }
@@ -2631,7 +2621,7 @@ function resetFaceCapture() {
     // Reset select
     const faceClientSelect = document.getElementById('faceClientSelect');
     if (faceClientSelect) faceClientSelect.value = '';
-    
+
     const selectedFaceClientInfo = document.getElementById('selectedFaceClientInfo');
     if (selectedFaceClientInfo) selectedFaceClientInfo.classList.add('d-none');
 }
@@ -2689,14 +2679,14 @@ function renderFaceTable(customers, container) {
     table.appendChild(thead);
 
     const tbody = document.createElement('tbody');
-    
+
     customers.forEach(customer => {
         const date = customer.face_registration_date ? 
             new Date(customer.face_registration_date).toLocaleDateString() : 'Unknown';
         const fullName = customer.full_name || 'Unknown';
         const email = customer.email || 'No email';
         const phone = customer.phone || 'No phone';
-        
+
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td>
@@ -2873,7 +2863,7 @@ function searchCustomers() {
     }
 
     const filter = searchInput.value.toLowerCase().trim();
-    
+
     const table = document.querySelector('.spa-table tbody');
     if (!table) {
         console.error('❌ Table not found');
@@ -2891,18 +2881,18 @@ function searchCustomers() {
                 visibleCount++;
             }
         });
-        
+
         const noResultsRow = document.getElementById('noResultsRow');
         if (noResultsRow) {
             noResultsRow.style.display = 'none';
         }
-        
+
         return;
     }
 
     // Collect matching rows with relevance scores
     const matchedRows = [];
-    
+
     rows.forEach(row => {
         if (row.id === 'noResultsRow') return;
 
@@ -2911,7 +2901,7 @@ function searchCustomers() {
         let lastName = '';
         let phone = '';
         let email = '';
-        
+
         const nameCell = row.cells[0];
         if (nameCell) {
             const nameElement = nameCell.querySelector('.customer-info h5');
@@ -2987,17 +2977,17 @@ function searchCustomers() {
             row.style.display = 'none';
         }
     });
-    
+
     // Sort by relevance and display
     if (matchedRows.length > 0) {
         matchedRows.sort((a, b) => b.score - a.score);
-        
+
         const fragment = document.createDocumentFragment();
         matchedRows.forEach(({ row }) => {
             row.style.display = '';
             fragment.appendChild(row);
         });
-        
+
         const noResultsRow = document.getElementById('noResultsRow');
         if (noResultsRow) {
             table.insertBefore(fragment, noResultsRow);
@@ -3047,14 +3037,14 @@ function initializeSearch() {
     }
 
     console.log('✅ Search input found, attaching listeners');
-    
+
     // Remove existing listeners by cloning
     const newSearchInput = searchInput.cloneNode(true);
     searchInput.parentNode.replaceChild(newSearchInput, searchInput);
-    
+
     // Update cache
     CustomerManagement.domCache.searchInput = newSearchInput;
-    
+
     // Add debounced input listener
     newSearchInput.addEventListener('input', debouncedSearch);
 
@@ -3070,7 +3060,7 @@ function initializeSearch() {
     const searchIcon = document.querySelector('.search-icon');
     if (searchIcon) {
         searchIcon.addEventListener('click', searchCustomers);
-        
+
         // Keyboard accessibility for search icon
         searchIcon.addEventListener('keypress', function(e) {
             if (e.key === 'Enter' || e.key === ' ') {
@@ -3120,7 +3110,7 @@ function submitSearch() {
  */
 window.addEventListener('error', function(e) {
     console.error('❌ JavaScript error:', e.error);
-    
+
     // Don't show notification for every error, only critical ones
     if (e.error && e.error.message) {
         if (e.error.message.includes('missing ) after argument list') ||
@@ -3136,7 +3126,7 @@ window.addEventListener('error', function(e) {
  */
 window.addEventListener('unhandledrejection', function(event) {
     console.error('❌ Unhandled promise rejection:', event.reason);
-    
+
     // Only show notification for fetch/network errors
     if (event.reason && event.reason.message && 
         (event.reason.message.includes('fetch') || 
@@ -3144,7 +3134,7 @@ window.addEventListener('unhandledrejection', function(event) {
          event.reason.message.includes('Failed to'))) {
         showToast('An unexpected error occurred. Please try again.', 'danger');
     }
-    
+
     event.preventDefault();
 });
 
