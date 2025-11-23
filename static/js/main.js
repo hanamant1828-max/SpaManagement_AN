@@ -2307,6 +2307,26 @@ function populateEditForm(customer) {
             }
         });
 
+        // Add real-time validation for address field
+        const addressField = form.querySelector('[name="address"]');
+        if (addressField) {
+            addressField.addEventListener('blur', function() {
+                const value = this.value.trim();
+                if (value && value.length < 10) {
+                    this.classList.add('is-invalid');
+                    let feedback = this.parentElement.querySelector('.invalid-feedback');
+                    if (!feedback) {
+                        feedback = document.createElement('div');
+                        feedback.className = 'invalid-feedback';
+                        this.parentElement.appendChild(feedback);
+                    }
+                    feedback.textContent = 'Address must be at least 10 characters if provided.';
+                } else {
+                    this.classList.remove('is-invalid');
+                }
+            });
+        }
+
         // Store customer ID in form
         form.dataset.customerId = customer.id;
         window.currentCustomerId = customer.id;
@@ -2338,6 +2358,14 @@ function handleEditCustomerSubmit(event) {
 
     if (!customerId) {
         showNotification('Error: Customer ID not found.', 'error');
+        return;
+    }
+
+    // Client-side validation for address field
+    const addressField = form.querySelector('[name="address"]');
+    if (addressField && addressField.value.trim() && addressField.value.trim().length < 10) {
+        showNotification('Address must be at least 10 characters if provided.', 'error');
+        addressField.focus();
         return;
     }
 
