@@ -981,6 +981,20 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log('Search event listener attached');
     }
 
+    // Attach form submission handlers for Add Customer
+    const addForm = document.getElementById('addCustomerForm');
+    if (addForm) {
+        addForm.addEventListener('submit', handleAddCustomerSubmit);
+        console.log('Add customer form handler attached');
+    }
+
+    // Attach form submission handlers for Edit Customer
+    const editForm = document.getElementById('editCustomerForm');
+    if (editForm) {
+        editForm.addEventListener('submit', handleEditCustomerSubmit);
+        console.log('Edit customer form handler attached');
+    }
+
     console.log('Customer Management: Ready');
 });
 
@@ -1196,24 +1210,194 @@ function populateEditForm(customer) {
     const form = document.getElementById('editCustomerForm');
     form.action = `/clients/update/${customer.id}`;
 
+    // Clear any existing errors
+    clearFormErrors('edit');
+
+    // Only populate the essential fields
     const fields = {
         'edit_first_name': customer.first_name,
         'edit_last_name': customer.last_name,
         'edit_phone': customer.phone,
-        'edit_email': customer.email,
-        'edit_address': customer.address,
-        'edit_date_of_birth': customer.date_of_birth,
         'edit_gender': customer.gender,
-        'edit_emergency_contact': customer.emergency_contact,
-        'edit_allergies': customer.allergies,
-        'edit_notes': customer.notes
+        'edit_address': customer.address
     };
 
     Object.entries(fields).forEach(([id, value]) => {
         const field = document.getElementById(id);
-        if (field && value !== null && value !== undefined && value !== '') {
-            field.value = value;
+        if (field) {
+            field.value = value || '';
+            field.classList.remove('is-invalid');
         }
+    });
+}
+
+// ============================================
+// FORM VALIDATION AND SUBMISSION HANDLERS
+// ============================================
+
+function clearFormErrors(formPrefix) {
+    // Clear general form error
+    const formError = document.getElementById(`${formPrefix}-form-error`);
+    if (formError) {
+        formError.classList.add('d-none');
+        formError.textContent = '';
+    }
+
+    // Clear all field errors
+    const form = document.getElementById(`${formPrefix}CustomerForm`);
+    if (form) {
+        form.querySelectorAll('.is-invalid').forEach(field => {
+            field.classList.remove('is-invalid');
+        });
+        form.querySelectorAll('.invalid-feedback').forEach(feedback => {
+            feedback.textContent = '';
+        });
+    }
+}
+
+function displayFormErrors(formPrefix, errors) {
+    // Clear existing errors first
+    clearFormErrors(formPrefix);
+
+    // Display general form error if exists
+    if (errors._form) {
+        const formError = document.getElementById(`${formPrefix}-form-error`);
+        if (formError) {
+            formError.textContent = errors._form;
+            formError.classList.remove('d-none');
+        }
+        return;
+    }
+
+    // Display field-specific errors
+    Object.entries(errors).forEach(([fieldName, errorMessage]) => {
+        const fieldId = `${formPrefix}_${fieldName}`;
+        const field = document.getElementById(fieldId);
+        
+        if (field) {
+            field.classList.add('is-invalid');
+            const feedback = field.parentElement.querySelector('.invalid-feedback');
+            if (feedback) {
+                feedback.textContent = errorMessage;
+            }
+        }
+    });
+}
+
+function handleAddCustomerSubmit(event) {
+    event.preventDefault();
+    
+    const form = event.target;
+    const submitButton = form.querySelector('button[type="submit"]');
+    const formData = new FormData(form);
+
+    // Clear previous errors
+    clearFormErrors('add');
+
+    // Disable submit button to prevent double submission
+    submitButton.disabled = true;
+    submitButton.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Adding...';
+
+    fetch(form.action, {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Show success message
+            showNotification(data.message, 'success');
+            
+            // Close modal
+            const modal = bootstrap.Modal.getInstance(document.getElementById('addCustomerModal'));
+            if (modal) {
+                modal.hide();
+            }
+            
+            // Reset form
+            form.reset();
+            
+            // Reload page to show new customer
+            setTimeout(() => {
+                window.location.reload();
+            }, 1000);
+        } else {
+            // Display validation errors inline
+            if (data.errors) {
+                displayFormErrors('add', data.errors);
+            } else {
+                showNotification('Error creating customer. Please try again.', 'danger');
+            }
+            
+            // Re-enable submit button
+            submitButton.disabled = false;
+            submitButton.innerHTML = '<i class="fas fa-save me-2"></i>Add Customer';
+        }
+    })
+    .catch(error => {
+        console.error('Add customer error:', error);
+        showNotification('Error creating customer. Please try again.', 'danger');
+        
+        // Re-enable submit button
+        submitButton.disabled = false;
+        submitButton.innerHTML = '<i class="fas fa-save me-2"></i>Add Customer';
+    });
+}
+
+function handleEditCustomerSubmit(event) {
+    event.preventDefault();
+    
+    const form = event.target;
+    const submitButton = form.querySelector('button[type="submit"]');
+    const formData = new FormData(form);
+
+    // Clear previous errors
+    clearFormErrors('edit');
+
+    // Disable submit button to prevent double submission
+    submitButton.disabled = true;
+    submitButton.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Updating...';
+
+    fetch(form.action, {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Show success message
+            showNotification(data.message, 'success');
+            
+            // Close modal
+            const modal = bootstrap.Modal.getInstance(document.getElementById('editCustomerModal'));
+            if (modal) {
+                modal.hide();
+            }
+            
+            // Reload page to show updated customer
+            setTimeout(() => {
+                window.location.reload();
+            }, 1000);
+        } else {
+            // Display validation errors inline
+            if (data.errors) {
+                displayFormErrors('edit', data.errors);
+            } else {
+                showNotification('Error updating customer. Please try again.', 'danger');
+            }
+            
+            // Re-enable submit button
+            submitButton.disabled = false;
+            submitButton.innerHTML = '<i class="fas fa-save me-2"></i>Update Customer';
+        }
+    })
+    .catch(error => {
+        console.error('Update customer error:', error);
+        showNotification('Error updating customer. Please try again.', 'danger');
+        
+        // Re-enable submit button
+        submitButton.disabled = false;
+        submitButton.innerHTML = '<i class="fas fa-save me-2"></i>Update Customer';
     });
 }
 
