@@ -1,0 +1,44 @@
+comprehensive_staff:935 Bootstrap Modal Staff Management loaded
+comprehensive_staff:987 Setting up comprehensive modal protection
+comprehensive_staff:953 Starting initial staff data load...
+comprehensive_staff:1393 📊 Loading staff data from API...
+main.js:2393 Metadata loading handled in loadStaffData
+comprehensive_staff:1041 Save button found and ready
+comprehensive_staff:2596 Bootstrap loaded successfully
+main.js:968 Bootstrap components initialized successfully
+appointment_context_menu.js:14 🎛️ Context menu system initialized
+comprehensive_staff:1 [DOM] Found 2 elements with non-unique id #designation: (More info: https://goo.gl/9p2vKq) <input type=​"text" class=​"form-control" id=​"designation">​ <input type=​"text" class=​"form-control" id=​"designation" placeholder=​"e.g., Therapist">​
+comprehensive_staff:2553 ✓ SheetJS library loaded successfully
+comprehensive_staff:1411 ✅ Staff data loaded: 38 staff members
+comprehensive_staff:1412 ✅ Roles data received: 1 roles
+comprehensive_staff:1413 ✅ Departments data received: 10 departments
+comprehensive_staff:1501 Populating departmentFilter with 10 departments
+comprehensive_staff:1507 Added department option: Hair1 (ID: 1)
+comprehensive_staff:1507 Added department option: Spa (ID: 3)
+comprehensive_staff:1507 Added department option: Reception (ID: 5)
+comprehensive_staff:1507 Added department option: Spa Services (ID: 6)
+comprehensive_staff:1507 Added department option: Front Desk (ID: 7)
+comprehensive_staff:1507 Added department option: Management (ID: 8)
+comprehensive_staff:1507 Added department option: Finance (ID: 9)
+comprehensive_staff:1507 Added department option: Facial Services (ID: 10)
+comprehensive_staff:1507 Added department option: Reception (ID: 11)
+comprehensive_staff:1507 Added department option: Wellness Center (ID: 12)
+comprehensive_staff:1501 Populating departmentId with 10 departments
+comprehensive_staff:1507 Added department option: Hair1 (ID: 1)
+comprehensive_staff:1507 Added department option: Spa (ID: 3)
+comprehensive_staff:1507 Added department option: Reception (ID: 5)
+comprehensive_staff:1507 Added department option: Spa Services (ID: 6)
+comprehensive_staff:1507 Added department option: Front Desk (ID: 7)
+comprehensive_staff:1507 Added department option: Management (ID: 8)
+comprehensive_staff:1507 Added department option: Finance (ID: 9)
+comprehensive_staff:1507 Added department option: Facial Services (ID: 10)
+comprehensive_staff:1507 Added department option: Reception (ID: 11)
+comprehensive_staff:1507 Added department option: Wellness Center (ID: 12)
+comprehensive_staff:1527 🎨 Rendering staff table with 38 staff members
+comprehensive_staff:1530 📋 Calling renderFilteredStaff with 38 staff members
+comprehensive_staff:1641 Starting renderFilteredStaff with 38 staff members
+comprehensive_staff:1676 Rendering 38 staff members
+comprehensive_staff:1696 ✅ Successfully rendered 38 staff members, showing table
+comprehensive_staff:1751 Staff table displayed successfully
+comprehensive_staff:1427 ✅ Showing staff table with 38 members
+comprehensive_staff:1751 Staff table displayed successfully
