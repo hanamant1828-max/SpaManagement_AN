@@ -2127,18 +2127,12 @@ function renderCustomerDetails(customer, container) {
     
     // Contact Information
     const contactRow = document.createElement('div');
-    contactRow.className = 'row mb-3';
+    contactRow.className = 'mb-3';
     contactRow.innerHTML = `
-        <div class="col-sm-6">
-            <strong>Phone:</strong><br>
-            <a href="tel:${customer.phone}" class="text-decoration-none">
-                <i class="fas fa-phone me-1" aria-hidden="true"></i>${escapeHtml(customer.phone)}
-            </a>
-        </div>
-        <div class="col-sm-6">
-            <strong>Email:</strong><br>
-            ${customer.email ? `<a href="mailto:${customer.email}" class="text-decoration-none"><i class="fas fa-envelope me-1" aria-hidden="true"></i>${escapeHtml(customer.email)}</a>` : 'Not provided'}
-        </div>
+        <strong>Phone:</strong><br>
+        <a href="tel:${customer.phone}" class="text-decoration-none">
+            <i class="fas fa-phone me-1" aria-hidden="true"></i>${escapeHtml(customer.phone)}
+        </a>
     `;
     col2.appendChild(contactRow);
     
