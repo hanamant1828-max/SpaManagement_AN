@@ -810,6 +810,10 @@
         if (!submitBtn || !formMode) {
             console.error("Required form elements not found");
             showNotification("Form elements not found. Please refresh the page.", "error");
+            // Reset button if it exists
+            if (submitBtn) {
+                submitBtn.disabled = false;
+            }
             return;
         }
 
@@ -828,6 +832,9 @@
             const validation = validateFormData(formData);
             if (!validation.isValid) {
                 showNotification(validation.message, "error");
+                // Reset button state immediately on validation failure
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalText;
                 return;
             }
 
