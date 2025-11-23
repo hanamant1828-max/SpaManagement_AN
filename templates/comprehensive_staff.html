@@ -1231,6 +1231,7 @@
         console.log("🎨 Rendering staff table with", allStaff.length, "staff members");
         // Initialize filteredStaff with all staff data
         filteredStaff = [...allStaff];
+        console.log("📋 Calling renderFilteredStaff with", filteredStaff.length, "staff members");
         // Immediately render the filtered staff (which is all staff initially)
         renderFilteredStaff();
     }
@@ -1396,8 +1397,8 @@
             });
 
             if (successfulRenders > 0) {
+                console.log(`✅ Successfully rendered ${successfulRenders} staff members, showing table`);
                 showTable(true);
-                console.log(`Successfully rendered ${successfulRenders} staff members`);
             } else {
                 console.error("No staff rows could be rendered");
                 showEmptyState();
