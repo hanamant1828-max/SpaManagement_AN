@@ -1243,9 +1243,9 @@
     // Render staff table
     function renderStaffTable() {
         console.log("🎨 Rendering staff table with", allStaff.length, "staff members");
-        // Initialize filteredStaff with all staff data
-        filteredStaff = [...allStaff];
-        console.log("📋 Initializing table display with", filteredStaff.length, "staff members");
+        // Initialize filteredStaff with all staff data, sorted by ID descending (latest first)
+        filteredStaff = [...allStaff].sort((a, b) => b.id - a.id);
+        console.log("📋 Initializing table display with", filteredStaff.length, "staff members (sorted latest first)");
 
         // Force table visibility immediately
         const tableContainer = document.getElementById("staffTableContainer");
@@ -1349,9 +1349,12 @@
             console.log("After status filter (inactive):", filtered.length);
         }
 
+        // Sort by ID descending (latest added first)
+        filtered.sort((a, b) => b.id - a.id);
+
         // Update the global filteredStaff array
         filteredStaff = filtered;
-        console.log("Final filtered staff count:", filteredStaff.length);
+        console.log("Final filtered staff count:", filteredStaff.length, "(sorted latest first)");
         renderFilteredStaff(); // Render the filtered list
     }
 
