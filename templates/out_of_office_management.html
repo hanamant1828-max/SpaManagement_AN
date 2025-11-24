@@ -76,63 +76,73 @@
 
         <div class="row">
             <div class="col-lg-5">
-                <div class="card border-0 shadow-sm">
-                    <div class="card-header bg-light">
-                        <h5 class="mb-0">
-                            <i class="fas fa-plus-circle me-2"></i>
-                            <span id="formTitle">Add Out of Office Entry</span>
-                        </h5>
+                <!-- Add Entry Button -->
+        <div class="mb-4 text-end">
+            <button type="button" class="btn btn-primary btn-lg" id="addEntryBtn" onclick="toggleEntryForm()">
+                <i class="fas fa-plus-circle me-2"></i>Add Out of Office Entry
+            </button>
+        </div>
+
+        <!-- Out of Office Entry Form (Hidden by default) -->
+        <div class="entry-form-card mb-4" id="entryFormCard">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="mb-0 text-white">
+                    <i class="fas fa-plus-circle me-2"></i>
+                    <span id="formTitle">Add Out of Office Entry</span>
+                </h5>
+                <button type="button" class="btn btn-sm btn-outline-light" onclick="toggleEntryForm()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <form id="outOfOfficeForm">
+                <input type="hidden" id="entryId">
+
+                <div class="mb-3">
+                    <label for="staffId" class="form-label">Staff Member <span class="text-danger">*</span></label>
+                    <select class="form-select" id="staffId" required>
+                        <option value="">-- Select Staff Member --</option>
+                        {% for staff in staff_members %}
+                        <option value="{{ staff.id }}">{{ staff.first_name }} {{ staff.last_name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <label for="entryDate" class="form-label">Date <span class="text-danger">*</span></label>
+                    <input type="date" class="form-control" id="entryDate" value="{{ today }}" required>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="startTime" class="form-label">Start Time <span class="text-danger">*</span></label>
+                        <input type="time" class="form-control" id="startTime" value="09:00" required>
                     </div>
-                    <div class="card-body">
-                        <form id="outOfOfficeForm">
-                            <input type="hidden" id="entryId">
-                            
-                            <div class="mb-3">
-                                <label for="staffId" class="form-label">Staff Member <span class="text-danger">*</span></label>
-                                <select class="form-select" id="staffId" required>
-                                    <option value="">-- Select Staff Member --</option>
-                                    {% for staff in staff_members %}
-                                    <option value="{{ staff.id }}">{{ staff.first_name }} {{ staff.last_name }}</option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-
-                            <div class="mb-3">
-                                <label for="entryDate" class="form-label">Date <span class="text-danger">*</span></label>
-                                <input type="date" class="form-control" id="entryDate" value="{{ today }}" required>
-                            </div>
-
-                            <div class="row">
-                                <div class="col-md-6 mb-3">
-                                    <label for="startTime" class="form-label">Start Time <span class="text-danger">*</span></label>
-                                    <input type="time" class="form-control" id="startTime" value="09:00" required>
-                                </div>
-                                <div class="col-md-6 mb-3">
-                                    <label for="endTime" class="form-label">Expected Return <span class="text-danger">*</span></label>
-                                    <input type="time" class="form-control" id="endTime" value="17:00" required>
-                                </div>
-                            </div>
-
-                            <div class="mb-3">
-                                <label for="reason" class="form-label">Reason <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control" id="reason" maxlength="200" 
-                                       placeholder="Client visit / Site inspection / Delivery..." required>
-                                <div class="form-text">Max 200 characters</div>
-                            </div>
-
-                            <div class="alert alert-danger d-none" id="errorAlert"></div>
-                            <div class="alert alert-success d-none" id="successAlert"></div>
-
-                            <div class="d-flex gap-2">
-                                <button type="submit" class="btn btn-primary flex-fill">
-                                    <i class="fas fa-save me-2"></i>Save Entry
-                                </button>
-                                <button type="button" class="btn btn-secondary" id="cancelBtn">
-                                    <i class="fas fa-times me-2"></i>Cancel
-                                </button>
-                            </div>
-                        </form>
+                    <div class="col-md-6 mb-3">
+                        <label for="endTime" class="form-label">Expected Return <span class="text-danger">*</span></label>
+                        <input type="time" class="form-control" id="endTime" value="17:00" required>
                     </div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="reason" class="form-label">Reason <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="reason" maxlength="200" 
+                           placeholder="Client visit / Site inspection / Delivery..." required>
+                    <div class="form-text">Max 200 characters</div>
+                </div>
+
+                <div class="alert alert-danger d-none" id="errorAlert"></div>
+                <div class="alert alert-success d-none" id="successAlert"></div>
+
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-primary flex-fill">
+                        <i class="fas fa-save me-2"></i>Save Entry
+                    </button>
+                    <button type="button" class="btn btn-secondary" id="cancelBtn">
+                        <i class="fas fa-times me-2"></i>Cancel
+                    </button>
+                </div>
+            </form>
                 </div>
             </div>
 
@@ -212,20 +222,20 @@ $(document).ready(function() {
 
     function loadEntries() {
         $('#loadingRow').removeClass('d-none');
-        
+
         $.ajax({
             url: '/shift-scheduler/api/out-of-office',
             method: 'GET',
             success: function(response) {
                 $('#loadingRow').addClass('d-none');
-                
+
                 if (response.success && response.entries && response.entries.length > 0) {
                     $('#noEntriesMessage').addClass('d-none');
                     $('#entriesTable').removeClass('d-none');
-                    
+
                     const tbody = $('#entriesTableBody');
                     tbody.empty();
-                    
+
                     response.entries.forEach(entry => {
                         const row = `
                             <tr class="entry-row">
@@ -334,7 +344,7 @@ $(document).ready(function() {
                     $('#endTime').val(entry.end_time);
                     $('#reason').val(entry.reason);
                     $('#formTitle').text('Edit Out of Office Entry');
-                    
+
                     $('html, body').animate({
                         scrollTop: $('#outOfOfficeForm').offset().top - 100
                     }, 500);
