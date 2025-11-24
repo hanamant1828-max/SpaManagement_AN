@@ -1083,8 +1083,8 @@
             gender: getFieldValue("gender") || "other",
             date_of_birth: getFieldValue("dateOfBirth") || null,
             date_of_joining: getFieldValue("dateOfJoining") || null,
-            shift_start_time: getFieldValue("shiftStart") || null,
-            shift_end_time: getFieldValue("shiftEnd") || null,
+            shift_start_time: getFieldValue("shiftStart", true) || null,
+            shift_end_time: getFieldValue("shiftEnd", true) || null,
 
             notes_bio: getFieldValue("notesBio") || "",
             enable_face_checkin: getCheckboxValue("enableFaceCheckin"),
@@ -1095,10 +1095,13 @@
         return data;
     }
 
-    function getFieldValue(fieldId) {
+    function getFieldValue(fieldId, optional = false) {
         const field = document.getElementById(fieldId);
         if (!field) {
-            console.warn(`Field ${fieldId} not found`);
+            // Only warn about missing required fields
+            if (!optional) {
+                console.warn(`Field ${fieldId} not found`);
+            }
             return "";
         }
         return field.value?.trim() || "";
@@ -1705,12 +1708,16 @@
             "notesBio": staff.notes_bio || ""
         };
 
+        // Optional fields that may not exist in the form
+        const optionalFields = ["shiftStart", "shiftEnd", "workingDays"];
+        
         // Safely populate text fields
         Object.entries(fields).forEach(([fieldId, value]) => {
             const element = document.getElementById(fieldId);
             if (element) {
                 element.value = value;
-            } else {
+            } else if (!optionalFields.includes(fieldId)) {
+                // Only warn about missing required fields
                 console.warn(`Field ${fieldId} not found in form`);
             }
         });
@@ -1787,9 +1794,9 @@
                 gender: getFieldValue("gender"),
                 date_of_birth: getFieldValue("dateOfBirth"),
                 date_of_joining: getFieldValue("dateOfJoining"),
-                shift_start_time: getFieldValue("shiftStart"),
-                shift_end_time: getFieldValue("shiftEnd"),
-                working_days: getFieldValue("workingDays"),
+                shift_start_time: getFieldValue("shiftStart", true),
+                shift_end_time: getFieldValue("shiftEnd", true),
+                working_days: getFieldValue("workingDays", true),
                 enable_face_checkin: getCheckboxValue("enableFaceCheckin"),
                 notes_bio: getFieldValue("notesBio"),
             };
