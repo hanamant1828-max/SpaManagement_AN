@@ -1118,14 +1118,69 @@ function initializeSearchableDropdowns() {
         }
     });
 
-    // Service dropdowns - attach change handler
-    $('select[name="service_ids[]"]').each(function() {
-        $(this).on('change', function() {
-            handleServiceChange(this);
-        });
+    // Initialize Select2 on all existing service, staff, product, and batch dropdowns
+    initializeRowDropdowns();
+
+    console.log('✅ Searchable dropdowns initialized (Customer, Service, Staff, Product, Batch)');
+}
+
+// Helper function to initialize Select2 on row dropdowns (can be called for new rows)
+function initializeRowDropdowns(container) {
+    const scope = container ? $(container) : $(document);
+    
+    // Service dropdowns
+    scope.find('select[name="service_ids[]"]').each(function() {
+        if (!$(this).hasClass('select2-hidden-accessible')) {
+            $(this).select2({
+                theme: 'bootstrap-5',
+                placeholder: 'Select Service',
+                allowClear: true,
+                width: '100%',
+                dropdownParent: $(this).closest('.item-row')
+            }).on('change', function() {
+                handleServiceChange(this);
+            });
+        }
     });
 
-    console.log('✅ Searchable dropdowns initialized (Customer with Select2)');
+    // Staff dropdowns
+    scope.find('select[name="staff_ids[]"]').each(function() {
+        if (!$(this).hasClass('select2-hidden-accessible')) {
+            $(this).select2({
+                theme: 'bootstrap-5',
+                placeholder: 'Select Staff',
+                allowClear: true,
+                width: '100%',
+                dropdownParent: $(this).closest('.item-row')
+            });
+        }
+    });
+
+    // Product dropdowns
+    scope.find('select[name="product_ids[]"]').each(function() {
+        if (!$(this).hasClass('select2-hidden-accessible')) {
+            $(this).select2({
+                theme: 'bootstrap-5',
+                placeholder: 'Select Product',
+                allowClear: true,
+                width: '100%',
+                dropdownParent: $(this).closest('.item-row')
+            });
+        }
+    });
+
+    // Batch dropdowns
+    scope.find('.batch-select').each(function() {
+        if (!$(this).hasClass('select2-hidden-accessible')) {
+            $(this).select2({
+                theme: 'bootstrap-5',
+                placeholder: 'Select Batch',
+                allowClear: true,
+                width: '100%',
+                dropdownParent: $(this).closest('.item-row')
+            });
+        }
+    });
 }
 
 // ==========================================
@@ -1868,6 +1923,19 @@ function resetCustomerPackages() {
         ).join('');
         batchSelect.disabled = false;
 
+        // Reinitialize Select2 on batch dropdown after populating options
+        const $batchSelect = $(batchSelect);
+        if ($batchSelect.hasClass('select2-hidden-accessible')) {
+            $batchSelect.select2('destroy');
+        }
+        $batchSelect.select2({
+            theme: 'bootstrap-5',
+            placeholder: 'Select Batch',
+            allowClear: true,
+            width: '100%',
+            dropdownParent: $batchSelect.closest('.item-row')
+        });
+
         // Display first batch info
         const firstBatch = availableBatches[0];
         const expiry = firstBatch.expiry_date ?
@@ -1922,6 +1990,11 @@ function resetCustomerPackages() {
 
           const newRow = firstRow.cloneNode(true);
 
+          // Destroy Select2 instances in the cloned row
+          $(newRow).find('.select2-hidden-accessible').each(function() {
+            $(this).select2('destroy');
+          });
+
           // Clear select values
           newRow.querySelectorAll('select').forEach(sel => {
             sel.value = '';
@@ -1944,12 +2017,10 @@ function resetCustomerPackages() {
 
           container.appendChild(newRow);
 
-          // Attach change handler to service dropdown (no Select2)
-          $(newRow).find('select[name="service_ids[]"]').on('change', function() {
-            handleServiceChange(this);
-          });
+          // Initialize Select2 on the new row's dropdowns
+          initializeRowDropdowns(newRow);
 
-          console.log('✅ New service row added with regular dropdowns');
+          console.log('✅ New service row added with searchable dropdowns');
         }
 
 
@@ -1995,7 +2066,10 @@ function resetCustomerPackages() {
 
         container.appendChild(newRow);
 
-        console.log('✅ New product row added with standard dropdowns');
+        // Initialize Select2 on the new row's dropdowns
+        initializeRowDropdowns(newRow);
+
+        console.log('✅ New product row added with searchable dropdowns');
     }
 
     function removeRow(button) {
