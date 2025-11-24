@@ -930,10 +930,14 @@ def api_get_staff(staff_id):
         if staff.role != 'staff':
             return jsonify({'error': 'Staff member not found or does not have the staff role'}), 404
 
+        # Get the actual password to display
+        actual_password = staff.default_password or ''
+        print(f"Fetching staff {staff_id}, password field: '{actual_password}'")
+
         staff_data = {
             'id': staff.id,
             'username': staff.username,
-            'default_password': staff.default_password or '',
+            'default_password': actual_password,
             'first_name': staff.first_name,
             'last_name': staff.last_name,
             'email': staff.email,
@@ -1136,8 +1140,13 @@ def update_staff_api(staff_id):
         if not staff:
             return jsonify({'success': False, 'error': 'Staff member not found'}), 404
 
-        # Get form data
-        data = request.form.to_dict()
+        # Get JSON data instead of form data
+        if request.is_json:
+            data = request.get_json()
+        else:
+            data = request.form.to_dict()
+
+        print(f"Received update data for staff {staff_id}:", data)
 
         # Update basic info
         staff.username = data.get('username', staff.username)
@@ -1146,10 +1155,12 @@ def update_staff_api(staff_id):
         staff.email = data.get('email', staff.email)
         staff.phone = data.get('phone', staff.phone)
 
-        # Update password if provided
+        # Update password if provided - store as both password_hash and default_password
         password = data.get('password', '').strip()
         if password:
-            staff.set_password(password)
+            staff.password_hash = generate_password_hash(password)
+            staff.default_password = password  # Store plain text for display (not recommended for production)
+            print(f"✅ Password updated for staff {staff_id}")
 
         # Update role
         staff.role = data.get('role', staff.role)

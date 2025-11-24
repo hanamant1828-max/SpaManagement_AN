@@ -1562,7 +1562,7 @@
     }
 
     // Toggle password visibility
-    function togglePasswordVisibility() {
+    function togglePasswordVisibilityInForm() {
         const passwordField = document.getElementById("password");
         const passwordIcon = document.getElementById("passwordIcon");
 
@@ -1723,11 +1723,18 @@
         });
 
         // Set password field (show default password if available)
-        const passwordField = document.getElementById("password");
-        if (passwordField && staff.default_password) {
+    const passwordField = document.getElementById("password");
+    if (passwordField) {
+        if (staff.default_password && staff.default_password.trim() !== '') {
             passwordField.value = staff.default_password;
             passwordField.placeholder = "Current password shown - change if needed";
+            console.log("Password populated:", staff.default_password);
+        } else {
+            passwordField.value = '';
+            passwordField.placeholder = "Leave blank to keep current password";
+            console.log("No password available to populate");
         }
+    }
 
 
         // Handle department dropdown - set the value explicitly
@@ -2046,13 +2053,13 @@
     }
 
     // Toggle password visibility in staff details modal
-    function togglePasswordVisibility(staffId) {
+    function toggleViewPasswordVisibility() {
         const passwordDisplay = document.getElementById('passwordDisplay');
-        const passwordIcon = document.getElementById('passwordIcon');
+        const passwordIcon = document.getElementById('passwordIconView'); // Corrected ID for the view icon
         const actualPassword = document.getElementById('actualPassword');
 
         if (!passwordDisplay || !passwordIcon || !actualPassword) {
-            console.error('Password elements not found');
+            console.error('Password elements not found for view modal');
             return;
         }
 
@@ -2060,12 +2067,12 @@
 
         if (isCurrentlyHidden) {
             passwordDisplay.textContent = actualPassword.value;
-            passwordIcon.classList.remove('bi-eye');
-            passwordIcon.classList.add('bi-eye-slash');
+            passwordIcon.classList.remove('fa-eye'); // Use font-awesome classes
+            passwordIcon.classList.add('fa-eye-slash');
         } else {
             passwordDisplay.textContent = '••••••••';
-            passwordIcon.classList.remove('bi-eye-slash');
-            passwordIcon.classList.add('bi-eye');
+            passwordIcon.classList.remove('fa-eye-slash');
+            passwordIcon.classList.add('fa-eye');
         }
     }
 
