@@ -1095,9 +1095,7 @@ function initializeSearchableDropdowns() {
         placeholder: '-- Select Customer --',
         allowClear: true,
         width: '100%',
-        dropdownParent: $('#client_id').parent(),
         dropdownAutoWidth: false,
-        dropdownPosition: 'auto',
         matcher: function(params, data) {
             // If there are no search terms, return all data
             if ($.trim(params.term) === '') {
@@ -1140,9 +1138,7 @@ function initializeRowDropdowns(container) {
                 allowClear: true,
                 width: '100%',
                 dropdownAutoWidth: true,
-                minimumResultsForSearch: 5,
-                dropdownParent: $(this).closest('.item-row'),
-                dropdownPosition: 'auto'
+                minimumResultsForSearch: 5
             }).on('change', function() {
                 handleServiceChange(this);
             });
@@ -1158,8 +1154,7 @@ function initializeRowDropdowns(container) {
                 allowClear: true,
                 width: '100%',
                 dropdownAutoWidth: true,
-                minimumResultsForSearch: 5,
-                dropdownParent: $(this).closest('.form-group')
+                minimumResultsForSearch: 5
             });
         }
     });
@@ -1173,8 +1168,7 @@ function initializeRowDropdowns(container) {
                 allowClear: true,
                 width: '100%',
                 dropdownAutoWidth: true,
-                minimumResultsForSearch: 5,
-                dropdownParent: $(this).closest('.form-group')
+                minimumResultsForSearch: 5
             });
         }
     });
@@ -1188,8 +1182,7 @@ function initializeRowDropdowns(container) {
                 allowClear: true,
                 width: '100%',
                 dropdownAutoWidth: true,
-                minimumResultsForSearch: 5,
-                dropdownParent: $(this).closest('.form-group')
+                minimumResultsForSearch: 5
             });
         }
     });
@@ -1203,8 +1196,7 @@ function initializeRowDropdowns(container) {
                 allowClear: true,
                 width: '100%',
                 dropdownAutoWidth: true,
-                minimumResultsForSearch: 5,
-                dropdownParent: $(this).closest('.form-group')
+                minimumResultsForSearch: 5
             });
         }
     });
@@ -1959,8 +1951,7 @@ function resetCustomerPackages() {
             theme: 'bootstrap-5',
             placeholder: 'Select Batch',
             allowClear: true,
-            width: '100%',
-            dropdownParent: $batchSelect.closest('.item-row')
+            width: '100%'
         });
 
         // Display first batch info

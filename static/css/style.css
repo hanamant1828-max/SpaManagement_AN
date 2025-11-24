@@ -2137,61 +2137,86 @@ select option,
    DROPDOWN OVERFLOW FIXES FOR BILLING PAGE
    ========================================== */
 
-body.billing-page .card {
-    overflow: visible !important;
+/* Target specific sections that need dropdown overflow */
+body.billing-page .card > div {
+    overflow: visible;
 }
 
-body.billing-page .card-body {
-    overflow: visible !important;
-}
-
-body.billing-page .row {
-    overflow: visible !important;
-}
-
-body.billing-page .col,
-body.billing-page .col-md-6,
-body.billing-page .col-md-12,
-body.billing-page .col-lg-8,
-body.billing-page .col-lg-4,
-body.billing-page [class*="col-"] {
-    overflow: visible !important;
-}
-
+/* Form groups with selects need overflow visible */
 body.billing-page .form-group {
-    overflow: visible !important;
+    overflow: visible;
     position: relative;
-    z-index: 1;
 }
 
-body.billing-page .form-select,
-body.billing-page select.form-control {
-    position: relative;
-    z-index: auto;
-}
-
-body.billing-page .item-row {
-    overflow: visible !important;
-}
-
-.dropdown-elevated {
-    position: relative;
-    z-index: 1010;
-    overflow: visible !important;
-}
-
+/* Specific containers that have dropdowns */
 body.billing-page #servicesContainer,
 body.billing-page #productsContainer {
     overflow: visible !important;
 }
 
 body.billing-page #servicesContainer .row,
-body.billing-page #productsContainer .row {
+body.billing-page #productsContainer .row,
+body.billing-page .item-row {
     overflow: visible !important;
 }
 
-body.billing-page #servicesContainer select,
-body.billing-page #productsContainer select {
+/* Keep scrollable areas intact */
+body.billing-page #customerAppointments,
+body.billing-page #customerPackagesTable {
+    overflow-y: auto !important;
+}
+
+/* Select dropdowns */
+body.billing-page .form-select,
+body.billing-page select.form-control {
     position: relative;
-    z-index: auto;
+    z-index: 100;
+}
+
+/* ==========================================
+   SELECT2 DROPDOWN FIXES
+   ========================================== */
+
+/* Select2 dropdown container (appended to body) */
+.select2-container {
+    z-index: 9999 !important;
+}
+
+.select2-dropdown {
+    z-index: 9999 !important;
+    border: 2px solid var(--spa-primary) !important;
+    box-shadow: var(--shadow-lg) !important;
+    border-radius: var(--radius-base) !important;
+}
+
+.select2-container--open .select2-dropdown {
+    border-top: none !important;
+    border-top-left-radius: 0 !important;
+    border-top-right-radius: 0 !important;
+}
+
+.select2-container--bootstrap-5 .select2-selection {
+    border-radius: var(--radius-base) !important;
+    border: 2px solid var(--spa-gray-200) !important;
+}
+
+.select2-container--bootstrap-5.select2-container--focus .select2-selection,
+.select2-container--bootstrap-5.select2-container--open .select2-selection {
+    border-color: var(--spa-primary) !important;
+    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1) !important;
+}
+
+/* Select2 results container */
+.select2-results__option {
+    padding: 0.75rem 1rem !important;
+}
+
+.select2-results__option--highlighted {
+    background-color: var(--spa-primary) !important;
+    color: white !important;
+}
+
+/* Make sure Select2 works in modal and cards */
+body.billing-page .select2-container {
+    width: 100% !important;
 }
