@@ -47,7 +47,7 @@ except ImportError:
     # Fallback implementations if clients_queries doesn't exist
     def get_all_customers():
         try:
-            return Customer.query.filter_by(is_active=True).order_by(Customer.first_name).all()
+            return Customer.query.filter_by(is_active=True).order_by(Customer.id.desc()).all()
         except Exception as e:
             print(f"Error in get_all_customers: {e}")
             return []
@@ -65,7 +65,7 @@ except ImportError:
                     Customer.email.ilike(search_term) if Customer.email else False
                 ),
                 Customer.is_active == True
-            ).order_by(Customer.first_name).all()
+            ).order_by(Customer.id.desc()).all()
         except Exception as e:
             print(f"Error in search_customers: {e}")
             return []

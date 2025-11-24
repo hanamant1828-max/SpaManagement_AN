@@ -6,8 +6,8 @@ from app import db
 from models import Customer, Appointment, Communication
 
 def get_all_customers():
-    """Get all active customers"""
-    return Customer.query.filter_by(is_active=True).order_by(Customer.first_name).all()
+    """Get all active customers - sorted by latest added first (ID desc)"""
+    return Customer.query.filter_by(is_active=True).order_by(Customer.id.desc()).all()
 
 def get_customer_by_id(customer_id):
     """Get customer by ID"""
@@ -24,7 +24,7 @@ def get_customer_by_email(email):
     return None
 
 def search_customers(query):
-    """Search customers by name, phone, or email"""
+    """Search customers by name, phone, or email - sorted by latest added first (ID desc)"""
     return Customer.query.filter(
         Customer.is_active == True,
         or_(
@@ -33,7 +33,7 @@ def search_customers(query):
             Customer.phone.ilike(f'%{query}%'),
             Customer.email.ilike(f'%{query}%')
         )
-    ).order_by(Customer.first_name).all()
+    ).order_by(Customer.id.desc()).all()
 
 def create_customer(customer_data):
     """Create a new customer"""

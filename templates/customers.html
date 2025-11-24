@@ -2019,6 +2019,24 @@ function escapeHtml(unsafe) {
 // ============================================
 
 /**
+ * Sort customers by latest added (ID descending) then alphabetically
+ * @param {Array} customers - Array of customer objects
+ * @returns {Array} Sorted array
+ */
+function sortCustomers(customers) {
+    return customers.sort((a, b) => {
+        // First sort by ID descending (latest first)
+        if (b.id !== a.id) {
+            return b.id - a.id;
+        }
+        // Then sort alphabetically by full name
+        const nameA = (a.full_name || '').toLowerCase();
+        const nameB = (b.full_name || '').toLowerCase();
+        return nameA.localeCompare(nameB);
+    });
+}
+
+/**
  * View customer details
  * @param {number} customerId - Customer ID
  */
