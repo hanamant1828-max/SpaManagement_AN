@@ -1243,9 +1243,18 @@
     // Render staff table
     function renderStaffTable() {
         console.log("🎨 Rendering staff table with", allStaff.length, "staff members");
-        // Initialize filteredStaff with all staff data, sorted by ID descending (latest first)
-        filteredStaff = [...allStaff].sort((a, b) => b.id - a.id);
-        console.log("📋 Initializing table display with", filteredStaff.length, "staff members (sorted latest first)");
+        // Initialize filteredStaff with all staff data, sorted by ID descending (latest first) then alphabetically
+        filteredStaff = [...allStaff].sort((a, b) => {
+            // First sort by ID descending (latest first)
+            if (b.id !== a.id) {
+                return b.id - a.id;
+            }
+            // Then sort alphabetically by full name
+            const nameA = (a.full_name || '').toLowerCase();
+            const nameB = (b.full_name || '').toLowerCase();
+            return nameA.localeCompare(nameB);
+        });
+        console.log("📋 Initializing table display with", filteredStaff.length, "staff members (sorted latest first, then alphabetically)");
 
         // Force table visibility immediately
         const tableContainer = document.getElementById("staffTableContainer");
@@ -1349,12 +1358,21 @@
             console.log("After status filter (inactive):", filtered.length);
         }
 
-        // Sort by ID descending (latest added first)
-        filtered.sort((a, b) => b.id - a.id);
+        // Sort by ID descending (latest added first) then alphabetically by name
+        filtered.sort((a, b) => {
+            // First sort by ID descending (latest first)
+            if (b.id !== a.id) {
+                return b.id - a.id;
+            }
+            // Then sort alphabetically by full name
+            const nameA = (a.full_name || '').toLowerCase();
+            const nameB = (b.full_name || '').toLowerCase();
+            return nameA.localeCompare(nameB);
+        });
 
         // Update the global filteredStaff array
         filteredStaff = filtered;
-        console.log("Final filtered staff count:", filteredStaff.length, "(sorted latest first)");
+        console.log("Final filtered staff count:", filteredStaff.length, "(sorted latest first, then alphabetically)");
         renderFilteredStaff(); // Render the filtered list
     }
 
