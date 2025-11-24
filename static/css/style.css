@@ -975,6 +975,31 @@ select option,
     z-index: 10000 !important;
 }
 
+/* Fix Select2 dropdown positioning and height */
+.select2-container--bootstrap-5 .select2-dropdown {
+    max-height: 400px !important;
+    overflow-y: auto !important;
+}
+
+.select2-container--bootstrap-5 .select2-results {
+    max-height: 350px !important;
+    overflow-y: auto !important;
+}
+
+/* Ensure dropdowns don't get cut off */
+.select2-dropdown {
+    position: absolute !important;
+}
+
+.item-row {
+    position: relative;
+    overflow: visible !important;
+}
+
+.card-body {
+    overflow: visible !important;
+}
+
 /* Fix Select2 search box blinking issue */
 .select2-search--dropdown {
     display: block !important;

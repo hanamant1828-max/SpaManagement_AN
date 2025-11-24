@@ -1107,6 +1107,9 @@ function initializeSearchableDropdowns() {
         placeholder: '-- Select Customer --',
         allowClear: true,
         width: '100%',
+        dropdownParent: $('#client_id').parent(),
+        dropdownAutoWidth: false,
+        dropdownPosition: 'auto',
         matcher: function(params, data) {
             // If there are no search terms, return all data
             if ($.trim(params.term) === '') {
@@ -1150,7 +1153,8 @@ function initializeRowDropdowns(container) {
                 width: '100%',
                 dropdownAutoWidth: true,
                 minimumResultsForSearch: 5,
-                dropdownParent: $(this).closest('.form-group')
+                dropdownParent: $(this).closest('.item-row'),
+                dropdownPosition: 'auto'
             }).on('change', function() {
                 handleServiceChange(this);
             });
