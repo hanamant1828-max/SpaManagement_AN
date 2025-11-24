@@ -1055,16 +1055,11 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log('Pre-selected customer ID:', {{ selected_customer.id }});
     console.log('Pre-selected customer name:', '{{ selected_customer.full_name }}');
 
-    // Ensure customer dropdown shows the selected customer
-    const clientSelect = document.getElementById('client_id');
-    if (clientSelect) {
-        clientSelect.value = '{{ selected_customer.id }}';
-        console.log('Set client dropdown to:', clientSelect.value);
-        console.log('Selected option text:', clientSelect.options[clientSelect.selectedIndex]?.text);
-
-        // Trigger change event to load packages and appointments
-        clientSelect.dispatchEvent(new Event('change', { bubbles: true }));
-    }
+    // Use Select2's method to set value and trigger change
+    setTimeout(() => {
+        $('#client_id').val('{{ selected_customer.id }}').trigger('change');
+        console.log('Set customer dropdown using Select2 to:', '{{ selected_customer.id }}');
+    }, 100);
 
     // Also load packages and appointments directly
     loadCustomerPackages({{ selected_customer.id }});
@@ -1074,16 +1069,11 @@ document.addEventListener('DOMContentLoaded', function() {
     {% elif preselected_client_id %}
     console.log('Pre-selected customer ID from URL:', {{ preselected_client_id }});
 
-    // Set customer dropdown if preselected from URL parameter
-    const clientSelect = document.getElementById('client_id');
-    if (clientSelect) {
-        clientSelect.value = '{{ preselected_client_id }}';
-        console.log('Set client dropdown to:', clientSelect.value);
-        console.log('Selected option text:', clientSelect.options[clientSelect.selectedIndex]?.text);
-
-        // Trigger change event
-        clientSelect.dispatchEvent(new Event('change', { bubbles: true }));
-    }
+    // Use Select2's method to set value and trigger change
+    setTimeout(() => {
+        $('#client_id').val('{{ preselected_client_id }}').trigger('change');
+        console.log('Set customer dropdown using Select2 to:', '{{ preselected_client_id }}');
+    }, 100);
     {% endif %}
 
     {% if edit_mode and edit_invoice_data %}
@@ -1099,7 +1089,34 @@ document.addEventListener('DOMContentLoaded', function() {
 // SEARCHABLE DROPDOWNS (SELECT2)
 // ==========================================
 function initializeSearchableDropdowns() {
-    // All dropdowns use regular HTML select (no Select2)
+    // Initialize Select2 on customer dropdown for searchability
+    $('#client_id').select2({
+        theme: 'bootstrap-5',
+        placeholder: '-- Select Customer --',
+        allowClear: true,
+        width: '100%',
+        matcher: function(params, data) {
+            // If there are no search terms, return all data
+            if ($.trim(params.term) === '') {
+                return data;
+            }
+
+            // Search in text (customer name and phone)
+            if (data.text.toLowerCase().indexOf(params.term.toLowerCase()) > -1) {
+                return data;
+            }
+
+            // Search in phone number from data attribute
+            var $option = $(data.element);
+            var phone = $option.data('phone');
+            if (phone && phone.toString().indexOf(params.term) > -1) {
+                return data;
+            }
+
+            // Return null if the term should not be displayed
+            return null;
+        }
+    });
 
     // Service dropdowns - attach change handler
     $('select[name="service_ids[]"]').each(function() {
@@ -1108,7 +1125,7 @@ function initializeSearchableDropdowns() {
         });
     });
 
-    console.log('✅ Standard dropdowns initialized');
+    console.log('✅ Searchable dropdowns initialized (Customer with Select2)');
 }
 
 // ==========================================
@@ -1153,19 +1170,21 @@ async function loadGSTSettings() {
 }
 
 function initializeBillingSystem() {
-    // Customer selector
-    const clientSelect = document.getElementById('client_id');
-    clientSelect?.addEventListener('change', function() {
-        console.log('Customer selected:', this.value);
-        console.log('Selected option text:', this.options[this.selectedIndex]?.text);
+    // Customer selector - use jQuery for Select2 compatibility
+    $('#client_id').on('change', function() {
+        const selectedValue = $(this).val();
+        const selectedText = $(this).find('option:selected').text();
+        
+        console.log('Customer selected:', selectedValue);
+        console.log('Selected option text:', selectedText);
 
-        if (this.value) {
+        if (selectedValue) {
             // Clear existing service/product rows first
             clearBillingRows();
 
             // Load customer data
-            loadCustomerPackages(this.value); // Pass value directly
-            loadCustomerAppointments(this.value);
+            loadCustomerPackages(selectedValue); // Pass value directly
+            loadCustomerAppointments(selectedValue);
 
             // Force recalculation after customer change
             setTimeout(() => {
