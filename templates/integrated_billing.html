@@ -1983,6 +1983,23 @@ function resetCustomerPackages() {
         console.log('🗑️ removeRow called for button:', button);
         const row = button.closest('.item-row');
         if (row) {
+            // Check if this row has an appointment ID
+            const appointmentInput = row.querySelector('input[name="appointment_ids[]"]');
+            if (appointmentInput && appointmentInput.value) {
+                const appointmentId = parseInt(appointmentInput.value);
+                console.log('🗑️ Row has appointment ID:', appointmentId);
+                
+                // Remove from tracking set
+                addedAppointmentIds.delete(appointmentId);
+                console.log('✅ Removed appointment ID from tracking:', appointmentId);
+                
+                // Refresh appointments display to update button state
+                const clientId = document.getElementById('client_id')?.value;
+                if (clientId) {
+                    loadCustomerAppointments(clientId);
+                }
+            }
+            
             row.remove();
             console.log('✅ Row removed');
             updateCalculations(); // Recalculate totals after removing a row
