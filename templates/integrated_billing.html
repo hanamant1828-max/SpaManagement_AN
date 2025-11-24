@@ -69,7 +69,7 @@ body.billing-page .bg-gradient-warning {
     box-shadow: var(--shadow-md);
 }
 
-/* Fix dropdown z-index for billing form */
+/* Fix dropdown z-index for billing form - use auto to prevent conflicts */
 #servicesContainer select,
 #productsContainer select,
 .form-select {
@@ -79,22 +79,7 @@ body.billing-page .bg-gradient-warning {
 #servicesContainer .row,
 #productsContainer .row {
     position: relative;
-    z-index: 1;
 }
-
-/* Ensure service rows have decreasing z-index */
-#servicesContainer .service-row:nth-child(1) { z-index: 100; }
-#servicesContainer .service-row:nth-child(2) { z-index: 99; }
-#servicesContainer .service-row:nth-child(3) { z-index: 98; }
-#servicesContainer .service-row:nth-child(4) { z-index: 97; }
-#servicesContainer .service-row:nth-child(5) { z-index: 96; }
-
-/* Ensure product rows have decreasing z-index */
-#productsContainer .product-row:nth-child(1) { z-index: 95; }
-#productsContainer .product-row:nth-child(2) { z-index: 94; }
-#productsContainer .product-row:nth-child(3) { z-index: 93; }
-#productsContainer .product-row:nth-child(4) { z-index: 92; }
-#productsContainer .product-row:nth-child(5) { z-index: 91; }
 
 .card-header {
     display: flex;
@@ -1163,7 +1148,9 @@ function initializeRowDropdowns(container) {
                 placeholder: 'Select Service',
                 allowClear: true,
                 width: '100%',
-                dropdownParent: $(this).closest('.item-row')
+                dropdownAutoWidth: true,
+                minimumResultsForSearch: 5,
+                dropdownParent: $(this).closest('.form-group')
             }).on('change', function() {
                 handleServiceChange(this);
             });
@@ -1178,7 +1165,9 @@ function initializeRowDropdowns(container) {
                 placeholder: 'Select Staff',
                 allowClear: true,
                 width: '100%',
-                dropdownParent: $(this).closest('.item-row')
+                dropdownAutoWidth: true,
+                minimumResultsForSearch: 5,
+                dropdownParent: $(this).closest('.form-group')
             });
         }
     });
@@ -1191,7 +1180,9 @@ function initializeRowDropdowns(container) {
                 placeholder: 'Select Staff',
                 allowClear: true,
                 width: '100%',
-                dropdownParent: $(this).closest('.item-row')
+                dropdownAutoWidth: true,
+                minimumResultsForSearch: 5,
+                dropdownParent: $(this).closest('.form-group')
             });
         }
     });
@@ -1204,7 +1195,9 @@ function initializeRowDropdowns(container) {
                 placeholder: 'Select Product',
                 allowClear: true,
                 width: '100%',
-                dropdownParent: $(this).closest('.item-row')
+                dropdownAutoWidth: true,
+                minimumResultsForSearch: 5,
+                dropdownParent: $(this).closest('.form-group')
             });
         }
     });
@@ -1217,7 +1210,9 @@ function initializeRowDropdowns(container) {
                 placeholder: 'Select Batch',
                 allowClear: true,
                 width: '100%',
-                dropdownParent: $(this).closest('.item-row')
+                dropdownAutoWidth: true,
+                minimumResultsForSearch: 5,
+                dropdownParent: $(this).closest('.form-group')
             });
         }
     });

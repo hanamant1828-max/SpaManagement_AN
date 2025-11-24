@@ -975,6 +975,36 @@ select option,
     z-index: 10000 !important;
 }
 
+/* Fix Select2 search box blinking issue */
+.select2-search--dropdown {
+    display: block !important;
+    padding: 4px;
+}
+
+.select2-search__field {
+    width: 100% !important;
+    box-sizing: border-box !important;
+    padding: 4px 8px !important;
+    border: 1px solid #aaa !important;
+    border-radius: 4px !important;
+}
+
+/* Ensure Select2 dropdown stays in place */
+.select2-container--bootstrap-5 .select2-dropdown {
+    border-color: var(--bs-border-color);
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+    position: absolute !important;
+}
+
+/* Fix for row dropdowns */
+.item-row .select2-container {
+    z-index: auto !important;
+}
+
+.item-row .select2-container--open {
+    z-index: 1056 !important;
+}
+
 .form-control::placeholder {
     color: var(--professional-muted) !important;
     opacity: 1;
