@@ -2922,22 +2922,34 @@ function handleStaffFormSubmit(event) {
         method: form.method,
         body: formData
     })
-    .then(response => response.json())
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+    })
     .then(data => {
+        hideFormLoading(form);
+        
         if (data.success) {
-            showNotification('Staff member saved successfully!', 'success');
+            showNotification(data.message || 'Staff member saved successfully!', 'success');
+            
+            // Close modal if it exists
+            const modal = bootstrap.Modal.getInstance(form.closest('.modal'));
+            if (modal) {
+                modal.hide();
+            }
+            
             // Refresh the staff table or redirect to staff management page
-            // A simple reload is effective here to ensure all data is fresh
-            setTimeout(() => window.location.reload(), 1000);
+            setTimeout(() => window.location.reload(), 500);
         } else {
             showNotification(`Error saving staff: ${data.error}`, 'error');
-            hideFormLoading(form);
         }
     })
     .catch(error => {
         console.error('Error submitting staff form:', error);
-        showNotification('An unexpected error occurred while saving staff.', 'error');
         hideFormLoading(form);
+        showNotification('An unexpected error occurred while saving staff.', 'error');
     });
 }
 

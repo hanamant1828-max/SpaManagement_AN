@@ -259,7 +259,7 @@ def edit_comprehensive_staff(staff_id):
     departments = Department.query.filter_by(is_active=True).all()
     services = Service.query.filter_by(is_active=True).all()
 
-    # For editing, ensure 'staff' role is always an option, but allow others if not 'staff'
+    # For editing, ensure 'staff' is the only role option, but allow others if not 'staff'
     role_choices = []
     staff_role_found = False
     for r in roles:
@@ -321,7 +321,7 @@ def edit_comprehensive_staff(staff_id):
             # If the selected role is 'staff', ensure role_id is None
             selected_role_id = form.role_id.data
             selected_role = Role.query.get(selected_role_id) if selected_role_id and selected_role_id != 0 else None
-            
+
             if selected_role and selected_role.name == 'staff':
                 staff_member.role_id = None
                 staff_member.role = 'staff' # Ensure the role string is also 'staff'
@@ -329,7 +329,7 @@ def edit_comprehensive_staff(staff_id):
                 staff_member.role_id = selected_role_id if selected_role_id != 0 else None
                 if selected_role:
                     staff_member.role = selected_role.name # Update role string based on selected ID
-            
+
             staff_member.department_id = form.department_id.data if form.department_id.data != 0 else None
             staff_member.is_active = form.is_active.data
 
@@ -925,7 +925,7 @@ def api_get_staff(staff_id):
         staff = User.query.get(staff_id)
         if not staff:
             return jsonify({'error': 'Staff member not found'}), 404
-        
+
         # Ensure we only return staff with the 'staff' role
         if staff.role != 'staff':
             return jsonify({'error': 'Staff member not found or does not have the staff role'}), 404
@@ -1128,145 +1128,101 @@ def api_create_staff():
         return jsonify({'error': error_message}), 500
 
 @app.route('/api/staff/<int:staff_id>', methods=['PUT'])
-def api_update_staff(staff_id):
+@login_required
+def update_staff_api(staff_id):
     """API endpoint to update staff member"""
-    if not current_user.can_access('staff'):
-        return jsonify({'error': 'Access denied'}), 403
-
     try:
-        staff = get_staff_by_id(staff_id)
+        staff = User.query.get(staff_id)
         if not staff:
-            return jsonify({'error': 'Staff member not found'}), 404
-        
-        # Prevent modification of roles if the staff member's role is 'staff'
-        if staff.role == 'staff':
-            # Allow modification of other fields but not role/role_id
-            pass
+            return jsonify({'success': False, 'error': 'Staff member not found'}), 404
+
+        # Get form data
+        data = request.form.to_dict()
+
+        # Update basic info
+        staff.username = data.get('username', staff.username)
+        staff.first_name = data.get('first_name', staff.first_name)
+        staff.last_name = data.get('last_name', staff.last_name)
+        staff.email = data.get('email', staff.email)
+        staff.phone = data.get('phone', staff.phone)
+
+        # Update password if provided
+        password = data.get('password', '').strip()
+        if password:
+            staff.set_password(password)
+
+        # Update role
+        staff.role = data.get('role', staff.role)
+        role_id = data.get('role_id')
+        if role_id and role_id != 'null' and role_id != '':
+            try:
+                staff.role_id = int(role_id)
+            except (ValueError, TypeError):
+                pass
+
+        # Update department
+        department_id = data.get('department_id')
+        if department_id and department_id != 'null' and department_id != '':
+            try:
+                staff.department_id = int(department_id)
+            except (ValueError, TypeError):
+                staff.department_id = None
         else:
-            # If the staff member is not 'staff', you might want to restrict updates or handle differently.
-            # For now, we'll proceed but be mindful of role changes.
-            pass
+            staff.department_id = None
 
-        data = request.get_json()
-        if not data:
-            return jsonify({'error': 'No data provided'}), 400
+        # Update personal details
+        staff.gender = data.get('gender', staff.gender)
 
-        # Validate required fields
-        if not data.get('first_name') or not data.get('last_name'):
-            return jsonify({'error': 'First name and last name are required'}), 400
+        # Handle dates
+        dob = data.get('date_of_birth')
+        if dob:
+            try:
+                staff.date_of_birth = datetime.strptime(dob, '%Y-%m-%d').date()
+            except (ValueError, TypeError):
+                pass
 
-        # Defensive updates with proper type handling
-        try:
-            # Basic string fields
-            if 'first_name' in data and data['first_name']:
-                staff.first_name = str(data['first_name']).strip()
-            if 'last_name' in data and data['last_name']:
-                staff.last_name = str(data['last_name']).strip()
-            if 'email' in data:
-                staff.email = str(data['email']).strip() if data.get('email') and str(data['email']).strip() else '' # Use empty string, not null
-            if 'phone' in data:
-                staff.phone = str(data['phone']).strip() if data['phone'] else None
-            if 'designation' in data:
-                staff.designation = str(data['designation']).strip() if data['designation'] else None
-            if 'notes_bio' in data:
-                staff.notes_bio = str(data['notes_bio']).strip() if data['notes_bio'] else None
-            if 'gender' in data:
-                staff.gender = str(data['gender']).strip() if data['gender'] else None
+        doj = data.get('date_of_joining')
+        if doj:
+            try:
+                staff.date_of_joining = datetime.strptime(doj, '%Y-%m-%d').date()
+            except (ValueError, TypeError):
+                pass
 
-            # Numeric fields with safe conversion
-            if 'commission_rate' in data:
-                try:
-                    staff.commission_rate = float(data['commission_rate']) if data['commission_rate'] else 0.0
-                except (ValueError, TypeError):
-                    staff.commission_rate = 0.0
+        # Update shift times
+        shift_start = data.get('shift_start_time')
+        if shift_start:
+            try:
+                staff.shift_start_time = datetime.strptime(shift_start, '%H:%M').time()
+            except (ValueError, TypeError):
+                pass
 
-            if 'hourly_rate' in data:
-                try:
-                    staff.hourly_rate = float(data['hourly_rate']) if data['hourly_rate'] else 0.0
-                except (ValueError, TypeError):
-                    staff.hourly_rate = 0.0
+        shift_end = data.get('shift_end_time')
+        if shift_end:
+            try:
+                staff.shift_end_time = datetime.strptime(shift_end, '%H:%M').time()
+            except (ValueError, TypeError):
+                pass
 
-            # Role and department IDs with safe conversion
-            # If the current staff's role is 'staff', we prevent changing role_id or role
-            if staff.role == 'staff':
-                # Do not allow changing role_id or role for 'staff' members
-                pass 
-            else:
-                if 'role_id' in data and data['role_id']:
-                    try:
-                        role_id = int(data['role_id'])
-                        staff.role_id = role_id if role_id > 0 else None
-                        # Update role string based on role_id
-                        if staff.role_id:
-                            role = Role.query.get(staff.role_id)
-                            if role:
-                                staff.role = role.name
-                        else:
-                            staff.role = None # If role_id is 0 or invalid, set role to None
-                    except (ValueError, TypeError):
-                        pass  # Keep existing value
+        # Update additional info
+        staff.notes_bio = data.get('notes_bio', staff.notes_bio)
+        staff.enable_face_checkin = data.get('enable_face_checkin') == 'true'
+        staff.is_active = data.get('is_active') == 'true'
 
-            if 'department_id' in data and data['department_id']:
-                try:
-                    dept_id = int(data['department_id'])
-                    staff.department_id = dept_id if dept_id > 0 else None
-                except (ValueError, TypeError):
-                    pass  # Keep existing value
+        # Commit changes
+        db.session.commit()
 
-            # Date fields with safe parsing
-            if 'date_of_birth' in data and data['date_of_birth']:
-                try:
-                    staff.date_of_birth = datetime.strptime(str(data['date_of_birth']), '%Y-%m-%d').date()
-                except (ValueError, TypeError):
-                    pass  # Keep existing value
-
-            if 'date_of_joining' in data and data['date_of_joining']:
-                try:
-                    staff.date_of_joining = datetime.strptime(str(data['date_of_joining']), '%Y-%m-%d').date()
-                except (ValueError, TypeError):
-                    pass  # Keep existing value
-
-            # Time fields with safe parsing
-            if 'shift_start_time' in data and data['shift_start_time']:
-                try:
-                    staff.shift_start_time = datetime.strptime(str(data['shift_start_time']), '%H:%M').time()
-                except (ValueError, TypeError):
-                    pass  # Keep existing value
-
-            if 'shift_end_time' in data and data['shift_end_time']:
-                try:
-                    staff.shift_end_time = datetime.strptime(str(data['shift_end_time']), '%H:%M').time()
-                except (ValueError, TypeError):
-                    pass  # Keep existing value
-
-            # Boolean and other fields
-            if 'enable_face_checkin' in data:
-                staff.enable_face_checkin = bool(data['enable_face_checkin'])
-
-            if 'working_days' in data:
-                staff.working_days = str(data['working_days']) if data['working_days'] else None
-
-            # Password update with proper hashing
-            if data.get('password') and str(data['password']).strip():
-                staff.password_hash = generate_password_hash(str(data['password']).strip())
-
-            # Commit the changes
-            db.session.commit()
-
-            return jsonify({
-                'success': True,
-                'message': f'Staff member {staff.first_name} {staff.last_name} updated successfully'
-            })
-
-        except Exception as update_error:
-            db.session.rollback()
-            print(f"Error updating staff fields: {update_error}")
-            return jsonify({'error': f'Failed to update staff data: {str(update_error)}'}), 500
+        # Return success response with proper status code
+        return jsonify({
+            'success': True,
+            'message': f'Staff member {staff.first_name} {staff.last_name} updated successfully'
+        }), 200
 
     except Exception as e:
         db.session.rollback()
-        print(f"Error in api_update_staff: {e}")
-        return jsonify({'error': f'Server error: {str(e)}'}), 500
+        print(f"Error updating staff: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/api/staff/<int:staff_id>', methods=['DELETE'])
 def api_delete_staff(staff_id):
@@ -1278,7 +1234,7 @@ def api_delete_staff(staff_id):
         staff = get_staff_by_id(staff_id)
         if not staff:
             return jsonify({'error': 'Staff member not found'}), 404
-        
+
         # Ensure we only delete staff with the 'staff' role
         if staff.role != 'staff':
             return jsonify({'error': 'Cannot delete staff member with a role other than "staff"'}), 403
