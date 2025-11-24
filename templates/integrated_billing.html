@@ -1119,10 +1119,19 @@ function initializeSearchableDropdowns() {
         }
     });
 
+    // Initialize Select2 on payment method dropdown
+    $('#paymentMethod').select2({
+        theme: 'bootstrap-5',
+        placeholder: 'Select Payment Method',
+        allowClear: false,
+        width: '100%',
+        minimumResultsForSearch: Infinity
+    });
+
     // Initialize Select2 on all existing service, staff, product, and batch dropdowns
     initializeRowDropdowns();
 
-    console.log('✅ Searchable dropdowns initialized (Customer, Service, Staff, Product, Batch)');
+    console.log('✅ Searchable dropdowns initialized (Customer, Service, Staff, Product, Batch, Payment Method)');
 }
 
 // Helper function to initialize Select2 on row dropdowns (can be called for new rows)
