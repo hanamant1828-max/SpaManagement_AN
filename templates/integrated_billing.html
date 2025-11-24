@@ -1143,8 +1143,21 @@ function initializeRowDropdowns(container) {
         }
     });
 
-    // Staff dropdowns
+    // Staff dropdowns (for service rows)
     scope.find('select[name="staff_ids[]"]').each(function() {
+        if (!$(this).hasClass('select2-hidden-accessible')) {
+            $(this).select2({
+                theme: 'bootstrap-5',
+                placeholder: 'Select Staff',
+                allowClear: true,
+                width: '100%',
+                dropdownParent: $(this).closest('.item-row')
+            });
+        }
+    });
+
+    // Staff dropdowns (for product rows)
+    scope.find('select[name="product_staff_ids[]"]').each(function() {
         if (!$(this).hasClass('select2-hidden-accessible')) {
             $(this).select2({
                 theme: 'bootstrap-5',
