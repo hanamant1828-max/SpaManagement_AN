@@ -1244,16 +1244,16 @@
         // Initialize filteredStaff with all staff data
         filteredStaff = [...allStaff];
         console.log("📋 Initializing table display with", filteredStaff.length, "staff members");
-        
+
         // Force table visibility immediately
         const tableContainer = document.getElementById("staffTableContainer");
         const loadingState = document.getElementById("loadingState");
         const emptyState = document.getElementById("emptyState");
-        
+
         if (loadingState) loadingState.style.display = "none";
         if (emptyState) emptyState.style.display = "none";
         if (tableContainer) tableContainer.style.display = "block";
-        
+
         // Immediately render the filtered staff (which is all staff initially)
         renderFilteredStaff();
     }
@@ -1565,7 +1565,7 @@
     function togglePasswordVisibility() {
         const passwordField = document.getElementById("password");
         const passwordIcon = document.getElementById("passwordIcon");
-        
+
         if (passwordField && passwordIcon) {
             if (passwordField.type === "password") {
                 passwordField.type = "text";
@@ -1710,7 +1710,7 @@
 
         // Optional fields that may not exist in the form
         const optionalFields = ["shiftStart", "shiftEnd", "workingDays"];
-        
+
         // Safely populate text fields
         Object.entries(fields).forEach(([fieldId, value]) => {
             const element = document.getElementById(fieldId);
@@ -1721,6 +1721,14 @@
                 console.warn(`Field ${fieldId} not found in form`);
             }
         });
+
+        // Set password field (show default password if available)
+        const passwordField = document.getElementById("password");
+        if (passwordField && staff.default_password) {
+            passwordField.value = staff.default_password;
+            passwordField.placeholder = "Current password shown - change if needed";
+        }
+
 
         // Handle department dropdown - set the value explicitly
         const deptSelect = document.getElementById("departmentId");
@@ -2042,14 +2050,14 @@
         const passwordDisplay = document.getElementById('passwordDisplay');
         const passwordIcon = document.getElementById('passwordIcon');
         const actualPassword = document.getElementById('actualPassword');
-        
+
         if (!passwordDisplay || !passwordIcon || !actualPassword) {
             console.error('Password elements not found');
             return;
         }
-        
+
         const isCurrentlyHidden = passwordDisplay.textContent === '••••••••';
-        
+
         if (isCurrentlyHidden) {
             passwordDisplay.textContent = actualPassword.value;
             passwordIcon.classList.remove('bi-eye');
