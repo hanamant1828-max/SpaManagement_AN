@@ -744,8 +744,7 @@
     // Check if the current close attempt is from an authorized source
     function isAuthorizedClose() {
         return authorizedCloseSource === 'btnStaffClose' ||
-               authorizedCloseSource === 'btnStaffSave' ||
-               authorizedCloseSource === 'btnStaffUpdate';
+               authorizedCloseSource === 'btnStaffSave';
     }
 
     // Setup event listeners for authorized close buttons
@@ -804,21 +803,26 @@
     async function handleFormSubmission(e) {
         e.preventDefault();
 
-        const submitBtn = document.getElementById("btnStaffSave");
         const formMode = document.getElementById("formMode");
-
-        if (!submitBtn || !formMode) {
-            console.error("Required form elements not found");
+        
+        if (!formMode) {
+            console.error("Form mode element not found");
             showNotification("Form elements not found. Please refresh the page.", "error");
-            // Reset button if it exists
-            if (submitBtn) {
-                submitBtn.disabled = false;
-            }
+            return;
+        }
+
+        const mode = formMode.value;
+        
+        // Get the correct submit button based on mode
+        const submitBtn = document.getElementById("btnStaffSave");
+        
+        if (!submitBtn) {
+            console.error("Submit button not found");
+            showNotification("Form elements not found. Please refresh the page.", "error");
             return;
         }
 
         const originalText = submitBtn.innerHTML;
-        const mode = formMode.value;
 
         try {
             // Show loading state
@@ -840,8 +844,6 @@
 
             let response;
             if (mode === "edit") {
-                // Update button ID for edit mode
-                submitBtn.id = "btnStaffUpdate";
                 response = await updateStaff(currentStaffId, formData);
             } else {
                 response = await createStaff(formData);
@@ -854,8 +856,8 @@
                     : `✓ New staff member added successfully! Welcome to the team.`;
                 showNotification(successMsg, "success");
 
-                // Authorize close from Save/Update button and close modal
-                authorizedCloseSource = mode === "edit" ? 'btnStaffUpdate' : 'btnStaffSave';
+                // Authorize close from Save button and close modal
+                authorizedCloseSource = 'btnStaffSave';
                 hasUnsavedChanges = false; // Clear unsaved changes flag
 
                 // Close modal safely
