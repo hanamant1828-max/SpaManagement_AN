@@ -233,30 +233,32 @@ class StaffManagementTester:
             return False
             
     def test_roles_and_departments(self):
-        """Test roles and departments endpoints"""
+        """Test roles and departments are included in staff API response"""
         print("\n" + "="*70)
-        print("TESTING ROLES AND DEPARTMENTS")
+        print("TESTING ROLES AND DEPARTMENTS IN STAFF API")
         print("="*70)
         
-        # Test roles
-        response = self.session.get(f"{BASE_URL}/api/staff/roles")
+        # Roles and departments come from /api/staff endpoint, not separate endpoints
+        response = self.session.get(f"{BASE_URL}/api/staff")
         try:
             data = response.json()
-            roles_count = len(data.get('roles', []))
-            passed = response.status_code == 200
-            self.log_test("Get roles", passed, f"Retrieved {roles_count} roles")
-        except:
-            self.log_test("Get roles", False, "API error")
-            
-        # Test departments
-        response = self.session.get(f"{BASE_URL}/api/staff/departments")
-        try:
-            data = response.json()
-            dept_count = len(data.get('departments', []))
-            passed = response.status_code == 200
-            self.log_test("Get departments", passed, f"Retrieved {dept_count} departments")
-        except:
-            self.log_test("Get departments", False, "API error")
+            if data.get('success'):
+                roles_count = len(data.get('roles', []))
+                dept_count = len(data.get('departments', []))
+                
+                # Test that roles are included
+                passed_roles = roles_count > 0
+                self.log_test("Roles included in staff API", passed_roles, f"Retrieved {roles_count} roles")
+                
+                # Test that departments are included
+                passed_depts = dept_count > 0
+                self.log_test("Departments included in staff API", passed_depts, f"Retrieved {dept_count} departments")
+            else:
+                self.log_test("Roles included in staff API", False, "API returned success=false")
+                self.log_test("Departments included in staff API", False, "API returned success=false")
+        except Exception as e:
+            self.log_test("Roles included in staff API", False, f"API error: {str(e)}")
+            self.log_test("Departments included in staff API", False, f"API error: {str(e)}")
             
     def print_summary(self):
         """Print test summary"""
