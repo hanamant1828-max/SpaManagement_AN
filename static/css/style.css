@@ -942,6 +942,39 @@ body.sidebar-minimized {
     background-color: var(--professional-bg) !important;
 }
 
+/* Fix dropdown menu z-index to appear above other elements */
+.form-select-wrapper {
+    position: relative;
+    z-index: 10;
+}
+
+.form-select,
+select.form-control,
+select.form-select {
+    position: relative;
+}
+
+.form-select:focus,
+select.form-control:focus,
+select.form-select:focus {
+    z-index: 1000;
+}
+
+/* Ensure dropdown menus appear on top */
+select option,
+.select2-container,
+.select2-dropdown {
+    z-index: 9999 !important;
+}
+
+.select2-container--open {
+    z-index: 9999 !important;
+}
+
+.select2-results {
+    z-index: 10000 !important;
+}
+
 .form-control::placeholder {
     color: var(--professional-muted) !important;
     opacity: 1;
