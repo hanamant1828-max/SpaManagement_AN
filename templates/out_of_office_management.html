@@ -194,8 +194,35 @@
 
 {% block scripts %}
 <script>
+// Toggle entry form visibility
+function toggleEntryForm() {
+    const formCard = document.getElementById('entryFormCard');
+    const addBtn = document.getElementById('addEntryBtn');
+    
+    if (formCard && addBtn) {
+        const isHidden = formCard.style.display === 'none' || !formCard.style.display;
+        
+        if (isHidden) {
+            formCard.style.display = 'block';
+            addBtn.style.display = 'none';
+            // Scroll to form
+            formCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        } else {
+            formCard.style.display = 'none';
+            addBtn.style.display = 'block';
+            resetForm();
+        }
+    }
+}
+
 $(document).ready(function() {
     let editingId = null;
+
+    // Initialize form as hidden
+    const formCard = document.getElementById('entryFormCard');
+    if (formCard) {
+        formCard.style.display = 'none';
+    }
 
     loadEntries();
 
