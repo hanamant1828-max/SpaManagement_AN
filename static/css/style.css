@@ -2132,3 +2132,66 @@ select option,
     background-color: rgba(0, 123, 255, 0.1);
     color: var(--primary-color);
 }
+
+/* ==========================================
+   DROPDOWN OVERFLOW FIXES FOR BILLING PAGE
+   ========================================== */
+
+body.billing-page .card {
+    overflow: visible !important;
+}
+
+body.billing-page .card-body {
+    overflow: visible !important;
+}
+
+body.billing-page .row {
+    overflow: visible !important;
+}
+
+body.billing-page .col,
+body.billing-page .col-md-6,
+body.billing-page .col-md-12,
+body.billing-page .col-lg-8,
+body.billing-page .col-lg-4,
+body.billing-page [class*="col-"] {
+    overflow: visible !important;
+}
+
+body.billing-page .form-group {
+    overflow: visible !important;
+    position: relative;
+    z-index: 1;
+}
+
+body.billing-page .form-select,
+body.billing-page select.form-control {
+    position: relative;
+    z-index: auto;
+}
+
+body.billing-page .item-row {
+    overflow: visible !important;
+}
+
+.dropdown-elevated {
+    position: relative;
+    z-index: 1010;
+    overflow: visible !important;
+}
+
+body.billing-page #servicesContainer,
+body.billing-page #productsContainer {
+    overflow: visible !important;
+}
+
+body.billing-page #servicesContainer .row,
+body.billing-page #productsContainer .row {
+    overflow: visible !important;
+}
+
+body.billing-page #servicesContainer select,
+body.billing-page #productsContainer select {
+    position: relative;
+    z-index: auto;
+}
