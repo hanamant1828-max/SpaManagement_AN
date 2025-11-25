@@ -716,17 +716,14 @@ textarea.form-control {
     <div class="page-header" style="padding: 0.5rem 1rem; margin-bottom: 0.75rem; margin-top: 0;">
         <div class="d-flex justify-content-between align-items-center">
             <div>
-                <h1 class="page-title" style="font-size: 1.35rem; margin-bottom: 0.1rem; margin-top: 0;">
+                <h1 class="page-title" style="font-size: 1.35rem; margin-bottom: 0; margin-top: 0;">
                     <i class="fas fa-file-invoice-dollar"></i>
                     {% if edit_mode and edit_invoice_data %}
                     Edit Invoice {{ edit_invoice_data.invoice_number }}
                     {% else %}
-                    Create Professional Invoice
+                    Billing
                     {% endif %}
                 </h1>
-                <p class="page-subtitle" style="margin-bottom: 0; font-size: 0.75rem;">
-                    Comprehensive billing with package benefits, inventory tracking, and staff management
-                </p>
             </div>
         </div>
     </div>
