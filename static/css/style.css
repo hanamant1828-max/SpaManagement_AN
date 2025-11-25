@@ -8,28 +8,28 @@
     --spa-primary-light: #6ba2f6;
     --spa-primary-dark: #2563eb;
     --spa-primary-darker: #1e40af;
-    
+
     --spa-secondary: #8e9aaf;
     --spa-secondary-light: #a8b6c7;
     --spa-secondary-dark: #6b788e;
-    
+
     /* ===== Semantic Status Colors ===== */
     --spa-success: #34a853;
     --spa-success-light: #4ade80;
     --spa-success-dark: #16a34a;
-    
+
     --spa-info: #4fc3f7;
     --spa-info-light: #7dd3fc;
     --spa-info-dark: #0284c7;
-    
+
     --spa-warning: #fbbc04;
     --spa-warning-light: #fcd34d;
     --spa-warning-dark: #f59e0b;
-    
+
     --spa-danger: #ea4335;
     --spa-danger-light: #f87171;
     --spa-danger-dark: #dc2626;
-    
+
     /* ===== Neutral Colors ===== */
     --spa-white: #ffffff;
     --spa-light: #f8f9fa;
@@ -44,26 +44,26 @@
     --spa-gray-800: #1e293b;
     --spa-gray-900: #0f172a;
     --spa-dark: #2c3e50;
-    
+
     /* ===== Background Colors ===== */
     --bg-primary: #ffffff;
     --bg-secondary: #f8fafc;
     --bg-tertiary: #f1f5f9;
     --bg-hover: #f5f7fa;
     --bg-active: #e8eef5;
-    
+
     /* ===== Border Colors ===== */
     --border-light: #e2e8f0;
     --border-medium: #cbd5e1;
     --border-dark: #94a3b8;
-    
+
     /* ===== Text Colors ===== */
     --text-primary: #1e293b;
     --text-secondary: #64748b;
     --text-tertiary: #94a3b8;
     --text-muted: #70757a;
     --text-inverse: #ffffff;
-    
+
     /* ===== Shadow System ===== */
     --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
     --shadow-base: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
@@ -71,7 +71,7 @@
     --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
     --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
     --shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-    
+
     /* ===== Border Radius System ===== */
     --radius-sm: 0.375rem;
     --radius-base: 0.5rem;
@@ -80,7 +80,7 @@
     --radius-xl: 1.5rem;
     --radius-2xl: 2rem;
     --radius-full: 9999px;
-    
+
     /* ===== Spacing System ===== */
     --space-1: 0.25rem;
     --space-2: 0.5rem;
@@ -92,7 +92,7 @@
     --space-10: 2.5rem;
     --space-12: 3rem;
     --space-16: 4rem;
-    
+
     /* ===== Typography System ===== */
     --font-family-base: 'Google Sans', 'Segoe UI', Roboto, -apple-system, BlinkMacSystemFont, sans-serif;
     --font-size-xs: 0.75rem;
@@ -103,19 +103,19 @@
     --font-size-2xl: 1.5rem;
     --font-size-3xl: 1.875rem;
     --font-size-4xl: 2.25rem;
-    
+
     --font-weight-normal: 400;
     --font-weight-medium: 500;
     --font-weight-semibold: 600;
     --font-weight-bold: 700;
-    
+
     /* ===== Layout & Grid ===== */
     --container-max-width: 1400px;
     --sidebar-width: 280px;
     --sidebar-width-mini: 80px;
     --navbar-height: 56px;
     --bs-gutter-x: 30px;
-    
+
     /* ===== Component-Specific Colors ===== */
     --table-border-color: #e8eaed;
     --table-hover-bg: #f8f9fa;
@@ -125,7 +125,7 @@
     --professional-border: #dadce0;
     --professional-text: #3c4043;
     --professional-muted: #70757a;
-    
+
     /* ===== Status-Specific Colors ===== */
     --status-accepted: #1e8e3e;
     --status-pending: #f29900;
@@ -134,7 +134,7 @@
     --status-cancelled: #ea4335;
     --status-active: #4285f4;
     --status-inactive: #94a3b8;
-    
+
     /* ===== Transition & Animation ===== */
     --transition-base: all 0.2s ease;
     --transition-slow: all 0.3s ease;
@@ -185,6 +185,14 @@ body.services-page {
     margin-bottom: var(--space-8);
     box-shadow: var(--shadow-sm);
     border: 1px solid var(--border-light);
+}
+
+body.billing-page .page-header {
+    background: var(--bg-primary);
+    border-bottom: 1px solid var(--border-light);
+    padding: 1.5rem 2rem;
+    margin-bottom: 1.5rem;
+    box-shadow: var(--shadow-sm);
 }
 
 .page-header-title {
@@ -541,7 +549,7 @@ button[type="submit"],
     padding-right: 15px !important;
 }
 
-/* ========== SIDEBAR NAVIGATION ========== */
+/* ========== SIDEBARNAVIGATION ========== */
 .offcanvas-lg {
     width: 280px !important;
     transition: all 0.3s ease;
