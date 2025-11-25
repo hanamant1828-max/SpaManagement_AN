@@ -2398,14 +2398,14 @@ def generate_invoice_preview():
         # Calculate taxable amount
         taxable_amount = subtotal - package_deductions - discount_amount
 
-        # Calculate GST
+        # Calculate GST - FIX: gst_config is a dictionary, not an object
         if is_interstate:
-            igst_amount = taxable_amount * (gst_config.igst_rate / 100)
+            igst_amount = taxable_amount * (gst_config['igst_rate'] / 100)
             cgst_amount = 0
             sgst_amount = 0
         else:
-            cgst_amount = taxable_amount * (gst_config.cgst_rate / 100)
-            sgst_amount = taxable_amount * (gst_config.sgst_rate / 100)
+            cgst_amount = taxable_amount * (gst_config['cgst_rate'] / 100)
+            sgst_amount = taxable_amount * (gst_config['sgst_rate'] / 100)
             igst_amount = 0
 
         total_tax = cgst_amount + sgst_amount + igst_amount
@@ -2458,8 +2458,8 @@ def generate_invoice_preview():
             <div class="professional-invoice">
                 <div class="invoice-header text-center mb-4">
                     <h2>TAX INVOICE - PREVIEW</h2>
-                    <h4>{gst_config.business_name or 'Your Spa & Wellness Center'}</h4>
-                    <p>GSTIN: {gst_config.gstin_number or 'N/A'} | Contact: {gst_config.business_phone or 'N/A'}</p>
+                    <h4>{gst_config.get('business_name') or 'Your Spa & Wellness Center'}</h4>
+                    <p>GSTIN: {gst_config.get('gstin_number') or 'N/A'} | Contact: {gst_config.get('business_phone') or 'N/A'}</p>
                 </div>
                 <div class="row mb-3">
                     <div class="col-6">
@@ -2496,9 +2496,9 @@ def generate_invoice_preview():
                             <td colspan="3" class="text-end">Taxable Amount:</td>
                             <td>₹{taxable_amount:.2f}</td>
                         </tr>
-                        {f'<tr><td colspan="3" class="text-end">CGST ({gst_config.cgst_rate}%):</td><td>₹{cgst_amount:.2f}</td></tr>' if not is_interstate else ''}
-                        {f'<tr><td colspan="3" class="text-end">SGST ({gst_config.sgst_rate}%):</td><td>₹{sgst_amount:.2f}</td></tr>' if not is_interstate else ''}
-                        {f'<tr><td colspan="3" class="text-end">IGST ({gst_config.igst_rate}%):</td><td>₹{igst_amount:.2f}</td></tr>' if is_interstate else ''}
+                        {f'<tr><td colspan="3" class="text-end">CGST ({gst_config["cgst_rate"]}%):</td><td>₹{cgst_amount:.2f}</td></tr>' if not is_interstate else ''}
+                        {f'<tr><td colspan="3" class="text-end">SGST ({gst_config["sgst_rate"]}%):</td><td>₹{sgst_amount:.2f}</td></tr>' if not is_interstate else ''}
+                        {f'<tr><td colspan="3" class="text-end">IGST ({gst_config["igst_rate"]}%):</td><td>₹{igst_amount:.2f}</td></tr>' if is_interstate else ''}
                         {f'<tr><td colspan="3" class="text-end">Additional Charges:</td><td>₹{additional_charges:.2f}</td></tr>' if additional_charges > 0 else ''}
                         {f'<tr><td colspan="3" class="text-end">Tips:</td><td>₹{tips:.2f}</td></tr>' if tips > 0 else ''}
                         <tr class="summary-row table-success">
