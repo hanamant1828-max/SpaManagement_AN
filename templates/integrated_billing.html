@@ -3631,25 +3631,33 @@ function resetCustomerPackages() {
     previewBtn.disabled = true;
     previewBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Generating Preview...';
 
-    // Collect customer info
-    const customerSelect = document.getElementById('customer_id');
+    // Collect customer info - FIX: Use correct element ID 'client_id'
+    const customerSelect = document.getElementById('client_id');
+    if (!customerSelect) {
+        console.error('❌ Customer select element not found');
+        alert('Error: Customer selection field not found');
+        previewBtn.disabled = false;
+        previewBtn.innerHTML = originalText;
+        return;
+    }
+    
     const selectedCustomerOption = customerSelect.options[customerSelect.selectedIndex];
     const customerName = selectedCustomerOption ? selectedCustomerOption.text.split(' - ')[0] : 'Customer';
-    const customerPhone = document.getElementById('customer_phone')?.value || 'N/A';
+    const customerPhone = selectedCustomerOption?.getAttribute('data-phone') || 'N/A';
     const isInterstate = document.getElementById('is_interstate')?.checked || false;
 
-    // Collect services
+    // Collect services - FIX: Use correct field names
     const services = [];
     document.querySelectorAll('.service-row').forEach((row, index) => {
-        const serviceSelect = row.querySelector('select[name="services[]"]');
-        const qtyInput = row.querySelector('input[name="service_qty[]"]');
-        const staffSelect = row.querySelector('select[name="service_staff[]"]');
+        const serviceSelect = row.querySelector('select[name="service_ids[]"]');
+        const qtyInput = row.querySelector('input[name="service_quantities[]"]');
+        const staffSelect = row.querySelector('select[name="staff_ids[]"]');
         
         if (serviceSelect && serviceSelect.value) {
             const selectedOption = serviceSelect.options[serviceSelect.selectedIndex];
             const serviceName = selectedOption.text.split(' - ')[0];
             const price = parseFloat(selectedOption.dataset.price || 0);
-            const qty = parseInt(qtyInput?.value || 1);
+            const qty = parseFloat(qtyInput?.value || 1);
             
             services.push({
                 service_id: serviceSelect.value,
@@ -3663,19 +3671,19 @@ function resetCustomerPackages() {
         }
     });
 
-    // Collect products
+    // Collect products - FIX: Use correct field names
     const products = [];
     document.querySelectorAll('.product-row').forEach((row, index) => {
-        const productSelect = row.querySelector('select[name="products[]"]');
-        const qtyInput = row.querySelector('input[name="product_qty[]"]');
-        const batchSelect = row.querySelector('select[name="product_batches[]"]');
+        const productSelect = row.querySelector('select[name="product_ids[]"]');
+        const qtyInput = row.querySelector('input[name="product_quantities[]"]');
+        const priceInput = row.querySelector('input[name="product_prices[]"]');
+        const batchSelect = row.querySelector('select[name="batch_ids[]"]');
         
         if (productSelect && productSelect.value && batchSelect && batchSelect.value) {
             const selectedOption = productSelect.options[productSelect.selectedIndex];
             const productName = selectedOption.text;
-            const selectedBatch = batchSelect.options[batchSelect.selectedIndex];
-            const price = parseFloat(selectedBatch.dataset.price || 0);
-            const qty = parseInt(qtyInput?.value || 1);
+            const price = parseFloat(priceInput?.value || 0);
+            const qty = parseFloat(qtyInput?.value || 1);
             
             products.push({
                 product_id: productSelect.value,
