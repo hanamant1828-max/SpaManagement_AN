@@ -624,7 +624,7 @@ def appointment_to_billing(appointment_id):
         return redirect(url_for('dashboard'))
 
     try:
-        from models import Appointment, UnakiBooking, Customer
+        from models import UnakiBooking, Customer
 
         # First try to find in UnakiBooking table (primary system)
         unaki_booking = UnakiBooking.query.get(appointment_id)
@@ -708,6 +708,7 @@ def appointment_to_billing(appointment_id):
 
         else:
             # Fallback: try to find in regular Appointment table
+            from models import Appointment
             appointment = Appointment.query.get(appointment_id)
             if appointment and appointment.client_id:
                 customer_id = appointment.client_id
@@ -1125,6 +1126,7 @@ def create_professional_invoice():
         from modules.inventory.models import InventoryBatch, InventoryProduct
         from modules.inventory.queries import create_consumption_record
         import datetime
+        from app import IST # Import IST timezone from app
 
         # Parse form data
         client_id = request.form.get('client_id')
@@ -1311,7 +1313,7 @@ def create_professional_invoice():
         # Create professional invoice with proper transaction handling
         try:
             # Generate professional invoice number with retry logic to prevent duplicates
-            current_date = datetime.datetime.now()
+            current_date = datetime.now(IST)
             date_prefix = current_date.strftime('%Y%m%d')
 
             # Find the highest sequence number for today
@@ -1403,6 +1405,30 @@ def create_professional_invoice():
 
             db.session.add(invoice)
             db.session.flush()  # Get the invoice ID
+
+            # Create payment record if invoice is paid
+            if invoice.payment_status == 'paid':
+                payment_amount = float(request.form.get('payment_amount', invoice.total_amount))
+                payment_method = request.form.get('payment_method', 'cash').lower()
+
+                # Map payment method to consistent values
+                payment_method_map = {
+                    'credit/debit card': 'card',
+                    'upi payment': 'upi',
+                    'cheque': 'cheque'
+                }
+                payment_method = payment_method_map.get(payment_method, payment_method)
+
+                payment = InvoicePayment(
+                    invoice_id=invoice.id,
+                    payment_method=payment_method,
+                    amount=payment_amount,
+                    payment_date=datetime.now(IST),
+                    processed_by=current_user.id,
+                    notes=f"Payment via {payment_method}"
+                )
+                db.session.add(payment)
+                print(f"💰 Payment record created: {payment_method} - ₹{payment_amount}")
 
             # Create invoice items for services and mark Unaki appointments as completed
             service_items_created = 0
@@ -1596,12 +1622,11 @@ def create_professional_invoice():
                     # Mark Unaki appointment as completed and paid if appointment_id exists
                     if service_data.get('appointment_id'):
                         from models import UnakiBooking
-                        from datetime import datetime as dt
                         unaki_appointment = UnakiBooking.query.get(service_data['appointment_id'])
                         if unaki_appointment:
                             unaki_appointment.status = 'completed'
                             unaki_appointment.payment_status = 'paid'
-                            unaki_appointment.completed_at = dt.now()
+                            unaki_appointment.completed_at = current_date
                             unaki_appointment.amount_charged = service.price * service_data['quantity']
                             unaki_appointment.payment_method = payment_method
                             db.session.add(unaki_appointment)

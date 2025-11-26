@@ -316,4 +316,52 @@ def product_revenue_only_report():
                          total_product_sales=total_product_sales,
                          total_quantity_sold=total_quantity_sold)
 
+@app.route('/billing/reports/payment-audit')
+@login_required
+def payment_audit_report():
+    """Daily payment audit report by payment method"""
+    from models import InvoicePayment
+    
+    # Get date from request or default to today
+    audit_date_str = request.args.get('audit_date')
+    if audit_date_str:
+        try:
+            audit_date = datetime.strptime(audit_date_str, '%Y-%m-%d').date()
+        except ValueError:
+            audit_date = date.today()
+    else:
+        audit_date = date.today()
+    
+    # Get all payments for the selected date
+    payments = InvoicePayment.query.filter(
+        func.date(InvoicePayment.payment_date) == audit_date
+    ).order_by(InvoicePayment.payment_date.desc()).all()
+    
+    # Calculate totals by payment method
+    cash_payments = [p for p in payments if p.payment_method == 'cash']
+    card_payments = [p for p in payments if p.payment_method == 'card']
+    upi_payments = [p for p in payments if p.payment_method == 'upi']
+    cheque_payments = [p for p in payments if p.payment_method == 'cheque']
+    
+    cash_total = sum(p.amount for p in cash_payments)
+    card_total = sum(p.amount for p in card_payments)
+    upi_total = sum(p.amount for p in upi_payments)
+    cheque_total = sum(p.amount for p in cheque_payments)
+    
+    total_collection = cash_total + card_total + upi_total + cheque_total
+    
+    return render_template('payment_audit_report.html',
+                         audit_date=audit_date,
+                         payments=payments,
+                         cash_total=cash_total,
+                         card_total=card_total,
+                         upi_total=upi_total,
+                         cheque_total=cheque_total,
+                         cash_count=len(cash_payments),
+                         card_count=len(card_payments),
+                         upi_count=len(upi_payments),
+                         cheque_count=len(cheque_payments),
+                         total_collection=total_collection,
+                         total_transactions=len(payments))
+
 print("✅ Billing reports views imported")
