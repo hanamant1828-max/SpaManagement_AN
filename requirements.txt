@@ -228,3 +228,5 @@ sqlalchemy
 weasyprint
 werkzeug
 wtforms
+opencv-python-headless
+pillow

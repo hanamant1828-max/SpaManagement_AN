@@ -224,24 +224,28 @@ app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1) # needed for url_for 
 # Handle trailing slash variations
 app.url_map.strict_slashes = False
 
-# Configure the database - Force SQLite usage
-app.config["SQLALCHEMY_DATABASE_URI"] = compute_sqlite_uri()
-app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
-    "connect_args": {
-        "check_same_thread": False
+# Configure the database - Check for PostgreSQL first, fallback to SQLite
+database_url = os.environ.get("DATABASE_URL")
+if database_url:
+    # Use PostgreSQL from environment
+    app.config["SQLALCHEMY_DATABASE_URI"] = database_url
+    app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
+        "pool_recycle": 300,
+        "pool_pre_ping": True,
     }
-}
-print(f"✅ Using SQLite database: {app.config['SQLALCHEMY_DATABASE_URI']}")
-
-# Note: PostgreSQL support is available but disabled. To re-enable, uncomment the code below:
-# database_url = os.environ.get("DATABASE_URL")
-# if database_url:
-#     app.config["SQLALCHEMY_DATABASE_URI"] = database_url
-#     app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
-#         "pool_recycle": 300,
-#         "pool_pre_ping": True,
-#     }
-#     print(f"✅ Using PostgreSQL database: {database_url.split('@')[0]}@***")
+    print(f"✅ DATABASE_URL available")
+    # Mask sensitive data in logs
+    masked_url = database_url.split('@')[0].split('://')[0] + '://***@' + database_url.split('@')[1] if '@' in database_url else 'configured'
+    print(f"PostgreSQL database configured: {masked_url}")
+else:
+    # Fallback to SQLite
+    app.config["SQLALCHEMY_DATABASE_URI"] = compute_sqlite_uri()
+    app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
+        "connect_args": {
+            "check_same_thread": False
+        }
+    }
+    print(f"Using SQLite database: {app.config['SQLALCHEMY_DATABASE_URI']}")
 
 # Configure cache control for Replit environment
 app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
