@@ -1419,16 +1419,20 @@ def create_professional_invoice():
                 }
                 payment_method = payment_method_map.get(payment_method, payment_method)
 
+                # CRITICAL: Use IST datetime WITHOUT timezone info for payment_date
+                # This ensures the Payment Audit Report can correctly filter by date
+                payment_date_ist = datetime.now(IST).replace(tzinfo=None)
+
                 payment = InvoicePayment(
                     invoice_id=invoice.id,
                     payment_method=payment_method,
                     amount=payment_amount,
-                    payment_date=datetime.now(IST),
+                    payment_date=payment_date_ist,
                     processed_by=current_user.id,
                     notes=f"Payment via {payment_method}"
                 )
                 db.session.add(payment)
-                print(f"💰 Payment record created: {payment_method} - ₹{payment_amount}")
+                print(f"💰 Payment record created: {payment_method} - ₹{payment_amount} on {payment_date_ist.strftime('%Y-%m-%d %H:%M:%S')}")
 
             # Create invoice items for services and mark Unaki appointments as completed
             service_items_created = 0

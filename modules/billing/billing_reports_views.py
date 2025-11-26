@@ -333,15 +333,26 @@ def payment_audit_report():
         audit_date = date.today()
     
     # Get all payments for the selected date
+    # CRITICAL: Query payments where the DATE portion matches audit_date
+    # This handles both naive datetimes and timezone-aware datetimes
     payments = InvoicePayment.query.filter(
         func.date(InvoicePayment.payment_date) == audit_date
     ).order_by(InvoicePayment.payment_date.desc()).all()
+    
+    print(f"🔍 Payment Audit Debug:")
+    print(f"  Audit date: {audit_date}")
+    print(f"  Total payments found: {len(payments)}")
+    if payments:
+        for p in payments[:3]:  # Show first 3 for debugging
+            print(f"    Payment ID {p.id}: {p.payment_method} - ₹{p.amount} on {p.payment_date}")
     
     # Calculate totals by payment method
     cash_payments = [p for p in payments if p.payment_method == 'cash']
     card_payments = [p for p in payments if p.payment_method == 'card']
     upi_payments = [p for p in payments if p.payment_method == 'upi']
     cheque_payments = [p for p in payments if p.payment_method == 'cheque']
+    
+    print(f"  Cash: {len(cash_payments)}, Card: {len(card_payments)}, UPI: {len(upi_payments)}, Cheque: {len(cheque_payments)}")
     
     cash_total = sum(p.amount for p in cash_payments)
     card_total = sum(p.amount for p in card_payments)
