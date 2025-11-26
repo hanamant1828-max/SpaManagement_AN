@@ -85,50 +85,38 @@ def get_dashboard_stats():
         # Payment breakdown for today using InvoicePayment table
         from models import InvoicePayment
         
-        # Cash payments
-        todays_cash = db.session.query(func.sum(InvoicePayment.amount)).join(
-            EnhancedInvoice, InvoicePayment.invoice_id == EnhancedInvoice.id
-        ).filter(
-            func.date(EnhancedInvoice.invoice_date) == today,
+        # Cash payments - check payment_date instead of invoice_date
+        todays_cash = db.session.query(func.sum(InvoicePayment.amount)).filter(
+            func.date(InvoicePayment.payment_date) == today,
             InvoicePayment.payment_method == 'cash'
         ).scalar() or 0.0
 
         # UPI payments
-        todays_upi = db.session.query(func.sum(InvoicePayment.amount)).join(
-            EnhancedInvoice, InvoicePayment.invoice_id == EnhancedInvoice.id
-        ).filter(
-            func.date(EnhancedInvoice.invoice_date) == today,
+        todays_upi = db.session.query(func.sum(InvoicePayment.amount)).filter(
+            func.date(InvoicePayment.payment_date) == today,
             InvoicePayment.payment_method == 'upi'
         ).scalar() or 0.0
 
         # Card payments
-        todays_card = db.session.query(func.sum(InvoicePayment.amount)).join(
-            EnhancedInvoice, InvoicePayment.invoice_id == EnhancedInvoice.id
-        ).filter(
-            func.date(EnhancedInvoice.invoice_date) == today,
+        todays_card = db.session.query(func.sum(InvoicePayment.amount)).filter(
+            func.date(InvoicePayment.payment_date) == today,
             InvoicePayment.payment_method == 'card'
         ).scalar() or 0.0
 
         # Online payments (UPI, card, online, wallet)
-        todays_online = db.session.query(func.sum(InvoicePayment.amount)).join(
-            EnhancedInvoice, InvoicePayment.invoice_id == EnhancedInvoice.id
-        ).filter(
-            func.date(EnhancedInvoice.invoice_date) == today,
+        todays_online = db.session.query(func.sum(InvoicePayment.amount)).filter(
+            func.date(InvoicePayment.payment_date) == today,
             InvoicePayment.payment_method.in_(['upi', 'card', 'online', 'wallet'])
         ).scalar() or 0.0
 
         # Count of transactions by payment method
-        cash_count = db.session.query(func.count(InvoicePayment.id)).join(
-            EnhancedInvoice, InvoicePayment.invoice_id == EnhancedInvoice.id
-        ).filter(
-            func.date(EnhancedInvoice.invoice_date) == today,
+        cash_count = db.session.query(func.count(InvoicePayment.id)).filter(
+            func.date(InvoicePayment.payment_date) == today,
             InvoicePayment.payment_method == 'cash'
         ).scalar() or 0
 
-        online_count = db.session.query(func.count(InvoicePayment.id)).join(
-            EnhancedInvoice, InvoicePayment.invoice_id == EnhancedInvoice.id
-        ).filter(
-            func.date(EnhancedInvoice.invoice_date) == today,
+        online_count = db.session.query(func.count(InvoicePayment.id)).filter(
+            func.date(InvoicePayment.payment_date) == today,
             InvoicePayment.payment_method.in_(['upi', 'card', 'online', 'wallet'])
         ).scalar() or 0
 
