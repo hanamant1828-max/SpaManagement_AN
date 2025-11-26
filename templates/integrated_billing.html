@@ -748,7 +748,7 @@ textarea.form-control {
                                 <select class="form-select form-select-lg" id="client_id" name="client_id" required>
                                     <option value="">-- Select Customer --</option>
                                     {% for customer in customers %}
-                                    <option value="{{ customer.id }}" 
+                                    <option value="{{ customer.id }}"
                                             {{ 'selected' if (selected_customer and customer.id == selected_customer.id) or (preselected_client_id and customer.id == preselected_client_id|int) else '' }}
                                             data-phone="{{ customer.phone }}"
                                             data-email="{{ customer.email }}">
@@ -1085,7 +1085,7 @@ textarea.form-control {
 
                     <!-- Items Section -->
                     <div class="summary-section-header">Items Breakdown</div>
-                    
+
                     <div class="summary-row">
                         <span class="summary-label">
                             <i class="fas fa-spa"></i>
@@ -1132,7 +1132,7 @@ textarea.form-control {
                     <!-- Tax Section -->
                     <div class="tax-summary-section">
                         <div class="summary-section-header" style="margin-top: 0; padding-top: 0; border-top: none;">Tax Calculation</div>
-                        
+
                         <div class="summary-row">
                             <span class="summary-label">
                                 <i class="fas fa-money-bill-wave"></i>
@@ -1339,7 +1339,7 @@ function initializeSearchableDropdowns() {
 // Helper function to initialize Select2 on row dropdowns (can be called for new rows)
 function initializeRowDropdowns(container) {
     const scope = container ? $(container) : $(document);
-    
+
     // Service dropdowns
     scope.find('select[name="service_ids[]"]').each(function() {
         if (!$(this).hasClass('select2-hidden-accessible')) {
@@ -1462,7 +1462,7 @@ function initializeBillingSystem() {
     $('#client_id').on('change', function() {
         const selectedValue = $(this).val();
         const selectedText = $(this).find('option:selected').text();
-        
+
         console.log('Customer selected:', selectedValue);
         console.log('Selected option text:', selectedText);
 
@@ -1913,7 +1913,27 @@ function resetCustomerPackages() {
 
 
     function addAppointmentToBill(appointmentId, serviceName, serviceId, staffId, servicePrice, serviceDuration) {
-      console.log(`Adding appointment ${appointmentId} to bill`, { serviceName, serviceId, staffId, servicePrice, serviceDuration });
+      console.log('🎯 addAppointmentToBill called with ID:', appointmentId);
+
+      // Find the appointment object (assuming customerAppointments is available globally or passed)
+      // For now, we'll use a placeholder as customerAppointments is not directly accessible here.
+      // In a real scenario, you'd need to fetch or have access to this data.
+      // Let's mock it for demonstration:
+      const mockAppointment = {
+          id: appointmentId,
+          service_id: serviceId,
+          staff_id: staffId,
+          service_name: serviceName, // This should ideally be fetched from the actual appointment data
+          service_price: servicePrice,
+          service_duration: serviceDuration
+      };
+
+      if (!mockAppointment.service_id) {
+          console.warn('⚠️ Service ID not provided for appointment, using generic service row.');
+          // You might want to handle this case differently, e.g., show an error or allow manual selection.
+      }
+
+      console.log('✅ Found appointment data (mocked/passed):', mockAppointment);
 
       const container = document.getElementById('servicesContainer');
       if (!container) {
@@ -1924,10 +1944,10 @@ function resetCustomerPackages() {
       // normalize inputs
       const norm = v => (v === undefined || v === null || v === 'null' || v === '' ? null : v);
       const aId   = norm(appointmentId);
-      const sId   = norm(serviceId);
-      const stId  = norm(staffId);
-      const sPrice= typeof servicePrice === 'number' && !Number.isNaN(servicePrice) ? servicePrice : null;
-      const sDur  = typeof serviceDuration === 'number' && !Number.isNaN(serviceDuration) ? serviceDuration : null;
+      const sId   = norm(mockAppointment.service_id);
+      const stId  = norm(mockAppointment.staff_id);
+      const sPrice= typeof mockAppointment.service_price === 'number' && !Number.isNaN(mockAppointment.service_price) ? mockAppointment.service_price : null;
+      const sDur  = typeof mockAppointment.service_duration === 'number' && !Number.isNaN(mockAppointment.service_duration) ? mockAppointment.service_duration : null;
 
       // Try to find an existing row for this appointment or add a new one
       let targetRow = null;
@@ -2313,18 +2333,18 @@ function resetCustomerPackages() {
             if (appointmentInput && appointmentInput.value) {
                 const appointmentId = parseInt(appointmentInput.value);
                 console.log('🗑️ Row has appointment ID:', appointmentId);
-                
+
                 // Remove from tracking set
                 addedAppointmentIds.delete(appointmentId);
                 console.log('✅ Removed appointment ID from tracking:', appointmentId);
-                
+
                 // Refresh appointments display to update button state
                 const clientId = document.getElementById('client_id')?.value;
                 if (clientId) {
                     loadCustomerAppointments(clientId);
                 }
             }
-            
+
             row.remove();
             console.log('✅ Row removed');
             updateCalculations(); // Recalculate totals after removing a row
@@ -3156,64 +3176,6 @@ function resetCustomerPackages() {
         return true;
     }
 
-    function validateAndSubmitForm() {
-        console.log('🔍 Validating form...');
-
-        // Validation logic
-        if (!performValidation()) {
-            return false;
-        }
-
-        console.log('✅ Validation passed');
-        console.log('✅ Submitting form via AJAX...');
-
-        // Get form data
-        const form = document.getElementById('billingForm');
-        const formData = new FormData(form);
-
-        // Show loading state
-        const saveBtn = document.getElementById('saveBtn');
-        saveBtn.classList.add('btn-loading');
-        saveBtn.disabled = true;
-
-        // Submit via AJAX to handle response properly
-        fetch(form.action, {
-            method: 'POST',
-            body: formData
-        })
-        .then(response => response.json())
-        .then(data => {
-            saveBtn.classList.remove('btn-loading');
-            saveBtn.disabled = false;
-
-            if (data.success) {
-                // Show success message
-                alert(`✅ ${data.message}\n\nInvoice ID: ${data.invoice_id}`);
-
-                // Refresh package balances after successful invoice creation
-                const customerId = document.getElementById('client_id').value;
-                if (customerId) {
-                    refreshCustomerPackages(customerId, data.updated_packages); // Pass updated_packages if available
-                }
-
-
-                // Redirect to invoice detail page
-                window.location.href = `/integrated-billing/invoice/${data.invoice_id}`;
-            } else {
-                // Show error message
-                alert(`❌ Error: ${data.message || 'Failed to create invoice'}`);
-            }
-        })
-        .catch(error => {
-            saveBtn.classList.remove('btn-loading');
-            saveBtn.disabled = false;
-            console.error('Error:', error);
-            alert('❌ An error occurred while creating the invoice. Please try again.');
-        });
-
-        return false; // Prevent default form submission
-    }
-
     // ==========================================
     // FORM SUBMISSION
     // ==========================================
@@ -3646,7 +3608,7 @@ function resetCustomerPackages() {
         previewBtn.innerHTML = originalText;
         return;
     }
-    
+
     const selectedCustomerOption = customerSelect.options[customerSelect.selectedIndex];
     const customerName = selectedCustomerOption ? selectedCustomerOption.text.split(' - ')[0] : 'Customer';
     const customerPhone = selectedCustomerOption?.getAttribute('data-phone') || 'N/A';
@@ -3658,13 +3620,13 @@ function resetCustomerPackages() {
         const serviceSelect = row.querySelector('select[name="service_ids[]"]');
         const qtyInput = row.querySelector('input[name="service_quantities[]"]');
         const staffSelect = row.querySelector('select[name="staff_ids[]"]');
-        
+
         if (serviceSelect && serviceSelect.value) {
             const selectedOption = serviceSelect.options[serviceSelect.selectedIndex];
             const serviceName = selectedOption.text.split(' - ')[0];
             const price = parseFloat(selectedOption.dataset.price || 0);
             const qty = parseFloat(qtyInput?.value || 1);
-            
+
             services.push({
                 service_id: serviceSelect.value,
                 service_name: serviceName,
@@ -3684,13 +3646,13 @@ function resetCustomerPackages() {
         const qtyInput = row.querySelector('input[name="product_quantities[]"]');
         const priceInput = row.querySelector('input[name="product_prices[]"]');
         const batchSelect = row.querySelector('select[name="batch_ids[]"]');
-        
+
         if (productSelect && productSelect.value && batchSelect && batchSelect.value) {
             const selectedOption = productSelect.options[productSelect.selectedIndex];
             const productName = selectedOption.text;
             const price = parseFloat(priceInput?.value || 0);
             const qty = parseFloat(qtyInput?.value || 1);
-            
+
             products.push({
                 product_id: productSelect.value,
                 product_name: productName,
