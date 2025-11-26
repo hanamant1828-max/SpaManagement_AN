@@ -483,31 +483,31 @@
             {% endif %}
         </div>
 
-        <!-- Appointments Card -->
+        <!-- Cash Collection Card -->
         <div class="stat-card success">
             <div class="stat-header">
-                <span class="stat-label">Today's Appointments</span>
+                <span class="stat-label">Today's Cash Collection</span>
                 <div class="stat-icon">
-                    <i class="fas fa-calendar-check"></i>
+                    <i class="fas fa-money-bill-wave"></i>
                 </div>
             </div>
-            <div class="stat-value">{{ stats.todays_appointments }}</div>
+            <div class="stat-value">{{ utils.format_currency(stats.todays_cash) }}</div>
             <span class="stat-change positive">
-                <i class="fas fa-check-circle"></i> Active bookings
+                <i class="fas fa-receipt"></i> {{ stats.cash_transaction_count }} transactions
             </span>
         </div>
 
-        <!-- Clients Card -->
+        <!-- Online Collection Card -->
         <div class="stat-card info">
             <div class="stat-header">
-                <span class="stat-label">Total Clients</span>
+                <span class="stat-label">Today's Online Collection</span>
                 <div class="stat-icon">
-                    <i class="fas fa-users"></i>
+                    <i class="fas fa-credit-card"></i>
                 </div>
             </div>
-            <div class="stat-value">{{ stats.total_clients }}</div>
+            <div class="stat-value">{{ utils.format_currency(stats.todays_online) }}</div>
             <span class="stat-change positive">
-                <i class="fas fa-user-plus"></i> {{ retention_metrics.new_clients_this_month }} new this month
+                <i class="fas fa-receipt"></i> {{ stats.online_transaction_count }} transactions
             </span>
         </div>
 
@@ -519,10 +519,53 @@
                     <i class="fas fa-chart-line"></i>
                 </div>
             </div>
-            <div class="stat-value">{{ utils.format_currency(stats.monthly_revenue) }}</div>
+            <div class="stat-value">{{ utils.format_currency(stats.total_revenue_month) }}</div>
             <span class="stat-change positive">
                 <i class="fas fa-calendar"></i> This month
             </span>
+        </div>
+    </div>
+
+    <!-- Payment Breakdown Section -->
+    <div class="quick-actions" style="margin-bottom: 2rem;">
+        <h3><i class="fas fa-wallet"></i> Today's Payment Breakdown</h3>
+        <div class="row">
+            <div class="col-md-3">
+                <div class="card border-left-success" style="border-left: 4px solid var(--spa-success);">
+                    <div class="card-body">
+                        <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Cash Payments</div>
+                        <div class="h5 mb-0 font-weight-bold">{{ utils.format_currency(stats.todays_cash) }}</div>
+                        <small class="text-muted">{{ stats.cash_transaction_count }} transactions</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card border-left-info" style="border-left: 4px solid var(--spa-info);">
+                    <div class="card-body">
+                        <div class="text-xs font-weight-bold text-info text-uppercase mb-1">UPI Payments</div>
+                        <div class="h5 mb-0 font-weight-bold">{{ utils.format_currency(stats.todays_upi) }}</div>
+                        <small class="text-muted">PhonePe, GPay, etc.</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card border-left-primary" style="border-left: 4px solid var(--spa-primary);">
+                    <div class="card-body">
+                        <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Card Payments</div>
+                        <div class="h5 mb-0 font-weight-bold">{{ utils.format_currency(stats.todays_card) }}</div>
+                        <small class="text-muted">Debit/Credit Cards</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card border-left-warning" style="border-left: 4px solid var(--spa-warning);">
+                    <div class="card-body">
+                        <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Total Collection</div>
+                        <div class="h5 mb-0 font-weight-bold">{{ utils.format_currency(stats.total_revenue_today) }}</div>
+                        <small class="text-muted">All payment methods</small>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 

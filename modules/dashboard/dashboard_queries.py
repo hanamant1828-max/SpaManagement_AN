@@ -82,6 +82,48 @@ def get_dashboard_stats():
             EnhancedInvoice.payment_status == 'paid'
         ).scalar() or 0.0
 
+        # Payment breakdown for today
+        # Cash payments
+        todays_cash = db.session.query(func.sum(EnhancedInvoice.total_amount)).filter(
+            func.date(EnhancedInvoice.invoice_date) == today,
+            EnhancedInvoice.payment_status == 'paid',
+            EnhancedInvoice.payment_method == 'cash'
+        ).scalar() or 0.0
+
+        # Online payments (UPI, card, etc.)
+        todays_online = db.session.query(func.sum(EnhancedInvoice.total_amount)).filter(
+            func.date(EnhancedInvoice.invoice_date) == today,
+            EnhancedInvoice.payment_status == 'paid',
+            EnhancedInvoice.payment_method.in_(['upi', 'card', 'online'])
+        ).scalar() or 0.0
+
+        # Card payments
+        todays_card = db.session.query(func.sum(EnhancedInvoice.total_amount)).filter(
+            func.date(EnhancedInvoice.invoice_date) == today,
+            EnhancedInvoice.payment_status == 'paid',
+            EnhancedInvoice.payment_method == 'card'
+        ).scalar() or 0.0
+
+        # UPI payments
+        todays_upi = db.session.query(func.sum(EnhancedInvoice.total_amount)).filter(
+            func.date(EnhancedInvoice.invoice_date) == today,
+            EnhancedInvoice.payment_status == 'paid',
+            EnhancedInvoice.payment_method == 'upi'
+        ).scalar() or 0.0
+
+        # Count of transactions by payment method
+        cash_count = EnhancedInvoice.query.filter(
+            func.date(EnhancedInvoice.invoice_date) == today,
+            EnhancedInvoice.payment_status == 'paid',
+            EnhancedInvoice.payment_method == 'cash'
+        ).count()
+
+        online_count = EnhancedInvoice.query.filter(
+            func.date(EnhancedInvoice.invoice_date) == today,
+            EnhancedInvoice.payment_status == 'paid',
+            EnhancedInvoice.payment_method.in_(['upi', 'card', 'online'])
+        ).count()
+
         # Combine all revenue sources
         total_revenue_today = float(todays_appointment_revenue) + float(todays_invoice_revenue) + float(todays_enhanced_invoice_revenue)
         total_revenue_month = float(monthly_appointment_revenue) + float(monthly_invoice_revenue) + float(monthly_enhanced_invoice_revenue)
@@ -89,9 +131,10 @@ def get_dashboard_stats():
         print(f"  Today's appointments: {todays_appointments}")
         print(f"  Total clients: {total_clients}")
         print(f"  Today's revenue: ₹{total_revenue_today}")
-        print(f"    - From appointments: ₹{todays_appointment_revenue}")
-        print(f"    - From invoices: ₹{todays_invoice_revenue}")
-        print(f"    - From enhanced invoices: ₹{todays_enhanced_invoice_revenue}")
+        print(f"    - Cash: ₹{todays_cash} ({cash_count} txns)")
+        print(f"    - Online: ₹{todays_online} ({online_count} txns)")
+        print(f"    - UPI: ₹{todays_upi}")
+        print(f"    - Card: ₹{todays_card}")
         print(f"  Month's revenue: ₹{total_revenue_month}")
 
         return {
@@ -100,7 +143,13 @@ def get_dashboard_stats():
             'total_services': total_services,
             'total_staff': total_staff,
             'total_revenue_today': total_revenue_today,
-            'total_revenue_month': total_revenue_month
+            'total_revenue_month': total_revenue_month,
+            'todays_cash': float(todays_cash),
+            'todays_online': float(todays_online),
+            'todays_upi': float(todays_upi),
+            'todays_card': float(todays_card),
+            'cash_transaction_count': cash_count,
+            'online_transaction_count': online_count
         }
     except Exception as e:
         print(f"Error in get_dashboard_stats: {e}")
@@ -112,7 +161,13 @@ def get_dashboard_stats():
             'total_services': 0,
             'total_staff': 0,
             'total_revenue_today': 0.0,
-            'total_revenue_month': 0.0
+            'total_revenue_month': 0.0,
+            'todays_cash': 0.0,
+            'todays_online': 0.0,
+            'todays_upi': 0.0,
+            'todays_card': 0.0,
+            'cash_transaction_count': 0,
+            'online_transaction_count': 0
         }
 
 def get_recent_appointments(limit=5):
