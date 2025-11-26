@@ -1349,7 +1349,10 @@ function initializeRowDropdowns(container) {
                 allowClear: true,
                 width: '100%',
                 dropdownAutoWidth: true,
-                minimumResultsForSearch: 5
+                dropdownParent: $('body'),
+                minimumResultsForSearch: 0, // Always show search box
+                containerCssClass: 'select2-service-container',
+                dropdownCssClass: 'select2-service-dropdown'
             }).on('change', function() {
                 handleServiceChange(this);
             });

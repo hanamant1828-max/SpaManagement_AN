@@ -1030,15 +1030,39 @@ select option,
 /* Fix Select2 search box blinking issue */
 .select2-search--dropdown {
     display: block !important;
-    padding: 4px;
+    padding: 8px !important;
+    background: white !important;
+    border-bottom: 1px solid #e2e8f0 !important;
 }
 
 .select2-search__field {
     width: 100% !important;
     box-sizing: border-box !important;
-    padding: 4px 8px !important;
-    border: 1px solid #aaa !important;
-    border-radius: 4px !important;
+    padding: 8px 12px !important;
+    border: 2px solid var(--spa-gray-300) !important;
+    border-radius: 6px !important;
+    font-size: 14px !important;
+    outline: none !important;
+}
+
+.select2-search__field:focus {
+    border-color: var(--spa-primary) !important;
+    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1) !important;
+}
+
+/* Ensure service dropdown search is always visible */
+.select2-service-dropdown .select2-search--dropdown {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    height: auto !important;
+    min-height: 50px !important;
+}
+
+.select2-service-dropdown .select2-search__field {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
 }
 
 /* Ensure Select2 dropdown stays in place */
