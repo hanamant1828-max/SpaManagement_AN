@@ -508,6 +508,15 @@ def get_all_services_api():
         # Get all categories for the response
         categories = Category.query.filter_by(category_type='service', is_active=True).all()
         
+        # Helper function to get category name safely
+        def get_category_name(service):
+            try:
+                if service.category_id and service.service_category:
+                    return service.service_category.display_name
+                return 'Uncategorized'
+            except:
+                return 'Uncategorized'
+        
         return jsonify({
             'success': True,
             'services': [
@@ -518,19 +527,21 @@ def get_all_services_api():
                     'price': float(s.price) if s.price else 0,
                     'duration': s.duration or 60,
                     'category_id': s.category_id,
-                    'category_name': s.service_category.display_name if hasattr(s, 'service_category') and s.service_category else (s.category.replace('_', ' ').title() if isinstance(s.category, str) else 'Uncategorized'),
+                    'category_name': get_category_name(s),
                     'is_active': s.is_active
                 } for s in services
             ],
             'categories': [
                 {
                     'id': c.id,
-                    'name': c.display_name,
+                    'name': c.display_name or c.name or 'Unknown',
+                    'display_name': c.display_name or c.name or 'Unknown',
                     'color': c.color or '#6c757d'
                 } for c in categories
             ]
         })
     except Exception as e:
+        print(f"Error in get_all_services_api: {str(e)}")
         return jsonify({'success': False, 'error': str(e)})
 
 @app.route('/api/services/category/<int:category_id>')

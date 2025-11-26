@@ -585,12 +585,17 @@ function updateCategoryFilter() {
     // Clear existing options except the first one
     categoryFilter.innerHTML = '<option value="">All Categories</option>';
 
-    // Add categories from the loaded data
-    const sortedCategories = [...allCategories].sort((a, b) => a.display_name.localeCompare(b.display_name));
+    // Add categories from the loaded data with safe sorting
+    const sortedCategories = [...allCategories].sort((a, b) => {
+        const nameA = (a.display_name || a.name || '').toLowerCase();
+        const nameB = (b.display_name || b.name || '').toLowerCase();
+        return nameA.localeCompare(nameB);
+    });
+    
     sortedCategories.forEach(category => {
         const option = document.createElement('option');
         option.value = category.id;
-        option.textContent = category.display_name;
+        option.textContent = category.display_name || category.name || 'Unknown';
         categoryFilter.appendChild(option);
     });
 }
