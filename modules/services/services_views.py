@@ -518,7 +518,7 @@ def get_all_services_api():
                     'price': float(s.price) if s.price else 0,
                     'duration': s.duration or 60,
                     'category_id': s.category_id,
-                    'category_name': s.category.display_name if s.category else 'Uncategorized',
+                    'category_name': s.service_category.display_name if hasattr(s, 'service_category') and s.service_category else (s.category.replace('_', ' ').title() if isinstance(s.category, str) else 'Uncategorized'),
                     'is_active': s.is_active
                 } for s in services
             ],
