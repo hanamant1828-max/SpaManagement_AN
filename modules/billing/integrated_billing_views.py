@@ -551,7 +551,7 @@ def integrated_billing(customer_id=None):
                 for item in invoice_items:
                     if item.item_type == 'service':
                         service_items.append({
-                            'service_id': item.item_id,
+                            'service_id': item.service_id,
                             'quantity': item.quantity,
                             'appointment_id': item.appointment_id,
                             'staff_id': item.staff_id,
@@ -1382,9 +1382,37 @@ def create_professional_invoice():
             invoice.is_interstate = is_interstate
             invoice.additional_charges = additional_charges
             payment_terms = request.form.get('payment_terms', 'immediate')
-            payment_method = request.form.get('payment_method', 'cash')
+            payment_method = request.form.get('payment_method', 'cash').lower()
             invoice.payment_terms = payment_terms
-            invoice.payment_method = payment_method # Record the payment method
+
+            # Handle mixed payment methods
+            payment_methods_dict = {}
+            if payment_method == 'mixed':
+                # Get mixed payment data
+                mixed_methods = request.form.getlist('mixed_payment_methods[]')
+                mixed_amounts = request.form.getlist('mixed_payment_amounts[]')
+                mixed_refs = request.form.getlist('mixed_payment_refs[]')
+
+                # Build payment methods dictionary
+                for i, method in enumerate(mixed_methods):
+                    if method and i < len(mixed_amounts):
+                        amount = float(mixed_amounts[i])
+                        if amount > 0:
+                            if method in payment_methods_dict:
+                                payment_methods_dict[method] += amount
+                            else:
+                                payment_methods_dict[method] = amount
+
+                # Primary payment method is the largest one
+                if payment_methods_dict:
+                    primary_method = max(payment_methods_dict, key=payment_methods_dict.get)
+                    invoice.payment_method = primary_method
+                else:
+                    invoice.payment_method = 'mixed'
+            else:
+                # Single payment method
+                invoice.payment_method = payment_method
+                payment_methods_dict = {payment_method: total_amount}
 
             # Tax breakdown for legacy support
             tax_breakdown = {
@@ -1397,11 +1425,13 @@ def create_professional_invoice():
                 'is_interstate': is_interstate,
                 'additional_charges': additional_charges,
                 'payment_terms': payment_terms,
-                'payment_method': payment_method
+                'payment_method': payment_method,
+                'payment_methods_breakdown': payment_methods_dict if payment_method == 'mixed' else None
             }
 
             invoice.notes = json.dumps(tax_breakdown)
-            invoice.payment_methods = json.dumps({payment_method: total_amount})
+            invoice.payment_methods = json.dumps(payment_methods_dict)
+
 
             db.session.add(invoice)
             db.session.flush()  # Get the invoice ID

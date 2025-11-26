@@ -1023,7 +1023,7 @@ textarea.form-control {
                         <div class="col-md-6">
                             <div class="form-group">
                                 <label class="form-label">Payment Method <span class="text-danger">*</span></label>
-                                <select class="form-select form-select-lg" id="paymentMethod" name="payment_method" required onchange="toggleChequeNumber()">
+                                <select class="form-select form-select-lg" id="paymentMethod" name="payment_method" required onchange="togglePaymentMethod()">
                                     <option value="" selected>Select Payment Method</option>
                                     <option value="cash">Cash</option>
                                     <option value="card">Credit/Debit Card</option>
@@ -1038,6 +1038,37 @@ textarea.form-control {
                                 <input type="text" class="form-control" id="chequeNumber" name="cheque_number" placeholder="Enter cheque number">
                             </div>
                         </div>
+
+                        <!-- Mixed Payment Section -->
+                        <div id="mixedPaymentSection" class="col-md-12" style="display: none; background: var(--spa-gray-100); padding: 1.5rem; border-radius: var(--radius-lg);">
+                            <h6 class="card-title mb-3">
+                                <i class="fas fa-exchange-alt"></i>
+                                Mixed Payment Details
+                            </h6>
+                            <div id="mixedPaymentMethods">
+                                <!-- Payment rows will be added here by JavaScript -->
+                            </div>
+                            <button type="button" class="btn btn-primary btn-sm mt-2" onclick="addMixedPaymentMethod()">
+                                <i class="fas fa-plus"></i> Add Another Payment
+                            </button>
+                            <div class="row mt-3">
+                                <div class="col-md-4 offset-md-8">
+                                    <div class="summary-row" style="background: transparent; padding: 0.5rem 0; border-bottom: 1px dashed rgba(255,255,255,0.3);">
+                                        <span class="summary-label">Total Invoice Amount</span>
+                                        <span class="summary-value" id="mixedPaymentTotal">₹0.00</span>
+                                    </div>
+                                    <div class="summary-row" style="background: transparent; padding: 0.5rem 0; border-bottom: 1px dashed rgba(255,255,255,0.3);">
+                                        <span class="summary-label">Total Allocated</span>
+                                        <span class="summary-value" id="mixedPaymentAllocated">₹0.00</span>
+                                    </div>
+                                    <div class="summary-row" style="background: transparent; padding: 0.5rem 0;">
+                                        <span class="summary-label">Remaining to Allocate</span>
+                                        <span class="summary-value" id="mixedPaymentRemaining">₹0.00</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
                         <div class="col-md-4">
                             <div class="form-group">
                                 <label class="form-label">Discount Type</label>
@@ -1328,7 +1359,7 @@ function initializeSearchableDropdowns() {
         allowClear: false,
         width: '100%',
         minimumResultsForSearch: Infinity
-    });
+    }).on('change', togglePaymentMethod); // Add listener here
 
     // Initialize Select2 on all existing service, staff, product, and batch dropdowns
     initializeRowDropdowns();
@@ -3174,6 +3205,38 @@ function resetCustomerPackages() {
             }
         }
 
+        // 4. If mixed payment, validate totals match and methods are selected
+        if (paymentMethodSelect && paymentMethodSelect.value === 'mixed') {
+            const grandTotalElement = document.getElementById('grandTotal');
+            const grandTotalText = grandTotalElement ? grandTotalElement.textContent.replace(/[₹,]/g, '') : '0';
+            const grandTotal = parseFloat(grandTotalText) || 0;
+
+            const amountInputs = document.querySelectorAll('.mixed-payment-amount');
+            let totalAllocated = 0;
+            let methodsSelected = true;
+
+            amountInputs.forEach((input, index) => {
+                totalAllocated += parseFloat(input.value) || 0;
+
+                // Check if the corresponding payment method is selected
+                const methodSelect = input.closest('.mixed-payment-row').querySelector('select[name="mixed_payment_methods[]"]');
+                if (!methodSelect || !methodSelect.value) {
+                    methodsSelected = false;
+                }
+            });
+
+            // Check if the allocated total is close to the grand total
+            if (Math.abs(grandTotal - totalAllocated) > 0.01) {
+                errors.push(`❌ Mixed payment total (₹${totalAllocated.toFixed(2)}) does not match invoice total (₹${grandTotal.toFixed(2)}). Please adjust payment amounts.`);
+            }
+
+            // Check if all payment methods were selected
+            if (!methodsSelected) {
+                errors.push('❌ Please select a payment method for all mixed payment entries.');
+            }
+        }
+
+
         // Show errors if any
         if (errors.length > 0) {
             const errorMessage = `<strong>Please fix the following issues:</strong><br><br>${errors.join('<br>')}`;
@@ -3447,18 +3510,122 @@ function resetCustomerPackages() {
     // ==========================================
     // UTILITIES
     // ==========================================
-    function toggleChequeNumber() {
+    function togglePaymentMethod() {
         const paymentMethod = document.getElementById('paymentMethod').value;
         const chequeField = document.getElementById('chequeNumberField');
-        const chequeInput = document.getElementById('chequeNumber');
+        const mixedPaymentSection = document.getElementById('mixedPaymentSection');
 
+        // Handle cheque number field
         if (paymentMethod === 'cheque') {
             chequeField.style.display = 'block';
-            chequeInput.required = true;
+            document.getElementById('chequeNumber').required = true;
         } else {
             chequeField.style.display = 'none';
-            chequeInput.required = false;
-            chequeInput.value = '';
+            document.getElementById('chequeNumber').required = false;
+        }
+
+        // Handle mixed payment section
+        if (paymentMethod === 'mixed') {
+            mixedPaymentSection.style.display = 'block';
+            // Initialize with one payment method row
+            if (document.getElementById('mixedPaymentMethods').children.length === 0) {
+                addMixedPaymentMethod();
+            }
+            updateMixedPaymentTotals();
+        } else {
+            mixedPaymentSection.style.display = 'none';
+            // Clear mixed payment methods
+            document.getElementById('mixedPaymentMethods').innerHTML = '';
+        }
+    }
+
+    function addMixedPaymentMethod() {
+        const container = document.getElementById('mixedPaymentMethods');
+        const index = container.children.length;
+
+        const row = document.createElement('div');
+        row.className = 'mixed-payment-row mb-3 p-3';
+        row.style.background = 'white';
+        row.style.borderRadius = 'var(--radius-base)';
+        row.style.border = '1px solid var(--spa-gray-300)';
+
+        row.innerHTML = `
+            <div class="row g-2">
+                <div class="col-md-5">
+                    <label class="form-label">Payment Method</label>
+                    <select class="form-select" name="mixed_payment_methods[]" required>
+                        <option value="">Select Method</option>
+                        <option value="cash">Cash</option>
+                        <option value="card">Credit/Debit Card</option>
+                        <option value="upi">UPI Payment</option>
+                        <option value="cheque">Cheque</option>
+                        <option value="wallet">Digital Wallet</option>
+                    </select>
+                </div>
+                <div class="col-md-5">
+                    <label class="form-label">Amount (₹)</label>
+                    <input type="number" class="form-control mixed-payment-amount" name="mixed_payment_amounts[]" 
+                           step="0.01" min="0" placeholder="0.00" required 
+                           oninput="updateMixedPaymentTotals()">
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="button" class="btn btn-danger btn-sm w-100" onclick="removeMixedPaymentMethod(this)">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+                <div class="col-md-12">
+                    <label class="form-label">Reference/Transaction ID (Optional)</label>
+                    <input type="text" class="form-control" name="mixed_payment_refs[]" 
+                           placeholder="Transaction ID, Last 4 digits, etc.">
+                </div>
+            </div>
+        `;
+
+        container.appendChild(row);
+        updateMixedPaymentTotals();
+    }
+
+    function removeMixedPaymentMethod(button) {
+        const row = button.closest('.mixed-payment-row');
+        row.remove();
+        updateMixedPaymentTotals();
+
+        // Ensure at least one payment method exists
+        const container = document.getElementById('mixedPaymentMethods');
+        if (container.children.length === 0) {
+            addMixedPaymentMethod();
+        }
+    }
+
+    function updateMixedPaymentTotals() {
+        const grandTotalElement = document.getElementById('grandTotal');
+        const grandTotalText = grandTotalElement ? grandTotalElement.textContent.replace(/[₹,]/g, '') : '0';
+        const grandTotal = parseFloat(grandTotalText) || 0;
+
+        // Calculate total allocated from mixed payment amounts
+        const amountInputs = document.querySelectorAll('.mixed-payment-amount');
+        let totalAllocated = 0;
+
+        amountInputs.forEach(input => {
+            const value = parseFloat(input.value) || 0;
+            totalAllocated += value;
+        });
+
+        const remaining = grandTotal - totalAllocated;
+
+        // Update display
+        document.getElementById('mixedPaymentTotal').textContent = `₹${grandTotal.toFixed(2)}`;
+        document.getElementById('mixedPaymentAllocated').textContent = `₹${totalAllocated.toFixed(2)}`;
+        document.getElementById('mixedPaymentRemaining').textContent = `₹${remaining.toFixed(2)}`;
+
+        // Color code remaining amount
+        const remainingElement = document.getElementById('mixedPaymentRemaining');
+        if (Math.abs(remaining) < 0.01) {
+            remainingElement.style.color = 'var(--spa-success)';
+        } else if (remaining > 0) {
+            remainingElement.style.color = 'var(--spa-warning)';
+        } else {
+            remainingElement.style.color = 'var(--spa-danger)';
         }
     }
 
