@@ -5,6 +5,16 @@
 {% block body_class %}page-staff-management{% endblock %}
 
 {% block extra_css %}
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
+<style>
+.select2-container {
+    width: 100% !important;
+}
+.select2-container--bootstrap-5 .select2-selection {
+    min-height: 38px;
+}
+</style>
 {% endblock %}
 
 {% block content %}
@@ -1209,6 +1219,11 @@
         deptSelects.forEach((selectId) => {
             const select = document.getElementById(selectId);
             if (select) {
+                // Destroy existing Select2 instance if exists
+                if ($(select).hasClass('select2-hidden-accessible')) {
+                    $(select).select2('destroy');
+                }
+
                 // Clear existing options (except first)
                 const firstOption = select.firstElementChild;
                 select.innerHTML = "";
@@ -1224,6 +1239,24 @@
                     select.appendChild(option);
                     console.log(`Added department option: ${dept.display_name || dept.name} (ID: ${dept.id})`);
                 });
+
+                // Reinitialize Select2 after populating
+                if (selectId === 'departmentId') {
+                    $(select).select2({
+                        theme: 'bootstrap-5',
+                        dropdownParent: $('#staffModal'),
+                        placeholder: 'Select Department',
+                        allowClear: true,
+                        width: '100%'
+                    });
+                } else {
+                    $(select).select2({
+                        theme: 'bootstrap-5',
+                        placeholder: $(select).find('option:first').text(),
+                        allowClear: true,
+                        width: '100%'
+                    });
+                }
             }
         });
     }
@@ -2382,6 +2415,7 @@
 </script>
 
 <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script>
     // Verify SheetJS is loaded with retry mechanism
     function checkXLSXLibrary(retries = 3) {
@@ -2399,6 +2433,41 @@
 
     window.addEventListener('load', function() {
         setTimeout(() => checkXLSXLibrary(), 100);
+    });
+
+    // Initialize Select2 for searchable dropdowns
+    function initializeSelect2() {
+        // Initialize all select elements with Select2
+        $('#departmentFilter, #departmentId, #statusFilter').select2({
+            theme: 'bootstrap-5',
+            placeholder: function() {
+                return $(this).find('option:first').text();
+            },
+            allowClear: true,
+            width: '100%'
+        });
+
+        console.log('✅ Select2 initialized for dropdown search');
+    }
+
+    // Re-initialize Select2 when modal is shown
+    document.addEventListener('shown.bs.modal', function(event) {
+        if (event.target.id === 'staffModal') {
+            setTimeout(() => {
+                $('#departmentId').select2({
+                    theme: 'bootstrap-5',
+                    dropdownParent: $('#staffModal'),
+                    placeholder: 'Select Department',
+                    allowClear: true,
+                    width: '100%'
+                });
+            }, 100);
+        }
+    });
+
+    // Initialize Select2 when page loads
+    $(document).ready(function() {
+        initializeSelect2();
     });
 </script>
 {% endblock %}
