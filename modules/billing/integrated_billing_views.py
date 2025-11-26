@@ -5,7 +5,7 @@ Supports services, packages, subscriptions, and inventory items
 from flask import render_template, request, redirect, url_for, flash, jsonify
 from flask_login import login_required, current_user
 from app import app, db
-from datetime import datetime, date, time
+from datetime import datetime as dt, date, time
 import json
 from sqlalchemy import and_
 
@@ -1313,7 +1313,7 @@ def create_professional_invoice():
         # Create professional invoice with proper transaction handling
         try:
             # Generate professional invoice number with retry logic to prevent duplicates
-            current_date = datetime.now(IST)
+            current_date = dt.now(IST)
             date_prefix = current_date.strftime('%Y%m%d')
 
             # Find the highest sequence number for today
@@ -1354,9 +1354,8 @@ def create_professional_invoice():
             invoice = EnhancedInvoice()
             invoice.invoice_number = invoice_number
             invoice.client_id = int(client_id)
-            # Use datetime module to avoid variable shadowing
-            import datetime as dt
-            invoice.invoice_date = dt.datetime.combine(invoice_date_only, dt.time.min)  # Store as midnight on invoice date
+            # Store invoice_date as midnight on invoice date
+            invoice.invoice_date = dt.combine(invoice_date_only, time.min)  # Store as midnight on invoice date
             invoice.created_at = ist_now.replace(tzinfo=None)  # Store as naive IST datetime
 
             # Professional billing fields
@@ -1451,7 +1450,7 @@ def create_professional_invoice():
 
                 # CRITICAL: Use IST datetime WITHOUT timezone info for payment_date
                 # This ensures the Payment Audit Report can correctly filter by date
-                payment_date_ist = datetime.now(IST).replace(tzinfo=None)
+                payment_date_ist = dt.now(IST).replace(tzinfo=None)
 
                 payment = InvoicePayment(
                     invoice_id=invoice.id,
