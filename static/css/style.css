@@ -2210,14 +2210,15 @@ body.billing-page select.form-control {
 }
 
 .select2-dropdown {
-    z-index: 9999 !important;
+    z-index: 10000 !important;
     border: 2px solid var(--spa-primary) !important;
-    box-shadow: var(--shadow-lg) !important;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2) !important;
     border-radius: var(--radius-base) !important;
+    background: white !important;
 }
 
 .select2-container--open .select2-dropdown {
-    border-top: none !important;
+    border-top: 2px solid var(--spa-primary) !important;
     border-top-left-radius: 0 !important;
     border-top-right-radius: 0 !important;
 }
@@ -2225,6 +2226,7 @@ body.billing-page select.form-control {
 .select2-container--bootstrap-5 .select2-selection {
     border-radius: var(--radius-base) !important;
     border: 2px solid var(--spa-gray-200) !important;
+    min-height: 42px !important;
 }
 
 .select2-container--bootstrap-5.select2-container--focus .select2-selection,
@@ -2233,9 +2235,29 @@ body.billing-page select.form-control {
     box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1) !important;
 }
 
+/* Select2 search box - ensure it's visible */
+.select2-search--dropdown {
+    padding: 8px !important;
+    display: block !important;
+}
+
+.select2-search--dropdown .select2-search__field {
+    width: 100% !important;
+    padding: 8px 12px !important;
+    border: 1px solid #ddd !important;
+    border-radius: 4px !important;
+    font-size: 14px !important;
+}
+
 /* Select2 results container */
+.select2-results {
+    max-height: 300px !important;
+    overflow-y: auto !important;
+}
+
 .select2-results__option {
     padding: 0.75rem 1rem !important;
+    cursor: pointer !important;
 }
 
 .select2-results__option--highlighted {
@@ -2246,4 +2268,19 @@ body.billing-page select.form-control {
 /* Make sure Select2 works in modal and cards */
 body.billing-page .select2-container {
     width: 100% !important;
+}
+
+/* Ensure dropdown appears above other elements */
+.select2-container--open {
+    z-index: 10001 !important;
+}
+
+/* Fix for customer dropdown specifically */
+#client_id + .select2-container {
+    width: 100% !important;
+}
+
+#client_id + .select2-container .select2-selection {
+    height: auto !important;
+    min-height: 42px !important;
 }

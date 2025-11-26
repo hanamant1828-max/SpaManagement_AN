@@ -1296,6 +1296,8 @@ function initializeSearchableDropdowns() {
         allowClear: true,
         width: '100%',
         dropdownAutoWidth: false,
+        dropdownParent: $('body'),
+        minimumResultsForSearch: 0,
         matcher: function(params, data) {
             // If there are no search terms, return all data
             if ($.trim(params.term) === '') {
