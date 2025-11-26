@@ -488,6 +488,51 @@ def api_get_service_category(category_id):
         return jsonify({'error': str(e)})
 
 # API Endpoints for AJAX operations
+@app.route('/api/services')
+@login_required
+def get_all_services_api():
+    """Get all services for AJAX calls"""
+    try:
+        from models import Service, Category
+        
+        # Get category filter if provided
+        category_filter = request.args.get('category', '').strip()
+        
+        # Build query
+        query = Service.query
+        if category_filter:
+            query = query.filter_by(category_id=int(category_filter))
+        
+        services = query.all()
+        
+        # Get all categories for the response
+        categories = Category.query.filter_by(category_type='service', is_active=True).all()
+        
+        return jsonify({
+            'success': True,
+            'services': [
+                {
+                    'id': s.id,
+                    'name': s.name,
+                    'description': s.description or '',
+                    'price': float(s.price) if s.price else 0,
+                    'duration': s.duration or 60,
+                    'category_id': s.category_id,
+                    'category_name': s.category.display_name if s.category else 'Uncategorized',
+                    'is_active': s.is_active
+                } for s in services
+            ],
+            'categories': [
+                {
+                    'id': c.id,
+                    'name': c.display_name,
+                    'color': c.color or '#6c757d'
+                } for c in categories
+            ]
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
 @app.route('/api/services/category/<int:category_id>')
 @login_required
 def get_services_by_category(category_id):
