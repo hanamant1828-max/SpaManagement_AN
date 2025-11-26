@@ -1352,7 +1352,17 @@ function initializeRowDropdowns(container) {
                 dropdownParent: $('body'),
                 minimumResultsForSearch: 0, // Always show search box
                 containerCssClass: 'select2-service-container',
-                dropdownCssClass: 'select2-service-dropdown'
+                dropdownCssClass: 'select2-service-dropdown',
+                language: {
+                    searching: function() {
+                        return "Searching...";
+                    }
+                }
+            }).on('select2:open', function() {
+                // Force search input to be visible when dropdown opens
+                setTimeout(function() {
+                    document.querySelector('.select2-search__field').focus();
+                }, 100);
             }).on('change', function() {
                 handleServiceChange(this);
             });
