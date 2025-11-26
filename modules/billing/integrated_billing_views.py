@@ -1366,8 +1366,9 @@ def create_professional_invoice():
             invoice.discount_amount = discount_amount
             invoice.tips_amount = tips_amount
             invoice.total_amount = total_amount
-            invoice.balance_due = total_amount
+            invoice.balance_due = 0  # No balance due if payment is taken
             invoice.payment_status = 'paid' # Set to paid since payment is assumed to be taken
+            invoice.amount_paid = total_amount  # CRITICAL: Record the full amount as paid
 
             # Store GST fields properly
             invoice.cgst_rate = cgst_rate * 100
