@@ -358,7 +358,7 @@ def payment_audit_report():
                 'id': p.id,
                 'invoice_id': p.invoice_id,
                 'invoice_number': p.invoice.invoice_number if p.invoice else 'N/A',
-                'customer_name': f"{p.invoice.client.first_name} {p.invoice.client.last_name}" if p.invoice and p.invoice.client else 'N/A',
+                'customer_name': f"{p.invoice.customer.first_name} {p.invoice.customer.last_name}" if p.invoice and p.invoice.customer else 'N/A',
                 'payment_method': p.payment_method,
                 'amount': p.amount,
                 'payment_date': p.payment_date,
