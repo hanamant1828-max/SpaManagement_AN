@@ -256,6 +256,7 @@ def api_assign_and_pay():
             expires_on=expires_on,
             price_paid=grand_total,
             discount=discount,
+            payment_method=payment_data.get('method', 'cash'),
             status=assignment_status,
             notes=assignment_data.get('notes', '')
         )
