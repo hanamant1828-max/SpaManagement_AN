@@ -437,10 +437,18 @@ document.addEventListener('DOMContentLoaded', function() {
                     endDateInput.value = today.toISOString().split('T')[0];
                     startDateInput.value = thirtyDaysAgo.toISOString().split('T')[0];
                 }
+                
+                // Auto-submit after date range is set
+                setTimeout(() => {
+                    document.getElementById('reportForm').submit();
+                }, 100);
             } else {
                 dateRangeSection.style.display = 'none';
                 startDateInput.required = false;
                 endDateInput.required = false;
+                
+                // Auto-submit immediately for non-date-range reports
+                document.getElementById('reportForm').submit();
             }
         });
     });
