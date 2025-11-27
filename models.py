@@ -767,6 +767,7 @@ class ServicePackageAssignment(db.Model):
     expires_on = db.Column(db.DateTime, nullable=True)
     price_paid = db.Column(db.Float, nullable=False)
     discount = db.Column(db.Float, default=0)
+    payment_method = db.Column(db.String(20), nullable=True)  # cash, card, upi, cheque
     status = db.Column(db.String(20), default='active')  # active, completed, expired, cancelled
     notes = db.Column(db.Text)
 

@@ -1,4 +1,3 @@
-
 {% extends "base.html" %}
 
 {% block title %}Payment Audit Report - Daily Collection{% endblock %}
@@ -121,7 +120,9 @@
                         <div class="col mr-2">
                             <div class="text-xs font-weight-bold text-dark text-uppercase mb-1">Total Collection</div>
                             <div class="h3 mb-0 font-weight-bold text-dark">₹{{ "{:,.2f}".format(total_collection) }}</div>
-                            <small class="text-muted">{{ total_transactions }} payment transactions + {{ total_package_sales }} package sales</small>
+                            <p class="text-muted mb-0" style="font-size: 0.85rem;">
+                                {{ total_transactions }} Payment {{ 'Transaction' if total_transactions == 1 else 'Transactions' }}{% if total_package_sales > 0 %}, {{ total_package_sales }} Package {{ 'Sale' if total_package_sales == 1 else 'Sales' }}{% endif %}
+                            </p>
                         </div>
                         <div class="col-auto">
                             <i class="fas fa-cash-register fa-3x text-dark"></i>
@@ -222,11 +223,11 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                {% for pkg_type, data in package_sales_by_type.items() %}
+                                {% for pkg_type, details in package_sales_by_type.items() %}
                                 <tr>
                                     <td>{{ pkg_type }}</td>
-                                    <td><span class="badge bg-primary">{{ data.count }}</span></td>
-                                    <td><strong>₹{{ "{:,.2f}".format(data.revenue) }}</strong></td>
+                                    <td><span class="badge bg-primary rounded-pill">{{ details.count }}</span></td>
+                                    <td class="fw-bold text-success text-end">₹{{ "{:,.2f}".format(details.revenue) }}</td>
                                 </tr>
                                 {% endfor %}
                             </tbody>
@@ -258,30 +259,30 @@
                                 {% if package_cash > 0 %}
                                 <tr>
                                     <td><span class="badge bg-success">CASH</span></td>
-                                    <td><strong>₹{{ "{:,.2f}".format(package_cash) }}</strong></td>
+                                    <td class="fw-bold text-success text-end">₹{{ "{:,.2f}".format(package_cash) }}</td>
                                 </tr>
                                 {% endif %}
                                 {% if package_card > 0 %}
                                 <tr>
                                     <td><span class="badge bg-primary">CARD</span></td>
-                                    <td><strong>₹{{ "{:,.2f}".format(package_card) }}</strong></td>
+                                    <td class="fw-bold text-primary text-end">₹{{ "{:,.2f}".format(package_card) }}</td>
                                 </tr>
                                 {% endif %}
                                 {% if package_upi > 0 %}
                                 <tr>
                                     <td><span class="badge bg-info">UPI</span></td>
-                                    <td><strong>₹{{ "{:,.2f}".format(package_upi) }}</strong></td>
+                                    <td class="fw-bold text-info text-end">₹{{ "{:,.2f}".format(package_upi) }}</td>
                                 </tr>
                                 {% endif %}
                                 {% if package_cheque > 0 %}
                                 <tr>
                                     <td><span class="badge bg-warning">CHEQUE</span></td>
-                                    <td><strong>₹{{ "{:,.2f}".format(package_cheque) }}</strong></td>
+                                    <td class="fw-bold text-warning text-end">₹{{ "{:,.2f}".format(package_cheque) }}</td>
                                 </tr>
                                 {% endif %}
-                                <tr class="fw-bold">
-                                    <td>Total</td>
-                                    <td>₹{{ "{:,.2f}".format(total_package_revenue) }}</td>
+                                <tr class="table-active">
+                                    <td class="fw-bold">Total</td>
+                                    <td class="fw-bold text-dark text-end">₹{{ "{:,.2f}".format(total_package_revenue) }}</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -292,7 +293,7 @@
                 </div>
             </div>
         </div>
-        
+
         <div class="col-md-6">
             <div class="card shadow h-100">
                 <div class="card-header py-3 bg-warning text-white">
@@ -346,9 +347,9 @@
                                             {{ payment.payment_method|upper }}
                                         </span>
                                     </td>
-                                    <td><strong>₹{{ "{:,.2f}".format(payment.amount) }}</strong></td>
+                                    <td class="fw-bold text-success text-end">₹{{ "{:,.2f}".format(payment.amount) }}</td>
                                     <td>{{ payment.processed_by }}</td>
-                                    <td>{{ payment.reference or '-' }}</td>
+                                    <td>{{ payment.reference if payment.reference else 'N/A' }}</td>
                                 </tr>
                                 {% endfor %}
                             </tbody>
@@ -397,15 +398,12 @@
                                         {% endif %}
                                     </td>
                                     <td>
-                                        {% if sale.payment_method %}
-                                        <span class="badge bg-{{ 'success' if sale.payment_method == 'cash' else 'primary' if sale.payment_method == 'card' else 'info' if sale.payment_method == 'upi' else 'warning' }}">
-                                            {{ sale.payment_method|upper }}
+                                        {% set payment_method = sale.payment_method|default('cash')|lower %}
+                                        <span class="badge {% if payment_method == 'cash' %}bg-success{% elif payment_method == 'card' %}bg-primary{% elif payment_method == 'upi' %}bg-info{% elif payment_method == 'cheque' %}bg-warning{% else %}bg-danger{% endif %}">
+                                            {{ payment_method|title }}
                                         </span>
-                                        {% else %}
-                                        <span class="badge bg-secondary">N/A</span>
-                                        {% endif %}
                                     </td>
-                                    <td><strong>₹{{ "{:,.2f}".format(sale.price_paid or 0) }}</strong></td>
+                                    <td class="fw-bold text-primary text-end">₹{{ "{:,.2f}".format(sale.price_paid or 0) }}</td>
                                     <td>
                                         {% if sale.status == 'active' %}
                                         <span class="badge bg-success">{{ sale.status|title }}</span>
@@ -436,7 +434,7 @@ function setToday() {
 
 function exportToExcel() {
     const wb = XLSX.utils.book_new();
-    
+
     const summaryData = [
         ['Payment Audit Report'],
         ['Date', '{{ audit_date.strftime("%d/%m/%Y") }}'],
@@ -449,13 +447,13 @@ function exportToExcel() {
         [''],
         ['Total Collection', {{ total_transactions }}, {{ total_collection }}]
     ];
-    
+
     const detailData = [
         [''],
         ['Detailed Transactions'],
         ['Time', 'Invoice #', 'Customer', 'Payment Method', 'Amount', 'Processed By', 'Reference']
     ];
-    
+
     {% for payment in payments %}
     detailData.push([
         '{{ payment.payment_date.strftime("%I:%M %p") if payment.payment_date else "-" }}',
@@ -467,11 +465,11 @@ function exportToExcel() {
         '{{ payment.reference or "-" }}'
     ]);
     {% endfor %}
-    
+
     const allData = [...summaryData, ...detailData];
     const ws = XLSX.utils.aoa_to_sheet(allData);
     XLSX.utils.book_append_sheet(wb, ws, 'Payment Audit');
-    
+
     const fileName = `Payment_Audit_{{ audit_date.strftime("%Y%m%d") }}.xlsx`;
     XLSX.writeFile(wb, fileName);
 }

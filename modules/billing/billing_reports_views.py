@@ -440,12 +440,13 @@ def payment_audit_report():
                     print(f"  Error parsing payment_methods for invoice {inv.invoice_number}: {e}")
                     continue
 
-    # Total collection from payment methods only
+    # Recalculate payment_methods_total after adding package sales
     payment_methods_total = cash_total + card_total + upi_total + cheque_total
 
     print(f"  Cash: ₹{cash_total} ({cash_count} txns), Card: ₹{card_total} ({card_count} txns)")
     print(f"  UPI: ₹{upi_total} ({upi_count} txns), Cheque: ₹{cheque_total} ({cheque_count} txns)")
     print(f"  Payment Methods Total: ₹{payment_methods_total}")
+    print(f"  Package breakdown - Cash: ₹{package_cash}, Card: ₹{package_card}, UPI: ₹{package_upi}, Cheque: ₹{package_cheque}")
 
     # ====== PACKAGE BILLING DATA ======
     # Get package sales for the audit date
@@ -466,12 +467,32 @@ def payment_audit_report():
         package_sales_by_type[pkg_type]['revenue'] += pkg.price_paid or 0
 
     # Package sales by payment method
-    # Note: ServicePackageAssignment doesn't have payment_method field
-    # All package sales shown as total only
     package_cash = 0
     package_card = 0
     package_upi = 0
     package_cheque = 0
+    
+    for pkg in package_sales_today:
+        amount = pkg.price_paid or 0
+        payment_method = (pkg.payment_method or 'cash').lower()
+        
+        # Add to appropriate bucket
+        if payment_method == 'cash':
+            package_cash += amount
+            cash_total += amount
+            cash_count += 1
+        elif payment_method == 'card':
+            package_card += amount
+            card_total += amount
+            card_count += 1
+        elif payment_method == 'upi':
+            package_upi += amount
+            upi_total += amount
+            upi_count += 1
+        elif payment_method == 'cheque':
+            package_cheque += amount
+            cheque_total += amount
+            cheque_count += 1
 
     # Package usage/redemptions for the audit date
     package_usage_today = PackageUsageHistory.query.filter(
@@ -502,9 +523,9 @@ def payment_audit_report():
     # ====== TOTAL REVENUE (Service + Product + Package Sales) ======
     total_revenue_today = service_revenue_today + product_revenue_today + total_package_revenue
 
-    # ====== TOTAL COLLECTION (Payment Methods + Package Sales) ======
-    # This is the actual cash/card/upi collected + package sales
-    total_collection = payment_methods_total + total_package_revenue
+    # ====== TOTAL COLLECTION ======
+    # Total collection is already included in payment_methods_total (invoices + packages)
+    total_collection = payment_methods_total
 
     return render_template('payment_audit_report.html',
                          audit_date=audit_date,

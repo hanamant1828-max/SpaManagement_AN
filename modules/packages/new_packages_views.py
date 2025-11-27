@@ -59,7 +59,7 @@ def packages():
     user_role = getattr(current_user, 'role', None)
     is_admin = user_role in ['admin', 'super_admin', 'manager']
     has_permission = hasattr(current_user, 'can_access') and current_user.can_access('packages')
-    
+
     if not is_admin and not has_permission:
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
@@ -577,10 +577,10 @@ def packages_api_get_student_offer(offer_id):
     try:
         from modules.packages.new_packages_queries import get_student_offer_by_id
         offer = get_student_offer_by_id(offer_id)
-        
+
         if not offer:
             return jsonify({'success': False, 'error': 'Student offer not found'}), 404
-        
+
         # Get services for this offer
         services = []
         for offer_service in offer.student_offer_services:
@@ -588,7 +588,7 @@ def packages_api_get_student_offer(offer_id):
                 'id': offer_service.service.id,
                 'name': offer_service.service.name
             })
-        
+
         result = {
             'id': offer.id,
             'name': offer.name or '',
@@ -602,9 +602,9 @@ def packages_api_get_student_offer(offer_id):
             'services': services,
             'service_ids': [s['id'] for s in services]
         }
-        
+
         return jsonify({'success': True, 'offer': result})
-        
+
     except Exception as e:
         logging.error(f"Error getting student offer: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
@@ -615,21 +615,21 @@ def packages_api_update_student_offer(offer_id):
     """Update student offer - packages prefix route"""
     try:
         data = request.get_json()
-        
+
         if not data:
             return jsonify({'success': False, 'error': 'No data provided'}), 400
-        
+
         # Validate required fields
         required_fields = ['service_ids', 'discount_percentage', 'valid_from', 'valid_to']
         for field in required_fields:
             if field not in data or not data[field]:
                 return jsonify({'success': False, 'error': f'{field} is required'}), 400
-        
+
         # Validate service_ids
         service_ids = data.get('service_ids', [])
         if not isinstance(service_ids, list) or len(service_ids) == 0:
             return jsonify({'success': False, 'error': 'At least one service must be selected'}), 400
-        
+
         # Validate discount percentage
         try:
             discount = float(data['discount_percentage'])
@@ -637,7 +637,7 @@ def packages_api_update_student_offer(offer_id):
                 return jsonify({'success': False, 'error': 'Discount percentage must be between 1 and 100'}), 400
         except (ValueError, TypeError):
             return jsonify({'success': False, 'error': 'Invalid discount percentage'}), 400
-        
+
         # Validate price
         try:
             price = float(data.get('price', 0))
@@ -645,22 +645,22 @@ def packages_api_update_student_offer(offer_id):
                 return jsonify({'success': False, 'error': 'Package price cannot be negative'}), 400
         except (ValueError, TypeError):
             return jsonify({'success': False, 'error': 'Invalid price format'}), 400
-        
+
         # Validate dates
         try:
             from datetime import datetime
             valid_from = datetime.strptime(data['valid_from'], '%Y-%m-%d').date()
             valid_to = datetime.strptime(data['valid_to'], '%Y-%m-%d').date()
-            
+
             if valid_to < valid_from:
                 return jsonify({'success': False, 'error': 'Valid Until date must be greater than or equal to Valid From date'}), 400
-                
+
         except (ValueError, TypeError):
             return jsonify({'success': False, 'error': 'Invalid date format'}), 400
-        
+
         # Update student offer using the query function
         from modules.packages.new_packages_queries import update_student_offer
-        
+
         offer_data = {
             'name': data.get('name', ''),
             'price': price,
@@ -672,18 +672,18 @@ def packages_api_update_student_offer(offer_id):
             'service_ids': service_ids,
             'is_active': data.get('is_active', True)
         }
-        
+
         offer = update_student_offer(offer_id, offer_data)
-        
+
         if not offer:
             return jsonify({'success': False, 'error': 'Failed to update student offer'}), 500
-        
+
         return jsonify({
-            'success': True, 
+            'success': True,
             'message': 'Student offer updated successfully',
             'offer_id': offer.id
         })
-        
+
     except Exception as e:
         logging.error(f"Error updating student offer: {e}")
         import traceback
@@ -1349,11 +1349,12 @@ def assign_package():
                 expiry_date = datetime.utcnow() + timedelta(days=service_pkg.validity_months * 30)
 
             # Build payment notes
-            payment_notes = f"Payment: {payment_method.upper()} | Status: {payment_status.upper()} | Amount Paid: ₹{amount_paid} | Balance: ₹{balance_due}"
-            if transaction_ref:
-                payment_notes += f" | Ref: {transaction_ref}"
+            payment_method = data.get('payment_method', 'cash')
+            payment_notes = f"Payment: {payment_method}"
+            if data.get('payment_reference'):
+                payment_notes += f" | Ref: {data.get('payment_reference')}"
             if data.get('notes'):
-                payment_notes += f"\n{data.get('notes')}"
+                payment_notes += f" | {data.get('notes')}"
 
             # Create assignment record
             assignment = ServicePackageAssignment(
@@ -1365,6 +1366,7 @@ def assign_package():
                 expires_on=expiry_date,
                 price_paid=float(data['price_paid']),
                 discount=float(data.get('discount', 0)),
+                payment_method=payment_method,
                 status='active',
                 notes=payment_notes,
                 # Service package uses session tracking
