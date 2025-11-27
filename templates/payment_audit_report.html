@@ -208,7 +208,7 @@
         <div class="col-md-6">
             <div class="card shadow h-100">
                 <div class="card-header py-3 bg-info text-white">
-                    <h6 class="m-0 font-weight-bold"><i class="fas fa-gift me-2"></i>Package Sales Details</h6>
+                    <h6 class="m-0 font-weight-bold"><i class="fas fa-gift me-2"></i>Package Sales by Type</h6>
                 </div>
                 <div class="card-body">
                     {% if package_sales_by_type %}
@@ -234,6 +234,60 @@
                     </div>
                     {% else %}
                     <p class="text-center text-muted mb-0">No packages sold today</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card shadow h-100">
+                <div class="card-header py-3 bg-success text-white">
+                    <h6 class="m-0 font-weight-bold"><i class="fas fa-wallet me-2"></i>Package Payment Methods</h6>
+                </div>
+                <div class="card-body">
+                    {% if total_package_sales > 0 %}
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Payment Method</th>
+                                    <th>Amount</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% if package_cash > 0 %}
+                                <tr>
+                                    <td><span class="badge bg-success">CASH</span></td>
+                                    <td><strong>₹{{ "{:,.2f}".format(package_cash) }}</strong></td>
+                                </tr>
+                                {% endif %}
+                                {% if package_card > 0 %}
+                                <tr>
+                                    <td><span class="badge bg-primary">CARD</span></td>
+                                    <td><strong>₹{{ "{:,.2f}".format(package_card) }}</strong></td>
+                                </tr>
+                                {% endif %}
+                                {% if package_upi > 0 %}
+                                <tr>
+                                    <td><span class="badge bg-info">UPI</span></td>
+                                    <td><strong>₹{{ "{:,.2f}".format(package_upi) }}</strong></td>
+                                </tr>
+                                {% endif %}
+                                {% if package_cheque > 0 %}
+                                <tr>
+                                    <td><span class="badge bg-warning">CHEQUE</span></td>
+                                    <td><strong>₹{{ "{:,.2f}".format(package_cheque) }}</strong></td>
+                                </tr>
+                                {% endif %}
+                                <tr class="fw-bold">
+                                    <td>Total</td>
+                                    <td>₹{{ "{:,.2f}".format(total_package_revenue) }}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p class="text-center text-muted mb-0">No package payments today</p>
                     {% endif %}
                 </div>
             </div>
@@ -322,6 +376,7 @@
                                     <th>Customer</th>
                                     <th>Package Type</th>
                                     <th>Package Details</th>
+                                    <th>Payment Method</th>
                                     <th>Amount</th>
                                     <th>Status</th>
                                 </tr>
@@ -339,6 +394,15 @@
                                         ₹{{ "{:,.2f}".format(sale.credit_amount) }} credit
                                         {% else %}
                                         Membership
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if sale.payment_method %}
+                                        <span class="badge bg-{{ 'success' if sale.payment_method == 'cash' else 'primary' if sale.payment_method == 'card' else 'info' if sale.payment_method == 'upi' else 'warning' }}">
+                                            {{ sale.payment_method|upper }}
+                                        </span>
+                                        {% else %}
+                                        <span class="badge bg-secondary">N/A</span>
                                         {% endif %}
                                     </td>
                                     <td><strong>₹{{ "{:,.2f}".format(sale.price_paid or 0) }}</strong></td>

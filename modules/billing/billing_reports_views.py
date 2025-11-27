@@ -465,6 +465,12 @@ def payment_audit_report():
         package_sales_by_type[pkg_type]['count'] += 1
         package_sales_by_type[pkg_type]['revenue'] += pkg.price_paid or 0
 
+    # Package sales by payment method
+    package_cash = sum([p.price_paid or 0 for p in package_sales_today if p.payment_method and p.payment_method.lower() == 'cash'])
+    package_card = sum([p.price_paid or 0 for p in package_sales_today if p.payment_method and p.payment_method.lower() == 'card'])
+    package_upi = sum([p.price_paid or 0 for p in package_sales_today if p.payment_method and p.payment_method.lower() == 'upi'])
+    package_cheque = sum([p.price_paid or 0 for p in package_sales_today if p.payment_method and p.payment_method.lower() == 'cheque'])
+
     # Package usage/redemptions for the audit date
     package_usage_today = PackageUsageHistory.query.filter(
         func.date(PackageUsageHistory.charge_date) == audit_date
@@ -521,7 +527,11 @@ def payment_audit_report():
                          total_package_value_redeemed=total_package_value_redeemed,
                          service_revenue_today=service_revenue_today,
                          product_revenue_today=product_revenue_today,
-                         total_revenue_today=total_revenue_today)
+                         total_revenue_today=total_revenue_today,
+                         package_cash=package_cash,
+                         package_card=package_card,
+                         package_upi=package_upi,
+                         package_cheque=package_cheque)
 
 @app.route('/billing/reports/package-billing')
 @login_required
@@ -739,6 +749,13 @@ def owner_billing_audit():
         package_sales_by_type[pkg_type]['count'] += 1
         package_sales_by_type[pkg_type]['revenue'] += pkg.price_paid or 0
 
+    # Package sales by payment method
+    package_cash = sum([p.price_paid or 0 for p in package_sales_today if p.payment_method and p.payment_method.lower() == 'cash'])
+    package_card = sum([p.price_paid or 0 for p in package_sales_today if p.payment_method and p.payment_method.lower() == 'card'])
+    package_upi = sum([p.price_paid or 0 for p in package_sales_today if p.payment_method and p.payment_method.lower() == 'upi'])
+    package_cheque = sum([p.price_paid or 0 for p in package_sales_today if p.payment_method and p.payment_method.lower() == 'cheque'])
+
+
     # ====== PACKAGE USAGE TODAY ======
     package_usage_today = PackageUsageHistory.query.filter(
         func.date(PackageUsageHistory.charge_date) == audit_date
@@ -843,7 +860,11 @@ def owner_billing_audit():
                          total_discounts=total_discounts,
                          total_package_deductions=total_package_deductions,
                          grand_total_revenue=grand_total_revenue,
-                         invoices_today=invoices_today)
+                         invoices_today=invoices_today,
+                         package_cash=package_cash,
+                         package_card=package_card,
+                         package_upi=package_upi,
+                         package_cheque=package_cheque)
 
 
 print("✅ Billing reports views imported")
