@@ -83,36 +83,78 @@
         </div>
         <div class="card-body p-4">
             <form method="GET" id="reportForm" action="{{ url_for('inventory_reports') }}">
-                <div class="row g-4">
-                    <!-- Report Type Selection -->
-                    <div class="col-md-4">
-                        <label for="report_type" class="form-label fw-semibold">
+                <input type="hidden" id="report_type" name="report_type" value="">
+                
+                <div class="row g-3 mb-4">
+                    <div class="col-12">
+                        <label class="form-label fw-semibold mb-3">
                             <i class="fas fa-file-alt me-1"></i>Choose Report Type:
                         </label>
-                        <select class="form-select form-select-lg" id="report_type" name="report_type" required>
-                            <option value="">-- Select Report Type --</option>
-                            <option value="stock_levels">Stock Levels Report</option>
-                            <option value="consumption">Consumption Report (Custom Date Range)</option>
-                            <option value="low_stock">Low Stock Alert Report</option>
-                            <option value="expiry">Expiry Alert Report</option>
-                            <option value="stock_value">Stock Value Report</option>
-                            <option value="adjustments">Stock Adjustments Report</option>
-                            <option value="category_wise">Category-wise Stock Report</option>
-                            <option value="location_wise">Location-wise Stock Report</option>
-                        </select>
+                        <div class="row g-3">
+                            <div class="col-md-3 col-sm-6">
+                                <button type="button" class="btn btn-outline-primary w-100 report-btn" data-report="stock_levels">
+                                    <i class="fas fa-boxes fa-2x mb-2"></i><br>
+                                    <span class="small">Stock Levels Report</span>
+                                </button>
+                            </div>
+                            <div class="col-md-3 col-sm-6">
+                                <button type="button" class="btn btn-outline-primary w-100 report-btn" data-report="consumption">
+                                    <i class="fas fa-chart-line fa-2x mb-2"></i><br>
+                                    <span class="small">Consumption Report</span>
+                                </button>
+                            </div>
+                            <div class="col-md-3 col-sm-6">
+                                <button type="button" class="btn btn-outline-warning w-100 report-btn" data-report="low_stock">
+                                    <i class="fas fa-exclamation-triangle fa-2x mb-2"></i><br>
+                                    <span class="small">Low Stock Alert</span>
+                                </button>
+                            </div>
+                            <div class="col-md-3 col-sm-6">
+                                <button type="button" class="btn btn-outline-danger w-100 report-btn" data-report="expiry">
+                                    <i class="fas fa-calendar-times fa-2x mb-2"></i><br>
+                                    <span class="small">Expiry Alert Report</span>
+                                </button>
+                            </div>
+                            <div class="col-md-3 col-sm-6">
+                                <button type="button" class="btn btn-outline-success w-100 report-btn" data-report="stock_value">
+                                    <i class="fas fa-dollar-sign fa-2x mb-2"></i><br>
+                                    <span class="small">Stock Value Report</span>
+                                </button>
+                            </div>
+                            <div class="col-md-3 col-sm-6">
+                                <button type="button" class="btn btn-outline-info w-100 report-btn" data-report="adjustments">
+                                    <i class="fas fa-adjust fa-2x mb-2"></i><br>
+                                    <span class="small">Stock Adjustments</span>
+                                </button>
+                            </div>
+                            <div class="col-md-3 col-sm-6">
+                                <button type="button" class="btn btn-outline-secondary w-100 report-btn" data-report="category_wise">
+                                    <i class="fas fa-layer-group fa-2x mb-2"></i><br>
+                                    <span class="small">Category-wise Stock</span>
+                                </button>
+                            </div>
+                            <div class="col-md-3 col-sm-6">
+                                <button type="button" class="btn btn-outline-secondary w-100 report-btn" data-report="location_wise">
+                                    <i class="fas fa-map-marker-alt fa-2x mb-2"></i><br>
+                                    <span class="small">Location-wise Stock</span>
+                                </button>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Date Range Section -->
-                    <div id="dateRangeSection" class="col-md-8" style="display: none;">
+                    <div id="dateRangeSection" class="col-12" style="display: none;">
                         <label class="form-label fw-semibold">
                             <i class="fas fa-calendar-alt me-1"></i>Date Range:
                         </label>
                         <div class="row g-3">
                             <div class="col-md-6">
+                                <label class="form-label small">Start Date:</label>
                                 <input type="date" class="form-control form-control-lg" id="start_date" name="start_date" 
                                        value="{{ start_date.strftime('%Y-%m-%d') if start_date else '' }}">
                             </div>
                             <div class="col-md-6">
+                                <label class="form-label small">End Date:</label>
                                 <input type="date" class="form-control form-control-lg" id="end_date" name="end_date"
                                        value="{{ end_date.strftime('%Y-%m-%d') if end_date else '' }}">
                             </div>
@@ -121,7 +163,7 @@
 
                     <!-- Generate Button -->
                     <div class="col-12">
-                        <button type="submit" class="btn btn-primary btn-lg px-5" id="generateBtn">
+                        <button type="submit" class="btn btn-primary btn-lg px-5" id="generateBtn" disabled>
                             <i class="fas fa-chart-bar me-2"></i>Generate Report
                         </button>
                         <button type="button" class="btn btn-outline-secondary btn-lg px-5 ms-2" onclick="window.location.href='{{ url_for('inventory_reports') }}'">
@@ -307,42 +349,101 @@
     0%, 100% { opacity: 1; }
     50% { opacity: 0.5; }
 }
+
+/* Report Button Styles */
+.report-btn {
+    padding: 1.5rem 0.75rem;
+    height: 120px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    border-width: 2px;
+    font-weight: 500;
+}
+
+.report-btn:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+}
+
+.report-btn.active {
+    color: white !important;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+    transform: translateY(-2px);
+}
+
+.report-btn i {
+    transition: transform 0.3s ease;
+}
+
+.report-btn:hover i {
+    transform: scale(1.15);
+}
 </style>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    const reportTypeSelect = document.getElementById('report_type');
+    const reportTypeInput = document.getElementById('report_type');
     const dateRangeSection = document.getElementById('dateRangeSection');
     const startDateInput = document.getElementById('start_date');
     const endDateInput = document.getElementById('end_date');
+    const generateBtn = document.getElementById('generateBtn');
+    const reportButtons = document.querySelectorAll('.report-btn');
 
-    // Show/hide date range based on report type
-    reportTypeSelect.addEventListener('change', function() {
-        const reportsNeedingDateRange = ['consumption', 'adjustments'];
-
-        if (reportsNeedingDateRange.includes(this.value)) {
-            dateRangeSection.style.display = 'block';
-            startDateInput.required = true;
-            endDateInput.required = true;
-
-            // Set default dates if empty
-            if (!startDateInput.value || !endDateInput.value) {
-                const today = new Date();
-                const thirtyDaysAgo = new Date(today.getTime() - (30 * 24 * 60 * 60 * 1000));
-                endDateInput.value = today.toISOString().split('T')[0];
-                startDateInput.value = thirtyDaysAgo.toISOString().split('T')[0];
+    // Handle report button clicks
+    reportButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const reportType = this.getAttribute('data-report');
+            
+            // Remove active class from all buttons
+            reportButtons.forEach(btn => {
+                btn.classList.remove('active');
+                btn.classList.forEach(cls => {
+                    if (cls.startsWith('btn-') && !cls.includes('outline')) {
+                        btn.classList.remove(cls);
+                    }
+                });
+            });
+            
+            // Add active class to clicked button
+            this.classList.add('active');
+            const outlineClass = Array.from(this.classList).find(cls => cls.startsWith('btn-outline-'));
+            if (outlineClass) {
+                const solidClass = outlineClass.replace('btn-outline-', 'btn-');
+                this.classList.remove(outlineClass);
+                this.classList.add(solidClass);
             }
-        } else {
-            dateRangeSection.style.display = 'none';
-            startDateInput.required = false;
-            endDateInput.required = false;
-        }
-    });
+            
+            // Set the hidden input value
+            reportTypeInput.value = reportType;
+            
+            // Enable generate button
+            generateBtn.disabled = false;
+            
+            // Show/hide date range based on report type
+            const reportsNeedingDateRange = ['consumption', 'adjustments'];
+            
+            if (reportsNeedingDateRange.includes(reportType)) {
+                dateRangeSection.style.display = 'block';
+                startDateInput.required = true;
+                endDateInput.required = true;
 
-    // Trigger change event on page load if report type is already selected
-    if (reportTypeSelect.value) {
-        reportTypeSelect.dispatchEvent(new Event('change'));
-    }
+                // Set default dates if empty
+                if (!startDateInput.value || !endDateInput.value) {
+                    const today = new Date();
+                    const thirtyDaysAgo = new Date(today.getTime() - (30 * 24 * 60 * 60 * 1000));
+                    endDateInput.value = today.toISOString().split('T')[0];
+                    startDateInput.value = thirtyDaysAgo.toISOString().split('T')[0];
+                }
+            } else {
+                dateRangeSection.style.display = 'none';
+                startDateInput.required = false;
+                endDateInput.required = false;
+            }
+        });
+    });
 
     // Populate report table if data exists
     populateReportTable();
