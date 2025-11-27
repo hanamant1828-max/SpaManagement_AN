@@ -514,7 +514,7 @@ def package_billing_report():
     
     # Package usage stats
     total_usage_count = len(package_usage)
-    total_value_redeemed = sum([u.value_applied or 0 for u in package_usage])
+    total_value_redeemed = sum([u.discount_applied or 0 for u in package_usage])
     
     # Get top packages by sales
     top_packages = []
