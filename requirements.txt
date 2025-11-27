@@ -230,3 +230,4 @@ werkzeug
 wtforms
 opencv-python-headless
 pillow
+Pillow
