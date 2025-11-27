@@ -207,7 +207,7 @@ def integrated_billing(customer_id=None):
         # First try EnhancedInvoice table
         today_revenue = db.session.query(db.func.sum(EnhancedInvoice.total_amount)).filter(
             EnhancedInvoice.payment_status == 'paid',
-            db.func.date(EnhancedInvoice.invoice_date) == datetime.now().date()
+            db.func.date(EnhancedInvoice.invoice_date) == dt.now().date()
         ).scalar() or 0
 
         # If no data, try regular Invoice table as fallback
@@ -215,7 +215,7 @@ def integrated_billing(customer_id=None):
             from models import Invoice
             today_revenue = db.session.query(db.func.sum(Invoice.total_amount)).filter(
                 Invoice.payment_status == 'paid',
-                db.func.date(Invoice.created_at) == datetime.now().date()
+                db.func.date(Invoice.created_at) == dt.now().date()
             ).scalar() or 0
 
     except Exception as e:
@@ -2531,7 +2531,7 @@ def generate_invoice_preview():
                     <div class="col-6 text-end">
                         <strong>Invoice Details:</strong><br>
                         Invoice No: PREVIEW<br>
-                        Date: {datetime.now().strftime('%d-%m-%Y')}<br>
+                        Date: {dt.now().strftime('%d-%m-%Y')}<br>
                         GST Treatment: {'Interstate (IGST)' if is_interstate else 'Intrastate (CGST+SGST)'}
                     </div>
                 </div>
