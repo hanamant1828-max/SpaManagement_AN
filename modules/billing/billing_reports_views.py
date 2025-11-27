@@ -472,6 +472,27 @@ def payment_audit_report():
     total_package_redemptions = len(package_usage_today)
     total_package_value_redeemed = sum([u.discount_applied or 0 for u in package_usage_today])
 
+    # ====== SERVICE REVENUE TODAY ======
+    service_revenue_today = db.session.query(
+        func.sum(InvoiceItem.final_amount)
+    ).join(EnhancedInvoice, InvoiceItem.invoice_id == EnhancedInvoice.id).filter(
+        func.date(EnhancedInvoice.invoice_date) == audit_date,
+        EnhancedInvoice.payment_status == 'paid',
+        InvoiceItem.item_type == 'service'
+    ).scalar() or 0
+
+    # ====== PRODUCT REVENUE TODAY ======
+    product_revenue_today = db.session.query(
+        func.sum(InvoiceItem.final_amount)
+    ).join(EnhancedInvoice, InvoiceItem.invoice_id == EnhancedInvoice.id).filter(
+        func.date(EnhancedInvoice.invoice_date) == audit_date,
+        EnhancedInvoice.payment_status == 'paid',
+        InvoiceItem.item_type == 'inventory'
+    ).scalar() or 0
+
+    # ====== TOTAL REVENUE (Service + Product + Package Sales) ======
+    total_revenue_today = service_revenue_today + product_revenue_today + total_package_revenue
+
     return render_template('payment_audit_report.html',
                          audit_date=audit_date,
                          payments=payment_details,
@@ -491,7 +512,10 @@ def payment_audit_report():
                          package_sales_by_type=package_sales_by_type,
                          package_usage_today=package_usage_today,
                          total_package_redemptions=total_package_redemptions,
-                         total_package_value_redeemed=total_package_value_redeemed)
+                         total_package_value_redeemed=total_package_value_redeemed,
+                         service_revenue_today=service_revenue_today,
+                         product_revenue_today=product_revenue_today,
+                         total_revenue_today=total_revenue_today)
 
 @app.route('/billing/reports/package-billing')
 @login_required

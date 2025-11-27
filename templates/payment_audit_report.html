@@ -132,12 +132,83 @@
         </div>
     </div>
 
+    <!-- Revenue Breakdown Cards -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-success shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Service Revenue</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">₹{{ "{:,.2f}".format(service_revenue_today) }}</div>
+                            <small class="text-muted">Services sold today</small>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-spa fa-2x text-success"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-primary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Product Sales</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">₹{{ "{:,.2f}".format(product_revenue_today) }}</div>
+                            <small class="text-muted">Products sold today</small>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-box fa-2x text-primary"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-info shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Package Sales</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">₹{{ "{:,.2f}".format(total_package_revenue) }}</div>
+                            <small class="text-muted">{{ total_package_sales }} packages sold</small>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-gift fa-2x text-info"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-warning shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Total Revenue</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">₹{{ "{:,.2f}".format(total_revenue_today) }}</div>
+                            <small class="text-muted">All sources combined</small>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-chart-line fa-2x text-warning"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Package Billing Summary -->
     <div class="row mb-4">
         <div class="col-md-6">
             <div class="card shadow h-100">
                 <div class="card-header py-3 bg-info text-white">
-                    <h6 class="m-0 font-weight-bold"><i class="fas fa-gift me-2"></i>Package Sales: {{ total_package_sales }} (₹{{ "{:,.2f}".format(total_package_revenue) }})</h6>
+                    <h6 class="m-0 font-weight-bold"><i class="fas fa-gift me-2"></i>Package Sales Details</h6>
                 </div>
                 <div class="card-body">
                     {% if package_sales_by_type %}
