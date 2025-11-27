@@ -446,7 +446,6 @@ def payment_audit_report():
     print(f"  Cash: ₹{cash_total} ({cash_count} txns), Card: ₹{card_total} ({card_count} txns)")
     print(f"  UPI: ₹{upi_total} ({upi_count} txns), Cheque: ₹{cheque_total} ({cheque_count} txns)")
     print(f"  Payment Methods Total: ₹{payment_methods_total}")
-    print(f"  Package breakdown - Cash: ₹{package_cash}, Card: ₹{package_card}, UPI: ₹{package_upi}, Cheque: ₹{package_cheque}")
 
     # ====== PACKAGE BILLING DATA ======
     # Get package sales for the audit date
@@ -493,6 +492,8 @@ def payment_audit_report():
             package_cheque += amount
             cheque_total += amount
             cheque_count += 1
+
+    print(f"  Package breakdown - Cash: ₹{package_cash}, Card: ₹{package_card}, UPI: ₹{package_upi}, Cheque: ₹{package_cheque}")
 
     # Package usage/redemptions for the audit date
     package_usage_today = PackageUsageHistory.query.filter(
