@@ -132,8 +132,62 @@
         </div>
     </div>
 
+    <!-- Package Billing Summary -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card shadow h-100">
+                <div class="card-header py-3 bg-info text-white">
+                    <h6 class="m-0 font-weight-bold"><i class="fas fa-gift me-2"></i>Package Sales: {{ total_package_sales }} (₹{{ "{:,.2f}".format(total_package_revenue) }})</h6>
+                </div>
+                <div class="card-body">
+                    {% if package_sales_by_type %}
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Package Type</th>
+                                    <th>Sold</th>
+                                    <th>Revenue</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for pkg_type, data in package_sales_by_type.items() %}
+                                <tr>
+                                    <td>{{ pkg_type }}</td>
+                                    <td><span class="badge bg-primary">{{ data.count }}</span></td>
+                                    <td><strong>₹{{ "{:,.2f}".format(data.revenue) }}</strong></td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p class="text-center text-muted mb-0">No packages sold today</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card shadow h-100">
+                <div class="card-header py-3 bg-warning text-white">
+                    <h6 class="m-0 font-weight-bold"><i class="fas fa-ticket-alt me-2"></i>Package Redemptions: {{ total_package_redemptions }} (₹{{ "{:,.2f}".format(total_package_value_redeemed) }})</h6>
+                </div>
+                <div class="card-body">
+                    {% if package_usage_today %}
+                    <p class="mb-2"><strong>Total Redemptions:</strong> {{ total_package_redemptions }}</p>
+                    <p class="mb-2"><strong>Total Value Redeemed:</strong> ₹{{ "{:,.2f}".format(total_package_value_redeemed) }}</p>
+                    <small class="text-muted">Package benefits applied to services today</small>
+                    {% else %}
+                    <p class="text-center text-muted mb-0">No package redemptions today</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Detailed Transactions -->
-    <div class="row">
+    <div class="row mb-4">
         <div class="col-12">
             <div class="card shadow">
                 <div class="card-header py-3 d-flex justify-content-between align-items-center">
@@ -179,6 +233,61 @@
             </div>
         </div>
     </div>
+
+    <!-- Package Sales Details -->
+    {% if package_sales_today %}
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-info">Package Sales Details</h6>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Time</th>
+                                    <th>Customer</th>
+                                    <th>Package Type</th>
+                                    <th>Package Details</th>
+                                    <th>Amount</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for sale in package_sales_today %}
+                                <tr>
+                                    <td>{{ sale.assigned_on.strftime('%I:%M %p') if sale.assigned_on else '-' }}</td>
+                                    <td>{{ sale.customer.first_name }} {{ sale.customer.last_name }}</td>
+                                    <td><span class="badge bg-info">{{ sale.package_type.replace('_', ' ')|title }}</span></td>
+                                    <td>
+                                        {% if sale.total_sessions %}
+                                        {{ sale.total_sessions }} sessions
+                                        {% elif sale.credit_amount %}
+                                        ₹{{ "{:,.2f}".format(sale.credit_amount) }} credit
+                                        {% else %}
+                                        Membership
+                                        {% endif %}
+                                    </td>
+                                    <td><strong>₹{{ "{:,.2f}".format(sale.price_paid or 0) }}</strong></td>
+                                    <td>
+                                        {% if sale.status == 'active' %}
+                                        <span class="badge bg-success">{{ sale.status|title }}</span>
+                                        {% else %}
+                                        <span class="badge bg-secondary">{{ sale.status|title }}</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
 </div>
 {% endblock %}
 

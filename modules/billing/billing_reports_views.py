@@ -446,6 +446,32 @@ def payment_audit_report():
     print(f"  UPI: ₹{upi_total} ({upi_count} txns), Cheque: ₹{cheque_total} ({cheque_count} txns)")
     print(f"  Total: ₹{total_collection}")
 
+    # ====== PACKAGE BILLING DATA ======
+    # Get package sales for the audit date
+    package_sales_today = ServicePackageAssignment.query.filter(
+        func.date(ServicePackageAssignment.assigned_on) == audit_date
+    ).order_by(ServicePackageAssignment.assigned_on.desc()).all()
+
+    total_package_sales = len(package_sales_today)
+    total_package_revenue = sum([p.price_paid or 0 for p in package_sales_today])
+
+    # Package sales by type
+    package_sales_by_type = {}
+    for pkg in package_sales_today:
+        pkg_type = pkg.package_type.replace('_', ' ').title()
+        if pkg_type not in package_sales_by_type:
+            package_sales_by_type[pkg_type] = {'count': 0, 'revenue': 0}
+        package_sales_by_type[pkg_type]['count'] += 1
+        package_sales_by_type[pkg_type]['revenue'] += pkg.price_paid or 0
+
+    # Package usage/redemptions for the audit date
+    package_usage_today = PackageUsageHistory.query.filter(
+        func.date(PackageUsageHistory.charge_date) == audit_date
+    ).order_by(PackageUsageHistory.charge_date.desc()).all()
+
+    total_package_redemptions = len(package_usage_today)
+    total_package_value_redeemed = sum([u.discount_applied or 0 for u in package_usage_today])
+
     return render_template('payment_audit_report.html',
                          audit_date=audit_date,
                          payments=payment_details,
@@ -458,7 +484,14 @@ def payment_audit_report():
                          upi_count=upi_count,
                          cheque_count=cheque_count,
                          total_collection=total_collection,
-                         total_transactions=len(payment_details))
+                         total_transactions=len(payment_details),
+                         package_sales_today=package_sales_today,
+                         total_package_sales=total_package_sales,
+                         total_package_revenue=total_package_revenue,
+                         package_sales_by_type=package_sales_by_type,
+                         package_usage_today=package_usage_today,
+                         total_package_redemptions=total_package_redemptions,
+                         total_package_value_redeemed=total_package_value_redeemed)
 
 @app.route('/billing/reports/package-billing')
 @login_required
