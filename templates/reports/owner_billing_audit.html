@@ -341,12 +341,26 @@
                     <hr>
                     <h6 class="font-weight-bold">Package Sales Details:</h6>
                     <div class="table-responsive">
-                        <table class="table table-sm">
+                        <table class="table table-sm table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Customer</th>
+                                    <th>Package Type</th>
+                                    <th>Payment</th>
+                                    <th>Amount</th>
+                                </tr>
+                            </thead>
                             <tbody>
                                 {% for pkg in package_sales_today %}
+                                {% set payment_method = (pkg.payment_method or 'cash')|lower %}
                                 <tr>
                                     <td>{{ pkg.customer.first_name }} {{ pkg.customer.last_name }}</td>
                                     <td><span class="badge bg-info">{{ pkg.package_type.replace('_', ' ').title() }}</span></td>
+                                    <td>
+                                        <span class="badge {% if payment_method == 'cash' %}bg-success{% elif payment_method == 'card' %}bg-primary{% elif payment_method == 'upi' %}bg-info{% elif payment_method == 'cheque' %}bg-warning{% else %}bg-secondary{% endif %}">
+                                            {{ payment_method|title }}
+                                        </span>
+                                    </td>
                                     <td><strong>₹{{ "{:,.2f}".format(pkg.price_paid or 0) }}</strong></td>
                                 </tr>
                                 {% endfor %}
