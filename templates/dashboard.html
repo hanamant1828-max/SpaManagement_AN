@@ -1,399 +1,412 @@
+
 {% extends "base.html" %}
 {% block title %}Dashboard - Spa & Salon Management{% endblock %}
 {% block body_class %}dashboard-page{% endblock %}
 
 {% block extra_css %}
 <style>
-    /* Dashboard-Specific Styles - Using Centralized Theme Tokens */
+    /* Modern Dashboard Styles */
     .dashboard-container {
-        max-width: var(--container-max-width);
+        max-width: 1400px;
         margin: 0 auto;
-        padding: var(--space-8) var(--space-6);
+        padding: 2rem;
+        background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+        min-height: calc(100vh - 56px);
     }
 
-    .page-header-content {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        gap: 2rem;
-        flex-wrap: wrap;
+    /* Welcome Header */
+    .welcome-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 20px;
+        padding: 2.5rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 10px 40px rgba(102, 126, 234, 0.3);
+        color: white;
+        position: relative;
+        overflow: hidden;
     }
 
-    .header-left h1 {
-        font-size: 1.875rem;
+    .welcome-header::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        right: -10%;
+        width: 300px;
+        height: 300px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 50%;
+    }
+
+    .welcome-header h1 {
+        font-size: 2.5rem;
         font-weight: 700;
-        color: var(--text-primary);
         margin-bottom: 0.5rem;
+        position: relative;
+        z-index: 1;
     }
 
-    .header-subtitle {
-        color: var(--text-secondary);
-        font-size: 0.875rem;
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
+    .welcome-header p {
+        font-size: 1.1rem;
+        opacity: 0.95;
+        position: relative;
+        z-index: 1;
     }
 
-    .header-meta {
+    .welcome-meta {
         display: flex;
-        gap: 1rem;
-        margin-top: 0.75rem;
-        color: var(--text-tertiary);
-        font-size: 0.875rem;
+        gap: 2rem;
+        margin-top: 1rem;
+        position: relative;
+        z-index: 1;
     }
 
     .meta-item {
         display: flex;
         align-items: center;
-        gap: 0.375rem;
-    }
-
-    .header-actions {
-        display: flex;
-        gap: 0.75rem;
-    }
-
-    .btn-action {
-        padding: 0.625rem 1.25rem;
-        border-radius: 8px;
-        font-weight: 500;
-        font-size: 0.875rem;
-        text-decoration: none;
-        transition: all 0.2s;
-        display: inline-flex;
-        align-items: center;
         gap: 0.5rem;
-        border: none;
-        cursor: pointer;
+        background: rgba(255, 255, 255, 0.2);
+        padding: 0.5rem 1rem;
+        border-radius: 10px;
+        backdrop-filter: blur(10px);
     }
 
-    .btn-action.primary {
-        background: var(--spa-primary);
-        color: white;
-    }
-
-    .btn-action.primary:hover {
-        background: var(--spa-primary-dark);
-    }
-
-    .btn-action.secondary {
-        background: white;
-        color: var(--spa-primary);
-        border: 1px solid var(--border-medium);
-    }
-
-    .btn-action.secondary:hover {
-        background: var(--bg-tertiary);
-    }
-
-    /* Stats Grid */
+    /* Modern Stats Cards */
     .stats-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
         gap: 1.5rem;
         margin-bottom: 2rem;
     }
 
     .stat-card {
-        background: var(--bg-primary);
-        border-radius: 12px;
-        padding: 1.5rem;
-        box-shadow: var(--shadow-sm);
-        border: 1px solid var(--border-light);
-        transition: all 0.2s;
+        background: white;
+        border-radius: 20px;
+        padding: 2rem;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .stat-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 5px;
+        background: linear-gradient(90deg, var(--card-gradient-start), var(--card-gradient-end));
+    }
+
+    .stat-card.primary {
+        --card-gradient-start: #667eea;
+        --card-gradient-end: #764ba2;
+    }
+
+    .stat-card.success {
+        --card-gradient-start: #34a853;
+        --card-gradient-end: #16a34a;
+    }
+
+    .stat-card.info {
+        --card-gradient-start: #4facfe;
+        --card-gradient-end: #00f2fe;
+    }
+
+    .stat-card.warning {
+        --card-gradient-start: #fa709a;
+        --card-gradient-end: #fee140;
     }
 
     .stat-card:hover {
-        box-shadow: var(--shadow-md);
-        transform: translateY(-2px);
+        transform: translateY(-8px);
+        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
     }
 
     .stat-header {
         display: flex;
         justify-content: space-between;
         align-items: flex-start;
-        margin-bottom: 1rem;
-    }
-
-    .stat-label {
-        font-size: 0.75rem;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        color: var(--text-secondary);
+        margin-bottom: 1.5rem;
     }
 
     .stat-icon {
-        width: 48px;
-        height: 48px;
-        border-radius: 10px;
+        width: 60px;
+        height: 60px;
+        border-radius: 15px;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 1.25rem;
+        font-size: 1.8rem;
+        background: linear-gradient(135deg, var(--card-gradient-start), var(--card-gradient-end));
         color: white;
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
     }
 
-    .stat-card.primary .stat-icon {
-        background: linear-gradient(135deg, var(--spa-primary), var(--spa-primary-light));
-    }
-
-    .stat-card.success .stat-icon {
-        background: linear-gradient(135deg, var(--spa-success), var(--spa-success-light));
-    }
-
-    .stat-card.info .stat-icon {
-        background: linear-gradient(135deg, var(--spa-info), var(--spa-info-light));
-    }
-
-    .stat-card.warning .stat-icon {
-        background: linear-gradient(135deg, var(--spa-warning), var(--spa-warning-light));
+    .stat-label {
+        font-size: 0.85rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: #64748b;
+        margin-bottom: 0.5rem;
     }
 
     .stat-value {
-        font-size: 2rem;
+        font-size: 2.5rem;
         font-weight: 700;
-        color: var(--text-primary);
+        color: #1e293b;
         margin-bottom: 0.5rem;
+        line-height: 1;
     }
 
     .stat-change {
         display: inline-flex;
         align-items: center;
-        gap: 0.375rem;
-        font-size: 0.75rem;
+        gap: 0.4rem;
+        font-size: 0.85rem;
         font-weight: 600;
-        padding: 0.25rem 0.625rem;
-        border-radius: 6px;
+        padding: 0.4rem 0.8rem;
+        border-radius: 8px;
     }
 
     .stat-change.positive {
         background: rgba(52, 168, 83, 0.1);
-        color: var(--spa-success-dark);
+        color: #16a34a;
     }
 
     .stat-change.negative {
-        background: rgba(234, 67, 53, 0.1);
-        color: var(--spa-danger-dark);
+        background: rgba(239, 68, 68, 0.1);
+        color: #dc2626;
     }
 
-    .stat-change.neutral {
-        background: var(--bg-tertiary);
-        color: var(--text-secondary);
+    /* Payment Breakdown */
+    .payment-breakdown {
+        background: white;
+        border-radius: 20px;
+        padding: 2rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    }
+
+    .payment-breakdown h3 {
+        font-size: 1.4rem;
+        font-weight: 700;
+        color: #1e293b;
+        margin-bottom: 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .payment-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1.5rem;
+    }
+
+    .payment-card {
+        background: linear-gradient(135deg, var(--payment-gradient-start), var(--payment-gradient-end));
+        border-radius: 15px;
+        padding: 1.5rem;
+        color: white;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .payment-card::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        right: -20%;
+        width: 150px;
+        height: 150px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 50%;
+    }
+
+    .payment-card.cash {
+        --payment-gradient-start: #34a853;
+        --payment-gradient-end: #16a34a;
+    }
+
+    .payment-card.upi {
+        --payment-gradient-start: #4facfe;
+        --payment-gradient-end: #00f2fe;
+    }
+
+    .payment-card.card {
+        --payment-gradient-start: #667eea;
+        --payment-gradient-end: #764ba2;
+    }
+
+    .payment-card.total {
+        --payment-gradient-start: #fa709a;
+        --payment-gradient-end: #fee140;
+    }
+
+    .payment-label {
+        font-size: 0.9rem;
+        opacity: 0.9;
+        margin-bottom: 0.5rem;
+        position: relative;
+        z-index: 1;
+    }
+
+    .payment-amount {
+        font-size: 2rem;
+        font-weight: 700;
+        margin-bottom: 0.3rem;
+        position: relative;
+        z-index: 1;
+    }
+
+    .payment-count {
+        font-size: 0.85rem;
+        opacity: 0.85;
+        position: relative;
+        z-index: 1;
     }
 
     /* Quick Actions */
     .quick-actions {
-        background: var(--bg-primary);
-        border-radius: 12px;
-        padding: 1.5rem;
+        background: white;
+        border-radius: 20px;
+        padding: 2rem;
         margin-bottom: 2rem;
-        box-shadow: var(--shadow-sm);
-        border: 1px solid var(--border-light);
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
     }
 
     .quick-actions h3 {
-        font-size: 1rem;
-        font-weight: 600;
-        color: var(--text-primary);
-        margin-bottom: 1rem;
+        font-size: 1.4rem;
+        font-weight: 700;
+        color: #1e293b;
+        margin-bottom: 1.5rem;
         display: flex;
         align-items: center;
-        gap: 0.5rem;
+        gap: 0.75rem;
     }
 
-    .action-buttons {
+    .action-grid {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
         gap: 1rem;
     }
 
     .action-btn {
-        padding: 1rem;
-        border-radius: 8px;
+        background: white;
+        border: 2px solid #e2e8f0;
+        border-radius: 15px;
+        padding: 1.5rem;
         text-decoration: none;
         display: flex;
+        flex-direction: column;
         align-items: center;
-        gap: 0.75rem;
-        font-weight: 500;
-        transition: all 0.2s;
-        border: 1px solid var(--border-light);
-        background: white;
+        gap: 1rem;
+        transition: all 0.3s ease;
+        color: #1e293b;
     }
 
     .action-btn:hover {
-        transform: translateY(-2px);
-        box-shadow: var(--shadow-md);
+        transform: translateY(-5px);
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+        border-color: #667eea;
     }
 
     .action-btn i {
-        font-size: 1.25rem;
-        width: 40px;
-        height: 40px;
+        width: 55px;
+        height: 55px;
         display: flex;
         align-items: center;
         justify-content: center;
-        border-radius: 8px;
+        border-radius: 12px;
+        font-size: 1.5rem;
+        background: linear-gradient(135deg, var(--action-gradient-start), var(--action-gradient-end));
+        color: white;
     }
 
     .action-btn.primary i {
-        background: linear-gradient(135deg, var(--spa-primary), var(--spa-primary-light));
-        color: white;
+        --action-gradient-start: #667eea;
+        --action-gradient-end: #764ba2;
     }
 
     .action-btn.success i {
-        background: linear-gradient(135deg, var(--spa-success), var(--spa-success-light));
-        color: white;
+        --action-gradient-start: #34a853;
+        --action-gradient-end: #16a34a;
     }
 
     .action-btn.info i {
-        background: linear-gradient(135deg, var(--spa-info), var(--spa-info-light));
-        color: white;
+        --action-gradient-start: #4facfe;
+        --action-gradient-end: #00f2fe;
     }
 
     .action-btn.warning i {
-        background: linear-gradient(135deg, var(--spa-warning), var(--spa-warning-light));
-        color: white;
+        --action-gradient-start: #fa709a;
+        --action-gradient-end: #fee140;
     }
 
     .action-btn span {
-        color: var(--text-primary);
+        font-weight: 600;
+        text-align: center;
     }
 
     /* Charts Section */
     .charts-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
         gap: 1.5rem;
         margin-bottom: 2rem;
     }
 
     .chart-card {
-        background: var(--bg-primary);
-        border-radius: 12px;
-        padding: 1.5rem;
-        box-shadow: var(--shadow-sm);
-        border: 1px solid var(--border-light);
+        background: white;
+        border-radius: 20px;
+        padding: 2rem;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
     }
 
     .chart-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
         margin-bottom: 1.5rem;
     }
 
     .chart-title {
-        font-size: 1.125rem;
-        font-weight: 600;
-        color: var(--text-primary);
+        font-size: 1.3rem;
+        font-weight: 700;
+        color: #1e293b;
+        margin-bottom: 0.3rem;
     }
 
     .chart-subtitle {
-        font-size: 0.75rem;
-        color: var(--text-secondary);
-        margin-top: 0.25rem;
+        font-size: 0.9rem;
+        color: #64748b;
     }
 
     .chart-container {
         position: relative;
-        height: 300px;
+        height: 320px;
     }
 
-    /* Recent Activity */
-    .activity-section {
-        background: var(--bg-primary);
-        border-radius: 12px;
-        padding: 1.5rem;
-        box-shadow: var(--shadow-sm);
-        border: 1px solid var(--border-light);
-    }
-
-    .activity-section h3 {
-        font-size: 1.125rem;
-        font-weight: 600;
-        color: var(--text-primary);
-        margin-bottom: 1rem;
-    }
-
-    .activity-item {
-        padding: 1rem;
-        border-bottom: 1px solid var(--border-light);
-        display: flex;
-        gap: 1rem;
-        transition: background 0.2s;
-    }
-
-    .activity-item:last-child {
-        border-bottom: none;
-    }
-
-    .activity-item:hover {
-        background: var(--bg-tertiary);
-    }
-
-    .activity-icon {
-        width: 40px;
-        height: 40px;
-        border-radius: 8px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        flex-shrink: 0;
-        background: var(--bg-tertiary);
-        color: var(--spa-primary);
-    }
-
-    .activity-content {
-        flex: 1;
-    }
-
-    .activity-title {
-        font-weight: 500;
-        color: var(--text-primary);
-        margin-bottom: 0.25rem;
-    }
-
-    .activity-time {
-        font-size: 0.75rem;
-        color: var(--text-tertiary);
-    }
-
-    /* Responsive */
+    /* Responsive Design */
     @media (max-width: 768px) {
         .dashboard-container {
             padding: 1rem;
         }
 
-        .page-header-content {
-            flex-direction: column;
-            align-items: stretch;
+        .welcome-header h1 {
+            font-size: 1.8rem;
         }
 
-        .header-actions {
-            flex-direction: column;
-        }
-
-        .stats-grid {
+        .stats-grid, .payment-grid, .action-grid, .charts-grid {
             grid-template-columns: 1fr;
         }
 
-        .charts-grid {
-            grid-template-columns: 1fr;
+        .welcome-meta {
+            flex-direction: column;
+            gap: 0.5rem;
         }
 
         .stat-value {
-            font-size: 1.75rem;
-        }
-    }
-
-    @media (max-width: 480px) {
-        .header-left h1 {
-            font-size: 1.5rem;
-        }
-
-        .action-buttons {
-            grid-template-columns: 1fr;
+            font-size: 2rem;
         }
     }
 </style>
@@ -401,35 +414,120 @@
 
 {% block content %}
 <div class="dashboard-container">
-    <!-- Header -->
-    <div class="page-header">
-        <div class="page-header-content">
-            <div class="header-left">
-                <h1>Dashboard</h1>
-                <p class="header-subtitle">
-                    <i class="fas fa-chart-line"></i>
-                    Business overview and key metrics
-                </p>
-                <div class="header-meta">
-                    <span class="meta-item">
-                        <i class="fas fa-calendar"></i>
-                        {{ current_date }}
+    <!-- Welcome Header -->
+    <div class="welcome-header">
+        <h1>Welcome back, {{ current_user.first_name }}! 👋</h1>
+        <p>Here's what's happening with your business today</p>
+        <div class="welcome-meta">
+            <div class="meta-item">
+                <i class="fas fa-calendar"></i>
+                <span>{{ current_date }}</span>
+            </div>
+            <div class="meta-item">
+                <i class="fas fa-clock"></i>
+                <span>{{ current_time }}</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stats Grid -->
+    <div class="stats-grid">
+        <!-- Today's Revenue -->
+        <div class="stat-card primary">
+            <div class="stat-header">
+                <div>
+                    <div class="stat-label">Today's Revenue</div>
+                    <div class="stat-value">{{ utils.format_currency(stats.total_revenue_today) }}</div>
+                    {% if today_vs_yesterday > 0 %}
+                    <span class="stat-change positive">
+                        <i class="fas fa-arrow-up"></i> {{ today_vs_yesterday }}%
                     </span>
-                    <span class="meta-item">
-                        <i class="fas fa-user"></i>
-                        {{ current_user.username }}
+                    {% elif today_vs_yesterday < 0 %}
+                    <span class="stat-change negative">
+                        <i class="fas fa-arrow-down"></i> {{ today_vs_yesterday|abs }}%
                     </span>
+                    {% endif %}
+                </div>
+                <div class="stat-icon">
+                    <i class="fas fa-rupee-sign"></i>
                 </div>
             </div>
-            <div class="header-actions">
-                <a href="{{ url_for('reports') }}" class="btn-action secondary">
-                    <i class="fas fa-chart-bar"></i>
-                    <span>Reports</span>
-                </a>
-                <a href="{{ url_for('unaki_booking') }}" class="btn-action primary">
-                    <i class="fas fa-calendar-plus"></i>
-                    <span>New Booking</span>
-                </a>
+        </div>
+
+        <!-- Monthly Revenue -->
+        <div class="stat-card success">
+            <div class="stat-header">
+                <div>
+                    <div class="stat-label">Monthly Revenue</div>
+                    <div class="stat-value">{{ utils.format_currency(stats.total_revenue_month) }}</div>
+                    {% if month_vs_last_month > 0 %}
+                    <span class="stat-change positive">
+                        <i class="fas fa-arrow-up"></i> {{ month_vs_last_month }}%
+                    </span>
+                    {% endif %}
+                </div>
+                <div class="stat-icon">
+                    <i class="fas fa-chart-line"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Today's Appointments -->
+        <div class="stat-card info">
+            <div class="stat-header">
+                <div>
+                    <div class="stat-label">Today's Appointments</div>
+                    <div class="stat-value">{{ stats.todays_appointments }}</div>
+                    <span class="stat-change positive">
+                        <i class="fas fa-calendar-check"></i> Active
+                    </span>
+                </div>
+                <div class="stat-icon">
+                    <i class="fas fa-calendar-alt"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Total Clients -->
+        <div class="stat-card warning">
+            <div class="stat-header">
+                <div>
+                    <div class="stat-label">Total Clients</div>
+                    <div class="stat-value">{{ stats.total_clients }}</div>
+                    <span class="stat-change positive">
+                        <i class="fas fa-users"></i> Registered
+                    </span>
+                </div>
+                <div class="stat-icon">
+                    <i class="fas fa-user-friends"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Payment Breakdown -->
+    <div class="payment-breakdown">
+        <h3><i class="fas fa-wallet"></i> Today's Payment Breakdown</h3>
+        <div class="payment-grid">
+            <div class="payment-card cash">
+                <div class="payment-label">Cash Payments</div>
+                <div class="payment-amount">{{ utils.format_currency(stats.todays_cash) }}</div>
+                <div class="payment-count">{{ stats.cash_transaction_count }} transactions</div>
+            </div>
+            <div class="payment-card upi">
+                <div class="payment-label">UPI Payments</div>
+                <div class="payment-amount">{{ utils.format_currency(stats.todays_upi) }}</div>
+                <div class="payment-count">PhonePe, GPay, etc.</div>
+            </div>
+            <div class="payment-card card">
+                <div class="payment-label">Card Payments</div>
+                <div class="payment-amount">{{ utils.format_currency(stats.todays_card) }}</div>
+                <div class="payment-count">Debit/Credit Cards</div>
+            </div>
+            <div class="payment-card total">
+                <div class="payment-label">Total Collection</div>
+                <div class="payment-amount">{{ utils.format_currency(stats.total_revenue_today) }}</div>
+                <div class="payment-count">All payment methods</div>
             </div>
         </div>
     </div>
@@ -437,7 +535,7 @@
     <!-- Quick Actions -->
     <div class="quick-actions">
         <h3><i class="fas fa-bolt"></i> Quick Actions</h3>
-        <div class="action-buttons">
+        <div class="action-grid">
             <a href="{{ url_for('unaki_booking') }}" class="action-btn primary">
                 <i class="fas fa-calendar-plus"></i>
                 <span>New Appointment</span>
@@ -448,136 +546,22 @@
             </a>
             <a href="{{ url_for('services') }}" class="action-btn info">
                 <i class="fas fa-spa"></i>
-                <span>Services</span>
+                <span>Manage Services</span>
             </a>
             <a href="{{ url_for('comprehensive_staff') }}" class="action-btn warning">
-                <i class="fas fa-users"></i>
-                <span>Staff</span>
+                <i class="fas fa-users-cog"></i>
+                <span>Staff Management</span>
             </a>
         </div>
     </div>
 
-    <!-- Stats Grid -->
-    <div class="stats-grid">
-        <!-- Revenue Card -->
-        <div class="stat-card primary">
-            <div class="stat-header">
-                <span class="stat-label">Today's Revenue</span>
-                <div class="stat-icon">
-                    <i class="fas fa-rupee-sign"></i>
-                </div>
-            </div>
-            <div class="stat-value">{{ utils.format_currency(stats.total_revenue_today) }}</div>
-            {% if today_vs_yesterday > 0 %}
-            <span class="stat-change positive">
-                <i class="fas fa-arrow-up"></i> {{ today_vs_yesterday }}% vs yesterday
-            </span>
-            {% elif today_vs_yesterday < 0 %}
-            <span class="stat-change negative">
-                <i class="fas fa-arrow-down"></i> {{ today_vs_yesterday|abs }}% vs yesterday
-            </span>
-            {% else %}
-            <span class="stat-change neutral">
-                <i class="fas fa-minus"></i> Same as yesterday
-            </span>
-            {% endif %}
-        </div>
-
-        <!-- Cash Collection Card -->
-        <div class="stat-card success">
-            <div class="stat-header">
-                <span class="stat-label">Today's Cash Collection</span>
-                <div class="stat-icon">
-                    <i class="fas fa-money-bill-wave"></i>
-                </div>
-            </div>
-            <div class="stat-value">{{ utils.format_currency(stats.todays_cash) }}</div>
-            <span class="stat-change positive">
-                <i class="fas fa-receipt"></i> {{ stats.cash_transaction_count }} transactions
-            </span>
-        </div>
-
-        <!-- Online Collection Card -->
-        <div class="stat-card info">
-            <div class="stat-header">
-                <span class="stat-label">Today's Online Collection</span>
-                <div class="stat-icon">
-                    <i class="fas fa-credit-card"></i>
-                </div>
-            </div>
-            <div class="stat-value">{{ utils.format_currency(stats.todays_online) }}</div>
-            <span class="stat-change positive">
-                <i class="fas fa-receipt"></i> {{ stats.online_transaction_count }} transactions
-            </span>
-        </div>
-
-        <!-- Month Revenue Card -->
-        <div class="stat-card warning">
-            <div class="stat-header">
-                <span class="stat-label">Monthly Revenue</span>
-                <div class="stat-icon">
-                    <i class="fas fa-chart-line"></i>
-                </div>
-            </div>
-            <div class="stat-value">{{ utils.format_currency(stats.total_revenue_month) }}</div>
-            <span class="stat-change positive">
-                <i class="fas fa-calendar"></i> This month
-            </span>
-        </div>
-    </div>
-
-    <!-- Payment Breakdown Section -->
-    <div class="quick-actions" style="margin-bottom: 2rem;">
-        <h3><i class="fas fa-wallet"></i> Today's Payment Breakdown</h3>
-        <div class="row">
-            <div class="col-md-3">
-                <div class="card border-left-success" style="border-left: 4px solid var(--spa-success);">
-                    <div class="card-body">
-                        <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Cash Payments</div>
-                        <div class="h5 mb-0 font-weight-bold">{{ utils.format_currency(stats.todays_cash) }}</div>
-                        <small class="text-muted">{{ stats.cash_transaction_count }} transactions</small>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="card border-left-info" style="border-left: 4px solid var(--spa-info);">
-                    <div class="card-body">
-                        <div class="text-xs font-weight-bold text-info text-uppercase mb-1">UPI Payments</div>
-                        <div class="h5 mb-0 font-weight-bold">{{ utils.format_currency(stats.todays_upi) }}</div>
-                        <small class="text-muted">PhonePe, GPay, etc.</small>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="card border-left-primary" style="border-left: 4px solid var(--spa-primary);">
-                    <div class="card-body">
-                        <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Card Payments</div>
-                        <div class="h5 mb-0 font-weight-bold">{{ utils.format_currency(stats.todays_card) }}</div>
-                        <small class="text-muted">Debit/Credit Cards</small>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="card border-left-warning" style="border-left: 4px solid var(--spa-warning);">
-                    <div class="card-body">
-                        <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Total Collection</div>
-                        <div class="h5 mb-0 font-weight-bold">{{ utils.format_currency(stats.total_revenue_today) }}</div>
-                        <small class="text-muted">All payment methods</small>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Charts -->
+    <!-- Charts Grid -->
     <div class="charts-grid">
         <!-- Revenue Chart -->
         <div class="chart-card">
             <div class="chart-header">
-                <div>
-                    <div class="chart-title">Revenue Trend</div>
-                    <div class="chart-subtitle">Last 7 days</div>
-                </div>
+                <div class="chart-title">Revenue Trend</div>
+                <div class="chart-subtitle">Last 7 days performance</div>
             </div>
             <div class="chart-container">
                 <canvas id="revenueChart"></canvas>
@@ -587,10 +571,8 @@
         <!-- Appointments Chart -->
         <div class="chart-card">
             <div class="chart-header">
-                <div>
-                    <div class="chart-title">Appointments</div>
-                    <div class="chart-subtitle">Weekly overview</div>
-                </div>
+                <div class="chart-title">Appointment Analytics</div>
+                <div class="chart-subtitle">Weekly booking overview</div>
             </div>
             <div class="chart-container">
                 <canvas id="appointmentsChart"></canvas>
@@ -601,78 +583,35 @@
     <!-- Service Categories Chart -->
     <div class="chart-card" style="margin-bottom: 2rem;">
         <div class="chart-header">
-            <div>
-                <div class="chart-title">Popular Services</div>
-                <div class="chart-subtitle">By bookings this month</div>
-            </div>
+            <div class="chart-title">Popular Services</div>
+            <div class="chart-subtitle">Most booked services this month</div>
         </div>
         <div class="chart-container">
             <canvas id="servicesChart"></canvas>
         </div>
     </div>
-
-    <!-- Recent Activity -->
-    <div class="activity-section">
-        <h3>Recent Activity</h3>
-        {% if recent_activities %}
-            {% for activity in recent_activities[:5] %}
-            <div class="activity-item">
-                <div class="activity-icon">
-                    <i class="fas {{ activity.icon }}"></i>
-                </div>
-                <div class="activity-content">
-                    <div class="activity-title">{{ activity.title }}</div>
-                    <div class="activity-time">{{ activity.time }}</div>
-                </div>
-            </div>
-            {% endfor %}
-        {% else %}
-            <div style="text-align: center; padding: 2rem; color: var(--text-tertiary);">
-                <i class="fas fa-inbox fa-2x" style="margin-bottom: 1rem; opacity: 0.5;"></i>
-                <p>No recent activity</p>
-            </div>
-        {% endif %}
-    </div>
 </div>
 
-<!-- Chart.js -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Professional chart configuration
-    const chartConfig = {
+    const chartDefaults = {
         responsive: true,
         maintainAspectRatio: false,
         plugins: {
             legend: {
                 display: false
             }
-        },
-        scales: {
-            y: {
-                beginAtZero: true,
-                grid: {
-                    color: '#f1f5f9',
-                    borderDash: [5, 5]
-                },
-                ticks: {
-                    color: '#64748b'
-                }
-            },
-            x: {
-                grid: {
-                    display: false
-                },
-                ticks: {
-                    color: '#64748b'
-                }
-            }
         }
     };
 
-    // Revenue Chart
+    // Revenue Chart - Gradient Area
     const revenueCtx = document.getElementById('revenueChart');
     if (revenueCtx) {
+        const gradient = revenueCtx.getContext('2d').createLinearGradient(0, 0, 0, 300);
+        gradient.addColorStop(0, 'rgba(102, 126, 234, 0.3)');
+        gradient.addColorStop(1, 'rgba(102, 126, 234, 0.0)');
+
         new Chart(revenueCtx, {
             type: 'line',
             data: {
@@ -680,20 +619,36 @@ document.addEventListener('DOMContentLoaded', function() {
                 datasets: [{
                     label: 'Revenue',
                     data: {{ revenue_data['values']|tojson }},
-                    borderColor: '#2563eb',
-                    backgroundColor: 'rgba(37, 99, 235, 0.1)',
-                    borderWidth: 2,
+                    borderColor: '#667eea',
+                    backgroundColor: gradient,
+                    borderWidth: 3,
                     fill: true,
                     tension: 0.4,
-                    pointRadius: 4,
-                    pointHoverRadius: 6
+                    pointRadius: 6,
+                    pointBackgroundColor: '#fff',
+                    pointBorderColor: '#667eea',
+                    pointBorderWidth: 3,
+                    pointHoverRadius: 8
                 }]
             },
-            options: chartConfig
+            options: {
+                ...chartDefaults,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: { color: '#f1f5f9' },
+                        ticks: { color: '#64748b' }
+                    },
+                    x: {
+                        grid: { display: false },
+                        ticks: { color: '#64748b' }
+                    }
+                }
+            }
         });
     }
 
-    // Appointments Chart
+    // Appointments Chart - Gradient Bars
     const appointmentsCtx = document.getElementById('appointmentsChart');
     if (appointmentsCtx) {
         new Chart(appointmentsCtx, {
@@ -703,16 +658,29 @@ document.addEventListener('DOMContentLoaded', function() {
                 datasets: [{
                     label: 'Appointments',
                     data: {{ bookings_data['values']|tojson }},
-                    backgroundColor: '#10b981',
-                    borderRadius: 8,
+                    backgroundColor: '#4facfe',
+                    borderRadius: 10,
                     borderSkipped: false
                 }]
             },
-            options: chartConfig
+            options: {
+                ...chartDefaults,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: { color: '#f1f5f9' },
+                        ticks: { color: '#64748b' }
+                    },
+                    x: {
+                        grid: { display: false },
+                        ticks: { color: '#64748b' }
+                    }
+                }
+            }
         });
     }
 
-    // Services Chart
+    // Services Chart - Vibrant Doughnut
     const servicesCtx = document.getElementById('servicesChart');
     if (servicesCtx) {
         new Chart(servicesCtx, {
@@ -722,15 +690,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 datasets: [{
                     data: {{ service_categories['values']|tojson }},
                     backgroundColor: [
-                        '#2563eb',
-                        '#10b981',
-                        '#f59e0b',
-                        '#ef4444',
-                        '#8b5cf6',
-                        '#ec4899'
+                        '#667eea',
+                        '#34a853',
+                        '#4facfe',
+                        '#fa709a',
+                        '#fee140',
+                        '#764ba2'
                     ],
                     borderWidth: 0,
-                    spacing: 3
+                    spacing: 4
                 }]
             },
             options: {
@@ -740,13 +708,13 @@ document.addEventListener('DOMContentLoaded', function() {
                     legend: {
                         position: 'bottom',
                         labels: {
-                            padding: 15,
-                            font: {
-                                size: 12
-                            }
+                            padding: 20,
+                            font: { size: 13, weight: '600' },
+                            usePointStyle: true
                         }
                     }
-                }
+                },
+                cutout: '65%'
             }
         });
     }
