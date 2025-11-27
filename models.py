@@ -1179,11 +1179,13 @@ class EnhancedInvoice(db.Model):
     notes = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_by = db.Column(db.Integer, db.ForeignKey('user.id'))
 
     # Relationships
     customer = db.relationship('Customer', backref='enhanced_invoices')
     invoice_items = db.relationship('InvoiceItem', backref='invoice', lazy=True, cascade='all, delete-orphan')
     invoice_payments = db.relationship('InvoicePayment', backref='invoice', lazy=True, cascade='all, delete-orphan')
+    creator = db.relationship('User', backref='created_invoices', foreign_keys=[created_by])
 
 class InvoiceItem(db.Model):
     """Individual items on an invoice (services, inventory items, etc.)"""

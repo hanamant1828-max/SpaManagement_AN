@@ -1358,6 +1358,7 @@ def create_professional_invoice():
             # Store invoice_date as midnight on invoice date
             invoice.invoice_date = dt.combine(invoice_date_only, datetime.time.min)  # Store as midnight on invoice date
             invoice.created_at = ist_now.replace(tzinfo=None)  # Store as naive IST datetime
+            invoice.created_by = current_user.id  # Store who created the invoice
 
             # Professional billing fields
             invoice.services_subtotal = services_subtotal

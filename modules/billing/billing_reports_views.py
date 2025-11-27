@@ -403,6 +403,13 @@ def payment_audit_report():
                             if not method_lower:
                                 method_lower = 'cash'
                             
+                            creator_name = 'N/A'
+                            if inv.creator:
+                                if inv.creator.first_name or inv.creator.last_name:
+                                    creator_name = f"{inv.creator.first_name or ''} {inv.creator.last_name or ''}".strip()
+                                else:
+                                    creator_name = inv.creator.username
+                            
                             payment_details.append({
                                 'id': inv.id,
                                 'invoice_id': inv.id,
@@ -411,7 +418,7 @@ def payment_audit_report():
                                 'payment_method': method_lower,
                                 'amount': float(amount),
                                 'payment_date': inv.created_at or inv.invoice_date,
-                                'processed_by': 'N/A',
+                                'processed_by': creator_name,
                                 'reference': ''
                             })
                             
