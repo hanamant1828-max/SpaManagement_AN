@@ -2,12 +2,16 @@
 """
 Billing Reports Views - Dedicated reporting for billing and invoices
 """
-from flask import render_template, request, jsonify
+from flask import render_template, request, jsonify, redirect, url_for, flash
 from flask_login import login_required, current_user
 from datetime import datetime, date, timedelta
 from sqlalchemy import func, and_, or_
 from app import app, db
-from models import EnhancedInvoice, InvoiceItem, InvoicePayment, Customer, User, Service
+from models import (
+    EnhancedInvoice, InvoiceItem, InvoicePayment, Customer, User, Service,
+    ServicePackageAssignment, PackageUsageHistory, UnakiBooking,
+    PrepaidPackage, ServicePackage, Membership, StudentOffer, YearlyMembership, KittyParty
+)
 
 @app.route('/billing/reports')
 @login_required
@@ -456,5 +460,328 @@ def payment_audit_report():
                          cheque_count=cheque_count,
                          total_collection=total_collection,
                          total_transactions=len(payment_details))
+
+@app.route('/billing/reports/package-billing')
+@login_required
+def package_billing_report():
+    """Package Billing Report - Shows all package sales, revenue, and usage"""
+    if not current_user.is_active:
+        return redirect(url_for('dashboard'))
+    
+    # Default to last 30 days
+    end_date = date.today()
+    start_date = end_date - timedelta(days=30)
+    
+    # Get date range from request
+    start_date_str = request.args.get('start_date')
+    end_date_str = request.args.get('end_date')
+    
+    if start_date_str and end_date_str:
+        try:
+            start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
+            end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
+        except ValueError:
+            pass
+    
+    # Get package assignments (sales) within date range
+    package_sales = ServicePackageAssignment.query.filter(
+        func.date(ServicePackageAssignment.assigned_on).between(start_date, end_date)
+    ).order_by(ServicePackageAssignment.assigned_on.desc()).all()
+    
+    # Package sales by type summary
+    package_type_summary = db.session.query(
+        ServicePackageAssignment.package_type,
+        func.count(ServicePackageAssignment.id).label('count'),
+        func.sum(ServicePackageAssignment.price_paid).label('total_revenue')
+    ).filter(
+        func.date(ServicePackageAssignment.assigned_on).between(start_date, end_date)
+    ).group_by(ServicePackageAssignment.package_type).all()
+    
+    # Package usage history
+    package_usage = PackageUsageHistory.query.filter(
+        func.date(PackageUsageHistory.used_at).between(start_date, end_date)
+    ).order_by(PackageUsageHistory.used_at.desc()).limit(100).all()
+    
+    # Calculate totals
+    total_package_revenue = sum([s.price_paid or 0 for s in package_sales])
+    total_packages_sold = len(package_sales)
+    active_packages = ServicePackageAssignment.query.filter(
+        ServicePackageAssignment.status == 'active'
+    ).count()
+    expired_packages = ServicePackageAssignment.query.filter(
+        ServicePackageAssignment.status == 'expired'
+    ).count()
+    
+    # Package usage stats
+    total_usage_count = len(package_usage)
+    total_value_redeemed = sum([u.value_applied or 0 for u in package_usage])
+    
+    # Get top packages by sales
+    top_packages = []
+    for pkg_type in ['prepaid', 'service_package', 'membership', 'student_offer', 'yearly_membership', 'kitty_party']:
+        count = ServicePackageAssignment.query.filter(
+            ServicePackageAssignment.package_type == pkg_type,
+            func.date(ServicePackageAssignment.assigned_on).between(start_date, end_date)
+        ).count()
+        revenue = db.session.query(func.sum(ServicePackageAssignment.price_paid)).filter(
+            ServicePackageAssignment.package_type == pkg_type,
+            func.date(ServicePackageAssignment.assigned_on).between(start_date, end_date)
+        ).scalar() or 0
+        if count > 0:
+            top_packages.append({
+                'type': pkg_type.replace('_', ' ').title(),
+                'count': count,
+                'revenue': revenue
+            })
+    top_packages.sort(key=lambda x: x['revenue'], reverse=True)
+    
+    # Get customer package purchase details
+    customer_package_purchases = db.session.query(
+        Customer.id,
+        Customer.first_name,
+        Customer.last_name,
+        func.count(ServicePackageAssignment.id).label('package_count'),
+        func.sum(ServicePackageAssignment.price_paid).label('total_spent')
+    ).join(ServicePackageAssignment, Customer.id == ServicePackageAssignment.customer_id).filter(
+        func.date(ServicePackageAssignment.assigned_on).between(start_date, end_date)
+    ).group_by(Customer.id).order_by(func.sum(ServicePackageAssignment.price_paid).desc()).limit(10).all()
+    
+    return render_template('reports/package_billing_report.html',
+                         start_date=start_date,
+                         end_date=end_date,
+                         package_sales=package_sales,
+                         package_type_summary=package_type_summary,
+                         package_usage=package_usage,
+                         total_package_revenue=total_package_revenue,
+                         total_packages_sold=total_packages_sold,
+                         active_packages=active_packages,
+                         expired_packages=expired_packages,
+                         total_usage_count=total_usage_count,
+                         total_value_redeemed=total_value_redeemed,
+                         top_packages=top_packages,
+                         customer_package_purchases=customer_package_purchases)
+
+
+@app.route('/billing/reports/owner-audit')
+@login_required
+def owner_billing_audit():
+    """Owner Billing Audit - Comprehensive end-of-day summary for owners"""
+    import json
+    
+    if not current_user.is_active:
+        return redirect(url_for('dashboard'))
+    
+    # Get audit date from request or default to today
+    audit_date_str = request.args.get('audit_date')
+    if audit_date_str:
+        try:
+            audit_date = datetime.strptime(audit_date_str, '%Y-%m-%d').date()
+        except ValueError:
+            audit_date = date.today()
+    else:
+        audit_date = date.today()
+    
+    # ====== INVOICE SUMMARY ======
+    invoices_today = EnhancedInvoice.query.filter(
+        func.date(EnhancedInvoice.invoice_date) == audit_date
+    ).all()
+    
+    total_invoices = len(invoices_today)
+    paid_invoices = len([inv for inv in invoices_today if inv.payment_status == 'paid'])
+    pending_invoices = len([inv for inv in invoices_today if inv.payment_status in ['pending', 'partial']])
+    
+    total_invoice_amount = sum([inv.total_amount or 0 for inv in invoices_today])
+    total_amount_collected = sum([inv.amount_paid or 0 for inv in invoices_today])
+    total_pending_amount = sum([inv.balance_due or 0 for inv in invoices_today])
+    total_tax_collected = sum([inv.tax_amount or 0 for inv in invoices_today if inv.payment_status == 'paid'])
+    
+    # ====== PAYMENT METHOD BREAKDOWN ======
+    cash_total = 0.0
+    card_total = 0.0
+    upi_total = 0.0
+    cheque_total = 0.0
+    other_total = 0.0
+    
+    for inv in invoices_today:
+        if inv.payment_methods:
+            try:
+                if isinstance(inv.payment_methods, str):
+                    methods = json.loads(inv.payment_methods)
+                else:
+                    methods = inv.payment_methods
+                
+                for method, amount in methods.items():
+                    if amount and float(amount) > 0:
+                        method_lower = method.lower().strip() if method else 'cash'
+                        if method_lower == 'cash':
+                            cash_total += float(amount)
+                        elif method_lower == 'card':
+                            card_total += float(amount)
+                        elif method_lower == 'upi':
+                            upi_total += float(amount)
+                        elif method_lower == 'cheque':
+                            cheque_total += float(amount)
+                        else:
+                            other_total += float(amount)
+            except:
+                pass
+    
+    # ====== SERVICE REVENUE BREAKDOWN ======
+    service_items = db.session.query(
+        Service.name,
+        func.count(InvoiceItem.id).label('count'),
+        func.sum(InvoiceItem.quantity).label('quantity'),
+        func.sum(InvoiceItem.final_amount).label('revenue')
+    ).join(InvoiceItem, Service.id == InvoiceItem.item_id).join(
+        EnhancedInvoice, InvoiceItem.invoice_id == EnhancedInvoice.id
+    ).filter(
+        func.date(EnhancedInvoice.invoice_date) == audit_date,
+        InvoiceItem.item_type == 'service'
+    ).group_by(Service.id).order_by(func.sum(InvoiceItem.final_amount).desc()).all()
+    
+    total_service_revenue = sum([s.revenue or 0 for s in service_items])
+    
+    # ====== PRODUCT REVENUE BREAKDOWN ======
+    try:
+        from modules.inventory.models import InventoryProduct
+        product_items = db.session.query(
+            InventoryProduct.name,
+            func.count(InvoiceItem.id).label('count'),
+            func.sum(InvoiceItem.quantity).label('quantity'),
+            func.sum(InvoiceItem.final_amount).label('revenue')
+        ).join(InvoiceItem, InventoryProduct.id == InvoiceItem.product_id).join(
+            EnhancedInvoice, InvoiceItem.invoice_id == EnhancedInvoice.id
+        ).filter(
+            func.date(EnhancedInvoice.invoice_date) == audit_date,
+            InvoiceItem.item_type == 'inventory'
+        ).group_by(InventoryProduct.id).order_by(func.sum(InvoiceItem.final_amount).desc()).all()
+        total_product_revenue = sum([p.revenue or 0 for p in product_items])
+    except:
+        product_items = []
+        total_product_revenue = 0
+    
+    # ====== PACKAGE SALES TODAY ======
+    package_sales_today = ServicePackageAssignment.query.filter(
+        func.date(ServicePackageAssignment.assigned_on) == audit_date
+    ).all()
+    
+    total_package_sales = len(package_sales_today)
+    total_package_revenue = sum([p.price_paid or 0 for p in package_sales_today])
+    
+    # Package sales by type
+    package_sales_by_type = {}
+    for pkg in package_sales_today:
+        pkg_type = pkg.package_type.replace('_', ' ').title()
+        if pkg_type not in package_sales_by_type:
+            package_sales_by_type[pkg_type] = {'count': 0, 'revenue': 0}
+        package_sales_by_type[pkg_type]['count'] += 1
+        package_sales_by_type[pkg_type]['revenue'] += pkg.price_paid or 0
+    
+    # ====== PACKAGE USAGE TODAY ======
+    package_usage_today = PackageUsageHistory.query.filter(
+        func.date(PackageUsageHistory.used_at) == audit_date
+    ).all()
+    
+    total_package_redemptions = len(package_usage_today)
+    total_package_value_redeemed = sum([u.value_applied or 0 for u in package_usage_today])
+    
+    # ====== STAFF PERFORMANCE ======
+    staff_performance = db.session.query(
+        User.id,
+        User.first_name,
+        User.last_name,
+        func.count(InvoiceItem.id).label('services_done'),
+        func.sum(InvoiceItem.staff_revenue_price).label('revenue_generated')
+    ).join(InvoiceItem, User.id == InvoiceItem.staff_id).join(
+        EnhancedInvoice, InvoiceItem.invoice_id == EnhancedInvoice.id
+    ).filter(
+        func.date(EnhancedInvoice.invoice_date) == audit_date,
+        InvoiceItem.staff_id.isnot(None)
+    ).group_by(User.id).order_by(func.sum(InvoiceItem.staff_revenue_price).desc()).all()
+    
+    # ====== APPOINTMENTS TODAY ======
+    try:
+        appointments_today = UnakiBooking.query.filter(
+            func.date(UnakiBooking.booking_date) == audit_date
+        ).all()
+        total_appointments = len(appointments_today)
+        completed_appointments = len([a for a in appointments_today if a.status == 'completed'])
+        cancelled_appointments = len([a for a in appointments_today if a.status == 'cancelled'])
+        pending_appointments = len([a for a in appointments_today if a.status in ['pending', 'confirmed']])
+    except:
+        total_appointments = 0
+        completed_appointments = 0
+        cancelled_appointments = 0
+        pending_appointments = 0
+    
+    # ====== NEW CUSTOMERS TODAY ======
+    new_customers_today = Customer.query.filter(
+        func.date(Customer.created_at) == audit_date
+    ).count()
+    
+    # ====== TOP CUSTOMERS TODAY ======
+    top_customers_today = db.session.query(
+        Customer.id,
+        Customer.first_name,
+        Customer.last_name,
+        Customer.phone,
+        func.sum(EnhancedInvoice.total_amount).label('total_spent'),
+        func.count(EnhancedInvoice.id).label('invoice_count')
+    ).join(EnhancedInvoice, Customer.id == EnhancedInvoice.client_id).filter(
+        func.date(EnhancedInvoice.invoice_date) == audit_date
+    ).group_by(Customer.id).order_by(func.sum(EnhancedInvoice.total_amount).desc()).limit(10).all()
+    
+    # ====== DISCOUNTS & DEDUCTIONS ======
+    total_discounts = db.session.query(func.sum(EnhancedInvoice.discount_amount)).filter(
+        func.date(EnhancedInvoice.invoice_date) == audit_date
+    ).scalar() or 0
+    
+    total_package_deductions = db.session.query(func.sum(InvoiceItem.deduction_amount)).join(
+        EnhancedInvoice, InvoiceItem.invoice_id == EnhancedInvoice.id
+    ).filter(
+        func.date(EnhancedInvoice.invoice_date) == audit_date,
+        InvoiceItem.is_package_deduction == True
+    ).scalar() or 0
+    
+    # Grand total calculation
+    grand_total_revenue = total_service_revenue + total_product_revenue + total_package_revenue
+    
+    return render_template('reports/owner_billing_audit.html',
+                         audit_date=audit_date,
+                         total_invoices=total_invoices,
+                         paid_invoices=paid_invoices,
+                         pending_invoices=pending_invoices,
+                         total_invoice_amount=total_invoice_amount,
+                         total_amount_collected=total_amount_collected,
+                         total_pending_amount=total_pending_amount,
+                         total_tax_collected=total_tax_collected,
+                         cash_total=cash_total,
+                         card_total=card_total,
+                         upi_total=upi_total,
+                         cheque_total=cheque_total,
+                         other_total=other_total,
+                         service_items=service_items,
+                         total_service_revenue=total_service_revenue,
+                         product_items=product_items,
+                         total_product_revenue=total_product_revenue,
+                         package_sales_today=package_sales_today,
+                         total_package_sales=total_package_sales,
+                         total_package_revenue=total_package_revenue,
+                         package_sales_by_type=package_sales_by_type,
+                         package_usage_today=package_usage_today,
+                         total_package_redemptions=total_package_redemptions,
+                         total_package_value_redeemed=total_package_value_redeemed,
+                         staff_performance=staff_performance,
+                         total_appointments=total_appointments,
+                         completed_appointments=completed_appointments,
+                         cancelled_appointments=cancelled_appointments,
+                         pending_appointments=pending_appointments,
+                         new_customers_today=new_customers_today,
+                         top_customers_today=top_customers_today,
+                         total_discounts=total_discounts,
+                         total_package_deductions=total_package_deductions,
+                         grand_total_revenue=grand_total_revenue,
+                         invoices_today=invoices_today)
+
 
 print("✅ Billing reports views imported")

@@ -135,20 +135,34 @@
         </div>
     </div>
 
-    <!-- Payment Audit Report -->
+    <!-- Owner Audit & Package Reports Section -->
     <div class="row mb-4">
         <div class="col-12">
-            <div class="card shadow border-left-success">
-                <div class="card-header py-3 bg-success text-white">
-                    <h6 class="m-0 font-weight-bold">💰 Daily Payment Collection Audit</h6>
+            <div class="card shadow border-left-dark">
+                <div class="card-header py-3 bg-dark text-white">
+                    <h6 class="m-0 font-weight-bold"><i class="fas fa-clipboard-check me-2"></i>Owner Reports & Audit</h6>
                 </div>
                 <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-12 text-center">
-                            <a href="{{ url_for('payment_audit_report') }}" class="btn btn-success btn-lg w-50">
+                    <div class="row text-center">
+                        <div class="col-md-4 mb-3">
+                            <a href="{{ url_for('owner_billing_audit') }}" class="btn btn-dark btn-lg w-100">
+                                <i class="fas fa-clipboard-check fa-2x d-block mb-2"></i>
+                                <strong>Owner Billing Audit</strong>
+                                <p class="small mb-0">Complete end-of-day summary with all data</p>
+                            </a>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <a href="{{ url_for('payment_audit_report') }}" class="btn btn-success btn-lg w-100">
                                 <i class="fas fa-coins fa-2x d-block mb-2"></i>
-                                <strong>Payment Audit Report</strong>
-                                <p class="small mb-0">View daily collection by payment method (Cash, Card, UPI, Cheque)</p>
+                                <strong>Payment Audit</strong>
+                                <p class="small mb-0">Daily collection by payment method</p>
+                            </a>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <a href="{{ url_for('package_billing_report') }}?start_date={{ start_date.strftime('%Y-%m-%d') }}&end_date={{ end_date.strftime('%Y-%m-%d') }}" class="btn btn-info btn-lg w-100">
+                                <i class="fas fa-gift fa-2x d-block mb-2"></i>
+                                <strong>Package Billing Report</strong>
+                                <p class="small mb-0">Package sales, usage & revenue details</p>
                             </a>
                         </div>
                     </div>

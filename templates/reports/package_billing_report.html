@@ -1,0 +1,324 @@
+{% extends "base.html" %}
+
+{% block title %}Package Billing Report - Spa & Salon Management{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <h1 class="h3 mb-4">
+                <i class="fas fa-gift me-2"></i>Package Billing Report
+            </h1>
+        </div>
+    </div>
+
+    <!-- Date Range Filter -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-calendar-alt me-2"></i>Select Date Range
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <form method="GET" class="row g-3 align-items-end">
+                        <div class="col-md-3">
+                            <label for="start_date" class="form-label fw-bold">Start Date</label>
+                            <input type="date" class="form-control" name="start_date" id="start_date" 
+                                   value="{{ start_date.strftime('%Y-%m-%d') }}">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="end_date" class="form-label fw-bold">End Date</label>
+                            <input type="date" class="form-control" name="end_date" id="end_date" 
+                                   value="{{ end_date.strftime('%Y-%m-%d') }}">
+                        </div>
+                        <div class="col-md-4">
+                            <button type="submit" class="btn btn-success">
+                                <i class="fas fa-search me-1"></i>Apply Filter
+                            </button>
+                            <a href="{{ url_for('billing_reports') }}" class="btn btn-outline-secondary">
+                                <i class="fas fa-arrow-left me-1"></i>Back to Reports
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-success shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Package Revenue</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">₹{{ "{:,.2f}".format(total_package_revenue) }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-rupee-sign fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-primary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Packages Sold</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_packages_sold }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-gift fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-info shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Active Packages</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ active_packages }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-check-circle fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-warning shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Value Redeemed</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">₹{{ "{:,.2f}".format(total_value_redeemed) }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-hand-holding-usd fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Package Sales by Type -->
+    <div class="row mb-4">
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow">
+                <div class="card-header py-3 bg-primary text-white">
+                    <h6 class="m-0 font-weight-bold">Package Sales by Type</h6>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Package Type</th>
+                                    <th>Sold</th>
+                                    <th>Revenue</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for pkg in top_packages %}
+                                <tr>
+                                    <td><strong>{{ pkg.type }}</strong></td>
+                                    <td><span class="badge bg-info">{{ pkg.count }}</span></td>
+                                    <td><strong class="text-success">₹{{ "{:,.2f}".format(pkg.revenue) }}</strong></td>
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <td colspan="3" class="text-center text-muted">No package sales in this period</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow">
+                <div class="card-header py-3 bg-success text-white">
+                    <h6 class="m-0 font-weight-bold">Top Customers by Package Purchases</h6>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Customer</th>
+                                    <th>Packages</th>
+                                    <th>Total Spent</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for customer in customer_package_purchases %}
+                                <tr>
+                                    <td><strong>{{ customer.first_name }} {{ customer.last_name }}</strong></td>
+                                    <td><span class="badge bg-primary">{{ customer.package_count }}</span></td>
+                                    <td><strong class="text-success">₹{{ "{:,.2f}".format(customer.total_spent or 0) }}</strong></td>
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <td colspan="3" class="text-center text-muted">No customer purchases in this period</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Package Sales Details -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header py-3 bg-info text-white">
+                    <h6 class="m-0 font-weight-bold">Package Sales Details</h6>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Customer</th>
+                                    <th>Package Type</th>
+                                    <th>Status</th>
+                                    <th>Sessions/Credit</th>
+                                    <th>Price Paid</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for sale in package_sales %}
+                                <tr>
+                                    <td>{{ sale.assigned_on.strftime('%d/%m/%Y %H:%M') if sale.assigned_on else 'N/A' }}</td>
+                                    <td><strong>{{ sale.customer.first_name }} {{ sale.customer.last_name }}</strong></td>
+                                    <td><span class="badge bg-primary">{{ sale.package_type.replace('_', ' ').title() }}</span></td>
+                                    <td>
+                                        {% if sale.status == 'active' %}
+                                        <span class="badge bg-success">Active</span>
+                                        {% elif sale.status == 'expired' %}
+                                        <span class="badge bg-warning">Expired</span>
+                                        {% elif sale.status == 'completed' %}
+                                        <span class="badge bg-info">Completed</span>
+                                        {% else %}
+                                        <span class="badge bg-secondary">{{ sale.status }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if sale.total_sessions %}
+                                        {{ sale.remaining_sessions or 0 }}/{{ sale.total_sessions }} sessions
+                                        {% elif sale.credit_amount %}
+                                        ₹{{ "{:,.2f}".format(sale.remaining_credit or 0) }}/₹{{ "{:,.2f}".format(sale.credit_amount) }}
+                                        {% else %}
+                                        -
+                                        {% endif %}
+                                    </td>
+                                    <td><strong>₹{{ "{:,.2f}".format(sale.price_paid or 0) }}</strong></td>
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <td colspan="6" class="text-center text-muted">No package sales in this period</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Package Usage History -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header py-3 bg-warning">
+                    <h6 class="m-0 font-weight-bold">Package Usage/Redemption History</h6>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Customer</th>
+                                    <th>Service Used</th>
+                                    <th>Benefit Type</th>
+                                    <th>Value Applied</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for usage in package_usage %}
+                                <tr>
+                                    <td>{{ usage.used_at.strftime('%d/%m/%Y %H:%M') if usage.used_at else 'N/A' }}</td>
+                                    <td><strong>{{ usage.customer.first_name if usage.customer else 'N/A' }} {{ usage.customer.last_name if usage.customer else '' }}</strong></td>
+                                    <td>{{ usage.service.name if usage.service else 'N/A' }}</td>
+                                    <td><span class="badge bg-info">{{ usage.benefit_type or 'N/A' }}</span></td>
+                                    <td><strong class="text-success">₹{{ "{:,.2f}".format(usage.value_applied or 0) }}</strong></td>
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <td colspan="5" class="text-center text-muted">No package usage in this period</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Usage Summary -->
+    <div class="row mb-4">
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Usage Statistics</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-6">
+                            <p class="text-muted mb-1">Total Redemptions</p>
+                            <h4>{{ total_usage_count }}</h4>
+                        </div>
+                        <div class="col-6">
+                            <p class="text-muted mb-1">Total Value Redeemed</p>
+                            <h4 class="text-success">₹{{ "{:,.2f}".format(total_value_redeemed) }}</h4>
+                        </div>
+                    </div>
+                    <hr>
+                    <div class="row">
+                        <div class="col-6">
+                            <p class="text-muted mb-1">Expired Packages</p>
+                            <h4 class="text-warning">{{ expired_packages }}</h4>
+                        </div>
+                        <div class="col-6">
+                            <p class="text-muted mb-1">Active Packages</p>
+                            <h4 class="text-info">{{ active_packages }}</h4>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

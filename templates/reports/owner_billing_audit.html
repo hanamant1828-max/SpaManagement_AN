@@ -1,0 +1,586 @@
+{% extends "base.html" %}
+
+{% block title %}Owner Billing Audit - Spa & Salon Management{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="h3 mb-0">
+                    <i class="fas fa-clipboard-check me-2"></i>Owner Billing Audit
+                </h1>
+                <div>
+                    <button type="button" class="btn btn-success" onclick="window.print()">
+                        <i class="fas fa-print me-1"></i>Print Report
+                    </button>
+                    <a href="{{ url_for('billing_reports') }}" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left me-1"></i>Back to Reports
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Date Selection -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow border-left-primary">
+                <div class="card-header py-3 bg-primary text-white">
+                    <h6 class="m-0 font-weight-bold">
+                        <i class="fas fa-calendar-day me-2"></i>Select Audit Date
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <form method="GET" class="row g-3 align-items-end">
+                        <div class="col-md-4">
+                            <label for="audit_date" class="form-label fw-bold">Audit Date</label>
+                            <input type="date" class="form-control form-control-lg" name="audit_date" id="audit_date" 
+                                   value="{{ audit_date.strftime('%Y-%m-%d') }}">
+                        </div>
+                        <div class="col-md-4">
+                            <button type="submit" class="btn btn-success btn-lg">
+                                <i class="fas fa-search me-1"></i>View Audit
+                            </button>
+                            <button type="button" class="btn btn-outline-primary btn-lg" onclick="setToday()">
+                                <i class="fas fa-calendar-check me-1"></i>Today
+                            </button>
+                        </div>
+                        <div class="col-md-4 text-end">
+                            <h4 class="text-primary mb-0">
+                                <i class="fas fa-calendar me-2"></i>{{ audit_date.strftime('%A, %d %B %Y') }}
+                            </h4>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Grand Summary Cards -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-success shadow h-100 py-2 bg-success text-white">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-uppercase mb-1">TOTAL COLLECTION</div>
+                            <div class="h4 mb-0 font-weight-bold">₹{{ "{:,.2f}".format(total_amount_collected) }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-rupee-sign fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-primary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Total Invoices</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_invoices }} ({{ paid_invoices }} paid)</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-file-invoice fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-warning shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Pending Amount</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">₹{{ "{:,.2f}".format(total_pending_amount) }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-clock fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-info shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Tax Collected</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">₹{{ "{:,.2f}".format(total_tax_collected) }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-percent fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Payment Method Breakdown -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header py-3 bg-success text-white">
+                    <h6 class="m-0 font-weight-bold"><i class="fas fa-coins me-2"></i>Payment Collection by Method</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-md-3 mb-3">
+                            <div class="card bg-light h-100">
+                                <div class="card-body">
+                                    <i class="fas fa-money-bill-wave fa-2x text-success mb-2"></i>
+                                    <h5 class="text-muted">Cash</h5>
+                                    <h3 class="text-success font-weight-bold">₹{{ "{:,.2f}".format(cash_total) }}</h3>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="card bg-light h-100">
+                                <div class="card-body">
+                                    <i class="fas fa-credit-card fa-2x text-primary mb-2"></i>
+                                    <h5 class="text-muted">Card</h5>
+                                    <h3 class="text-primary font-weight-bold">₹{{ "{:,.2f}".format(card_total) }}</h3>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="card bg-light h-100">
+                                <div class="card-body">
+                                    <i class="fas fa-mobile-alt fa-2x text-info mb-2"></i>
+                                    <h5 class="text-muted">UPI</h5>
+                                    <h3 class="text-info font-weight-bold">₹{{ "{:,.2f}".format(upi_total) }}</h3>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="card bg-light h-100">
+                                <div class="card-body">
+                                    <i class="fas fa-money-check fa-2x text-warning mb-2"></i>
+                                    <h5 class="text-muted">Cheque</h5>
+                                    <h3 class="text-warning font-weight-bold">₹{{ "{:,.2f}".format(cheque_total) }}</h3>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Revenue Breakdown Row -->
+    <div class="row mb-4">
+        <!-- Service Revenue -->
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow h-100">
+                <div class="card-header py-3 bg-primary text-white">
+                    <h6 class="m-0 font-weight-bold"><i class="fas fa-spa me-2"></i>Service Revenue: ₹{{ "{:,.2f}".format(total_service_revenue) }}</h6>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Service</th>
+                                    <th>Qty</th>
+                                    <th>Revenue</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in service_items %}
+                                <tr>
+                                    <td>{{ item.name }}</td>
+                                    <td><span class="badge bg-info">{{ item.quantity or item.count }}</span></td>
+                                    <td><strong>₹{{ "{:,.2f}".format(item.revenue or 0) }}</strong></td>
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <td colspan="3" class="text-center text-muted">No services billed</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Product Revenue -->
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow h-100">
+                <div class="card-header py-3 bg-warning">
+                    <h6 class="m-0 font-weight-bold"><i class="fas fa-box-open me-2"></i>Product Revenue: ₹{{ "{:,.2f}".format(total_product_revenue) }}</h6>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Product</th>
+                                    <th>Qty</th>
+                                    <th>Revenue</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in product_items %}
+                                <tr>
+                                    <td>{{ item.name }}</td>
+                                    <td><span class="badge bg-warning">{{ item.quantity }}</span></td>
+                                    <td><strong>₹{{ "{:,.2f}".format(item.revenue or 0) }}</strong></td>
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <td colspan="3" class="text-center text-muted">No products sold</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Package Sales & Usage -->
+    <div class="row mb-4">
+        <!-- Package Sales -->
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow h-100">
+                <div class="card-header py-3 bg-info text-white">
+                    <h6 class="m-0 font-weight-bold"><i class="fas fa-gift me-2"></i>Package Sales: {{ total_package_sales }} (₹{{ "{:,.2f}".format(total_package_revenue) }})</h6>
+                </div>
+                <div class="card-body">
+                    {% if package_sales_by_type %}
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Package Type</th>
+                                    <th>Sold</th>
+                                    <th>Revenue</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for pkg_type, data in package_sales_by_type.items() %}
+                                <tr>
+                                    <td>{{ pkg_type }}</td>
+                                    <td><span class="badge bg-primary">{{ data.count }}</span></td>
+                                    <td><strong>₹{{ "{:,.2f}".format(data.revenue) }}</strong></td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p class="text-center text-muted mb-0">No packages sold today</p>
+                    {% endif %}
+                    
+                    {% if package_sales_today %}
+                    <hr>
+                    <h6 class="font-weight-bold">Package Sales Details:</h6>
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <tbody>
+                                {% for pkg in package_sales_today %}
+                                <tr>
+                                    <td>{{ pkg.customer.first_name }} {{ pkg.customer.last_name }}</td>
+                                    <td><span class="badge bg-info">{{ pkg.package_type.replace('_', ' ').title() }}</span></td>
+                                    <td><strong>₹{{ "{:,.2f}".format(pkg.price_paid or 0) }}</strong></td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Package Redemptions -->
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow h-100">
+                <div class="card-header py-3 bg-secondary text-white">
+                    <h6 class="m-0 font-weight-bold"><i class="fas fa-hand-holding-usd me-2"></i>Package Redemptions: {{ total_package_redemptions }} (₹{{ "{:,.2f}".format(total_package_value_redeemed) }})</h6>
+                </div>
+                <div class="card-body">
+                    {% if package_usage_today %}
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Customer</th>
+                                    <th>Service</th>
+                                    <th>Value</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for usage in package_usage_today %}
+                                <tr>
+                                    <td>{{ usage.customer.first_name if usage.customer else 'N/A' }}</td>
+                                    <td>{{ usage.service.name if usage.service else 'N/A' }}</td>
+                                    <td><strong class="text-success">₹{{ "{:,.2f}".format(usage.value_applied or 0) }}</strong></td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p class="text-center text-muted mb-0">No package redemptions today</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Staff Performance -->
+    <div class="row mb-4">
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow h-100">
+                <div class="card-header py-3 bg-dark text-white">
+                    <h6 class="m-0 font-weight-bold"><i class="fas fa-user-tie me-2"></i>Staff Performance</h6>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Staff</th>
+                                    <th>Services</th>
+                                    <th>Revenue</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for staff in staff_performance %}
+                                <tr>
+                                    <td><strong>{{ staff.first_name }} {{ staff.last_name }}</strong></td>
+                                    <td><span class="badge bg-info">{{ staff.services_done }}</span></td>
+                                    <td><strong class="text-success">₹{{ "{:,.2f}".format(staff.revenue_generated or 0) }}</strong></td>
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <td colspan="3" class="text-center text-muted">No staff revenue data</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Appointments Summary -->
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow h-100">
+                <div class="card-header py-3 bg-primary text-white">
+                    <h6 class="m-0 font-weight-bold"><i class="fas fa-calendar-check me-2"></i>Appointments Summary</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-6 col-md-3 mb-3">
+                            <h3 class="text-primary">{{ total_appointments }}</h3>
+                            <p class="text-muted mb-0">Total</p>
+                        </div>
+                        <div class="col-6 col-md-3 mb-3">
+                            <h3 class="text-success">{{ completed_appointments }}</h3>
+                            <p class="text-muted mb-0">Completed</p>
+                        </div>
+                        <div class="col-6 col-md-3 mb-3">
+                            <h3 class="text-warning">{{ pending_appointments }}</h3>
+                            <p class="text-muted mb-0">Pending</p>
+                        </div>
+                        <div class="col-6 col-md-3 mb-3">
+                            <h3 class="text-danger">{{ cancelled_appointments }}</h3>
+                            <p class="text-muted mb-0">Cancelled</p>
+                        </div>
+                    </div>
+                    <hr>
+                    <div class="row text-center">
+                        <div class="col-6">
+                            <h4 class="text-info">{{ new_customers_today }}</h4>
+                            <p class="text-muted mb-0">New Customers</p>
+                        </div>
+                        <div class="col-6">
+                            <h4 class="text-warning">₹{{ "{:,.2f}".format(total_discounts) }}</h4>
+                            <p class="text-muted mb-0">Total Discounts</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Top Customers Today -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header py-3 bg-success text-white">
+                    <h6 class="m-0 font-weight-bold"><i class="fas fa-users me-2"></i>Top Customers Today</h6>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Customer</th>
+                                    <th>Phone</th>
+                                    <th>Invoices</th>
+                                    <th>Total Spent</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for customer in top_customers_today %}
+                                <tr>
+                                    <td><strong>{{ customer.first_name }} {{ customer.last_name }}</strong></td>
+                                    <td>{{ customer.phone or 'N/A' }}</td>
+                                    <td><span class="badge bg-info">{{ customer.invoice_count }}</span></td>
+                                    <td><strong class="text-success">₹{{ "{:,.2f}".format(customer.total_spent or 0) }}</strong></td>
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <td colspan="4" class="text-center text-muted">No customer data</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Invoice List -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header py-3 bg-dark text-white">
+                    <h6 class="m-0 font-weight-bold"><i class="fas fa-file-invoice me-2"></i>All Invoices Today ({{ total_invoices }})</h6>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Invoice #</th>
+                                    <th>Time</th>
+                                    <th>Customer</th>
+                                    <th>Amount</th>
+                                    <th>Paid</th>
+                                    <th>Balance</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for inv in invoices_today %}
+                                <tr>
+                                    <td><strong>{{ inv.invoice_number }}</strong></td>
+                                    <td>{{ inv.created_at.strftime('%H:%M') if inv.created_at else 'N/A' }}</td>
+                                    <td>{{ inv.customer.first_name if inv.customer else 'N/A' }} {{ inv.customer.last_name if inv.customer else '' }}</td>
+                                    <td><strong>₹{{ "{:,.2f}".format(inv.total_amount or 0) }}</strong></td>
+                                    <td class="text-success">₹{{ "{:,.2f}".format(inv.amount_paid or 0) }}</td>
+                                    <td class="text-danger">₹{{ "{:,.2f}".format(inv.balance_due or 0) }}</td>
+                                    <td>
+                                        {% if inv.payment_status == 'paid' %}
+                                        <span class="badge bg-success">Paid</span>
+                                        {% elif inv.payment_status == 'partial' %}
+                                        <span class="badge bg-warning">Partial</span>
+                                        {% else %}
+                                        <span class="badge bg-danger">Pending</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <td colspan="7" class="text-center text-muted">No invoices today</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                            {% if invoices_today %}
+                            <tfoot class="table-light">
+                                <tr>
+                                    <th colspan="3">TOTALS</th>
+                                    <th>₹{{ "{:,.2f}".format(total_invoice_amount) }}</th>
+                                    <th class="text-success">₹{{ "{:,.2f}".format(total_amount_collected) }}</th>
+                                    <th class="text-danger">₹{{ "{:,.2f}".format(total_pending_amount) }}</th>
+                                    <th></th>
+                                </tr>
+                            </tfoot>
+                            {% endif %}
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Deductions Summary -->
+    <div class="row mb-4">
+        <div class="col-lg-6">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Deductions & Adjustments</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-6">
+                            <p class="text-muted mb-1">Total Discounts Given</p>
+                            <h4 class="text-warning">₹{{ "{:,.2f}".format(total_discounts) }}</h4>
+                        </div>
+                        <div class="col-6">
+                            <p class="text-muted mb-1">Package Deductions</p>
+                            <h4 class="text-info">₹{{ "{:,.2f}".format(total_package_deductions) }}</h4>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="card shadow bg-success text-white">
+                <div class="card-header py-3 bg-success">
+                    <h6 class="m-0 font-weight-bold">Daily Summary</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-6">
+                            <p class="mb-1">Gross Revenue</p>
+                            <h4>₹{{ "{:,.2f}".format(grand_total_revenue) }}</h4>
+                        </div>
+                        <div class="col-6">
+                            <p class="mb-1">Net Collection</p>
+                            <h4>₹{{ "{:,.2f}".format(total_amount_collected) }}</h4>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function setToday() {
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('audit_date').value = today;
+    document.querySelector('form').submit();
+}
+</script>
+
+<style>
+@media print {
+    .btn, .card-header form, .no-print {
+        display: none !important;
+    }
+    .card {
+        border: 1px solid #000 !important;
+        break-inside: avoid;
+    }
+}
+</style>
+{% endblock %}
