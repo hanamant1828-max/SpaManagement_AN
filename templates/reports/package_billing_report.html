@@ -268,11 +268,11 @@
                             <tbody>
                                 {% for usage in package_usage %}
                                 <tr>
-                                    <td>{{ usage.used_at.strftime('%d/%m/%Y %H:%M') if usage.used_at else 'N/A' }}</td>
+                                    <td>{{ usage.charge_date.strftime('%d/%m/%Y %H:%M') if usage.charge_date else 'N/A' }}</td>
                                     <td><strong>{{ usage.customer.first_name if usage.customer else 'N/A' }} {{ usage.customer.last_name if usage.customer else '' }}</strong></td>
                                     <td>{{ usage.service.name if usage.service else 'N/A' }}</td>
                                     <td><span class="badge bg-info">{{ usage.benefit_type or 'N/A' }}</span></td>
-                                    <td><strong class="text-success">₹{{ "{:,.2f}".format(usage.value_applied or 0) }}</strong></td>
+                                    <td><strong class="text-success">₹{{ "{:,.2f}".format(usage.discount_applied or 0) }}</strong></td>
                                 </tr>
                                 {% else %}
                                 <tr>

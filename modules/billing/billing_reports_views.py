@@ -499,8 +499,8 @@ def package_billing_report():
     
     # Package usage history
     package_usage = PackageUsageHistory.query.filter(
-        func.date(PackageUsageHistory.used_at).between(start_date, end_date)
-    ).order_by(PackageUsageHistory.used_at.desc()).limit(100).all()
+        func.date(PackageUsageHistory.charge_date).between(start_date, end_date)
+    ).order_by(PackageUsageHistory.charge_date.desc()).limit(100).all()
     
     # Calculate totals
     total_package_revenue = sum([s.price_paid or 0 for s in package_sales])
@@ -679,7 +679,7 @@ def owner_billing_audit():
     
     # ====== PACKAGE USAGE TODAY ======
     package_usage_today = PackageUsageHistory.query.filter(
-        func.date(PackageUsageHistory.used_at) == audit_date
+        func.date(PackageUsageHistory.charge_date) == audit_date
     ).all()
     
     total_package_redemptions = len(package_usage_today)
