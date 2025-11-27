@@ -42,7 +42,6 @@ def billing_reports():
     ).group_by(func.date(EnhancedInvoice.invoice_date)).all()
     
     # Convert string dates to date objects
-    from datetime import datetime
     revenue_by_date = []
     for item in revenue_by_date_raw:
         if isinstance(item.date, str):
