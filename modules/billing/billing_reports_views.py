@@ -440,11 +440,12 @@ def payment_audit_report():
                     print(f"  Error parsing payment_methods for invoice {inv.invoice_number}: {e}")
                     continue
 
-    total_collection = cash_total + card_total + upi_total + cheque_total
+    # Total collection from payment methods only
+    payment_methods_total = cash_total + card_total + upi_total + cheque_total
 
     print(f"  Cash: ₹{cash_total} ({cash_count} txns), Card: ₹{card_total} ({card_count} txns)")
     print(f"  UPI: ₹{upi_total} ({upi_count} txns), Cheque: ₹{cheque_total} ({cheque_count} txns)")
-    print(f"  Total: ₹{total_collection}")
+    print(f"  Payment Methods Total: ₹{payment_methods_total}")
 
     # ====== PACKAGE BILLING DATA ======
     # Get package sales for the audit date
@@ -493,6 +494,10 @@ def payment_audit_report():
     # ====== TOTAL REVENUE (Service + Product + Package Sales) ======
     total_revenue_today = service_revenue_today + product_revenue_today + total_package_revenue
 
+    # ====== TOTAL COLLECTION (Payment Methods + Package Sales) ======
+    # This is the actual cash/card/upi collected + package sales
+    total_collection = payment_methods_total + total_package_revenue
+
     return render_template('payment_audit_report.html',
                          audit_date=audit_date,
                          payments=payment_details,
@@ -504,6 +509,7 @@ def payment_audit_report():
                          card_count=card_count,
                          upi_count=upi_count,
                          cheque_count=cheque_count,
+                         payment_methods_total=payment_methods_total,
                          total_collection=total_collection,
                          total_transactions=len(payment_details),
                          package_sales_today=package_sales_today,
