@@ -124,6 +124,61 @@
         </div>
     </div>
 
+    <!-- Revenue Breakdown by Type -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow border-primary">
+                <div class="card-header py-3 bg-gradient-primary text-white">
+                    <h6 class="m-0 font-weight-bold"><i class="fas fa-chart-pie me-2"></i>Revenue Breakdown by Type</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-md-3 mb-3">
+                            <div class="card bg-light border-primary h-100">
+                                <div class="card-body">
+                                    <i class="fas fa-spa fa-3x text-primary mb-2"></i>
+                                    <h6 class="text-muted">Service Revenue</h6>
+                                    <h3 class="text-primary font-weight-bold">₹{{ "{:,.2f}".format(total_service_revenue) }}</h3>
+                                    <small class="text-muted">{{ service_items|length }} services</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="card bg-light border-warning h-100">
+                                <div class="card-body">
+                                    <i class="fas fa-box-open fa-3x text-warning mb-2"></i>
+                                    <h6 class="text-muted">Product Revenue</h6>
+                                    <h3 class="text-warning font-weight-bold">₹{{ "{:,.2f}".format(total_product_revenue) }}</h3>
+                                    <small class="text-muted">{{ product_items|length }} products</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="card bg-light border-info h-100">
+                                <div class="card-body">
+                                    <i class="fas fa-gift fa-3x text-info mb-2"></i>
+                                    <h6 class="text-muted">Package Sales</h6>
+                                    <h3 class="text-info font-weight-bold">₹{{ "{:,.2f}".format(total_package_revenue) }}</h3>
+                                    <small class="text-muted">{{ total_package_sales }} packages</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="card bg-success text-white h-100">
+                                <div class="card-body">
+                                    <i class="fas fa-chart-line fa-3x mb-2"></i>
+                                    <h6>Total Revenue</h6>
+                                    <h3 class="font-weight-bold">₹{{ "{:,.2f}".format(grand_total_revenue) }}</h3>
+                                    <small>All sources combined</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Payment Method Breakdown -->
     <div class="row mb-4">
         <div class="col-12">
