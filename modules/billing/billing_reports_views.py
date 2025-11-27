@@ -407,10 +407,10 @@ def payment_audit_report():
                                 'id': inv.id,
                                 'invoice_id': inv.id,
                                 'invoice_number': inv.invoice_number,
-                                'customer_name': f"{inv.customer.first_name} {inv.customer.last_name}" if inv.customer else 'N/A',
+                                'customer_name': f"{inv.client.first_name} {inv.client.last_name}" if inv.client else 'N/A',
                                 'payment_method': method_lower,
                                 'amount': float(amount),
-                                'payment_date': inv.invoice_date,
+                                'payment_date': inv.created_at or inv.invoice_date,
                                 'processed_by': 'N/A',
                                 'reference': ''
                             })
