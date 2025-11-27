@@ -398,8 +398,8 @@
                                         {% endif %}
                                     </td>
                                     <td>
-                                        {% set payment_method = sale.payment_method|default('cash')|lower %}
-                                        <span class="badge {% if payment_method == 'cash' %}bg-success{% elif payment_method == 'card' %}bg-primary{% elif payment_method == 'upi' %}bg-info{% elif payment_method == 'cheque' %}bg-warning{% else %}bg-danger{% endif %}">
+                                        {% set payment_method = (sale.payment_method or 'cash')|lower %}
+                                        <span class="badge {% if payment_method == 'cash' %}bg-success{% elif payment_method == 'card' %}bg-primary{% elif payment_method == 'upi' %}bg-info{% elif payment_method == 'cheque' %}bg-warning{% else %}bg-secondary{% endif %}">
                                             {{ payment_method|title }}
                                         </span>
                                     </td>
