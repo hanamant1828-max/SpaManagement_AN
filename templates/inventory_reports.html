@@ -7,64 +7,68 @@
 
 {% block content %}
 <div class="container-fluid">
-    <!-- Page Header -->
-    <div class="page-header mb-4">
+    <!-- Page Header with Gradient -->
+    <div class="page-header mb-4 p-4 rounded-3 shadow-sm" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
         <div class="d-flex justify-content-between align-items-center">
-            <div>
-                <h1 class="page-header-title">
+            <div class="text-white">
+                <h1 class="page-header-title mb-2 text-white">
                     <i class="fas fa-chart-line me-2"></i>Inventory Reports
                 </h1>
-                <p class="page-header-subtitle mb-0">Generate comprehensive inventory reports with detailed analytics</p>
+                <p class="mb-0 opacity-75">Generate comprehensive inventory reports with detailed analytics</p>
             </div>
-            <a href="{{ url_for('inventory_dashboard') }}" class="btn btn-outline-primary">
+            <a href="{{ url_for('inventory_dashboard') }}" class="btn btn-light btn-lg">
                 <i class="fas fa-arrow-left me-2"></i>Back to Inventory
             </a>
         </div>
     </div>
 
-    <!-- Quick Stats Cards -->
+    <!-- Quick Stats Cards with Enhanced Design -->
     <div class="row g-4 mb-4">
         <div class="col-md-3">
-            <div class="card stat-card border-0 shadow-sm h-100">
-                <div class="card-body text-center">
+            <div class="card stat-card border-0 shadow-sm h-100 position-relative overflow-hidden">
+                <div class="stat-gradient stat-gradient-blue"></div>
+                <div class="card-body text-center position-relative">
                     <div class="stat-icon mb-3">
                         <i class="fas fa-cubes fa-3x text-primary"></i>
                     </div>
-                    <h6 class="text-muted mb-2">Total Products</h6>
-                    <h3 class="mb-0 fw-bold">{{ total_products or 0 }}</h3>
+                    <h6 class="text-muted mb-2 text-uppercase small fw-bold">Total Products</h6>
+                    <h2 class="mb-0 fw-bold text-primary">{{ total_products or 0 }}</h2>
                 </div>
             </div>
         </div>
         <div class="col-md-3">
-            <div class="card stat-card border-0 shadow-sm h-100">
-                <div class="card-body text-center">
+            <div class="card stat-card border-0 shadow-sm h-100 position-relative overflow-hidden">
+                <div class="stat-gradient stat-gradient-orange"></div>
+                <div class="card-body text-center position-relative">
                     <div class="stat-icon mb-3">
                         <i class="fas fa-exclamation-triangle fa-3x text-warning"></i>
                     </div>
-                    <h6 class="text-muted mb-2">Low Stock Items</h6>
-                    <h3 class="mb-0 fw-bold">{{ low_stock_count or 0 }}</h3>
+                    <h6 class="text-muted mb-2 text-uppercase small fw-bold">Low Stock Items</h6>
+                    <h2 class="mb-0 fw-bold text-warning">{{ low_stock_count or 0 }}</h2>
                 </div>
             </div>
         </div>
         <div class="col-md-3">
-            <div class="card stat-card border-0 shadow-sm h-100">
-                <div class="card-body text-center">
+            <div class="card stat-card border-0 shadow-sm h-100 position-relative overflow-hidden">
+                <div class="stat-gradient stat-gradient-red"></div>
+                <div class="card-body text-center position-relative">
                     <div class="stat-icon mb-3">
                         <i class="fas fa-calendar-times fa-3x text-danger"></i>
                     </div>
-                    <h6 class="text-muted mb-2">Expiring Soon</h6>
-                    <h3 class="mb-0 fw-bold">{{ expiring_count or 0 }}</h3>
+                    <h6 class="text-muted mb-2 text-uppercase small fw-bold">Expiring Soon</h6>
+                    <h2 class="mb-0 fw-bold text-danger">{{ expiring_count or 0 }}</h2>
                 </div>
             </div>
         </div>
         <div class="col-md-3">
-            <div class="card stat-card border-0 shadow-sm h-100">
-                <div class="card-body text-center">
+            <div class="card stat-card border-0 shadow-sm h-100 position-relative overflow-hidden">
+                <div class="stat-gradient stat-gradient-green"></div>
+                <div class="card-body text-center position-relative">
                     <div class="stat-icon mb-3">
                         <i class="fas fa-dollar-sign fa-3x text-success"></i>
                     </div>
-                    <h6 class="text-muted mb-2">Total Stock Value</h6>
-                    <h3 class="mb-0 fw-bold">₹{{ "{:,.2f}".format(total_stock_value or 0) }}</h3>
+                    <h6 class="text-muted mb-2 text-uppercase small fw-bold">Total Stock Value</h6>
+                    <h2 class="mb-0 fw-bold text-success">₹{{ "{:,.2f}".format(total_stock_value or 0) }}</h2>
                 </div>
             </div>
         </div>
@@ -177,33 +181,57 @@
 .page-header-title {
     font-size: 2rem;
     font-weight: 700;
-    color: #1a202c;
     margin-bottom: 0.5rem;
-}
-
-.page-header-subtitle {
-    color: #718096;
-    font-size: 1rem;
 }
 
 .stat-card {
     transition: all 0.3s ease;
-    border-radius: 12px;
+    border-radius: 16px;
 }
 
 .stat-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15) !important;
+    transform: translateY(-8px);
+    box-shadow: 0 16px 32px rgba(0, 0, 0, 0.2) !important;
+}
+
+.stat-gradient {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    opacity: 0;
+    transition: all 0.3s ease;
+}
+
+.stat-card:hover .stat-gradient {
+    opacity: 1;
+}
+
+.stat-gradient-blue {
+    background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+}
+
+.stat-gradient-orange {
+    background: linear-gradient(90deg, #f59e0b 0%, #ea580c 100%);
+}
+
+.stat-gradient-red {
+    background: linear-gradient(90deg, #ef4444 0%, #dc2626 100%);
+}
+
+.stat-gradient-green {
+    background: linear-gradient(90deg, #10b981 0%, #059669 100%);
 }
 
 .stat-icon {
-    opacity: 0.8;
+    opacity: 0.7;
     transition: all 0.3s ease;
 }
 
 .stat-card:hover .stat-icon {
     opacity: 1;
-    transform: scale(1.1);
+    transform: scale(1.15) rotate(5deg);
 }
 
 .form-select-lg, .form-control-lg {

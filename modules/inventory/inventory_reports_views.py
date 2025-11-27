@@ -10,7 +10,6 @@ from .inventory_reports_queries import (
     get_location_wise_report, get_consumption_report, get_adjustment_report,
     get_category_wise_report, get_low_stock_report, get_batch_movement_report
 )
-from models import Product # Added import for Product model
 from sqlalchemy import func # Added import for SQLAlchemy functions
 from app import db # Added import for db session
 
