@@ -320,6 +320,7 @@ def product_revenue_only_report():
 @login_required
 def payment_audit_report():
     """Daily payment audit report by payment method"""
+    import json
     from models import InvoicePayment
     
     # Get date from request or default to today
@@ -332,47 +333,122 @@ def payment_audit_report():
     else:
         audit_date = date.today()
     
-    # Get all payments for the selected date
-    # CRITICAL: Query payments where the DATE portion matches audit_date
-    # This handles both naive datetimes and timezone-aware datetimes
+    # First try to get payments from invoice_payment table
     payments = InvoicePayment.query.filter(
         func.date(InvoicePayment.payment_date) == audit_date
     ).order_by(InvoicePayment.payment_date.desc()).all()
     
-    print(f"🔍 Payment Audit Debug:")
-    print(f"  Audit date: {audit_date}")
-    print(f"  Total payments found: {len(payments)}")
+    # Initialize totals
+    cash_total = 0.0
+    card_total = 0.0
+    upi_total = 0.0
+    cheque_total = 0.0
+    cash_count = 0
+    card_count = 0
+    upi_count = 0
+    cheque_count = 0
+    
+    # Build payment details list for template
+    payment_details = []
+    
     if payments:
-        for p in payments[:3]:  # Show first 3 for debugging
-            print(f"    Payment ID {p.id}: {p.payment_method} - ₹{p.amount} on {p.payment_date}")
-    
-    # Calculate totals by payment method
-    cash_payments = [p for p in payments if p.payment_method == 'cash']
-    card_payments = [p for p in payments if p.payment_method == 'card']
-    upi_payments = [p for p in payments if p.payment_method == 'upi']
-    cheque_payments = [p for p in payments if p.payment_method == 'cheque']
-    
-    print(f"  Cash: {len(cash_payments)}, Card: {len(card_payments)}, UPI: {len(upi_payments)}, Cheque: {len(cheque_payments)}")
-    
-    cash_total = sum(p.amount for p in cash_payments)
-    card_total = sum(p.amount for p in card_payments)
-    upi_total = sum(p.amount for p in upi_payments)
-    cheque_total = sum(p.amount for p in cheque_payments)
+        # Use invoice_payment table if it has data
+        for p in payments:
+            payment_details.append({
+                'id': p.id,
+                'invoice_id': p.invoice_id,
+                'invoice_number': p.invoice.invoice_number if p.invoice else 'N/A',
+                'customer_name': f"{p.invoice.client.first_name} {p.invoice.client.last_name}" if p.invoice and p.invoice.client else 'N/A',
+                'payment_method': p.payment_method,
+                'amount': p.amount,
+                'payment_date': p.payment_date,
+                'processed_by': p.processor.username if p.processor else 'N/A',
+                'reference': p.reference_number or p.transaction_id or ''
+            })
+            if p.payment_method == 'cash':
+                cash_total += p.amount
+                cash_count += 1
+            elif p.payment_method == 'card':
+                card_total += p.amount
+                card_count += 1
+            elif p.payment_method == 'upi':
+                upi_total += p.amount
+                upi_count += 1
+            elif p.payment_method == 'cheque':
+                cheque_total += p.amount
+                cheque_count += 1
+    else:
+        # Fallback: Extract payment data from enhanced_invoice.payment_methods field
+        # This handles cases where payments are stored in invoice JSON but not in invoice_payment table
+        invoices = EnhancedInvoice.query.filter(
+            func.date(EnhancedInvoice.invoice_date) == audit_date,
+            EnhancedInvoice.payment_status.in_(['paid', 'partial'])
+        ).order_by(EnhancedInvoice.invoice_date.desc()).all()
+        
+        print(f"🔍 Payment Audit Debug (from invoices):")
+        print(f"  Audit date: {audit_date}")
+        print(f"  Total invoices found: {len(invoices)}")
+        
+        for inv in invoices:
+            if inv.payment_methods:
+                try:
+                    if isinstance(inv.payment_methods, str):
+                        methods = json.loads(inv.payment_methods)
+                    else:
+                        methods = inv.payment_methods
+                    
+                    for method, amount in methods.items():
+                        if amount and float(amount) > 0:
+                            method_lower = method.lower().strip() if method else 'cash'
+                            if not method_lower:
+                                method_lower = 'cash'
+                            
+                            payment_details.append({
+                                'id': inv.id,
+                                'invoice_id': inv.id,
+                                'invoice_number': inv.invoice_number,
+                                'customer_name': f"{inv.client.first_name} {inv.client.last_name}" if inv.client else 'N/A',
+                                'payment_method': method_lower,
+                                'amount': float(amount),
+                                'payment_date': inv.invoice_date,
+                                'processed_by': 'N/A',
+                                'reference': ''
+                            })
+                            
+                            if method_lower == 'cash':
+                                cash_total += float(amount)
+                                cash_count += 1
+                            elif method_lower == 'card':
+                                card_total += float(amount)
+                                card_count += 1
+                            elif method_lower == 'upi':
+                                upi_total += float(amount)
+                                upi_count += 1
+                            elif method_lower == 'cheque':
+                                cheque_total += float(amount)
+                                cheque_count += 1
+                except (json.JSONDecodeError, TypeError) as e:
+                    print(f"  Error parsing payment_methods for invoice {inv.invoice_number}: {e}")
+                    continue
     
     total_collection = cash_total + card_total + upi_total + cheque_total
     
+    print(f"  Cash: ₹{cash_total} ({cash_count} txns), Card: ₹{card_total} ({card_count} txns)")
+    print(f"  UPI: ₹{upi_total} ({upi_count} txns), Cheque: ₹{cheque_total} ({cheque_count} txns)")
+    print(f"  Total: ₹{total_collection}")
+    
     return render_template('payment_audit_report.html',
                          audit_date=audit_date,
-                         payments=payments,
+                         payments=payment_details,
                          cash_total=cash_total,
                          card_total=card_total,
                          upi_total=upi_total,
                          cheque_total=cheque_total,
-                         cash_count=len(cash_payments),
-                         card_count=len(card_payments),
-                         upi_count=len(upi_payments),
-                         cheque_count=len(cheque_payments),
+                         cash_count=cash_count,
+                         card_count=card_count,
+                         upi_count=upi_count,
+                         cheque_count=cheque_count,
                          total_collection=total_collection,
-                         total_transactions=len(payments))
+                         total_transactions=len(payment_details))
 
 print("✅ Billing reports views imported")

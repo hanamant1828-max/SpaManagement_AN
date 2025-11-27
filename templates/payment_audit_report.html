@@ -159,17 +159,17 @@
                             <tbody>
                                 {% for payment in payments %}
                                 <tr>
-                                    <td>{{ payment.payment_date.strftime('%I:%M %p') }}</td>
-                                    <td><strong>{{ payment.invoice.invoice_number }}</strong></td>
-                                    <td>{{ payment.invoice.client.first_name }} {{ payment.invoice.client.last_name }}</td>
+                                    <td>{{ payment.payment_date.strftime('%I:%M %p') if payment.payment_date else '-' }}</td>
+                                    <td><strong>{{ payment.invoice_number }}</strong></td>
+                                    <td>{{ payment.customer_name }}</td>
                                     <td>
                                         <span class="badge bg-{{ 'success' if payment.payment_method == 'cash' else 'primary' if payment.payment_method == 'card' else 'info' if payment.payment_method == 'upi' else 'warning' }}">
                                             {{ payment.payment_method|upper }}
                                         </span>
                                     </td>
                                     <td><strong>₹{{ "{:,.2f}".format(payment.amount) }}</strong></td>
-                                    <td>{{ payment.processor.username if payment.processor else 'System' }}</td>
-                                    <td>{{ payment.transaction_id or payment.reference_number or '-' }}</td>
+                                    <td>{{ payment.processed_by }}</td>
+                                    <td>{{ payment.reference or '-' }}</td>
                                 </tr>
                                 {% endfor %}
                             </tbody>
@@ -214,13 +214,13 @@ function exportToExcel() {
     
     {% for payment in payments %}
     detailData.push([
-        '{{ payment.payment_date.strftime("%I:%M %p") }}',
-        '{{ payment.invoice.invoice_number }}',
-        '{{ payment.invoice.client.first_name }} {{ payment.invoice.client.last_name }}',
+        '{{ payment.payment_date.strftime("%I:%M %p") if payment.payment_date else "-" }}',
+        '{{ payment.invoice_number }}',
+        '{{ payment.customer_name }}',
         '{{ payment.payment_method|upper }}',
         {{ payment.amount }},
-        '{{ payment.processor.username if payment.processor else "System" }}',
-        '{{ payment.transaction_id or payment.reference_number or "-" }}'
+        '{{ payment.processed_by }}',
+        '{{ payment.reference or "-" }}'
     ]);
     {% endfor %}
     
