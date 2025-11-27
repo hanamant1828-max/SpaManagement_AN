@@ -495,6 +495,10 @@ def payment_audit_report():
 
     print(f"  Package breakdown - Cash: ₹{package_cash}, Card: ₹{package_card}, UPI: ₹{package_upi}, Cheque: ₹{package_cheque}")
 
+    # Recalculate payment_methods_total AFTER adding package sales
+    payment_methods_total = cash_total + card_total + upi_total + cheque_total
+    print(f"  Updated Payment Methods Total (with packages): ₹{payment_methods_total}")
+
     # Package usage/redemptions for the audit date
     package_usage_today = PackageUsageHistory.query.filter(
         func.date(PackageUsageHistory.charge_date) == audit_date
