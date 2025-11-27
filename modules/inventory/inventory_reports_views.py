@@ -22,23 +22,24 @@ def inventory_reports():
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
 
-    # Get quick stats for display
-    total_products = Product.query.count()
-    low_stock_count = Product.query.filter(Product.current_stock <= Product.min_stock_level).count()
-
+    # Get quick stats for display using InventoryProduct model
+    from modules.inventory.models import InventoryProduct
+    
+    total_products = InventoryProduct.query.filter_by(is_active=True).count()
+    low_stock_count = len([p for p in InventoryProduct.query.filter_by(is_active=True).all() if p.stock_status == 'low_stock'])
+    
     # Count expiring products (within 30 days)
-    thirty_days_from_now = datetime.utcnow() + timedelta(days=30)
-    expiring_count = Product.query.filter(
-        Product.expiry_date.isnot(None),
-        Product.expiry_date <= thirty_days_from_now
-    ).count()
-
-    # Calculate total stock value
-    total_stock_value = db.session.query(
-        func.sum(Product.current_stock * Product.unit_price)
-    ).scalar() or 0
+    expiring_count = len(get_expiry_report(days_threshold=30))
+    
+    # Calculate total stock value from summary
+    summary = get_stock_summary_report()
+    total_stock_value = summary.get('total_stock_value', 0)
 
     try:
+        # Get report type from request
+        report_type = request.args.get('report_type', '')
+        
+        # Default date range
         end_date = date.today()
         start_date = end_date - timedelta(days=30)
 
@@ -52,17 +53,32 @@ def inventory_reports():
             except ValueError:
                 flash('Invalid date format', 'danger')
 
-        summary = get_stock_summary_report()
-        stock_levels = get_stock_level_report()
-        expiring_items = get_expiry_report(days_threshold=30)
-        low_stock_items = get_low_stock_report(threshold=10)
-        location_summary = get_location_wise_report()
-        category_summary = get_category_wise_report()
-        consumption_data = get_consumption_report(start_date, end_date)
-        adjustment_data = get_adjustment_report(start_date, end_date)
+        # Initialize all data as None
+        stock_levels = None
+        expiring_items = None
+        low_stock_items = None
+        location_summary = None
+        category_summary = None
+        consumption_data = None
+        adjustment_data = None
+
+        # Load data based on report type
+        if report_type == 'stock_levels':
+            stock_levels = get_stock_level_report()
+        elif report_type == 'consumption':
+            consumption_data = get_consumption_report(start_date, end_date)
+        elif report_type == 'low_stock':
+            low_stock_items = get_low_stock_report(threshold=10)
+        elif report_type == 'expiry':
+            expiring_items = get_expiry_report(days_threshold=30)
+        elif report_type == 'adjustments':
+            adjustment_data = get_adjustment_report(start_date, end_date)
+        elif report_type == 'category_wise':
+            category_summary = get_category_wise_report()
+        elif report_type == 'location_wise':
+            location_summary = get_location_wise_report()
 
         return render_template('inventory_reports.html',
-                             summary=summary,
                              stock_levels=stock_levels,
                              expiring_items=expiring_items,
                              low_stock_items=low_stock_items,

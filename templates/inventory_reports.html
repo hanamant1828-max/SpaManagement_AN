@@ -1,3 +1,4 @@
+
 {% extends "base.html" %}
 
 {% block title %}Inventory Reports - Spa Management{% endblock %}
@@ -21,169 +22,143 @@
         </div>
     </div>
 
-    <!-- Report Selection Card -->
-    <div class="row">
-        <div class="col-12">
-            <div class="card shadow-sm border-0 mb-4">
-                <div class="card-header bg-gradient-primary text-white">
-                    <h5 class="mb-0">
-                        <i class="fas fa-filter me-2"></i>Select Report Type
-                    </h5>
-                </div>
-                <div class="card-body p-4">
-                    <form method="POST" id="reportForm">
-                        <div class="row g-4">
-                            <!-- Report Type Selection -->
-                            <div class="col-md-12">
-                                <label for="report_type" class="form-label fw-semibold">
-                                    <i class="fas fa-file-alt me-1"></i>Choose Report Type:
-                                </label>
-                                <select class="form-select form-select-lg" id="report_type" name="report_type" required>
-                                    <option value="">-- Select Report Type --</option>
-                                    <option value="consumption">Consumption Report (Custom Date Range)</option>
-                                    <option value="low_stock">Low Stock Alert Report</option>
-                                    <option value="expiry">Expiry Alert Report</option>
-                                    <option value="stock_value">Stock Value Report</option>
-                                    <option value="adjustments">Stock Adjustments Report</option>
-                                    <option value="category_wise">Category-wise Stock Report</option>
-                                </select>
-                            </div>
-
-                            <!-- Date Range Section (conditionally shown) -->
-                            <div id="dateRangeSection" class="col-md-12" style="display: none;">
-                                <div class="row g-3">
-                                    <div class="col-md-6">
-                                        <label for="start_date" class="form-label fw-semibold">
-                                            <i class="fas fa-calendar-alt me-1"></i>Start Date:
-                                        </label>
-                                        <input type="date" class="form-control form-control-lg" id="start_date" name="start_date">
-                                    </div>
-                                    <div class="col-md-6">
-                                        <label for="end_date" class="form-label fw-semibold">
-                                            <i class="fas fa-calendar-alt me-1"></i>End Date:
-                                        </label>
-                                        <input type="date" class="form-control form-control-lg" id="end_date" name="end_date">
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Generate Button -->
-                            <div class="col-md-12">
-                                <button type="submit" class="btn btn-primary btn-lg w-100" id="generateBtn">
-                                    <i class="fas fa-chart-bar me-2"></i>Generate Report
-                                </button>
-                            </div>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Report Results Section -->
-    {% if report_data %}
-    <div class="row">
-        <div class="col-12">
-            <div class="card shadow-sm border-0">
-                <div class="card-header bg-gradient-success text-white">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0">
-                            <i class="fas fa-table me-2"></i>{{ report_title }}
-                        </h5>
-                        <button class="btn btn-light btn-sm" onclick="exportReport()">
-                            <i class="fas fa-download me-1"></i>Export to Excel
-                        </button>
-                    </div>
-                </div>
-                <div class="card-body p-0">
-                    <div class="table-responsive">
-                        <table class="table table-hover table-striped mb-0" id="reportTable">
-                            <thead class="table-dark">
-                                <tr>
-                                    {% for header in report_headers %}
-                                    <th>{{ header }}</th>
-                                    {% endfor %}
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% if report_data %}
-                                    {% for row in report_data %}
-                                    <tr>
-                                        {% for cell in row %}
-                                        <td>{{ cell }}</td>
-                                        {% endfor %}
-                                    </tr>
-                                    {% endfor %}
-                                {% else %}
-                                    <tr>
-                                        <td colspan="{{ report_headers|length }}" class="text-center text-muted py-4">
-                                            <i class="fas fa-info-circle me-2"></i>No data available for the selected criteria
-                                        </td>
-                                    </tr>
-                                {% endif %}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-                <div class="card-footer bg-light">
-                    <div class="text-muted small">
-                        <i class="fas fa-info-circle me-1"></i>
-                        Total Records: <strong>{{ report_data|length }}</strong>
-                        {% if start_date and end_date %}
-                        | Period: <strong>{{ start_date }}</strong> to <strong>{{ end_date }}</strong>
-                        {% endif %}
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    {% endif %}
-
-    <!-- Quick Stats Cards (if no report generated yet) -->
-    {% if not report_data %}
-    <div class="row g-4 mt-2">
+    <!-- Quick Stats Cards -->
+    <div class="row g-4 mb-4">
         <div class="col-md-3">
-            <div class="card border-0 shadow-sm h-100">
+            <div class="card stat-card border-0 shadow-sm h-100">
                 <div class="card-body text-center">
                     <div class="stat-icon mb-3">
                         <i class="fas fa-cubes fa-3x text-primary"></i>
                     </div>
                     <h6 class="text-muted mb-2">Total Products</h6>
-                    <h3 class="mb-0">{{ total_products or 0 }}</h3>
+                    <h3 class="mb-0 fw-bold">{{ total_products or 0 }}</h3>
                 </div>
             </div>
         </div>
         <div class="col-md-3">
-            <div class="card border-0 shadow-sm h-100">
+            <div class="card stat-card border-0 shadow-sm h-100">
                 <div class="card-body text-center">
                     <div class="stat-icon mb-3">
                         <i class="fas fa-exclamation-triangle fa-3x text-warning"></i>
                     </div>
                     <h6 class="text-muted mb-2">Low Stock Items</h6>
-                    <h3 class="mb-0">{{ low_stock_count or 0 }}</h3>
+                    <h3 class="mb-0 fw-bold">{{ low_stock_count or 0 }}</h3>
                 </div>
             </div>
         </div>
         <div class="col-md-3">
-            <div class="card border-0 shadow-sm h-100">
+            <div class="card stat-card border-0 shadow-sm h-100">
                 <div class="card-body text-center">
                     <div class="stat-icon mb-3">
                         <i class="fas fa-calendar-times fa-3x text-danger"></i>
                     </div>
                     <h6 class="text-muted mb-2">Expiring Soon</h6>
-                    <h3 class="mb-0">{{ expiring_count or 0 }}</h3>
+                    <h3 class="mb-0 fw-bold">{{ expiring_count or 0 }}</h3>
                 </div>
             </div>
         </div>
         <div class="col-md-3">
-            <div class="card border-0 shadow-sm h-100">
+            <div class="card stat-card border-0 shadow-sm h-100">
                 <div class="card-body text-center">
                     <div class="stat-icon mb-3">
                         <i class="fas fa-dollar-sign fa-3x text-success"></i>
                     </div>
                     <h6 class="text-muted mb-2">Total Stock Value</h6>
-                    <h3 class="mb-0">₹{{ total_stock_value or 0 }}</h3>
+                    <h3 class="mb-0 fw-bold">₹{{ "{:,.2f}".format(total_stock_value or 0) }}</h3>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Report Selection Card -->
+    <div class="card shadow-sm border-0 mb-4">
+        <div class="card-header bg-gradient-primary text-white">
+            <h5 class="mb-0">
+                <i class="fas fa-filter me-2"></i>Select Report Type
+            </h5>
+        </div>
+        <div class="card-body p-4">
+            <form method="GET" id="reportForm" action="{{ url_for('inventory_reports') }}">
+                <div class="row g-4">
+                    <!-- Report Type Selection -->
+                    <div class="col-md-4">
+                        <label for="report_type" class="form-label fw-semibold">
+                            <i class="fas fa-file-alt me-1"></i>Choose Report Type:
+                        </label>
+                        <select class="form-select form-select-lg" id="report_type" name="report_type" required>
+                            <option value="">-- Select Report Type --</option>
+                            <option value="stock_levels">Stock Levels Report</option>
+                            <option value="consumption">Consumption Report (Custom Date Range)</option>
+                            <option value="low_stock">Low Stock Alert Report</option>
+                            <option value="expiry">Expiry Alert Report</option>
+                            <option value="stock_value">Stock Value Report</option>
+                            <option value="adjustments">Stock Adjustments Report</option>
+                            <option value="category_wise">Category-wise Stock Report</option>
+                            <option value="location_wise">Location-wise Stock Report</option>
+                        </select>
+                    </div>
+
+                    <!-- Date Range Section -->
+                    <div id="dateRangeSection" class="col-md-8" style="display: none;">
+                        <label class="form-label fw-semibold">
+                            <i class="fas fa-calendar-alt me-1"></i>Date Range:
+                        </label>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <input type="date" class="form-control form-control-lg" id="start_date" name="start_date" 
+                                       value="{{ start_date.strftime('%Y-%m-%d') if start_date else '' }}">
+                            </div>
+                            <div class="col-md-6">
+                                <input type="date" class="form-control form-control-lg" id="end_date" name="end_date"
+                                       value="{{ end_date.strftime('%Y-%m-%d') if end_date else '' }}">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Generate Button -->
+                    <div class="col-12">
+                        <button type="submit" class="btn btn-primary btn-lg px-5" id="generateBtn">
+                            <i class="fas fa-chart-bar me-2"></i>Generate Report
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary btn-lg px-5 ms-2" onclick="window.location.href='{{ url_for('inventory_reports') }}'">
+                            <i class="fas fa-redo me-2"></i>Reset
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Report Results Section -->
+    {% if consumption_data or adjustment_data or stock_levels or expiring_items or low_stock_items or category_summary or location_summary %}
+    <div class="card shadow-sm border-0">
+        <div class="card-header bg-gradient-success text-white">
+            <div class="d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="fas fa-table me-2"></i>Report Results
+                    {% if start_date and end_date %}
+                    - {{ start_date.strftime('%d %b %Y') }} to {{ end_date.strftime('%d %b %Y') }}
+                    {% endif %}
+                </h5>
+                <button class="btn btn-light btn-sm" onclick="exportToExcel()">
+                    <i class="fas fa-download me-1"></i>Export to Excel
+                </button>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover table-striped mb-0" id="reportTable">
+                    <thead class="table-dark">
+                        <tr id="tableHeader"></tr>
+                    </thead>
+                    <tbody id="tableBody"></tbody>
+                </table>
+            </div>
+        </div>
+        <div class="card-footer bg-light">
+            <div class="text-muted small" id="reportFooter">
+                <i class="fas fa-info-circle me-1"></i>
+                <span id="recordCount">Total Records: 0</span>
             </div>
         </div>
     </div>
@@ -192,7 +167,7 @@
 
 <style>
 .bg-gradient-primary {
-    background: linear-gradient(135deg, #4285f4 0%, #2563eb 100%);
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 }
 
 .bg-gradient-success {
@@ -202,55 +177,107 @@
 .page-header-title {
     font-size: 2rem;
     font-weight: 700;
-    color: var(--text-primary);
+    color: #1a202c;
     margin-bottom: 0.5rem;
 }
 
 .page-header-subtitle {
-    color: var(--text-secondary);
+    color: #718096;
     font-size: 1rem;
+}
+
+.stat-card {
+    transition: all 0.3s ease;
+    border-radius: 12px;
+}
+
+.stat-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15) !important;
 }
 
 .stat-icon {
     opacity: 0.8;
+    transition: all 0.3s ease;
+}
+
+.stat-card:hover .stat-icon {
+    opacity: 1;
+    transform: scale(1.1);
 }
 
 .form-select-lg, .form-control-lg {
     border-radius: 0.5rem;
-    border: 2px solid var(--border-medium);
+    border: 2px solid #e2e8f0;
     transition: all 0.3s ease;
 }
 
 .form-select-lg:focus, .form-control-lg:focus {
-    border-color: var(--spa-primary);
-    box-shadow: 0 0 0 3px rgba(66, 133, 244, 0.1);
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
 }
 
 .table-hover tbody tr:hover {
-    background-color: rgba(66, 133, 244, 0.05);
-    transform: translateY(-1px);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    background-color: rgba(102, 126, 234, 0.05);
+    transform: translateX(2px);
+    transition: all 0.2s ease;
 }
 
 #generateBtn {
-    background: linear-gradient(135deg, #4285f4 0%, #2563eb 100%);
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     border: none;
-    box-shadow: 0 4px 12px rgba(66, 133, 244, 0.3);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
     transition: all 0.3s ease;
 }
 
 #generateBtn:hover {
     transform: translateY(-2px);
-    box-shadow: 0 6px 16px rgba(66, 133, 244, 0.4);
+    box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
 }
 
 .card {
     transition: all 0.3s ease;
+    border-radius: 12px;
 }
 
-.card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1) !important;
+.card-header {
+    border-radius: 12px 12px 0 0 !important;
+}
+
+.badge-low-stock {
+    background-color: #f59e0b;
+    color: white;
+}
+
+.badge-out-of-stock {
+    background-color: #ef4444;
+    color: white;
+}
+
+.badge-in-stock {
+    background-color: #10b981;
+    color: white;
+}
+
+.badge-critical {
+    background-color: #dc2626;
+    color: white;
+    animation: pulse 2s infinite;
+}
+
+.badge-high {
+    background-color: #f59e0b;
+    color: white;
+}
+
+.badge-medium {
+    background-color: #3b82f6;
+    color: white;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
 }
 </style>
 
@@ -270,12 +297,13 @@ document.addEventListener('DOMContentLoaded', function() {
             startDateInput.required = true;
             endDateInput.required = true;
 
-            // Set default dates (last 30 days)
-            const today = new Date();
-            const thirtyDaysAgo = new Date(today.getTime() - (30 * 24 * 60 * 60 * 1000));
-
-            endDateInput.value = today.toISOString().split('T')[0];
-            startDateInput.value = thirtyDaysAgo.toISOString().split('T')[0];
+            // Set default dates if empty
+            if (!startDateInput.value || !endDateInput.value) {
+                const today = new Date();
+                const thirtyDaysAgo = new Date(today.getTime() - (30 * 24 * 60 * 60 * 1000));
+                endDateInput.value = today.toISOString().split('T')[0];
+                startDateInput.value = thirtyDaysAgo.toISOString().split('T')[0];
+            }
         } else {
             dateRangeSection.style.display = 'none';
             startDateInput.required = false;
@@ -283,28 +311,138 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Form validation
-    const form = document.getElementById('reportForm');
-    form.addEventListener('submit', function(e) {
-        const reportType = reportTypeSelect.value;
+    // Trigger change event on page load if report type is already selected
+    if (reportTypeSelect.value) {
+        reportTypeSelect.dispatchEvent(new Event('change'));
+    }
 
-        if (!reportType) {
-            e.preventDefault();
-            showNotification('Please select a report type', 'warning');
-            return;
-        }
-
-        // Show loading state
-        const generateBtn = document.getElementById('generateBtn');
-        generateBtn.disabled = true;
-        generateBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Generating Report...';
-    });
+    // Populate report table if data exists
+    populateReportTable();
 });
 
-function exportReport() {
+function populateReportTable() {
+    const tableHeader = document.getElementById('tableHeader');
+    const tableBody = document.getElementById('tableBody');
+    const recordCount = document.getElementById('recordCount');
+    
+    if (!tableHeader || !tableBody) return;
+
+    // Data from backend
+    const consumptionData = {{ consumption_data.data | tojson | safe if consumption_data else '[]' }};
+    const adjustmentData = {{ adjustment_data.data | tojson | safe if adjustment_data else '[]' }};
+    const stockLevels = {{ stock_levels | tojson | safe if stock_levels else '[]' }};
+    const expiringItems = {{ expiring_items | tojson | safe if expiring_items else '[]' }};
+    const lowStockItems = {{ low_stock_items | tojson | safe if low_stock_items else '[]' }};
+    const categorySummary = {{ category_summary | tojson | safe if category_summary else '[]' }};
+    const locationSummary = {{ location_summary | tojson | safe if location_summary else '[]' }};
+
+    let headers = [];
+    let data = [];
+    let reportType = '';
+
+    // Determine which report to display
+    if (consumptionData.length > 0) {
+        reportType = 'consumption';
+        headers = ['Date', 'Product', 'Batch', 'Quantity', 'Unit Cost', 'Total Cost', 'Issued To', 'Purpose', 'Created By'];
+        data = consumptionData.map(item => [
+            new Date(item.date).toLocaleDateString(),
+            item.product_name,
+            item.batch_name,
+            item.quantity,
+            '₹' + item.unit_cost.toFixed(2),
+            '₹' + item.total_cost.toFixed(2),
+            item.issued_to || '-',
+            item.purpose || '-',
+            item.created_by
+        ]);
+    } else if (adjustmentData.length > 0) {
+        reportType = 'adjustments';
+        headers = ['Date', 'Type', 'Product', 'Batch', 'Quantity', 'Remarks', 'Created By'];
+        data = adjustmentData.map(item => [
+            new Date(item.date).toLocaleDateString(),
+            `<span class="badge ${item.type === 'add' ? 'bg-success' : 'bg-danger'}">${item.type.toUpperCase()}</span>`,
+            item.product_name,
+            item.batch_name,
+            item.quantity,
+            item.remarks || '-',
+            item.created_by
+        ]);
+    } else if (stockLevels.length > 0) {
+        reportType = 'stock_levels';
+        headers = ['SKU', 'Product', 'Category', 'Stock', 'Batches', 'Value', 'Status', 'Unit'];
+        data = stockLevels.map(item => [
+            item.sku,
+            item.product_name,
+            item.category,
+            item.total_stock,
+            item.batch_count,
+            '₹' + item.stock_value.toFixed(2),
+            `<span class="badge badge-${item.stock_status === 'in_stock' ? 'in-stock' : item.stock_status === 'low_stock' ? 'low-stock' : 'out-of-stock'}">${item.stock_status.replace('_', ' ').toUpperCase()}</span>`,
+            item.unit_of_measure
+        ]);
+    } else if (expiringItems.length > 0) {
+        reportType = 'expiry';
+        headers = ['Batch', 'Product', 'Location', 'Expiry Date', 'Days to Expiry', 'Quantity', 'Value', 'Severity'];
+        data = expiringItems.map(item => [
+            item.batch_name,
+            item.product_name,
+            item.location,
+            new Date(item.expiry_date).toLocaleDateString(),
+            item.days_to_expiry,
+            item.quantity,
+            '₹' + item.stock_value.toFixed(2),
+            `<span class="badge badge-${item.severity}">${item.severity.toUpperCase()}</span>`
+        ]);
+    } else if (lowStockItems.length > 0) {
+        reportType = 'low_stock';
+        headers = ['SKU', 'Product', 'Category', 'Current Stock', 'Batches', 'Unit'];
+        data = lowStockItems.map(item => [
+            item.sku,
+            item.product_name,
+            item.category,
+            `<span class="badge badge-low-stock">${item.current_stock}</span>`,
+            item.batch_count,
+            item.unit_of_measure
+        ]);
+    } else if (categorySummary.length > 0) {
+        reportType = 'category_wise';
+        headers = ['Category', 'Products', 'Total Stock', 'Total Value'];
+        data = categorySummary.map(item => [
+            item.category_name,
+            item.total_products,
+            item.total_stock,
+            '₹' + item.total_value.toFixed(2)
+        ]);
+    } else if (locationSummary.length > 0) {
+        reportType = 'location_wise';
+        headers = ['Location', 'Type', 'Batches', 'Products', 'Total Value'];
+        data = locationSummary.map(item => [
+            item.location_name,
+            item.location_type,
+            item.total_batches,
+            item.unique_products,
+            '₹' + item.total_value.toFixed(2)
+        ]);
+    }
+
+    if (headers.length > 0) {
+        // Populate headers
+        tableHeader.innerHTML = headers.map(h => `<th>${h}</th>`).join('');
+        
+        // Populate data
+        tableBody.innerHTML = data.map(row => 
+            `<tr>${row.map(cell => `<td>${cell}</td>`).join('')}</tr>`
+        ).join('');
+
+        // Update record count
+        recordCount.textContent = `Total Records: ${data.length}`;
+    }
+}
+
+function exportToExcel() {
     const table = document.getElementById('reportTable');
     if (!table) {
-        showNotification('No report data to export', 'warning');
+        alert('No report data to export');
         return;
     }
 
@@ -316,6 +454,7 @@ function exportReport() {
         const cols = rows[i].querySelectorAll('td, th');
 
         for (let j = 0; j < cols.length; j++) {
+            // Get text content and clean it
             let data = cols[j].innerText.replace(/(\r\n|\n|\r)/gm, '').replace(/(\s\s)/gm, ' ');
             data = data.replace(/"/g, '""');
             row.push('"' + data + '"');
@@ -339,9 +478,25 @@ function exportReport() {
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-
+        
         showNotification('Report exported successfully!', 'success');
     }
+}
+
+function showNotification(message, type) {
+    // Simple notification function
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed top-0 end-0 m-3`;
+    alertDiv.style.zIndex = '9999';
+    alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    document.body.appendChild(alertDiv);
+    
+    setTimeout(() => {
+        alertDiv.remove();
+    }, 3000);
 }
 </script>
 {% endblock %}
