@@ -466,10 +466,12 @@ def payment_audit_report():
         package_sales_by_type[pkg_type]['revenue'] += pkg.price_paid or 0
 
     # Package sales by payment method
-    package_cash = sum([p.price_paid or 0 for p in package_sales_today if p.payment_method and p.payment_method.lower() == 'cash'])
-    package_card = sum([p.price_paid or 0 for p in package_sales_today if p.payment_method and p.payment_method.lower() == 'card'])
-    package_upi = sum([p.price_paid or 0 for p in package_sales_today if p.payment_method and p.payment_method.lower() == 'upi'])
-    package_cheque = sum([p.price_paid or 0 for p in package_sales_today if p.payment_method and p.payment_method.lower() == 'cheque'])
+    # Note: ServicePackageAssignment doesn't have payment_method field
+    # All package sales shown as total only
+    package_cash = 0
+    package_card = 0
+    package_upi = 0
+    package_cheque = 0
 
     # Package usage/redemptions for the audit date
     package_usage_today = PackageUsageHistory.query.filter(
