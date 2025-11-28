@@ -1,13 +1,224 @@
 {% extends "base.html" %}
 
-{% block title %}Service Management - Spa Management{% endblock %}
+{% block title %}Service Management - Spa & Salon Management Suite{% endblock %}
+
+{% block body_class %}page-service-management{% endblock %}
+
+{% block extra_css %}
+<link href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css" rel="stylesheet" />
+<style>
+/* Stats Cards - Same as Staff Management */
+.stats-card {
+    background: #ffffff;
+    border: 1px solid #E0E0E0;
+    border-radius: 8px;
+    border-left: 4px solid;
+    transition: box-shadow 0.2s ease;
+}
+.stats-card:hover {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+.stats-card.total-staff {
+    border-left-color: #4A90E2;
+}
+.stats-card.active-staff {
+    border-left-color: #7CB342;
+}
+.stats-card.departments {
+    border-left-color: #FDB45C;
+}
+.stats-card .card-body {
+    padding: 1.25rem;
+}
+.stats-card .card-title {
+    color: #757575;
+    font-size: 0.875rem;
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+}
+.stats-card .stats-value {
+    color: #333333;
+    font-size: 1.75rem;
+    font-weight: 600;
+}
+.stats-card .stats-icon {
+    color: #757575;
+    opacity: 0.7;
+}
+
+/* Table Card Styling */
+.staff-table-card {
+    background: #ffffff;
+    border: 1px solid #E0E0E0;
+    border-radius: 8px;
+    overflow: hidden;
+}
+.staff-table-card .card-header {
+    background: #ffffff;
+    border-bottom: 1px solid #E0E0E0;
+    padding: 1rem 1.25rem;
+}
+.staff-table-card .card-header h5 {
+    color: #333333;
+    font-weight: 600;
+    margin: 0;
+}
+
+/* DataTables Styling - Clean Bootstrap Style */
+.dataTables_wrapper {
+    padding: 15px 0;
+}
+
+.dataTables_wrapper .dataTables_paginate .paginate_button {
+    background: #ffffff !important;
+    color: #0d6efd !important;
+    border: 1px solid #dee2e6 !important;
+    border-radius: 0 !important;
+    min-width: 40px;
+    padding: 8px 14px !important;
+    margin: 0 !important;
+    margin-left: -1px !important;
+    font-weight: 400;
+    font-size: 0.95rem;
+    transition: all 0.15s ease;
+}
+.dataTables_wrapper .dataTables_paginate .paginate_button:first-child {
+    border-radius: 6px 0 0 6px !important;
+    margin-left: 0 !important;
+}
+.dataTables_wrapper .dataTables_paginate .paginate_button:last-child {
+    border-radius: 0 6px 6px 0 !important;
+}
+.dataTables_wrapper .dataTables_paginate .paginate_button:hover {
+    background: #e9ecef !important;
+    border-color: #dee2e6 !important;
+    color: #0a58ca !important;
+}
+.dataTables_wrapper .dataTables_paginate .paginate_button.current,
+.dataTables_wrapper .dataTables_paginate .paginate_button.current:hover {
+    background: #0d6efd !important;
+    border-color: #0d6efd !important;
+    color: #ffffff !important;
+    font-weight: 500;
+    z-index: 3;
+    position: relative;
+}
+
+.dataTables_wrapper .dataTables_filter input {
+    border: 1px solid #ced4da !important;
+    border-radius: 6px;
+    padding: 8px 14px;
+    background: #ffffff;
+    color: #495057;
+    font-size: 0.95rem;
+}
+.dataTables_wrapper .dataTables_filter input:focus {
+    border-color: #86b7fe !important;
+    box-shadow: 0 0 0 0.2rem rgba(13,110,253,0.25);
+    outline: none;
+}
+
+.dataTables_wrapper .dataTables_length select {
+    border: 1px solid #ced4da !important;
+    border-radius: 6px;
+    padding: 8px 30px 8px 14px;
+    background: #ffffff;
+    color: #495057;
+}
+
+/* Text colors */
+.text-primary-dark {
+    color: #333333;
+}
+.text-secondary-gray {
+    color: #757575;
+}
+</style>
+{% endblock %}
 
 {% block content %}
 <div class="container-fluid">
-    <div class="row">
+    <!-- Header -->
+    <div class="row mb-4">
         <div class="col-12">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <h2><i class="fas fa-spa me-2"></i>Service Management</h2>
+            <div class="d-flex justify-content-between align-items-center">
+                <h1 class="h3 mb-0">
+                    <i class="fas fa-spa me-2"></i>Service Management
+                </h1>
+                <div class="btn-group gap-2">
+                    <button
+                        type="button"
+                        class="btn btn-success"
+                        data-bs-toggle="modal"
+                        data-bs-target="#addServiceModal"
+                    >
+                        <i class="fas fa-plus me-2"></i>Add New Service
+                    </button>
+                    <button
+                        type="button"
+                        class="btn btn-warning"
+                        data-bs-toggle="modal"
+                        data-bs-target="#exportModal"
+                    >
+                        <i class="fas fa-download me-2"></i>Export Data
+                    </button>
+                    <button
+                        type="button"
+                        class="btn btn-primary"
+                        onclick="refreshServiceData()"
+                    >
+                        <i class="fas fa-sync-alt me-2"></i>Refresh
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card stats-card total-staff">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-title mb-1">Total Services</h6>
+                            <h3 class="stats-value mb-0" id="totalServiceCount">0</h3>
+                        </div>
+                        <div class="stats-icon">
+                            <i class="fas fa-concierge-bell fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card stats-card active-staff">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-title mb-1">Active Services</h6>
+                            <h3 class="stats-value mb-0" id="activeServiceCount">0</h3>
+                        </div>
+                        <div class="stats-icon">
+                            <i class="fas fa-check-circle fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card stats-card departments">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-title mb-1">Categories</h6>
+                            <h3 class="stats-value mb-0" id="categoryCount">0</h3>
+                        </div>
+                        <div class="stats-icon">
+                            <i class="fas fa-tags fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -31,144 +242,75 @@
 
         <!-- Services Tab -->
         <div class="tab-pane fade show active" id="services-pane" role="tabpanel">
-            <div class="d-flex justify-content-between align-items-center mb-3">
-                <div class="d-flex align-items-center">
-                    <div class="input-group me-3" style="width: 300px;">
-                        <span class="input-group-text"><i class="fas fa-search"></i></span>
-                        <input type="text" class="form-control" id="serviceSearch" placeholder="Search services..." onkeyup="filterServices()">
-                        <button class="btn btn-secondary" type="button" onclick="clearSearch()" title="Clear search">
-                            <i class="fas fa-times"></i>
-                        </button>
+            <!-- Service List -->
+            <div class="row">
+                <div class="col-12">
+                    <div class="card staff-table-card">
+                        <div class="card-header">
+                            <h5 class="mb-0"><i class="fas fa-list me-2"></i>Service List</h5>
+                        </div>
+                        <div class="card-body">
+                            <!-- Loading State -->
+                            <div id="loadingState" class="text-center py-5">
+                                <div class="spinner-border" style="color: #4A90E2;" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                                <p class="mt-2 text-secondary-gray">Loading service data...</p>
+                            </div>
+
+                            <!-- Services Table with DataTables -->
+                            <div id="servicesTableContainer" style="display: none">
+                                <div class="table-responsive">
+                                    <table id="servicesTable" class="table table-hover w-100">
+                                        <thead>
+                                            <tr>
+                                                <th>Service Info</th>
+                                                <th>Category & Duration</th>
+                                                <th>Price</th>
+                                                <th class="text-center">Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="servicesTableBody">
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                            <!-- Empty State -->
+                            <div
+                                id="emptyState"
+                                class="text-center py-5"
+                                style="display: none"
+                            >
+                                <i class="fas fa-concierge-bell fa-3x mb-3" style="color: #757575;"></i>
+                                <h5 class="text-primary-dark">No services found</h5>
+                                <p class="text-secondary-gray">
+                                    No services available. Please add new services to get started.
+                                </p>
+                                <button
+                                    type="button"
+                                    class="btn btn-success btn-lg"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#addServiceModal"
+                                >
+                                    <i class="fas fa-plus me-2"></i>Add Your First Service
+                                </button>
+                                <div class="mt-3">
+                                    <small class="text-secondary-gray">
+                                        Services will appear here once added
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                    <select class="form-select me-3" id="categoryFilter" onchange="filterServices()" style="width: 200px;">
-                        <option value="">All Categories</option>
-                        {% for category in categories %}
-                        <option value="{{ category.id }}" {{ 'selected' if category_filter == category.id else '' }}>
-                            {{ category.display_name }}
-                        </option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div>
-                    <button class="btn btn-warning me-2" data-bs-toggle="modal" data-bs-target="#exportModal" title="Export services to CSV file">
-                        <i class="fas fa-download me-1"></i>Export
-                    </button>
-                    <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addServiceModal" title="Create a new service offering">
-                        <i class="fas fa-plus me-2"></i>Add New Service
-                    </button>
                 </div>
             </div>
 
-            <!-- Search and Filter Section -->
-        <div class="card mb-4">
-            <div class="card-body">
-                <div class="row g-3">
-                    <div class="col-md-4">
-                        <input
-                            type="text"
-                            class="form-control"
-                            id="serviceSearch"
-                            placeholder="Search services by name, code, or description..."
-                            onkeyup="filterServices()"
-                        />
-                    </div>
-                    <div class="col-md-3">
-                        <select
-                            class="form-select"
-                            id="categoryFilter"
-                            onchange="filterServices()"
-                        >
-                            <option value="">All Categories</option>
-                            {% for category in categories %}
-                            <option value="{{ category.id }}">
-                                {{ category.name }}
-                            </option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="col-md-3">
-                        <select
-                            class="form-select"
-                            id="statusFilter"
-                            onchange="filterServices()"
-                        >
-                            <option value="">All Status</option>
-                            <option value="active">Active</option>
-                            <option value="inactive">Inactive</option>
-                        </select>
-                    </div>
-                    <div class="col-md-2">
-                        <button
-                            type="button"
-                            class="btn btn-secondary w-100"
-                            onclick="clearServiceFilters()"
-                        >
-                            <i class="fas fa-times me-1"></i>Clear
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-            <div class="card">
-                <div class="card-header">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0">All Services</h5>
-                        <span id="serviceStats" class="text-muted"></span>
-                    </div>
-                </div>
-                <div class="card-body">
-                    <div id="servicesTableContainer">
-                        <div class="spa-table-container">
-                            <table class="spa-table">
-                                <thead>
-                                    <tr>
-                                        <th>Service Name</th>
-                                        <th>Category</th>
-                                        <th>Duration</th>
-                                        <th>Price</th>
-                                        <th>Description</th>
-                                        <th>Status</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="servicesTableBody">
-                                    <!-- Service rows will be rendered here by JavaScript -->
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-
-                    <!-- Loading State -->
-                    <div id="loadingState" class="text-center py-5" style="display: none;">
-                        <div class="spinner-border text-primary" role="status">
-                            <span class="visually-hidden">Loading...</span>
-                        </div>
-                        <p class="text-muted mt-2">Loading services...</p>
-                    </div>
-
-                    <!-- Empty State -->
-                    <div
-                        id="emptyState"
-                        class="text-center py-5"
-                        style="display: none"
-                    >
-                        <i class="fas fa-concierge-bell fa-3x text-muted mb-3"></i>
-                        <h5 class="text-muted">No services found</h5>
-                        <p class="text-muted">
-                            No services available. Click 'Add New Service' to get started.
-                        </p>
-                        <button
-                            type="button"
-                            class="btn btn-primary btn-lg"
-                            data-bs-toggle="modal"
-                            data-bs-target="#addServiceModal"
-                            onclick="showAddModal()"
-                        >
-                            <i class="fas fa-plus me-2"></i>Add Your First Service
-                        </button>
-                    </div>
-                </div>
+            <!-- Hidden filter elements for compatibility -->
+            <div style="display: none;">
+                <select id="categoryFilter"><option value="">All Categories</option></select>
+                <select id="statusFilter"><option value="">All Status</option></select>
+                <input type="text" id="serviceSearch" />
             </div>
         </div>
 
@@ -516,6 +658,7 @@ let allServices = [];
 let allCategories = [];
 let filteredServices = [];
 let serviceStats = { total: 0, active: 0, inactive: 0 };
+let servicesDataTable = null;
 
 // Utility function to show notifications
 function showNotification(message, type = "info", duration = 5000) {
@@ -543,7 +686,7 @@ function createToastContainer() {
     const container = document.createElement('div');
     container.id = 'toastContainer';
     container.className = 'toast-container position-fixed top-0 end-0 p-3';
-    container.style.zIndex = '1060'; // Ensure it's above other elements
+    container.style.zIndex = '1060';
     document.body.appendChild(container);
     return container;
 }
@@ -561,7 +704,7 @@ function showLoading(isLoading) {
         servicesTableContainer.style.display = isLoading ? "none" : "block";
     }
     if (emptyState) {
-        emptyState.style.display = "none"; // Always hide empty state when loading
+        emptyState.style.display = "none";
     }
 }
 
@@ -571,10 +714,16 @@ function updateStats() {
     serviceStats.active = allServices.filter(s => s.is_active).length;
     serviceStats.inactive = allServices.length - serviceStats.active;
 
-    const statsElement = document.getElementById('serviceStats');
-    if (statsElement) {
-        statsElement.innerHTML = `Total: ${serviceStats.total}, Active: ${serviceStats.active}, Inactive: ${serviceStats.inactive}`;
-    }
+    // Update stats cards
+    document.getElementById('totalServiceCount').textContent = serviceStats.total;
+    document.getElementById('activeServiceCount').textContent = serviceStats.active;
+    document.getElementById('categoryCount').textContent = allCategories.length;
+}
+
+// Refresh service data
+function refreshServiceData() {
+    console.log("Refreshing service data...");
+    loadServicesData();
 }
 
 // Update category filter options
@@ -601,95 +750,105 @@ function updateCategoryFilter() {
 }
 
 
-// Create a single row for the services table
-function createServiceRow(service) {
-    const row = document.createElement('tr');
-    const category = allCategories.find(cat => cat.id === service.category_id);
-
-    row.innerHTML = `
-        <td>
-            <strong>${service.name}</strong>
-            ${category ? `<br><span class="badge" style="background-color: ${category.color}; font-size: 0.7rem;">${category.display_name}</span>` : ''}
-        </td>
-        <td>
-            ${category ? `<span class="badge" style="background-color: ${category.color}">${category.display_name}</span>` : '<span class="text-muted">No Category</span>'}
-        </td>
-        <td>${service.duration || '-'} min</td>
-        <td>$${service.price !== null && service.price !== undefined ? service.price.toFixed(2) : '-.--'}</td>
-        <td>${(service.description && service.description.length > 50) ? service.description.substring(0, 50) + '...' : (service.description || '-')}</td>
-        <td>
-            <span class="badge bg-${service.is_active ? 'success' : 'secondary'}">
-                ${service.is_active ? 'Active' : 'Inactive'}
-            </span>
-        </td>
-        <td>
-            <button class="btn btn-sm btn-primary me-1" onclick="editService(${service.id})" data-bs-toggle="tooltip" title="Edit service details" type="button">
-                <i class="fas fa-edit"></i>
-            </button>
-            <button class="btn btn-sm btn-${service.is_active ? 'warning' : 'success'} me-1" onclick="toggleService(${service.id})" data-bs-toggle="tooltip" title="${service.is_active ? 'Deactivate' : 'Activate'} service" type="button">
-                <i class="fas fa-${service.is_active ? 'toggle-off' : 'toggle-on'}"></i>
-                <span class="ms-1">${service.is_active ? 'Deactivate' : 'Activate'}</span>
-            </button>
-            <button class="btn btn-sm btn-danger" onclick="deleteService(${service.id})" data-bs-toggle="tooltip" title="Delete service permanently" type="button">
-                <i class="fas fa-trash"></i>
-            </button>
-        </td>
-    `;
-    return row;
-}
-
 // Render the services table based on filteredServices
 function renderServicesTable() {
-        console.log("Rendering services table with", filteredServices.length, "services");
-        const tbody = document.getElementById("servicesTableBody");
-        const emptyState = document.getElementById("emptyState");
-        const tableContainer = document.getElementById("servicesTableContainer");
-        const loadingState = document.getElementById("loadingState");
+    console.log("Rendering services table with", allServices.length, "services");
+    const tbody = document.getElementById("servicesTableBody");
+    const emptyState = document.getElementById("emptyState");
+    const tableContainer = document.getElementById("servicesTableContainer");
+    const loadingState = document.getElementById("loadingState");
 
-        // Hide loading state
-        if (loadingState) {
-            loadingState.style.display = "none";
-        }
-
-        if (!tbody) {
-            console.error("Table body not found");
-            return;
-        }
-
-        tbody.innerHTML = "";
-
-        if (filteredServices.length === 0) {
-            console.log("No services to display, showing empty state");
-            if (tableContainer) tableContainer.style.display = "none";
-            if (emptyState) {
-                emptyState.style.display = "block";
-                // Update empty state message based on whether filters are active
-                const hasActiveFilters =
-                    document.getElementById("serviceSearch").value ||
-                    document.getElementById("categoryFilter").value ||
-                    document.getElementById("statusFilter").value;
-
-                const emptyMessage = emptyState.querySelector("p");
-                if (emptyMessage) {
-                    if (hasActiveFilters) {
-                        emptyMessage.textContent = "No services match your search criteria. Try adjusting your filters.";
-                    } else {
-                        emptyMessage.textContent = "No services available. Click 'Add New Service' to get started.";
-                    }
-                }
-            }
-            return;
-        }
-
-        console.log("Showing table with", filteredServices.length, "services");
-        if (tableContainer) tableContainer.style.display = "block";
-        if (emptyState) emptyState.style.display = "none";
-
-        filteredServices.forEach((service) => {
-            const row = createServiceRow(service);
-            tbody.appendChild(row);
-        });
+    // Hide loading state
+    if (loadingState) {
+        loadingState.style.display = "none";
     }
+
+    if (!tbody) {
+        console.error("Table body not found");
+        return;
+    }
+
+    // Clear existing data
+    tbody.innerHTML = "";
+
+    if (allServices.length === 0) {
+        console.log("No services to display, showing empty state");
+        if (tableContainer) tableContainer.style.display = "none";
+        if (emptyState) emptyState.style.display = "block";
+        return;
+    }
+
+    console.log("Showing table with", allServices.length, "services");
+    if (tableContainer) tableContainer.style.display = "block";
+    if (emptyState) emptyState.style.display = "none";
+
+    // Render each service row
+    allServices.forEach((service) => {
+        const category = allCategories.find(cat => cat.id === service.category_id);
+        const row = document.createElement('tr');
+
+        row.innerHTML = `
+            <td>
+                <div>
+                    <strong class="d-block">${service.name}</strong>
+                    ${service.description ? `<small class="text-muted d-block">${service.description.substring(0, 60)}${service.description.length > 60 ? '...' : ''}</small>` : ''}
+                </div>
+            </td>
+            <td>
+                ${category ? `
+                    <span class="badge" style="background-color: ${category.color}; font-size: 0.75rem;">
+                        ${category.display_name}
+                    </span>
+                    <div class="text-muted small mt-1">
+                        <i class="fas fa-clock me-1"></i>${service.duration || 0} min
+                    </div>
+                ` : `
+                    <span class="text-muted">No Category</span>
+                    <div class="text-muted small mt-1">
+                        <i class="fas fa-clock me-1"></i>${service.duration || 0} min
+                    </div>
+                `}
+            </td>
+            <td>
+                <strong>$${service.price !== null && service.price !== undefined ? service.price.toFixed(2) : '0.00'}</strong>
+            </td>
+            <td class="text-center">
+                <div class="btn-group" role="group">
+                    <button class="btn btn-sm btn-primary" onclick="editService(${service.id})" title="Edit service">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="btn btn-sm btn-${service.is_active ? 'warning' : 'success'}" onclick="toggleService(${service.id})" title="${service.is_active ? 'Deactivate' : 'Activate'} service">
+                        <i class="fas fa-${service.is_active ? 'toggle-off' : 'toggle-on'}"></i>
+                    </button>
+                    <button class="btn btn-sm btn-danger" onclick="deleteService(${service.id})" title="Delete service">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            </td>
+        `;
+        tbody.appendChild(row);
+    });
+
+    // Initialize or refresh DataTable
+    if (servicesDataTable) {
+        servicesDataTable.destroy();
+    }
+
+    servicesDataTable = $('#servicesTable').DataTable({
+        pageLength: 10,
+        lengthMenu: [[10, 25, 50, -1], [10, 25, 50, "All"]],
+        order: [[0, 'asc']],
+        language: {
+            search: "Search services:",
+            lengthMenu: "Show _MENU_ services per page",
+            info: "Showing _START_ to _END_ of _TOTAL_ services",
+            infoEmpty: "No services available",
+            infoFiltered: "(filtered from _MAX_ total services)"
+        }
+    });
+
+    console.log("✅ DataTables initialized successfully");
+}
 
 
 // Filter services based on search term, category, and status
