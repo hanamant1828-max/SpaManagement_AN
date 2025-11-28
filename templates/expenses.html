@@ -2,6 +2,36 @@
 
 {% block title %}Expense Tracking - Spa & Salon Management Suite{% endblock %}
 
+{% block extra_css %}
+<link href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css" rel="stylesheet" />
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+<script>
+$(document).ready(function() {
+    if ($('#expensesTable').length) {
+        $('#expensesTable').DataTable({
+            pageLength: 10,
+            lengthMenu: [[10, 25, 50, -1], [10, 25, 50, "All"]],
+            order: [[0, 'desc']],
+            language: {
+                search: "Search transactions:",
+                lengthMenu: "Show _MENU_ transactions per page",
+                info: "Showing _START_ to _END_ of _TOTAL_ transactions",
+                infoEmpty: "No transactions available",
+                infoFiltered: "(filtered from _MAX_ total transactions)"
+            },
+            columnDefs: [
+                { orderable: false, targets: -1 }
+            ]
+        });
+    }
+});
+</script>
+{% endblock %}
+
 {% block content %}
 <div class="container-fluid">
     <div class="row">
@@ -163,7 +193,7 @@
                 <div class="card-body p-0">
                     {% if transactions %}
                         <div class="table-responsive">
-                            <table class="table table-hover table-bordered mb-0" style="font-size: 0.9rem;">
+                            <table class="table table-hover table-bordered mb-0" id="expensesTable" style="font-size: 0.9rem;">
                                 <thead class="table-light">
                                     <tr>
                                         <th style="width: 100px;">Txn Date</th>

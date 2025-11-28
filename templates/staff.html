@@ -2,6 +2,36 @@
 
 {% block title %}Staff Management - Spa & Salon Management Suite{% endblock %}
 
+{% block extra_css %}
+<link href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css" rel="stylesheet" />
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+<script>
+$(document).ready(function() {
+    if ($('#staffTable').length) {
+        $('#staffTable').DataTable({
+            pageLength: 10,
+            lengthMenu: [[10, 25, 50, -1], [10, 25, 50, "All"]],
+            order: [[0, 'asc']],
+            language: {
+                search: "Search staff:",
+                lengthMenu: "Show _MENU_ staff per page",
+                info: "Showing _START_ to _END_ of _TOTAL_ staff members",
+                infoEmpty: "No staff members available",
+                infoFiltered: "(filtered from _MAX_ total staff)"
+            },
+            columnDefs: [
+                { orderable: false, targets: -1 }
+            ]
+        });
+    }
+});
+</script>
+{% endblock %}
+
 {% block content %}
 <div class="container-fluid">
     <div class="row">
@@ -28,8 +58,8 @@
                 </div>
                 <div class="card-body">
                     {% if staff_members %}
-                        <div class="spa-table-container">
-                            <table class="spa-table">
+                        <div class="spa-table-container table-responsive">
+                            <table class="spa-table table table-striped" id="staffTable">
                                 <thead>
                                     <tr>
                                         <th>Staff Info</th>
