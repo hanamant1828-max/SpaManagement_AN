@@ -2333,9 +2333,15 @@ header nav a {
     font-weight: 500;
 }
 
-header nav a:hover {
-    color: var(--accent-gold);
-}
+header nav a:hover, nav ul li a.active {
+        color: #ffffff;
+        background-color: rgba(212, 175, 55, 0.2);
+    }
+
+    nav ul li a.active {
+        color: var(--accent-gold) !important;
+        font-weight: 600;
+    }
 
 /* Staff Login - subtle utility link */
 header nav a.staff-login {
