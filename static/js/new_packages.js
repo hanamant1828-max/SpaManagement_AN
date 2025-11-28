@@ -473,6 +473,11 @@ function loadServicesForEditKittyParty(selectedServices) {
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
+            // Check if response is JSON
+            const contentType = response.headers.get("content-type");
+            if (!contentType || !contentType.includes("application/json")) {
+                throw new TypeError("Response is not JSON");
+            }
             return response.json();
         })
         .then(data => {

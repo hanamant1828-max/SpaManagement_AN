@@ -678,13 +678,16 @@ def api_get_services():
             result.append({
                 'id': service.id,
                 'name': service.name,
-                'price': float(service.price)
+                'price': float(service.price) if service.price else 0.0,
+                'duration': service.duration if hasattr(service, 'duration') else 60
             })
 
-        return jsonify({'success': True, 'services': result})
+        return jsonify({'success': True, 'services': result}), 200
 
     except Exception as e:
         logging.error(f"Error getting services: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'success': False, 'error': str(e)}), 500
 
 

@@ -133,7 +133,14 @@ function initializeDataTables() {
         // Check if jQuery and DataTables are available
         if (typeof $ === 'undefined' || typeof $.fn.DataTable === 'undefined') {
             console.warn("DataTables not available yet, retrying...");
-            setTimeout(initializeDataTables, 200);
+            setTimeout(initializeDataTables, 300);
+            return;
+        }
+        
+        // Additional check for DOM readiness
+        if (document.readyState !== 'complete') {
+            console.warn("DOM not fully loaded, retrying...");
+            setTimeout(initializeDataTables, 300);
             return;
         }
 

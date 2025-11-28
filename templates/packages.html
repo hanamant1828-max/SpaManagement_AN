@@ -1178,12 +1178,19 @@ function initializePackagesDataTable() {
     try {
         if (typeof $ === 'undefined' || typeof $.fn.DataTable === 'undefined') {
             console.warn("DataTables not available yet, retrying...");
-            setTimeout(initializePackagesDataTable, 200);
+            setTimeout(initializePackagesDataTable, 300);
+            return;
+        }
+        
+        // Wait for DOM to be fully loaded
+        if (document.readyState !== 'complete') {
+            setTimeout(initializePackagesDataTable, 300);
             return;
         }
 
-        if ($('.table-hover').length && !$.fn.DataTable.isDataTable('.table-hover')) {
-            packagesDataTable = $('.table-hover').DataTable({
+        const tableElement = $('.table-hover');
+        if (tableElement.length && !$.fn.DataTable.isDataTable('.table-hover')) {
+            packagesDataTable = tableElement.DataTable({
                 pageLength: 10,
                 lengthMenu: [[10, 25, 50, -1], [10, 25, 50, "All"]],
                 order: [[0, 'asc']],
