@@ -966,9 +966,9 @@
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <div>
                     {% if current_user.has_permission('clients_create') %}
-                    <button type="button" 
+                    <button type="button"
                             class="btn btn-add-customer"
-                            data-bs-toggle="modal" 
+                            data-bs-toggle="modal"
                             data-bs-target="#addCustomerModal"
                             aria-label="Add new customer">
                         <i class="fas fa-user-plus me-2" aria-hidden="true"></i>Add New Customer
@@ -1063,7 +1063,7 @@
                                                 <span class="badge bg-success">
                                                     <i class="fas fa-check-circle me-1" aria-hidden="true"></i>Registered
                                                 </span>
-                                                <button class="btn btn-sm btn-danger ms-2" 
+                                                <button class="btn btn-sm btn-danger ms-2"
                                                         onclick="deleteFaceImage({{ customer.id }}, '{{ (customer.first_name ~ ' ' ~ customer.last_name)|replace("'", "\\'") }}')"
                                                         aria-label="Delete face image for {{ customer.full_name }}"
                                                         title="Delete Face Image">
@@ -1129,9 +1129,9 @@
                                 {% endif %}
                             </p>
                             {% if not search_query and current_user.has_permission('clients_create') %}
-                            <button type="button" 
+                            <button type="button"
                                     class="btn btn-primary btn-lg mt-3"
-                                    data-bs-toggle="modal" 
+                                    data-bs-toggle="modal"
                                     data-bs-target="#addCustomerModal"
                                     aria-label="Add your first customer">
                                 <i class="fas fa-user-plus me-2" aria-hidden="true"></i>Add Your First Customer
@@ -1161,13 +1161,13 @@
                             <div class="card-body">
                                 <div class="form-floating-modern">
                                     <label for="faceClientSelect">Choose Customer</label>
-                                    <select class="form-select" 
-                                            id="faceClientSelect" 
+                                    <select class="form-select"
+                                            id="faceClientSelect"
                                             aria-label="Choose customer for face capture">
                                         <option value="">Select a customer...</option>
                                         {% for customer in customers %}
-                                        <option value="{{ customer.id }}" 
-                                                data-name="{{ customer.full_name }}" 
+                                        <option value="{{ customer.id }}"
+                                                data-name="{{ customer.full_name }}"
                                                 data-phone="{{ customer.phone }}">
                                             {{ customer.full_name }} - {{ customer.phone }}
                                         </option>
@@ -1190,17 +1190,17 @@
                             </div>
                             <div class="card-body">
                                 <div class="camera-container mb-4">
-                                    <video id="faceVideo" 
-                                           width="300" 
-                                           height="200" 
-                                           autoplay 
-                                           playsinline 
-                                           style="border-radius: 10px; display: none; background: #000;" 
+                                    <video id="faceVideo"
+                                           width="300"
+                                           height="200"
+                                           autoplay
+                                           playsinline
+                                           style="border-radius: 10px; display: none; background: #000;"
                                            aria-label="Camera feed"></video>
-                                    <canvas id="faceCanvas" 
-                                            width="300" 
-                                            height="200" 
-                                            style="border-radius: 10px; display: none;" 
+                                    <canvas id="faceCanvas"
+                                            width="300"
+                                            height="200"
+                                            style="border-radius: 10px; display: none;"
                                             aria-label="Captured photo preview"></canvas>
                                     <div id="faceCameraPlaceholder" class="d-flex align-items-center justify-content-center" style="height: 200px;">
                                         <div>
@@ -1210,23 +1210,23 @@
                                     </div>
                                 </div>
                                 <div class="d-grid gap-3">
-                                    <button id="startFaceCamera" 
-                                            class="btn btn-success btn-lg" 
-                                            onclick="startFaceCamera()" 
+                                    <button id="startFaceCamera"
+                                            class="btn btn-success btn-lg"
+                                            onclick="startFaceCamera()"
                                             aria-label="Start camera">
                                         <i class="fas fa-video me-2" aria-hidden="true"></i>Start Camera
                                     </button>
-                                    <button id="captureFacePhoto" 
-                                            class="btn btn-primary btn-lg" 
-                                            onclick="captureFacePhoto()" 
-                                            disabled 
+                                    <button id="captureFacePhoto"
+                                            class="btn btn-primary btn-lg"
+                                            onclick="captureFacePhoto()"
+                                            disabled
                                             aria-label="Capture photo">
                                         <i class="fas fa-camera me-2" aria-hidden="true"></i>Capture Photo
                                     </button>
-                                    <button id="saveFaceData" 
-                                            class="btn btn-warning btn-lg" 
-                                            onclick="saveFaceData()" 
-                                            disabled 
+                                    <button id="saveFaceData"
+                                            class="btn btn-warning btn-lg"
+                                            onclick="saveFaceData()"
+                                            disabled
                                             aria-label="Save face data">
                                         <i class="fas fa-save me-2" aria-hidden="true"></i>Save Face Data
                                     </button>
@@ -1264,9 +1264,9 @@
 
 <!-- Floating Add Button -->
 {% if current_user.has_permission('clients_create') %}
-<button type="button" 
-        class="floating-add-button" 
-        data-bs-toggle="modal" 
+<button type="button"
+        class="floating-add-button"
+        data-bs-toggle="modal"
         data-bs-target="#addCustomerModal"
         aria-label="Add new customer">
     <i class="fas fa-plus" aria-hidden="true"></i>
@@ -1274,10 +1274,10 @@
 {% endif %}
 
 <!-- Enhanced Add Customer Modal -->
-<div class="modal fade modal-modern" 
-     id="addCustomerModal" 
-     tabindex="-1" 
-     aria-labelledby="addCustomerModalLabel" 
+<div class="modal fade modal-modern"
+     id="addCustomerModal"
+     tabindex="-1"
+     aria-labelledby="addCustomerModalLabel"
      aria-hidden="true">
     <div class="modal-dialog modal-lg" role="document">
         <div class="modal-content">
@@ -1285,14 +1285,14 @@
                 <h5 class="modal-title" id="addCustomerModalLabel">
                     <i class="fas fa-user-plus me-2" aria-hidden="true"></i>Add New Customer
                 </h5>
-                <button type="button" 
-                        class="btn-close btn-close-white" 
-                        data-bs-dismiss="modal" 
+                <button type="button"
+                        class="btn-close btn-close-white"
+                        data-bs-dismiss="modal"
                         aria-label="Close"></button>
             </div>
-            <form id="addCustomerForm" 
-                  method="POST" 
-                  action="{{ url_for('create_customer_route') }}" 
+            <form id="addCustomerForm"
+                  method="POST"
+                  action="{{ url_for('create_customer_route') }}"
                   novalidate>
                 <div class="modal-body">
                     <div id="add-form-error" class="alert alert-danger d-none" role="alert"></div>
@@ -1301,12 +1301,12 @@
                         <div class="col-md-6">
                             <div class="form-floating-modern">
                                 <label for="add_first_name" class="required">First Name</label>
-                                <input type="text" 
-                                       class="form-control" 
-                                       name="first_name" 
-                                       id="add_first_name" 
-                                       required 
-                                       maxlength="50" 
+                                <input type="text"
+                                       class="form-control"
+                                       name="first_name"
+                                       id="add_first_name"
+                                       required
+                                       maxlength="50"
                                        aria-required="true">
                                 <div class="invalid-feedback"></div>
                             </div>
@@ -1314,12 +1314,12 @@
                         <div class="col-md-6">
                             <div class="form-floating-modern">
                                 <label for="add_last_name" class="required">Last Name</label>
-                                <input type="text" 
-                                       class="form-control" 
-                                       name="last_name" 
-                                       id="add_last_name" 
-                                       required 
-                                       maxlength="50" 
+                                <input type="text"
+                                       class="form-control"
+                                       name="last_name"
+                                       id="add_last_name"
+                                       required
+                                       maxlength="50"
                                        aria-required="true">
                                 <div class="invalid-feedback"></div>
                             </div>
@@ -1330,12 +1330,12 @@
                         <div class="col-md-6">
                             <div class="form-floating-modern">
                                 <label for="add_phone" class="required">Phone Number</label>
-                                <input type="tel" 
-                                       class="form-control" 
-                                       name="phone" 
-                                       id="add_phone" 
-                                       required 
-                                       maxlength="20" 
+                                <input type="tel"
+                                       class="form-control"
+                                       name="phone"
+                                       id="add_phone"
+                                       required
+                                       maxlength="20"
                                        aria-required="true"
                                        placeholder="+1234567890">
                                 <div class="invalid-feedback"></div>
@@ -1344,10 +1344,10 @@
                         <div class="col-md-6">
                             <div class="form-floating-modern">
                                 <label for="add_gender" class="required">Gender</label>
-                                <select class="form-select" 
-                                        name="gender" 
-                                        id="add_gender" 
-                                        required 
+                                <select class="form-select"
+                                        name="gender"
+                                        id="add_gender"
+                                        required
                                         aria-required="true">
                                     <option value="">Select Gender</option>
                                     <option value="male">Male</option>
@@ -1361,10 +1361,10 @@
 
                     <div class="form-floating-modern">
                         <label for="add_address">Address (Optional)</label>
-                        <textarea class="form-control" 
-                                  name="address" 
-                                  id="add_address" 
-                                  rows="3" 
+                        <textarea class="form-control"
+                                  name="address"
+                                  id="add_address"
+                                  rows="3"
                                   maxlength="500"
                                   placeholder="Enter full address"></textarea>
                         <div class="invalid-feedback"></div>
@@ -1384,10 +1384,10 @@
 </div>
 
 <!-- Enhanced Edit Customer Modal -->
-<div class="modal fade modal-modern" 
-     id="editCustomerModal" 
-     tabindex="-1" 
-     aria-labelledby="editCustomerModalLabel" 
+<div class="modal fade modal-modern"
+     id="editCustomerModal"
+     tabindex="-1"
+     aria-labelledby="editCustomerModalLabel"
      aria-hidden="true">
     <div class="modal-dialog modal-lg" role="document">
         <div class="modal-content">
@@ -1395,9 +1395,9 @@
                 <h5 class="modal-title" id="editCustomerModalLabel">
                     <i class="fas fa-user-edit me-2" aria-hidden="true"></i>Edit Customer
                 </h5>
-                <button type="button" 
-                        class="btn-close btn-close-white" 
-                        data-bs-dismiss="modal" 
+                <button type="button"
+                        class="btn-close btn-close-white"
+                        data-bs-dismiss="modal"
                         aria-label="Close"></button>
             </div>
             <form id="editCustomerForm" method="POST" action="" novalidate>
@@ -1408,12 +1408,12 @@
                         <div class="col-md-6">
                             <div class="form-floating-modern">
                                 <label for="edit_first_name" class="required">First Name</label>
-                                <input type="text" 
-                                       class="form-control" 
-                                       name="first_name" 
-                                       id="edit_first_name" 
-                                       required 
-                                       maxlength="50" 
+                                <input type="text"
+                                       class="form-control"
+                                       name="first_name"
+                                       id="edit_first_name"
+                                       required
+                                       maxlength="50"
                                        aria-required="true">
                                 <div class="invalid-feedback"></div>
                             </div>
@@ -1421,12 +1421,12 @@
                         <div class="col-md-6">
                             <div class="form-floating-modern">
                                 <label for="edit_last_name" class="required">Last Name</label>
-                                <input type="text" 
-                                       class="form-control" 
-                                       name="last_name" 
-                                       id="edit_last_name" 
-                                       required 
-                                       maxlength="50" 
+                                <input type="text"
+                                       class="form-control"
+                                       name="last_name"
+                                       id="edit_last_name"
+                                       required
+                                       maxlength="50"
                                        aria-required="true">
                                 <div class="invalid-feedback"></div>
                             </div>
@@ -1437,12 +1437,12 @@
                         <div class="col-md-6">
                             <div class="form-floating-modern">
                                 <label for="edit_phone" class="required">Phone Number</label>
-                                <input type="tel" 
-                                       class="form-control" 
-                                       name="phone" 
-                                       id="edit_phone" 
-                                       required 
-                                       maxlength="20" 
+                                <input type="tel"
+                                       class="form-control"
+                                       name="phone"
+                                       id="edit_phone"
+                                       required
+                                       maxlength="20"
                                        aria-required="true">
                                 <div class="invalid-feedback"></div>
                             </div>
@@ -1450,10 +1450,10 @@
                         <div class="col-md-6">
                             <div class="form-floating-modern">
                                 <label for="edit_gender" class="required">Gender</label>
-                                <select class="form-select" 
-                                        name="gender" 
-                                        id="edit_gender" 
-                                        required 
+                                <select class="form-select"
+                                        name="gender"
+                                        id="edit_gender"
+                                        required
                                         aria-required="true">
                                     <option value="">Select Gender</option>
                                     <option value="male">Male</option>
@@ -1467,10 +1467,10 @@
 
                     <div class="form-floating-modern">
                         <label for="edit_address">Address (Optional)</label>
-                        <textarea class="form-control" 
-                                  name="address" 
-                                  id="edit_address" 
-                                  rows="3" 
+                        <textarea class="form-control"
+                                  name="address"
+                                  id="edit_address"
+                                  rows="3"
                                   maxlength="500"></textarea>
                         <div class="invalid-feedback"></div>
                     </div>
@@ -1706,7 +1706,7 @@ function getCSRFToken() {
  * @returns {boolean} Validation result
  */
 function validateCustomerId(customerId, operation) {
-    if (!customerId || customerId === 'null' || customerId === null || 
+    if (!customerId || customerId === 'null' || customerId === null ||
         customerId === undefined || isNaN(customerId)) {
         console.error(`❌ Invalid customer ID for ${operation}:`, customerId);
         showToast('Error: Invalid customer data. Please refresh the page.', 'danger');
@@ -2954,7 +2954,7 @@ function renderFaceTable(customers, container) {
     const tbody = document.createElement('tbody');
 
     customers.forEach(customer => {
-        const date = customer.face_registration_date ? 
+        const date = customer.face_registration_date ?
             new Date(customer.face_registration_date).toLocaleDateString() : 'Unknown';
         const fullName = customer.full_name || 'Unknown';
         const email = customer.email || 'No email';
@@ -2978,13 +2978,13 @@ function renderFaceTable(customers, container) {
             <td>${escapeHtml(phone)}</td>
             <td>${date}</td>
             <td class="text-center">
-                <button class="btn btn-sm btn-outline-warning me-1" 
-                        onclick="updateFace(${customer.id})" 
+                <button class="btn btn-sm btn-outline-warning me-1"
+                        onclick="updateFace(${customer.id})"
                         aria-label="Update face for ${escapeHtml(fullName)}"
                         title="Update Face">
                     <i class="fas fa-sync-alt" aria-hidden="true"></i>
                 </button>
-                <button class="btn btn-sm btn-outline-danger" 
+                <button class="btn btn-sm btn-outline-danger"
                         onclick="deleteFaceData(${customer.id})"
                         aria-label="Delete face data for ${escapeHtml(fullName)}"
                         title="Delete Face Data">
@@ -3401,8 +3401,8 @@ window.addEventListener('unhandledrejection', function(event) {
     console.error('❌ Unhandled promise rejection:', event.reason);
 
     // Only show notification for fetch/network errors
-    if (event.reason && event.reason.message && 
-        (event.reason.message.includes('fetch') || 
+    if (event.reason && event.reason.message &&
+        (event.reason.message.includes('fetch') ||
          event.reason.message.includes('network') ||
          event.reason.message.includes('Failed to'))) {
         showToast('An unexpected error occurred. Please try again.', 'danger');
