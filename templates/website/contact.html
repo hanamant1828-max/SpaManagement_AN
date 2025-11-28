@@ -5,30 +5,57 @@
 {% block extra_css %}
 <style>
     .page-header {
-        background: linear-gradient(135deg, rgba(212,165,116,0.9) 0%, rgba(139,115,85,0.9) 100%);
-        color: #fff;
+        background: linear-gradient(135deg, #000000 0%, #1a1a1a 100%);
+        border-top: 2px solid #FFD700;
+        border-bottom: 2px solid #FFD700;
+        color: #FFD700;
         padding: 4rem 0 3rem;
         text-align: center;
     }
     
     .page-header h1 {
-        color: #fff;
+        color: #FFD700;
         font-size: 3rem;
         margin-bottom: 1rem;
     }
     
+    .page-header .lead {
+        color: #F0EAD6;
+    }
+    
     .contact-card {
-        background: #fff;
+        background: rgba(255, 255, 255, 0.05);
+        border: 2px solid #FFD700;
         border-radius: 15px;
         padding: 2.5rem;
-        box-shadow: 0 5px 30px rgba(0,0,0,0.1);
+        box-shadow: 0 5px 30px rgba(255, 215, 0, 0.3);
         height: 100%;
+    }
+    
+    .contact-card h4 {
+        color: #FFD700;
+    }
+    
+    .contact-card p {
+        color: #F0EAD6;
     }
     
     .contact-icon {
         font-size: 2.5rem;
-        color: var(--primary-color);
+        color: #FFD700;
         margin-bottom: 1rem;
+    }
+    
+    section.py-5 {
+        background: #000000;
+    }
+    
+    section h3 {
+        color: #FFD700;
+    }
+    
+    section p {
+        color: #F0EAD6;
     }
     
     .map-container {
@@ -50,7 +77,12 @@
     
     .business-hours-table td {
         padding: 0.75rem 0;
-        border-bottom: 1px solid #eee;
+        border-bottom: 1px solid rgba(255, 215, 0, 0.2);
+        color: #F0EAD6;
+    }
+    
+    .business-hours-table strong {
+        color: #FFD700;
     }
     
     .business-hours-table tr:last-child td {
@@ -74,36 +106,47 @@
     }
     
     .phone-button {
-        background: #007bff;
-        color: #fff;
+        background: linear-gradient(135deg, #FFD700, #CCAC00);
+        color: #000000;
+        border: 2px solid #FFD700;
     }
     
     .phone-button:hover {
-        background: #0056b3;
-        color: #fff;
+        background: linear-gradient(135deg, #CCAC00, #FFD700);
+        color: #000000;
         transform: translateY(-2px);
+        box-shadow: 0 4px 15px rgba(255, 215, 0, 0.4);
     }
     
     .whatsapp-button {
-        background: #25d366;
-        color: #fff;
+        background: linear-gradient(135deg, #25d366, #20ba5a);
+        color: #000000;
+        border: 2px solid #25d366;
     }
     
     .whatsapp-button:hover {
-        background: #20ba5a;
-        color: #fff;
+        background: linear-gradient(135deg, #20ba5a, #25d366);
+        color: #000000;
         transform: translateY(-2px);
+        box-shadow: 0 4px 15px rgba(37, 211, 102, 0.4);
     }
     
     .email-button {
-        background: #ea4335;
-        color: #fff;
+        background: linear-gradient(135deg, #FFD700, #CCAC00);
+        color: #000000;
+        border: 2px solid #FFD700;
     }
     
     .email-button:hover {
-        background: #c23321;
-        color: #fff;
+        background: linear-gradient(135deg, #CCAC00, #FFD700);
+        color: #000000;
         transform: translateY(-2px);
+        box-shadow: 0 4px 15px rgba(255, 215, 0, 0.4);
+    }
+    
+    .contact-button strong,
+    .contact-button small {
+        color: #000000;
     }
 </style>
 {% endblock %}

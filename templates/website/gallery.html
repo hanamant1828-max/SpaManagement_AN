@@ -5,16 +5,22 @@
 {% block extra_css %}
 <style>
     .page-header {
-        background: linear-gradient(135deg, rgba(212,165,116,0.9) 0%, rgba(139,115,85,0.9) 100%);
-        color: #fff;
+        background: linear-gradient(135deg, #000000 0%, #1a1a1a 100%);
+        border-top: 2px solid #FFD700;
+        border-bottom: 2px solid #FFD700;
+        color: #FFD700;
         padding: 4rem 0 3rem;
         text-align: center;
     }
     
     .page-header h1 {
-        color: #fff;
+        color: #FFD700;
         font-size: 3rem;
         margin-bottom: 1rem;
+    }
+    
+    .page-header .lead {
+        color: #F0EAD6;
     }
     
     .gallery-grid {
@@ -76,12 +82,33 @@
     .placeholder-gallery {
         text-align: center;
         padding: 5rem 0;
+        background: #000000;
+    }
+    
+    .placeholder-gallery h3 {
+        color: #FFD700;
+    }
+    
+    .placeholder-gallery p {
+        color: #F0EAD6;
     }
     
     .placeholder-icon {
         font-size: 5rem;
-        color: var(--primary-color);
+        color: #FFD700;
         margin-bottom: 2rem;
+    }
+    
+    section.py-5 {
+        background: #000000;
+    }
+    
+    section h3 {
+        color: #FFD700;
+    }
+    
+    section p {
+        color: #F0EAD6;
     }
     
     .sample-images-grid {
