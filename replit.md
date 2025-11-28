@@ -70,7 +70,13 @@ The application uses Flask and SQLAlchemy, following a modular design with featu
 - **WhatsApp Notifications (Twilio):** ✅ Successfully configured on November 19, 2025. Twilio credentials are securely stored as environment secrets (TWILIO_ACCOUNT_SID, TWILIO_API_KEY, TWILIO_API_SECRET, TWILIO_WHATSAPP_NUMBER). The system can now send WhatsApp notifications for appointment confirmations, booking reminders, custom notifications, and bulk messaging to clients. Integration uses Twilio's WhatsApp API with proper authentication through API keys.
 
 ## Recent Fixes
-- **November 27, 2025 (Latest):** Added two new comprehensive billing reports to the system:
+- **November 28, 2025 (Latest):** Improved sidebar navigation menu for better clarity and usability:
+  - Reorganized menu items into logical grouped sections: Appointments, Clients, Staff, Billing, Services, Inventory, Reports, and Administration
+  - Added clear section headers with subtle dividers for visual hierarchy
+  - Shortened menu labels for better scannability (e.g., "Staff Management" → "Staff Directory", "Appointment Booking" → "Book Appointment")
+  - Updated icons to be more representative of each function
+  - Improved CSS for compact, consistent spacing across all menu items
+- **November 27, 2025:** Added two new comprehensive billing reports to the system:
   - **Package Billing Report** (`/billing/reports/package-billing`): Shows package sales, revenue by package type, usage history, and top customers by package purchases. Includes filtering by date range, package type summary with revenue totals, active/expired package counts, and redemption value tracking.
   - **Owner Billing Audit** (`/billing/reports/owner-audit`): Comprehensive end-of-day summary for owners providing all essential data including invoice totals, payment method breakdown (cash/card/UPI/cheque), service and product revenue, package sales and redemptions, staff performance metrics, and appointment summary. Features quick date navigation and print-ready formatting.
   - Both reports integrated into the main Billing Reports dashboard with proper navigation links and consistent Bootstrap styling.
