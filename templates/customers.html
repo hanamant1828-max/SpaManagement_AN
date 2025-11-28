@@ -1064,7 +1064,7 @@
                                                     <i class="fas fa-check-circle me-1" aria-hidden="true"></i>Registered
                                                 </span>
                                                 <button type="button"
-                                                        class="btn btn-danger btn-sm ms-2"
+                                                        class="btn btn-danger ms-2"
                                                         onclick="deleteFaceImage({{ customer.id }}, '{{ (customer.first_name ~ ' ' ~ customer.last_name)|replace("'", "\\'") }}')"
                                                         aria-label="Delete face image for {{ customer.full_name }}"
                                                         title="Delete Face Image">
@@ -1099,7 +1099,7 @@
                                                 {% endif %}
                                                 {% if current_user.has_permission('clients_delete') %}
                                                 <button type="button"
-                                                        class="btn btn-danger btn-sm"
+                                                        class="btn btn-danger"
                                                         onclick="deleteCustomer({{ customer.id }}, '{{ (customer.first_name ~ ' ' ~ customer.last_name)|replace("'", "\\'") }}')"
                                                         aria-label="Delete {{ customer.full_name }}"
                                                         title="Delete Customer">
