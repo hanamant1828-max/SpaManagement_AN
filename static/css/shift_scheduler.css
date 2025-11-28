@@ -215,53 +215,79 @@ body.page-shift-scheduler {
     display: inline-block;
 }
 
-/* Action Buttons */
+/* Action Buttons - Horizontal Layout with New Color Scheme */
+.action-buttons {
+    display: flex;
+    flex-direction: row;
+    gap: 8px;
+    justify-content: flex-start;
+    align-items: center;
+}
+
 .action-btn-view {
-    background: transparent !important;
-    border: 1px solid var(--spa-primary-light) !important;
-    color: var(--spa-primary) !important;
-    padding: 6px 12px;
-    border-radius: 4px;
+    background: #FFC107 !important;
+    border: none !important;
+    color: white !important;
+    padding: 8px 12px;
+    border-radius: 6px;
     font-size: 0.85rem;
-    margin: 0 3px;
+    margin: 0;
     transition: all 0.2s ease;
-    min-width: 36px;
+    min-width: 40px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .action-btn-view:hover {
-    background-color: var(--spa-primary-bg) !important;
-    color: var(--spa-primary) !important;
-    border-color: var(--spa-primary-light) !important;
+    background-color: #FFB300 !important;
+    color: white !important;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(255, 193, 7, 0.3);
 }
 
 .action-btn-edit {
-    background-color: var(--spa-primary) !important;
-    color: var(--spa-white) !important;
-    border: 1px solid var(--spa-primary) !important;
-    padding: 6px 12px;
-    border-radius: 4px;
+    background-color: #FFC107 !important;
+    color: white !important;
+    border: none !important;
+    padding: 8px 12px;
+    border-radius: 6px;
     font-size: 0.85rem;
-    margin: 0 3px;
+    margin: 0;
     transition: all 0.2s ease;
-    min-width: 36px;
+    min-width: 40px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .action-btn-edit:hover {
-    background-color: var(--spa-primary-dark) !important;
-    border-color: var(--spa-primary-dark) !important;
-    color: var(--spa-white) !important;
+    background-color: #FFB300 !important;
+    color: white !important;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(255, 193, 7, 0.3);
 }
 
 .action-btn-delete {
-    background: transparent !important;
-    border: 1px solid var(--spa-danger) !important;
-    color: var(--spa-danger) !important;
-    padding: 6px 12px;
-    border-radius: 4px;
+    background: #FFC107 !important;
+    border: none !important;
+    color: white !important;
+    padding: 8px 12px;
+    border-radius: 6px;
     font-size: 0.85rem;
-    margin: 0 3px;
+    margin: 0;
     transition: all 0.2s ease;
-    min-width: 36px;
+    min-width: 40px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.action-btn-delete:hover {
+    background-color: #FFB300 !important;
+    color: white !important;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(255, 193, 7, 0.3);
 }
 
 .action-btn-delete:hover {
