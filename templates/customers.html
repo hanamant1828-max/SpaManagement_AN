@@ -3439,15 +3439,15 @@ function exportCustomers() {
             showToast('No data to export', 'warning');
             return;
         }
-        
+
         const rows = table.querySelectorAll('tbody tr');
         if (rows.length === 0) {
             showToast('No customers to export', 'warning');
             return;
         }
-        
+
         let csvContent = 'Name,Phone,Email,Visits,Status\n';
-        
+
         rows.forEach(row => {
             const cells = row.querySelectorAll('td');
             if (cells.length >= 5) {
@@ -3456,17 +3456,17 @@ function exportCustomers() {
                 const email = cells[1].querySelector('.text-muted')?.textContent?.trim() || '';
                 const visits = cells[2].querySelector('.text-success')?.textContent?.trim() || '0';
                 const status = cells[4].querySelector('.status-badge')?.textContent?.trim() || '';
-                
+
                 csvContent += `"${name}","${phone}","${email}","${visits}","${status}"\n`;
             }
         });
-        
+
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
         const link = document.createElement('a');
         link.href = URL.createObjectURL(blob);
         link.download = 'customers_export_' + new Date().toISOString().split('T')[0] + '.csv';
         link.click();
-        
+
         showToast('Customers exported successfully', 'success');
     } catch (error) {
         console.error('Export error:', error);
@@ -3487,18 +3487,18 @@ function initializeCustomersDataTable() {
         console.log('📋 Customers table not found - skipping DataTables init');
         return;
     }
-    
+
     // Check if DataTables is loaded
     if (typeof $.fn.DataTable === 'undefined') {
         console.error('❌ DataTables library not loaded');
         return;
     }
-    
+
     // Destroy existing instance if present
     if ($.fn.DataTable.isDataTable('#customersTable')) {
         $('#customersTable').DataTable().destroy();
     }
-    
+
     // Initialize DataTables
     $('#customersTable').DataTable({
         pageLength: 10,
@@ -3523,7 +3523,7 @@ function initializeCustomersDataTable() {
         ],
         dom: '<"row"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6"f>>rtip'
     });
-    
+
     console.log('✅ DataTables initialized for customers table');
 }
 

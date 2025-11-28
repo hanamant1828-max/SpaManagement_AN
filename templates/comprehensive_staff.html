@@ -1,6 +1,6 @@
-{% extends "base.html" %} 
+{% extends "base.html" %}
 
-{% block title %}Staff Management - Spa & Salon Management Suite{% endblock %} 
+{% block title %}Staff Management - Spa & Salon Management Suite{% endblock %}
 
 {% block body_class %}page-staff-management{% endblock %}
 
@@ -1081,7 +1081,7 @@
         e.preventDefault();
 
         const formMode = document.getElementById("formMode");
-        
+
         if (!formMode) {
             console.error("Form mode element not found");
             showNotification("Form elements not found. Please refresh the page.", "error");
@@ -1089,10 +1089,10 @@
         }
 
         const mode = formMode.value;
-        
+
         // Get the correct submit button based on mode
         const submitBtn = document.getElementById("btnStaffSave");
-        
+
         if (!submitBtn) {
             console.error("Submit button not found");
             showNotification("Form elements not found. Please refresh the page.", "error");
@@ -1743,7 +1743,7 @@
             if (successfulRenders > 0) {
                 console.log(`✅ Successfully rendered ${successfulRenders} staff members, showing table`);
                 showTable(true);
-                
+
                 // Initialize DataTables after rendering
                 initializeDataTable();
             } else {
@@ -2378,12 +2378,12 @@
                         <div class="mb-2"><strong>Staff Code:</strong> ${staff.staff_code || "N/A"}</div>
                         <div class="mb-2"><strong>Username:</strong> ${staff.username}</div>
                         <div class="mb-2">
-                            <strong>Password:</strong> 
+                            <strong>Password:</strong>
                             <span class="d-inline-flex align-items-center gap-2">
                                 <span id="passwordDisplay" class="font-monospace">${staff.default_password ? '••••••••' : 'N/A'}</span>
                                 ${staff.default_password ? `
-                                <button class="btn btn-sm btn-outline-secondary" 
-                                        onclick="toggleViewPasswordVisibility()" 
+                                <button class="btn btn-sm btn-outline-secondary"
+                                        onclick="toggleViewPasswordVisibility()"
                                         id="togglePasswordBtn"
                                         type="button"
                                         title="Show/Hide Password">
