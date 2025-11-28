@@ -5,7 +5,6 @@
 
 {% block extra_css %}
 <style>
-    /* Modern Dashboard Styles */
     .dashboard-container {
         max-width: 1400px;
         margin: 0 auto;
@@ -14,11 +13,10 @@
         min-height: calc(100vh - 56px);
     }
 
-    /* Welcome Header */
     .welcome-header {
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         border-radius: 20px;
-        padding: 2.5rem;
+        padding: 2rem;
         margin-bottom: 2rem;
         box-shadow: 0 10px 40px rgba(102, 126, 234, 0.3);
         color: white;
@@ -38,7 +36,7 @@
     }
 
     .welcome-header h1 {
-        font-size: 2.5rem;
+        font-size: 2rem;
         font-weight: 700;
         margin-bottom: 0.5rem;
         position: relative;
@@ -46,7 +44,7 @@
     }
 
     .welcome-header p {
-        font-size: 1.1rem;
+        font-size: 1rem;
         opacity: 0.95;
         position: relative;
         z-index: 1;
@@ -54,10 +52,11 @@
 
     .welcome-meta {
         display: flex;
-        gap: 2rem;
+        gap: 1.5rem;
         margin-top: 1rem;
         position: relative;
         z-index: 1;
+        flex-wrap: wrap;
     }
 
     .meta-item {
@@ -70,7 +69,74 @@
         backdrop-filter: blur(10px);
     }
 
-    /* Modern Stats Cards */
+    .alerts-summary {
+        background: white;
+        border-radius: 16px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    }
+
+    .alerts-summary h3 {
+        font-size: 1.2rem;
+        font-weight: 700;
+        color: #1e293b;
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .alert-badges {
+        display: flex;
+        gap: 1rem;
+        flex-wrap: wrap;
+    }
+
+    .alert-badge {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.75rem 1.25rem;
+        border-radius: 12px;
+        font-weight: 600;
+        font-size: 0.9rem;
+        text-decoration: none;
+        transition: all 0.3s ease;
+    }
+
+    .alert-badge:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    .alert-badge.warning {
+        background: linear-gradient(135deg, #fef3c7, #fde68a);
+        color: #92400e;
+    }
+
+    .alert-badge.danger {
+        background: linear-gradient(135deg, #fee2e2, #fecaca);
+        color: #b91c1c;
+    }
+
+    .alert-badge.info {
+        background: linear-gradient(135deg, #dbeafe, #bfdbfe);
+        color: #1e40af;
+    }
+
+    .alert-badge.success {
+        background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+        color: #065f46;
+    }
+
+    .alert-badge .count {
+        background: rgba(0, 0, 0, 0.15);
+        padding: 0.25rem 0.6rem;
+        border-radius: 8px;
+        font-weight: 700;
+    }
+
     .stats-grid {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
@@ -81,7 +147,7 @@
     .stat-card {
         background: white;
         border-radius: 20px;
-        padding: 2rem;
+        padding: 1.75rem;
         box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
         transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         position: relative;
@@ -94,32 +160,17 @@
         top: 0;
         left: 0;
         right: 0;
-        height: 5px;
+        height: 4px;
         background: linear-gradient(90deg, var(--card-gradient-start), var(--card-gradient-end));
     }
 
-    .stat-card.primary {
-        --card-gradient-start: #667eea;
-        --card-gradient-end: #764ba2;
-    }
-
-    .stat-card.success {
-        --card-gradient-start: #34a853;
-        --card-gradient-end: #16a34a;
-    }
-
-    .stat-card.info {
-        --card-gradient-start: #4facfe;
-        --card-gradient-end: #00f2fe;
-    }
-
-    .stat-card.warning {
-        --card-gradient-start: #fa709a;
-        --card-gradient-end: #fee140;
-    }
+    .stat-card.primary { --card-gradient-start: #667eea; --card-gradient-end: #764ba2; }
+    .stat-card.success { --card-gradient-start: #34a853; --card-gradient-end: #16a34a; }
+    .stat-card.info { --card-gradient-start: #4facfe; --card-gradient-end: #00f2fe; }
+    .stat-card.warning { --card-gradient-start: #f59e0b; --card-gradient-end: #fbbf24; }
 
     .stat-card:hover {
-        transform: translateY(-8px);
+        transform: translateY(-6px);
         box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
     }
 
@@ -127,233 +178,413 @@
         display: flex;
         justify-content: space-between;
         align-items: flex-start;
-        margin-bottom: 1.5rem;
     }
 
     .stat-icon {
-        width: 60px;
-        height: 60px;
-        border-radius: 15px;
+        width: 52px;
+        height: 52px;
+        border-radius: 14px;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 1.8rem;
+        font-size: 1.5rem;
         background: linear-gradient(135deg, var(--card-gradient-start), var(--card-gradient-end));
         color: white;
-        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
     }
 
     .stat-label {
-        font-size: 0.85rem;
+        font-size: 0.8rem;
         font-weight: 600;
         text-transform: uppercase;
         letter-spacing: 0.5px;
         color: #64748b;
-        margin-bottom: 0.5rem;
+        margin-bottom: 0.4rem;
     }
 
     .stat-value {
-        font-size: 2.5rem;
+        font-size: 2rem;
         font-weight: 700;
         color: #1e293b;
-        margin-bottom: 0.5rem;
-        line-height: 1;
+        margin-bottom: 0.4rem;
+        line-height: 1.1;
+    }
+
+    .stat-comparison {
+        font-size: 0.8rem;
+        color: #64748b;
+        margin-bottom: 0.4rem;
     }
 
     .stat-change {
         display: inline-flex;
         align-items: center;
-        gap: 0.4rem;
-        font-size: 0.85rem;
+        gap: 0.3rem;
+        font-size: 0.8rem;
         font-weight: 600;
-        padding: 0.4rem 0.8rem;
-        border-radius: 8px;
+        padding: 0.3rem 0.6rem;
+        border-radius: 6px;
     }
 
-    .stat-change.positive {
-        background: rgba(52, 168, 83, 0.1);
-        color: #16a34a;
+    .stat-change.positive { background: rgba(52, 168, 83, 0.1); color: #16a34a; }
+    .stat-change.negative { background: rgba(239, 68, 68, 0.1); color: #dc2626; }
+    .stat-change.neutral { background: rgba(100, 116, 139, 0.1); color: #64748b; }
+
+    .target-progress {
+        margin-top: 0.75rem;
     }
 
-    .stat-change.negative {
-        background: rgba(239, 68, 68, 0.1);
-        color: #dc2626;
-    }
-
-    /* Payment Breakdown */
-    .payment-breakdown {
-        background: white;
-        border-radius: 20px;
-        padding: 2rem;
-        margin-bottom: 2rem;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-    }
-
-    .payment-breakdown h3 {
-        font-size: 1.4rem;
-        font-weight: 700;
-        color: #1e293b;
-        margin-bottom: 1.5rem;
-        display: flex;
-        align-items: center;
-        gap: 0.75rem;
-    }
-
-    .payment-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-        gap: 1.5rem;
-    }
-
-    .payment-card {
-        background: linear-gradient(135deg, var(--payment-gradient-start), var(--payment-gradient-end));
-        border-radius: 15px;
-        padding: 1.5rem;
-        color: white;
-        position: relative;
+    .target-bar {
+        height: 6px;
+        background: #e2e8f0;
+        border-radius: 3px;
         overflow: hidden;
     }
 
-    .payment-card::before {
-        content: '';
-        position: absolute;
-        top: -50%;
-        right: -20%;
-        width: 150px;
-        height: 150px;
-        background: rgba(255, 255, 255, 0.1);
-        border-radius: 50%;
+    .target-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #34a853, #16a34a);
+        border-radius: 3px;
+        transition: width 0.5s ease;
     }
 
-    .payment-card.cash {
-        --payment-gradient-start: #34a853;
-        --payment-gradient-end: #16a34a;
+    .target-text {
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.75rem;
+        color: #64748b;
+        margin-top: 0.4rem;
     }
 
-    .payment-card.upi {
-        --payment-gradient-start: #4facfe;
-        --payment-gradient-end: #00f2fe;
+    .two-column-grid {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: 1.5rem;
+        margin-bottom: 2rem;
     }
 
-    .payment-card.card {
-        --payment-gradient-start: #667eea;
-        --payment-gradient-end: #764ba2;
+    @media (max-width: 1024px) {
+        .two-column-grid { grid-template-columns: 1fr; }
     }
 
-    .payment-card.total {
-        --payment-gradient-start: #fa709a;
-        --payment-gradient-end: #fee140;
+    .operational-metrics {
+        background: white;
+        border-radius: 20px;
+        padding: 1.75rem;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
     }
 
-    .payment-label {
-        font-size: 0.9rem;
-        opacity: 0.9;
-        margin-bottom: 0.5rem;
-        position: relative;
-        z-index: 1;
-    }
-
-    .payment-amount {
-        font-size: 2rem;
+    .operational-metrics h3 {
+        font-size: 1.2rem;
         font-weight: 700;
-        margin-bottom: 0.3rem;
-        position: relative;
-        z-index: 1;
+        color: #1e293b;
+        margin-bottom: 1.25rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
     }
 
-    .payment-count {
+    .metrics-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1rem;
+    }
+
+    .metric-item {
+        background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+        border-radius: 14px;
+        padding: 1.25rem;
+        text-align: center;
+        position: relative;
+    }
+
+    .metric-item .value {
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: #1e293b;
+    }
+
+    .metric-item .label {
+        font-size: 0.75rem;
+        color: #64748b;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+        margin-top: 0.25rem;
+    }
+
+    .metric-item .help-icon {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        background: #e2e8f0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 10px;
+        color: #64748b;
+        cursor: help;
+    }
+
+    .metric-item .progress-ring {
+        width: 60px;
+        height: 60px;
+        margin: 0 auto 0.5rem;
+    }
+
+    .upcoming-card {
+        background: white;
+        border-radius: 20px;
+        padding: 1.75rem;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    }
+
+    .upcoming-card h3 {
+        font-size: 1.2rem;
+        font-weight: 700;
+        color: #1e293b;
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .upcoming-list {
+        max-height: 350px;
+        overflow-y: auto;
+    }
+
+    .upcoming-item {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 1rem;
+        border-radius: 12px;
+        background: #f8fafc;
+        margin-bottom: 0.75rem;
+        transition: all 0.2s ease;
+    }
+
+    .upcoming-item:hover {
+        background: #f1f5f9;
+    }
+
+    .upcoming-time {
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        color: white;
+        padding: 0.5rem 0.75rem;
+        border-radius: 10px;
+        font-weight: 700;
         font-size: 0.85rem;
-        opacity: 0.85;
-        position: relative;
-        z-index: 1;
+        min-width: 65px;
+        text-align: center;
     }
 
-    /* Quick Actions */
+    .upcoming-details {
+        flex: 1;
+    }
+
+    .upcoming-client {
+        font-weight: 600;
+        color: #1e293b;
+        font-size: 0.95rem;
+    }
+
+    .upcoming-service {
+        font-size: 0.8rem;
+        color: #64748b;
+    }
+
+    .upcoming-staff {
+        font-size: 0.75rem;
+        color: #94a3b8;
+    }
+
+    .payment-section {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    @media (max-width: 1024px) {
+        .payment-section { grid-template-columns: 1fr; }
+    }
+
+    .payment-chart-card {
+        background: white;
+        border-radius: 20px;
+        padding: 1.75rem;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    }
+
+    .payment-chart-card h3 {
+        font-size: 1.2rem;
+        font-weight: 700;
+        color: #1e293b;
+        margin-bottom: 1.25rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .payment-chart-container {
+        height: 200px;
+        position: relative;
+    }
+
+    .payment-legend {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+        margin-top: 1rem;
+        justify-content: center;
+    }
+
+    .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        font-size: 0.85rem;
+        color: #64748b;
+    }
+
+    .legend-dot {
+        width: 12px;
+        height: 12px;
+        border-radius: 3px;
+    }
+
+    .appointment-breakdown-card {
+        background: white;
+        border-radius: 20px;
+        padding: 1.75rem;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    }
+
+    .appointment-breakdown-card h3 {
+        font-size: 1.2rem;
+        font-weight: 700;
+        color: #1e293b;
+        margin-bottom: 1.25rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .breakdown-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1rem;
+    }
+
+    .breakdown-item {
+        padding: 1rem;
+        border-radius: 12px;
+        text-align: center;
+    }
+
+    .breakdown-item.scheduled { background: linear-gradient(135deg, #dbeafe, #bfdbfe); }
+    .breakdown-item.completed { background: linear-gradient(135deg, #d1fae5, #a7f3d0); }
+    .breakdown-item.cancelled { background: linear-gradient(135deg, #fee2e2, #fecaca); }
+    .breakdown-item.no-show { background: linear-gradient(135deg, #fef3c7, #fde68a); }
+
+    .breakdown-value {
+        font-size: 1.5rem;
+        font-weight: 700;
+    }
+
+    .breakdown-item.scheduled .breakdown-value { color: #1e40af; }
+    .breakdown-item.completed .breakdown-value { color: #065f46; }
+    .breakdown-item.cancelled .breakdown-value { color: #b91c1c; }
+    .breakdown-item.no-show .breakdown-value { color: #92400e; }
+
+    .breakdown-label {
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+        margin-top: 0.25rem;
+    }
+
+    .breakdown-item.scheduled .breakdown-label { color: #3b82f6; }
+    .breakdown-item.completed .breakdown-label { color: #10b981; }
+    .breakdown-item.cancelled .breakdown-label { color: #ef4444; }
+    .breakdown-item.no-show .breakdown-label { color: #f59e0b; }
+
     .quick-actions {
         background: white;
         border-radius: 20px;
-        padding: 2rem;
+        padding: 1.75rem;
         margin-bottom: 2rem;
         box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
     }
 
     .quick-actions h3 {
-        font-size: 1.4rem;
+        font-size: 1.2rem;
         font-weight: 700;
         color: #1e293b;
-        margin-bottom: 1.5rem;
+        margin-bottom: 1.25rem;
         display: flex;
         align-items: center;
-        gap: 0.75rem;
+        gap: 0.5rem;
     }
 
     .action-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
         gap: 1rem;
     }
 
     .action-btn {
         background: white;
         border: 2px solid #e2e8f0;
-        border-radius: 15px;
-        padding: 1.5rem;
+        border-radius: 14px;
+        padding: 1.25rem;
         text-decoration: none;
         display: flex;
         flex-direction: column;
         align-items: center;
-        gap: 1rem;
+        gap: 0.75rem;
         transition: all 0.3s ease;
         color: #1e293b;
     }
 
     .action-btn:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+        transform: translateY(-4px);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
         border-color: #667eea;
     }
 
     .action-btn i {
-        width: 55px;
-        height: 55px;
+        width: 48px;
+        height: 48px;
         display: flex;
         align-items: center;
         justify-content: center;
         border-radius: 12px;
-        font-size: 1.5rem;
+        font-size: 1.3rem;
         background: linear-gradient(135deg, var(--action-gradient-start), var(--action-gradient-end));
         color: white;
     }
 
-    .action-btn.primary i {
-        --action-gradient-start: #667eea;
-        --action-gradient-end: #764ba2;
-    }
-
-    .action-btn.success i {
-        --action-gradient-start: #34a853;
-        --action-gradient-end: #16a34a;
-    }
-
-    .action-btn.info i {
-        --action-gradient-start: #4facfe;
-        --action-gradient-end: #00f2fe;
-    }
-
-    .action-btn.warning i {
-        --action-gradient-start: #fa709a;
-        --action-gradient-end: #fee140;
-    }
+    .action-btn.primary i { --action-gradient-start: #667eea; --action-gradient-end: #764ba2; }
+    .action-btn.success i { --action-gradient-start: #34a853; --action-gradient-end: #16a34a; }
+    .action-btn.info i { --action-gradient-start: #4facfe; --action-gradient-end: #00f2fe; }
+    .action-btn.warning i { --action-gradient-start: #f59e0b; --action-gradient-end: #fbbf24; }
 
     .action-btn span {
         font-weight: 600;
         text-align: center;
+        font-size: 0.9rem;
     }
 
-    /* Charts Section */
     .charts-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
         gap: 1.5rem;
         margin-bottom: 2rem;
     }
@@ -361,62 +592,47 @@
     .chart-card {
         background: white;
         border-radius: 20px;
-        padding: 2rem;
+        padding: 1.75rem;
         box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
     }
 
     .chart-header {
-        margin-bottom: 1.5rem;
+        margin-bottom: 1.25rem;
     }
 
     .chart-title {
-        font-size: 1.3rem;
+        font-size: 1.2rem;
         font-weight: 700;
         color: #1e293b;
-        margin-bottom: 0.3rem;
+        margin-bottom: 0.25rem;
     }
 
     .chart-subtitle {
-        font-size: 0.9rem;
+        font-size: 0.85rem;
         color: #64748b;
     }
 
     .chart-container {
         position: relative;
-        height: 320px;
+        height: 280px;
     }
 
-    /* Responsive Design */
     @media (max-width: 768px) {
-        .dashboard-container {
-            padding: 1rem;
-        }
-
-        .welcome-header h1 {
-            font-size: 1.8rem;
-        }
-
-        .stats-grid, .payment-grid, .action-grid, .charts-grid {
-            grid-template-columns: 1fr;
-        }
-
-        .welcome-meta {
-            flex-direction: column;
-            gap: 0.5rem;
-        }
-
-        .stat-value {
-            font-size: 2rem;
-        }
+        .dashboard-container { padding: 1rem; }
+        .welcome-header h1 { font-size: 1.5rem; }
+        .stats-grid, .payment-section, .action-grid, .charts-grid { grid-template-columns: 1fr; }
+        .welcome-meta { flex-direction: column; gap: 0.5rem; }
+        .stat-value { font-size: 1.75rem; }
+        .metrics-grid { grid-template-columns: 1fr; }
+        .breakdown-grid { grid-template-columns: 1fr 1fr; }
     }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="dashboard-container">
-    <!-- Welcome Header -->
     <div class="welcome-header">
-        <h1>Welcome back, {{ current_user.first_name }}! 👋</h1>
+        <h1>Welcome back, {{ current_user.first_name or current_user.username }}!</h1>
         <p>Here's what's happening with your business today</p>
         <div class="welcome-meta">
             <div class="meta-item">
@@ -430,14 +646,49 @@
         </div>
     </div>
 
-    <!-- Stats Grid -->
+    {% if alerts_summary.low_stock > 0 or alerts_summary.pending_payments > 0 or alerts_summary.expiring_items > 0 or alerts_summary.pending_appointments > 0 %}
+    <div class="alerts-summary">
+        <h3><i class="fas fa-bell"></i> Alerts & Notifications</h3>
+        <div class="alert-badges">
+            {% if alerts_summary.pending_appointments > 0 %}
+            <a href="{{ url_for('unaki_booking') }}" class="alert-badge info">
+                <i class="fas fa-calendar-check"></i>
+                <span>Pending Appointments</span>
+                <span class="count">{{ alerts_summary.pending_appointments }}</span>
+            </a>
+            {% endif %}
+            {% if alerts_summary.low_stock > 0 %}
+            <a href="{{ url_for('alerts') }}" class="alert-badge warning">
+                <i class="fas fa-box"></i>
+                <span>Low Stock Items</span>
+                <span class="count">{{ alerts_summary.low_stock }}</span>
+            </a>
+            {% endif %}
+            {% if alerts_summary.pending_payments > 0 %}
+            <a href="{{ url_for('integrated_billing') }}" class="alert-badge danger">
+                <i class="fas fa-file-invoice"></i>
+                <span>Pending Payments</span>
+                <span class="count">{{ alerts_summary.pending_payments }}</span>
+            </a>
+            {% endif %}
+            {% if alerts_summary.expiring_items > 0 %}
+            <a href="{{ url_for('alerts') }}" class="alert-badge warning">
+                <i class="fas fa-exclamation-triangle"></i>
+                <span>Expiring Soon</span>
+                <span class="count">{{ alerts_summary.expiring_items }}</span>
+            </a>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
     <div class="stats-grid">
-        <!-- Today's Revenue -->
         <div class="stat-card primary">
             <div class="stat-header">
                 <div>
                     <div class="stat-label">Today's Revenue</div>
                     <div class="stat-value">{{ utils.format_currency(stats.total_revenue_today) }}</div>
+                    <div class="stat-comparison">vs Yesterday: {{ utils.format_currency(trends.yesterday_revenue) }}</div>
                     {% if today_vs_yesterday > 0 %}
                     <span class="stat-change positive">
                         <i class="fas fa-arrow-up"></i> {{ today_vs_yesterday }}%
@@ -445,6 +696,10 @@
                     {% elif today_vs_yesterday < 0 %}
                     <span class="stat-change negative">
                         <i class="fas fa-arrow-down"></i> {{ today_vs_yesterday|abs }}%
+                    </span>
+                    {% else %}
+                    <span class="stat-change neutral">
+                        <i class="fas fa-minus"></i> 0%
                     </span>
                     {% endif %}
                 </div>
@@ -454,17 +709,21 @@
             </div>
         </div>
 
-        <!-- Monthly Revenue -->
         <div class="stat-card success">
             <div class="stat-header">
                 <div>
                     <div class="stat-label">Monthly Revenue</div>
                     <div class="stat-value">{{ utils.format_currency(stats.total_revenue_month) }}</div>
-                    {% if month_vs_last_month > 0 %}
-                    <span class="stat-change positive">
-                        <i class="fas fa-arrow-up"></i> {{ month_vs_last_month }}%
-                    </span>
-                    {% endif %}
+                    {% set target_percent = ((stats.total_revenue_month / monthly_target) * 100) if monthly_target > 0 else 0 %}
+                    <div class="target-progress">
+                        <div class="target-bar">
+                            <div class="target-fill" style="width: {{ [target_percent, 100]|min }}%"></div>
+                        </div>
+                        <div class="target-text">
+                            <span>{{ target_percent|round(1) }}% of target</span>
+                            <span>Goal: {{ utils.format_currency(monthly_target) }}</span>
+                        </div>
+                    </div>
                 </div>
                 <div class="stat-icon">
                     <i class="fas fa-chart-line"></i>
@@ -472,15 +731,18 @@
             </div>
         </div>
 
-        <!-- Today's Appointments -->
         <div class="stat-card info">
             <div class="stat-header">
                 <div>
                     <div class="stat-label">Today's Appointments</div>
-                    <div class="stat-value">{{ stats.todays_appointments }}</div>
-                    <span class="stat-change positive">
-                        <i class="fas fa-calendar-check"></i> Active
-                    </span>
+                    <div class="stat-value">{{ appointment_breakdown.total }}</div>
+                    <div class="stat-comparison">
+                        <span style="color: #10b981;">{{ appointment_breakdown.completed }} Done</span> |
+                        <span style="color: #3b82f6;">{{ appointment_breakdown.scheduled }} Pending</span>
+                        {% if appointment_breakdown.cancelled > 0 %}
+                        | <span style="color: #ef4444;">{{ appointment_breakdown.cancelled }} Cancelled</span>
+                        {% endif %}
+                    </div>
                 </div>
                 <div class="stat-icon">
                     <i class="fas fa-calendar-alt"></i>
@@ -488,15 +750,21 @@
             </div>
         </div>
 
-        <!-- Total Clients -->
         <div class="stat-card warning">
             <div class="stat-header">
                 <div>
-                    <div class="stat-label">Total Clients</div>
+                    <div class="stat-label">Client Base</div>
                     <div class="stat-value">{{ stats.total_clients }}</div>
+                    <div class="stat-comparison">New this month: +{{ new_clients_month }}</div>
+                    {% if new_clients_month > 0 %}
                     <span class="stat-change positive">
-                        <i class="fas fa-users"></i> Registered
+                        <i class="fas fa-user-plus"></i> Growing
                     </span>
+                    {% else %}
+                    <span class="stat-change neutral">
+                        <i class="fas fa-users"></i> Stable
+                    </span>
+                    {% endif %}
                 </div>
                 <div class="stat-icon">
                     <i class="fas fa-user-friends"></i>
@@ -505,34 +773,104 @@
         </div>
     </div>
 
-    <!-- Payment Breakdown -->
-    <div class="payment-breakdown">
-        <h3><i class="fas fa-wallet"></i> Today's Payment Breakdown</h3>
-        <div class="payment-grid">
-            <div class="payment-card cash">
-                <div class="payment-label">Cash Payments</div>
-                <div class="payment-amount">{{ utils.format_currency(stats.todays_cash) }}</div>
-                <div class="payment-count">{{ stats.cash_transaction_count }} transactions</div>
+    <div class="two-column-grid">
+        <div class="operational-metrics">
+            <h3><i class="fas fa-tachometer-alt"></i> Key Performance Indicators</h3>
+            <div class="metrics-grid">
+                <div class="metric-item">
+                    <div class="help-icon" title="Percentage of staff time that was booked with appointments over the last 7 days">i</div>
+                    <div class="value">{{ operational_metrics.utilization_rate }}%</div>
+                    <div class="label">Staff Utilization (7d)</div>
+                </div>
+                <div class="metric-item">
+                    <div class="help-icon" title="Percentage of clients who returned for another appointment within 30 days">i</div>
+                    <div class="value">{{ operational_metrics.rebooking_rate }}%</div>
+                    <div class="label">Rebooking Rate (30d)</div>
+                </div>
+                <div class="metric-item">
+                    <div class="help-icon" title="Average amount spent per client visit today">i</div>
+                    <div class="value">{{ utils.format_currency(operational_metrics.avg_ticket_value) }}</div>
+                    <div class="label">Avg Ticket (Today)</div>
+                </div>
+                <div class="metric-item">
+                    <div class="help-icon" title="Average amount spent per client visit over the last 7 days">i</div>
+                    <div class="value">{{ utils.format_currency(operational_metrics.avg_ticket_value_week) }}</div>
+                    <div class="label">Avg Ticket (7d)</div>
+                </div>
             </div>
-            <div class="payment-card upi">
-                <div class="payment-label">UPI Payments</div>
-                <div class="payment-amount">{{ utils.format_currency(stats.todays_upi) }}</div>
-                <div class="payment-count">PhonePe, GPay, etc.</div>
-            </div>
-            <div class="payment-card card">
-                <div class="payment-label">Card Payments</div>
-                <div class="payment-amount">{{ utils.format_currency(stats.todays_card) }}</div>
-                <div class="payment-count">Debit/Credit Cards</div>
-            </div>
-            <div class="payment-card total">
-                <div class="payment-label">Total Collection</div>
-                <div class="payment-amount">{{ utils.format_currency(stats.total_revenue_today) }}</div>
-                <div class="payment-count">All payment methods</div>
+        </div>
+
+        <div class="upcoming-card">
+            <h3><i class="fas fa-clock"></i> Next Appointments</h3>
+            <div class="upcoming-list">
+                {% if upcoming_appointments %}
+                    {% for appt in upcoming_appointments[:5] %}
+                    <div class="upcoming-item">
+                        <div class="upcoming-time">
+                            {{ appt.appointment_date.strftime('%I:%M %p') if appt.appointment_date else 'TBD' }}
+                        </div>
+                        <div class="upcoming-details">
+                            <div class="upcoming-client">{{ appt.customer.name if appt.customer else 'Walk-in' }}</div>
+                            <div class="upcoming-service">{{ appt.service.name if appt.service else 'General Service' }}</div>
+                            <div class="upcoming-staff">with {{ appt.staff.first_name if appt.staff else 'Any Available' }}</div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="text-center text-muted py-4">
+                        <i class="fas fa-calendar-check fa-2x mb-2 d-block"></i>
+                        <p>No upcoming appointments</p>
+                    </div>
+                {% endif %}
             </div>
         </div>
     </div>
 
-    <!-- Quick Actions -->
+    <div class="payment-section">
+        <div class="payment-chart-card">
+            <h3><i class="fas fa-wallet"></i> Payment Breakdown (Today)</h3>
+            <div class="payment-chart-container">
+                <canvas id="paymentChart"></canvas>
+            </div>
+            <div class="payment-legend">
+                <div class="legend-item">
+                    <span class="legend-dot" style="background: #34a853;"></span>
+                    <span>Cash: {{ utils.format_currency(stats.todays_cash) }}</span>
+                </div>
+                <div class="legend-item">
+                    <span class="legend-dot" style="background: #4facfe;"></span>
+                    <span>UPI: {{ utils.format_currency(stats.todays_upi) }}</span>
+                </div>
+                <div class="legend-item">
+                    <span class="legend-dot" style="background: #667eea;"></span>
+                    <span>Card: {{ utils.format_currency(stats.todays_card) }}</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="appointment-breakdown-card">
+            <h3><i class="fas fa-calendar-day"></i> Today's Appointments</h3>
+            <div class="breakdown-grid">
+                <div class="breakdown-item scheduled">
+                    <div class="breakdown-value">{{ appointment_breakdown.scheduled }}</div>
+                    <div class="breakdown-label">Scheduled</div>
+                </div>
+                <div class="breakdown-item completed">
+                    <div class="breakdown-value">{{ appointment_breakdown.completed }}</div>
+                    <div class="breakdown-label">Completed</div>
+                </div>
+                <div class="breakdown-item cancelled">
+                    <div class="breakdown-value">{{ appointment_breakdown.cancelled }}</div>
+                    <div class="breakdown-label">Cancelled</div>
+                </div>
+                <div class="breakdown-item no-show">
+                    <div class="breakdown-value">{{ appointment_breakdown.no_show }}</div>
+                    <div class="breakdown-label">No-Show</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="quick-actions">
         <h3><i class="fas fa-bolt"></i> Quick Actions</h3>
         <div class="action-grid">
@@ -555,9 +893,7 @@
         </div>
     </div>
 
-    <!-- Charts Grid -->
     <div class="charts-grid">
-        <!-- Revenue Chart -->
         <div class="chart-card">
             <div class="chart-header">
                 <div class="chart-title">Revenue Trend</div>
@@ -568,7 +904,6 @@
             </div>
         </div>
 
-        <!-- Appointments Chart -->
         <div class="chart-card">
             <div class="chart-header">
                 <div class="chart-title">Appointment Analytics</div>
@@ -580,7 +915,6 @@
         </div>
     </div>
 
-    <!-- Service Categories Chart -->
     <div class="chart-card" style="margin-bottom: 2rem;">
         <div class="chart-header">
             <div class="chart-title">Popular Services</div>
@@ -599,16 +933,43 @@ document.addEventListener('DOMContentLoaded', function() {
         responsive: true,
         maintainAspectRatio: false,
         plugins: {
-            legend: {
-                display: false
-            }
+            legend: { display: false }
         }
     };
 
-    // Revenue Chart - Gradient Area
+    // Payment Donut Chart
+    const paymentCtx = document.getElementById('paymentChart');
+    if (paymentCtx) {
+        const paymentData = {{ payment_breakdown.payment_values|tojson }};
+        const hasPayments = paymentData.some(v => v > 0);
+        
+        new Chart(paymentCtx, {
+            type: 'doughnut',
+            data: {
+                labels: {{ payment_breakdown.payment_labels|tojson }},
+                datasets: [{
+                    data: hasPayments ? paymentData : [1],
+                    backgroundColor: hasPayments ? ['#34a853', '#4facfe', '#667eea'] : ['#e2e8f0'],
+                    borderWidth: 0,
+                    spacing: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '70%',
+                plugins: {
+                    legend: { display: false },
+                    tooltip: { enabled: hasPayments }
+                }
+            }
+        });
+    }
+
+    // Revenue Chart
     const revenueCtx = document.getElementById('revenueChart');
     if (revenueCtx) {
-        const gradient = revenueCtx.getContext('2d').createLinearGradient(0, 0, 0, 300);
+        const gradient = revenueCtx.getContext('2d').createLinearGradient(0, 0, 0, 250);
         gradient.addColorStop(0, 'rgba(102, 126, 234, 0.3)');
         gradient.addColorStop(1, 'rgba(102, 126, 234, 0.0)');
 
@@ -624,11 +985,11 @@ document.addEventListener('DOMContentLoaded', function() {
                     borderWidth: 3,
                     fill: true,
                     tension: 0.4,
-                    pointRadius: 6,
+                    pointRadius: 5,
                     pointBackgroundColor: '#fff',
                     pointBorderColor: '#667eea',
-                    pointBorderWidth: 3,
-                    pointHoverRadius: 8
+                    pointBorderWidth: 2,
+                    pointHoverRadius: 7
                 }]
             },
             options: {
@@ -648,7 +1009,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Appointments Chart - Gradient Bars
+    // Appointments Chart
     const appointmentsCtx = document.getElementById('appointmentsChart');
     if (appointmentsCtx) {
         new Chart(appointmentsCtx, {
@@ -659,7 +1020,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     label: 'Appointments',
                     data: {{ bookings_data['values']|tojson }},
                     backgroundColor: '#4facfe',
-                    borderRadius: 10,
+                    borderRadius: 8,
                     borderSkipped: false
                 }]
             },
@@ -669,7 +1030,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     y: {
                         beginAtZero: true,
                         grid: { color: '#f1f5f9' },
-                        ticks: { color: '#64748b' }
+                        ticks: { color: '#64748b', stepSize: 1 }
                     },
                     x: {
                         grid: { display: false },
@@ -680,7 +1041,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Services Chart - Vibrant Doughnut
+    // Services Chart
     const servicesCtx = document.getElementById('servicesChart');
     if (servicesCtx) {
         new Chart(servicesCtx, {
@@ -689,16 +1050,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 labels: {{ service_categories['labels']|tojson }},
                 datasets: [{
                     data: {{ service_categories['values']|tojson }},
-                    backgroundColor: [
-                        '#667eea',
-                        '#34a853',
-                        '#4facfe',
-                        '#fa709a',
-                        '#fee140',
-                        '#764ba2'
-                    ],
+                    backgroundColor: ['#667eea', '#34a853', '#4facfe', '#f59e0b', '#ef4444', '#764ba2'],
                     borderWidth: 0,
-                    spacing: 4
+                    spacing: 3
                 }]
             },
             options: {
@@ -708,16 +1062,40 @@ document.addEventListener('DOMContentLoaded', function() {
                     legend: {
                         position: 'bottom',
                         labels: {
-                            padding: 20,
-                            font: { size: 13, weight: '600' },
+                            padding: 15,
+                            font: { size: 12, weight: '600' },
                             usePointStyle: true
                         }
                     }
                 },
-                cutout: '65%'
+                cutout: '60%'
             }
         });
     }
+
+    // Initialize tooltips for help icons
+    document.querySelectorAll('.help-icon').forEach(icon => {
+        icon.addEventListener('mouseenter', function(e) {
+            const tooltip = document.createElement('div');
+            tooltip.className = 'custom-tooltip';
+            tooltip.textContent = this.getAttribute('title');
+            tooltip.style.cssText = 'position:fixed;background:#1e293b;color:white;padding:8px 12px;border-radius:8px;font-size:12px;max-width:200px;z-index:9999;box-shadow:0 4px 12px rgba(0,0,0,0.15);';
+            document.body.appendChild(tooltip);
+            
+            const rect = this.getBoundingClientRect();
+            tooltip.style.left = (rect.left - tooltip.offsetWidth/2 + 9) + 'px';
+            tooltip.style.top = (rect.top - tooltip.offsetHeight - 8) + 'px';
+            
+            this._tooltip = tooltip;
+        });
+        
+        icon.addEventListener('mouseleave', function() {
+            if (this._tooltip) {
+                this._tooltip.remove();
+                this._tooltip = null;
+            }
+        });
+    });
 });
 </script>
 {% endblock %}

@@ -7,7 +7,9 @@ from app import app, db, get_ist_now, IST
 from .dashboard_queries import (
     get_dashboard_stats, get_recent_appointments, get_low_stock_items, 
     get_expiring_items, get_revenue_trends, get_peak_hours, get_top_services,
-    get_top_staff, get_client_retention_metrics, get_upcoming_appointments
+    get_top_staff, get_client_retention_metrics, get_upcoming_appointments,
+    get_appointment_status_breakdown, get_operational_metrics, get_alerts_summary,
+    get_monthly_target, get_new_clients_this_month
 )
 from datetime import date, timedelta
 
@@ -54,6 +56,13 @@ def dashboard():
         retention_metrics = get_client_retention_metrics()
         upcoming_appointments = get_upcoming_appointments()
         
+        # New metrics for enhanced dashboard
+        appointment_breakdown = get_appointment_status_breakdown()
+        operational_metrics = get_operational_metrics()
+        alerts_summary = get_alerts_summary()
+        monthly_target = get_monthly_target()
+        new_clients_month = get_new_clients_this_month()
+        
         today_vs_yesterday = 0
         if trends['yesterday_revenue'] > 0:
             today_vs_yesterday = ((stats['total_revenue_today'] - trends['yesterday_revenue']) / trends['yesterday_revenue']) * 100
@@ -99,13 +108,23 @@ def dashboard():
         
         # Service categories data
         service_labels = [s['name'] for s in top_services[:6]]
-        service_values = [s['count'] for s in top_services[:6]]
+        service_values = [s['bookings'] for s in top_services[:6]]
         
         # If no data, use demo data
         if not service_labels:
             service_labels = ['Facial', 'Massage', 'Hair Styling', 'Manicure', 'Pedicure', 'Body Scrub']
             service_values = [45, 38, 32, 28, 25, 20]
 
+        # Payment breakdown for donut chart
+        payment_breakdown = {
+            'payment_labels': ['Cash', 'UPI', 'Card'],
+            'payment_values': [
+                float(stats.get('todays_cash', 0)),
+                float(stats.get('todays_upi', 0)),
+                float(stats.get('todays_card', 0))
+            ]
+        }
+        
         return render_template('dashboard.html', 
                              stats=stats, 
                              recent_appointments=recent_appointments,
@@ -124,6 +143,12 @@ def dashboard():
                              revenue_data=revenue_chart_data,
                              bookings_data={'labels': bookings_labels, 'values': bookings_values},
                              service_categories={'labels': service_labels, 'values': service_values},
+                             payment_breakdown=payment_breakdown,
+                             appointment_breakdown=appointment_breakdown,
+                             operational_metrics=operational_metrics,
+                             alerts_summary=alerts_summary,
+                             monthly_target=monthly_target,
+                             new_clients_month=new_clients_month,
                              recent_activities=[])
     except Exception as e:
         print(f"Dashboard error: {e}")
@@ -136,7 +161,10 @@ def dashboard():
             'total_services': 0,
             'total_staff': 0,
             'total_revenue_today': 0.0,
-            'total_revenue_month': 0.0
+            'total_revenue_month': 0.0,
+            'todays_cash': 0.0,
+            'todays_upi': 0.0,
+            'todays_card': 0.0
         }
         return render_template('dashboard.html', 
                              stats=default_stats, 
@@ -156,6 +184,12 @@ def dashboard():
                              revenue_data={'labels': [], 'values': []},
                              bookings_data={'labels': [], 'values': []},
                              service_categories={'labels': [], 'values': []},
+                             payment_breakdown={'payment_labels': ['Cash', 'UPI', 'Card'], 'payment_values': [0, 0, 0]},
+                             appointment_breakdown={'completed': 0, 'cancelled': 0, 'no_show': 0, 'scheduled': 0, 'total': 0},
+                             operational_metrics={'utilization_rate': 0, 'rebooking_rate': 0, 'avg_ticket_value': 0, 'avg_ticket_value_week': 0},
+                             alerts_summary={'low_stock': 0, 'pending_payments': 0, 'expiring_items': 0, 'pending_appointments': 0},
+                             monthly_target=50000,
+                             new_clients_month=0,
                              recent_activities=[])
 
 @app.route('/api/dashboard/stats')

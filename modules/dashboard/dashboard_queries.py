@@ -447,3 +447,217 @@ def get_upcoming_appointments(limit=10):
         import traceback
         traceback.print_exc()
         return []
+
+
+def get_appointment_status_breakdown():
+    """Get today's appointment status breakdown (completed, cancelled, no-show)"""
+    try:
+        ist_now = get_ist_now()
+        today = ist_now.date()
+        
+        completed = Appointment.query.filter(
+            func.date(Appointment.appointment_date) == today,
+            Appointment.status == 'completed'
+        ).count()
+        
+        cancelled = Appointment.query.filter(
+            func.date(Appointment.appointment_date) == today,
+            Appointment.status == 'cancelled'
+        ).count()
+        
+        no_show = Appointment.query.filter(
+            func.date(Appointment.appointment_date) == today,
+            Appointment.status == 'no_show'
+        ).count()
+        
+        scheduled = Appointment.query.filter(
+            func.date(Appointment.appointment_date) == today,
+            Appointment.status.in_(['scheduled', 'confirmed'])
+        ).count()
+        
+        return {
+            'completed': completed,
+            'cancelled': cancelled,
+            'no_show': no_show,
+            'scheduled': scheduled,
+            'total': completed + cancelled + no_show + scheduled
+        }
+    except Exception as e:
+        print(f"Error in get_appointment_status_breakdown: {e}")
+        return {'completed': 0, 'cancelled': 0, 'no_show': 0, 'scheduled': 0, 'total': 0}
+
+
+def get_operational_metrics():
+    """Get operational metrics: utilization rate, rebooking rate, average ticket value"""
+    try:
+        ist_now = get_ist_now()
+        today = ist_now.date()
+        thirty_days_ago = today - timedelta(days=30)
+        seven_days_ago = today - timedelta(days=7)
+        
+        # Staff Utilization Rate (last 7 days)
+        # Assume 8 working hours per staff per day, calculate % of time booked
+        total_staff = User.query.filter_by(is_active=True, role='staff').count()
+        if total_staff == 0:
+            total_staff = 1
+        
+        # Total booked hours in last 7 days (estimate 1 hour per appointment)
+        completed_appointments_7_days = Appointment.query.filter(
+            func.date(Appointment.appointment_date) >= seven_days_ago,
+            Appointment.status == 'completed'
+        ).count()
+        
+        # Available hours = staff * 8 hours * 7 days
+        available_hours = total_staff * 8 * 7
+        booked_hours = completed_appointments_7_days  # Assume 1 hour per appointment
+        utilization_rate = min(100, (booked_hours / available_hours * 100)) if available_hours > 0 else 0
+        
+        # Rebooking Rate (clients who booked again within 30 days)
+        from models import Customer
+        
+        # Get customers who had completed appointments in the last 30 days
+        customers_with_appointments = db.session.query(Customer.id).join(
+            Appointment
+        ).filter(
+            Appointment.appointment_date >= thirty_days_ago,
+            Appointment.status == 'completed'
+        ).distinct().count()
+        
+        # Get customers who rebooked (had more than 1 completed appointment in 30 days)
+        customers_rebooked = db.session.query(Customer.id).join(
+            Appointment
+        ).filter(
+            Appointment.appointment_date >= thirty_days_ago,
+            Appointment.status == 'completed'
+        ).group_by(Customer.id).having(func.count(Appointment.id) > 1).count()
+        
+        rebooking_rate = (customers_rebooked / customers_with_appointments * 100) if customers_with_appointments > 0 else 0
+        
+        # Average Ticket Value (today)
+        total_revenue_today = db.session.query(func.sum(Appointment.amount)).filter(
+            func.date(Appointment.appointment_date) == today,
+            Appointment.status == 'completed',
+            Appointment.is_paid == True
+        ).scalar() or 0.0
+        
+        completed_today = Appointment.query.filter(
+            func.date(Appointment.appointment_date) == today,
+            Appointment.status == 'completed'
+        ).count()
+        
+        avg_ticket_value = float(total_revenue_today) / completed_today if completed_today > 0 else 0
+        
+        # Weekly average ticket value
+        total_revenue_week = db.session.query(func.sum(Appointment.amount)).filter(
+            func.date(Appointment.appointment_date) >= seven_days_ago,
+            Appointment.status == 'completed',
+            Appointment.is_paid == True
+        ).scalar() or 0.0
+        
+        completed_week = Appointment.query.filter(
+            func.date(Appointment.appointment_date) >= seven_days_ago,
+            Appointment.status == 'completed'
+        ).count()
+        
+        avg_ticket_value_week = float(total_revenue_week) / completed_week if completed_week > 0 else 0
+        
+        return {
+            'utilization_rate': round(utilization_rate, 1),
+            'rebooking_rate': round(rebooking_rate, 1),
+            'avg_ticket_value': round(avg_ticket_value, 2),
+            'avg_ticket_value_week': round(avg_ticket_value_week, 2)
+        }
+    except Exception as e:
+        print(f"Error in get_operational_metrics: {e}")
+        import traceback
+        traceback.print_exc()
+        return {
+            'utilization_rate': 0,
+            'rebooking_rate': 0,
+            'avg_ticket_value': 0,
+            'avg_ticket_value_week': 0
+        }
+
+
+def get_alerts_summary():
+    """Get summary of alerts (low stock, pending payments, expiring items)"""
+    try:
+        ist_now = get_ist_now()
+        today = ist_now.date()
+        
+        # Low stock count
+        products = InventoryProduct.query.filter(InventoryProduct.is_active == True).all()
+        low_stock_count = 0
+        for product in products:
+            total_stock = sum(float(batch.qty_available or 0) 
+                            for batch in product.batches 
+                            if batch.status == 'active')
+            if 0 < total_stock <= 10:
+                low_stock_count += 1
+        
+        # Pending payments (unpaid invoices)
+        from models import EnhancedInvoice
+        pending_payments = EnhancedInvoice.query.filter(
+            EnhancedInvoice.payment_status.in_(['pending', 'partial'])
+        ).count()
+        
+        # Expiring items (within 30 days)
+        from modules.inventory.models import InventoryBatch
+        expiry_threshold = today + timedelta(days=30)
+        expiring_count = InventoryBatch.query.filter(
+            InventoryBatch.expiry_date <= expiry_threshold,
+            InventoryBatch.expiry_date >= today,
+            InventoryBatch.status == 'active',
+            InventoryBatch.qty_available > 0
+        ).count()
+        
+        # Scheduled appointments for today
+        pending_appointments = Appointment.query.filter(
+            func.date(Appointment.appointment_date) == today,
+            Appointment.status.in_(['scheduled', 'confirmed'])
+        ).count()
+        
+        return {
+            'low_stock': low_stock_count,
+            'pending_payments': pending_payments,
+            'expiring_items': expiring_count,
+            'pending_appointments': pending_appointments
+        }
+    except Exception as e:
+        print(f"Error in get_alerts_summary: {e}")
+        return {
+            'low_stock': 0,
+            'pending_payments': 0,
+            'expiring_items': 0,
+            'pending_appointments': 0
+        }
+
+
+def get_monthly_target():
+    """Get monthly revenue target (configurable, default 50000)"""
+    try:
+        # In the future, this could be stored in a settings table
+        # For now, return a default target
+        return 50000.0
+    except Exception as e:
+        print(f"Error in get_monthly_target: {e}")
+        return 50000.0
+
+
+def get_new_clients_this_month():
+    """Get count of new clients registered this month"""
+    try:
+        ist_now = get_ist_now()
+        today = ist_now.date()
+        first_day_of_month = date(today.year, today.month, 1)
+        
+        from models import Customer
+        new_clients = Customer.query.filter(
+            Customer.created_at >= first_day_of_month,
+            Customer.is_active == True
+        ).count()
+        
+        return new_clients
+    except Exception as e:
+        print(f"Error in get_new_clients_this_month: {e}")
+        return 0
