@@ -1,0 +1,62 @@
+Apply consistent Bootstrap button styling across the ENTIRE application following these rules:
+
+1. BUTTON STYLE STANDARDS - Use these Bootstrap classes throughout all pages:
+   - Primary actions (Save, Submit, Add, Create): btn btn-primary
+   - Secondary actions (Cancel, Back, Close): btn btn-secondary  
+   - Success actions (Approve, Confirm, Active): btn btn-success
+   - Delete/Remove actions: btn btn-danger
+   - Warning actions (Archive, Suspend): btn btn-warning
+   - Info/View actions: btn btn-info
+   - Light background buttons: btn btn-light
+   - Dark theme buttons: btn btn-dark
+   - Text-only links: btn btn-link
+
+2. REPLACE ALL CUSTOM COLORED BUTTONS with Bootstrap equivalents:
+   - Yellow buttons → btn btn-warning
+   - Green buttons → btn btn-success  
+   - Blue buttons → btn btn-primary
+   - Red buttons → btn btn-danger
+   - Orange buttons → btn btn-warning
+
+3. BUTTON SIZING - Apply consistently:
+   - Large buttons: btn btn-lg (for primary CTAs)
+   - Normal buttons: default size (most common)
+   - Small buttons: btn btn-sm (for table actions, compact spaces)
+
+4. ICON BUTTONS in tables/action columns:
+   - Edit: btn btn-sm btn-primary (with edit icon)
+   - View: btn btn-sm btn-info (with eye icon)
+   - Delete: btn btn-sm btn-danger (with trash icon)
+   - Add margin between buttons: me-1 or me-2 class
+
+5. BUTTON GROUPS for related actions:
+   - Use btn-group class for grouped buttons
+   - Example: Export/Download/Print buttons together
+
+6. OUTLINE BUTTONS for secondary prominence:
+   - Use btn-outline-primary, btn-outline-success etc.
+   - Good for: Cancel, Reset, Alternative actions
+
+7. REMOVE all custom CSS for button colors and use Bootstrap's built-in variables
+
+8. ENSURE consistency on ALL pages:
+   - Staff Management
+   - Dashboard
+   - Forms (Add/Edit pages)
+   - Settings
+   - Reports
+   - Any other pages in the application
+
+9. ADD hover and focus states automatically (Bootstrap handles this)
+
+10. SPECIFIC MAPPINGS for your app:
+    - "Add New Staff" → btn btn-success
+    - "Export Data" → btn btn-warning  
+    - "Refresh" → btn btn-primary
+    - "Save/Submit" → btn btn-primary btn-lg
+    - "Cancel" → btn btn-secondary
+    - "Delete" → btn btn-danger
+    - "Edit" → btn btn-primary btn-sm
+    - "View" → btn btn-info btn-sm
+
+Apply these button styles globally so the entire software has a consistent, professional Bootstrap look and feel.

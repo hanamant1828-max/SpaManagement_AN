@@ -15,7 +15,14 @@ This project is a comprehensive Spa & Salon Management System built with Flask a
 The application uses Flask and SQLAlchemy, following a modular design with features separated into distinct modules.
 
 **UI/UX Decisions:**
-- Employs Bootstrap for a responsive and consistent user interface.
+- Employs Bootstrap 5 for a responsive and consistent user interface.
+- **Button Styling Standard (In Progress):** Using Bootstrap solid button classes for consistent styling:
+  - Primary (blue btn-primary) - Main actions like Edit, Apply Filter
+  - Success (green btn-success) - Add/Create actions
+  - Warning (yellow/orange btn-warning) - Export actions
+  - Danger (red btn-danger) - Delete actions
+  - Info (cyan btn-info) - View/Preview actions
+  - Secondary (gray btn-secondary) - Back/Clear/Cancel actions
 - Utilizes distinct styling for student offers and color-coded elements for package types.
 - Interactive modals are used for displaying detailed information.
 - The Unaki booking system visually highlights holidays and off-days on the calendar.
