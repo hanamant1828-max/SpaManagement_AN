@@ -3127,243 +3127,27 @@ function debounce(func, wait) {
     };
 }
 
-/**
- * Search customers with relevance ranking
- */
-function searchCustomers() {
-    const searchInput = CustomerManagement.domCache.searchInput || document.getElementById('customerSearch');
-    if (!searchInput) {
-        console.error('❌ Search input not found');
-        return;
-    }
-
-    const filter = searchInput.value.toLowerCase().trim();
-
-    const table = document.querySelector('.spa-table tbody');
-    if (!table) {
-        console.error('❌ Table not found');
-        return;
-    }
-
-    const rows = Array.from(table.getElementsByTagName('tr'));
-    let visibleCount = 0;
-
-    // Show all rows if no filter
-    if (filter === '') {
-        rows.forEach(row => {
-            if (row.id !== 'noResultsRow') {
-                row.style.display = '';
-                visibleCount++;
-            }
-        });
-
-        const noResultsRow = document.getElementById('noResultsRow');
-        if (noResultsRow) {
-            noResultsRow.style.display = 'none';
-        }
-
-        return;
-    }
-
-    // Collect matching rows with relevance scores
-    const matchedRows = [];
-
-    rows.forEach(row => {
-        if (row.id === 'noResultsRow') return;
-
-        let fullName = '';
-        let firstName = '';
-        let lastName = '';
-        let phone = '';
-        let email = '';
-
-        const nameCell = row.cells[0];
-        if (nameCell) {
-            const nameElement = nameCell.querySelector('.customer-info h5');
-            if (nameElement) {
-                fullName = (nameElement.textContent || nameElement.innerText).toLowerCase().trim();
-                const nameParts = fullName.split(' ');
-                firstName = nameParts[0] || '';
-                lastName = nameParts.slice(1).join(' ') || '';
-            }
-        }
-
-        const contactCell = row.cells[1];
-        if (contactCell) {
-            const contactText = contactCell.textContent || contactCell.innerText;
-            const phoneMatch = contactText.match(/\d[\d\s\-()]+/);
-            if (phoneMatch) {
-                phone = phoneMatch[0].replace(/\s+/g, '').toLowerCase();
-            }
-            const emailMatch = contactText.match(/[\w\.-]+@[\w\.-]+\.\w+/);
-            if (emailMatch) {
-                email = emailMatch[0].toLowerCase();
-            }
-        }
-
-        // Calculate relevance score (higher = more relevant)
-        let score = 0;
-        let isMatch = false;
-
-        // Exact matches (highest priority)
-        if (fullName === filter) {
-            score = 1000;
-            isMatch = true;
-        } else if (firstName === filter || lastName === filter) {
-            score = 900;
-            isMatch = true;
-        } else if (phone.replace(/[\s\-()]/g, '') === filter.replace(/[\s\-()]/g, '')) {
-            score = 800;
-            isMatch = true;
-        } else if (email === filter) {
-            score = 700;
-            isMatch = true;
-        }
-        // Prefix matches (medium priority)
-        else if (fullName.startsWith(filter)) {
-            score = 600;
-            isMatch = true;
-        } else if (firstName.startsWith(filter)) {
-            score = 500;
-            isMatch = true;
-        } else if (lastName.startsWith(filter)) {
-            score = 450;
-            isMatch = true;
-        } else if (phone.startsWith(filter)) {
-            score = 400;
-            isMatch = true;
-        }
-        // Contains matches (lower priority)
-        else if (fullName.includes(filter)) {
-            score = 300;
-            isMatch = true;
-        } else if (phone.includes(filter)) {
-            score = 200;
-            isMatch = true;
-        } else if (email.includes(filter)) {
-            score = 100;
-            isMatch = true;
-        }
-
-        if (isMatch) {
-            matchedRows.push({ row, score });
-            visibleCount++;
-        } else {
-            row.style.display = 'none';
-        }
-    });
-
-    // Sort by relevance and display
-    if (matchedRows.length > 0) {
-        matchedRows.sort((a, b) => b.score - a.score);
-
-        const fragment = document.createDocumentFragment();
-        matchedRows.forEach(({ row }) => {
-            row.style.display = '';
-            fragment.appendChild(row);
-        });
-
-        const noResultsRow = document.getElementById('noResultsRow');
-        if (noResultsRow) {
-            table.insertBefore(fragment, noResultsRow);
-        } else {
-            table.appendChild(fragment);
-        }
-    }
-
-    // Show/hide no results message
-    let noResultsRow = document.getElementById('noResultsRow');
-    if (visibleCount === 0) {
-        if (!noResultsRow) {
-            noResultsRow = table.insertRow();
-            noResultsRow.id = 'noResultsRow';
-            const cell = noResultsRow.insertCell(0);
-            cell.colSpan = 6;
-            cell.className = 'text-center text-muted py-4';
-        }
-        const cell = noResultsRow.cells[0];
-        cell.innerHTML = '';
-        const icon = document.createElement('i');
-        icon.className = 'fas fa-search fa-2x mb-2 d-block';
-        icon.setAttribute('aria-hidden', 'true');
-        cell.appendChild(icon);
-        const text = document.createTextNode('No customers found matching "' + filter + '"');
-        cell.appendChild(text);
-        noResultsRow.style.display = '';
-    } else if (noResultsRow) {
-        noResultsRow.style.display = 'none';
-    }
-
-    console.log(`🔍 Search completed. Visible rows: ${visibleCount}, Filter: "${filter}"`);
-}
-
-// Create debounced version
-const debouncedSearch = debounce(searchCustomers, CustomerManagement.config.searchDebounceDelay);
+// DataTables handles all search functionality automatically
+// No need for custom search implementation
 
 /**
  * Initialize search functionality
  * @returns {boolean} Success status
  */
 function initializeSearch() {
-    const searchInput = CustomerManagement.domCache.searchInput || document.getElementById('customerSearch');
-    if (!searchInput) {
-        console.error('❌ Search input not found');
-        return false;
+    // DataTables provides its own search functionality
+    // We just need to ensure DataTables search input is accessible
+    const datatablesSearch = document.querySelector('.dataTables_filter input');
+    
+    if (datatablesSearch) {
+        console.log('✅ DataTables search found and ready');
+        CustomerManagement.domCache.searchInput = datatablesSearch;
+        return true;
     }
-
-    console.log('✅ Search input found, attaching listeners');
-
-    // Remove existing listeners by cloning
-    const newSearchInput = searchInput.cloneNode(true);
-    searchInput.parentNode.replaceChild(newSearchInput, searchInput);
-
-    // Update cache
-    CustomerManagement.domCache.searchInput = newSearchInput;
-
-    // Add debounced input listener
-    newSearchInput.addEventListener('input', debouncedSearch);
-
-    // Support Enter key
-    newSearchInput.addEventListener('keyup', function(e) {
-        if (e.key === 'Enter') {
-            e.preventDefault();
-            searchCustomers();
-        }
-    });
-
-    // Support search icon click
-    const searchIcon = document.querySelector('.search-icon');
-    if (searchIcon) {
-        searchIcon.addEventListener('click', searchCustomers);
-
-        // Keyboard accessibility for search icon
-        searchIcon.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                searchCustomers();
-            }
-        });
-    }
-
-    // Trigger initial search if pre-filled
-    if (newSearchInput.value) {
-        searchCustomers();
-    }
-
-    console.log('✅ Search functionality initialized successfully');
+    
+    // If DataTables hasn't initialized yet, that's ok - it will add search later
+    console.log('ℹ️ DataTables search not yet available (will be added when DataTables initializes)');
     return true;
-}
-
-/**
- * Clear search
- */
-function clearSearch() {
-    const searchInput = CustomerManagement.domCache.searchInput || document.getElementById('customerSearch');
-    if (searchInput) {
-        searchInput.value = '';
-        searchCustomers();
-        searchInput.focus();
-    }
 }
 
 /**
