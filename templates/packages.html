@@ -2,6 +2,10 @@
 
 {% block title %}✅ Package Subscription Management{% endblock %}
 
+{% block extra_css %}
+<link href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css" rel="stylesheet" />
+{% endblock %}
+
 {% block content %}
 <div class="container-fluid">
     <div class="row">
@@ -1161,5 +1165,49 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 {% endblock %}
+
+<!-- DataTables JavaScript -->
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+
+<script>
+// Initialize DataTables for packages table
+let packagesDataTable;
+
+function initializePackagesDataTable() {
+    try {
+        if (typeof $ === 'undefined' || typeof $.fn.DataTable === 'undefined') {
+            console.warn("DataTables not available yet, retrying...");
+            setTimeout(initializePackagesDataTable, 200);
+            return;
+        }
+
+        if ($('.table-hover').length && !$.fn.DataTable.isDataTable('.table-hover')) {
+            packagesDataTable = $('.table-hover').DataTable({
+                pageLength: 10,
+                lengthMenu: [[10, 25, 50, -1], [10, 25, 50, "All"]],
+                order: [[0, 'asc']],
+                language: {
+                    search: "Search packages:",
+                    lengthMenu: "Show _MENU_ packages per page",
+                    info: "Showing _START_ to _END_ of _TOTAL_ packages",
+                    infoEmpty: "No packages available",
+                    infoFiltered: "(filtered from _MAX_ total packages)"
+                },
+                columnDefs: [
+                    { orderable: false, targets: -1 }
+                ]
+            });
+            console.log("✅ DataTables initialized for packages table");
+        }
+    } catch (error) {
+        console.error("Error initializing DataTables:", error);
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    setTimeout(initializePackagesDataTable, 100);
+});
+</script>
 
 {% endblock %}
