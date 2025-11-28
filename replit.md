@@ -70,7 +70,15 @@ The application uses Flask and SQLAlchemy, following a modular design with featu
 - **WhatsApp Notifications (Twilio):** ✅ Successfully configured on November 19, 2025. Twilio credentials are securely stored as environment secrets (TWILIO_ACCOUNT_SID, TWILIO_API_KEY, TWILIO_API_SECRET, TWILIO_WHATSAPP_NUMBER). The system can now send WhatsApp notifications for appointment confirmations, booking reminders, custom notifications, and bulk messaging to clients. Integration uses Twilio's WhatsApp API with proper authentication through API keys.
 
 ## Recent Fixes
-- **November 28, 2025 (Latest):** Improved sidebar navigation menu for better clarity and usability:
+- **November 28, 2025 (Latest):** Converted Staff Management table to Bootstrap DataTables with modern, professional styling:
+  - Integrated jQuery DataTables library with Bootstrap 5 styling for enhanced table functionality (built-in search, pagination, sorting)
+  - Updated top action buttons with new color theme: Add New Staff (Green #28a745), Export Data (Orange #fd7e14), Refresh (Blue #0d6efd)
+  - Converted 4 colored stats cards to 3 white cards with colored left borders (Blue for Total Staff, Green for Active Staff, Orange for Departments)
+  - Removed custom filter controls in favor of DataTables native search functionality
+  - Updated table row action buttons with color-coded styling (Edit: Blue, View: Green, Delete: Red)
+  - Applied clean, professional CSS theme with neutral row striping, eliminating all yellow colors
+  - Hidden legacy filter elements for backward compatibility with any existing scripts
+- **November 28, 2025:** Improved sidebar navigation menu for better clarity and usability:
   - Reorganized menu items into logical grouped sections: Appointments, Clients, Staff, Billing, Services, Inventory, Reports, and Administration
   - Added clear section headers with subtle dividers for visual hierarchy
   - Shortened menu labels for better scannability (e.g., "Staff Management" → "Staff Directory", "Appointment Booking" → "Book Appointment")
