@@ -174,6 +174,115 @@
     color: #fff;
 }
 
+/* DataTables - Dark, Visible Styling */
+.dataTables_wrapper {
+    padding: 15px 0;
+}
+
+/* Pagination - Dark and Visible */
+.dataTables_wrapper .dataTables_paginate .paginate_button {
+    background: #2f4858 !important;
+    color: #fff !important;
+    border: 1px solid #203341 !important;
+    border-radius: 6px !important;
+    min-width: 38px;
+    padding: 8px 14px !important;
+    margin: 0 3px !important;
+    font-weight: 500;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+    transition: all 0.2s ease;
+}
+.dataTables_wrapper .dataTables_paginate .paginate_button:hover {
+    background: #3a6f8f !important;
+    border-color: #335f78 !important;
+    color: #fff !important;
+    box-shadow: 0 3px 8px rgba(0,0,0,0.2);
+}
+.dataTables_wrapper .dataTables_paginate .paginate_button.current,
+.dataTables_wrapper .dataTables_paginate .paginate_button.current:hover {
+    background: #0d6efd !important;
+    border-color: #0b5ed7 !important;
+    color: #fff !important;
+    box-shadow: 0 3px 10px rgba(13,110,253,0.4);
+    font-weight: 600;
+}
+.dataTables_wrapper .dataTables_paginate .paginate_button.disabled,
+.dataTables_wrapper .dataTables_paginate .paginate_button.disabled:hover {
+    background: #9aa7b3 !important;
+    color: #eef2f6 !important;
+    border-color: #8a9aa8 !important;
+    opacity: 0.65;
+    cursor: not-allowed;
+    box-shadow: none;
+}
+.dataTables_wrapper .dataTables_paginate .paginate_button:focus {
+    outline: 2px solid rgba(13,110,253,0.5);
+    outline-offset: 2px;
+}
+
+/* Search Box - Darker Border */
+.dataTables_wrapper .dataTables_filter input {
+    border: 2px solid #2f4858 !important;
+    border-radius: 6px;
+    padding: 8px 14px;
+    background: #f9fbfc;
+    color: #333;
+    font-size: 0.95rem;
+    transition: all 0.2s ease;
+}
+.dataTables_wrapper .dataTables_filter input:focus {
+    border-color: #0d6efd !important;
+    box-shadow: 0 0 0 3px rgba(13,110,253,0.2);
+    outline: none;
+    background: #fff;
+}
+.dataTables_wrapper .dataTables_filter label {
+    color: #2f3b47;
+    font-weight: 500;
+    font-size: 0.95rem;
+}
+
+/* Length Selector - Darker Styling */
+.dataTables_wrapper .dataTables_length select {
+    border: 2px solid #2f4858 !important;
+    border-radius: 6px;
+    padding: 8px 30px 8px 14px;
+    background: #f9fbfc;
+    color: #333;
+    font-weight: 500;
+    cursor: pointer;
+}
+.dataTables_wrapper .dataTables_length select:focus {
+    border-color: #0d6efd !important;
+    box-shadow: 0 0 0 3px rgba(13,110,253,0.2);
+    outline: none;
+}
+.dataTables_wrapper .dataTables_length label {
+    color: #2f3b47;
+    font-weight: 500;
+    font-size: 0.95rem;
+}
+
+/* Info Text - Prominent Chip Style */
+.dataTables_wrapper .dataTables_info {
+    background: #e8eef3;
+    padding: 10px 16px;
+    border-radius: 8px;
+    color: #2f4858;
+    font-weight: 500;
+    font-size: 0.95rem;
+    border: 1px solid #d0dae3;
+}
+
+/* Processing Indicator */
+.dataTables_wrapper .dataTables_processing {
+    background: rgba(47, 72, 88, 0.95);
+    color: #fff;
+    border-radius: 8px;
+    padding: 15px 25px;
+    font-weight: 500;
+}
+
 /* DataTables Customization */
 .dataTables_wrapper .dataTables_length,
 .dataTables_wrapper .dataTables_filter,
