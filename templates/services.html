@@ -591,7 +591,7 @@ function updateCategoryFilter() {
         const nameB = (b.display_name || b.name || '').toLowerCase();
         return nameA.localeCompare(nameB);
     });
-    
+
     sortedCategories.forEach(category => {
         const option = document.createElement('option');
         option.value = category.id;
@@ -697,18 +697,20 @@ function filterServices() {
         console.log("Filtering services...");
         const searchTerm = document
             .getElementById("serviceSearch")
-            .value.toLowerCase();
+            .value.toLowerCase().trim();
         const categoryFilter = document.getElementById("categoryFilter").value;
         const statusFilter = document.getElementById("statusFilter").value;
 
-        let filtered = allServices.filter((service) => {
+        const filtered = allServices.filter((service) => {
             const matchesSearch =
                 !searchTerm ||
                 service.name.toLowerCase().includes(searchTerm) ||
                 (service.service_code &&
                     service.service_code.toLowerCase().includes(searchTerm)) ||
                 (service.description &&
-                    service.description.toLowerCase().includes(searchTerm));
+                    service.description.toLowerCase().includes(searchTerm)) ||
+                (service.category_name &&
+                    service.category_name.toLowerCase().includes(searchTerm));
 
             const matchesCategory =
                 !categoryFilter ||
@@ -725,6 +727,25 @@ function filterServices() {
         console.log(`Filtered ${filtered.length} services from ${allServices.length} total`);
         filteredServices = filtered;
         renderServicesTable();
+
+        // Update search results count
+        updateSearchResultsCount(filtered.length, searchTerm);
+    }
+
+    function updateSearchResultsCount(count, searchTerm) {
+        const statsElement = document.getElementById('serviceStats');
+        if (statsElement) {
+            if (searchTerm) {
+                statsElement.innerHTML = `<i class="fas fa-search me-1"></i>Found ${count} service${count !== 1 ? 's' : ''} matching "${searchTerm}"`;
+                statsElement.style.color = count > 0 ? '#28a745' : '#dc3545';
+            } else if (count < allServices.length) {
+                statsElement.innerHTML = `Showing ${count} of ${allServices.length} services`;
+                statsElement.style.color = '#6c757d';
+            } else {
+                statsElement.innerHTML = `${count} Total Services`;
+                statsElement.style.color = '#6c757d';
+            }
+        }
     }
 
     function clearServiceFilters() {
@@ -758,6 +779,16 @@ async function loadServicesData() {
             if (data.success) {
                 allServices = data.services || [];
                 allCategories = data.categories || [];
+
+                // Enrich services with category names for easier searching
+                allServices = allServices.map(service => {
+                    const category = allCategories.find(cat => cat.id === service.category_id);
+                    return {
+                        ...service,
+                        category_name: category ? category.display_name : 'Uncategorized'
+                    };
+                });
+
                 filteredServices = [...allServices];
 
                 console.log(`Loaded ${allServices.length} services and ${allCategories.length} categories`);
