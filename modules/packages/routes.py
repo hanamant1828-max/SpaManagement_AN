@@ -675,14 +675,21 @@ def api_get_services():
 
         result = []
         for service in services:
-            result.append({
+            service_data = {
                 'id': service.id,
                 'name': service.name,
-                'price': float(service.price) if service.price else 0.0,
-                'duration': service.duration if hasattr(service, 'duration') else 60
-            })
+                'price': float(service.price) if service.price else 0.0
+            }
+            
+            # Safely get duration attribute
+            if hasattr(service, 'duration'):
+                service_data['duration'] = service.duration
+            else:
+                service_data['duration'] = 60
+                
+            result.append(service_data)
 
-        return jsonify({'success': True, 'services': result}), 200
+        return jsonify({'success': True, 'services': result})
 
     except Exception as e:
         logging.error(f"Error getting services: {e}")

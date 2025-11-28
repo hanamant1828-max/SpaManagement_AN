@@ -473,7 +473,6 @@ function loadServicesForEditKittyParty(selectedServices) {
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
-            // Check if response is JSON
             const contentType = response.headers.get("content-type");
             if (!contentType || !contentType.includes("application/json")) {
                 throw new TypeError("Response is not JSON");
@@ -482,6 +481,9 @@ function loadServicesForEditKittyParty(selectedServices) {
         })
         .then(data => {
             console.log('Services API response data:', data);
+            
+            // Handle both response formats
+            const services = data.success ? data.services : (Array.isArray(data) ? data : []);
 
             const container = document.getElementById('editKittyPartyServices');
             if (!container) {
@@ -775,14 +777,19 @@ function loadServicesForKittyParty() {
     console.log('Loading services for Kitty Party...');
     servicesContainer.innerHTML = '<div class="text-center text-muted py-3"><i class="fas fa-spinner fa-spin me-2"></i>Loading services...</div>';
 
-    fetch('/api/services')
+    fetch('/packages/api/services')
         .then(response => {
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
+            const contentType = response.headers.get("content-type");
+            if (!contentType || !contentType.includes("application/json")) {
+                throw new TypeError("Response is not JSON");
+            }
             return response.json();
         })
-        .then(services => {
+        .then(data => {
+            const services = data.success ? data.services : [];
             console.log(`Loaded ${services.length} services for Kitty Party`);
 
             if (services && services.length > 0) {

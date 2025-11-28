@@ -136,7 +136,7 @@ function initializeDataTables() {
             setTimeout(initializeDataTables, 300);
             return;
         }
-        
+
         // Additional check for DOM readiness
         if (document.readyState !== 'complete') {
             console.warn("DOM not fully loaded, retrying...");
@@ -526,7 +526,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                             <th>Actions</th>
                                         </tr>
                                     </thead>
-                                    <tbody id="tblStudentOffers">
+                                    <tbody id="studentOffersTableBody">
                                         {% for offer in student_offers %}
                                         <tr>
                                             <td><strong>{{ offer.name or 'Student Offer' }}</strong></td>
@@ -1750,6 +1750,13 @@ function loadServicesForMembership() {
     fetch('/packages/api/services')
         .then(response => {
             console.log('Services API response status:', response.status);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            const contentType = response.headers.get("content-type");
+            if (!contentType || !contentType.includes("application/json")) {
+                throw new TypeError("Response is not JSON");
+            }
             return response.json();
         })
         .then(data => {
@@ -3324,4 +3331,3 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 </script>
-{% endblock %}
