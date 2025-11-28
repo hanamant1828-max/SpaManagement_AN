@@ -145,8 +145,8 @@ function initializeDataTables() {
         }
 
         // Prepaid Packages Table
-        if ($('#prepaidTableBody').length && !$.fn.DataTable.isDataTable('#prepaidTableBody')) {
-            prepaidDataTable = $('#prepaidTableBody').DataTable({
+        if ($('#tblPrepaidPackages').length && !$.fn.DataTable.isDataTable('#tblPrepaidPackages')) {
+            prepaidDataTable = $('#tblPrepaidPackages').DataTable({
                 pageLength: 10,
                 lengthMenu: [[10, 25, 50, -1], [10, 25, 50, "All"]],
                 order: [[0, 'asc']],
@@ -164,8 +164,8 @@ function initializeDataTables() {
         }
 
         // Service Packages Table
-        if ($('#serviceTableBody').length && !$.fn.DataTable.isDataTable('#serviceTableBody')) {
-            servicePackageDataTable = $('#serviceTableBody').DataTable({
+        if ($('#tblServicePackages').length && !$.fn.DataTable.isDataTable('#tblServicePackages')) {
+            servicePackageDataTable = $('#tblServicePackages').DataTable({
                 pageLength: 10,
                 lengthMenu: [[10, 25, 50, -1], [10, 25, 50, "All"]],
                 order: [[0, 'asc']],
@@ -183,8 +183,8 @@ function initializeDataTables() {
         }
 
         // Memberships Table
-        if ($('#membershipTableBody').length && !$.fn.DataTable.isDataTable('#membershipTableBody')) {
-            membershipDataTable = $('#membershipTableBody').DataTable({
+        if ($('#tblMemberships').length && !$.fn.DataTable.isDataTable('#tblMemberships')) {
+            membershipDataTable = $('#tblMemberships').DataTable({
                 pageLength: 10,
                 lengthMenu: [[10, 25, 50, -1], [10, 25, 50, "All"]],
                 order: [[0, 'asc']],
@@ -221,8 +221,8 @@ function initializeDataTables() {
         }
 
         // Kitty Party Packages Table
-        if ($('#kittyTableBody').length && !$.fn.DataTable.isDataTable('#kittyTableBody')) {
-            kittyPartyDataTable = $('#kittyTableBody').DataTable({
+        if ($('#tblKittyPackages').length && !$.fn.DataTable.isDataTable('#tblKittyPackages')) {
+            kittyPartyDataTable = $('#tblKittyPackages').DataTable({
                 pageLength: 10,
                 lengthMenu: [[10, 25, 50, -1], [10, 25, 50, "All"]],
                 order: [[0, 'asc']],
@@ -240,8 +240,8 @@ function initializeDataTables() {
         }
 
         // Yearly Memberships Table
-        if ($('#yearlyTableBody').length && !$.fn.DataTable.isDataTable('#yearlyTableBody')) {
-            yearlyDataTable = $('#yearlyTableBody').DataTable({
+        if ($('#tblYearlyMemberships').length && !$.fn.DataTable.isDataTable('#tblYearlyMemberships')) {
+            yearlyDataTable = $('#tblYearlyMemberships').DataTable({
                 pageLength: 10,
                 lengthMenu: [[10, 25, 50, -1], [10, 25, 50, "All"]],
                 order: [[0, 'asc']],
