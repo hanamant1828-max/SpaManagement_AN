@@ -6,6 +6,12 @@
 
 {% block extra_css %}
 <link href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css" rel="stylesheet" />
+{% endblock %}
+
+{% block extra_js %}
+<!-- DataTables JavaScript - Must load before our custom scripts -->
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
 <style>
 /* Stats Cards - Same as Staff Management */
 .stats-card {
@@ -829,25 +835,34 @@ function renderServicesTable() {
         tbody.appendChild(row);
     });
 
-    // Initialize or refresh DataTable
-    if (servicesDataTable) {
-        servicesDataTable.destroy();
-    }
-
-    servicesDataTable = $('#servicesTable').DataTable({
-        pageLength: 10,
-        lengthMenu: [[10, 25, 50, -1], [10, 25, 50, "All"]],
-        order: [[0, 'asc']],
-        language: {
-            search: "Search services:",
-            lengthMenu: "Show _MENU_ services per page",
-            info: "Showing _START_ to _END_ of _TOTAL_ services",
-            infoEmpty: "No services available",
-            infoFiltered: "(filtered from _MAX_ total services)"
+    // Initialize or refresh DataTable with error handling
+    try {
+        if (typeof $.fn.DataTable === 'undefined') {
+            console.error("DataTables library not loaded");
+            return;
         }
-    });
+        
+        if (servicesDataTable) {
+            servicesDataTable.destroy();
+        }
 
-    console.log("✅ DataTables initialized successfully");
+        servicesDataTable = $('#servicesTable').DataTable({
+            pageLength: 10,
+            lengthMenu: [[10, 25, 50, -1], [10, 25, 50, "All"]],
+            order: [[0, 'asc']],
+            language: {
+                search: "Search services:",
+                lengthMenu: "Show _MENU_ services per page",
+                info: "Showing _START_ to _END_ of _TOTAL_ services",
+                infoEmpty: "No services available",
+                infoFiltered: "(filtered from _MAX_ total services)"
+            }
+        });
+
+        console.log("✅ DataTables initialized successfully");
+    } catch (error) {
+        console.error("Error initializing DataTables:", error);
+    }
 }
 
 
@@ -1080,8 +1095,15 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Initial data load when the page is ready
-    loadServicesData();
+    // Initial data load when the page is ready - delay to ensure DataTables library loads
+    setTimeout(function() {
+        if (typeof $.fn.DataTable !== 'undefined') {
+            loadServicesData();
+        } else {
+            console.error("DataTables not available, retrying...");
+            setTimeout(loadServicesData, 500);
+        }
+    }, 100);
 });
 
 // Toggle service active status
@@ -1247,5 +1269,4 @@ function deleteCategory(categoryId) {
     }
 }
 </script>
-
 {% endblock %}
