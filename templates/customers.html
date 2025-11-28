@@ -1063,7 +1063,8 @@
                                                 <span class="badge bg-success">
                                                     <i class="fas fa-check-circle me-1" aria-hidden="true"></i>Registered
                                                 </span>
-                                                <button class="btn btn-sm btn-danger ms-2"
+                                                <button type="button"
+                                                        class="btn btn-danger btn-sm ms-2"
                                                         onclick="deleteFaceImage({{ customer.id }}, '{{ (customer.first_name ~ ' ' ~ customer.last_name)|replace("'", "\\'") }}')"
                                                         aria-label="Delete face image for {{ customer.full_name }}"
                                                         title="Delete Face Image">
@@ -1097,7 +1098,8 @@
                                                 </button>
                                                 {% endif %}
                                                 {% if current_user.has_permission('clients_delete') %}
-                                                <button class="btn btn-action-delete btn-sm"
+                                                <button type="button"
+                                                        class="btn btn-danger btn-sm"
                                                         onclick="deleteCustomer({{ customer.id }}, '{{ (customer.first_name ~ ' ' ~ customer.last_name)|replace("'", "\\'") }}')"
                                                         aria-label="Delete {{ customer.full_name }}"
                                                         title="Delete Customer">
