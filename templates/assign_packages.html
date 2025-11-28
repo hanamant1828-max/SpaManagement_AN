@@ -6,6 +6,8 @@
 {% endblock %}
 
 {% block extra_js %}
+<!-- Ensure jQuery is loaded first (should be in base.html) -->
+<script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
 <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
 {% endblock %}
@@ -690,23 +692,40 @@ document.addEventListener('shown.bs.tab', (e)=>{
 
 function initAssignedDataTable() {
     if (apDataTable) return;
-    apDataTable = $('#apTable').DataTable({
-        pageLength: 10,
-        lengthMenu: [[10, 25, 50, -1], [10, 25, 50, "All"]],
-        order: [[3, 'asc']],
-        language: {
-            search: "Search customer / phone / package:",
-            lengthMenu: "Show _MENU_ packages per page",
-            info: "Showing _START_ to _END_ of _TOTAL_ assigned packages",
-            infoEmpty: "No assigned packages available",
-            infoFiltered: "(filtered from _MAX_ total packages)",
-            zeroRecords: "No matching packages found"
-        },
-        columnDefs: [
-            { orderable: false, targets: -1 }
-        ],
-        dom: '<"row"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6"f>>rtip'
-    });
+    
+    const tableElement = document.getElementById('apTable');
+    if (!tableElement) {
+        console.warn('Table element #apTable not found, skipping DataTable initialization');
+        return;
+    }
+    
+    // Use jQuery if available, otherwise skip
+    if (typeof jQuery === 'undefined' || typeof jQuery.fn.DataTable === 'undefined') {
+        console.warn('jQuery DataTables not loaded, skipping initialization');
+        return;
+    }
+    
+    try {
+        apDataTable = $('#apTable').DataTable({
+            pageLength: 10,
+            lengthMenu: [[10, 25, 50, -1], [10, 25, 50, "All"]],
+            order: [[3, 'asc']],
+            language: {
+                search: "Search customer / phone / package:",
+                lengthMenu: "Show _MENU_ packages per page",
+                info: "Showing _START_ to _END_ of _TOTAL_ assigned packages",
+                infoEmpty: "No assigned packages available",
+                infoFiltered: "(filtered from _MAX_ total packages)",
+                zeroRecords: "No matching packages found"
+            },
+            columnDefs: [
+                { orderable: false, targets: -1 }
+            ],
+            dom: '<"row"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6"f>>rtip'
+        });
+    } catch (error) {
+        console.error('Error initializing DataTable:', error);
+    }
 }
 
 function hookAssignedUI(){
