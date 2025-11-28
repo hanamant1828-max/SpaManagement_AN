@@ -1,6 +1,15 @@
 {% extends 'base.html' %}
 {% block title %}Assign Package with Payment{% endblock %}
 
+{% block extra_css %}
+<link href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css" rel="stylesheet" />
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+{% endblock %}
+
 {% block content %}
 <div class="container-fluid">
     <ul class="nav nav-tabs mb-3" id="assignTabs" role="tablist">
@@ -177,13 +186,7 @@
         <div class="tab-pane fade" id="tab-assigned" role="tabpanel">
             <div class="card">
                 <div class="card-header">
-                    <div class="d-flex flex-wrap align-items-center justify-content-between">
-                        <h5 class="mb-2 mb-md-0"><i class="fas fa-clipboard-list me-2"></i>Assigned Packages</h5>
-                        <div class="input-group" style="max-width:360px;">
-                            <span class="input-group-text"><i class="fas fa-search"></i></span>
-                            <input id="apSearch" class="form-control" placeholder="Search customer / phone / package">
-                        </div>
-                    </div>
+                    <h5 class="mb-0"><i class="fas fa-clipboard-list me-2"></i>Assigned Packages</h5>
                 </div>
                 <div class="card-body">
                     <ul class="nav nav-tabs mb-3" id="packageTypeTabs" role="tablist">
@@ -253,10 +256,6 @@
                         </table>
                     </div>
 
-                    <div class="d-flex justify-content-between align-items-center mt-3">
-                        <div id="apInfo" class="small text-muted"></div>
-                        <nav><ul class="pagination pagination-sm mb-0" id="apPager"></ul></nav>
-                    </div>
                 </div>
             </div>
         </div>
@@ -672,28 +671,49 @@ function generateUUID() {
     });
 }
 
-const S = { loaded:false, page:1, per:20, q:'', status:'', expiring:'', packageType:'', sort:'expires_on:asc' };
+const S = { loaded:false, status:'', expiring:'', packageType:'' };
+let apDataTable = null;
 
 const $ = (id) => document.getElementById(id);
 const fmtMoney = n => '₹' + (n||0).toLocaleString(undefined,{maximumFractionDigits:0});
 const fmtDate = s => { if(!s) return '—'; const d=new Date(s); const day = String(d.getDate()).padStart(2, '0'); const month = String(d.getMonth() + 1).padStart(2, '0'); const year = d.getFullYear(); const hours = d.getHours(); const minutes = String(d.getMinutes()).padStart(2, '0'); const ampm = hours >= 12 ? 'PM' : 'AM'; const hour12 = hours % 12 || 12; return `${day}-${month}-${year} ${hour12}:${minutes} ${ampm}`; };
 const badge = (t,c) => `<span class="badge ${c}">${t}</span>`;
-const debounce = (fn,ms)=>{ let t; return (...a)=>{ clearTimeout(t); t=setTimeout(()=>fn(...a),ms);} };
 
 document.addEventListener('shown.bs.tab', (e)=>{
     if(e.target.id === 'tab-assigned-tab' && !S.loaded){
         S.loaded = true;
+        initAssignedDataTable();
         hookAssignedUI();
         fetchAssignments();
     }
 });
+
+function initAssignedDataTable() {
+    if (apDataTable) return;
+    apDataTable = $('#apTable').DataTable({
+        pageLength: 10,
+        lengthMenu: [[10, 25, 50, -1], [10, 25, 50, "All"]],
+        order: [[3, 'asc']],
+        language: {
+            search: "Search customer / phone / package:",
+            lengthMenu: "Show _MENU_ packages per page",
+            info: "Showing _START_ to _END_ of _TOTAL_ assigned packages",
+            infoEmpty: "No assigned packages available",
+            infoFiltered: "(filtered from _MAX_ total packages)",
+            zeroRecords: "No matching packages found"
+        },
+        columnDefs: [
+            { orderable: false, targets: -1 }
+        ],
+        dom: '<"row"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6"f>>rtip'
+    });
+}
 
 function hookAssignedUI(){
     document.querySelectorAll('#packageTypeTabs .nav-link').forEach(btn=>{
         btn.addEventListener('click', ()=>{
             document.querySelectorAll('#packageTypeTabs .nav-link').forEach(b=>b.classList.remove('active'));
             btn.classList.add('active');
-            S.page=1;
             S.packageType = btn.getAttribute('data-package-type')||'';
             fetchAssignments();
         });
@@ -703,37 +723,32 @@ function hookAssignedUI(){
         btn.addEventListener('click', ()=>{
             document.querySelectorAll('#statusPills .nav-link').forEach(b=>b.classList.remove('active'));
             btn.classList.add('active');
-            S.page=1; S.expiring=''; S.status='';
+            S.expiring=''; S.status='';
             const st = btn.getAttribute('data-status')||'';
             const ex = btn.getAttribute('data-expiring')||'';
             if(st==='expiring') { S.expiring = ex||'30'; } else { S.status = st; }
             fetchAssignments();
         });
     });
-    $('apSearch').addEventListener('input', debounce(()=>{
-        S.q = $('apSearch').value.trim(); S.page=1; fetchAssignments();
-    }, 350));
 }
 
 function fetchAssignments(){
     const p = new URLSearchParams({
-        q: S.q, status: (S.status==='expiring'?'':S.status), expiring_in: S.expiring,
-        package_type: S.packageType, page: S.page, per_page: S.per, sort: S.sort
+        q: '', status: (S.status==='expiring'?'':S.status), expiring_in: S.expiring,
+        package_type: S.packageType, page: 1, per_page: 1000, sort: 'expires_on:asc'
     }).toString();
     fetch(`/packages/api/assignments?${p}`)
         .then(r=>r.json())
         .then(j=>{
             if(!j.success){ alert(j.error||'Failed to load assignments'); return; }
-            renderRows(j.items||[]);
-            renderPager(j.page, j.per_page, j.total);
+            renderDataTableRows(j.items||[]);
         })
         .catch(()=>alert('Error loading assignments'));
 }
 
-function renderRows(items){
-    const tb = document.querySelector('#apTable tbody');
-    tb.innerHTML = '';
-    if(!items.length){ tb.innerHTML = `<tr><td colspan="9" class="text-center text-muted py-4">No assignments</td></tr>`; return; }
+function renderDataTableRows(items){
+    if (!apDataTable) return;
+    apDataTable.clear();
 
     items.forEach(x=>{
         const statusCls = {
@@ -768,45 +783,27 @@ function renderRows(items){
 
         const savings = (x.savings_to_date && x.savings_to_date>0) ? `<div class="small text-success">Saved ${fmtMoney(x.savings_to_date)}</div>` : '';
 
-        tb.insertAdjacentHTML('beforeend', `
-            <tr>
-                <td><strong>${x.customer.name}</strong><br><small class="text-muted">${x.customer.phone||''}</small></td>
-                <td>
-                    ${x.package.name} <span class="badge bg-light text-dark ms-1">${x.package.type}</span>
-                    ${x.package.service_name ? `<div class="small text-muted">Service: ${x.package.service_name}</div>`:''}
-                </td>
-                <td>${fmtDate(x.assigned_on)}</td>
-                <td>${x.expires_on||'—'}<br>${expChip}</td>
-                <td>${badge(x.status, statusCls)}</td>
-                <td>${balanceHtml}</td>
-                <td>${fmtMoney(x.price_paid||0)}${savings}</td>
-                <td>${fmtDate(x.last_used_at)||'—'}</td>
-                <td>
-                    <div class="btn-group btn-group-sm">
-                        <button class="btn btn-outline-primary" title="Usage" onclick="AP_openUsage(${x.id})"><i class="fas fa-history"></i></button>
-                        ${x.receipt_id ? `<a class="btn btn-outline-secondary" title="Receipt" href="/receipts/${x.receipt_id}" target="_blank">
-                            <i class="fas fa-file-invoice"></i>
-                        </a>` : '<button class="btn btn-outline-secondary" disabled title="No receipt"><i class="fas fa-file-invoice"></i></button>'}
-                    </div>
-                </td>
-            </tr>
-        `);
+        apDataTable.row.add([
+            `<strong>${x.customer.name}</strong><br><small class="text-muted">${x.customer.phone||''}</small>`,
+            `${x.package.name} <span class="badge bg-light text-dark ms-1">${x.package.type}</span>
+                ${x.package.service_name ? `<div class="small text-muted">Service: ${x.package.service_name}</div>`:''}`,
+            fmtDate(x.assigned_on),
+            `${x.expires_on||'—'}<br>${expChip}`,
+            badge(x.status, statusCls),
+            balanceHtml,
+            `${fmtMoney(x.price_paid||0)}${savings}`,
+            fmtDate(x.last_used_at)||'—',
+            `<div class="btn-group btn-group-sm">
+                <button class="btn btn-outline-primary" title="Usage" onclick="AP_openUsage(${x.id})"><i class="fas fa-history"></i></button>
+                ${x.receipt_id ? `<a class="btn btn-outline-secondary" title="Receipt" href="/receipts/${x.receipt_id}" target="_blank">
+                    <i class="fas fa-file-invoice"></i>
+                </a>` : '<button class="btn btn-outline-secondary" disabled title="No receipt"><i class="fas fa-file-invoice"></i></button>'}
+            </div>`
+        ]);
     });
-}
 
-function renderPager(page, per, total){
-    const pg = $('apPager'); const info = $('apInfo');
-    info.textContent = total ? `Showing ${(page-1)*per+1}–${Math.min(page*per,total)} of ${total}` : 'No results';
-    pg.innerHTML = '';
-    const pages = Math.max(1, Math.ceil(total/per));
-    const mk = (p,txt,dis=false,act=false)=>`<li class="page-item ${dis?'disabled':''} ${act?'active':''}">
-        <a class="page-link" href="#" onclick="AP_goto(${p});return false;">${txt}</a></li>`;
-    pg.insertAdjacentHTML('beforeend', mk(Math.max(1,page-1),'«', page<=1));
-    for(let i=Math.max(1,page-2); i<=Math.min(pages,page+2); i++) pg.insertAdjacentHTML('beforeend', mk(i, i, false, i===page));
-    pg.insertAdjacentHTML('beforeend', mk(Math.min(pages,page+1),'»', page>=pages));
+    apDataTable.draw();
 }
-
-window.AP_goto = (p)=>{ S.page=p; fetchAssignments(); };
 window.AP_openUsage = (assignmentId)=>{
     fetch(`/packages/api/assignments/${assignmentId}/usage`)
         .then(r=>r.json()).then(j=>{
