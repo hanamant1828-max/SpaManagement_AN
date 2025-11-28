@@ -1,0 +1,46 @@
+Convert my Staff Management table to use Bootstrap DataTables with the following requirements:
+
+1. ADD DataTables library:
+   - jQuery (required for DataTables)
+   - DataTables CSS: https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css
+   - DataTables JS: https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js
+   - DataTables Bootstrap JS: https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js
+
+2. REMOVE current custom search box, department filter, status filter, and clear button section
+
+3. INITIALIZE DataTables on the staff table with:
+   - pageLength: 10 (default entries per page)
+   - lengthMenu: [10, 25, 50, 100]
+   - searching: true (enables search box)
+   - ordering: true (sortable columns)
+   - info: true (shows "Showing 1 to 10 of 43 entries")
+   - pagination: true
+
+4. APPLY THIS COLOR THEME using CSS:
+   - Stats cards: WHITE background with 4px colored LEFT BORDER
+     * Total Staff: Blue (#4A90E2) border
+     * Active Staff: Green (#7CB342) border
+     * Departments: Orange (#FDB45C) border
+   - Table: White background, light gray (#F5F5F5) alternating rows
+   - Action buttons in table rows:
+     * Blue (#4A90E2) - edit button
+     * Green (#7CB342) - view button  
+     * Red (#E57373) - delete button
+   - Top buttons:
+     * "Add New Staff": Green (#7CB342)
+     * "Export Data": Orange (#FDB45C)
+     * "Refresh": Blue (#4A90E2)
+
+5. TABLE STRUCTURE:
+   - Keep columns: Staff Info | Department & Designation | Contact | Actions
+   - Action buttons: 3 icon buttons (edit, view, delete) with colors above
+   - Add Bootstrap classes for clean styling
+
+6. STYLING:
+   - Remove all yellow colors
+   - Use clean borders (#E0E0E0)
+   - Text: Dark gray (#333333) primary, medium gray (#757575) secondary
+   - Add hover effects on table rows (light gray background)
+   - Round corners on buttons (border-radius: 6px)
+
+Make it look like a professional Bootstrap admin dashboard with standard DataTables functionality - clean, minimal, and easy to use.

@@ -7,12 +7,227 @@
 {% block extra_css %}
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 <link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
+<link href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css" rel="stylesheet" />
 <style>
 .select2-container {
     width: 100% !important;
 }
 .select2-container--bootstrap-5 .select2-selection {
     min-height: 38px;
+}
+
+/* Stats Cards - White background with colored left border */
+.stats-card {
+    background: #ffffff;
+    border: 1px solid #E0E0E0;
+    border-radius: 8px;
+    border-left: 4px solid;
+    transition: box-shadow 0.2s ease;
+}
+.stats-card:hover {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+.stats-card.total-staff {
+    border-left-color: #4A90E2;
+}
+.stats-card.active-staff {
+    border-left-color: #7CB342;
+}
+.stats-card.departments {
+    border-left-color: #FDB45C;
+}
+.stats-card .card-body {
+    padding: 1.25rem;
+}
+.stats-card .card-title {
+    color: #757575;
+    font-size: 0.875rem;
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+}
+.stats-card .stats-value {
+    color: #333333;
+    font-size: 1.75rem;
+    font-weight: 600;
+}
+.stats-card .stats-icon {
+    color: #757575;
+    opacity: 0.7;
+}
+
+/* Top Action Buttons */
+.btn-add-staff {
+    background-color: #7CB342;
+    border-color: #7CB342;
+    color: #fff;
+    border-radius: 6px;
+    font-weight: 500;
+}
+.btn-add-staff:hover {
+    background-color: #689F38;
+    border-color: #689F38;
+    color: #fff;
+}
+.btn-export {
+    background-color: #FDB45C;
+    border-color: #FDB45C;
+    color: #333;
+    border-radius: 6px;
+    font-weight: 500;
+}
+.btn-export:hover {
+    background-color: #F5A623;
+    border-color: #F5A623;
+    color: #333;
+}
+.btn-refresh {
+    background-color: #4A90E2;
+    border-color: #4A90E2;
+    color: #fff;
+    border-radius: 6px;
+    font-weight: 500;
+}
+.btn-refresh:hover {
+    background-color: #357ABD;
+    border-color: #357ABD;
+    color: #fff;
+}
+
+/* Table Styling */
+.staff-table-card {
+    background: #ffffff;
+    border: 1px solid #E0E0E0;
+    border-radius: 8px;
+    overflow: hidden;
+}
+.staff-table-card .card-header {
+    background: #ffffff;
+    border-bottom: 1px solid #E0E0E0;
+    padding: 1rem 1.25rem;
+}
+.staff-table-card .card-header h5 {
+    color: #333333;
+    font-weight: 600;
+    margin: 0;
+}
+
+#staffTable {
+    color: #333333;
+}
+#staffTable thead th {
+    background: #ffffff;
+    color: #333333;
+    font-weight: 600;
+    border-bottom: 2px solid #E0E0E0;
+    padding: 12px 15px;
+}
+#staffTable tbody tr {
+    background: #ffffff;
+}
+#staffTable tbody tr:nth-child(even) {
+    background: #F5F5F5;
+}
+#staffTable tbody tr:hover {
+    background: #EEEEEE;
+}
+#staffTable tbody td {
+    padding: 12px 15px;
+    vertical-align: middle;
+    border-bottom: 1px solid #E0E0E0;
+}
+
+/* Action Buttons in Table */
+.btn-action-edit {
+    background-color: #4A90E2;
+    border-color: #4A90E2;
+    color: #fff;
+    border-radius: 6px;
+    padding: 0.375rem 0.625rem;
+}
+.btn-action-edit:hover {
+    background-color: #357ABD;
+    border-color: #357ABD;
+    color: #fff;
+}
+.btn-action-view {
+    background-color: #7CB342;
+    border-color: #7CB342;
+    color: #fff;
+    border-radius: 6px;
+    padding: 0.375rem 0.625rem;
+}
+.btn-action-view:hover {
+    background-color: #689F38;
+    border-color: #689F38;
+    color: #fff;
+}
+.btn-action-delete {
+    background-color: #E57373;
+    border-color: #E57373;
+    color: #fff;
+    border-radius: 6px;
+    padding: 0.375rem 0.625rem;
+}
+.btn-action-delete:hover {
+    background-color: #EF5350;
+    border-color: #EF5350;
+    color: #fff;
+}
+
+/* DataTables Customization */
+.dataTables_wrapper .dataTables_length,
+.dataTables_wrapper .dataTables_filter,
+.dataTables_wrapper .dataTables_info,
+.dataTables_wrapper .dataTables_paginate {
+    color: #333333;
+    padding: 10px 0;
+}
+.dataTables_wrapper .dataTables_filter input {
+    border: 1px solid #E0E0E0;
+    border-radius: 6px;
+    padding: 6px 12px;
+    margin-left: 8px;
+}
+.dataTables_wrapper .dataTables_length select {
+    border: 1px solid #E0E0E0;
+    border-radius: 6px;
+    padding: 6px 12px;
+}
+.dataTables_wrapper .dataTables_paginate .paginate_button {
+    border-radius: 6px !important;
+    margin: 0 2px;
+}
+.dataTables_wrapper .dataTables_paginate .paginate_button.current {
+    background: #4A90E2 !important;
+    border-color: #4A90E2 !important;
+    color: #fff !important;
+}
+.dataTables_wrapper .dataTables_paginate .paginate_button:hover {
+    background: #E0E0E0 !important;
+    border-color: #E0E0E0 !important;
+    color: #333333 !important;
+}
+
+/* Avatar styling */
+.avatar-circle {
+    width: 40px;
+    height: 40px;
+    background: #4A90E2;
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 14px;
+}
+
+/* Text colors */
+.text-primary-dark {
+    color: #333333;
+}
+.text-secondary-gray {
+    color: #757575;
 }
 </style>
 {% endblock %}
@@ -26,10 +241,10 @@
                 <h1 class="h3 mb-0">
                     <i class="fas fa-users-cog me-2"></i>Staff Management
                 </h1>
-                <div class="btn-group">
+                <div class="btn-group gap-2">
                     <button
                         type="button"
-                        class="btn btn-primary"
+                        class="btn btn-add-staff"
                         data-bs-toggle="modal"
                         data-bs-target="#staffModal"
                         onclick="showAddModal()"
@@ -38,14 +253,14 @@
                     </button>
                     <button
                         type="button"
-                        class="btn btn-success"
+                        class="btn btn-export"
                         onclick="exportStaffData()"
                     >
                         <i class="fas fa-download me-2"></i>Export Data
                     </button>
                     <button
                         type="button"
-                        class="btn btn-outline-secondary"
+                        class="btn btn-refresh"
                         onclick="refreshStaffData()"
                     >
                         <i class="fas fa-sync-alt me-2"></i>Refresh
@@ -57,115 +272,46 @@
 
     <!-- Stats Cards -->
     <div class="row mb-4">
-        <div class="col-md-3">
-            <div class="card bg-primary text-white">
+        <div class="col-md-4">
+            <div class="card stats-card total-staff">
                 <div class="card-body">
-                    <div class="d-flex justify-content-between">
+                    <div class="d-flex justify-content-between align-items-center">
                         <div>
-                            <h5 class="card-title">Total Staff</h5>
-                            <h3 class="mb-0" id="totalStaffCount">0</h3>
+                            <h6 class="card-title mb-1">Total Staff</h6>
+                            <h3 class="stats-value mb-0" id="totalStaffCount">0</h3>
                         </div>
-                        <div class="align-self-center">
+                        <div class="stats-icon">
                             <i class="fas fa-users fa-2x"></i>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
-            <div class="card bg-success text-white">
+        <div class="col-md-4">
+            <div class="card stats-card active-staff">
                 <div class="card-body">
-                    <div class="d-flex justify-content-between">
+                    <div class="d-flex justify-content-between align-items-center">
                         <div>
-                            <h5 class="card-title">Active Staff</h5>
-                            <h3 class="mb-0" id="activeStaffCount">0</h3>
+                            <h6 class="card-title mb-1">Active Staff</h6>
+                            <h3 class="stats-value mb-0" id="activeStaffCount">0</h3>
                         </div>
-                        <div class="align-self-center">
+                        <div class="stats-icon">
                             <i class="fas fa-user-check fa-2x"></i>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
-            <div class="card bg-info text-white">
+        <div class="col-md-4">
+            <div class="card stats-card departments">
                 <div class="card-body">
-                    <div class="d-flex justify-content-between">
+                    <div class="d-flex justify-content-between align-items-center">
                         <div>
-                            <h5 class="card-title">Departments</h5>
-                            <h3 class="mb-0" id="departmentCount">0</h3>
+                            <h6 class="card-title mb-1">Departments</h6>
+                            <h3 class="stats-value mb-0" id="departmentCount">0</h3>
                         </div>
-                        <div class="align-self-center">
+                        <div class="stats-icon">
                             <i class="fas fa-building fa-2x"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card bg-warning text-white">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between">
-                        <div>
-                            <h5 class="card-title">Total Staff</h5>
-                            <h3 class="mb-0" id="roleCount">0</h3>
-                        </div>
-                        <div class="align-self-center">
-                            <i class="fas fa-users fa-2x"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Search and Filters -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-body">
-                    <div class="row g-3">
-                        <div class="col-md-4">
-                            <label class="form-label">Search Staff</label>
-                            <input
-                                type="text"
-                                class="form-control"
-                                id="searchInput"
-                                placeholder="Search by name, email, code..."
-                                onkeyup="filterStaff()"
-                            />
-                        </div>
-                        <div class="col-md-3">
-                            <label class="form-label">Department</label>
-                            <select
-                                class="form-select"
-                                id="departmentFilter"
-                                onchange="filterStaff()"
-                            >
-                                <option value="">All Departments</option>
-                            </select>
-                        </div>
-                        <div class="col-md-2">
-                            <label class="form-label">Status</label>
-                            <select
-                                class="form-select"
-                                id="statusFilter"
-                                onchange="filterStaff()"
-                            >
-                                <option value="">All Status</option>
-                                <option value="active">Active</option>
-                                <option value="inactive">Inactive</option>
-                            </select>
-                        </div>
-                        <div class="col-md-2">
-                            <label class="form-label">&nbsp;</label>
-                            <button
-                                type="button"
-                                class="btn btn-outline-secondary d-block w-100"
-                                onclick="clearFilters()"
-                            >
-                                <i class="fas fa-times me-1"></i>Clear
-                            </button>
                         </div>
                     </div>
                 </div>
@@ -176,33 +322,32 @@
     <!-- Staff List -->
     <div class="row">
         <div class="col-12">
-            <div class="card">
+            <div class="card staff-table-card">
                 <div class="card-header">
-                    <h5 class="mb-0">Staff Members</h5>
+                    <h5 class="mb-0"><i class="fas fa-list me-2"></i>Staff Members</h5>
                 </div>
                 <div class="card-body">
                     <!-- Loading State -->
                     <div id="loadingState" class="text-center py-5">
-                        <div class="spinner-border text-primary" role="status">
+                        <div class="spinner-border" style="color: #4A90E2;" role="status">
                             <span class="visually-hidden">Loading...</span>
                         </div>
-                        <p class="mt-2">Loading staff data...</p>
+                        <p class="mt-2 text-secondary-gray">Loading staff data...</p>
                     </div>
 
-                    <!-- Staff Table -->
+                    <!-- Staff Table with DataTables -->
                     <div id="staffTableContainer" style="display: none">
                         <div class="table-responsive">
-                            <table class="table table-hover">
+                            <table id="staffTable" class="table table-hover w-100">
                                 <thead>
                                     <tr>
                                         <th>Staff Info</th>
                                         <th>Department & Designation</th>
                                         <th>Contact</th>
-                                        <th>Actions</th>
+                                        <th class="text-center">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody id="staffTableBody">
-                                    <!-- Staff rows will be populated by JavaScript -->
                                 </tbody>
                             </table>
                         </div>
@@ -214,14 +359,14 @@
                         class="text-center py-5"
                         style="display: none"
                     >
-                        <i class="fas fa-users fa-3x text-muted mb-3"></i>
-                        <h5 class="text-muted">No staff members found</h5>
-                        <p class="text-muted">
+                        <i class="fas fa-users fa-3x mb-3" style="color: #757575;"></i>
+                        <h5 class="text-primary-dark">No staff members found</h5>
+                        <p class="text-secondary-gray">
                             No staff available. Please add new staff to get started.
                         </p>
                         <button
                             type="button"
-                            class="btn btn-primary btn-lg"
+                            class="btn btn-add-staff btn-lg"
                             data-bs-toggle="modal"
                             data-bs-target="#staffModal"
                             onclick="showAddModal()"
@@ -229,7 +374,7 @@
                             <i class="fas fa-plus me-2"></i>Add Your First Staff Member
                         </button>
                         <div class="mt-3">
-                            <small class="text-muted">
+                            <small class="text-secondary-gray">
                                 Staff members will appear here once added
                             </small>
                         </div>
@@ -237,6 +382,13 @@
                 </div>
             </div>
         </div>
+    </div>
+
+    <!-- Hidden filter elements for compatibility -->
+    <div style="display: none;">
+        <select id="departmentFilter"><option value="">All Departments</option></select>
+        <select id="statusFilter"><option value="">All Status</option></select>
+        <input type="text" id="searchInput" />
     </div>
 </div>
 
@@ -1270,7 +1422,6 @@
         document.getElementById("activeStaffCount").textContent = activeStaff;
         document.getElementById("departmentCount").textContent =
             departmentsData.length;
-        document.getElementById("roleCount").textContent = totalStaff;
     }
 
     // Render staff table
@@ -1314,33 +1465,33 @@
         row.innerHTML = `
         <td>
             <div class="d-flex align-items-center">
-                <div class="avatar-circle me-3" style="width: 40px; height: 40px; background: #007bff; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold;">
+                <div class="avatar-circle me-3">
                     ${initials}
                 </div>
                 <div>
-                    <strong>${staff.full_name}</strong>
-                    <br><small class="text-muted">${staff.staff_code || ""}</small>
-                    <br><small class="text-muted">${staff.username}</small>
+                    <strong class="text-primary-dark">${staff.full_name}</strong>
+                    <br><small class="text-secondary-gray">${staff.staff_code || ""}</small>
+                    <br><small class="text-secondary-gray">${staff.username}</small>
                 </div>
             </div>
         </td>
         <td>
-            <div><strong>${staff.department_display}</strong></div>
+            <div class="text-primary-dark"><strong>${staff.department_display}</strong></div>
         </td>
         <td>
-            <div>${staff.email || "No email"}</div>
-            <div><small class="text-muted">${staff.phone || "No phone"}</small></div>
-            ${staff.gender ? `<div><small class="text-muted">${staff.gender.charAt(0).toUpperCase() + staff.gender.slice(1)}</small></div>` : ""}
+            <div class="text-primary-dark">${staff.email || "No email"}</div>
+            <div><small class="text-secondary-gray">${staff.phone || "No phone"}</small></div>
+            ${staff.gender ? `<div><small class="text-secondary-gray">${staff.gender.charAt(0).toUpperCase() + staff.gender.slice(1)}</small></div>` : ""}
         </td>
-        <td>
-            <div class="btn-group-vertical btn-group-sm">
-                <button type="button" class="btn btn-outline-primary btn-sm" onclick="editStaff(${staff.id})" title="Edit">
+        <td class="text-center">
+            <div class="btn-group btn-group-sm">
+                <button type="button" class="btn btn-action-edit btn-sm me-1" onclick="editStaff(${staff.id})" title="Edit">
                     <i class="fas fa-edit"></i>
                 </button>
-                <button type="button" class="btn btn-outline-info btn-sm" onclick="viewStaff(${staff.id})" title="View">
+                <button type="button" class="btn btn-action-view btn-sm me-1" onclick="viewStaff(${staff.id})" title="View">
                     <i class="fas fa-eye"></i>
                 </button>
-                <button type="button" class="btn btn-outline-danger btn-sm" onclick="showDeleteModal(${staff.id})" title="Delete">
+                <button type="button" class="btn btn-action-delete btn-sm" onclick="showDeleteModal(${staff.id})" title="Delete">
                     <i class="fas fa-trash"></i>
                 </button>
             </div>
@@ -1409,7 +1560,10 @@
         renderFilteredStaff(); // Render the filtered list
     }
 
-    // Render filtered staff with comprehensive null checks
+    // DataTables instance reference
+    let staffDataTable = null;
+
+    // Render filtered staff with comprehensive null checks and DataTables initialization
     function renderFilteredStaff() {
         console.log("Starting renderFilteredStaff with", filteredStaff?.length || 0, "staff members");
 
@@ -1428,6 +1582,12 @@
         // Hide loading state first
         if (loadingState) {
             loadingState.style.display = "none";
+        }
+
+        // Destroy existing DataTable instance if it exists
+        if (staffDataTable) {
+            staffDataTable.destroy();
+            staffDataTable = null;
         }
 
         // Clear existing content safely
@@ -1468,6 +1628,9 @@
             if (successfulRenders > 0) {
                 console.log(`✅ Successfully rendered ${successfulRenders} staff members, showing table`);
                 showTable(true);
+                
+                // Initialize DataTables after rendering
+                initializeDataTable();
             } else {
                 console.error("No staff rows could be rendered");
                 showEmptyState();
@@ -1476,6 +1639,55 @@
         } catch (error) {
             console.error("Error in renderFilteredStaff:", error);
             showEmptyState();
+        }
+    }
+
+    // Initialize DataTables on the staff table
+    function initializeDataTable() {
+        try {
+            // Check if jQuery and DataTables are available
+            if (typeof $ === 'undefined' || typeof $.fn.DataTable === 'undefined') {
+                console.warn("DataTables not available yet, retrying...");
+                setTimeout(initializeDataTable, 200);
+                return;
+            }
+
+            // Destroy existing instance if any
+            if ($.fn.DataTable.isDataTable('#staffTable')) {
+                $('#staffTable').DataTable().destroy();
+            }
+
+            // Initialize DataTables with options
+            staffDataTable = $('#staffTable').DataTable({
+                pageLength: 10,
+                lengthMenu: [[10, 25, 50, 100], [10, 25, 50, 100]],
+                searching: true,
+                ordering: true,
+                info: true,
+                paging: true,
+                responsive: true,
+                language: {
+                    search: "Search:",
+                    lengthMenu: "Show _MENU_ entries",
+                    info: "Showing _START_ to _END_ of _TOTAL_ entries",
+                    infoEmpty: "Showing 0 to 0 of 0 entries",
+                    infoFiltered: "(filtered from _MAX_ total entries)",
+                    paginate: {
+                        first: "First",
+                        last: "Last",
+                        next: "Next",
+                        previous: "Previous"
+                    }
+                },
+                columnDefs: [
+                    { orderable: false, targets: 3 } // Disable sorting on Actions column
+                ],
+                order: [[0, 'asc']] // Default sort by Staff Info column
+            });
+
+            console.log("✅ DataTables initialized successfully");
+        } catch (error) {
+            console.error("Error initializing DataTables:", error);
         }
     }
 
@@ -2415,6 +2627,8 @@
 </script>
 
 <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script>
     // Verify SheetJS is loaded with retry mechanism
