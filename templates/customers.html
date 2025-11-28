@@ -70,41 +70,9 @@
     font-weight: 600;
 }
 
-/* Search Section */
+/* Search Section - Hidden, replaced by DataTables search */
 .search-section {
-    background: linear-gradient(135deg, var(--spa-warning-light), var(--spa-warning));
-    border-radius: 15px;
-    padding: 2rem;
-    margin-bottom: 2rem;
-}
-
-.search-input-group {
-    position: relative;
-    max-width: 600px;
-    margin: 0 auto;
-}
-
-.search-input-group input {
-    border-radius: 50px;
-    padding: 15px 60px 15px 25px;
-    border: none;
-    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-    font-size: 1.1rem;
-}
-
-.search-input-group .search-icon {
-    position: absolute;
-    right: 20px;
-    top: 50%;
-    transform: translateY(-50%);
-    color: var(--spa-primary);
-    cursor: pointer;
-    transition: all 0.3s ease;
-}
-
-.search-input-group .search-icon:hover {
-    transform: translateY(-50%) scale(1.1);
-    color: var(--spa-primary-darker);
+    display: none;
 }
 
 /* Customer Avatar */
@@ -994,60 +962,36 @@
         <!-- Customer Management Tab -->
         <div class="tab-pane fade show active" id="management" role="tabpanel" aria-labelledby="management-tab">
 
-            <!-- Enhanced Search Section -->
-            <div class="search-section" role="search">
-                <div class="row align-items-center">
-                    <div class="col-md-8">
-                        <h4 class="mb-3 text-center">Find Your Customers</h4>
-                        <form method="GET" action="{{ url_for('customers') }}" id="customerSearchForm">
-                            <div class="search-input-group">
-                                <label for="customerSearch" class="visually-hidden">Search customers</label>
-                                <input type="text" 
-                                       class="form-control" 
-                                       id="customerSearch" 
-                                       name="search"
-                                       placeholder="Search by name, phone, or email..."
-                                       value="{{ search_query if search_query else '' }}"
-                                       autocomplete="off"
-                                       aria-label="Search customers by name, phone, or email">
-                                <i class="fas fa-search search-icon" 
-                                   role="button" 
-                                   tabindex="0" 
-                                   aria-label="Submit search" 
-                                   title="Submit search"></i>
-                            </div>
-                        </form>
-                    </div>
-                    <div class="col-md-4 text-center mt-3 mt-md-0">
-                        {% if current_user.has_permission('clients_create') %}
-                        <button type="button" 
-                                class="btn btn-lg btn-primary px-4 py-3"
-                                data-bs-toggle="modal" 
-                                data-bs-target="#addCustomerModal"
-                                aria-label="Add new customer"
-                                style="border-radius: 25px; background: linear-gradient(135deg, var(--spa-primary), var(--spa-primary-darker)); border: none;">
-                            <i class="fas fa-user-plus me-2" aria-hidden="true"></i>Add New Customer
-                        </button>
-                        {% endif %}
-                    </div>
+            <!-- Action Buttons Section - Matching Staff Page Style -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    {% if current_user.has_permission('clients_create') %}
+                    <button type="button" 
+                            class="btn btn-add-customer"
+                            data-bs-toggle="modal" 
+                            data-bs-target="#addCustomerModal"
+                            aria-label="Add new customer">
+                        <i class="fas fa-user-plus me-2" aria-hidden="true"></i>Add New Customer
+                    </button>
+                    {% endif %}
+                </div>
+                <div class="d-flex gap-2">
+                    <button type="button" class="btn btn-export-customers" onclick="exportCustomers()">
+                        <i class="fas fa-file-export me-1"></i> Export
+                    </button>
+                    <button type="button" class="btn btn-refresh-customers" onclick="location.reload()">
+                        <i class="fas fa-sync-alt me-1"></i> Refresh
+                    </button>
                 </div>
             </div>
 
             <!-- Enhanced Customers Table - Matching Staff Page Style -->
             <div class="customer-table-card">
-                <div class="card-header d-flex justify-content-between align-items-center">
+                <div class="card-header">
                     <h5 class="mb-0">
                         <i class="fas fa-address-book me-2" aria-hidden="true"></i>
                         Customer Directory
-                        {% if search_query %}
-                            <small class="text-muted ms-2">(Search results for "{{ search_query }}")</small>
-                        {% endif %}
                     </h5>
-                    <div class="d-flex gap-2">
-                        <button type="button" class="btn btn-refresh-customers btn-sm" onclick="location.reload()">
-                            <i class="fas fa-sync-alt me-1"></i> Refresh
-                        </button>
-                    </div>
                 </div>
                 <div class="card-body p-0">
                     {% if customers %}
@@ -3480,6 +3424,55 @@ if (document.readyState === 'loading') {
 }
 
 console.log('✅ Customer Management System: Scripts loaded successfully');
+
+// ============================================
+// EXPORT CUSTOMERS FUNCTION
+// ============================================
+
+/**
+ * Export customers data to CSV
+ */
+function exportCustomers() {
+    try {
+        const table = document.getElementById('customersTable');
+        if (!table) {
+            showToast('No data to export', 'warning');
+            return;
+        }
+        
+        const rows = table.querySelectorAll('tbody tr');
+        if (rows.length === 0) {
+            showToast('No customers to export', 'warning');
+            return;
+        }
+        
+        let csvContent = 'Name,Phone,Email,Visits,Status\n';
+        
+        rows.forEach(row => {
+            const cells = row.querySelectorAll('td');
+            if (cells.length >= 5) {
+                const name = cells[0].querySelector('h5')?.textContent?.trim() || '';
+                const phone = cells[1].querySelector('strong')?.textContent?.trim() || '';
+                const email = cells[1].querySelector('.text-muted')?.textContent?.trim() || '';
+                const visits = cells[2].querySelector('.text-success')?.textContent?.trim() || '0';
+                const status = cells[4].querySelector('.status-badge')?.textContent?.trim() || '';
+                
+                csvContent += `"${name}","${phone}","${email}","${visits}","${status}"\n`;
+            }
+        });
+        
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = 'customers_export_' + new Date().toISOString().split('T')[0] + '.csv';
+        link.click();
+        
+        showToast('Customers exported successfully', 'success');
+    } catch (error) {
+        console.error('Export error:', error);
+        showToast('Error exporting customers', 'danger');
+    }
+}
 
 // ============================================
 // DATATABLES INITIALIZATION
