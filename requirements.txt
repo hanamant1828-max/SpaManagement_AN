@@ -258,3 +258,10 @@ sqlalchemy
 weasyprint
 werkzeug
 wtforms
+insightface
+numpy
+onnxruntime
+python-dotenv
+pytz
+weasyprint
+wtforms
