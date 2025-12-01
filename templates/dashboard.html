@@ -630,7 +630,7 @@
 {% endblock %}
 
 {% block content %}
-<div class="dashboard-container">
+<div class="dashboard-container" style="max-width: 100% !important; padding: 2rem 1.5rem;">
     <div class="welcome-header">
         <h1>Welcome back, {{ current_user.first_name or current_user.username }}!</h1>
         <p>Here's what's happening with your business today</p>
