@@ -29,28 +29,40 @@
 <body class="{% block body_class %}{% endblock %}">
     <!-- Top Navigation Bar -->
     {% if true %}
-    <nav class="navbar navbar-dark bg-primary fixed-top">
-        <div class="container-fluid">
-            <a class="navbar-brand d-none d-lg-block" href="{{ url_for('dashboard') }}">
-                <i class="fas fa-spa me-2"></i>Spa & Salon Suite
-            </a>
+    <nav class="navbar navbar-dark fixed-top modern-navbar">
+        <div class="container-fluid px-3">
+            <div class="d-flex align-items-center">
+                <button class="navbar-toggler d-lg-none border-0 me-2" type="button" data-bs-toggle="offcanvas" data-bs-target="#sidebar" aria-controls="sidebar" aria-label="Toggle navigation">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <a class="navbar-brand d-flex align-items-center" href="{{ url_for('dashboard') }}">
+                    <div class="brand-icon-wrapper me-2">
+                        <i class="fas fa-spa"></i>
+                    </div>
+                    <span class="brand-text d-none d-sm-inline">Spa & Salon Suite</span>
+                </a>
+            </div>
 
-            <button class="navbar-toggler d-lg-none" type="button" data-bs-toggle="offcanvas" data-bs-target="#sidebar" aria-controls="sidebar" aria-label="Toggle navigation">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-
-            <div class="navbar-nav ms-auto">
+            <div class="navbar-nav ms-auto d-flex align-items-center">
                 <div class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle text-white" href="#" role="button" data-bs-toggle="dropdown">
-                        <i class="fas fa-user-circle me-1"></i>Test User
+                    <a class="nav-link dropdown-toggle user-dropdown d-flex align-items-center" href="#" role="button" data-bs-toggle="dropdown">
+                        <div class="user-avatar me-2">
+                            <i class="fas fa-user"></i>
+                        </div>
+                        <span class="user-name d-none d-md-inline">{% if current_user.is_authenticated %}{{ current_user.username }}{% else %}Guest{% endif %}</span>
                     </a>
-                    <ul class="dropdown-menu dropdown-menu-end">
+                    <ul class="dropdown-menu dropdown-menu-end modern-dropdown">
+                        <li class="dropdown-header">
+                            <small class="text-muted">Signed in as</small>
+                            <div class="fw-semibold">{% if current_user.is_authenticated %}{{ current_user.username }}{% else %}Guest{% endif %}</div>
+                        </li>
+                        <li><hr class="dropdown-divider"></li>
                         <li><a class="dropdown-item" href="{{ url_for('settings') }}">
-                            <i class="fas fa-cog me-2"></i>Settings
+                            <i class="fas fa-cog me-2 text-muted"></i>Settings
                         </a></li>
                         <li><hr class="dropdown-divider"></li>
-                        <li><a class="dropdown-item" href="{{ url_for('logout') }}">
-                            <i class="fas fa-sign-out-alt me-2"></i>Logout
+                        <li><a class="dropdown-item text-danger" href="{{ url_for('logout') }}">
+                            <i class="fas fa-sign-out-alt me-2"></i>Sign Out
                         </a></li>
                     </ul>
                 </div>
@@ -58,193 +70,232 @@
         </div>
     </nav>
 
-    <!-- Vertical Sidebar -->
-    <div class="offcanvas offcanvas-lg offcanvas-start" tabindex="-1" id="sidebar" style="width: 280px;">
-        <div class="offcanvas-header">
-            <h5 class="offcanvas-title">
-                <i class="fas fa-spa me-2 text-primary"></i>Spa Management
-            </h5>
-            <button type="button" class="btn-close d-lg-none" data-bs-dismiss="offcanvas"></button>
+    <!-- Modern Vertical Sidebar -->
+    <div class="offcanvas offcanvas-lg offcanvas-start modern-sidebar" tabindex="-1" id="sidebar">
+        <div class="offcanvas-header sidebar-header">
+            <div class="sidebar-brand">
+                <div class="brand-logo">
+                    <i class="fas fa-spa"></i>
+                </div>
+                <div class="brand-info">
+                    <h5 class="brand-title">Spa Suite</h5>
+                    <small class="brand-subtitle">Management Portal</small>
+                </div>
+            </div>
+            <button type="button" class="btn-close btn-close-white d-lg-none" data-bs-dismiss="offcanvas"></button>
         </div>
-        <div class="offcanvas-body p-0" style="overflow-y: auto; height: calc(100vh - 60px);">
-            <nav class="navbar-nav h-100">
-                <ul class="nav nav-pills flex-column h-auto sidebar-nav" style="padding: 0.75rem 0;">
+        <div class="offcanvas-body sidebar-body">
+            <nav class="sidebar-nav">
+                <ul class="nav flex-column">
                     
-                    <!-- Quick Actions -->
+                    <!-- Main Navigation -->
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('dashboard') }}">
-                            <i class="fas fa-th-large me-2"></i><span>Dashboard</span>
+                        <a class="nav-link {% if request.endpoint == 'dashboard' %}active{% endif %}" href="{{ url_for('dashboard') }}">
+                            <div class="nav-icon"><i class="fas fa-th-large"></i></div>
+                            <span>Dashboard</span>
                         </a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('website_home') }}" target="_blank">
-                            <i class="fas fa-external-link-alt me-2"></i><span>View Website</span>
+                            <div class="nav-icon"><i class="fas fa-external-link-alt"></i></div>
+                            <span>View Website</span>
+                            <i class="fas fa-arrow-up-right-from-square external-icon"></i>
                         </a>
                     </li>
 
-                    <!-- Appointments & Bookings Section -->
-                    <li class="nav-item nav-section-divider">
-                        <div class="nav-section-header">
-                            <span>APPOINTMENTS</span>
+                    <!-- Appointments Section -->
+                    <li class="nav-section">
+                        <div class="nav-section-title">
+                            <i class="fas fa-calendar-check section-icon"></i>
+                            <span>Appointments</span>
                         </div>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="/unaki-booking">
-                            <i class="fas fa-calendar-plus me-2"></i><span>Book Appointment</span>
+                            <div class="nav-icon"><i class="fas fa-calendar-plus"></i></div>
+                            <span>Book Appointment</span>
                         </a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('online_bookings') }}">
-                            <i class="fas fa-globe me-2"></i><span>Online Bookings</span>
+                            <div class="nav-icon"><i class="fas fa-globe"></i></div>
+                            <span>Online Bookings</span>
                         </a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('checkin') }}">
-                            <i class="fas fa-user-check me-2"></i><span>Check-In</span>
+                            <div class="nav-icon"><i class="fas fa-user-check"></i></div>
+                            <span>Check-In</span>
                         </a>
                     </li>
 
                     <!-- Clients Section -->
-                    <li class="nav-item nav-section-divider">
-                        <div class="nav-section-header">
-                            <span>CLIENTS</span>
+                    <li class="nav-section">
+                        <div class="nav-section-title">
+                            <i class="fas fa-heart section-icon"></i>
+                            <span>Clients</span>
                         </div>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('customers') }}">
-                            <i class="fas fa-users me-2"></i><span>Client Directory</span>
+                            <div class="nav-icon"><i class="fas fa-users"></i></div>
+                            <span>Client Directory</span>
                         </a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('notifications') }}">
-                            <i class="fab fa-whatsapp me-2"></i><span>Notifications</span>
+                            <div class="nav-icon"><i class="fab fa-whatsapp"></i></div>
+                            <span>Notifications</span>
                         </a>
                     </li>
 
                     <!-- Staff Section -->
-                    <li class="nav-item nav-section-divider">
-                        <div class="nav-section-header">
-                            <span>STAFF</span>
+                    <li class="nav-section">
+                        <div class="nav-section-title">
+                            <i class="fas fa-user-tie section-icon"></i>
+                            <span>Staff</span>
                         </div>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('comprehensive_staff') }}">
-                            <i class="fas fa-id-badge me-2"></i><span>Staff Directory</span>
+                            <div class="nav-icon"><i class="fas fa-id-badge"></i></div>
+                            <span>Staff Directory</span>
                         </a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('shift_scheduler.shift_scheduler') }}">
-                            <i class="fas fa-calendar-alt me-2"></i><span>Shift Schedule</span>
+                            <div class="nav-icon"><i class="fas fa-calendar-alt"></i></div>
+                            <span>Shift Schedule</span>
                         </a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('shift_scheduler.out_of_office_management') }}">
-                            <i class="fas fa-umbrella-beach me-2"></i><span>Time Off</span>
+                            <div class="nav-icon"><i class="fas fa-umbrella-beach"></i></div>
+                            <span>Time Off</span>
                         </a>
                     </li>
 
                     <!-- Billing Section -->
-                    <li class="nav-item nav-section-divider">
-                        <div class="nav-section-header">
-                            <span>BILLING</span>
+                    <li class="nav-section">
+                        <div class="nav-section-title">
+                            <i class="fas fa-rupee-sign section-icon"></i>
+                            <span>Billing</span>
                         </div>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('integrated_billing') }}">
-                            <i class="fas fa-cash-register me-2"></i><span>New Invoice</span>
+                            <div class="nav-icon"><i class="fas fa-plus-circle"></i></div>
+                            <span>New Invoice</span>
                         </a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('list_integrated_invoices') }}">
-                            <i class="fas fa-file-invoice me-2"></i><span>All Invoices</span>
+                            <div class="nav-icon"><i class="fas fa-file-invoice"></i></div>
+                            <span>All Invoices</span>
                         </a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('billing_reports') }}">
-                            <i class="fas fa-chart-bar me-2"></i><span>Billing Reports</span>
+                            <div class="nav-icon"><i class="fas fa-chart-bar"></i></div>
+                            <span>Billing Reports</span>
                         </a>
                     </li>
 
-                    <!-- Services & Packages Section -->
-                    <li class="nav-item nav-section-divider">
-                        <div class="nav-section-header">
-                            <span>SERVICES</span>
+                    <!-- Services Section -->
+                    <li class="nav-section">
+                        <div class="nav-section-title">
+                            <i class="fas fa-concierge-bell section-icon"></i>
+                            <span>Services</span>
                         </div>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('services') }}">
-                            <i class="fas fa-spa me-2"></i><span>Service Menu</span>
+                            <div class="nav-icon"><i class="fas fa-spa"></i></div>
+                            <span>Service Menu</span>
                         </a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="/packages">
-                            <i class="fas fa-gift me-2"></i><span>Packages</span>
+                            <div class="nav-icon"><i class="fas fa-gift"></i></div>
+                            <span>Packages</span>
                         </a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="/assign-packages/">
-                            <i class="fas fa-hand-holding-heart me-2"></i><span>Assign Package</span>
+                            <div class="nav-icon"><i class="fas fa-hand-holding-heart"></i></div>
+                            <span>Assign Package</span>
                         </a>
                     </li>
 
                     <!-- Inventory Section -->
-                    <li class="nav-item nav-section-divider">
-                        <div class="nav-section-header">
-                            <span>INVENTORY</span>
+                    <li class="nav-section">
+                        <div class="nav-section-title">
+                            <i class="fas fa-warehouse section-icon"></i>
+                            <span>Inventory</span>
                         </div>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('inventory_dashboard') }}">
-                            <i class="fas fa-boxes me-2"></i><span>Stock Overview</span>
+                            <div class="nav-icon"><i class="fas fa-boxes"></i></div>
+                            <span>Stock Overview</span>
                         </a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('inventory_reports') }}">
-                            <i class="fas fa-clipboard-list me-2"></i><span>Inventory Reports</span>
+                            <div class="nav-icon"><i class="fas fa-clipboard-list"></i></div>
+                            <span>Inventory Reports</span>
                         </a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('alerts') }}">
-                            <i class="fas fa-exclamation-triangle me-2"></i><span>Low Stock Alerts</span>
+                            <div class="nav-icon"><i class="fas fa-exclamation-triangle"></i></div>
+                            <span>Low Stock Alerts</span>
                         </a>
                     </li>
 
                     <!-- Reports Section -->
-                    <li class="nav-item nav-section-divider">
-                        <div class="nav-section-header">
-                            <span>REPORTS</span>
+                    <li class="nav-section">
+                        <div class="nav-section-title">
+                            <i class="fas fa-chart-line section-icon"></i>
+                            <span>Reports</span>
                         </div>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('reports') }}">
-                            <i class="fas fa-chart-pie me-2"></i><span>Analytics</span>
+                            <div class="nav-icon"><i class="fas fa-chart-pie"></i></div>
+                            <span>Analytics</span>
                         </a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('expenses') }}">
-                            <i class="fas fa-receipt me-2"></i><span>Expenses</span>
+                            <div class="nav-icon"><i class="fas fa-receipt"></i></div>
+                            <span>Expenses</span>
                         </a>
                     </li>
 
-                    <!-- System Administration Section -->
-                    <li class="nav-item nav-section-divider">
-                        <div class="nav-section-header">
-                            <span>ADMINISTRATION</span>
+                    <!-- Administration Section -->
+                    <li class="nav-section">
+                        <div class="nav-section-title">
+                            <i class="fas fa-shield-alt section-icon"></i>
+                            <span>Administration</span>
                         </div>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('user_management_dashboard') }}">
-                            <i class="fas fa-users-cog me-2"></i><span>User Management</span>
+                            <div class="nav-icon"><i class="fas fa-users-cog"></i></div>
+                            <span>User Management</span>
                         </a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('manage_roles') }}">
-                            <i class="fas fa-user-shield me-2"></i><span>Roles & Permissions</span>
+                            <div class="nav-icon"><i class="fas fa-user-shield"></i></div>
+                            <span>Roles & Permissions</span>
                         </a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('system_management') }}">
-                            <i class="fas fa-cog me-2"></i><span>Settings</span>
+                            <div class="nav-icon"><i class="fas fa-cog"></i></div>
+                            <span>Settings</span>
                         </a>
                     </li>
                 </ul>
