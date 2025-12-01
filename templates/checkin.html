@@ -1,28 +1,127 @@
 {% extends "base.html" %}
 
-{% block title %}Face Recognition Check-In{% endblock %}
+{% block title %}Check-In - Spa & Salon Suite{% endblock %}
 
 {% block extra_css %}
 <style>
-.checkin-header {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    padding: 2rem 0;
-    margin-bottom: 2rem;
-    border-radius: 0 0 1rem 1rem;
+.checkin-page {
+    background: linear-gradient(135deg, #f5f7fa 0%, #e4e8ec 100%);
+    min-height: 100vh;
+    padding: 0;
 }
 
-.camera-card {
-    background: white;
-    border-radius: 15px;
-    box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+.checkin-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    padding: 2rem 2.5rem;
+    margin-bottom: 2rem;
+    position: relative;
     overflow: hidden;
 }
 
-.camera-container {
-    background: #f8f9fa;
-    min-height: 400px;
+.checkin-header::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -10%;
+    width: 400px;
     height: 400px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 50%;
+}
+
+.checkin-header::after {
+    content: '';
+    position: absolute;
+    bottom: -30%;
+    left: 5%;
+    width: 200px;
+    height: 200px;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 50%;
+}
+
+.header-content {
+    position: relative;
+    z-index: 1;
+}
+
+.header-icon {
+    width: 60px;
+    height: 60px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 1.25rem;
+    backdrop-filter: blur(10px);
+}
+
+.header-icon i {
+    font-size: 1.75rem;
+    color: #ffffff;
+}
+
+.header-title {
+    color: #ffffff;
+    font-size: 1.75rem;
+    font-weight: 700;
+    margin: 0;
+    letter-spacing: -0.02em;
+}
+
+.header-subtitle {
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 0.95rem;
+    margin: 0.25rem 0 0;
+}
+
+.checkin-container {
+    padding: 0 2rem 2rem;
+}
+
+.camera-section {
+    background: #ffffff;
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+    height: 100%;
+}
+
+.section-header {
+    background: linear-gradient(135deg, #1a1f36 0%, #252d4a 100%);
+    padding: 1rem 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.section-header-icon {
+    width: 36px;
+    height: 36px;
+    background: rgba(102, 126, 234, 0.3);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.section-header-icon i {
+    color: #a5b4fc;
+    font-size: 1rem;
+}
+
+.section-header h5 {
+    color: #ffffff;
+    font-size: 1rem;
+    font-weight: 600;
+    margin: 0;
+}
+
+.camera-container {
+    background: linear-gradient(135deg, #1e2235 0%, #252d4a 100%);
+    min-height: 380px;
+    height: 380px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -30,9 +129,44 @@
     overflow: hidden;
 }
 
+.camera-placeholder {
+    text-align: center;
+    padding: 2rem;
+}
+
+.camera-placeholder-icon {
+    width: 100px;
+    height: 100px;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 1.5rem;
+    border: 2px dashed rgba(255, 255, 255, 0.2);
+}
+
+.camera-placeholder-icon i {
+    font-size: 2.5rem;
+    color: rgba(255, 255, 255, 0.4);
+}
+
+.camera-placeholder h6 {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 1rem;
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+}
+
+.camera-placeholder p {
+    color: rgba(255, 255, 255, 0.4);
+    font-size: 0.85rem;
+    margin: 0;
+}
+
 #checkinVideo {
     width: 100%;
-    height: 400px;
+    height: 380px;
     object-fit: cover;
     display: block;
 }
@@ -42,259 +176,689 @@
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    border: 6px solid #667eea !important;
+    border: 4px solid #667eea !important;
     border-radius: 50%;
-    width: 280px;
-    height: 280px;
+    width: 260px;
+    height: 260px;
     pointer-events: none;
     z-index: 100;
-    box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5), 0 0 20px rgba(102, 126, 234, 0.6) !important;
+    box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.6), 0 0 30px rgba(102, 126, 234, 0.5) !important;
 }
 
-.recognition-status {
-    background: white;
-    border-radius: 15px;
-    box-shadow: 0 5px 20px rgba(0,0,0,0.08);
-    padding: 2rem;
+.camera-overlay.scanning-animation {
+    animation: scanPulse 2s ease-in-out infinite;
 }
 
-.customer-card {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    border-radius: 15px;
-    padding: 2rem;
-    margin-top: 1rem;
-}
-
-.customer-avatar-large {
-    width: 80px;
-    height: 80px;
-    border-radius: 50%;
-    background: white;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #667eea;
-    font-weight: 700;
-    font-size: 2rem;
-    margin: 0 auto 1rem;
-}
-
-.scanning-animation {
-    border: 4px solid #667eea !important;
-    animation: pulse 1.5s infinite;
-}
-
-@keyframes pulse {
+@keyframes scanPulse {
     0%, 100% { 
-        opacity: 1; 
-        transform: translate(-50%, -50%) scale(1); 
+        border-color: #667eea;
+        box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.6), 0 0 30px rgba(102, 126, 234, 0.5);
     }
     50% { 
-        opacity: 0.5; 
-        transform: translate(-50%, -50%) scale(1.1); 
+        border-color: #a5b4fc;
+        box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.6), 0 0 50px rgba(102, 126, 234, 0.8);
     }
 }
 
 .camera-overlay.detecting {
-    border: 4px solid #ffc107 !important;
-    box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5), 0 0 20px rgba(255, 193, 7, 0.6) !important;
+    border-color: #fbbf24 !important;
+    box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.6), 0 0 30px rgba(251, 191, 36, 0.6) !important;
+    animation: detectPulse 0.5s ease-in-out infinite;
+}
+
+@keyframes detectPulse {
+    0%, 100% { transform: translate(-50%, -50%) scale(1); }
+    50% { transform: translate(-50%, -50%) scale(1.02); }
 }
 
 .camera-overlay.success {
-    border: 4px solid #28a745 !important;
-    box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5), 0 0 20px rgba(40, 167, 69, 0.6) !important;
+    border-color: #10b981 !important;
+    box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.6), 0 0 40px rgba(16, 185, 129, 0.7) !important;
 }
 
 .camera-overlay.error {
-    border: 4px solid #dc3545 !important;
-    box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5), 0 0 20px rgba(220, 53, 69, 0.6) !important;
+    border-color: #ef4444 !important;
+    box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.6), 0 0 30px rgba(239, 68, 68, 0.6) !important;
+}
+
+.camera-actions {
+    padding: 1.25rem;
+    background: #f8fafc;
+    display: flex;
+    gap: 0.75rem;
+    justify-content: center;
+}
+
+.btn-camera {
+    padding: 0.75rem 2rem;
+    border-radius: 12px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.2s ease;
+    border: none;
+}
+
+.btn-camera-start {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: #ffffff;
+    box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+}
+
+.btn-camera-start:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
+    color: #ffffff;
+}
+
+.btn-camera-start:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.btn-camera-stop {
+    background: linear-gradient(135deg, #64748b 0%, #475569 100%);
+    color: #ffffff;
+    box-shadow: 0 4px 15px rgba(100, 116, 139, 0.3);
+}
+
+.btn-camera-stop:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(100, 116, 139, 0.4);
+    color: #ffffff;
+}
+
+.btn-camera-stop:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.status-section {
+    background: #ffffff;
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+    height: 100%;
+}
+
+.status-content {
+    padding: 1.5rem;
+}
+
+.status-card {
+    border-radius: 16px;
+    padding: 1.25rem;
+    margin-bottom: 1.25rem;
+}
+
+.status-card.status-ready {
+    background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+    border: 1px solid #bfdbfe;
+}
+
+.status-card.status-scanning {
+    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+    border: 1px solid #fcd34d;
+}
+
+.status-card.status-success {
+    background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+    border: 1px solid #6ee7b7;
+}
+
+.status-card.status-error {
+    background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+    border: 1px solid #fca5a5;
+}
+
+.status-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 1rem;
+}
+
+.status-ready .status-icon {
+    background: #3b82f6;
+}
+
+.status-scanning .status-icon {
+    background: #f59e0b;
+    animation: statusPulse 1s ease-in-out infinite;
+}
+
+.status-success .status-icon {
+    background: #10b981;
+}
+
+.status-error .status-icon {
+    background: #ef4444;
+}
+
+@keyframes statusPulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+}
+
+.status-icon i {
+    color: #ffffff;
+    font-size: 1.25rem;
+}
+
+.status-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #1e293b;
+    margin-bottom: 0.25rem;
+}
+
+.status-message {
+    font-size: 0.85rem;
+    color: #64748b;
+    margin: 0;
+}
+
+.progress-container {
+    margin-bottom: 1.5rem;
+    display: none;
+}
+
+.progress-container.active {
+    display: block;
+}
+
+.progress-bar-custom {
+    height: 8px;
+    background: #e2e8f0;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #667eea, #764ba2, #667eea);
+    background-size: 200% 100%;
+    animation: progressMove 1.5s linear infinite;
+    border-radius: 4px;
+}
+
+@keyframes progressMove {
+    0% { background-position: 100% 0; }
+    100% { background-position: -100% 0; }
+}
+
+.progress-text {
+    text-align: center;
+    font-size: 0.8rem;
+    color: #64748b;
+    margin-top: 0.5rem;
+}
+
+.customer-card {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 16px;
+    padding: 1.5rem;
+    margin-bottom: 1.25rem;
+    display: none;
+}
+
+.customer-card.visible {
+    display: block;
+    animation: fadeInUp 0.4s ease;
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.customer-avatar {
+    width: 72px;
+    height: 72px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 1rem;
+    border: 3px solid rgba(255, 255, 255, 0.3);
+}
+
+.customer-avatar span {
+    color: #ffffff;
+    font-size: 1.75rem;
+    font-weight: 700;
+}
+
+.customer-name {
+    color: #ffffff;
+    font-size: 1.25rem;
+    font-weight: 600;
+    text-align: center;
+    margin-bottom: 0.25rem;
+}
+
+.customer-phone {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.9rem;
+    text-align: center;
+    margin-bottom: 1rem;
+}
+
+.customer-stats {
+    display: flex;
+    justify-content: center;
+    gap: 2rem;
+    margin-bottom: 1rem;
+}
+
+.customer-stat {
+    text-align: center;
+}
+
+.customer-stat-value {
+    color: #ffffff;
+    font-size: 1.25rem;
+    font-weight: 700;
+}
+
+.customer-stat-label {
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.btn-billing {
+    display: block;
+    width: 100%;
+    padding: 0.85rem;
+    background: rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 12px;
+    color: #ffffff;
+    font-weight: 600;
+    font-size: 0.9rem;
+    text-align: center;
+    transition: all 0.2s ease;
+    text-decoration: none;
+}
+
+.btn-billing:hover {
+    background: rgba(255, 255, 255, 0.3);
+    color: #ffffff;
+    transform: translateY(-2px);
+}
+
+.last-recognition {
+    background: #f8fafc;
+    border-radius: 12px;
+    padding: 1rem;
+}
+
+.last-recognition h6 {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.5rem;
+}
+
+.last-recognition p {
+    font-size: 0.9rem;
+    color: #334155;
+    margin-bottom: 0.25rem;
+}
+
+.last-recognition small {
+    font-size: 0.8rem;
+    color: #94a3b8;
+}
+
+.appointments-section {
+    background: #ffffff;
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+    margin-top: 1.5rem;
+}
+
+.appointments-table {
+    width: 100%;
+}
+
+.appointments-table th {
+    background: #f8fafc;
+    color: #64748b;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.appointments-table td {
+    padding: 1rem 1.25rem;
+    color: #334155;
+    font-size: 0.9rem;
+    border-bottom: 1px solid #f1f5f9;
+    vertical-align: middle;
+}
+
+.appointments-table tr:last-child td {
+    border-bottom: none;
+}
+
+.appointments-table tr:hover td {
+    background: #f8fafc;
+}
+
+.client-info-cell strong {
+    display: block;
+    color: #1e293b;
+    margin-bottom: 0.15rem;
+}
+
+.client-info-cell small {
+    color: #94a3b8;
+    font-size: 0.8rem;
+}
+
+.badge-status {
+    padding: 0.35rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.badge-scheduled {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.badge-confirmed {
+    background: #dbeafe;
+    color: #1e40af;
+}
+
+.badge-in-progress {
+    background: #ede9fe;
+    color: #6b21a8;
+}
+
+.badge-completed {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.btn-action {
+    padding: 0.4rem 0.75rem;
+    border-radius: 8px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    border: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    transition: all 0.2s ease;
+}
+
+.btn-checkin {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: #ffffff;
+}
+
+.btn-checkin:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+    color: #ffffff;
+}
+
+.btn-delete-face {
+    background: #fee2e2;
+    color: #dc2626;
+    margin-left: 0.5rem;
+}
+
+.btn-delete-face:hover {
+    background: #fecaca;
+    color: #b91c1c;
+}
+
+.empty-appointments {
+    text-align: center;
+    padding: 3rem 2rem;
+}
+
+.empty-icon {
+    width: 80px;
+    height: 80px;
+    background: #f1f5f9;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 1.25rem;
+}
+
+.empty-icon i {
+    font-size: 2rem;
+    color: #94a3b8;
+}
+
+.empty-appointments h5 {
+    color: #334155;
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
+.empty-appointments p {
+    color: #94a3b8;
+    font-size: 0.9rem;
+    margin: 0;
 }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="container-fluid">
-    <!-- Header -->
+<div class="checkin-page">
     <div class="checkin-header">
-        <div class="container">
-            <h1 class="mb-0">
-                <i data-feather="user-check" class="me-2"></i>
-                Face Recognition Check-In
-            </h1>
+        <div class="header-content d-flex align-items-center">
+            <div class="header-icon">
+                <i class="fas fa-user-check"></i>
+            </div>
+            <div>
+                <h1 class="header-title">Client Check-In</h1>
+                <p class="header-subtitle">Face recognition powered quick check-in system</p>
+            </div>
         </div>
     </div>
 
-    <div class="container">
-        <div class="row">
-            <!-- Camera Section -->
-            <div class="col-md-6 mb-4">
-                <div class="camera-card">
-                    <div class="card-header bg-primary text-white">
-                        <h5 class="mb-0">
-                            <i data-feather="camera" class="me-2"></i>
-                            Face Recognition Camera
-                        </h5>
+    <div class="checkin-container">
+        <div class="row g-4">
+            <div class="col-lg-7">
+                <div class="camera-section">
+                    <div class="section-header">
+                        <div class="section-header-icon">
+                            <i class="fas fa-video"></i>
+                        </div>
+                        <h5>Face Recognition Camera</h5>
                     </div>
                     <div class="camera-container" id="cameraContainer">
-                        <div id="cameraPlaceholder" class="text-center">
-                            <i data-feather="camera" style="width: 80px; height: 80px;" class="text-muted mb-3"></i>
-                            <p class="text-muted">Camera will appear here</p>
-                            <small class="text-muted">Click "Start Recognition" to begin face recognition</small>
+                        <div id="cameraPlaceholder" class="camera-placeholder">
+                            <div class="camera-placeholder-icon">
+                                <i class="fas fa-camera"></i>
+                            </div>
+                            <h6>Camera Preview</h6>
+                            <p>Click "Start Recognition" to begin</p>
                         </div>
                         <video id="checkinVideo" style="display: none;" autoplay playsinline></video>
                         <div id="cameraOverlay" class="camera-overlay" style="display: none;"></div>
                     </div>
-                    <div class="card-body text-center">
-                        <button type="button" id="startRecognition" class="btn btn-success btn-lg me-2">
-                            <i data-feather="play" class="me-1"></i>
+                    <div class="camera-actions">
+                        <button type="button" id="startRecognition" class="btn btn-camera btn-camera-start">
+                            <i class="fas fa-play"></i>
                             Start Recognition
                         </button>
-                        <button type="button" id="stopRecognition" class="btn btn-secondary btn-lg" disabled>
-                            <i data-feather="stop-circle" class="me-1"></i>
+                        <button type="button" id="stopRecognition" class="btn btn-camera btn-camera-stop" disabled>
+                            <i class="fas fa-stop"></i>
                             Stop
                         </button>
                     </div>
                 </div>
             </div>
 
-            <!-- Recognition Status Section -->
-            <div class="col-md-6 mb-4">
-                <div class="recognition-status">
-                    <h5 class="mb-3">
-                        <i data-feather="info" class="me-2"></i>
-                        Recognition Status
-                    </h5>
-
-                    <div id="statusAlert" class="alert alert-info d-flex align-items-start">
-                        <div class="me-3" style="font-size: 2rem;">
-                            <i data-feather="info"></i>
+            <div class="col-lg-5">
+                <div class="status-section">
+                    <div class="section-header">
+                        <div class="section-header-icon">
+                            <i class="fas fa-info-circle"></i>
                         </div>
-                        <div class="flex-grow-1">
-                            <h5 class="alert-heading mb-1">Ready for Check-In</h5>
-                            <p class="mb-0">Click "Start Recognition" and position your face in the circle for automatic check-in.</p>
-                        </div>
+                        <h5>Recognition Status</h5>
                     </div>
-
-                    <div id="scanningProgress" class="progress mt-3" style="display: none; height: 25px;">
-                        <div class="progress-bar progress-bar-striped progress-bar-animated bg-info" 
-                             role="progressbar" style="width: 100%">
-                            <span id="progressText">Scanning...</span>
-                        </div>
-                    </div>
-
-                    <div id="customerInfo" style="display: none;">
-                        <div class="customer-card">
-                            <div class="customer-avatar-large" id="customerAvatar">
-                                --
-                            </div>
-                            <h4 class="text-center mb-2" id="customerName">Customer Name</h4>
-                            <p class="text-center mb-3 opacity-75" id="customerPhone">Phone Number</p>
-                            <div class="row text-center">
-                                <div class="col-6">
-                                    <h6 class="mb-0" id="customerVisits">0</h6>
-                                    <small class="opacity-75">Visits</small>
+                    <div class="status-content">
+                        <div id="statusAlert" class="status-card status-ready">
+                            <div class="d-flex align-items-start">
+                                <div class="status-icon">
+                                    <i class="fas fa-check"></i>
                                 </div>
-                                <div class="col-6">
-                                    <h6 class="mb-0" id="customerStatus">Regular</h6>
-                                    <small class="opacity-75">Status</small>
+                                <div>
+                                    <div class="status-title">Ready for Check-In</div>
+                                    <p class="status-message">Click "Start Recognition" and position your face in the circle for automatic check-in.</p>
                                 </div>
                             </div>
-                            <!-- Go to Billing button will be added dynamically by JavaScript -->
                         </div>
-                    </div>
 
-                    <div class="mt-4">
-                        <h6>Last Recognition:</h6>
-                        <p class="text-muted mb-1" id="lastRecognition">No recent activity</p>
-                        <small class="text-muted">System will automatically identify clients and load their appointments</small>
+                        <div id="scanningProgress" class="progress-container">
+                            <div class="progress-bar-custom">
+                                <div class="progress-fill" style="width: 100%;"></div>
+                            </div>
+                            <p class="progress-text" id="progressText">Scanning for faces...</p>
+                        </div>
+
+                        <div id="customerInfo" class="customer-card">
+                            <div class="customer-avatar" id="customerAvatar">
+                                <span>--</span>
+                            </div>
+                            <div class="customer-name" id="customerName">Customer Name</div>
+                            <div class="customer-phone" id="customerPhone">Phone Number</div>
+                            <div class="customer-stats">
+                                <div class="customer-stat">
+                                    <div class="customer-stat-value" id="customerVisits">0</div>
+                                    <div class="customer-stat-label">Visits</div>
+                                </div>
+                                <div class="customer-stat">
+                                    <div class="customer-stat-value" id="customerStatus">Regular</div>
+                                    <div class="customer-stat-label">Status</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="last-recognition">
+                            <h6>Last Recognition</h6>
+                            <p id="lastRecognition">No recent activity</p>
+                            <small>System will automatically identify clients and load their appointments</small>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Today's Appointments -->
-        <div class="row">
-            <div class="col-12">
-                <div class="card">
-                    <div class="card-header bg-primary text-white">
-                        <h5 class="mb-0">
-                            <i data-feather="calendar" class="me-2"></i>
-                            Today's Appointments
-                        </h5>
-                    </div>
-                    <div class="card-body">
-                        {% if appointments %}
-                        <div class="table-responsive">
-                            <table class="table table-striped">
-                                <thead>
-                                    <tr>
-                                        <th>Time</th>
-                                        <th>Client</th>
-                                        <th>Service</th>
-                                        <th>Staff</th>
-                                        <th>Status</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="appointmentsTable">
-                                    {% for appointment in appointments %}
-                                    <tr data-appointment-id="{{ appointment.id }}" data-client-id="{{ appointment.client.id }}">
-                                        <td>{{ appointment.appointment_date.strftime('%I:%M %p') }}</td>
-                                        <td>
-                                            <strong>{{ appointment.client.full_name }}</strong>
-                                            <br><small class="text-muted">{{ appointment.client.phone }}</small>
-                                        </td>
-                                        <td>{{ appointment.service.name }}</td>
-                                        <td>{{ appointment.assigned_staff.full_name }}</td>
-                                        <td>
-                                            {% if appointment.status == 'scheduled' %}
-                                            <span class="badge bg-warning">Scheduled</span>
-                                            {% elif appointment.status == 'confirmed' %}
-                                            <span class="badge bg-info">Confirmed</span>
-                                            {% elif appointment.status == 'in_progress' %}
-                                            <span class="badge bg-primary">In Progress</span>
-                                            {% elif appointment.status == 'completed' %}
-                                            <span class="badge bg-success">Completed</span>
-                                            {% endif %}
-                                        </td>
-                                        <td>
-                                            {% if appointment.status in ['scheduled', 'confirmed'] %}
-                                            <form method="POST" action="{{ url_for('checkin_appointment', id=appointment.id) }}" style="display: inline;">
-                                                <button type="submit" class="btn btn-sm btn-success">
-                                                    <i data-feather="check" style="width: 14px; height: 14px;"></i>
-                                                    Check In
-                                                </button>
-                                            </form>
-                                            {% elif appointment.status == 'in_progress' %}
-                                            <span class="badge bg-primary">Checked In</span>
-                                            {% else %}
-                                            <span class="badge bg-secondary">{{ appointment.status.title() }}</span>
-                                            {% endif %}
-
-                                            {% if appointment.client.face_encoding or appointment.client.face_image_url %}
-                                            <button type="button" class="btn btn-sm btn-danger ms-1" 
-                                                    onclick="deleteFaceDataFromCheckin({{ appointment.client.id }}, '{{ appointment.client.full_name }}')"
-                                                    title="Delete Face Data">
-                                                <i data-feather="trash-2" style="width: 14px; height: 14px;"></i>
-                                            </button>
-                                            {% endif %}
-                                        </td>
-                                    </tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
-                        </div>
-                        {% else %}
-                        <div class="text-center py-5">
-                            <i data-feather="calendar-x" style="width: 60px; height: 60px;" class="text-muted mb-3"></i>
-                            <h5>No appointments today</h5>
-                            <p class="text-muted">No scheduled appointments for today.</p>
-                        </div>
-                        {% endif %}
-                    </div>
+        <div class="appointments-section">
+            <div class="section-header">
+                <div class="section-header-icon">
+                    <i class="fas fa-calendar-day"></i>
                 </div>
+                <h5>Today's Appointments</h5>
             </div>
+            {% if appointments %}
+            <div class="table-responsive">
+                <table class="appointments-table">
+                    <thead>
+                        <tr>
+                            <th>Time</th>
+                            <th>Client</th>
+                            <th>Service</th>
+                            <th>Staff</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="appointmentsTable">
+                        {% for appointment in appointments %}
+                        <tr data-appointment-id="{{ appointment.id }}" data-client-id="{{ appointment.client.id }}">
+                            <td>
+                                <strong>{{ appointment.appointment_date.strftime('%I:%M %p') }}</strong>
+                            </td>
+                            <td class="client-info-cell">
+                                <strong>{{ appointment.client.full_name }}</strong>
+                                <small>{{ appointment.client.phone }}</small>
+                            </td>
+                            <td>{{ appointment.service.name }}</td>
+                            <td>{{ appointment.assigned_staff.full_name }}</td>
+                            <td>
+                                {% if appointment.status == 'scheduled' %}
+                                <span class="badge-status badge-scheduled">Scheduled</span>
+                                {% elif appointment.status == 'confirmed' %}
+                                <span class="badge-status badge-confirmed">Confirmed</span>
+                                {% elif appointment.status == 'in_progress' %}
+                                <span class="badge-status badge-in-progress">In Progress</span>
+                                {% elif appointment.status == 'completed' %}
+                                <span class="badge-status badge-completed">Completed</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if appointment.status in ['scheduled', 'confirmed'] %}
+                                <form method="POST" action="{{ url_for('checkin_appointment', id=appointment.id) }}" style="display: inline;">
+                                    <button type="submit" class="btn-action btn-checkin">
+                                        <i class="fas fa-check"></i>
+                                        Check In
+                                    </button>
+                                </form>
+                                {% elif appointment.status == 'in_progress' %}
+                                <span class="badge-status badge-in-progress">Checked In</span>
+                                {% else %}
+                                <span class="badge-status" style="background: #f1f5f9; color: #64748b;">{{ appointment.status.title() }}</span>
+                                {% endif %}
+
+                                {% if appointment.client.face_encoding or appointment.client.face_image_url %}
+                                <button type="button" class="btn-action btn-delete-face" 
+                                        onclick="deleteFaceDataFromCheckin({{ appointment.client.id }}, '{{ appointment.client.full_name }}')"
+                                        title="Delete Face Data">
+                                    <i class="fas fa-trash-alt"></i>
+                                </button>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="empty-appointments">
+                <div class="empty-icon">
+                    <i class="fas fa-calendar-xmark"></i>
+                </div>
+                <h5>No appointments today</h5>
+                <p>No scheduled appointments for today.</p>
+            </div>
+            {% endif %}
         </div>
     </div>
 </div>
@@ -304,27 +868,22 @@
 <script>
 console.log('Face recognition check-in module loaded');
 
-// Use unique variable names to avoid conflicts with main.js
 let checkinStream = null;
 let checkinRecognitionInterval = null;
 let checkinIsRecognizing = false;
-let recognizedCustomerId = null; // Variable to store the recognized customer ID
+let recognizedCustomerId = null;
 
-// Declare canvas and video globally within the script scope for easy access in multiple functions
 let video = null;
 let canvas = null;
 
-// Verify elements on page load
-// Initialize when DOM is ready
 document.addEventListener('DOMContentLoaded', function() {
     console.log('=== CHECKIN PAGE DOM LOADED ===');
 
-    // Log all elements
     const startButton = document.getElementById('startRecognition');
     const stopButton = document.getElementById('stopRecognition');
-    video = document.getElementById('checkinVideo'); // Assign to global video variable
+    video = document.getElementById('checkinVideo');
     const placeholder = document.getElementById('cameraPlaceholder');
-    canvas = document.createElement('canvas'); // Create canvas element dynamically
+    canvas = document.createElement('canvas');
 
     console.log('Elements found:');
     console.log('- Start button:', startButton);
@@ -333,7 +892,6 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log('- Placeholder:', placeholder);
     console.log('- Canvas element:', canvas);
 
-    // Attach event listeners - using addEventListener for better reliability
     if (startButton) {
         console.log('Attaching click handler to start button...');
 
@@ -344,9 +902,9 @@ document.addEventListener('DOMContentLoaded', function() {
             startFaceRecognition();
         });
 
-        console.log('✅ Start button listener attached successfully');
+        console.log('Start button listener attached successfully');
     } else {
-        console.error('❌ Start button NOT FOUND');
+        console.error('Start button NOT FOUND');
     }
 
     if (stopButton) {
@@ -356,24 +914,16 @@ document.addEventListener('DOMContentLoaded', function() {
             console.log('>>> STOP BUTTON CLICKED <<<');
             stopRecognition();
         });
-        console.log('✅ Stop button listener attached');
+        console.log('Stop button listener attached');
     } else {
-        console.error('❌ Stop button NOT FOUND');
-    }
-
-    // Initialize Feather icons
-    if (typeof feather !== 'undefined') {
-        feather.replace();
-        console.log('✅ Feather icons initialized');
+        console.error('Stop button NOT FOUND');
     }
 
     console.log('=== CHECKIN PAGE INITIALIZATION COMPLETE ===');
 });
 
 async function startFaceRecognition() {
-    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-    console.log('🎥 START FACE RECOGNITION FUNCTION CALLED');
-    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    console.log('START FACE RECOGNITION FUNCTION CALLED');
 
     try {
         console.log('Step 1: Checking camera API availability...');
@@ -381,11 +931,10 @@ async function startFaceRecognition() {
         if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
             throw new Error('Camera API not available in this browser. Please use Chrome, Firefox, or Safari.');
         }
-        console.log('✅ Camera API available');
+        console.log('Camera API available');
 
         console.log('Step 2: Requesting camera access...');
 
-        // Request camera access with fallback
         try {
             checkinStream = await navigator.mediaDevices.getUserMedia({ 
                 video: { 
@@ -395,19 +944,17 @@ async function startFaceRecognition() {
                 } 
             });
         } catch (videoError) {
-            // Try with basic constraints if ideal fails
             console.log('Trying basic camera constraints...');
             checkinStream = await navigator.mediaDevices.getUserMedia({ 
                 video: true 
             });
         }
 
-        console.log('✅ Camera access granted!');
+        console.log('Camera access granted!');
         console.log('Stream details:', checkinStream);
         console.log('Video tracks:', checkinStream.getVideoTracks());
 
         console.log('Step 3: Getting DOM elements...');
-        // video and canvas are already declared and assigned in DOMContentLoaded
 
         console.log('Video element:', video);
         console.log('Placeholder element:', document.getElementById('cameraPlaceholder'));
@@ -423,7 +970,7 @@ async function startFaceRecognition() {
 
         console.log('Step 5: Starting video playback...');
         await video.play();
-        console.log('✅ Video playing');
+        console.log('Video playing');
 
         console.log('Step 6: Updating UI...');
         video.style.display = 'block';
@@ -435,50 +982,32 @@ async function startFaceRecognition() {
         const overlay = document.getElementById('cameraOverlay');
         if (overlay) {
             overlay.style.display = 'block';
-            overlay.style.position = 'absolute';
-            overlay.style.zIndex = '100';
-            overlay.style.pointerEvents = 'none';
-            overlay.style.border = '6px solid #667eea';
-            overlay.style.borderRadius = '50%';
-            overlay.style.width = '280px';
-            overlay.style.height = '280px';
-            overlay.style.boxShadow = '0 0 0 9999px rgba(0, 0, 0, 0.5), 0 0 20px rgba(102, 126, 234, 0.6)';
             overlay.classList.add('scanning-animation');
-            console.log('✅ Overlay displayed with styles:', {
-                display: overlay.style.display,
-                position: overlay.style.position,
-                zIndex: overlay.style.zIndex,
-                border: overlay.style.border,
-                borderRadius: overlay.style.borderRadius
-            });
         }
-        console.log('✅ UI updated');
+        console.log('UI updated');
 
         console.log('Step 7: Updating button states...');
         const startBtn = document.getElementById('startRecognition');
         const stopBtn = document.getElementById('stopRecognition');
         if (startBtn) startBtn.disabled = true;
         if (stopBtn) stopBtn.disabled = false;
-        console.log('✅ Buttons updated');
+        console.log('Buttons updated');
 
         console.log('Step 8: Updating status message...');
-        window.recognitionAttempts = 0; // Reset attempt counter
-        recognizedCustomerId = null; // Reset recognized customer ID
-        updateStatus('info', 'Ready for Check-In', 'Position your face in the circle for recognition.');
+        window.recognitionAttempts = 0;
+        recognizedCustomerId = null;
+        updateStatus('scanning', 'Scanning for Faces', 'Position your face within the circle for recognition.');
 
-        // Show progress bar
         const progressBar = document.getElementById('scanningProgress');
         if (progressBar) {
-            progressBar.style.display = 'block';
+            progressBar.classList.add('active');
         }
 
         console.log('Step 9: Starting recognition loop...');
         checkinIsRecognizing = true;
-        checkinRecognitionInterval = setInterval(() => performRecognition(video), 2000); // Pass video element to performRecognition
+        checkinRecognitionInterval = setInterval(() => performRecognition(video), 2000);
 
-        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-        console.log('✅ FACE RECOGNITION STARTED SUCCESSFULLY');
-        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+        console.log('FACE RECOGNITION STARTED SUCCESSFULLY');
 
     } catch (error) {
         console.error('Camera access error:', error);
@@ -498,26 +1027,22 @@ async function startFaceRecognition() {
             errorMessage = 'Unable to access camera. Please check your camera settings and permissions, then try again.';
         }
 
-        updateStatus('danger', errorTitle, errorMessage);
+        updateStatus('error', errorTitle, errorMessage);
     }
 }
 
-// Log when script loads
 console.log('Face recognition check-in script loaded and ready');
 
 function stopRecognition() {
     console.log('Stopping face recognition...');
 
-    // Reset attempt counter
     window.recognitionAttempts = 0;
 
-    // Stop camera stream
     if (checkinStream) {
         checkinStream.getTracks().forEach(track => track.stop());
         checkinStream = null;
     }
 
-    // Clear recognition interval
     if (checkinRecognitionInterval) {
         clearInterval(checkinRecognitionInterval);
         checkinRecognitionInterval = null;
@@ -525,593 +1050,234 @@ function stopRecognition() {
 
     checkinIsRecognizing = false;
 
-    // Reset UI
-    // video and canvas are global
     if (video) video.style.display = 'none';
     const placeholder = document.getElementById('cameraPlaceholder');
-    if (placeholder) placeholder.style.display = 'block';
+    if (placeholder) placeholder.style.display = 'flex';
     const overlay = document.getElementById('cameraOverlay');
     if (overlay) {
         overlay.style.display = 'none';
         overlay.classList.remove('scanning-animation');
-        overlay.classList.remove('success'); // Remove success class
-        overlay.classList.remove('error');   // Remove error class
+        overlay.classList.remove('success');
+        overlay.classList.remove('error');
+        overlay.classList.remove('detecting');
     }
 
-    // Update button states
     document.getElementById('startRecognition').disabled = false;
     document.getElementById('stopRecognition').disabled = true;
 
-    // Hide progress bar
     const progressBar = document.getElementById('scanningProgress');
     if (progressBar) {
-        progressBar.style.display = 'none';
+        progressBar.classList.remove('active');
     }
 
-    // Only reset status if no customer is recognized
-    // Customer info and billing button will remain visible for 10 minutes
     if (!recognizedCustomerId) {
-        updateStatus('info', 'Ready for Check-In', 'Click "Start Recognition" and position your face in the circle for automatic check-in.');
+        updateStatus('ready', 'Ready for Check-In', 'Click "Start Recognition" and position your face in the circle for automatic check-in.');
     }
 
     console.log('Face recognition stopped - customer info remains visible');
 }
 
-async function performRecognition(videoElement) { // Renamed parameter to avoid conflict with global 'video'
-    if (!checkinIsRecognizing || !videoElement || videoElement.readyState !== videoElement.HAVE_ENOUGH_DATA) {
-        return;
+function updateStatus(type, title, message) {
+    const statusAlert = document.getElementById('statusAlert');
+    if (!statusAlert) return;
+
+    statusAlert.className = 'status-card';
+    
+    let iconClass = 'fa-check';
+    
+    switch(type) {
+        case 'ready':
+        case 'info':
+            statusAlert.classList.add('status-ready');
+            iconClass = 'fa-check';
+            break;
+        case 'scanning':
+        case 'warning':
+            statusAlert.classList.add('status-scanning');
+            iconClass = 'fa-spinner fa-spin';
+            break;
+        case 'success':
+            statusAlert.classList.add('status-success');
+            iconClass = 'fa-check-circle';
+            break;
+        case 'error':
+        case 'danger':
+            statusAlert.classList.add('status-error');
+            iconClass = 'fa-exclamation-triangle';
+            break;
+    }
+
+    statusAlert.innerHTML = `
+        <div class="d-flex align-items-start">
+            <div class="status-icon">
+                <i class="fas ${iconClass}"></i>
+            </div>
+            <div>
+                <div class="status-title">${title}</div>
+                <p class="status-message">${message}</p>
+            </div>
+        </div>
+    `;
+}
+
+function showCustomerInfo(customer) {
+    const customerCard = document.getElementById('customerInfo');
+    const customerAvatar = document.getElementById('customerAvatar');
+    const customerName = document.getElementById('customerName');
+    const customerPhone = document.getElementById('customerPhone');
+    const customerVisits = document.getElementById('customerVisits');
+    const customerStatus = document.getElementById('customerStatus');
+    
+    if (!customerCard) return;
+    
+    const initials = customer.name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
+    customerAvatar.innerHTML = `<span>${initials}</span>`;
+    customerName.textContent = customer.name;
+    customerPhone.textContent = customer.phone || 'No phone';
+    customerVisits.textContent = customer.visits || '0';
+    customerStatus.textContent = customer.status || 'Regular';
+    
+    customerCard.classList.add('visible');
+    recognizedCustomerId = customer.id;
+}
+
+function hideCustomerInfo() {
+    const customerCard = document.getElementById('customerInfo');
+    if (customerCard) {
+        customerCard.classList.remove('visible');
+    }
+    recognizedCustomerId = null;
+}
+
+async function performRecognition(videoElement) {
+    if (!checkinIsRecognizing || !videoElement) return;
+    
+    console.log('Performing face recognition...');
+    
+    window.recognitionAttempts = (window.recognitionAttempts || 0) + 1;
+    const progressText = document.getElementById('progressText');
+    if (progressText) {
+        progressText.textContent = `Scanning... (Attempt ${window.recognitionAttempts})`;
+    }
+    
+    const overlay = document.getElementById('cameraOverlay');
+    if (overlay) {
+        overlay.classList.add('detecting');
     }
 
     try {
-        // Capture frame using the globally declared canvas and video elements
-        const imageData = captureFaceImage(); // Use the updated captureFaceImage function
-
-        if (!imageData || imageData.length < 100) {
-            console.warn('Failed to capture valid image, skipping recognition attempt. Image data length:', imageData ? imageData.length : 0);
-            return;
+        if (!canvas) {
+            canvas = document.createElement('canvas');
         }
-
-        console.log('Sending image data (first 50 chars):', imageData.substring(0, 50) + '...');
-
-        // Send to face recognition API
-        const response = await fetch('/api/face-recognition/recognize', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-Requested-With': 'XMLHttpRequest'
-                    },
-                    credentials: 'same-origin',
-                    body: JSON.stringify({ image: imageData })
-                });
-
-        // Check if response is JSON
-        const contentType = response.headers.get('content-type');
-        if (!contentType || !contentType.includes('application/json')) {
-            console.error('Non-JSON response received from server');
-            throw new Error('The face recognition service is not responding correctly. Please refresh the page and try again.');
-        }
-
-        const result = await response.json();
-        console.log('Recognition result:', result);
+        canvas.width = videoElement.videoWidth || 640;
+        canvas.height = videoElement.videoHeight || 480;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
         
-        // Handle explicit service unavailable errors
-        if (!result.success && (result.error === 'Face recognition library not available' || result.message?.includes('not available'))) {
-            throw new Error('The face recognition service is not available. Please contact your administrator to install the required libraries.');
-        }
-
-        const overlay = document.getElementById('cameraOverlay');
-
-        if (response.ok && result.success) {
-            if (result.recognized && result.customer) {
-                // Customer recognized successfully
-                console.log('Customer recognized:', result.customer.name);
-
-                // Store the recognized customer ID
-                recognizedCustomerId = result.customer.id;
-
-                // Show success indicator (yellow if duplicate warning, green otherwise)
-                if (overlay) {
-                    overlay.classList.remove('scanning-animation'); // Remove animation on recognition
-                    overlay.classList.add('success'); // Add success class
-                    if (result.duplicate_warning) {
-                        overlay.style.border = '6px solid #ffc107'; // Yellow/Orange for warning
-                        overlay.style.boxShadow = '0 0 0 9999px rgba(0, 0, 0, 0.5), 0 0 30px rgba(255, 193, 7, 0.8)';
-                    } else {
-                        overlay.style.border = '6px solid #28a745'; // Green for success
-                        overlay.style.boxShadow = '0 0 0 9999px rgba(0, 0, 0, 0.5), 0 0 30px rgba(40, 167, 69, 0.8)';
-                    }
-                }
-
-                // Show duplicate warning if exists
-                if (result.duplicate_warning && result.similar_customers) {
-                    console.warn('⚠️ Duplicate face detected!', result.similar_customers);
-
-                    let warningHtml = '<div class="alert alert-warning mt-3" role="alert">';
-                    warningHtml += '<h6><i class="fas fa-exclamation-triangle me-2"></i>Multiple Similar Faces Detected</h6>';
-                    warningHtml += '<p class="mb-2">This face matches multiple customers. Please verify:</p>';
-                    warningHtml += '<ul class="mb-0">';
-
-                    result.similar_customers.forEach(customer => {
-                        warningHtml += `<li><strong>${customer.name}</strong> - ${customer.similarity} match</li>`;
-                    });
-
-                    warningHtml += '</ul>';
-                    warningHtml += '</div>';
-
-                    // Insert warning after customer info
-                    const customerInfo = document.getElementById('customerInfo');
-                    if (customerInfo) {
-                        // Remove any previous warnings before adding a new one
-                        const existingWarning = customerInfo.nextElementSibling;
-                        if (existingWarning && existingWarning.classList.contains('alert-warning')) {
-                            existingWarning.remove();
-                        }
-                        customerInfo.insertAdjacentHTML('afterend', warningHtml);
-                    }
-                }
-
-                displayRecognizedCustomer(result.customer);
-                highlightCustomerAppointment(result.customer.id);
-
-                // Add a button to go to billing
-                addGoToBillingButton();
-
-                // Keep the green circle visible for 3 seconds before stopping
-                setTimeout(() => stopRecognition(), 3000);
-            } else if (result.message) {
-                // No match found - show visual feedback
-                console.log('No match:', result.message);
-
-                // Flash red briefly to show scan attempt
-                if (overlay) {
-                    overlay.classList.remove('scanning-animation'); // Ensure animation is off
-                    overlay.classList.add('error'); // Add error class
-                    overlay.style.border = '6px solid #ffc107'; // Use warning color (yellow) for failed scan
-                    overlay.style.boxShadow = '0 0 0 9999px rgba(0, 0, 0, 0.5), 0 0 30px rgba(255, 193, 7, 0.8)';
-                    setTimeout(() => {
-                        if (checkinIsRecognizing && overlay) {
-                            // Revert to default scanning style if still recognizing
-                            overlay.classList.remove('error');
-                            overlay.style.border = '6px solid #667eea';
-                            overlay.style.boxShadow = '0 0 0 9999px rgba(0, 0, 0, 0.5), 0 0 20px rgba(102, 126, 234, 0.6)';
-                        }
-                    }, 500);
-                }
-
-                // Update status with attempt count
-                const statusEl = document.getElementById('statusAlert');
-                const progressText = document.getElementById('progressText');
-                if (statusEl) {
-                    const attemptCount = (window.recognitionAttempts || 0) + 1;
-                    window.recognitionAttempts = attemptCount;
-
-                    if (progressText) {
-                        progressText.textContent = `Scanning... (Attempt ${attemptCount})`;
-                    }
-
-                    updateStatus('warning', 'Scanning...', 
-                        `Face detection attempt ${attemptCount}. Please ensure your face is clearly visible in the circle.`);
-                }
-            }
-        } else {
-            console.error('Recognition failed:', result.error || 'Unknown error');
-
-            // Show error indicator
-            if (overlay) {
-                overlay.classList.remove('scanning-animation');
-                overlay.classList.add('error');
-                overlay.style.border = '6px solid #dc3545';
-                overlay.style.boxShadow = '0 0 0 9999px rgba(0, 0, 0, 0.5), 0 0 30px rgba(220, 53, 69, 0.8)';
-            }
-
-            // Check if it's an authentication error
-            if (response.status === 401 || result.error === 'Access denied' || result.error === 'Please log in to access this feature') {
-                updateStatus('warning', 'Authentication Required', 
-                    'Your session may have expired. Please refresh the page and log in again to continue.');
-                stopRecognition();
-            } else {
-                updateStatus('danger', 'Recognition Error', 
-                    result.error || 'Unable to process face recognition. Please ensure your face is clearly visible and try again.');
-            }
-        }
-
-    } catch (err) {
-        console.error('Recognition error:', err);
-
-        // Show error indicator
-        const overlay = document.getElementById('cameraOverlay');
-        if (overlay) {
-            overlay.classList.remove('scanning-animation');
-            overlay.classList.add('error');
-            overlay.style.border = '6px solid #dc3545';
-            overlay.style.boxShadow = '0 0 0 9999px rgba(0, 0, 0, 0.5), 0 0 30px rgba(220, 53, 69, 0.8)';
-        }
-
-        // Determine error type and show appropriate message
-        let errorTitle = 'Connection Error';
-        let errorMessage = '';
-
-        if (err.message && (err.message.includes('not available') || err.message.includes('Service Unavailable'))) {
-            errorTitle = 'Service Unavailable';
-            errorMessage = 'The face recognition service is not available. Please contact your administrator or try again later.';
-        } else if (err.message && err.message.includes('not responding correctly')) {
-            errorTitle = 'Service Error';
-            errorMessage = err.message;
-        } else if (err.message && err.message.includes('NetworkError')) {
-            errorMessage = 'Network connection failed. Please check your internet connection and try again.';
-        } else if (err.message) {
-            errorMessage = err.message;
-        } else {
-            errorMessage = 'An unexpected error occurred. Please try again or contact support if the problem persists.';
-        }
-
-        updateStatus('danger', errorTitle, errorMessage);
-    }
-}
-
-// Helper function to capture face image from video stream
-function captureFaceImage() {
-    console.log('Capturing frame for recognition...');
-
-    // Ensure video and canvas elements are available
-    if (!video || !canvas) {
-        console.error('Video or canvas element not found for image capture');
-        return null; // Return null if elements are not ready
-    }
-
-    // Check if video is actually playing and has enough data
-    if (video.readyState !== video.HAVE_ENOUGH_DATA) {
-        console.warn('Video not ready, skipping frame capture');
-        return null; // Return null if video is not ready
-    }
-
-    // Set canvas dimensions to match video dimensions
-    canvas.width = video.videoWidth || 640;
-    canvas.height = video.videoHeight || 480;
-
-    // Draw the current video frame onto the canvas
-    const ctx = canvas.getContext('2d');
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-    // Convert the canvas content to a JPEG data URL
-    const imageData = canvas.toDataURL('image/jpeg', 0.8);
-
-    // Validate the captured image data
-    if (!imageData || imageData === 'data:,') {
-        console.error('Failed to capture valid image data from canvas');
-        return null; // Return null if image data is invalid
-    }
-
-    console.log('Image captured, size:', imageData.length, 'bytes');
-    return imageData; // Return the captured image data
-}
-
-// Function to handle successful recognition
-function handleSuccessfulRecognition(customer) {
-    console.log('Customer recognized, handling display:', customer);
-    displayRecognizedCustomer(customer);
-    highlightCustomerAppointment(customer.id);
-    addGoToBillingButton(); // Ensure billing button is added
-}
-
-// Function to recognize face (now calls captureFaceImage and then sends data)
-function recognizeFace(imageData) {
-    // Validate imageData before sending
-    if (!imageData || imageData.length < 100) { // Basic check for valid data
-        console.error('Invalid image data received, skipping recognition');
-        return;
-    }
-
-    console.log('Sending recognition request with image data (first 50 chars):', imageData.substring(0, 50) + '...');
-
-    fetch('/api/face-recognition/recognize', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-Requested-With': 'XMLHttpRequest' // Important for some backend frameworks to identify AJAX requests
-        },
-        credentials: 'same-origin', // Ensure cookies are sent if needed
-        body: JSON.stringify({
-            face_image: imageData  // Corrected field name to 'face_image' as expected by the API
-        })
-    })
-    .then(response => {
-        // Check for non-JSON content type before parsing
-        const contentType = response.headers.get('content-type');
-        if (!contentType || !contentType.includes('application/json')) {
-            console.error('Non-JSON response received:', { status: response.status, contentType: contentType });
-            // Attempt to read as text if not JSON, to show potential server errors
-            return response.text().then(text => {
-                throw new Error(`Server returned non-JSON response. Status: ${response.status}. Body: ${text}`);
-            });
-        }
-        return response.json();
-    })
-    .then(data => {
-        console.log('Recognition API response:', data);
-
-        if (data.success && data.recognized && data.customer) {
-            // Successful recognition of a customer
-            handleSuccessfulRecognition(data.customer);
-        } else if (data.success && !data.recognized && data.message) {
-            // Successful API call, but no customer recognized
-            console.log('No customer recognized:', data.message);
-            // Update status to reflect scanning attempt and count
-            const attemptCount = (window.recognitionAttempts || 0) + 1;
-            window.recognitionAttempts = attemptCount;
-            updateStatus('warning', 'Scanning...', `Face detection attempt ${attemptCount}. Please ensure your face is clearly visible in the circle.`);
-
-            // Visual feedback for failed scan
-            const overlay = document.getElementById('cameraOverlay');
-            if (overlay) {
-                overlay.classList.remove('scanning-animation');
-                overlay.classList.add('error'); // Indicate a failed scan visually
-                overlay.style.border = '6px solid #ffc107'; // Use warning color (yellow) for failed scan
-                overlay.style.boxShadow = '0 0 0 9999px rgba(0, 0, 0, 0.5), 0 0 30px rgba(255, 193, 7, 0.8)';
-                setTimeout(() => {
-                    if (checkinIsRecognizing && overlay) {
-                        // Revert to default scanning style if still recognizing
-                        overlay.classList.remove('error');
-                        overlay.style.border = '6px solid #667eea'; // Back to blue
-                        overlay.style.boxShadow = '0 0 0 9999px rgba(0, 0, 0, 0.5), 0 0 20px rgba(102, 126, 234, 0.6)';
-                    }
-                }, 500);
-            }
-        } else if (data.duplicate_warning && data.similar_customers) {
-            // Handle duplicate face detection with a warning
-            console.warn('⚠️ Duplicate face detected!', data.similar_customers);
-            // The performRecognition function already handles displaying the warning HTML
-            // and updating the overlay color.
-            // We still need to call displayRecognizedCustomer for the *first* match if available,
-            // or handle it differently if we want to *prevent* auto-selection.
-            // For now, assume the first match in `similar_customers` is prioritized by the backend.
-            if (data.customer) { // If a primary customer is still returned for the duplicate warning
-                handleSuccessfulRecognition(data.customer);
-            }
-        } else {
-            // Handle general recognition errors or failure messages from the API
-            console.error('Recognition API reported failure:', data.message || 'Unknown error');
-            updateStatus('danger', 'Recognition Error', data.message || 'Unable to process face recognition. Please try again.');
-             // Visual feedback for API error
-            const overlay = document.getElementById('cameraOverlay');
-            if (overlay) {
-                overlay.classList.remove('scanning-animation');
-                overlay.classList.add('error');
-                overlay.style.border = '6px solid #dc3545';
-                overlay.style.boxShadow = '0 0 0 9999px rgba(0, 0, 0, 0.5), 0 0 30px rgba(220, 53, 69, 0.8)';
-            }
-        }
-    })
-    .catch(error => {
-        console.error('Error during fetch operation:', error);
-        // Handle network errors or issues during the fetch process
-        updateStatus('danger', 'Connection Error', 'Unable to connect to the recognition service. Please check your network connection and try again.');
-         // Visual feedback for network/connection error
-        const overlay = document.getElementById('cameraOverlay');
-        if (overlay) {
-            overlay.classList.remove('scanning-animation');
-            overlay.classList.add('error');
-            overlay.style.border = '6px solid #dc3545';
-            overlay.style.boxShadow = '0 0 0 9999px rgba(0, 0, 0, 0.5), 0 0 30px rgba(220, 53, 69, 0.8)';
-        }
-    });
-}
-
-
-function displayRecognizedCustomer(customer) {
-    console.log('Displaying recognized customer:', customer);
-
-    // Update status alert with success message
-    updateStatus('success', `Welcome ${customer.name}!`, 'Customer recognized successfully. Billing button available for 10 minutes.');
-
-    // Show customer info card
-    const customerInfo = document.getElementById('customerInfo');
-    if (!customerInfo) {
-        console.error('Customer info element not found');
-        return;
-    }
-
-    // Get initials for avatar
-    const nameParts = customer.name.split(' ');
-    const initials = nameParts.map(n => n.charAt(0)).join('').toUpperCase(); // Use charAt(0) for safety
-
-    // Update customer info elements
-    const avatarEl = document.getElementById('customerAvatar');
-    const nameEl = document.getElementById('customerName');
-    const phoneEl = document.getElementById('customerPhone');
-    const visitsEl = document.getElementById('customerVisits');
-    const statusEl = document.getElementById('customerStatus');
-
-    if (avatarEl) avatarEl.textContent = initials;
-    if (nameEl) nameEl.textContent = customer.name;
-    if (phoneEl) phoneEl.textContent = customer.phone || 'N/A'; // Handle potential null phone
-    if (visitsEl) visitsEl.textContent = customer.total_visits || 0; // Handle potential null visits
-    if (statusEl) statusEl.textContent = customer.is_vip ? 'VIP' : 'Regular'; // Handle potential null is_vip
-
-    // Show the customer info card
-    customerInfo.style.display = 'block';
-
-    // Show the billing button
-    const billingButtonContainer = document.getElementById('billingButtonContainer');
-    if (billingButtonContainer) {
-        billingButtonContainer.style.display = 'block';
-        // Re-initialize feather icons for the button
-        if (typeof feather !== 'undefined') {
-            feather.replace();
-        }
-    }
-
-    // Update last recognition timestamp
-    const lastRecognitionEl = document.getElementById('lastRecognition');
-    if (lastRecognitionEl) {
-        const now = new Date();
-        lastRecognitionEl.textContent = `${customer.name} - ${now.toLocaleTimeString()}`;
-    }
-
-    // Clear any existing timeout to prevent multiple timers running
-    if (window.customerInfoTimeout) {
-        clearTimeout(window.customerInfoTimeout);
-    }
-
-    // Set timeout to hide customer info and billing button after 10 minutes (600000 ms)
-    window.customerInfoTimeout = setTimeout(() => {
-        if (customerInfo) customerInfo.style.display = 'none';
-        if (billingButtonContainer) billingButtonContainer.style.display = 'none';
-        updateStatus('info', 'Session expired', 'Customer information cleared. Please scan again to proceed to billing.');
-        console.log('Customer info hidden after 10 minutes');
-        recognizedCustomerId = null; // Clear recognized customer ID when info is hidden
-    }, 600000); // 10 minutes = 600000 milliseconds
-
-    console.log('Customer info will remain visible for 10 minutes');
-}
-
-function highlightCustomerAppointment(customerId) {
-    console.log('Highlighting appointment for customer:', customerId);
-
-    // Find and highlight the customer's appointment in the table
-    const rows = document.querySelectorAll('#appointmentsTable tr');
-    let found = false;
-
-    rows.forEach(row => {
-        row.classList.remove('table-primary'); // Remove previous highlight
-        const clientId = row.dataset.clientId;
-
-        // Ensure clientId exists and is a number before comparison
-        if (clientId && !isNaN(parseInt(clientId)) && !isNaN(parseInt(customerId))) {
-            if (parseInt(clientId) === parseInt(customerId)) {
-                row.classList.add('table-primary'); // Apply highlight
-                row.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); // Scroll to the row
-                found = true;
-                console.log('Appointment highlighted for customer:', customerId);
-            }
-        }
-    });
-
-    if (!found) {
-        console.log('No appointment found for customer:', customerId);
-    }
-}
-
-function updateStatus(type, title, message) {
-    const statusAlert = document.getElementById('statusAlert');
-    if (!statusAlert) {
-        console.error('Status alert element not found');
-        return;
-    }
-
-    // Map alert types to Bootstrap classes and icons
-    const alertConfig = {
-        'info': { icon: 'info', iconSize: '2rem' },
-        'success': { icon: 'check-circle', iconSize: '2.5rem' },
-        'danger': { icon: 'x-circle', iconSize: '2.5rem' },
-        'warning': { icon: 'alert-triangle', iconSize: '2.5rem' }
-    };
-
-    const config = alertConfig[type] || alertConfig['info']; // Default to info if type is invalid
-
-    statusAlert.className = `alert alert-${type} d-flex align-items-start`; // Update classes
-    statusAlert.innerHTML = `
-        <div class="me-3" style="font-size: ${config.iconSize};">
-            <i data-feather="${config.icon}"></i>
-        </div>
-        <div class="flex-grow-1">
-            <h5 class="alert-heading mb-1">${title}</h5>
-            <p class="mb-0">${message}</p>
-        </div>
-    `;
-
-    // Re-initialize feather icons if available
-    if (typeof feather !== 'undefined') {
-        feather.replace();
-    }
-}
-
-// Function to add a "Go to Billing" button
-function addGoToBillingButton() {
-    // Check if the button already exists to avoid duplicates
-    if (!document.getElementById('goToBillingButton')) {
-        const customerInfoDiv = document.getElementById('customerInfo');
-        if (customerInfoDiv) {
-            const button = document.createElement('button');
-            button.id = 'goToBillingButton';
-            button.type = 'button';
-            button.className = 'btn btn-primary btn-lg mt-3 w-100';
-            button.innerHTML = '<i data-feather="dollar-sign" class="me-2"></i>Go to Billing';
-
-            // Append the button to the customer info div
-            customerInfoDiv.appendChild(button);
-
-            // Re-initialize feather icons for the new button
-            if (typeof feather !== 'undefined') {
-                feather.replace();
-            }
-
-            // Attach event listener to the new button
-            button.addEventListener('click', goToBillingWithCustomer);
-            console.log('Go to Billing button added and event listener attached.');
-        } else {
-            console.error('Customer info div not found, cannot add Go to Billing button.');
-        }
-    } else {
-        // If button exists, ensure it's visible (e.g., if customer info was refreshed)
-        const button = document.getElementById('goToBillingButton');
-        if (button && button.parentElement && button.parentElement.style.display !== 'none') {
-            button.style.display = 'block'; // Ensure button is visible if customer info is visible
-        }
-    }
-}
-
-// Function to navigate to the billing page with the customer ID
-function goToBillingWithCustomer() {
-    if (recognizedCustomerId) {
-        // Navigate to billing page with customer ID in URL path (same as Unaki booking)
-        window.location.href = `/integrated-billing/${recognizedCustomerId}`;
-    } else {
-        console.error('No customer ID available for billing');
-        alert('Customer information not available. Please try again.');
-    }
-}
-
-// Function to delete face data from check-in page
-function deleteFaceDataFromCheckin(customerId, customerName) {
-    if (confirm(`Are you sure you want to delete face data for ${customerName}?\n\nThis will remove their facial recognition data permanently.`)) {
-        fetch(`/api/delete_face/${customerId}`, {
+        const imageData = canvas.toDataURL('image/jpeg', 0.8);
+        
+        const response = await fetch('/api/recognize-face', {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json'
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                updateStatus('success', 'Face Data Deleted', data.message);
-                // Reload the page to refresh the appointments table
-                setTimeout(() => {
-                    window.location.reload();
-                }, 1500);
-            } else {
-                updateStatus('danger', 'Error', 'Error: ' + data.error);
-            }
-        })
-        .catch(error => {
-            console.error('Delete error:', error);
-            updateStatus('danger', 'Error', 'Error deleting face data. Please try again.');
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ image: imageData })
         });
+        
+        const result = await response.json();
+        
+        if (overlay) {
+            overlay.classList.remove('detecting');
+        }
+        
+        if (result.success && result.customer) {
+            console.log('Customer recognized:', result.customer);
+            
+            if (overlay) {
+                overlay.classList.remove('scanning-animation');
+                overlay.classList.add('success');
+            }
+            
+            updateStatus('success', 'Customer Recognized!', `Welcome back, ${result.customer.name}!`);
+            showCustomerInfo(result.customer);
+            
+            const lastRecognition = document.getElementById('lastRecognition');
+            if (lastRecognition) {
+                const now = new Date();
+                lastRecognition.textContent = `${result.customer.name} - ${now.toLocaleTimeString()}`;
+            }
+            
+            clearInterval(checkinRecognitionInterval);
+            checkinRecognitionInterval = null;
+            
+        } else if (result.face_detected) {
+            console.log('Face detected but not recognized');
+            updateStatus('scanning', 'Face Detected', 'Face found but not recognized. Continuing to scan...');
+        } else {
+            console.log('No face detected in frame');
+            updateStatus('scanning', 'Scanning...', 'Position your face in the circle for recognition.');
+        }
+        
+    } catch (error) {
+        console.error('Recognition error:', error);
+        if (overlay) {
+            overlay.classList.remove('detecting');
+        }
     }
 }
 
-// Clean up on page unload
-window.addEventListener('beforeunload', function() {
-    if (checkinStream) {
-        console.log('Cleaning up camera stream on page unload');
-        checkinStream.getTracks().forEach(track => track.stop());
+function deleteFaceDataFromCheckin(clientId, clientName) {
+    if (typeof Swal !== 'undefined') {
+        Swal.fire({
+            title: 'Delete Face Data?',
+            text: `This will remove face recognition data for ${clientName}. They will need to re-register their face for future check-ins.`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#ef4444',
+            cancelButtonColor: '#64748b',
+            confirmButtonText: 'Yes, delete it',
+            cancelButtonText: 'Cancel'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                performFaceDataDeletion(clientId);
+            }
+        });
+    } else {
+        if (confirm(`Delete face data for ${clientName}? This action cannot be undone.`)) {
+            performFaceDataDeletion(clientId);
+        }
     }
-    // Clear any pending timeouts
-    if (window.customerInfoTimeout) {
-        clearTimeout(window.customerInfoTimeout);
-    }
-});
+}
 
-console.log('Face recognition check-in module initialized');
+async function performFaceDataDeletion(clientId) {
+    try {
+        const response = await fetch(`/api/delete-face-data/${clientId}`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            if (typeof Swal !== 'undefined') {
+                Swal.fire('Deleted!', 'Face data has been removed.', 'success');
+            } else {
+                alert('Face data has been removed successfully.');
+            }
+            location.reload();
+        } else {
+            throw new Error(result.message || 'Failed to delete face data');
+        }
+    } catch (error) {
+        console.error('Error deleting face data:', error);
+        if (typeof Swal !== 'undefined') {
+            Swal.fire('Error', 'Failed to delete face data. Please try again.', 'error');
+        } else {
+            alert('Failed to delete face data. Please try again.');
+        }
+    }
+}
 </script>
 {% endblock %}
