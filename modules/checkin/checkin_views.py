@@ -65,3 +65,52 @@ def checkin_search():
         print(f"Checkin search error: {e}")
         flash('Error searching for client', 'danger')
         return redirect(url_for('checkin'))
+
+@app.route('/api/customer/<int:customer_id>/appointments', methods=['GET'])
+@login_required
+def api_get_customer_appointments(customer_id):
+    """Get customer appointments for a specific date"""
+    try:
+        from datetime import datetime, date
+        from models import Appointment, Customer
+        
+        # Get date parameter (default to today)
+        date_str = request.args.get('date', date.today().strftime('%Y-%m-%d'))
+        target_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+        
+        # Get customer
+        customer = Customer.query.get(customer_id)
+        if not customer:
+            return jsonify({'success': False, 'error': 'Customer not found'}), 404
+        
+        # Get appointments for this customer on the target date
+        appointments = Appointment.query.filter(
+            Appointment.client_id == customer_id,
+            db.func.date(Appointment.appointment_date) == target_date
+        ).all()
+        
+        appointments_data = []
+        for apt in appointments:
+            appointments_data.append({
+                'id': apt.id,
+                'client_name': customer.full_name,
+                'service_name': apt.service.name if apt.service else 'Unknown',
+                'staff_name': apt.assigned_staff.full_name if apt.assigned_staff else 'Unassigned',
+                'appointment_date': apt.appointment_date.isoformat(),
+                'status': apt.status,
+                'amount': float(apt.amount) if apt.amount else 0.0
+            })
+        
+        return jsonify({
+            'success': True,
+            'appointments': appointments_data,
+            'customer': {
+                'id': customer.id,
+                'name': customer.full_name,
+                'phone': customer.phone
+            }
+        })
+        
+    except Exception as e:
+        print(f"Error getting customer appointments: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500

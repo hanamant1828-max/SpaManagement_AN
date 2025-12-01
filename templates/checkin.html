@@ -501,6 +501,35 @@
     transform: translateY(-2px);
 }
 
+.btn-checkin-customer {
+    display: block;
+    width: 100%;
+    padding: 0.85rem;
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    border: none;
+    border-radius: 12px;
+    color: #ffffff;
+    font-weight: 600;
+    font-size: 0.9rem;
+    text-align: center;
+    transition: all 0.2s ease;
+    cursor: pointer;
+    margin-top: 1rem;
+    box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+}
+
+.btn-checkin-customer:hover {
+    background: linear-gradient(135deg, #059669 0%, #047857 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
+}
+
+.btn-checkin-customer:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
 .last-recognition {
     background: #f8fafc;
     border-radius: 12px;
@@ -768,6 +797,9 @@
                                     <div class="customer-stat-label">Status</div>
                                 </div>
                             </div>
+                            <button type="button" class="btn-checkin-customer" id="checkInCustomerBtn" onclick="checkInRecognizedCustomer()" style="display: none;">
+                                <i class="fas fa-check-circle me-2"></i>Check In Customer
+                            </button>
                         </div>
 
                         <div class="last-recognition">
@@ -1127,6 +1159,7 @@ function showCustomerInfo(customer) {
     const customerPhone = document.getElementById('customerPhone');
     const customerVisits = document.getElementById('customerVisits');
     const customerStatus = document.getElementById('customerStatus');
+    const checkInBtn = document.getElementById('checkInCustomerBtn');
 
     if (!customerCard) return;
 
@@ -1139,6 +1172,11 @@ function showCustomerInfo(customer) {
 
     customerCard.classList.add('visible');
     recognizedCustomerId = customer.id;
+
+    // Show check-in button
+    if (checkInBtn) {
+        checkInBtn.style.display = 'block';
+    }
 }
 
 function hideCustomerInfo() {
@@ -1302,6 +1340,111 @@ async function performFaceDataDeletion(clientId) {
             Swal.fire('Error', 'Failed to delete face data. Please try again.', 'error');
         } else {
             alert('Failed to delete face data. Please try again.');
+        }
+    }
+}
+
+async function checkInRecognizedCustomer() {
+    if (!recognizedCustomerId) {
+        alert('No customer recognized. Please scan face first.');
+        return;
+    }
+
+    const checkInBtn = document.getElementById('checkInCustomerBtn');
+    if (checkInBtn) {
+        checkInBtn.disabled = true;
+        checkInBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Checking in...';
+    }
+
+    try {
+        // Find today's appointments for this customer
+        const today = new Date().toISOString().split('T')[0];
+        const response = await fetch(`/api/customer/${recognizedCustomerId}/appointments?date=${today}`);
+        const data = await response.json();
+
+        if (!data.success || !data.appointments || data.appointments.length === 0) {
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    icon: 'info',
+                    title: 'No Appointments',
+                    text: 'This customer has no appointments scheduled for today.',
+                    confirmButtonColor: '#667eea'
+                });
+            } else {
+                alert('This customer has no appointments scheduled for today.');
+            }
+            if (checkInBtn) {
+                checkInBtn.disabled = false;
+                checkInBtn.innerHTML = '<i class="fas fa-check-circle me-2"></i>Check In Customer';
+            }
+            return;
+        }
+
+        // Check in all pending/confirmed appointments for today
+        let checkedInCount = 0;
+        for (const appointment of data.appointments) {
+            if (appointment.status === 'scheduled' || appointment.status === 'confirmed') {
+                const checkInResponse = await fetch(`/checkin/appointment/${appointment.id}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+                if (checkInResponse.ok) {
+                    checkedInCount++;
+                }
+            }
+        }
+
+        if (checkedInCount > 0) {
+            updateStatus('success', 'Check-In Successful!', `${data.appointments[0].client_name} checked in for ${checkedInCount} appointment(s).`);
+            
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Check-In Successful!',
+                    text: `${data.appointments[0].client_name} has been checked in for ${checkedInCount} appointment(s).`,
+                    timer: 3000,
+                    confirmButtonColor: '#10b981'
+                }).then(() => {
+                    location.reload();
+                });
+            } else {
+                alert(`Check-In Successful! ${data.appointments[0].client_name} checked in for ${checkedInCount} appointment(s).`);
+                location.reload();
+            }
+        } else {
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    icon: 'info',
+                    title: 'Already Checked In',
+                    text: 'All appointments for today are already checked in or completed.',
+                    confirmButtonColor: '#667eea'
+                });
+            } else {
+                alert('All appointments for today are already checked in or completed.');
+            }
+            if (checkInBtn) {
+                checkInBtn.disabled = false;
+                checkInBtn.innerHTML = '<i class="fas fa-check-circle me-2"></i>Check In Customer';
+            }
+        }
+
+    } catch (error) {
+        console.error('Check-in error:', error);
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                icon: 'error',
+                title: 'Check-In Failed',
+                text: 'Unable to check in customer. Please try again.',
+                confirmButtonColor: '#ef4444'
+            });
+        } else {
+            alert('Check-in failed. Please try again.');
+        }
+        if (checkInBtn) {
+            checkInBtn.disabled = false;
+            checkInBtn.innerHTML = '<i class="fas fa-check-circle me-2"></i>Check In Customer';
         }
     }
 }
