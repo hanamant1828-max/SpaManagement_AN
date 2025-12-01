@@ -1281,7 +1281,7 @@
 
     .booking-summary-card .summary-item {
         background: rgba(255, 255, 255, 0.5);
-        border: 2px solid var(--accent-gold);
+        border: 2px solid #ffffff;
         border-radius: 10px;
         padding: 1rem;
         margin-bottom: 1rem;
@@ -1293,8 +1293,8 @@
 
     .booking-summary-card .summary-item:hover {
         background: rgba(255, 255, 255, 0.8);
-        border-color: var(--accent-gold);
-        box-shadow: 0 2px 4px rgba(230, 180, 80, 0.3);
+        border-color: #ffffff;
+        box-shadow: 0 2px 4px rgba(255, 255, 255, 0.3);
     }
 
     .booking-summary-card .summary-item .label {
