@@ -4,7 +4,7 @@ Check-in views and routes
 """
 from flask import render_template, request, redirect, url_for, flash, jsonify
 from flask_login import login_required, current_user
-from app import app
+from app import app, db
 from .checkin_queries import (
     get_todays_appointments, get_appointment_by_id, check_in_appointment,
     get_client_by_phone, get_client_appointments_today
@@ -72,7 +72,8 @@ def api_get_customer_appointments(customer_id):
     """Get customer appointments for a specific date"""
     try:
         from datetime import datetime, date
-        from models import Appointment, Customer
+        from models import Appointment, Customer, UnakiBooking
+        from sqlalchemy import func, or_
         
         # Get date parameter (default to today)
         date_str = request.args.get('date', date.today().strftime('%Y-%m-%d'))
@@ -83,14 +84,16 @@ def api_get_customer_appointments(customer_id):
         if not customer:
             return jsonify({'success': False, 'error': 'Customer not found'}), 404
         
-        # Get appointments for this customer on the target date
-        appointments = Appointment.query.filter(
+        # Get appointments from both Appointment and UnakiBooking tables
+        appointments_data = []
+        
+        # Query legacy Appointment table
+        legacy_appointments = Appointment.query.filter(
             Appointment.client_id == customer_id,
-            db.func.date(Appointment.appointment_date) == target_date
+            func.date(Appointment.appointment_date) == target_date
         ).all()
         
-        appointments_data = []
-        for apt in appointments:
+        for apt in legacy_appointments:
             appointments_data.append({
                 'id': apt.id,
                 'client_name': customer.full_name,
@@ -99,6 +102,26 @@ def api_get_customer_appointments(customer_id):
                 'appointment_date': apt.appointment_date.isoformat(),
                 'status': apt.status,
                 'amount': float(apt.amount) if apt.amount else 0.0
+            })
+        
+        # Query UnakiBooking table (new booking system)
+        unaki_bookings = UnakiBooking.query.filter(
+            or_(
+                UnakiBooking.client_id == customer_id,
+                UnakiBooking.client_phone == customer.phone
+            ),
+            UnakiBooking.appointment_date == target_date
+        ).all()
+        
+        for booking in unaki_bookings:
+            appointments_data.append({
+                'id': booking.id,
+                'client_name': booking.client_name,
+                'service_name': booking.service_name,
+                'staff_name': booking.staff_name,
+                'appointment_date': f"{booking.appointment_date.isoformat()}T{booking.start_time.isoformat()}",
+                'status': booking.status,
+                'amount': float(booking.service_price) if booking.service_price else 0.0
             })
         
         return jsonify({
