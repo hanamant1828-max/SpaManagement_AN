@@ -1263,8 +1263,8 @@
 
     /* Booking Summary Section Styling */
     .booking-summary-card {
-        background: #ffffff;
-        border: 2px solid #ffffff;
+        background: var(--cream);
+        border: 2px solid var(--accent-gold);
         border-radius: 15px;
         padding: 1.5rem;
         margin-bottom: 2rem;
@@ -1273,15 +1273,15 @@
 
     .booking-summary-card .card-header {
         background: transparent;
-        border-bottom: 2px solid #e5e7eb;
-        color: #1f2937;
+        border-bottom: 2px solid var(--accent-gold);
+        color: var(--primary-black);
         padding-bottom: 1rem;
         margin-bottom: 1.5rem;
     }
 
     .booking-summary-card .summary-item {
-        background: #f9fafb;
-        border: 2px solid #ffffff;
+        background: rgba(255, 255, 255, 0.5);
+        border: 2px solid var(--accent-gold);
         border-radius: 10px;
         padding: 1rem;
         margin-bottom: 1rem;
@@ -1292,13 +1292,13 @@
     }
 
     .booking-summary-card .summary-item:hover {
-        background: #ffffff;
-        border-color: #667eea;
-        box-shadow: 0 2px 4px rgba(102, 126, 234, 0.1);
+        background: rgba(255, 255, 255, 0.8);
+        border-color: var(--accent-gold);
+        box-shadow: 0 2px 4px rgba(230, 180, 80, 0.3);
     }
 
     .booking-summary-card .summary-item .label {
-        color: #6b7280;
+        color: var(--primary-black);
         font-weight: 500;
         display: flex;
         align-items: center;
@@ -1306,24 +1306,25 @@
     }
 
     .booking-summary-card .summary-item .value {
-        color: #667eea;
+        color: var(--accent-gold);
         font-weight: 600;
         font-size: 1.1rem;
     }
 
     .booking-summary-card .btn {
-        border: 2px solid #667eea;
-        background: #667eea;
-        color: #ffffff;
+        border: 2px solid var(--accent-gold);
+        background: var(--accent-gold);
+        color: var(--primary-black);
         transition: all 0.3s ease;
         margin-top: 1rem;
         width: 100%;
+        font-weight: 600;
     }
 
     .booking-summary-card .btn:hover {
-        background: #764ba2;
-        border-color: #764ba2;
-        color: #ffffff;
+        background: transparent;
+        border-color: var(--accent-gold);
+        color: var(--accent-gold);
     }
 
     .booking-summary-card .btn i {
