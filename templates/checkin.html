@@ -834,13 +834,20 @@
                     </thead>
                     <tbody id="appointmentsTable">
                         {% for appointment in appointments %}
-                        <tr data-appointment-id="{{ appointment.id }}" data-client-id="{{ appointment.client.id }}">
+                        <tr data-appointment-id="{{ appointment.id }}" data-client-id="{{ appointment.client.id }}"
+                            {% if appointment.status == 'in_progress' %}style="background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%) !important;"{% endif %}>
                             <td>
                                 <strong>{{ appointment.appointment_date.strftime('%I:%M %p') }}</strong>
                             </td>
                             <td class="client-info-cell">
                                 <strong>{{ appointment.client.full_name }}</strong>
                                 <small>{{ appointment.client.phone }}</small>
+                                {% if appointment.status == 'in_progress' %}
+                                <div style="display: flex; align-items: center; gap: 4px; font-size: 0.7rem; color: #78350f; font-weight: 600; margin-top: 4px; padding: 2px 6px; background: rgba(245, 158, 11, 0.15); border-radius: 4px; width: fit-content;">
+                                    <i class="fas fa-check-circle"></i>
+                                    <span>Checked In</span>
+                                </div>
+                                {% endif %}
                             </td>
                             <td>{{ appointment.service.name }}</td>
                             <td>{{ appointment.assigned_staff.full_name }}</td>
@@ -1357,72 +1364,47 @@ async function checkInRecognizedCustomer() {
     }
 
     try {
-        // Find today's appointments for this customer
-        const today = new Date().toISOString().split('T')[0];
-        const response = await fetch(`/api/customer/${recognizedCustomerId}/appointments?date=${today}`);
+        // Use the manual check-in API endpoint
+        const response = await fetch('/api/manual-checkin', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                client_id: recognizedCustomerId
+            })
+        });
+
         const data = await response.json();
 
-        if (!data.success || !data.appointments || data.appointments.length === 0) {
-            if (typeof Swal !== 'undefined') {
-                Swal.fire({
-                    icon: 'info',
-                    title: 'No Appointments',
-                    text: 'This customer has no appointments scheduled for today.',
-                    confirmButtonColor: '#667eea'
-                });
-            } else {
-                alert('This customer has no appointments scheduled for today.');
-            }
-            if (checkInBtn) {
-                checkInBtn.disabled = false;
-                checkInBtn.innerHTML = '<i class="fas fa-check-circle me-2"></i>Check In Customer';
-            }
-            return;
-        }
-
-        // Check in all pending/confirmed appointments for today
-        let checkedInCount = 0;
-        for (const appointment of data.appointments) {
-            if (appointment.status === 'scheduled' || appointment.status === 'confirmed') {
-                const checkInResponse = await fetch(`/checkin/appointment/${appointment.id}`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    }
-                });
-                if (checkInResponse.ok) {
-                    checkedInCount++;
-                }
-            }
-        }
-
-        if (checkedInCount > 0) {
-            updateStatus('success', 'Check-In Successful!', `${data.appointments[0].client_name} checked in for ${checkedInCount} appointment(s).`);
+        if (data.success) {
+            updateStatus('success', 'Check-In Successful!', `${data.customer_name} checked in for ${data.checked_in_count} appointment(s).`);
             
             if (typeof Swal !== 'undefined') {
                 Swal.fire({
                     icon: 'success',
                     title: 'Check-In Successful!',
-                    text: `${data.appointments[0].client_name} has been checked in for ${checkedInCount} appointment(s).`,
-                    timer: 3000,
-                    confirmButtonColor: '#10b981'
+                    html: `<strong>${data.customer_name}</strong> has been checked in for <strong>${data.checked_in_count}</strong> appointment(s).`,
+                    timer: 2000,
+                    confirmButtonColor: '#10b981',
+                    showConfirmButton: false
                 }).then(() => {
                     location.reload();
                 });
             } else {
-                alert(`Check-In Successful! ${data.appointments[0].client_name} checked in for ${checkedInCount} appointment(s).`);
+                alert(`Check-In Successful! ${data.customer_name} checked in for ${data.checked_in_count} appointment(s).`);
                 location.reload();
             }
         } else {
             if (typeof Swal !== 'undefined') {
                 Swal.fire({
-                    icon: 'info',
-                    title: 'Already Checked In',
-                    text: 'All appointments for today are already checked in or completed.',
-                    confirmButtonColor: '#667eea'
+                    icon: 'warning',
+                    title: data.message || 'No Appointments',
+                    text: data.error || 'This customer has no appointments scheduled for today.',
+                    confirmButtonColor: '#f59e0b'
                 });
             } else {
-                alert('All appointments for today are already checked in or completed.');
+                alert(data.message || 'This customer has no appointments scheduled for today.');
             }
             if (checkInBtn) {
                 checkInBtn.disabled = false;
