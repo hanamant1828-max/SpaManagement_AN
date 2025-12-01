@@ -49,6 +49,31 @@
     border-radius: 20px;
     font-weight: 500;
 }
+
+/* Ensure all labels are visible */
+.ooo-card label,
+.ooo-card .form-label {
+    color: #1e293b !important;
+    font-weight: 600;
+}
+
+/* Ensure all input text is visible */
+.ooo-card .form-control,
+.ooo-card .form-select {
+    color: #1e293b !important;
+    background-color: #ffffff !important;
+}
+
+/* Ensure placeholder text is visible but lighter */
+.ooo-card .form-control::placeholder {
+    color: #94a3b8 !important;
+}
+
+/* Table text visibility */
+.table th,
+.table td {
+    color: #1e293b !important;
+}
 </style>
 {% endblock %}
 
@@ -198,10 +223,10 @@
 function toggleEntryForm() {
     const formCard = document.getElementById('entryFormCard');
     const addBtn = document.getElementById('addEntryBtn');
-    
+
     if (formCard && addBtn) {
         const isHidden = formCard.style.display === 'none' || !formCard.style.display;
-        
+
         if (isHidden) {
             formCard.style.display = 'block';
             addBtn.style.display = 'none';

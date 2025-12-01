@@ -2586,15 +2586,15 @@ section p {
 /* Out Of Office Form Styling */
 .out-of-office-form,
 .out-of-office-card {
-    background: var(--bg-primary) !important;
-    color: var(--text-primary) !important;
+    background: #ffffff !important;
+    color: #1e293b !important;
     border-radius: var(--radius-lg);
     padding: var(--space-6);
     box-shadow: var(--shadow-base);
 }
 
 .out-of-office-form .form-label {
-    color: var(--text-primary) !important;
+    color: #1e293b !important;
     font-weight: var(--font-weight-medium);
 }
 
@@ -2602,19 +2602,33 @@ section p {
 .out-of-office-form .form-label,
 .out-of-office-card label,
 .out-of-office-card .form-label {
-    color: var(--text-primary) !important;
+    color: #1e293b !important;
+    font-weight: 600 !important;
 }
 
 .out-of-office-form .form-control,
 .out-of-office-form .form-select {
-    background: var(--bg-primary) !important;
-    color: var(--text-primary) !important;
-    border: 1px solid var(--border-medium);
+    background: #ffffff !important;
+    color: #1e293b !important;
+    border: 2px solid #e2e8f0 !important;
+}
+
+.out-of-office-form .form-control::placeholder {
+    color: #94a3b8 !important;
+    opacity: 1 !important;
 }
 
 .out-of-office-form .form-control:focus,
 .out-of-office-form .form-select:focus {
-    background: var(--bg-primary) !important;
+    background: #ffffff !important;
+    color: #1e293b !important;
     border-color: var(--spa-primary);
     box-shadow: 0 0 0 3px rgba(66, 133, 244, 0.1);
+}
+
+/* Ensure dropdown options are visible */
+.out-of-office-form option,
+.out-of-office-card option {
+    color: #1e293b !important;
+    background: #ffffff !important;
 }
