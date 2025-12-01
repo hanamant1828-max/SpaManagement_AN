@@ -676,7 +676,7 @@ function generateUUID() {
 const S = { loaded:false, status:'', expiring:'', packageType:'' };
 let apDataTable = null;
 
-const $ = (id) => document.getElementById(id);
+const $id = (id) => document.getElementById(id);
 const fmtMoney = n => '₹' + (n||0).toLocaleString(undefined,{maximumFractionDigits:0});
 const fmtDate = s => { if(!s) return '—'; const d=new Date(s); const day = String(d.getDate()).padStart(2, '0'); const month = String(d.getMonth() + 1).padStart(2, '0'); const year = d.getFullYear(); const hours = d.getHours(); const minutes = String(d.getMinutes()).padStart(2, '0'); const ampm = hours >= 12 ? 'PM' : 'AM'; const hour12 = hours % 12 || 12; return `${day}-${month}-${year} ${hour12}:${minutes} ${ampm}`; };
 const badge = (t,c) => `<span class="badge ${c}">${t}</span>`;
@@ -828,14 +828,14 @@ window.AP_openUsage = (assignmentId)=>{
         .then(r=>r.json()).then(j=>{
             if(!j.success){ alert('Failed to load usage'); return; }
             const s = j.summary||{};
-            $('apUsageSummary').innerHTML = `
+            $id('apUsageSummary').innerHTML = `
                 <div class="row g-2">
                     <div class="col"><div class="card card-body py-2">Sessions Used: <strong>${s.sessions_used||0}</strong></div></div>
                     <div class="col"><div class="card card-body py-2">Sessions Left: <strong>${s.sessions_remaining||0}</strong></div></div>
                     <div class="col"><div class="card card-body py-2">Credit Used: <strong>${fmtMoney(s.credit_used||0)}</strong></div></div>
                     <div class="col"><div class="card card-body py-2">Credit Left: <strong>${fmtMoney(s.credit_remaining||0)}</strong></div></div>
                 </div>`;
-            const tbody = $('apUsageRows');
+            const tbody = $id('apUsageRows');
             tbody.innerHTML = '';
             (j.usage||[]).forEach(u=>{
                 tbody.insertAdjacentHTML('beforeend',`<tr>
@@ -849,7 +849,7 @@ window.AP_openUsage = (assignmentId)=>{
                     <td>${u.notes||'—'}</td>
                 </tr>`);
             });
-            new bootstrap.Modal($('apUsageModal')).show();
+            new bootstrap.Modal($id('apUsageModal')).show();
         })
         .catch(()=>alert('Error loading usage'));
 };
