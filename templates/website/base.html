@@ -277,9 +277,11 @@
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('website_contact') }}">Contact</a>
                     </li>
+                    {% if request.endpoint != 'website_book_online' %}
                     <li class="nav-item ms-2">
                         <a class="btn btn-primary" href="{{ url_for('website_book_online') }}">Book Now</a>
                     </li>
+                    {% endif %}
                     <li class="nav-item ms-2">
                         <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('login') }}">Staff Login</a>
                     </li>
