@@ -878,11 +878,11 @@ button[type="submit"],
     .modern-sidebar {
         width: 300px !important;
     }
-    
+
     .sidebar-nav .nav-link {
         padding: 0.85rem 1rem;
     }
-    
+
     .sidebar-nav .nav-link .nav-icon {
         width: 36px;
         height: 36px;
@@ -2441,13 +2441,31 @@ body.billing-page select.form-control {
 }
 
 .select2-results__option {
-    padding: 0.75rem 1rem !important;
-    cursor: pointer !important;
+    color: #1e293b !important;
+    background: #ffffff !important;
+    padding: 0.75rem 1rem;
+    font-size: 0.875rem;
 }
 
 .select2-results__option--highlighted {
-    background-color: var(--spa-primary) !important;
-    color: white !important;
+    background: var(--spa-primary) !important;
+    color: #ffffff !important;
+}
+
+.select2-results__option--selected {
+    background: rgba(79, 70, 229, 0.1) !important;
+    color: #1e293b !important;
+}
+
+/* Ensure all Select2 dropdown text is dark and readable */
+.select2-container--bootstrap-5 .select2-dropdown .select2-results__option {
+    color: #1e293b !important;
+    background: #ffffff !important;
+}
+
+.select2-container--bootstrap-5 .select2-results__option[aria-selected=true] {
+    background: rgba(79, 70, 229, 0.1) !important;
+    color: #1e293b !important;
 }
 
 /* Make sure Select2 works in modal and cards */
