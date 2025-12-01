@@ -1011,16 +1011,59 @@ window.addEventListener('DOMContentLoaded', function() {
 });
 
 // Placeholder function for loading customer packages.
-// This function would typically make an API call to fetch packages associated with a customer.
 function loadCustomerPackages(customerId) {
     console.log(`Loading packages for customer ID: ${customerId}`);
-    // Example: fetch(`/api/customer/${customerId}/packages`)
-    //          .then(response => response.json())
-    //          .then(data => {
-    //              // Populate the packageType dropdown and potentially pre-select a package
-    //              // based on the customer's history or a parameter from the URL.
-    //              console.log('Customer packages loaded:', data);
-    //          });
 }
+
+// Initialize Select2 for searchable customer dropdown
+$(document).ready(function() {
+    // Initialize Select2 on customer dropdown
+    if (typeof $.fn.select2 !== 'undefined') {
+        $('#customerId').select2({
+            theme: 'bootstrap-5',
+            placeholder: 'Search and select customer...',
+            allowClear: true,
+            width: '100%',
+            matcher: function(params, data) {
+                if ($.trim(params.term) === '') {
+                    return data;
+                }
+                if (typeof data.text === 'undefined') {
+                    return null;
+                }
+                // Search in text (customer name and phone)
+                var searchTerm = params.term.toLowerCase();
+                var text = data.text.toLowerCase();
+                if (text.indexOf(searchTerm) > -1) {
+                    return data;
+                }
+                return null;
+            }
+        });
+
+        // Handle Select2 change event
+        $('#customerId').on('select2:select', function(e) {
+            console.log('✅ Customer selected via Select2:', e.params.data);
+            validateAssignForm();
+        });
+
+        $('#customerId').on('select2:clear', function(e) {
+            console.log('Customer selection cleared');
+            validateAssignForm();
+        });
+
+        // If there's a pre-selected customer, trigger Select2 to recognize it
+        {% if selected_customer_id %}
+        setTimeout(function() {
+            $('#customerId').val('{{ selected_customer_id }}').trigger('change');
+            console.log('✅ Pre-selected customer set via Select2: {{ selected_customer_id }}');
+        }, 100);
+        {% endif %}
+
+        console.log('✅ Select2 initialized for customer dropdown');
+    } else {
+        console.warn('Select2 not available, using standard dropdown');
+    }
+});
 </script>
 {% endblock %}
