@@ -190,11 +190,11 @@
 }
 
 @keyframes scanPulse {
-    0%, 100% { 
+    0%, 100% {
         border-color: #667eea;
         box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.6), 0 0 30px rgba(102, 126, 234, 0.5);
     }
-    50% { 
+    50% {
         border-color: #a5b4fc;
         box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.6), 0 0 50px rgba(102, 126, 234, 0.8);
     }
@@ -838,7 +838,7 @@
                                 {% endif %}
 
                                 {% if appointment.client.face_encoding or appointment.client.face_image_url %}
-                                <button type="button" class="btn-action btn-delete-face" 
+                                <button type="button" class="btn-action btn-delete-face"
                                         onclick="deleteFaceDataFromCheckin({{ appointment.client.id }}, '{{ appointment.client.full_name }}')"
                                         title="Delete Face Data">
                                     <i class="fas fa-trash-alt"></i>
@@ -936,17 +936,17 @@ async function startFaceRecognition() {
         console.log('Step 2: Requesting camera access...');
 
         try {
-            checkinStream = await navigator.mediaDevices.getUserMedia({ 
-                video: { 
+            checkinStream = await navigator.mediaDevices.getUserMedia({
+                video: {
                     width: { ideal: 640 },
                     height: { ideal: 480 },
                     facingMode: 'user'
-                } 
+                }
             });
         } catch (videoError) {
             console.log('Trying basic camera constraints...');
-            checkinStream = await navigator.mediaDevices.getUserMedia({ 
-                video: true 
+            checkinStream = await navigator.mediaDevices.getUserMedia({
+                video: true
             });
         }
 
@@ -996,7 +996,7 @@ async function startFaceRecognition() {
         console.log('Step 8: Updating status message...');
         window.recognitionAttempts = 0;
         recognizedCustomerId = null;
-        updateStatus('scanning', 'Scanning for Faces', 'Position your face within the circle for recognition.');
+        updateStatus('scanning', 'Scanning for Faces', 'Position your face in the circle for recognition.');
 
         const progressBar = document.getElementById('scanningProgress');
         if (progressBar) {
@@ -1082,9 +1082,9 @@ function updateStatus(type, title, message) {
     if (!statusAlert) return;
 
     statusAlert.className = 'status-card';
-    
+
     let iconClass = 'fa-check';
-    
+
     switch(type) {
         case 'ready':
         case 'info':
@@ -1127,16 +1127,16 @@ function showCustomerInfo(customer) {
     const customerPhone = document.getElementById('customerPhone');
     const customerVisits = document.getElementById('customerVisits');
     const customerStatus = document.getElementById('customerStatus');
-    
+
     if (!customerCard) return;
-    
+
     const initials = customer.name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
     customerAvatar.innerHTML = `<span>${initials}</span>`;
     customerName.textContent = customer.name;
     customerPhone.textContent = customer.phone || 'No phone';
     customerVisits.textContent = customer.visits || '0';
     customerStatus.textContent = customer.status || 'Regular';
-    
+
     customerCard.classList.add('visible');
     recognizedCustomerId = customer.id;
 }
@@ -1149,17 +1149,21 @@ function hideCustomerInfo() {
     recognizedCustomerId = null;
 }
 
+function showErrorMessage(message) {
+    updateStatus('error', 'Recognition Error', message);
+}
+
 async function performRecognition(videoElement) {
     if (!checkinIsRecognizing || !videoElement) return;
-    
+
     console.log('Performing face recognition...');
-    
+
     window.recognitionAttempts = (window.recognitionAttempts || 0) + 1;
     const progressText = document.getElementById('progressText');
     if (progressText) {
         progressText.textContent = `Scanning... (Attempt ${window.recognitionAttempts})`;
     }
-    
+
     const overlay = document.getElementById('cameraOverlay');
     if (overlay) {
         overlay.classList.add('detecting');
@@ -1173,43 +1177,64 @@ async function performRecognition(videoElement) {
         canvas.height = videoElement.videoHeight || 480;
         const ctx = canvas.getContext('2d');
         ctx.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
-        
+
         const imageData = canvas.toDataURL('image/jpeg', 0.8);
-        
-        const response = await fetch('/api/recognize-face', {
+
+        // Send to recognition API
+        const response = await fetch('/api/face-recognition/recognize', {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json',
+                'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ image: imageData })
+            credentials: 'same-origin', // Include session cookies
+            body: JSON.stringify({
+                image: imageData
+            })
         });
-        
+
+        // Check if response is JSON
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+            console.error('Non-JSON response received:', response.status);
+            if (response.status === 401 || response.status === 302) {
+                showErrorMessage('Session expired. Please refresh the page and log in again.');
+                stopRecognition();
+                return;
+            }
+            showErrorMessage('Server error. Please try again.');
+            if (overlay) { // Ensure overlay is defined before accessing properties
+                overlay.style.borderColor = '#667eea'; // Back to blue
+                overlay.classList.remove('detecting');
+            }
+            return;
+        }
+
         const result = await response.json();
-        
+
         if (overlay) {
             overlay.classList.remove('detecting');
         }
-        
+
         if (result.success && result.customer) {
             console.log('Customer recognized:', result.customer);
-            
+
             if (overlay) {
                 overlay.classList.remove('scanning-animation');
                 overlay.classList.add('success');
             }
-            
+
             updateStatus('success', 'Customer Recognized!', `Welcome back, ${result.customer.name}!`);
             showCustomerInfo(result.customer);
-            
+
             const lastRecognition = document.getElementById('lastRecognition');
             if (lastRecognition) {
                 const now = new Date();
                 lastRecognition.textContent = `${result.customer.name} - ${now.toLocaleTimeString()}`;
             }
-            
+
             clearInterval(checkinRecognitionInterval);
             checkinRecognitionInterval = null;
-            
+
         } else if (result.face_detected) {
             console.log('Face detected but not recognized');
             updateStatus('scanning', 'Face Detected', 'Face found but not recognized. Continuing to scan...');
@@ -1217,12 +1242,13 @@ async function performRecognition(videoElement) {
             console.log('No face detected in frame');
             updateStatus('scanning', 'Scanning...', 'Position your face in the circle for recognition.');
         }
-        
+
     } catch (error) {
         console.error('Recognition error:', error);
         if (overlay) {
             overlay.classList.remove('detecting');
         }
+        showErrorMessage('An unexpected error occurred during recognition. Please try again.');
     }
 }
 
@@ -1257,9 +1283,9 @@ async function performFaceDataDeletion(clientId) {
                 'Content-Type': 'application/json',
             }
         });
-        
+
         const result = await response.json();
-        
+
         if (result.success) {
             if (typeof Swal !== 'undefined') {
                 Swal.fire('Deleted!', 'Face data has been removed.', 'success');

@@ -48,15 +48,12 @@ def get_face_app():
     return _face_app
 
 @face_recognition_bp.route('/recognize', methods=['POST'])
-@login_required
 def recognize_face():
     """
     Recognize customer face for check-in
     """
     try:
-        # Log authentication status for debugging
-        print(f"🔐 Face recognition request from user: {current_user.username if current_user.is_authenticated else 'Anonymous'}")
-        
+        # Check authentication manually to return JSON instead of HTML redirect
         if not current_user.is_authenticated:
             print("❌ Access denied: User not authenticated.")
             return jsonify({
@@ -65,6 +62,9 @@ def recognize_face():
                 'error': 'Access denied',
                 'message': 'Please log in to access this feature'
             }), 401
+        
+        # Log authentication status for debugging
+        print(f"🔐 Face recognition request from user: {current_user.username}")
         
         print(f"✅ User: {current_user.username} (ID: {current_user.id}) is authenticated.")
 
