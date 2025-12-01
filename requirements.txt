@@ -265,3 +265,5 @@ python-dotenv
 pytz
 weasyprint
 wtforms
+opencv-python-headless
+pillow
