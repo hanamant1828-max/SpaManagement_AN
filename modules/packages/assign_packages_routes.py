@@ -612,64 +612,72 @@ def api_get_assignments():
         # Build response
         items = []
         for assignment in paginated.items:
-            customer = assignment.customer
-            package = assignment.get_package_template()
-            service = assignment.service
+            try:
+                customer = assignment.customer
+                if not customer:
+                    print(f"Warning: Assignment {assignment.id} has no customer")
+                    continue
+                    
+                package = assignment.get_package_template()
+                service = assignment.service
 
-            # Calculate expiring days
-            expiring_days = None
-            if assignment.expires_on:
-                delta = assignment.expires_on - datetime.utcnow()
-                expiring_days = delta.days
+                # Calculate expiring days
+                expiring_days = None
+                if assignment.expires_on:
+                    delta = assignment.expires_on - datetime.utcnow()
+                    expiring_days = delta.days
 
-            # Get last usage
-            from models import PackageAssignmentUsage
-            last_usage = PackageAssignmentUsage.query.filter_by(
-                assignment_id=assignment.id
-            ).order_by(PackageAssignmentUsage.usage_date.desc()).first()
+                # Get last usage
+                from models import PackageAssignmentUsage
+                last_usage = PackageAssignmentUsage.query.filter_by(
+                    assignment_id=assignment.id
+                ).order_by(PackageAssignmentUsage.usage_date.desc()).first()
 
-            # Calculate savings
-            savings = 0
-            if assignment.package_type == 'service_package' and package:
-                benefit_percent = getattr(package, 'benefit_percent', 0)
-                if benefit_percent > 0:
-                    savings = (assignment.price_paid * benefit_percent) / 100
+                # Calculate savings
+                savings = 0
+                if assignment.package_type == 'service_package' and package:
+                    benefit_percent = getattr(package, 'benefit_percent', 0)
+                    if benefit_percent > 0 and assignment.price_paid:
+                        savings = (assignment.price_paid * benefit_percent) / 100
 
-            # Get receipt for this assignment
-            receipt = Receipt.query.filter_by(assignment_id=assignment.id).first()
-            
-            item = {
-                'id': assignment.id,
-                'receipt_id': receipt.id if receipt else None,
-                'customer': {
-                    'id': customer.id,
-                    'name': f"{customer.first_name} {customer.last_name}",
-                    'phone': customer.phone or ''
-                },
-                'package': {
-                    'name': package.name if package else 'Unknown',
-                    'type': assignment.package_type,
-                    'service_name': service.name if service else None
-                },
-                'assigned_on': assignment.assigned_on.isoformat() if assignment.assigned_on else None,
-                'expires_on': assignment.expires_on.strftime('%Y-%m-%d') if assignment.expires_on else None,
-                'expiring_in_days': expiring_days,
-                'status': assignment.status,
-                'price_paid': float(assignment.price_paid) if assignment.price_paid else 0,
-                'savings_to_date': float(savings),
-                'last_used_at': last_usage.usage_date.isoformat() if last_usage else None,
-                'sessions': {
-                    'total': assignment.total_sessions or 0,
-                    'used': assignment.used_sessions or 0,
-                    'remaining': assignment.remaining_sessions or assignment.total_sessions or 0
-                } if assignment.package_type == 'service_package' else None,
-                'credit': {
-                    'total': float(assignment.credit_amount or 0),
-                    'used': float(assignment.used_credit or 0),
-                    'remaining': float(assignment.remaining_credit or assignment.credit_amount or 0)
-                } if assignment.package_type == 'prepaid' else None
-            }
-            items.append(item)
+                # Get receipt for this assignment
+                receipt = Receipt.query.filter_by(assignment_id=assignment.id).first()
+                
+                item = {
+                    'id': assignment.id,
+                    'receipt_id': receipt.id if receipt else None,
+                    'customer': {
+                        'id': customer.id,
+                        'name': f"{customer.first_name} {customer.last_name}",
+                        'phone': customer.phone or ''
+                    },
+                    'package': {
+                        'name': package.name if package else 'Unknown Package',
+                        'type': assignment.package_type,
+                        'service_name': service.name if service else None
+                    },
+                    'assigned_on': assignment.assigned_on.isoformat() if assignment.assigned_on else None,
+                    'expires_on': assignment.expires_on.strftime('%Y-%m-%d') if assignment.expires_on else None,
+                    'expiring_in_days': expiring_days,
+                    'status': assignment.status or 'unknown',
+                    'price_paid': float(assignment.price_paid) if assignment.price_paid else 0,
+                    'savings_to_date': float(savings) if savings else 0,
+                    'last_used_at': last_usage.usage_date.isoformat() if last_usage else None,
+                    'sessions': {
+                        'total': assignment.total_sessions or 0,
+                        'used': assignment.used_sessions or 0,
+                        'remaining': assignment.remaining_sessions or assignment.total_sessions or 0
+                    } if assignment.package_type == 'service_package' else None,
+                    'credit': {
+                        'total': float(assignment.credit_amount or 0),
+                        'used': float(assignment.used_credit or 0),
+                        'remaining': float(assignment.remaining_credit or assignment.credit_amount or 0)
+                    } if assignment.package_type == 'prepaid' else None
+                }
+                items.append(item)
+            except Exception as item_error:
+                print(f"Error processing assignment {assignment.id}: {item_error}")
+                continue
 
         return jsonify({
             'success': True,
