@@ -125,6 +125,9 @@ function initializeApp() {
     setupFormValidation();
     setupNotifications();
     loadUserPreferences();
+    
+    // Initialize searchable dropdowns globally
+    initializeSearchableDropdowns();
 
     // Auto-refresh data if enabled
     if (SpaApp.settings.autoRefresh) {
@@ -140,6 +143,130 @@ function initializeApp() {
         initializeFaceCapture();
     }
 }
+
+/**
+ * Initialize Select2 searchable dropdowns globally
+ * Applies to all select elements with class 'form-select' or 'select2-dropdown'
+ * Excludes elements with 'no-select2' class or specific IDs that shouldn't use Select2
+ */
+function initializeSearchableDropdowns() {
+    // Check if jQuery and Select2 are available
+    if (typeof $ === 'undefined' || typeof $.fn.select2 === 'undefined') {
+        console.log('Select2 not available yet, will retry...');
+        setTimeout(initializeSearchableDropdowns, 200);
+        return;
+    }
+
+    console.log('Initializing searchable dropdowns globally...');
+
+    // Elements to exclude from Select2 (some need special handling)
+    const excludeSelectors = [
+        '#checkinClientSelect',
+        '.no-select2',
+        '[data-no-select2]',
+        '.dataTables_length select' // DataTables page size selector
+    ];
+
+    const excludeSelector = excludeSelectors.join(', ');
+
+    // Target all form selects and elements with select2-dropdown class
+    const targetSelectors = '.form-select, .form-control[type="select"], select.select2-dropdown';
+    
+    $(targetSelectors).not(excludeSelector).each(function() {
+        const $select = $(this);
+        
+        // Skip if already initialized
+        if ($select.hasClass('select2-hidden-accessible')) {
+            return;
+        }
+
+        // Skip if it's a hidden select or has very few options (like simple yes/no)
+        if ($select.is(':hidden') && !$select.closest('.modal').length) {
+            return;
+        }
+
+        // Get placeholder from first option or data attribute
+        let placeholder = $select.data('placeholder') || 
+                         $select.find('option:first').text() || 
+                         'Select an option';
+        
+        // Only initialize if select has more than 2 options (worth searching)
+        const optionCount = $select.find('option').length;
+        if (optionCount < 3) {
+            return;
+        }
+
+        try {
+            $select.select2({
+                theme: 'bootstrap-5',
+                width: '100%',
+                placeholder: placeholder,
+                allowClear: $select.prop('required') ? false : true,
+                dropdownParent: $select.closest('.modal').length ? $select.closest('.modal') : $('body'),
+                language: {
+                    noResults: function() {
+                        return 'No results found';
+                    },
+                    searching: function() {
+                        return 'Searching...';
+                    }
+                }
+            });
+
+            console.log('Select2 initialized for:', $select.attr('id') || $select.attr('name') || 'unnamed select');
+        } catch (e) {
+            console.warn('Error initializing Select2 for element:', $select.attr('id'), e);
+        }
+    });
+
+    // Re-initialize Select2 when modals are shown (for dynamically loaded content)
+    $(document).off('shown.bs.modal.select2').on('shown.bs.modal.select2', function(e) {
+        const $modal = $(e.target);
+        setTimeout(function() {
+            $modal.find(targetSelectors).not(excludeSelector).each(function() {
+                const $select = $(this);
+                if (!$select.hasClass('select2-hidden-accessible') && $select.find('option').length >= 3) {
+                    try {
+                        $select.select2({
+                            theme: 'bootstrap-5',
+                            width: '100%',
+                            placeholder: $select.data('placeholder') || $select.find('option:first').text() || 'Select an option',
+                            allowClear: !$select.prop('required'),
+                            dropdownParent: $modal
+                        });
+                    } catch (e) {
+                        console.warn('Error initializing Select2 in modal:', e);
+                    }
+                }
+            });
+        }, 100);
+    });
+
+    // Clean up Select2 when modals are hidden
+    $(document).off('hidden.bs.modal.select2').on('hidden.bs.modal.select2', function(e) {
+        const $modal = $(e.target);
+        $modal.find('.select2-hidden-accessible').each(function() {
+            try {
+                $(this).select2('destroy');
+            } catch (e) {
+                // Ignore errors during cleanup
+            }
+        });
+    });
+
+    console.log('Searchable dropdowns initialization complete');
+}
+
+// Make the function globally available for re-initialization
+window.initializeSearchableDropdowns = initializeSearchableDropdowns;
+
+// Also initialize after AJAX content loads
+$(document).ajaxComplete(function(event, xhr, settings) {
+    // Only reinitialize for relevant AJAX calls
+    if (settings.url && !settings.url.includes('/api/')) {
+        setTimeout(initializeSearchableDropdowns, 200);
+    }
+});
 
 // Global event listeners
 function setupGlobalEventListeners() {
