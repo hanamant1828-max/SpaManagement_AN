@@ -1226,6 +1226,30 @@
                     box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
                 }
                 
+                /* Select2 styling for face recognition dropdown */
+                .face-select-wrapper .select2-container {
+                    width: 100% !important;
+                    display: block !important;
+                }
+                
+                .face-select-wrapper .select2-container--bootstrap-5 .select2-selection {
+                    min-height: 48px !important;
+                    border: 2px solid #e2e8f0 !important;
+                    border-radius: 12px !important;
+                    background: #f8fafc !important;
+                }
+                
+                .face-select-wrapper .select2-container--bootstrap-5 .select2-selection--single .select2-selection__rendered {
+                    padding: 0.5rem 0.75rem !important;
+                    color: #334155 !important;
+                }
+                
+                .face-select-wrapper .select2-container--bootstrap-5.select2-container--focus .select2-selection,
+                .face-select-wrapper .select2-container--bootstrap-5.select2-container--open .select2-selection {
+                    border-color: #667eea !important;
+                    box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1) !important;
+                }
+                
                 .face-selected-info {
                     background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
                     border: 1px solid #bfdbfe;
@@ -3080,16 +3104,37 @@ function initializeFaceCaptureOnce() {
 
     const faceClientSelect = CustomerManagement.domCache.faceClientSelect || document.getElementById('faceClientSelect');
     if (faceClientSelect && !faceClientSelect.dataset.listenerAttached) {
-        // Native change event listener
-        faceClientSelect.addEventListener('change', (e) => selectCustomerForFace(e.target.value));
-        
-        // Also listen for Select2 change events (if Select2 is used)
+        // Initialize Select2 for the face client dropdown
         if (typeof $ !== 'undefined' && $.fn.select2) {
-            $(faceClientSelect).on('select2:select select2:clear', function(e) {
-                const value = $(this).val();
-                selectCustomerForFace(value);
-            });
+            try {
+                // Destroy any existing instance first
+                if ($(faceClientSelect).hasClass('select2-hidden-accessible')) {
+                    $(faceClientSelect).select2('destroy');
+                }
+                
+                // Initialize Select2 with search
+                $(faceClientSelect).select2({
+                    theme: 'bootstrap-5',
+                    width: '100%',
+                    placeholder: 'Search customers...',
+                    allowClear: true,
+                    dropdownParent: $(faceClientSelect).closest('.face-card-body')
+                });
+                
+                console.log('✅ Select2 initialized for faceClientSelect');
+                
+                // Listen for Select2 change events
+                $(faceClientSelect).on('select2:select select2:clear', function(e) {
+                    const value = $(this).val();
+                    selectCustomerForFace(value);
+                });
+            } catch (e) {
+                console.warn('Error initializing Select2 for face client select:', e);
+            }
         }
+        
+        // Native change event listener as fallback
+        faceClientSelect.addEventListener('change', (e) => selectCustomerForFace(e.target.value));
         
         faceClientSelect.dataset.listenerAttached = 'true';
     }
