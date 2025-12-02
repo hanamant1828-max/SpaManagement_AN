@@ -1571,8 +1571,9 @@
                             <div class="face-card-body">
                                 <div class="face-select-wrapper">
                                     <label class="face-select-label">Choose Customer</label>
-                                    <select class="face-select-input"
+                                    <select class="face-select-input form-select select2-dropdown"
                                             id="faceClientSelect"
+                                            data-placeholder="Search customers..."
                                             aria-label="Choose customer for face capture">
                                         <option value="">Select a customer...</option>
                                         {% for customer in customers %}
@@ -3079,7 +3080,17 @@ function initializeFaceCaptureOnce() {
 
     const faceClientSelect = CustomerManagement.domCache.faceClientSelect || document.getElementById('faceClientSelect');
     if (faceClientSelect && !faceClientSelect.dataset.listenerAttached) {
+        // Native change event listener
         faceClientSelect.addEventListener('change', (e) => selectCustomerForFace(e.target.value));
+        
+        // Also listen for Select2 change events (if Select2 is used)
+        if (typeof $ !== 'undefined' && $.fn.select2) {
+            $(faceClientSelect).on('select2:select select2:clear', function(e) {
+                const value = $(this).val();
+                selectCustomerForFace(value);
+            });
+        }
+        
         faceClientSelect.dataset.listenerAttached = 'true';
     }
 

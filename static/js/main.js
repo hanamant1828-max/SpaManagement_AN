@@ -166,11 +166,14 @@ function initializeSearchableDropdowns() {
         '[data-no-select2]',
         '.dataTables_length select' // DataTables page size selector
     ];
+    
+    // Also target face recognition dropdowns
+    const additionalTargets = '.face-select-input';
 
     const excludeSelector = excludeSelectors.join(', ');
 
     // Target all form selects and elements with select2-dropdown class
-    const targetSelectors = '.form-select, .form-control[type="select"], select.select2-dropdown';
+    const targetSelectors = '.form-select, .form-control[type="select"], select.select2-dropdown, ' + additionalTargets;
     
     $(targetSelectors).not(excludeSelector).each(function() {
         const $select = $(this);
