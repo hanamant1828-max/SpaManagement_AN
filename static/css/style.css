@@ -1271,13 +1271,39 @@ select option,
     position: absolute !important;
 }
 
-/* Fix for row dropdowns */
+/* Fix for row dropdowns - IMPORTANT: Keep z-index high for visibility */
 .item-row .select2-container {
-    z-index: auto !important;
+    position: relative !important;
 }
 
 .item-row .select2-container--open {
-    z-index: 1056 !important;
+    z-index: 10050 !important;
+}
+
+/* Ensure Select2 dropdown (appended to body) appears above everything */
+.select2-container--open .select2-dropdown {
+    z-index: 10100 !important;
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
+/* Fix for service and staff dropdowns in billing page */
+.service-row .select2-container,
+.product-row .select2-container {
+    position: relative !important;
+}
+
+.service-row .select2-container--open,
+.product-row .select2-container--open {
+    z-index: 10050 !important;
+}
+
+/* Make sure dropdown options are visible */
+.select2-results__options {
+    max-height: 300px !important;
+    overflow-y: auto !important;
+    display: block !important;
 }
 
 .form-control::placeholder {
