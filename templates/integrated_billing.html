@@ -1374,7 +1374,8 @@ function initializeRowDropdowns(container) {
     // Service dropdowns - matching customer dropdown styling
     scope.find('select[name="service_ids[]"]').each(function() {
         if (!$(this).hasClass('select2-hidden-accessible')) {
-            $(this).select2({
+            const $serviceSelect = $(this);
+            $serviceSelect.select2({
                 theme: 'bootstrap-5',
                 placeholder: 'Search or Select Service',
                 allowClear: true,
@@ -1384,17 +1385,25 @@ function initializeRowDropdowns(container) {
                 minimumResultsForSearch: 0, // Always show search box
                 containerCssClass: 'select2-service-container',
                 dropdownCssClass: 'select2-service-dropdown',
+                templateSelection: function(data) {
+                    // Custom template for selected item display
+                    if (!data.id) {
+                        return data.text;
+                    }
+                    // Show full service name and price for selected item
+                    return $(data.element).text();
+                },
                 matcher: function(params, data) {
                     // If there are no search terms, return all data
                     if ($.trim(params.term) === '') {
                         return data;
                     }
-                    
+
                     // Search in text (service name and price)
                     if (data.text && data.text.toLowerCase().indexOf(params.term.toLowerCase()) > -1) {
                         return data;
                     }
-                    
+
                     // Return null if the term should not be displayed
                     return null;
                 }
@@ -1407,7 +1416,11 @@ function initializeRowDropdowns(container) {
                         searchField.placeholder = 'Type to search services...';
                     }
                 }, 100);
-            }).on('change', function() {
+            }).on('select2:select', function(e) {
+                // Ensure the display updates after selection
+                const selectedText = $(e.params.data.element).text();
+                $(this).data('select2').$container.find('.select2-selection__rendered').text(selectedText);
+            }).on('change', function() { // Added handler for change event
                 handleServiceChange(this);
             });
         }
@@ -2316,7 +2329,7 @@ function resetCustomerPackages() {
 
           // Remove all Select2 container elements from cloned row (they get cloned too)
           $(newRow).find('.select2-container').remove();
-          
+
           // Remove Select2 classes and data from select elements
           $(newRow).find('select').each(function() {
             $(this).removeClass('select2-hidden-accessible');
@@ -2374,7 +2387,7 @@ function resetCustomerPackages() {
 
         // Remove all Select2 container elements from cloned row (they get cloned too)
         $(newRow).find('.select2-container').remove();
-        
+
         // Remove Select2 classes and data from select elements
         $(newRow).find('select').each(function() {
             $(this).removeClass('select2-hidden-accessible');
@@ -2581,22 +2594,24 @@ function resetCustomerPackages() {
         const row = selectElement.closest('.service-row');
         if (!row) return;
 
-        const selectedOption = selectElement.options[selectElement.selectedIndex];
-        if (!selectedOption || !selectedOption.value) {
+        const serviceSelect = $(selectElement); // Use jQuery for Select2
+        const selectedOption = serviceSelect.find('option:selected');
+
+        if (!selectedOption || !selectedOption.val()) {
             // Clear package benefits if service is deselected
             row.querySelector('.package-benefit')?.remove();
             updateCalculations();
             return;
         }
 
-        const serviceId = parseInt(selectedOption.value); // Convert to number
-        const servicePrice = parseFloat(selectedOption.getAttribute('data-price')) || 0;
+        const serviceId = parseInt(selectedOption.val()); // Convert to number
+        const servicePrice = parseFloat(selectedOption.data('price')) || 0;
 
         console.log('🔍 Service selected:', {
             serviceId,
             servicePrice,
-            optionText: selectedOption.text,
-            dataPrice: selectedOption.getAttribute('data-price')
+            optionText: selectedOption.text(),
+            dataPrice: selectedOption.data('price')
         });
 
         // Set the service price in a data attribute for calculations
