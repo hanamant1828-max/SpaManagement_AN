@@ -790,67 +790,75 @@ document.addEventListener('DOMContentLoaded', function() {
 
 <!-- Membership Modal -->
 <div class="modal fade" id="membershipModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
-    <div class="modal-dialog modal-lg">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
         <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Add Membership Package</h5>
-                <button type="button" class="btn-close" onclick="closeMembershipModal()"></button>
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title"><i class="fas fa-id-card me-2"></i>Add Membership Package</h5>
+                <button type="button" class="btn-close btn-close-white" onclick="closeMembershipModal()"></button>
             </div>
-            <div class="modal-body">
+            <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
                 <div class="alert alert-danger" id="mbErrorAlert" style="display: none;"></div>
 
                 <form id="membershipForm">
-                    <div class="mb-3">
-                        <label class="form-label">Membership Name *</label>
-                        <input type="text" class="form-control" id="mbName" name="name" required
-                               placeholder="e.g., Premium Spa Membership">
-                        <div class="invalid-feedback">Please enter a membership name</div>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label">Price *</label>
-                        <div class="input-group">
-                            <span class="input-group-text">₹</span>
-                            <input type="number" class="form-control" id="mbPrice" name="price"
-                                   min="0" step="0.01" required placeholder="75000">
+                    <div class="row">
+                        <div class="col-md-8 mb-3">
+                            <label class="form-label fw-semibold">Membership Name *</label>
+                            <input type="text" class="form-control" id="mbName" name="name" required
+                                   placeholder="e.g., Premium Spa Membership">
+                            <div class="invalid-feedback">Please enter a membership name</div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label fw-semibold">Price *</label>
+                            <div class="input-group">
+                                <span class="input-group-text">₹</span>
+                                <input type="number" class="form-control" id="mbPrice" name="price"
+                                       min="0" step="0.01" required placeholder="75000">
+                            </div>
                             <div class="invalid-feedback">Please enter a valid price (≥ 0)</div>
                         </div>
                     </div>
 
                     <div class="row mb-3">
                         <div class="col-md-6">
-                            <label class="form-label">Validity From Date *</label>
+                            <label class="form-label fw-semibold">Validity From Date *</label>
                             <input type="date" class="form-control" id="mbValidityFrom" name="validity_from" required>
                             <div class="invalid-feedback">Please select a from date</div>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label">Validity To Date *</label>
+                            <label class="form-label fw-semibold">Validity To Date *</label>
                             <input type="date" class="form-control" id="mbValidityTo" name="validity_to" required>
                             <div class="invalid-feedback">To date must be after from date</div>
                         </div>
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label">Services & Sessions *</label>
-                        <div class="card">
-                            <div class="card-header">
-                                <input type="text" class="form-control" id="mbServiceSearch"
-                                       placeholder="Search services...">
+                        <label class="form-label fw-semibold">Services & Sessions *</label>
+                        <div class="card border">
+                            <div class="card-header bg-light py-2">
+                                <div class="input-group input-group-sm">
+                                    <span class="input-group-text bg-white"><i class="fas fa-search text-muted"></i></span>
+                                    <input type="text" class="form-control" id="mbServiceSearch"
+                                           placeholder="Search services...">
+                                </div>
                             </div>
-                            <div class="card-body" style="max-height: 300px; overflow-y: auto;">
-                                <div id="mbServiceList">
+                            <div class="card-body p-0" style="max-height: 250px; overflow-y: auto;">
+                                <div id="mbServiceList" class="list-group list-group-flush">
                                     <!-- Services will be loaded here -->
                                 </div>
                             </div>
                         </div>
                         <div class="invalid-feedback">Please select at least one service with sessions ≥ 1</div>
-                        <small class="text-muted">Select services and specify sessions for each</small>
+                        <small class="text-muted"><i class="fas fa-info-circle me-1"></i>Select services and specify sessions for each</small>
                     </div>
                 </form>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" onclick="closeMembershipModal()">Cancel</button>
-                <button type="button" class="btn btn-primary" id="saveMembershipBtn" disabled>Save Membership</button>
+            <div class="modal-footer bg-light">
+                <button type="button" class="btn btn-outline-secondary" onclick="closeMembershipModal()">
+                    <i class="fas fa-times me-1"></i>Cancel
+                </button>
+                <button type="button" class="btn btn-primary" id="saveMembershipBtn" disabled>
+                    <i class="fas fa-save me-1"></i>Save Membership
+                </button>
             </div>
         </div>
     </div>
@@ -1814,29 +1822,25 @@ function renderServiceList(services) {
     serviceListDiv.innerHTML = ''; // Clear current list
 
     if (services.length === 0) {
-        serviceListDiv.innerHTML = '<p class="text-muted">No services found.</p>';
+        serviceListDiv.innerHTML = '<div class="list-group-item text-muted text-center py-3"><i class="fas fa-search me-2"></i>No services found.</div>';
         return;
     }
 
     services.forEach(service => {
         const serviceDiv = document.createElement('div');
-        serviceDiv.classList.add('mb-2', 'p-2', 'border', 'rounded', 'service-item');
+        serviceDiv.classList.add('list-group-item', 'service-item', 'py-2', 'px-3');
         serviceDiv.innerHTML = `
-            <div class="row align-items-center">
-                <div class="col-md-6">
-                    <div class="form-check">
-                        <input class="form-check-input service-checkbox" type="checkbox" value="${service.id}" id="service_${service.id}">
-                        <label class="form-check-label service-name" for="service_${service.id}">
-                            ${service.name}
-                        </label>
-                    </div>
+            <div class="d-flex align-items-center justify-content-between">
+                <div class="form-check flex-grow-1 mb-0">
+                    <input class="form-check-input service-checkbox" type="checkbox" value="${service.id}" id="service_${service.id}">
+                    <label class="form-check-label service-name" for="service_${service.id}">
+                        ${service.name}
+                    </label>
+                    <span class="badge bg-light text-secondary ms-2">₹${service.price ? service.price.toFixed(0) : '0'}</span>
                 </div>
-                <div class="col-md-4">
-                    <label class="form-label small">Sessions</label>
-                    <input type="number" class="form-control form-control-sm service-sessions" min="1" value="1" disabled>
-                </div>
-                <div class="col-md-2 text-end">
-                    <small class="text-muted">₹${service.price ? service.price.toFixed(0) : '0'}</small>
+                <div class="d-flex align-items-center gap-2" style="min-width: 120px;">
+                    <label class="form-label small text-muted mb-0">Sessions:</label>
+                    <input type="number" class="form-control form-control-sm service-sessions" style="width: 60px;" min="1" value="1" disabled>
                 </div>
             </div>
         `;
