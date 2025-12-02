@@ -1371,28 +1371,41 @@ function initializeSearchableDropdowns() {
 function initializeRowDropdowns(container) {
     const scope = container ? $(container) : $(document);
 
-    // Service dropdowns
+    // Service dropdowns - matching customer dropdown styling
     scope.find('select[name="service_ids[]"]').each(function() {
         if (!$(this).hasClass('select2-hidden-accessible')) {
             $(this).select2({
                 theme: 'bootstrap-5',
-                placeholder: 'Select Service',
+                placeholder: 'Search or Select Service',
                 allowClear: true,
                 width: '100%',
-                dropdownAutoWidth: true,
+                dropdownAutoWidth: false,
                 dropdownParent: $('body'),
                 minimumResultsForSearch: 0, // Always show search box
                 containerCssClass: 'select2-service-container',
                 dropdownCssClass: 'select2-service-dropdown',
-                language: {
-                    searching: function() {
-                        return "Searching...";
+                matcher: function(params, data) {
+                    // If there are no search terms, return all data
+                    if ($.trim(params.term) === '') {
+                        return data;
                     }
+                    
+                    // Search in text (service name and price)
+                    if (data.text && data.text.toLowerCase().indexOf(params.term.toLowerCase()) > -1) {
+                        return data;
+                    }
+                    
+                    // Return null if the term should not be displayed
+                    return null;
                 }
             }).on('select2:open', function() {
-                // Force search input to be visible when dropdown opens
+                // Force search input to be visible and focused when dropdown opens
                 setTimeout(function() {
-                    document.querySelector('.select2-search__field').focus();
+                    const searchField = document.querySelector('.select2-search__field');
+                    if (searchField) {
+                        searchField.focus();
+                        searchField.placeholder = 'Type to search services...';
+                    }
                 }, 100);
             }).on('change', function() {
                 handleServiceChange(this);
@@ -1400,16 +1413,34 @@ function initializeRowDropdowns(container) {
         }
     });
 
-    // Staff dropdowns (for service rows)
+    // Staff dropdowns (for service rows) - matching customer dropdown styling
     scope.find('select[name="staff_ids[]"]').each(function() {
         if (!$(this).hasClass('select2-hidden-accessible')) {
             $(this).select2({
                 theme: 'bootstrap-5',
-                placeholder: 'Select Staff',
+                placeholder: 'Search or Select Staff',
                 allowClear: true,
                 width: '100%',
-                dropdownAutoWidth: true,
-                minimumResultsForSearch: 5
+                dropdownAutoWidth: false,
+                dropdownParent: $('body'),
+                minimumResultsForSearch: 0, // Always show search box
+                matcher: function(params, data) {
+                    if ($.trim(params.term) === '') {
+                        return data;
+                    }
+                    if (data.text && data.text.toLowerCase().indexOf(params.term.toLowerCase()) > -1) {
+                        return data;
+                    }
+                    return null;
+                }
+            }).on('select2:open', function() {
+                setTimeout(function() {
+                    const searchField = document.querySelector('.select2-search__field');
+                    if (searchField) {
+                        searchField.focus();
+                        searchField.placeholder = 'Type to search staff...';
+                    }
+                }, 100);
             });
         }
     });
