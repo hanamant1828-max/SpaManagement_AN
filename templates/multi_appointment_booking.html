@@ -343,6 +343,91 @@
 </div>
 
 <style>
+    /* Select2 Customer Dropdown Styling */
+    .select2-customer-container .select2-selection {
+        min-height: 48px !important;
+        border: 2px solid #e2e8f0 !important;
+        border-radius: 8px !important;
+        padding: 8px 12px !important;
+        font-size: 15px !important;
+    }
+
+    .select2-customer-container .select2-selection__rendered {
+        line-height: 32px !important;
+        padding-left: 8px !important;
+    }
+
+    .select2-customer-dropdown {
+        border: 2px solid #4f46e5 !important;
+        border-radius: 8px !important;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15) !important;
+    }
+
+    .select2-customer-dropdown .select2-search--dropdown {
+        padding: 12px !important;
+        background: #f8f9fa !important;
+        border-bottom: 1px solid #e2e8f0 !important;
+    }
+
+    .select2-customer-dropdown .select2-search__field {
+        width: 100% !important;
+        padding: 10px 16px !important;
+        border: 2px solid #cbd5e1 !important;
+        border-radius: 6px !important;
+        font-size: 14px !important;
+        background: white !important;
+    }
+
+    .select2-customer-dropdown .select2-search__field:focus {
+        border-color: #4f46e5 !important;
+        outline: none !important;
+        box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1) !important;
+    }
+
+    .select2-customer-dropdown .select2-results__options {
+        padding: 8px !important;
+        max-height: 300px !important;
+    }
+
+    .select2-customer-dropdown .select2-results__option {
+        padding: 12px 16px !important;
+        margin-bottom: 4px !important;
+        border-radius: 6px !important;
+        transition: all 0.2s !important;
+    }
+
+    .select2-customer-dropdown .select2-results__option:hover {
+        background: #eff6ff !important;
+    }
+
+    .select2-customer-dropdown .select2-results__option--highlighted {
+        background: #eff6ff !important;
+        color: #1e293b !important;
+    }
+
+    .select2-customer-dropdown .select2-results__option--selected {
+        background: #dbeafe !important;
+        color: #1e40af !important;
+        font-weight: 500 !important;
+    }
+
+    .customer-option {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+    }
+
+    .customer-name {
+        font-weight: 500;
+        color: #1e293b;
+        font-size: 14px;
+    }
+
+    .customer-phone {
+        font-size: 13px;
+        color: #64748b;
+    }
+
     .appointment-card {
         background: white;
         border: 2px solid #e9ecef;
@@ -502,6 +587,41 @@
         }
     }
 
+    // Format customer option in dropdown
+    function formatCustomerOption(customer) {
+        if (!customer.id) {
+            return customer.text;
+        }
+        
+        const $customer = $(customer.element);
+        const phone = $customer.data('phone') || '';
+        const email = $customer.data('email') || '';
+        
+        // Extract name from text (remove phone number if present)
+        const nameParts = customer.text.split(' - ');
+        const name = nameParts[0] || customer.text;
+        
+        return $(`
+            <div class="customer-option">
+                <div class="customer-name">${name}</div>
+                <div class="customer-phone text-muted">${phone}</div>
+            </div>
+        `);
+    }
+
+    // Format selected customer
+    function formatCustomerSelection(customer) {
+        if (!customer.id) {
+            return customer.text;
+        }
+        
+        const nameParts = customer.text.split(' - ');
+        const name = nameParts[0] || customer.text;
+        const phone = nameParts[1] || '';
+        
+        return name + (phone ? ' - ' + phone : '');
+    }
+
     // ==================== TIME UTILITIES ====================
     function generateTimeOptions() {
         const times = [];
@@ -629,9 +749,26 @@
         }
 
         $("#clientSelect").select2({
-            placeholder: "Choose a client...",
+            placeholder: "Search customers...",
             allowClear: true,
             width: "100%",
+            dropdownParent: $('body'),
+            minimumResultsForSearch: 0, // Always show search box
+            containerCssClass: 'select2-customer-container',
+            dropdownCssClass: 'select2-customer-dropdown',
+            templateResult: formatCustomerOption,
+            templateSelection: formatCustomerSelection,
+            language: {
+                noResults: function() {
+                    return 'No customers found';
+                },
+                searching: function() {
+                    return 'Searching customers...';
+                },
+                inputTooShort: function() {
+                    return 'Type to search customers';
+                }
+            }
         });
 
         addAppointmentRow();
