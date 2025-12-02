@@ -2314,9 +2314,18 @@ function resetCustomerPackages() {
 
           const newRow = firstRow.cloneNode(true);
 
-          // Destroy Select2 instances in the cloned row
-          $(newRow).find('.select2-hidden-accessible').each(function() {
-            $(this).select2('destroy');
+          // Remove all Select2 container elements from cloned row (they get cloned too)
+          $(newRow).find('.select2-container').remove();
+          
+          // Remove Select2 classes and data from select elements
+          $(newRow).find('select').each(function() {
+            $(this).removeClass('select2-hidden-accessible');
+            $(this).removeAttr('data-select2-id');
+            $(this).removeAttr('aria-hidden');
+            $(this).removeAttr('tabindex');
+            // Make select visible again
+            $(this).css('display', '');
+            $(this).css('width', '');
           });
 
           // Clear select values
@@ -2341,10 +2350,13 @@ function resetCustomerPackages() {
 
           container.appendChild(newRow);
 
-          // Initialize Select2 on the new row's dropdowns
-          initializeRowDropdowns(newRow);
+          // Initialize Select2 on the new row's dropdowns after a short delay
+          setTimeout(function() {
+            initializeRowDropdowns(newRow);
+            console.log('✅ Select2 initialized on new service row');
+          }, 100);
 
-          console.log('✅ New service row added with searchable dropdowns');
+          console.log('✅ New service row added');
         }
 
 
@@ -2360,9 +2372,18 @@ function resetCustomerPackages() {
 
         const newRow = firstRow.cloneNode(true); // Clone the template row
 
-        // Destroy Select2 instances in the cloned row if they exist
-        $(newRow).find('.select2-hidden-accessible').each(function() {
-            $(this).select2('destroy');
+        // Remove all Select2 container elements from cloned row (they get cloned too)
+        $(newRow).find('.select2-container').remove();
+        
+        // Remove Select2 classes and data from select elements
+        $(newRow).find('select').each(function() {
+            $(this).removeClass('select2-hidden-accessible');
+            $(this).removeAttr('data-select2-id');
+            $(this).removeAttr('aria-hidden');
+            $(this).removeAttr('tabindex');
+            // Make select visible again
+            $(this).css('display', '');
+            $(this).css('width', '');
         });
 
         // Clear values in the new row
@@ -2390,10 +2411,13 @@ function resetCustomerPackages() {
 
         container.appendChild(newRow);
 
-        // Initialize Select2 on the new row's dropdowns
-        initializeRowDropdowns(newRow);
+        // Initialize Select2 on the new row's dropdowns after a short delay
+        setTimeout(function() {
+            initializeRowDropdowns(newRow);
+            console.log('✅ Select2 initialized on new product row');
+        }, 100);
 
-        console.log('✅ New product row added with searchable dropdowns');
+        console.log('✅ New product row added');
     }
 
     function removeRow(button) {
