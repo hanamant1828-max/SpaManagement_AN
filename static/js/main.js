@@ -2478,7 +2478,7 @@ function createContextMenuHTML() {
         <div class="context-menu-header">
             <i class="fas fa-spa me-2"></i>Quick Navigation
         </div>
-        <div class="context-menu-item" data-url="/integrated_billing">
+        <div class="context-menu-item" data-url="/integrated-billing">
             <i class="fas fa-cash-register me-2"></i>Go to Billing
         </div>
         <div class="context-menu-item" data-url="/unaki-booking">
