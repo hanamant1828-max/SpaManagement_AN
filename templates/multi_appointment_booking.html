@@ -830,8 +830,8 @@
                             <i class="fas fa-check-circle"></i>
                         </span>
                     </label>
-                    <select class="form-select service-select" data-index="${index}" required>
-                        <option value="">Select service...</option>
+                    <select class="form-select form-select-lg service-select" data-index="${index}" required>
+                        <option value="">-- Select Service --</option>
                         {% if services %}
                             {% for service in services %}
                             <option value="{{ service.id }}"
@@ -850,8 +850,8 @@
                             <i class="fas fa-check-circle"></i>
                         </span>
                     </label>
-                    <select class="form-select staff-select" data-index="${index}" required>
-                        <option value="">Select staff...</option>
+                    <select class="form-select form-select-lg staff-select" data-index="${index}" required>
+                        <option value="">-- Select Staff --</option>
                         {% if staff_members %}
                             {% for staff in staff_members %}
                             <option value="{{ staff.id }}">
@@ -928,6 +928,41 @@
     `;
 
         container.insertAdjacentHTML("beforeend", appointmentCard);
+        
+        // Initialize Select2 on service dropdown with search
+        $(`.service-select[data-index="${index}"]`).select2({
+            theme: 'bootstrap-5',
+            placeholder: '-- Select Service --',
+            allowClear: true,
+            width: '100%',
+            dropdownAutoWidth: false,
+            dropdownParent: $('body'),
+            minimumResultsForSearch: 0
+        }).on('change', function() {
+            debugLog(`Service changed for appointment ${index}`);
+            showValidationIcon(`service-icon-${index}`, $(this).val());
+            clearConflictAlerts(index);
+            updateEndTime(index);
+            updateSummary();
+        });
+        
+        // Initialize Select2 on staff dropdown with search
+        $(`.staff-select[data-index="${index}"]`).select2({
+            theme: 'bootstrap-5',
+            placeholder: '-- Select Staff --',
+            allowClear: true,
+            width: '100%',
+            dropdownAutoWidth: false,
+            dropdownParent: $('body'),
+            minimumResultsForSearch: 0
+        }).on('change', function() {
+            debugLog(`Staff changed for appointment ${index}`);
+            showValidationIcon(`staff-icon-${index}`, $(this).val());
+            clearConflictAlerts(index);
+            checkStaffConflicts(index);
+            updateSummary();
+        });
+        
         attachEventListeners(index);
         updateAppointmentCount();
         updateAddButtonState();
@@ -1296,31 +1331,11 @@
     function attachEventListeners(index) {
         debugLog(`Attaching event listeners for appointment ${index}`);
 
-        const serviceSelect = document.querySelector(`.service-select[data-index="${index}"]`);
-        const staffSelect = document.querySelector(`.staff-select[data-index="${index}"]`);
         const dateInput = document.querySelector(`.date-input[data-index="${index}"]`);
         const startTimeSelect = document.querySelector(`.start-time-select[data-index="${index}"]`);
         const endTimeSelect = document.querySelector(`.end-time-select[data-index="${index}"]`);
 
-        if (serviceSelect) {
-            serviceSelect.addEventListener("change", () => {
-                debugLog(`Service changed for appointment ${index}`);
-                showValidationIcon(`service-icon-${index}`, serviceSelect.value);
-                clearConflictAlerts(index);
-                updateEndTime(index);
-                updateSummary();
-            });
-        }
-
-        if (staffSelect) {
-            staffSelect.addEventListener("change", () => {
-                debugLog(`Staff changed for appointment ${index}`);
-                showValidationIcon(`staff-icon-${index}`, staffSelect.value);
-                clearConflictAlerts(index);
-                checkStaffConflicts(index);
-                updateSummary();
-            });
-        }
+        // Note: Service and Staff event listeners are handled by Select2 in addAppointmentRow()
 
         if (dateInput) {
             dateInput.addEventListener("change", () => {
