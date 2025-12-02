@@ -528,8 +528,7 @@ class AppointmentContextMenu {
 
         // Direct redirect to the appointment billing route
         // This route will handle customer matching and pre-population
-        window.location.href = `/appointment/${appointmentId}/go-to-billing`; 'error');
-            });
+        window.location.href = `/appointment/${appointmentId}/go-to-billing`;
     }
 
     bookNewAppointment(appointmentId) {
