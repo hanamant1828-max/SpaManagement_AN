@@ -41,11 +41,11 @@
                             >
                             <select
                                 id="clientSelect"
-                                class="form-select select2-dropdown"
+                                class="form-select form-select-lg"
                                 data-placeholder="Search for a client by name or phone..."
                                 required
                             >
-                                <option value="">Choose a client...</option>
+                                <option value="">-- Select Client --</option>
                                 {% if clients %} {% for client in clients %}
                                 <option
                                     value="{{ client.id }}"
@@ -749,13 +749,13 @@
         }
 
         $("#clientSelect").select2({
-            placeholder: "Search customers...",
+            theme: 'bootstrap-5',
+            placeholder: '-- Select Client --',
             allowClear: true,
             width: "100%",
+            dropdownAutoWidth: false,
             dropdownParent: $('body'),
-            minimumResultsForSearch: 0, // Always show search box
-            containerCssClass: 'select2-customer-container',
-            dropdownCssClass: 'select2-customer-dropdown',
+            minimumResultsForSearch: 0,
             templateResult: formatCustomerOption,
             templateSelection: formatCustomerSelection,
             language: {
@@ -764,9 +764,6 @@
                 },
                 searching: function() {
                     return 'Searching customers...';
-                },
-                inputTooShort: function() {
-                    return 'Type to search customers';
                 }
             }
         });
