@@ -1406,12 +1406,28 @@
             if (endTimeSelect) {
                 endTimeSelect.disabled = false;
                 const timeOptions = generateTimeOptions();
+                
+                // Check if the calculated end time exists in the options
+                const endTimeExists = timeOptions.some(t => t.value === endTime);
+                
+                // If the calculated end time doesn't exist in options, add it
+                if (!endTimeExists) {
+                    const endTimeLabel = format12Hour(endTime);
+                    // Find the right position to insert
+                    let insertIndex = timeOptions.findIndex(t => t.value > endTime);
+                    if (insertIndex === -1) insertIndex = timeOptions.length;
+                    timeOptions.splice(insertIndex, 0, { value: endTime, label: endTimeLabel });
+                    debugLog(`Added calculated end time ${endTime} to options`);
+                }
+                
                 endTimeSelect.innerHTML = timeOptions
                     .map(
                         (t) =>
                             `<option value="${t.value}" ${t.value === endTime ? "selected" : ""}>${t.label}</option>`,
                     )
                     .join("");
+                    
+                debugLog(`End time dropdown updated, selected value: ${endTimeSelect.value}`);
             }
 
             // Re-validate this and all other appointments
