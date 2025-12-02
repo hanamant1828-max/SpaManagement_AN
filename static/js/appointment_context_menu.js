@@ -518,30 +518,17 @@ class AppointmentContextMenu {
     goToBilling(appointmentId) {
         console.log(`Redirecting to integrated billing for appointment ${appointmentId}`);
 
-        // Use the Unaki-specific API endpoint to get booking details
-        fetch(`/api/unaki/bookings/${appointmentId}`)
-            .then(r=>r.json())
-            .then(data => {
-                if (data.success && data.booking) {
-                    const booking = data.booking;
+        // Close the context menu first
+        this.hideContextMenu();
 
-                    // Try to use client_id if available, otherwise redirect to general billing
-                    if (booking.client_id) {
-                        // Redirect to integrated billing with customer pre-selected
-                        window.location.href = `/appointment/${appointmentId}/go-to-billing`;
-                    } else {
-                        // No client_id, try to match by phone or name
-                        console.warn('No client_id found, redirecting to general billing');
-                        window.location.href = `/appointment/${appointmentId}/go-to-billing`;
-                    }
-                } else {
-                    console.error('Failed to get booking details:', data.error);
-                    this.showToast('Failed to load booking details. Please try again.', 'error');
-                }
-            })
-            .catch(error => {
-                console.error('Error getting booking details:', error);
-                this.showToast('Error loading booking details. Please try again.', 'error');
+        // Show loading notification
+        if (typeof showNotification === 'function') {
+            showNotification('Opening billing page...', 'info', 1500);
+        }
+
+        // Direct redirect to the appointment billing route
+        // This route will handle customer matching and pre-population
+        window.location.href = `/appointment/${appointmentId}/go-to-billing`; 'error');
             });
     }
 

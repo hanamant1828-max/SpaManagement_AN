@@ -16,11 +16,12 @@ from flask import render_template, request, redirect, url_for, flash, jsonify
 from flask_login import login_required, current_user
 from datetime import datetime, date, timedelta, time
 from sqlalchemy import func
+from urllib.parse import quote
 
 from app import app, db
 from forms import AppointmentForm, QuickBookingForm
 from models import (
-    Appointment, Customer, Service, User, ShiftManagement, 
+    Appointment, Customer, Service, User, ShiftManagement,
     ShiftLogs, UnakiBooking
 )
 from .bookings_queries import (
@@ -993,61 +994,61 @@ def update_appointment_status(appointment_id):
 @app.route('/appointment/<int:appointment_id>/go-to-billing')
 @login_required
 def appointment_go_to_billing(appointment_id):
-    """Redirect from appointment context menu to integrated billing with client ID"""
-    if not current_user.can_access('billing'):
-        flash('Access denied', 'danger')
-        return redirect(url_for('dashboard'))
-
+    """Redirect to billing page with appointment pre-filled"""
     try:
-        # First try to find in UnakiBooking table
-        unaki_booking = UnakiBooking.query.get(appointment_id)
+        from models import UnakiBooking, Customer
+        from urllib.parse import quote
 
-        if unaki_booking:
-            client_id = unaki_booking.client_id
-            client_name = unaki_booking.client_name
+        # Get the appointment
+        appointment = UnakiBooking.query.get(appointment_id)
 
-            # If no client_id, try to find customer by phone or name
-            if not client_id:
-                # Try to find customer by phone
-                if unaki_booking.client_phone:
-                    customer = Customer.query.filter_by(phone=unaki_booking.client_phone).first()
-                    if customer:
-                        client_id = customer.id
-                        # Update the booking with the client_id for future use
-                        unaki_booking.client_id = client_id
-                        db.session.commit()
+        if not appointment:
+            flash('Appointment not found', 'error')
+            return redirect('/unaki-booking')
 
-                # If still no match, try by name
-                if not client_id and unaki_booking.client_name:
-                    name_parts = unaki_booking.client_name.strip().split(' ', 1)
-                    if name_parts:
-                        first_name = name_parts[0]
-                        last_name = name_parts[1] if len(name_parts) > 1 else ''
-                        customer = Customer.query.filter_by(first_name=first_name, last_name=last_name).first()
-                        if customer:
-                            client_id = customer.id
-                            unaki_booking.client_id = client_id
-                            db.session.commit()
+        print(f"🧾 Redirecting to billing for appointment {appointment_id}")
+        print(f"   Client: {appointment.client_name} (ID: {appointment.client_id})")
+        print(f"   Phone: {appointment.client_phone}")
+        print(f"   Service: {appointment.service_name}")
 
-            if client_id:
-                flash(f'Loading billing for {client_name}', 'info')
-                return redirect(url_for('integrated_billing', customer_id=client_id))
+        # Try to get customer by client_id first
+        customer = None
+        if appointment.client_id:
+            customer = Customer.query.get(appointment.client_id)
+            print(f"   ✅ Found customer by ID: {customer.full_name if customer else 'None'}")
 
-        # If not found in UnakiBooking, try regular Appointment table
-        appointment = Appointment.query.get(appointment_id)
+        # If no customer found by ID, try to find by phone
+        if not customer and appointment.client_phone:
+            customer = Customer.query.filter_by(phone=appointment.client_phone).first()
+            print(f"   📞 Found customer by phone: {customer.full_name if customer else 'None'}")
 
-        if appointment and appointment.client_id:
-            # Found in Appointment table, redirect to integrated billing
-            client = Customer.query.get(appointment.client_id)
-            if client:
-                flash(f'Loading billing for {client.first_name} {client.last_name}', 'info')
-                return redirect(url_for('integrated_billing', customer_id=appointment.client_id))
+        # If still no customer, try to find by name (case-insensitive)
+        if not customer and appointment.client_name:
+            customer = Customer.query.filter(
+                Customer.first_name.ilike(f'%{appointment.client_name.split()[0]}%')
+            ).first()
+            print(f"   👤 Found customer by name: {customer.full_name if customer else 'None'}")
 
-        # If appointment not found or has no client
-        flash('Appointment not found or no client associated. Please ensure the appointment has a valid customer record.', 'warning')
-        return redirect('/unaki-booking')
+        # Build redirect URL with query parameters
+        if customer:
+            # Redirect with customer pre-selected and appointment
+            redirect_url = f'/integrated-billing?customer_id={customer.id}&appointment_id={appointment_id}'
+            print(f"   ➡️  Redirecting to: {redirect_url}")
+            return redirect(redirect_url)
+        else:
+            # Redirect with appointment details but no customer pre-selected
+            client_name_encoded = quote(appointment.client_name) if appointment.client_name else ''
+            client_phone_encoded = quote(appointment.client_phone) if appointment.client_phone else ''
+
+            flash(f'Customer "{appointment.client_name}" not found. Please select customer from dropdown.', 'warning')
+
+            redirect_url = f'/integrated-billing?appointment_id={appointment_id}&client_name={client_name_encoded}&client_phone={client_phone_encoded}'
+            print(f"   ⚠️  Customer not found, redirecting to: {redirect_url}")
+            return redirect(redirect_url)
 
     except Exception as e:
-        print(f"Error in appointment_go_to_billing: {e}")
-        flash('Error accessing billing information', 'error')
+        print(f"❌ Error in appointment_go_to_billing: {e}")
+        import traceback
+        traceback.print_exc()
+        flash('Error accessing billing information. Please try again.', 'error')
         return redirect('/unaki-booking')
