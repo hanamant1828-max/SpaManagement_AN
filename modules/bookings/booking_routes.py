@@ -999,14 +999,17 @@ def appointment_go_to_billing(appointment_id):
         from models import UnakiBooking, Customer
         from urllib.parse import quote
 
+        print(f"🧾 Accessing go-to-billing route for appointment {appointment_id}")
+
         # Get the appointment
         appointment = UnakiBooking.query.get(appointment_id)
 
         if not appointment:
+            print(f"❌ Appointment {appointment_id} not found in UnakiBooking table")
             flash('Appointment not found', 'error')
-            return redirect('/unaki-booking')
+            return redirect(url_for('unaki_booking'))
 
-        print(f"🧾 Redirecting to billing for appointment {appointment_id}")
+        print(f"✅ Found appointment {appointment_id}")
         print(f"   Client: {appointment.client_name} (ID: {appointment.client_id})")
         print(f"   Phone: {appointment.client_phone}")
         print(f"   Service: {appointment.service_name}")
@@ -1032,17 +1035,20 @@ def appointment_go_to_billing(appointment_id):
         # Build redirect URL with query parameters
         if customer:
             # Redirect with customer pre-selected and appointment
-            redirect_url = f'/integrated-billing?customer_id={customer.id}&appointment_id={appointment_id}'
+            redirect_url = url_for('integrated_billing', customer_id=customer.id, appointment_id=appointment_id)
             print(f"   ➡️  Redirecting to: {redirect_url}")
             return redirect(redirect_url)
         else:
             # Redirect with appointment details but no customer pre-selected
-            client_name_encoded = quote(appointment.client_name) if appointment.client_name else ''
-            client_phone_encoded = quote(appointment.client_phone) if appointment.client_phone else ''
+            client_name_encoded = appointment.client_name or ''
+            client_phone_encoded = appointment.client_phone or ''
 
             flash(f'Customer "{appointment.client_name}" not found. Please select customer from dropdown.', 'warning')
 
-            redirect_url = f'/integrated-billing?appointment_id={appointment_id}&client_name={client_name_encoded}&client_phone={client_phone_encoded}'
+            redirect_url = url_for('integrated_billing', 
+                                  appointment_id=appointment_id,
+                                  client_name=client_name_encoded,
+                                  client_phone=client_phone_encoded)
             print(f"   ⚠️  Customer not found, redirecting to: {redirect_url}")
             return redirect(redirect_url)
 
@@ -1051,4 +1057,4 @@ def appointment_go_to_billing(appointment_id):
         import traceback
         traceback.print_exc()
         flash('Error accessing billing information. Please try again.', 'error')
-        return redirect('/unaki-booking')
+        return redirect(url_for('unaki_booking'))
