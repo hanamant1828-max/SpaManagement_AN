@@ -1060,6 +1060,56 @@ $(document).ready(function() {
         {% endif %}
 
         console.log('✅ Select2 initialized for customer dropdown');
+        
+        // Initialize Select2 on package type dropdown
+        $('#packageType').select2({
+            theme: 'bootstrap-5',
+            placeholder: 'Select Package Type...',
+            allowClear: true,
+            width: '100%',
+            minimumResultsForSearch: 0
+        });
+        
+        // Handle package type change for Select2
+        $('#packageType').on('select2:select', function(e) {
+            console.log('✅ Package type selected via Select2:', e.params.data.id);
+            // Trigger the existing change handler
+            this.dispatchEvent(new Event('change', { bubbles: true }));
+        });
+        
+        // Initialize Select2 on package dropdown
+        $('#packageId').select2({
+            theme: 'bootstrap-5',
+            placeholder: 'Search and select package...',
+            allowClear: true,
+            width: '100%',
+            minimumResultsForSearch: 0
+        });
+        
+        // Handle package change for Select2
+        $('#packageId').on('select2:select', function(e) {
+            console.log('✅ Package selected via Select2:', e.params.data);
+            // Trigger the existing change handler
+            this.dispatchEvent(new Event('change', { bubbles: true }));
+        });
+        
+        // Initialize Select2 on service dropdown
+        $('#serviceId').select2({
+            theme: 'bootstrap-5',
+            placeholder: 'Search and select service...',
+            allowClear: true,
+            width: '100%',
+            minimumResultsForSearch: 0
+        });
+        
+        // Handle service change for Select2
+        $('#serviceId').on('select2:select', function(e) {
+            console.log('✅ Service selected via Select2:', e.params.data);
+            // Trigger the existing change handler
+            this.dispatchEvent(new Event('change', { bubbles: true }));
+        });
+        
+        console.log('✅ Select2 initialized for all dropdowns (customer, package type, package, service)');
     } else {
         console.warn('Select2 not available, using standard dropdown');
     }
