@@ -61,6 +61,14 @@
             background: transparent;
         }
         
+        .navbar-brand .brand-name {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary-color) !important;
+            text-shadow: 0 0 10px rgba(212,175,55,0.5);
+        }
+        
         .nav-link {
             color: var(--primary-color) !important;
             font-weight: 500;
@@ -266,7 +274,8 @@
         <div class="container">
             <a class="navbar-brand d-flex align-items-center {% if business_logo %}has-logo{% endif %}" href="{{ url_for('website_home') }}">
                 {% if business_logo %}
-                <img src="{{ business_logo }}" alt="{{ business_name }}" style="height: 50px; max-width: 180px; object-fit: contain;">
+                <img src="{{ business_logo }}" alt="{{ business_name }}" style="height: 50px; max-width: 80px; object-fit: contain;" class="me-2">
+                <span class="brand-name">{{ business_name or 'Spa & Salon' }}</span>
                 {% else %}
                 <i class="fas fa-spa me-2"></i>{{ business_name or 'Spa & Salon' }}
                 {% endif %}
