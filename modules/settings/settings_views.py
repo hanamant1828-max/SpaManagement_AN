@@ -583,15 +583,17 @@ def api_upload_logo():
 
         file = request.files['logo']
         
-        if file.filename == '':
+        if not file.filename or file.filename == '':
             return jsonify({
                 'success': False,
                 'message': 'No file selected'
             }), 400
 
+        print(f"📤 Logo upload request received: {file.filename}")
+
         # Validate file type
         allowed_extensions = {'png', 'jpg', 'jpeg', 'gif', 'svg'}
-        filename = secure_filename(file.filename)
+        filename = secure_filename(str(file.filename))
         file_ext = filename.rsplit('.', 1)[1].lower() if '.' in filename else ''
         
         if file_ext not in allowed_extensions:
