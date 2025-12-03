@@ -1067,11 +1067,44 @@
     `;
 
         container.insertAdjacentHTML("beforeend", appointmentCard);
+        
+        // Initialize Select2 on service dropdown with search
+        $(`.service-select[data-index="${index}"]`).select2({
+            placeholder: 'Select service...',
+            allowClear: true,
+            width: '100%',
+            dropdownAutoWidth: false,
+            dropdownParent: $('body'),
+            minimumResultsForSearch: 0
+        }).on('change', function() {
+            debugLog(`Service changed for appointment ${index}`);
+            showValidationIcon(`service-icon-${index}`, $(this).val());
+            clearConflictAlerts(index);
+            updateEndTime(index);
+            updateSummary();
+        });
+        
+        // Initialize Select2 on staff dropdown with search
+        $(`.staff-select[data-index="${index}"]`).select2({
+            placeholder: 'Select staff...',
+            allowClear: true,
+            width: '100%',
+            dropdownAutoWidth: false,
+            dropdownParent: $('body'),
+            minimumResultsForSearch: 0
+        }).on('change', function() {
+            debugLog(`Staff changed for appointment ${index}`);
+            showValidationIcon(`staff-icon-${index}`, $(this).val());
+            clearConflictAlerts(index);
+            checkStaffConflicts(index);
+            updateSummary();
+        });
+        
         attachEventListeners(index);
         updateAppointmentCount();
         updateAddButtonState();
 
-        debugLog(`Appointment row ${index} added successfully`);
+        debugLog(`Appointment row ${index} added successfully with Select2 dropdowns`);
     }
 
     function removeAppointment(index) {
