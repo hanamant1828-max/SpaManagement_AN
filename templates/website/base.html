@@ -51,7 +51,14 @@
             font-size: 1.8rem;
             font-weight: 700;
             color: var(--primary-color) !important;
+        }
+        
+        .navbar-brand:not(.has-logo) {
             text-shadow: 0 0 10px rgba(212,175,55,0.5);
+        }
+        
+        .navbar-brand img {
+            background: transparent;
         }
         
         .nav-link {
@@ -257,7 +264,7 @@
     <!-- Navigation -->
     <nav class="navbar navbar-expand-lg navbar-light sticky-top">
         <div class="container">
-            <a class="navbar-brand d-flex align-items-center" href="{{ url_for('website_home') }}">
+            <a class="navbar-brand d-flex align-items-center {% if business_logo %}has-logo{% endif %}" href="{{ url_for('website_home') }}">
                 {% if business_logo %}
                 <img src="{{ business_logo }}" alt="{{ business_name }}" style="height: 50px; max-width: 180px; object-fit: contain;">
                 {% else %}
