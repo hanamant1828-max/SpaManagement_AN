@@ -189,7 +189,7 @@
                                         </div>
 
                                         <div class="d-flex gap-2">
-                                            <button type="submit" class="btn btn-primary" id="uploadLogoBtn">
+                                            <button type="button" class="btn btn-primary" id="uploadLogoBtn" onclick="uploadLogo()">
                                                 <i class="fas fa-upload me-1"></i>Upload Logo
                                             </button>
                                             <button type="button" class="btn btn-danger" id="deleteLogoBtn" style="display: none;">
@@ -967,13 +967,16 @@ function testWhatsAppConnection() {
 <script>
 // Logo Management
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('📷 Logo management script loaded');
     loadLogo();
 
     // Logo file preview on selection
     const logoFileInput = document.getElementById('logoFile');
     if (logoFileInput) {
+        console.log('📷 Logo file input found');
         logoFileInput.addEventListener('change', function(e) {
             const file = e.target.files[0];
+            console.log('📷 File selected:', file ? file.name : 'none');
             if (file && file.type.startsWith('image/')) {
                 const reader = new FileReader();
                 reader.onload = function(event) {
@@ -990,14 +993,18 @@ document.addEventListener('DOMContentLoaded', function() {
     // Logo upload form
     const logoUploadForm = document.getElementById('logoUploadForm');
     if (logoUploadForm) {
+        console.log('📷 Logo upload form found, attaching submit handler');
         logoUploadForm.addEventListener('submit', async function(e) {
             e.preventDefault();
+            console.log('📷 Logo upload form submitted');
 
             const fileInput = document.getElementById('logoFile');
             if (!fileInput.files || fileInput.files.length === 0) {
                 alert('Please select a file to upload');
                 return;
             }
+
+            console.log('📷 Uploading file:', fileInput.files[0].name);
 
             const uploadBtn = document.getElementById('uploadLogoBtn');
             const originalText = uploadBtn.innerHTML;
@@ -1008,12 +1015,15 @@ document.addEventListener('DOMContentLoaded', function() {
             formData.append('logo', fileInput.files[0]);
 
             try {
+                console.log('📷 Sending upload request to /api/settings/logo');
                 const response = await fetch('/api/settings/logo', {
                     method: 'POST',
                     body: formData
                 });
 
+                console.log('📷 Response received:', response.status, response.statusText);
                 const data = await response.json();
+                console.log('📷 Response data:', data);
 
                 if (data.success) {
                     alert('Logo uploaded successfully!');
@@ -1023,13 +1033,16 @@ document.addEventListener('DOMContentLoaded', function() {
                     alert('Error: ' + (data.message || 'Failed to upload logo'));
                 }
             } catch (error) {
-                console.error('Error uploading logo:', error);
-                alert('Error uploading logo. Please try again.');
+                console.error('📷 Error uploading logo:', error);
+                alert('Error uploading logo: ' + error.message);
             } finally {
                 uploadBtn.disabled = false;
                 uploadBtn.innerHTML = originalText;
+                console.log('📷 Upload complete, button restored');
             }
         });
+    } else {
+        console.log('📷 Logo upload form NOT found');
     }
 
     // Delete logo button
@@ -1068,6 +1081,53 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 });
+
+async function uploadLogo() {
+    console.log('📷 uploadLogo() called');
+    
+    const fileInput = document.getElementById('logoFile');
+    if (!fileInput.files || fileInput.files.length === 0) {
+        alert('Please select a file to upload');
+        return;
+    }
+
+    console.log('📷 Uploading file:', fileInput.files[0].name);
+
+    const uploadBtn = document.getElementById('uploadLogoBtn');
+    const originalText = uploadBtn.innerHTML;
+    uploadBtn.disabled = true;
+    uploadBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Uploading...';
+
+    const formData = new FormData();
+    formData.append('logo', fileInput.files[0]);
+
+    try {
+        console.log('📷 Sending upload request to /api/settings/logo');
+        const response = await fetch('/api/settings/logo', {
+            method: 'POST',
+            body: formData
+        });
+
+        console.log('📷 Response received:', response.status, response.statusText);
+        const data = await response.json();
+        console.log('📷 Response data:', data);
+
+        if (data.success) {
+            alert('Logo uploaded successfully!');
+            await loadLogo();
+            fileInput.value = '';
+        } else {
+            alert('Error: ' + (data.message || 'Failed to upload logo'));
+        }
+    } catch (error) {
+        console.error('📷 Error uploading logo:', error);
+        alert('Error uploading logo: ' + error.message);
+    } finally {
+        uploadBtn.disabled = false;
+        uploadBtn.innerHTML = originalText;
+        console.log('📷 Upload complete, button restored');
+    }
+}
 
 async function loadLogo() {
     try {
