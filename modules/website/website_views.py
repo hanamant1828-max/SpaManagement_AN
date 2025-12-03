@@ -7,18 +7,32 @@ import re
 
 # Search functionality enabled
 
+def get_business_settings():
+    """Get common business settings for website templates"""
+    business_name = SystemSetting.query.filter_by(key='business_name').first()
+    business_phone = SystemSetting.query.filter_by(key='business_phone').first()
+    business_logo = SystemSetting.query.filter_by(key='business_logo').first()
+    business_email = SystemSetting.query.filter_by(key='gst_email').first()
+    business_address = SystemSetting.query.filter_by(key='gst_business_address').first()
+    
+    return {
+        'business_name': business_name.value if business_name else 'Spa & Salon Suite',
+        'business_phone': business_phone.value if business_phone else '',
+        'business_logo': business_logo.value if business_logo else None,
+        'business_email': business_email.value if business_email else '',
+        'business_address': business_address.value if business_address else ''
+    }
+
 @app.route('/')
 @app.route('/home')
 def website_home():
     """Public website homepage"""
     featured_services = Service.query.filter_by(is_active=True).limit(6).all()
-    business_name = SystemSetting.query.filter_by(key='business_name').first()
-    business_phone = SystemSetting.query.filter_by(key='business_phone').first()
+    settings = get_business_settings()
 
     return render_template('website/home.html',
                          featured_services=featured_services,
-                         business_name=business_name.value if business_name else 'Spa & Salon Suite',
-                         business_phone=business_phone.value if business_phone else '')
+                         **settings)
 
 @app.route('/our-services')
 def website_services():
@@ -40,10 +54,12 @@ def website_services():
         (Service.category_id == None) | (Service.category_id == 0)
     ).count()
 
+    settings = get_business_settings()
     return render_template('website/services.html',
                          categories=categories_with_counts,
                          selected_category=None,
-                         uncategorized_count=uncategorized_count)
+                         uncategorized_count=uncategorized_count,
+                         **settings)
 
 @app.route('/our-services/search')
 def website_services_search():
@@ -84,12 +100,14 @@ def website_services_search():
         description = f"Found {len(services)} service{'s' if len(services) != 1 else ''}"
         icon = "fas fa-search"
 
+    settings = get_business_settings()
     return render_template('website/services.html',
                          categories=categories_with_counts,
                          selected_category=SearchResultCategory(),
                          services=services,
                          uncategorized_count=uncategorized_count,
-                         search_query=search_query)
+                         search_query=search_query,
+                         **settings)
 
 @app.route('/our-services/uncategorized')
 def website_services_uncategorized():
@@ -119,11 +137,13 @@ def website_services_uncategorized():
         description = "Additional services and treatments"
         icon = "fas fa-spa"
 
+    settings = get_business_settings()
     return render_template('website/services.html',
                          categories=categories_with_counts,
                          selected_category=UncategorizedCategory(),
                          services=services,
-                         uncategorized_count=uncategorized_count)
+                         uncategorized_count=uncategorized_count,
+                         **settings)
 
 @app.route('/our-services/category/<int:category_id>')
 def website_services_by_category(category_id):
@@ -154,11 +174,13 @@ def website_services_by_category(category_id):
         (Service.category_id == None) | (Service.category_id == 0)
     ).count()
 
+    settings = get_business_settings()
     return render_template('website/services.html',
                          categories=categories_with_counts,
                          selected_category=category,
                          services=services,
-                         uncategorized_count=uncategorized_count)
+                         uncategorized_count=uncategorized_count,
+                         **settings)
 
 @app.route('/book-online', methods=['GET', 'POST'])
 def website_book_online():
@@ -370,15 +392,15 @@ def website_book_online():
     clients = Customer.query.filter_by(is_active=True).order_by(Customer.first_name, Customer.last_name).all()
     today = date.today().strftime('%Y-%m-%d')
 
-    # Get system settings for business name
-    business_name = SystemSetting.query.filter_by(key='business_name').first()
+    # Get system settings
+    settings = get_business_settings()
 
     return render_template('website/online_booking.html',
                          services=services,
                          staff_members=staff_members,
                          clients=clients,
                          today=today,
-                         business_name=business_name.value if business_name else 'Spa & Salon Suite')
+                         **settings)
 
 @app.route('/booking-success/<int:booking_id>')
 def website_booking_success(booking_id):
@@ -397,31 +419,28 @@ def website_booking_success(booking_id):
     # Calculate total price
     total_price = sum(b.service_price for b in all_bookings)
 
+    settings = get_business_settings()
     return render_template('website/booking_success.html', 
                          booking=booking, 
                          all_bookings=all_bookings,
-                         total_price=total_price)
+                         total_price=total_price,
+                         **settings)
 
 @app.route('/contact')
 def website_contact():
     """Public contact page with map and business details"""
-    business_settings = {}
+    settings = get_business_settings()
 
-    keys = ['business_name', 'business_address', 'business_phone', 'business_email', 
-            'business_hours', 'google_maps_api_key', 'whatsapp_number']
-
+    # Additional settings for contact page
+    keys = ['business_hours', 'google_maps_api_key', 'whatsapp_number']
     for key in keys:
         setting = SystemSetting.query.filter_by(key=key).first()
-        business_settings[key] = setting.value if setting else ''
+        settings[key] = setting.value if setting else ''
 
-    if not business_settings['business_name']:
-        business_settings['business_name'] = 'Spa & Salon Suite'
-    if not business_settings['business_address']:
-        business_settings['business_address'] = '123 Main Street, Your City, State 12345'
-    if not business_settings['business_phone']:
-        business_settings['business_phone'] = '+1-555-123-4567'
+    if not settings['business_address']:
+        settings['business_address'] = '123 Main Street, Your City, State 12345'
 
-    return render_template('website/contact.html', **business_settings)
+    return render_template('website/contact.html', **settings)
 
 @app.route('/gallery')
 def website_gallery():
@@ -435,14 +454,15 @@ def website_gallery():
             if filename.lower().endswith(('.png', '.jpg', '.jpeg', '.gif', '.webp')):
                 images.append(f'/static/images/gallery/{filename}')
 
-    return render_template('website/gallery.html', images=images)
+    settings = get_business_settings()
+    return render_template('website/gallery.html', images=images, **settings)
 
 @app.route('/about')
 def website_about():
     """About us page"""
-    business_name = SystemSetting.query.filter_by(key='business_name').first()
+    settings = get_business_settings()
     business_description = SystemSetting.query.filter_by(key='business_description').first()
 
     return render_template('website/about.html',
-                         business_name=business_name.value if business_name else 'Spa & Salon Suite',
-                         business_description=business_description.value if business_description else '')
+                         business_description=business_description.value if business_description else '',
+                         **settings)
