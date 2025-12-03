@@ -1679,10 +1679,18 @@ def unaki_booking():
 @app.route('/api/unaki/get-bookings')
 @login_required
 def api_unaki_get_bookings():
-    """API endpoint to get Unaki bookings for a specific date"""
+    """API endpoint to get Unaki bookings for a specific date
+    
+    This endpoint now combines data from BOTH:
+    1. UnakiBooking table (bookings created through Unaki interface)
+    2. Appointment table (bookings created through calendar/regular booking)
+    
+    This ensures all appointments are visible regardless of which interface was used to create them.
+    """
     try:
-        from models import UnakiBooking, User
+        from models import UnakiBooking, Appointment, User, Customer, Service
         from datetime import datetime
+        from sqlalchemy import func
 
         date_str = request.args.get('date')
         if not date_str:
@@ -1696,37 +1704,40 @@ def api_unaki_get_bookings():
         # Get today's date for comparison
         today = date.today()
 
-        # Get all bookings for the date (including paid ones)
-        bookings = UnakiBooking.query.filter(
+        bookings_data = []
+        
+        # Helper function to determine service type for coloring
+        def get_service_type(service_name):
+            if not service_name:
+                return 'default'
+            service_lower = service_name.lower()
+            if 'massage' in service_lower:
+                return 'massage'
+            elif 'facial' in service_lower:
+                return 'facial'
+            elif 'manicure' in service_lower:
+                return 'manicure'
+            elif 'pedicure' in service_lower:
+                return 'pedicure'
+            elif 'hair' in service_lower or 'cut' in service_lower or 'highlight' in service_lower:
+                return 'haircut'
+            elif 'wax' in service_lower:
+                return 'waxing'
+            return 'default'
+
+        # 1. Get all UnakiBooking entries for the date
+        unaki_bookings = UnakiBooking.query.filter(
             UnakiBooking.appointment_date == booking_date
         ).all()
 
-
-        bookings_data = []
-        for booking in bookings:
-            # Calculate position data
+        for booking in unaki_bookings:
             start_hour = booking.start_time.hour
             start_minute = booking.start_time.minute
-
-            # Determine service type for coloring
-            service_type = 'default'
-            if booking.service_name:
-                service_lower = booking.service_name.lower()
-                if 'massage' in service_lower:
-                    service_type = 'massage'
-                elif 'facial' in service_lower:
-                    service_type = 'facial'
-                elif 'manicure' in service_lower:
-                    service_type = 'manicure'
-                elif 'pedicure' in service_lower:
-                    service_type = 'pedicure'
-                elif 'hair' in service_lower or 'cut' in service_lower:
-                    service_type = 'haircut'
-                elif 'wax' in service_lower:
-                    service_type = 'waxing'
+            service_type = get_service_type(booking.service_name)
 
             bookings_data.append({
                 'id': booking.id,
+                'source_table': 'unaki',
                 'staff_id': booking.staff_id,
                 'client_id': booking.client_id,
                 'client_name': booking.client_name,
@@ -1741,6 +1752,56 @@ def api_unaki_get_bookings():
                 'checked_in': booking.checked_in,
                 'checked_in_at': booking.checked_in_at.isoformat() if booking.checked_in_at else None,
                 'booking_source': booking.booking_source
+            })
+
+        # 2. Get all Appointment entries for the date (from regular calendar booking)
+        appointments = Appointment.query.filter(
+            func.date(Appointment.appointment_date) == booking_date,
+            Appointment.status.notin_(['cancelled'])
+        ).all()
+
+        for appt in appointments:
+            start_hour = appt.appointment_date.hour
+            start_minute = appt.appointment_date.minute
+            
+            # Get client name
+            client_name = 'Unknown Client'
+            if appt.client:
+                client_name = appt.client.full_name if hasattr(appt.client, 'full_name') else f"{appt.client.first_name or ''} {appt.client.last_name or ''}".strip()
+            
+            # Get service name and duration
+            service_name = 'Service'
+            service_duration = 30
+            if appt.service:
+                service_name = appt.service.name
+                service_duration = appt.service.duration or 30
+            
+            service_type = get_service_type(service_name)
+            
+            # Map payment status
+            payment_status = 'unpaid'
+            if appt.is_paid:
+                payment_status = 'paid'
+            elif appt.payment_status == 'partial':
+                payment_status = 'partial'
+
+            bookings_data.append({
+                'id': appt.id,
+                'source_table': 'appointment',
+                'staff_id': appt.staff_id,
+                'client_id': appt.client_id,
+                'client_name': client_name,
+                'service_names': service_name,
+                'service_type': service_type,
+                'start_time': appt.appointment_date.strftime('%I:%M %p'),
+                'start_hour': start_hour,
+                'start_minute': start_minute,
+                'duration': service_duration,
+                'status': appt.status,
+                'payment_status': payment_status,
+                'checked_in': False,
+                'checked_in_at': None,
+                'booking_source': appt.booking_source or 'manual'
             })
 
         return jsonify({'success': True, 'bookings': bookings_data})
