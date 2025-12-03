@@ -445,5 +445,11 @@
         </div>
 
         <script src="{{ url_for('static', filename='js/unaki_booking.js') }}"></script>
+        <script>
+            $(document).ready(function() {
+                // Initialize Select2 for all elements with the class 'select2-dropdown'
+                $('.select2-dropdown').select2();
+            });
+        </script>
     </body>
 </html>
