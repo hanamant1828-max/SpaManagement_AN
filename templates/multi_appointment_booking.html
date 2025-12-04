@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Book Multiple Appointments - Spa Management{% endblock %}
+{% block title %}{% if edit_appointment %}Edit Appointment{% else %}Book Multiple Appointments{% endif %} - Spa Management{% endblock %}
 {% block content %}
 <div class="container-fluid py-4">
     <div class="row mb-4">
@@ -7,14 +7,23 @@
             <div class="d-flex justify-content-between align-items-center">
                 <div>
                     <h2 class="mb-1">
+                        {% if edit_appointment %}
+                        <i class="fas fa-edit text-warning me-2"></i>
+                        Edit Appointment
+                        {% else %}
                         <i class="fas fa-calendar-plus text-primary me-2"></i>
                         Book Multiple Appointments
+                        {% endif %}
                     </h2>
                     <p class="text-muted mb-0">
+                        {% if edit_appointment %}
+                        Update the appointment details below
+                        {% else %}
                         Book multiple services for a client in one go
+                        {% endif %}
                     </p>
                 </div>
-
+                <a
                     href="{{ url_for('unaki_booking') }}"
                     class="btn btn-outline-secondary"
                 >
@@ -23,6 +32,11 @@
             </div>
         </div>
     </div>
+    
+    <!-- Hidden field to store edit appointment data -->
+    {% if edit_appointment %}
+    <script type="application/json" id="editAppointmentData">{{ edit_appointment | tojson | safe }}</script>
+    {% endif %}
 
     <div class="row">
         <div class="col-lg-8">
@@ -810,9 +824,34 @@
         return appointments;
     }
 
+    // ==================== EDIT MODE VARIABLES ====================
+    let isEditMode = false;
+    let editAppointmentId = null;
+    let editAppointmentData = null;
+
     // ==================== INITIALIZATION ====================
     $(document).ready(function () {
         debugLog('Initializing multi-appointment booking page');
+
+        // Check if we're in edit mode
+        const editDataElement = document.getElementById('editAppointmentData');
+        if (editDataElement) {
+            try {
+                const jsonText = editDataElement.textContent || editDataElement.innerText;
+                if (jsonText && jsonText.trim()) {
+                    editAppointmentData = JSON.parse(jsonText);
+                    isEditMode = true;
+                    editAppointmentId = editAppointmentData.id;
+                    debugLog('Edit mode enabled for appointment:', editAppointmentData);
+                    console.log('🔧 EDIT MODE ACTIVATED - Appointment ID:', editAppointmentId);
+                }
+            } catch (e) {
+                console.error('Error parsing edit appointment data:', e);
+                console.error('Raw content:', editDataElement.textContent);
+            }
+        } else {
+            debugLog('No edit data element found - new booking mode');
+        }
 
         // Check for pre-selected customer from URL
         const urlParams = new URLSearchParams(window.location.search);
@@ -846,6 +885,13 @@
 
         addAppointmentRow();
 
+        // If in edit mode, pre-populate the form after adding the first row
+        if (isEditMode && editAppointmentData) {
+            setTimeout(() => {
+                populateEditForm(editAppointmentData);
+            }, 100);
+        }
+
         $("#clientSelect").on("change", function () {
             const clientId = $(this).val();
             debugLog('Client selected:', clientId);
@@ -863,7 +909,95 @@
         });
 
         updateAddButtonState();
+        
+        // Update UI for edit mode
+        if (isEditMode) {
+            updateUIForEditMode();
+        }
     });
+
+    // ==================== EDIT MODE FUNCTIONS ====================
+    function populateEditForm(data) {
+        debugLog('Populating edit form with data:', data);
+        
+        // Select client
+        if (data.client_id) {
+            $('#clientSelect').val(data.client_id).trigger('change');
+        }
+        
+        // Set booking source
+        if (data.booking_source) {
+            $('#bookingSourceSelect').val(data.booking_source);
+        }
+        
+        // Pre-populate the first appointment card (index 0)
+        setTimeout(() => {
+            // Service
+            const serviceSelect = document.querySelector('.service-select[data-index="0"]');
+            if (serviceSelect && data.service_id) {
+                serviceSelect.value = data.service_id;
+                $(serviceSelect).trigger('change');
+            }
+            
+            // Staff
+            const staffSelect = document.querySelector('.staff-select[data-index="0"]');
+            if (staffSelect && data.staff_id) {
+                staffSelect.value = data.staff_id;
+                $(staffSelect).trigger('change');
+            }
+            
+            // Date
+            const dateInput = document.querySelector('.date-input[data-index="0"]');
+            if (dateInput && data.appointment_date) {
+                dateInput.value = data.appointment_date;
+            }
+            
+            // Start Time
+            const startTimeSelect = document.querySelector('.start-time-select[data-index="0"]');
+            if (startTimeSelect && data.start_time) {
+                startTimeSelect.value = data.start_time;
+                $(startTimeSelect).trigger('change');
+            }
+            
+            // End Time (will be auto-calculated, but set manually if needed)
+            const endTimeSelect = document.querySelector('.end-time-select[data-index="0"]');
+            if (endTimeSelect && data.end_time) {
+                setTimeout(() => {
+                    endTimeSelect.value = data.end_time;
+                }, 200);
+            }
+            
+            // Notes
+            if (data.notes) {
+                document.getElementById('bookingNotes').value = data.notes;
+            }
+            
+            // Update summary
+            updateSummary();
+            
+            debugLog('Edit form populated successfully');
+        }, 200);
+    }
+    
+    function updateUIForEditMode() {
+        // Update submit button text
+        const submitBtn = document.getElementById('submitBookingBtn');
+        if (submitBtn) {
+            submitBtn.innerHTML = '<i class="fas fa-save me-2"></i>Update Appointment';
+        }
+        
+        // Hide "Add Another Appointment" button in edit mode
+        const addBtn = document.getElementById('addAppointmentBtn');
+        if (addBtn) {
+            addBtn.style.display = 'none';
+        }
+        
+        // Update the appointment count text
+        const countBadge = document.getElementById('appointmentCount');
+        if (countBadge) {
+            countBadge.textContent = 'Editing 1 Appointment';
+        }
+    }
 
     // ==================== ADD/REMOVE APPOINTMENTS ====================
     async function addAppointmentRow() {
@@ -1850,7 +1984,7 @@
 
     // ==================== FORM SUBMISSION ====================
     function submitMultiBooking() {
-        debugLog('Submitting multi-booking');
+        debugLog('Submitting multi-booking, isEditMode:', isEditMode);
 
         const clientId = $("#clientSelect").val();
         if (!clientId) {
@@ -1908,20 +2042,77 @@
             return;
         }
 
-        debugLog('Appointments to book:', appointments);
+        debugLog('Appointments to process:', appointments);
 
         const summary = appointments
             .map((apt, i) => `${i + 1}. ${apt.service_name} with ${apt.staff_name} at ${format12Hour(apt.start_time)} on ${apt.appointment_date}`)
             .join("\n");
 
-        if (!confirm(`📅 Book ${appointments.length} appointment(s)?\n\n${summary}\n\nClient: ${appointments[0].client_name}`)) {
+        // Different confirmation message for edit vs. create
+        const confirmMessage = isEditMode
+            ? `📝 Update appointment?\n\n${summary}\n\nClient: ${appointments[0].client_name}`
+            : `📅 Book ${appointments.length} appointment(s)?\n\n${summary}\n\nClient: ${appointments[0].client_name}`;
+
+        if (!confirm(confirmMessage)) {
             return;
         }
 
         const submitBtn = document.getElementById("submitBookingBtn");
         submitBtn.disabled = true;
-        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Booking...';
+        submitBtn.innerHTML = isEditMode 
+            ? '<i class="fas fa-spinner fa-spin me-2"></i>Updating...'
+            : '<i class="fas fa-spinner fa-spin me-2"></i>Booking...';
 
+        // Handle edit mode - update existing appointment
+        if (isEditMode && editAppointmentId) {
+            const apt = appointments[0];
+            const updateData = {
+                client_id: apt.client_id,
+                client_name: apt.client_name,
+                client_phone: apt.client_phone,
+                client_email: apt.client_email,
+                service_id: apt.service_id,
+                service_name: apt.service_name,
+                service_duration: apt.service_duration,
+                service_price: apt.service_price,
+                staff_id: apt.staff_id,
+                date: apt.appointment_date,
+                appointment_date: apt.appointment_date,
+                start_time: apt.start_time,
+                end_time: apt.end_time,
+                notes: apt.notes,
+                booking_source: apt.booking_source
+            };
+            
+            debugLog('Updating appointment with data:', updateData);
+            
+            fetch(`/api/unaki/bookings/${editAppointmentId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(updateData)
+            })
+            .then(response => response.json())
+            .then(result => {
+                debugLog('Update result:', result);
+                if (result.success) {
+                    alert('✅ Appointment updated successfully!');
+                    window.location.href = '{{ url_for("unaki_booking") }}';
+                } else {
+                    alert('❌ Failed to update appointment: ' + (result.error || 'Unknown error'));
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = '<i class="fas fa-save me-2"></i>Update Appointment';
+                }
+            })
+            .catch(error => {
+                console.error('Error updating appointment:', error);
+                alert('❌ Error updating appointment. Please try again.');
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fas fa-save me-2"></i>Update Appointment';
+            });
+            return;
+        }
+
+        // Handle create mode - book new appointments
         const promises = appointments.map((apt) =>
             fetch("/api/unaki/book-appointment", {
                 method: "POST",

@@ -295,12 +295,20 @@ class AppointmentContextMenu {
     editAppointment(appointmentId) {
         console.log(`Editing appointment ${appointmentId}`);
 
-        // Fetch appointment details first
+        // Fetch appointment details first to get the date and other info for redirect
         fetch(`/api/unaki/bookings/${appointmentId}`)
             .then(response => response.json())
             .then(data => {
                 if (data.success && data.booking) {
-                    this.showEditAppointmentModal(data.booking);
+                    const booking = data.booking;
+                    // Redirect to multi-appointment-booking page with edit_id parameter
+                    const params = new URLSearchParams({
+                        edit_id: appointmentId,
+                        date: booking.appointment_date || '',
+                        staff_id: booking.staff_id || '',
+                        time: booking.start_time || ''
+                    });
+                    window.location.href = `/multi-appointment-booking?${params.toString()}`;
                 } else {
                     console.error('Failed to fetch appointment details:', data.error);
                     this.showToast('Failed to load appointment details for editing: ' + (data.error || 'Unknown error'), 'error');

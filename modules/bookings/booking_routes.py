@@ -669,7 +669,7 @@ def staff_availability():
 @app.route('/multi-appointment-booking')
 @login_required
 def multi_appointment_booking():
-    """Dedicated page for booking multiple appointments"""
+    """Dedicated page for booking multiple appointments - supports both new bookings and editing existing ones"""
     if not current_user.can_access('bookings'):
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
@@ -683,14 +683,46 @@ def multi_appointment_booking():
         services = get_all_services()
         clients = get_all_customers()
         today = date.today().strftime('%Y-%m-%d')
+        
+        # Check if we're editing an existing appointment
+        edit_id = request.args.get('edit_id', type=int)
+        edit_appointment = None
+        
+        if edit_id:
+            # Fetch the appointment data for editing
+            booking = UnakiBooking.query.get(edit_id)
+            if booking:
+                edit_appointment = {
+                    'id': booking.id,
+                    'client_id': booking.client_id,
+                    'client_name': booking.client_name,
+                    'client_phone': booking.client_phone,
+                    'client_email': booking.client_email,
+                    'service_id': booking.service_id,
+                    'service_name': booking.service_name,
+                    'service_duration': booking.service_duration,
+                    'service_price': float(booking.service_price) if booking.service_price else 0,
+                    'staff_id': booking.staff_id,
+                    'appointment_date': booking.appointment_date.strftime('%Y-%m-%d') if booking.appointment_date else '',
+                    'start_time': booking.start_time.strftime('%H:%M') if booking.start_time else '',
+                    'end_time': booking.end_time.strftime('%H:%M') if booking.end_time else '',
+                    'status': booking.status,
+                    'payment_status': booking.payment_status,
+                    'notes': booking.notes or '',
+                    'booking_source': booking.booking_source
+                }
+                print(f"Editing appointment ID: {edit_id}, data: {edit_appointment}")
 
         return render_template('multi_appointment_booking.html',
                              staff_members=staff_members,
                              services=services,
                              clients=clients,
-                             today=today)
+                             today=today,
+                             edit_appointment=edit_appointment)
     except Exception as e:
         print(f"Error in multi_appointment_booking: {e}")
+        import traceback
+        traceback.print_exc()
         flash('Error loading booking page', 'danger')
         return redirect(url_for('unaki_booking'))
 
