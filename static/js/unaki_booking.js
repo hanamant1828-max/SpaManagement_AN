@@ -339,6 +339,9 @@
                     }
                 }
             }
+
+            // Export function globally for multi-appointment booking page
+            window.initializeSearchableDropdowns = initializeSearchableDropdowns;
             // ==========================================
             // DATA LOADING
             // ==========================================
