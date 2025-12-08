@@ -1310,11 +1310,21 @@
                     validationErrors.push(`Appointment ${idx + 1}: Time overlaps with another appointment`);
                 }
 
-                // Check client existing bookings (but exclude appointments we're editing)
-                const editingAppointmentId = card.dataset.appointmentId;
+                // Check client existing bookings (but exclude ALL appointments we're editing)
                 for (const booking of clientExistingBookings) {
-                    // Skip if this is the appointment we're currently editing
-                    if (editingAppointmentId && booking.id == editingAppointmentId) {
+                    // Skip if this booking is one of the appointments we're currently editing
+                    let isBeingEdited = false;
+                    
+                    // Check all cards to see if any match this booking ID
+                    document.querySelectorAll('.appointment-card').forEach(checkCard => {
+                        const cardAppointmentId = checkCard.dataset.appointmentId;
+                        if (cardAppointmentId && booking.id == cardAppointmentId) {
+                            isBeingEdited = true;
+                        }
+                    });
+                    
+                    if (isBeingEdited) {
+                        debugLog(`Skipping validation for booking ${booking.id} (being edited)`);
                         continue;
                     }
                     
@@ -1461,8 +1471,17 @@
         let hasOverlap = false;
         let conflictDetails = null;
 
+        // Get the appointment ID being edited (if any)
+        const editingAppointmentId = card?.dataset.appointmentId;
+
         // Check against client's existing bookings
         for (const booking of clientExistingBookings) {
+            // Skip if this is the appointment we're currently editing
+            if (editingAppointmentId && booking.id == editingAppointmentId) {
+                debugLog(`Skipping conflict check with appointment ${booking.id} (currently being edited)`);
+                continue;
+            }
+
             if (booking.appointment_date === data.date) {
                 const overlap = checkTimeOverlap(
                     data.startTime,
