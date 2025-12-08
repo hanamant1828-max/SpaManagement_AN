@@ -32,8 +32,11 @@ class AppointmentContextMenu {
                     <li class="context-menu-item" data-action="view">
                         <i class="fas fa-eye"></i> View Details
                     </li>
+                    <li class="context-menu-item" data-action="edit_single">
+                        <i class="fas fa-edit"></i> Edit Selected Appointment
+                    </li>
                     <li class="context-menu-item" data-action="edit">
-                        <i class="fas fa-edit"></i> Edit Appointment
+                        <i class="fas fa-calendar-alt"></i> Edit All Client Appointments
                     </li>
                     <li class="context-menu-item" data-action="billing">
                         <i class="fas fa-dollar-sign"></i> Go to Billing
@@ -243,6 +246,9 @@ class AppointmentContextMenu {
             case 'view':
                 this.viewAppointment(this.currentAppointmentId);
                 break;
+            case 'edit_single':
+                this.editSingleAppointment(this.currentAppointmentId);
+                break;
             case 'edit':
                 this.editAppointment(this.currentAppointmentId);
                 break;
@@ -290,6 +296,14 @@ class AppointmentContextMenu {
                 console.error('Error fetching appointment details:', error);
                 this.showToast('Error loading appointment details. Please try again.', 'error');
             });
+    }
+
+    editSingleAppointment(appointmentId) {
+        console.log(`Editing SINGLE appointment ${appointmentId} - Only this appointment will be loaded`);
+        
+        // Redirect to the multi-appointment booking page with single_edit parameter
+        // This loads ONLY the selected appointment, not all client appointments
+        window.location.href = `/multi-appointment-booking?single_edit_id=${appointmentId}`;
     }
 
     editAppointment(appointmentId) {
