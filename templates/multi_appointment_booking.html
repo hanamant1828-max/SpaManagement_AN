@@ -980,6 +980,8 @@
             if (appt.end_time) {
                 endTimeSelect.val(appt.end_time);
                 console.log(`📝 Row ${index}: End time set to ${appt.end_time}`);
+                // Populate the end time dropdown with options including this value
+                updateEndTime(index);
             }
 
             // Mark all required fields as valid after population
@@ -1677,6 +1679,33 @@
 
             // Re-validate all other appointments for internal conflicts
             validateAllAppointments();
+        } else if (endTimeSelect) {
+            // If we have an existing end time value (from edit mode) but no service/start time yet,
+            // populate the dropdown with the existing value
+            const existingEndTime = endTimeSelect.value || endTimeHidden?.value;
+            if (existingEndTime) {
+                const timeOptions = generateTimeOptions();
+                
+                // Check if the existing end time is in the options
+                const endTimeExists = timeOptions.some(t => t.value === existingEndTime);
+                
+                if (!endTimeExists) {
+                    const endTimeLabel = format12Hour(existingEndTime);
+                    let insertIndex = timeOptions.findIndex(t => t.value > existingEndTime);
+                    if (insertIndex === -1) insertIndex = timeOptions.length;
+                    timeOptions.splice(insertIndex, 0, { value: existingEndTime, label: endTimeLabel });
+                }
+                
+                endTimeSelect.innerHTML = timeOptions
+                    .map(
+                        (t) =>
+                            `<option value="${t.value}" ${t.value === existingEndTime ? "selected" : ""}>${t.label}</option>`,
+                    )
+                    .join("");
+                
+                endTimeSelect.disabled = false;
+                debugLog(`Populated end time dropdown with existing value: ${existingEndTime}`);
+            }
         }
     }
 
