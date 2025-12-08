@@ -706,12 +706,28 @@ def multi_appointment_booking():
                     print(f"📝 Found {len(all_client_appointments)} unpaid/scheduled appointments for client {edit_client_id}")
                     
                     for booking in all_client_appointments:
+                        # Get service ID - try service_id first, then parse from service_names
+                        service_id = booking.service_id
+                        service_name = ''
+                        
+                        if booking.service:
+                            service_id = booking.service.id
+                            service_name = booking.service.name
+                        elif booking.service_names:
+                            # Parse from service_names field
+                            service_name = booking.service_names
+                            # Try to find matching service by name
+                            from models import Service
+                            matching_service = Service.query.filter(Service.name.ilike(f'%{service_name}%')).first()
+                            if matching_service:
+                                service_id = matching_service.id
+                        
                         appt_data = {
                             'id': booking.id,
                             'client_id': booking.client_id,
                             'client_name': f"{booking.client.first_name} {booking.client.last_name}" if booking.client else '',
-                            'service_id': booking.service_id,
-                            'service_name': booking.service.name if booking.service else '',
+                            'service_id': service_id,
+                            'service_name': service_name or booking.service_name or '',
                             'staff_id': booking.staff_id,
                             'staff_name': f"{booking.assigned_staff.first_name} {booking.assigned_staff.last_name}" if booking.assigned_staff else '',
                             'appointment_date': booking.appointment_date.strftime('%Y-%m-%d') if booking.appointment_date else today,
@@ -723,7 +739,7 @@ def multi_appointment_booking():
                             'is_clicked': booking.id == int(edit_id)  # Mark the one that was clicked
                         }
                         edit_appointments.append(appt_data)
-                        print(f"  - Appointment {booking.id}: {booking.service.name if booking.service else 'N/A'} on {booking.appointment_date}")
+                        print(f"  - Appointment {booking.id}: {service_name or 'N/A'} (service_id: {service_id}) on {booking.appointment_date}")
                     
             except Exception as e:
                 print(f"Error loading appointments for editing: {e}")
