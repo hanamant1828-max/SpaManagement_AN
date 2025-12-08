@@ -434,11 +434,20 @@ def api_check_staff_conflicts():
                         })
 
         # 2. CHECK APPOINTMENT CONFLICTS
-        conflicting_bookings = UnakiBooking.query.filter(
+        # Get exclude_id for edit mode (to exclude the appointment being edited)
+        exclude_id = data.get('exclude_id')
+        
+        query = UnakiBooking.query.filter(
             UnakiBooking.staff_id == staff_id,
             UnakiBooking.appointment_date == appointment_date,
             UnakiBooking.status.in_(['scheduled', 'confirmed', 'in_progress'])
-        ).all()
+        )
+        
+        # Exclude the appointment being edited (if provided)
+        if exclude_id:
+            query = query.filter(UnakiBooking.id != exclude_id)
+        
+        conflicting_bookings = query.all()
 
         for booking in conflicting_bookings:
             existing_start = datetime.combine(appointment_date, booking.start_time)

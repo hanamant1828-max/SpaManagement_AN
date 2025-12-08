@@ -1536,6 +1536,7 @@
         const data = getAppointmentData(index);
         const conflictAlert = document.getElementById(`conflict-${index}`);
         const staffSelect = document.querySelector(`.staff-select[data-index="${index}"]`);
+        const card = document.querySelector(`[data-index="${index}"]`);
 
         // Clear previous alert
         if (conflictAlert) conflictAlert.classList.add("d-none");
@@ -1551,16 +1552,29 @@
         showLoadingState(index, true);
         staffSelect?.classList.add("field-validating");
 
+        // Get the appointment ID if we're in edit mode (to exclude it from conflict check)
+        const editingAppointmentId = card?.dataset.appointmentId;
+        if (editingAppointmentId) {
+            debugLog(`Edit mode: excluding appointment ID ${editingAppointmentId} from conflict check`);
+        }
+
         conflictTimers[index] = setTimeout(() => {
+            const requestBody = {
+                staff_id: data.staff,
+                appointment_date: data.date,
+                start_time: data.startTime,
+                end_time: data.endTime,
+            };
+            
+            // Include exclude_id for edit mode to prevent self-conflict
+            if (editingAppointmentId) {
+                requestBody.exclude_id = parseInt(editingAppointmentId);
+            }
+
             fetch("/api/unaki/check-staff-conflicts", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    staff_id: data.staff,
-                    appointment_date: data.date,
-                    start_time: data.startTime,
-                    end_time: data.endTime,
-                }),
+                body: JSON.stringify(requestBody),
             })
                 .then((response) => response.json())
                 .then((result) => {
