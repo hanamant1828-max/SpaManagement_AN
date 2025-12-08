@@ -157,7 +157,28 @@ def run_automatic_migrations():
                 cursor.execute("ALTER TABLE student_offers ADD COLUMN discount_percentage FLOAT")
                 migrations_applied = True
 
-        # Migration 3: service_packages table
+        # Migration 3: shift_management table (schedule_name column for proper name binding)
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='shift_management'")
+        if cursor.fetchone():
+            cursor.execute("PRAGMA table_info(shift_management)")
+            shift_mgmt_columns = [row[1] for row in cursor.fetchall()]
+
+            if 'schedule_name' not in shift_mgmt_columns:
+                print("  → Adding column: shift_management.schedule_name")
+                cursor.execute("ALTER TABLE shift_management ADD COLUMN schedule_name VARCHAR(200)")
+                migrations_applied = True
+
+            if 'description' not in shift_mgmt_columns:
+                print("  → Adding column: shift_management.description")
+                cursor.execute("ALTER TABLE shift_management ADD COLUMN description TEXT")
+                migrations_applied = True
+
+            if 'priority' not in shift_mgmt_columns:
+                print("  → Adding column: shift_management.priority")
+                cursor.execute("ALTER TABLE shift_management ADD COLUMN priority INTEGER DEFAULT 1")
+                migrations_applied = True
+
+        # Migration 4: service_packages table
         cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='service_packages'")
         if cursor.fetchone():
             cursor.execute("PRAGMA table_info(service_packages)")

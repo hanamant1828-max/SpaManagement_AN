@@ -192,6 +192,9 @@ def save_daily_schedule():
             # Update existing entry - extend date range and clear old logs
             existing_management.from_date = min(existing_management.from_date, from_date)
             existing_management.to_date = max(existing_management.to_date, to_date)
+            existing_management.schedule_name = schedule_name
+            existing_management.description = description
+            existing_management.priority = priority
             existing_management.updated_at = datetime.utcnow()
             
             # Clear existing shift logs for this management entry
@@ -201,6 +204,9 @@ def save_daily_schedule():
             # Create new shift management entry
             shift_management = ShiftManagement(
                 staff_id=staff_id,
+                schedule_name=schedule_name,
+                description=description,
+                priority=priority,
                 from_date=from_date,
                 to_date=to_date
             )
@@ -454,14 +460,17 @@ def api_get_schedule_details(schedule_id):
                 'notes': ''
             })
 
-        # Prepare schedule data
+        # Prepare schedule data - use stored schedule_name or generate fallback
+        stored_name = shift_management.schedule_name
+        fallback_name = f"Shift {shift_management.from_date.strftime('%Y-%m-%d')} to {shift_management.to_date.strftime('%Y-%m-%d')}"
+        
         schedule_data = {
             'id': shift_management.id,
             'staff_id': shift_management.staff_id,
             'staff_name': f"{staff.first_name} {staff.last_name}",
-            'schedule_name': f"Shift {shift_management.from_date.strftime('%Y-%m-%d')} to {shift_management.to_date.strftime('%Y-%m-%d')}",
-            'description': '',
-            'priority': 1,  # Default priority
+            'schedule_name': stored_name if stored_name else fallback_name,
+            'description': shift_management.description or '',
+            'priority': shift_management.priority or 1,
             'start_date': shift_management.from_date.strftime('%Y-%m-%d'),
             'end_date': shift_management.to_date.strftime('%Y-%m-%d'),
             'shift_start_time': schedule_days[0]['startTime'] if schedule_days else '09:00',

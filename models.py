@@ -359,6 +359,9 @@ class ShiftManagement(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     staff_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False, unique=True)  # One per staff
+    schedule_name = db.Column(db.String(200), nullable=True)
+    description = db.Column(db.Text, nullable=True)
+    priority = db.Column(db.Integer, default=1)
     from_date = db.Column(db.Date, nullable=False)
     to_date = db.Column(db.Date, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
