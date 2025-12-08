@@ -706,37 +706,62 @@ def multi_appointment_booking():
                     print(f"📝 Found {len(all_client_appointments)} unpaid/scheduled appointments for client {edit_client_id}")
                     
                     for booking in all_client_appointments:
-                        # Get service ID and name
+                        # Get service ID and name - handle None values safely
                         service_id = booking.service_id
-                        service_name = booking.service_name or ''
+                        service_name = booking.service_name if booking.service_name else ''
                         
-                        # If service relationship exists, use it to get ID
-                        if booking.service:
-                            service_id = booking.service.id
-                            service_name = booking.service.name
-                        elif not service_id and service_name:
-                            # Try to find matching service by name if we have name but no ID
-                            from models import Service
-                            matching_service = Service.query.filter(Service.name.ilike(f'%{service_name}%')).first()
-                            if matching_service:
-                                service_id = matching_service.id
+                        # Try to get service from relationship if service_id exists
+                        if service_id:
+                            try:
+                                service = booking.service
+                                if service:
+                                    service_id = service.id
+                                    service_name = service.name
+                            except Exception as e:
+                                print(f"⚠️ Could not load service relationship for booking {booking.id}: {e}")
                         
+                        # If we have service_name but no service_id, try to find matching service
+                        if not service_id and service_name:
+                            try:
+                                from models import Service
+                                matching_service = Service.query.filter(Service.name.ilike(f'%{service_name}%')).first()
+                                if matching_service:
+                                    service_id = matching_service.id
+                                    service_name = matching_service.name
+                            except Exception as e:
+                                print(f"⚠️ Could not find matching service for '{service_name}': {e}")
+                        
+                        # Build appointment data with safe fallbacks
                         appt_data = {
                             'id': booking.id,
                             'client_id': booking.client_id,
-                            'client_name': f"{booking.client.first_name} {booking.client.last_name}" if booking.client else '',
+                            'client_name': '',
                             'service_id': service_id,
                             'service_name': service_name,
                             'staff_id': booking.staff_id,
-                            'staff_name': f"{booking.assigned_staff.first_name} {booking.assigned_staff.last_name}" if booking.assigned_staff else '',
+                            'staff_name': '',
                             'appointment_date': booking.appointment_date.strftime('%Y-%m-%d') if booking.appointment_date else today,
                             'start_time': booking.start_time.strftime('%H:%M') if booking.start_time else '',
                             'end_time': booking.end_time.strftime('%H:%M') if booking.end_time else '',
-                            'notes': booking.notes or '',
-                            'status': booking.status or 'scheduled',
-                            'booking_source': booking.booking_source or 'walk_in',
+                            'notes': booking.notes if booking.notes else '',
+                            'status': booking.status if booking.status else 'scheduled',
+                            'booking_source': booking.booking_source if booking.booking_source else 'walk_in',
                             'is_clicked': booking.id == int(edit_id)  # Mark the one that was clicked
                         }
+                        
+                        # Safely get client name
+                        try:
+                            if booking.client:
+                                appt_data['client_name'] = f"{booking.client.first_name} {booking.client.last_name}"
+                        except Exception as e:
+                            print(f"⚠️ Could not load client for booking {booking.id}: {e}")
+                        
+                        # Safely get staff name
+                        try:
+                            if booking.assigned_staff:
+                                appt_data['staff_name'] = f"{booking.assigned_staff.first_name} {booking.assigned_staff.last_name}"
+                        except Exception as e:
+                            print(f"⚠️ Could not load staff for booking {booking.id}: {e}")
                         edit_appointments.append(appt_data)
                         print(f"  - Appointment {booking.id}: {service_name or 'N/A'} (service_id: {service_id}) on {booking.appointment_date}")
                     
