@@ -293,23 +293,11 @@ class AppointmentContextMenu {
     }
 
     editAppointment(appointmentId) {
-        console.log(`Editing appointment ${appointmentId}`);
-
-        // Fetch appointment details first
-        fetch(`/api/unaki/bookings/${appointmentId}`)
-            .then(response => response.json())
-            .then(data => {
-                if (data.success && data.booking) {
-                    this.showEditAppointmentModal(data.booking);
-                } else {
-                    console.error('Failed to fetch appointment details:', data.error);
-                    this.showToast('Failed to load appointment details for editing: ' + (data.error || 'Unknown error'), 'error');
-                }
-            })
-            .catch(error => {
-                console.error('Error fetching appointment details for editing:', error);
-                this.showToast('Error loading appointment for editing. Please try again.', 'error');
-            });
+        console.log(`Editing appointment ${appointmentId} - Redirecting to multi-appointment booking form`);
+        
+        // Redirect to the multi-appointment booking page with the edit_id parameter
+        // This reuses the same form used for adding appointments, with all validations and logic
+        window.location.href = `/multi-appointment-booking?edit_id=${appointmentId}`;
     }
 
 
