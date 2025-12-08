@@ -10,44 +10,252 @@
 .ooo-card {
     background: white;
     border-radius: 12px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
     padding: 2rem;
     margin-bottom: 2rem;
 }
 
 .ooo-header {
-    background: linear-gradient(135deg, var(--spa-primary), var(--spa-primary-dark));
+    background: linear-gradient(135deg, #2563eb, #1d4ed8);
     color: white;
     padding: 2rem;
     border-radius: 12px 12px 0 0;
     margin: -2rem -2rem 2rem -2rem;
 }
 
+/* Entry Form Card - Improved Styling */
+.entry-form-card {
+    background: linear-gradient(135deg, #1e3a5f 0%, #2d4a6f 100%);
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+}
+
+.entry-form-card h5 {
+    color: #ffffff !important;
+    font-weight: 600;
+    font-size: 1.1rem;
+}
+
+.entry-form-card .form-label {
+    color: #1e293b !important;
+    font-weight: 600;
+    font-size: 0.9rem;
+    margin-bottom: 0.5rem;
+}
+
+.entry-form-card .form-control,
+.entry-form-card .form-select {
+    background-color: #ffffff !important;
+    color: #1e293b !important;
+    border: 2px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    font-size: 0.95rem;
+    transition: all 0.2s ease;
+}
+
+.entry-form-card .form-control:focus,
+.entry-form-card .form-select:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+    outline: none;
+}
+
+.entry-form-card .form-control::placeholder {
+    color: #9ca3af !important;
+}
+
+.entry-form-card .form-text {
+    color: #64748b !important;
+    font-size: 0.8rem;
+}
+
+.entry-form-card .text-danger {
+    color: #ef4444 !important;
+}
+
+/* Form buttons */
+.entry-form-card .btn-primary {
+    background: linear-gradient(135deg, #2563eb, #1d4ed8);
+    border: none;
+    padding: 0.75rem 1.5rem;
+    font-weight: 600;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+}
+
+.entry-form-card .btn-primary:hover {
+    background: linear-gradient(135deg, #1d4ed8, #1e40af);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+}
+
+.entry-form-card .btn-secondary {
+    background: #fff;
+    color: #dc2626;
+    border: 2px solid #fecaca;
+    padding: 0.75rem 1.5rem;
+    font-weight: 600;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+}
+
+.entry-form-card .btn-secondary:hover {
+    background: #fef2f2;
+    border-color: #dc2626;
+    color: #dc2626;
+}
+
+/* Close button on form */
+.entry-form-card .btn-outline-light {
+    background: rgba(255,255,255,0.1);
+    border: 2px solid rgba(255,255,255,0.3);
+    color: #fff;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+}
+
+.entry-form-card .btn-outline-light:hover {
+    background: #ef4444;
+    border-color: #ef4444;
+}
+
 .form-control:focus, .form-select:focus {
-    border-color: var(--spa-primary);
-    box-shadow: 0 0 0 0.2rem var(--spa-primary-shadow);
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
 }
 
 .btn-primary {
-    background: linear-gradient(135deg, var(--spa-primary), var(--spa-primary-dark));
+    background: linear-gradient(135deg, #2563eb, #1d4ed8);
     border: none;
 }
 
 .btn-primary:hover {
-    background: linear-gradient(135deg, var(--spa-primary-dark), var(--spa-primary-darker));
+    background: linear-gradient(135deg, #1d4ed8, #1e40af);
     transform: translateY(-1px);
 }
 
 .entry-row:hover {
-    background-color: var(--spa-gray-100);
+    background-color: #f8fafc;
 }
 
 .time-badge {
-    background: var(--spa-info-bg);
-    color: var(--spa-info-dark);
-    padding: 0.25rem 0.75rem;
+    background: linear-gradient(135deg, #dbeafe, #bfdbfe);
+    color: #1e40af;
+    padding: 0.35rem 0.85rem;
     border-radius: 20px;
-    font-weight: 500;
+    font-weight: 600;
+    font-size: 0.85rem;
+}
+
+/* Table Styling */
+.table {
+    margin-bottom: 0;
+}
+
+.table thead th {
+    background: #f8fafc !important;
+    color: #475569 !important;
+    font-weight: 600;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 1rem;
+    border-bottom: 2px solid #e2e8f0;
+}
+
+.table tbody td {
+    color: #1e293b !important;
+    padding: 1rem;
+    vertical-align: middle;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.table tbody tr:hover {
+    background-color: #f8fafc;
+}
+
+/* Action Buttons in Table */
+.table .btn-outline-primary {
+    background: #eff6ff;
+    color: #2563eb;
+    border: 2px solid #bfdbfe;
+    padding: 0.4rem 0.6rem;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+}
+
+.table .btn-outline-primary:hover {
+    background: #2563eb;
+    color: #fff;
+    border-color: #2563eb;
+}
+
+.table .btn-outline-danger {
+    background: #fef2f2;
+    color: #dc2626;
+    border: 2px solid #fecaca;
+    padding: 0.4rem 0.6rem;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+}
+
+.table .btn-outline-danger:hover {
+    background: #dc2626;
+    color: #fff;
+    border-color: #dc2626;
+}
+
+/* Card Header */
+.card-header {
+    background: #f8fafc !important;
+    border-bottom: 1px solid #e2e8f0;
+    padding: 1rem 1.25rem;
+}
+
+.card-header h5 {
+    color: #1e293b !important;
+    font-weight: 600;
+}
+
+/* Refresh button */
+#refreshBtn {
+    background: #fbbf24;
+    color: #1e293b;
+    border: none;
+    font-weight: 600;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+}
+
+#refreshBtn:hover {
+    background: #f59e0b;
+    transform: translateY(-1px);
+}
+
+/* Add Entry Button */
+#addEntryBtn {
+    background: linear-gradient(135deg, #1e3a5f, #2d4a6f);
+    border: none;
+    padding: 0.75rem 1.5rem;
+    font-weight: 600;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(30, 58, 95, 0.3);
+    transition: all 0.2s ease;
+}
+
+#addEntryBtn:hover {
+    background: linear-gradient(135deg, #2d4a6f, #3d5a7f);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(30, 58, 95, 0.4);
 }
 
 /* Ensure all labels are visible */
@@ -67,12 +275,6 @@
 /* Ensure placeholder text is visible but lighter */
 .ooo-card .form-control::placeholder {
     color: #94a3b8 !important;
-}
-
-/* Table text visibility */
-.table th,
-.table td {
-    color: #1e293b !important;
 }
 </style>
 {% endblock %}
