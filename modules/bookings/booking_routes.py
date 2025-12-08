@@ -713,7 +713,7 @@ def multi_appointment_booking():
                             'service_id': booking.service_id,
                             'service_name': booking.service.name if booking.service else '',
                             'staff_id': booking.staff_id,
-                            'staff_name': f"{booking.staff.first_name} {booking.staff.last_name}" if booking.staff else '',
+                            'staff_name': f"{booking.assigned_staff.first_name} {booking.assigned_staff.last_name}" if booking.assigned_staff else '',
                             'appointment_date': booking.appointment_date.strftime('%Y-%m-%d') if booking.appointment_date else today,
                             'start_time': booking.start_time.strftime('%H:%M') if booking.start_time else '',
                             'end_time': booking.end_time.strftime('%H:%M') if booking.end_time else '',
