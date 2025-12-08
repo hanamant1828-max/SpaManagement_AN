@@ -706,17 +706,16 @@ def multi_appointment_booking():
                     print(f"📝 Found {len(all_client_appointments)} unpaid/scheduled appointments for client {edit_client_id}")
                     
                     for booking in all_client_appointments:
-                        # Get service ID - try service_id first, then parse from service_names
+                        # Get service ID and name
                         service_id = booking.service_id
-                        service_name = ''
+                        service_name = booking.service_name or ''
                         
+                        # If service relationship exists, use it to get ID
                         if booking.service:
                             service_id = booking.service.id
                             service_name = booking.service.name
-                        elif booking.service_names:
-                            # Parse from service_names field
-                            service_name = booking.service_names
-                            # Try to find matching service by name
+                        elif not service_id and service_name:
+                            # Try to find matching service by name if we have name but no ID
                             from models import Service
                             matching_service = Service.query.filter(Service.name.ilike(f'%{service_name}%')).first()
                             if matching_service:
@@ -727,7 +726,7 @@ def multi_appointment_booking():
                             'client_id': booking.client_id,
                             'client_name': f"{booking.client.first_name} {booking.client.last_name}" if booking.client else '',
                             'service_id': service_id,
-                            'service_name': service_name or booking.service_name or '',
+                            'service_name': service_name,
                             'staff_id': booking.staff_id,
                             'staff_name': f"{booking.assigned_staff.first_name} {booking.assigned_staff.last_name}" if booking.assigned_staff else '',
                             'appointment_date': booking.appointment_date.strftime('%Y-%m-%d') if booking.appointment_date else today,
