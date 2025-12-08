@@ -1668,6 +1668,8 @@
                     )
                     .join("");
 
+                // Ensure the value is properly set
+                endTimeSelect.value = endTime;
                 debugLog(`End time dropdown updated, selected value: ${endTimeSelect.value}`);
             }
 
@@ -1703,6 +1705,8 @@
                     )
                     .join("");
                 
+                // Ensure the value is properly set
+                endTimeSelect.value = existingEndTime;
                 endTimeSelect.disabled = false;
                 debugLog(`Populated end time dropdown with existing value: ${existingEndTime}`);
             }
