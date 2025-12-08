@@ -2113,7 +2113,11 @@
             const selectedService = serviceSelect.options[serviceSelect.selectedIndex];
             const selectedStaff = staffSelect.options[staffSelect.selectedIndex];
 
+            // Get the appointment ID if this is an edit (stored in card.dataset.appointmentId)
+            const appointmentId = card.dataset.appointmentId ? parseInt(card.dataset.appointmentId) : null;
+            
             appointments.push({
+                id: appointmentId,  // Include ID for updates
                 client_id: clientId,
                 client_name: $("#clientSelect option:selected").text().split(" - ")[0],
                 client_phone: $("#clientSelect option:selected").data("phone"),
@@ -2130,6 +2134,8 @@
                 notes: document.getElementById("bookingNotes").value,
                 booking_source: $("#bookingSourceSelect").val() || 'manual',
             });
+            
+            debugLog(`Appointment ${idx + 1}: ID=${appointmentId || 'NEW'}`);
         });
 
         if (!isValid) {

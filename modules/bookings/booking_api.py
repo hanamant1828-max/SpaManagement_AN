@@ -110,6 +110,15 @@ def api_unaki_book_appointment():
         data = request.get_json()
         print(f"📝 Booking request data: {data}")
 
+        # Check if this is an update (ID provided) or a new booking
+        appointment_id = data.get('id')
+        is_update = appointment_id is not None
+        
+        if is_update:
+            print(f"📝 UPDATE mode: Editing existing appointment ID {appointment_id}")
+        else:
+            print(f"📝 CREATE mode: Creating new appointment")
+
         # Validate required fields with flexible field names
         client_id = data.get('client_id') or data.get('clientId')
         client_name = data.get('client_name') or data.get('clientName')
@@ -165,12 +174,18 @@ def api_unaki_book_appointment():
             }), 400
 
         # Check for overlapping appointments in UnakiBooking table
-        existing_bookings = UnakiBooking.query.filter_by(
+        existing_bookings_query = UnakiBooking.query.filter_by(
             staff_id=staff_id,
             appointment_date=appointment_date
-        ).filter(UnakiBooking.status.in_(['scheduled', 'confirmed'])).all()
+        ).filter(UnakiBooking.status.in_(['scheduled', 'confirmed']))
+        
+        # Exclude the current appointment if updating
+        if is_update:
+            existing_bookings_query = existing_bookings_query.filter(UnakiBooking.id != int(appointment_id))
+        
+        existing_bookings = existing_bookings_query.all()
 
-        print(f"🔍 Checking conflicts for staff {staff_id} on {appointment_date}")
+        print(f"🔍 Checking conflicts for staff {staff_id} on {appointment_date} (excluding ID: {appointment_id if is_update else 'N/A'})")
         print(f"📅 New appointment: {start_time_str} - {end_time_str}")
         print(f"📋 Existing bookings: {len(existing_bookings)}")
 
@@ -190,12 +205,18 @@ def api_unaki_book_appointment():
                 }), 400
 
         # Check for client conflicts - prevent same client from having multiple appointments at the same time
-        client_bookings = UnakiBooking.query.filter_by(
+        client_bookings_query = UnakiBooking.query.filter_by(
             client_name=client_name,
             appointment_date=appointment_date
-        ).filter(UnakiBooking.status.in_(['scheduled', 'confirmed'])).all()
+        ).filter(UnakiBooking.status.in_(['scheduled', 'confirmed']))
+        
+        # Exclude the current appointment if updating
+        if is_update:
+            client_bookings_query = client_bookings_query.filter(UnakiBooking.id != int(appointment_id))
+        
+        client_bookings = client_bookings_query.all()
 
-        print(f"🔍 Checking client conflicts for {client_name} on {appointment_date}")
+        print(f"🔍 Checking client conflicts for {client_name} on {appointment_date} (excluding ID: {appointment_id if is_update else 'N/A'})")
         print(f"📋 Existing client bookings: {len(client_bookings)}")
 
         for booking in client_bookings:
@@ -262,39 +283,80 @@ def api_unaki_book_appointment():
             except Exception as ce:
                 print(f"⚠️ Warning: Could not create customer record: {ce}")
 
-        appointment = UnakiBooking(
-            client_id=customer.id if customer else None,
-            client_name=client_name,
-            client_phone=client_phone or None,
-            client_email=client_email or None,
-            staff_id=int(staff_id),
-            staff_name=staff_name,
-            service_name=service_name,
-            service_duration=service_duration,
-            service_price=float(data.get('service_price', 0)) or float(data.get('servicePrice', 0)),
-            appointment_date=appointment_date,
-            start_time=start_time,
-            end_time=end_time,
-            status='scheduled',
-            notes=data.get('notes', ''),
-            booking_source=data.get('booking_source', 'online'),
-            booking_method='multi_service',
-            amount_charged=float(data.get('amount_charged', data.get('service_price', 0))),
-            payment_status='pending'
-        )
+        # UPDATE existing appointment or CREATE new one
+        if is_update:
+            # Fetch existing appointment
+            appointment = UnakiBooking.query.get(int(appointment_id))
+            if not appointment:
+                return jsonify({
+                    'error': f'Appointment with ID {appointment_id} not found',
+                    'success': False
+                }), 404
+            
+            # Update fields
+            appointment.client_id = customer.id if customer else appointment.client_id
+            appointment.client_name = client_name
+            appointment.client_phone = client_phone or appointment.client_phone
+            appointment.client_email = client_email or appointment.client_email
+            appointment.staff_id = int(staff_id)
+            appointment.staff_name = staff_name
+            appointment.service_name = service_name
+            appointment.service_duration = service_duration
+            appointment.service_price = float(data.get('service_price', 0)) or float(data.get('servicePrice', 0))
+            appointment.appointment_date = appointment_date
+            appointment.start_time = start_time
+            appointment.end_time = end_time
+            appointment.notes = data.get('notes', '') or appointment.notes
+            appointment.booking_source = data.get('booking_source', appointment.booking_source)
+            appointment.amount_charged = float(data.get('amount_charged', data.get('service_price', 0)))
+            
+            db.session.commit()
+            print(f"✅ Appointment UPDATED successfully: ID {appointment.id}")
+            
+            return jsonify({
+                'success': True,
+                'message': f'Appointment updated successfully for {client_name}',
+                'appointment_id': appointment.id,
+                'service': service_name,
+                'time': f"{start_time.strftime('%I:%M %p')} - {end_time.strftime('%I:%M %p')}",
+                'updated': True
+            })
+        else:
+            # Create NEW appointment
+            appointment = UnakiBooking(
+                client_id=customer.id if customer else None,
+                client_name=client_name,
+                client_phone=client_phone or None,
+                client_email=client_email or None,
+                staff_id=int(staff_id),
+                staff_name=staff_name,
+                service_name=service_name,
+                service_duration=service_duration,
+                service_price=float(data.get('service_price', 0)) or float(data.get('servicePrice', 0)),
+                appointment_date=appointment_date,
+                start_time=start_time,
+                end_time=end_time,
+                status='scheduled',
+                notes=data.get('notes', ''),
+                booking_source=data.get('booking_source', 'online'),
+                booking_method='multi_service',
+                amount_charged=float(data.get('amount_charged', data.get('service_price', 0))),
+                payment_status='pending'
+            )
 
-        db.session.add(appointment)
-        db.session.commit()
+            db.session.add(appointment)
+            db.session.commit()
 
-        print(f"✅ Appointment booked successfully: ID {appointment.id}")
+            print(f"✅ Appointment CREATED successfully: ID {appointment.id}")
 
-        return jsonify({
-            'success': True,
-            'message': f'Appointment booked successfully for {client_name}',
-            'appointment_id': appointment.id,
-            'service': service_name,
-            'time': f"{start_time.strftime('%I:%M %p')} - {end_time.strftime('%I:%M %p')}"
-        })
+            return jsonify({
+                'success': True,
+                'message': f'Appointment booked successfully for {client_name}',
+                'appointment_id': appointment.id,
+                'service': service_name,
+                'time': f"{start_time.strftime('%I:%M %p')} - {end_time.strftime('%I:%M %p')}",
+                'updated': False
+            })
 
     except Exception as e:
         print(f"❌ Error booking Unaki appointment: {e}")
