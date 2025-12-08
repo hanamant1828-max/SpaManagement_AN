@@ -910,16 +910,22 @@
         // 3. Wait for client selection to process
         await new Promise(resolve => setTimeout(resolve, 300));
 
-        // 4. Get the first existing appointment card (created by addAppointmentRow on init)
+        // 4. Disable validation temporarily while adding rows
+        window.isEditModePopulating = true;
+
+        // 5. Get the first existing appointment card (created by addAppointmentRow on init)
         const existingCards = document.querySelectorAll('.appointment-card');
 
-        // 5. For each appointment, we need a row - add more rows if needed
+        // 6. For each appointment beyond the first, add more rows
         for (let i = 1; i < appointments.length; i++) {
             await addAppointmentRow();
-            await new Promise(resolve => setTimeout(resolve, 200));  // Wait for each row to render
+            await new Promise(resolve => setTimeout(resolve, 100));  // Wait for each row to render
         }
 
-        // 6. Now populate each appointment row
+        // 7. Re-enable validation
+        window.isEditModePopulating = false;
+
+        // 8. Now populate each appointment row
         const allCards = document.querySelectorAll('.appointment-card');
         console.log('📝 Found ' + allCards.length + ' appointment cards to populate');
 
@@ -939,54 +945,52 @@
                 card.style.boxShadow = '0 0 10px rgba(13, 110, 253, 0.3)';
             }
 
-            // Small delay to ensure DOM is ready
-            setTimeout(() => {
-                // Populate service field
-                const serviceSelect = $(`.service-select[data-index="${index}"]`);
-                if (appt.service_id) {
-                    serviceSelect.val(appt.service_id);
-                    // Trigger change to update duration and end time
-                    serviceSelect.trigger('change');
-                    console.log(`📝 Row ${index}: Service set to ${appt.service_id}`);
-                }
+            // Populate immediately without setTimeout to ensure all data is loaded
+            // Populate service field
+            const serviceSelect = $(`.service-select[data-index="${index}"]`);
+            if (appt.service_id) {
+                serviceSelect.val(appt.service_id);
+                // Trigger change to update duration and end time
+                serviceSelect.trigger('change');
+                console.log(`📝 Row ${index}: Service set to ${appt.service_id}`);
+            }
 
-                // Populate staff field
-                const staffSelect = $(`.staff-select[data-index="${index}"]`);
-                if (appt.staff_id) {
-                    staffSelect.val(appt.staff_id);
-                    staffSelect.trigger('change');
-                    console.log(`📝 Row ${index}: Staff set to ${appt.staff_id}`);
-                }
+            // Populate staff field
+            const staffSelect = $(`.staff-select[data-index="${index}"]`);
+            if (appt.staff_id) {
+                staffSelect.val(appt.staff_id);
+                staffSelect.trigger('change');
+                console.log(`📝 Row ${index}: Staff set to ${appt.staff_id}`);
+            }
 
-                // Populate date field
-                const dateInput = $(`.date-input[data-index="${index}"]`);
-                if (appt.appointment_date) {
-                    dateInput.val(appt.appointment_date);
-                    console.log(`📝 Row ${index}: Date set to ${appt.appointment_date}`);
-                }
+            // Populate date field
+            const dateInput = $(`.date-input[data-index="${index}"]`);
+            if (appt.appointment_date) {
+                dateInput.val(appt.appointment_date);
+                console.log(`📝 Row ${index}: Date set to ${appt.appointment_date}`);
+            }
 
-                // Populate time fields
-                const startTimeSelect = $(`.start-time-select[data-index="${index}"]`);
-                const endTimeSelect = $(`.end-time-select[data-index="${index}"]`);
-                if (appt.start_time) {
-                    startTimeSelect.val(appt.start_time);
-                    console.log(`📝 Row ${index}: Start time set to ${appt.start_time}`);
-                }
-                if (appt.end_time) {
-                    endTimeSelect.val(appt.end_time);
-                    console.log(`📝 Row ${index}: End time set to ${appt.end_time}`);
-                }
+            // Populate time fields
+            const startTimeSelect = $(`.start-time-select[data-index="${index}"]`);
+            const endTimeSelect = $(`.end-time-select[data-index="${index}"]`);
+            if (appt.start_time) {
+                startTimeSelect.val(appt.start_time);
+                console.log(`📝 Row ${index}: Start time set to ${appt.start_time}`);
+            }
+            if (appt.end_time) {
+                endTimeSelect.val(appt.end_time);
+                console.log(`📝 Row ${index}: End time set to ${appt.end_time}`);
+            }
 
-                // Mark all required fields as valid after population
-                serviceSelect.removeClass('is-invalid').addClass('is-valid');
-                staffSelect.removeClass('is-invalid').addClass('is-valid');
-                dateInput.removeClass('is-invalid').addClass('is-valid');
-                startTimeSelect.removeClass('is-invalid').addClass('is-valid');
-                endTimeSelect.removeClass('is-invalid').addClass('is-valid');
-            }, 100);
+            // Mark all required fields as valid after population
+            serviceSelect.removeClass('is-invalid').addClass('is-valid');
+            staffSelect.removeClass('is-invalid').addClass('is-valid');
+            dateInput.removeClass('is-invalid').addClass('is-valid');
+            startTimeSelect.removeClass('is-invalid').addClass('is-valid');
+            endTimeSelect.removeClass('is-invalid').addClass('is-valid');
         }
 
-        // 7. Set notes (combine notes from all appointments)
+        // 9. Set notes (combine notes from all appointments)
         const allNotes = appointments.map(a => a.notes).filter(n => n).join('\n---\n');
         if (allNotes) {
             const notesTextarea = document.getElementById('bookingNotes');
@@ -996,7 +1000,7 @@
             }
         }
 
-        // 8. Update summary and button state
+        // 10. Update summary and button state
         setTimeout(() => {
             updateSummary();
             updateSubmitButton();
@@ -1227,6 +1231,11 @@
 
     async function validateBeforeAddingNew() {
         debugLog('Validating before adding new appointment');
+
+        // Skip validation if we're populating edit mode
+        if (window.isEditModePopulating) {
+            return true;
+        }
 
         const clientId = $("#clientSelect").val();
         const allCards = document.querySelectorAll(".appointment-card");
