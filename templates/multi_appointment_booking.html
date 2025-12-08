@@ -7,12 +7,12 @@
             <div class="d-flex justify-content-between align-items-center">
                 <div>
                     <h2 class="mb-1">
-                        <i class="fas {% if edit_appointment %}fa-edit{% else %}fa-calendar-plus{% endif %} text-primary me-2"></i>
-                        {% if edit_appointment %}Edit Appointment{% else %}Book Multiple Appointments{% endif %}
+                        <i class="fas {% if edit_appointments and edit_appointments|length > 0 %}fa-edit{% else %}fa-calendar-plus{% endif %} text-primary me-2"></i>
+                        {% if edit_appointments and edit_appointments|length > 0 %}Edit Appointments ({{ edit_appointments|length }}){% else %}Book Multiple Appointments{% endif %}
                     </h2>
                     <p class="text-muted mb-0">
-                        {% if edit_appointment %}
-                        Edit existing appointment details
+                        {% if edit_appointments and edit_appointments|length > 0 %}
+                        Edit all unpaid/scheduled appointments for this client
                         {% else %}
                         Book multiple services for a client in one go
                         {% endif %}
@@ -654,12 +654,15 @@
 
 <script>
     // ==================== EDIT MODE DATA ====================
-    {% if edit_appointment %}
-    const editAppointmentData = {{ edit_appointment | tojson | safe }};
+    {% if edit_appointments and edit_appointments|length > 0 %}
+    const editAppointmentsData = {{ edit_appointments | tojson | safe }};
+    const editClientId = {{ edit_client_id | tojson | safe }};
     const isEditMode = true;
-    console.log('📝 EDIT MODE - Loading appointment:', editAppointmentData);
+    console.log('📝 EDIT MODE - Loading ' + editAppointmentsData.length + ' appointments for client:', editClientId);
+    console.log('📝 Appointments to edit:', editAppointmentsData);
     {% else %}
-    const editAppointmentData = null;
+    const editAppointmentsData = [];
+    const editClientId = null;
     const isEditMode = false;
     {% endif %}
 
@@ -860,12 +863,12 @@
         addAppointmentRow();
 
         // ==================== EDIT MODE INITIALIZATION ====================
-        if (isEditMode && editAppointmentData) {
-            console.log('📝 Initializing edit mode with data:', editAppointmentData);
+        if (isEditMode && editAppointmentsData && editAppointmentsData.length > 0) {
+            console.log('📝 Initializing edit mode with ' + editAppointmentsData.length + ' appointments');
             
-            // Wait for the appointment row to be fully rendered
+            // Wait for the first row to be rendered, then populate all appointments
             setTimeout(() => {
-                populateEditModeForm(editAppointmentData);
+                populateAllEditAppointments(editAppointmentsData, editClientId);
             }, 500);
         }
 
@@ -888,103 +891,122 @@
         updateAddButtonState();
     });
 
-    // ==================== EDIT MODE FORM POPULATION ====================
-    function populateEditModeForm(appointment) {
-        console.log('📝 Populating edit form with appointment:', appointment);
+    // ==================== EDIT MODE FORM POPULATION (MULTIPLE APPOINTMENTS) ====================
+    async function populateAllEditAppointments(appointments, clientId) {
+        console.log('📝 Populating edit form with ' + appointments.length + ' appointments for client:', clientId);
         
         // 1. Select the client first
-        if (appointment.client_id) {
-            $('#clientSelect').val(appointment.client_id).trigger('change');
-            console.log('📝 Client selected:', appointment.client_id);
+        if (clientId) {
+            $('#clientSelect').val(clientId).trigger('change');
+            console.log('📝 Client selected:', clientId);
         }
         
-        // 2. Set booking source
-        if (appointment.booking_source) {
-            $('#bookingSourceSelect').val(appointment.booking_source);
-            console.log('📝 Booking source set:', appointment.booking_source);
+        // 2. Set booking source from first appointment
+        if (appointments.length > 0 && appointments[0].booking_source) {
+            $('#bookingSourceSelect').val(appointments[0].booking_source);
+            console.log('📝 Booking source set:', appointments[0].booking_source);
         }
         
-        // 3. Wait for dropdowns to be initialized, then populate the first appointment row
-        setTimeout(() => {
-            const firstCard = document.querySelector('.appointment-card');
-            if (!firstCard) {
-                console.error('❌ No appointment card found');
-                return;
+        // 3. Wait for client selection to process
+        await new Promise(resolve => setTimeout(resolve, 300));
+        
+        // 4. Get the first existing appointment card (created by addAppointmentRow on init)
+        const existingCards = document.querySelectorAll('.appointment-card');
+        
+        // 5. For each appointment, we need a row - add more rows if needed
+        for (let i = 1; i < appointments.length; i++) {
+            await addAppointmentRow();
+            await new Promise(resolve => setTimeout(resolve, 200));  // Wait for each row to render
+        }
+        
+        // 6. Now populate each appointment row
+        const allCards = document.querySelectorAll('.appointment-card');
+        console.log('📝 Found ' + allCards.length + ' appointment cards to populate');
+        
+        for (let i = 0; i < appointments.length && i < allCards.length; i++) {
+            const appt = appointments[i];
+            const card = allCards[i];
+            const index = card.dataset.index;
+            
+            console.log('📝 Populating row ' + i + ' (index ' + index + ') with appointment ID ' + appt.id);
+            
+            // Store the appointment ID on the card for update purposes
+            card.dataset.appointmentId = appt.id;
+            
+            // Add a visual indicator if this is the clicked appointment
+            if (appt.is_clicked) {
+                card.classList.add('border-primary');
+                card.style.boxShadow = '0 0 10px rgba(13, 110, 253, 0.3)';
             }
             
-            const index = firstCard.dataset.index;
-            console.log('📝 Populating appointment row index:', index);
-            
-            // Set service (using Select2 with class selector)
-            if (appointment.service_id) {
+            // Set service
+            if (appt.service_id) {
                 const serviceSelect = $(`.service-select[data-index="${index}"]`);
-                console.log('📝 Service select found:', serviceSelect.length > 0);
                 if (serviceSelect.length) {
-                    serviceSelect.val(appointment.service_id).trigger('change');
-                    console.log('📝 Service set to:', appointment.service_id);
+                    serviceSelect.val(appt.service_id).trigger('change');
+                    console.log('📝 Row ' + i + ': Service set to ' + appt.service_id);
                 }
             }
             
-            // Set staff (using Select2 with class selector) - with slight delay
-            setTimeout(() => {
-                if (appointment.staff_id) {
-                    const staffSelect = $(`.staff-select[data-index="${index}"]`);
-                    console.log('📝 Staff select found:', staffSelect.length > 0);
-                    if (staffSelect.length) {
-                        staffSelect.val(appointment.staff_id).trigger('change');
-                        console.log('📝 Staff set to:', appointment.staff_id);
-                    }
+            // Small delay before setting staff
+            await new Promise(resolve => setTimeout(resolve, 100));
+            
+            // Set staff
+            if (appt.staff_id) {
+                const staffSelect = $(`.staff-select[data-index="${index}"]`);
+                if (staffSelect.length) {
+                    staffSelect.val(appt.staff_id).trigger('change');
+                    console.log('📝 Row ' + i + ': Staff set to ' + appt.staff_id);
                 }
-            }, 200);
+            }
             
             // Set date
-            if (appointment.appointment_date) {
+            if (appt.appointment_date) {
                 const dateInput = document.querySelector(`.date-input[data-index="${index}"]`);
-                console.log('📝 Date input found:', !!dateInput);
                 if (dateInput) {
-                    dateInput.value = appointment.appointment_date;
-                    console.log('📝 Date set to:', appointment.appointment_date);
+                    dateInput.value = appt.appointment_date;
+                    console.log('📝 Row ' + i + ': Date set to ' + appt.appointment_date);
                 }
             }
             
-            // Set start time and end time
-            setTimeout(() => {
-                if (appointment.start_time) {
-                    const startTimeSelect = $(`.start-time-select[data-index="${index}"]`);
-                    console.log('📝 Start time select found:', startTimeSelect.length > 0);
-                    if (startTimeSelect.length) {
-                        startTimeSelect.val(appointment.start_time).trigger('change');
-                        console.log('📝 Start time set to:', appointment.start_time);
-                    }
-                }
-                
-                if (appointment.end_time) {
-                    const endTimeSelect = $(`.end-time-select[data-index="${index}"]`);
-                    console.log('📝 End time select found:', endTimeSelect.length > 0);
-                    if (endTimeSelect.length) {
-                        endTimeSelect.val(appointment.end_time).trigger('change');
-                        console.log('📝 End time set to:', appointment.end_time);
-                    }
-                }
-            }, 300);
+            // Small delay before setting times
+            await new Promise(resolve => setTimeout(resolve, 100));
             
-            // Set notes
-            if (appointment.notes) {
-                const notesTextarea = document.getElementById('bookingNotes');
-                if (notesTextarea) {
-                    notesTextarea.value = appointment.notes;
-                    console.log('📝 Notes set');
+            // Set start time
+            if (appt.start_time) {
+                const startTimeSelect = $(`.start-time-select[data-index="${index}"]`);
+                if (startTimeSelect.length) {
+                    startTimeSelect.val(appt.start_time).trigger('change');
+                    console.log('📝 Row ' + i + ': Start time set to ' + appt.start_time);
                 }
             }
             
-            // Update summary and button state
-            setTimeout(() => {
-                updateSummary();
-                updateSubmitButton();
-                console.log('📝 ✅ Edit form populated successfully');
-            }, 500);
-            
-        }, 600);  // Give more time for Select2 to initialize
+            // Set end time
+            if (appt.end_time) {
+                const endTimeSelect = $(`.end-time-select[data-index="${index}"]`);
+                if (endTimeSelect.length) {
+                    endTimeSelect.val(appt.end_time).trigger('change');
+                    console.log('📝 Row ' + i + ': End time set to ' + appt.end_time);
+                }
+            }
+        }
+        
+        // 7. Set notes (combine notes from all appointments)
+        const allNotes = appointments.map(a => a.notes).filter(n => n).join('\n---\n');
+        if (allNotes) {
+            const notesTextarea = document.getElementById('bookingNotes');
+            if (notesTextarea) {
+                notesTextarea.value = allNotes;
+                console.log('📝 Notes combined from all appointments');
+            }
+        }
+        
+        // 8. Update summary and button state
+        setTimeout(() => {
+            updateSummary();
+            updateSubmitButton();
+            console.log('📝 ✅ All ' + appointments.length + ' appointments populated successfully');
+        }, 500);
     }
 
     // ==================== ADD/REMOVE APPOINTMENTS ====================

@@ -686,39 +686,58 @@ def multi_appointment_booking():
         
         # Check if we're editing an existing appointment
         edit_id = request.args.get('edit_id')
-        edit_appointment = None
+        edit_appointments = []  # Array of all unpaid/scheduled appointments for the client
+        edit_client_id = None
         
         if edit_id:
             try:
-                # Get the appointment details for editing
-                booking = UnakiBooking.query.get(int(edit_id))
-                if booking:
-                    edit_appointment = {
-                        'id': booking.id,
-                        'client_id': booking.client_id,
-                        'client_name': f"{booking.client.first_name} {booking.client.last_name}" if booking.client else '',
-                        'service_id': booking.service_id,
-                        'service_name': booking.service.name if booking.service else '',
-                        'staff_id': booking.staff_id,
-                        'staff_name': f"{booking.staff.first_name} {booking.staff.last_name}" if booking.staff else '',
-                        'appointment_date': booking.appointment_date.strftime('%Y-%m-%d') if booking.appointment_date else today,
-                        'start_time': booking.start_time.strftime('%H:%M') if booking.start_time else '',
-                        'end_time': booking.end_time.strftime('%H:%M') if booking.end_time else '',
-                        'notes': booking.notes or '',
-                        'status': booking.status or 'scheduled',
-                        'booking_source': booking.booking_source or 'walk_in'
-                    }
-                    print(f"Editing appointment ID: {edit_id}, data: {edit_appointment}")
+                # Get the appointment to find the client
+                clicked_booking = UnakiBooking.query.get(int(edit_id))
+                if clicked_booking and clicked_booking.client_id:
+                    edit_client_id = clicked_booking.client_id
+                    
+                    # Fetch ALL unpaid and scheduled appointments for this client
+                    all_client_appointments = UnakiBooking.query.filter(
+                        UnakiBooking.client_id == edit_client_id,
+                        UnakiBooking.status.in_(['scheduled', 'confirmed', 'checked_in']),
+                        UnakiBooking.payment_status.in_(['unpaid', 'pending', None])
+                    ).order_by(UnakiBooking.appointment_date, UnakiBooking.start_time).all()
+                    
+                    print(f"📝 Found {len(all_client_appointments)} unpaid/scheduled appointments for client {edit_client_id}")
+                    
+                    for booking in all_client_appointments:
+                        appt_data = {
+                            'id': booking.id,
+                            'client_id': booking.client_id,
+                            'client_name': f"{booking.client.first_name} {booking.client.last_name}" if booking.client else '',
+                            'service_id': booking.service_id,
+                            'service_name': booking.service.name if booking.service else '',
+                            'staff_id': booking.staff_id,
+                            'staff_name': f"{booking.staff.first_name} {booking.staff.last_name}" if booking.staff else '',
+                            'appointment_date': booking.appointment_date.strftime('%Y-%m-%d') if booking.appointment_date else today,
+                            'start_time': booking.start_time.strftime('%H:%M') if booking.start_time else '',
+                            'end_time': booking.end_time.strftime('%H:%M') if booking.end_time else '',
+                            'notes': booking.notes or '',
+                            'status': booking.status or 'scheduled',
+                            'booking_source': booking.booking_source or 'walk_in',
+                            'is_clicked': booking.id == int(edit_id)  # Mark the one that was clicked
+                        }
+                        edit_appointments.append(appt_data)
+                        print(f"  - Appointment {booking.id}: {booking.service.name if booking.service else 'N/A'} on {booking.appointment_date}")
+                    
             except Exception as e:
-                print(f"Error loading appointment for editing: {e}")
-                flash('Could not load appointment for editing', 'warning')
+                print(f"Error loading appointments for editing: {e}")
+                import traceback
+                traceback.print_exc()
+                flash('Could not load appointments for editing', 'warning')
 
         return render_template('multi_appointment_booking.html',
                              staff_members=staff_members,
                              services=services,
                              clients=clients,
                              today=today,
-                             edit_appointment=edit_appointment)
+                             edit_appointments=edit_appointments,
+                             edit_client_id=edit_client_id)
     except Exception as e:
         print(f"Error in multi_appointment_booking: {e}")
         import traceback
