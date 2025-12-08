@@ -1240,12 +1240,21 @@
             return false;
         }
 
-        // Validate each existing appointment
+        // In edit mode, we're more lenient - just check if fields are being filled
+        // We only validate fully filled appointments, not partially filled ones
         for (const card of allCards) {
             const idx = Array.from(allCards).indexOf(card);
             const data = getAppointmentData(card.dataset.index);
 
-            // Check required fields
+            // Check if this appointment has ANY data entered
+            const hasAnyData = data.service || data.staff || data.date || data.startTime || data.endTime;
+            
+            // If no data entered at all, skip validation for this card (it's empty and that's ok)
+            if (!hasAnyData) {
+                continue;
+            }
+
+            // If some data is entered, validate that ALL required fields are filled
             if (!data.service) {
                 validationErrors.push(`Appointment ${idx + 1}: Please select a service`);
                 document.querySelector(`.service-select[data-index="${data.index}"]`)?.classList.add("field-error", "shake-animation");
@@ -1276,7 +1285,7 @@
                 setTimeout(() => document.querySelector(`.end-time-select[data-index="${data.index}"]`)?.classList.remove("shake-animation"), 500);
             }
 
-            // Check for conflicts if all fields are filled
+            // Only check for conflicts if all fields are filled
             if (data.service && data.staff && data.date && data.startTime && data.endTime) {
                 // Check staff conflicts
                 const hasStaffConflict = !document.getElementById(`conflict-${data.index}`)?.classList.contains("d-none");
@@ -1290,8 +1299,14 @@
                     validationErrors.push(`Appointment ${idx + 1}: Time overlaps with another appointment`);
                 }
 
-                // Check client existing bookings
+                // Check client existing bookings (but exclude appointments we're editing)
+                const editingAppointmentId = card.dataset.appointmentId;
                 for (const booking of clientExistingBookings) {
+                    // Skip if this is the appointment we're currently editing
+                    if (editingAppointmentId && booking.id == editingAppointmentId) {
+                        continue;
+                    }
+                    
                     if (booking.appointment_date === data.date) {
                         const overlap = checkTimeOverlap(data.startTime, data.endTime, booking.start_time, booking.end_time);
 
