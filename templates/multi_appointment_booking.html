@@ -414,7 +414,7 @@
         color: #1e40af !important;
         font-weight: 500 !important;
     }
-    
+
     /* Select2 Service and Staff Dropdown Styling - Bootstrap 5 Theme Override */
     .select2-container--bootstrap-5 .select2-selection {
         min-height: 44px !important;
@@ -422,20 +422,20 @@
         border-radius: 8px !important;
         background: white !important;
     }
-    
+
     .select2-container--bootstrap-5 .select2-selection--single .select2-selection__rendered {
         color: #212529 !important;
         line-height: 42px !important;
         padding-left: 12px !important;
     }
-    
+
     .select2-container--bootstrap-5 .select2-dropdown {
         border: 1px solid #dee2e6 !important;
         border-radius: 8px !important;
         box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15) !important;
         background: white !important;
     }
-    
+
     /* Ensure search box is visible in dropdown */
     .select2-container--bootstrap-5 .select2-search--dropdown {
         display: block !important;
@@ -443,7 +443,7 @@
         background: #f8f9fa !important;
         border-bottom: 1px solid #e9ecef !important;
     }
-    
+
     .select2-container--bootstrap-5 .select2-search--dropdown .select2-search__field {
         display: block !important;
         width: 100% !important;
@@ -454,32 +454,32 @@
         background: white !important;
         color: #212529 !important;
     }
-    
+
     .select2-container--bootstrap-5 .select2-search--dropdown .select2-search__field:focus {
         border-color: #86b7fe !important;
         outline: none !important;
         box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25) !important;
     }
-    
+
     .select2-container--bootstrap-5 .select2-results__options {
         background: white !important;
         max-height: 300px !important;
         overflow-y: auto !important;
     }
-    
+
     .select2-container--bootstrap-5 .select2-results__option {
         padding: 10px 14px !important;
         color: #212529 !important;
         background: white !important;
         transition: background 0.15s ease !important;
     }
-    
+
     .select2-container--bootstrap-5 .select2-results__option:hover,
     .select2-container--bootstrap-5 .select2-results__option--highlighted {
         background: #e9ecef !important;
         color: #212529 !important;
     }
-    
+
     .select2-container--bootstrap-5 .select2-results__option--selected {
         background: #0d6efd !important;
         color: white !important;
@@ -684,15 +684,15 @@
         if (!customer.id) {
             return customer.text;
         }
-        
+
         const $customer = $(customer.element);
         const phone = $customer.data('phone') || '';
         const email = $customer.data('email') || '';
-        
+
         // Extract name from text (remove phone number if present)
         const nameParts = customer.text.split(' - ');
         const name = nameParts[0] || customer.text;
-        
+
         return $(`
             <div class="customer-option">
                 <div class="customer-name">${name}</div>
@@ -706,11 +706,11 @@
         if (!customer.id) {
             return customer.text;
         }
-        
+
         const nameParts = customer.text.split(' - ');
         const name = nameParts[0] || customer.text;
         const phone = nameParts[1] || '';
-        
+
         return name + (phone ? ' - ' + phone : '');
     }
 
@@ -865,7 +865,7 @@
         // ==================== EDIT MODE INITIALIZATION ====================
         if (isEditMode && editAppointmentsData && editAppointmentsData.length > 0) {
             console.log('📝 Initializing edit mode with ' + editAppointmentsData.length + ' appointments');
-            
+
             // Wait for the first row to be rendered, then populate all appointments
             setTimeout(() => {
                 populateAllEditAppointments(editAppointmentsData, editClientId);
@@ -894,103 +894,98 @@
     // ==================== EDIT MODE FORM POPULATION (MULTIPLE APPOINTMENTS) ====================
     async function populateAllEditAppointments(appointments, clientId) {
         console.log('📝 Populating edit form with ' + appointments.length + ' appointments for client:', clientId);
-        
+
         // 1. Select the client first
         if (clientId) {
             $('#clientSelect').val(clientId).trigger('change');
             console.log('📝 Client selected:', clientId);
         }
-        
+
         // 2. Set booking source from first appointment
         if (appointments.length > 0 && appointments[0].booking_source) {
             $('#bookingSourceSelect').val(appointments[0].booking_source);
             console.log('📝 Booking source set:', appointments[0].booking_source);
         }
-        
+
         // 3. Wait for client selection to process
         await new Promise(resolve => setTimeout(resolve, 300));
-        
+
         // 4. Get the first existing appointment card (created by addAppointmentRow on init)
         const existingCards = document.querySelectorAll('.appointment-card');
-        
+
         // 5. For each appointment, we need a row - add more rows if needed
         for (let i = 1; i < appointments.length; i++) {
             await addAppointmentRow();
             await new Promise(resolve => setTimeout(resolve, 200));  // Wait for each row to render
         }
-        
+
         // 6. Now populate each appointment row
         const allCards = document.querySelectorAll('.appointment-card');
         console.log('📝 Found ' + allCards.length + ' appointment cards to populate');
-        
+
         for (let i = 0; i < appointments.length && i < allCards.length; i++) {
             const appt = appointments[i];
             const card = allCards[i];
             const index = card.dataset.index;
-            
+
             console.log('📝 Populating row ' + i + ' (index ' + index + ') with appointment ID ' + appt.id);
-            
+
             // Store the appointment ID on the card for update purposes
             card.dataset.appointmentId = appt.id;
-            
+
             // Add a visual indicator if this is the clicked appointment
             if (appt.is_clicked) {
                 card.classList.add('border-primary');
                 card.style.boxShadow = '0 0 10px rgba(13, 110, 253, 0.3)';
             }
-            
-            // Set service
-            if (appt.service_id) {
+
+            // Small delay to ensure DOM is ready
+            setTimeout(() => {
+                // Populate service field
                 const serviceSelect = $(`.service-select[data-index="${index}"]`);
-                if (serviceSelect.length) {
-                    serviceSelect.val(appt.service_id).trigger('change');
-                    console.log('📝 Row ' + i + ': Service set to ' + appt.service_id);
+                if (appt.service_id) {
+                    serviceSelect.val(appt.service_id);
+                    // Trigger change to update duration and end time
+                    serviceSelect.trigger('change');
+                    console.log(`📝 Row ${index}: Service set to ${appt.service_id}`);
                 }
-            }
-            
-            // Small delay before setting staff
-            await new Promise(resolve => setTimeout(resolve, 100));
-            
-            // Set staff
-            if (appt.staff_id) {
+
+                // Populate staff field
                 const staffSelect = $(`.staff-select[data-index="${index}"]`);
-                if (staffSelect.length) {
-                    staffSelect.val(appt.staff_id).trigger('change');
-                    console.log('📝 Row ' + i + ': Staff set to ' + appt.staff_id);
+                if (appt.staff_id) {
+                    staffSelect.val(appt.staff_id);
+                    staffSelect.trigger('change');
+                    console.log(`📝 Row ${index}: Staff set to ${appt.staff_id}`);
                 }
-            }
-            
-            // Set date
-            if (appt.appointment_date) {
-                const dateInput = document.querySelector(`.date-input[data-index="${index}"]`);
-                if (dateInput) {
-                    dateInput.value = appt.appointment_date;
-                    console.log('📝 Row ' + i + ': Date set to ' + appt.appointment_date);
+
+                // Populate date field
+                const dateInput = $(`.date-input[data-index="${index}"]`);
+                if (appt.appointment_date) {
+                    dateInput.val(appt.appointment_date);
+                    console.log(`📝 Row ${index}: Date set to ${appt.appointment_date}`);
                 }
-            }
-            
-            // Small delay before setting times
-            await new Promise(resolve => setTimeout(resolve, 100));
-            
-            // Set start time
-            if (appt.start_time) {
+
+                // Populate time fields
                 const startTimeSelect = $(`.start-time-select[data-index="${index}"]`);
-                if (startTimeSelect.length) {
-                    startTimeSelect.val(appt.start_time).trigger('change');
-                    console.log('📝 Row ' + i + ': Start time set to ' + appt.start_time);
-                }
-            }
-            
-            // Set end time
-            if (appt.end_time) {
                 const endTimeSelect = $(`.end-time-select[data-index="${index}"]`);
-                if (endTimeSelect.length) {
-                    endTimeSelect.val(appt.end_time).trigger('change');
-                    console.log('📝 Row ' + i + ': End time set to ' + appt.end_time);
+                if (appt.start_time) {
+                    startTimeSelect.val(appt.start_time);
+                    console.log(`📝 Row ${index}: Start time set to ${appt.start_time}`);
                 }
-            }
+                if (appt.end_time) {
+                    endTimeSelect.val(appt.end_time);
+                    console.log(`📝 Row ${index}: End time set to ${appt.end_time}`);
+                }
+
+                // Mark all required fields as valid after population
+                serviceSelect.removeClass('is-invalid').addClass('is-valid');
+                staffSelect.removeClass('is-invalid').addClass('is-valid');
+                dateInput.removeClass('is-invalid').addClass('is-valid');
+                startTimeSelect.removeClass('is-invalid').addClass('is-valid');
+                endTimeSelect.removeClass('is-invalid').addClass('is-valid');
+            }, 100);
         }
-        
+
         // 7. Set notes (combine notes from all appointments)
         const allNotes = appointments.map(a => a.notes).filter(n => n).join('\n---\n');
         if (allNotes) {
@@ -1000,7 +995,7 @@
                 console.log('📝 Notes combined from all appointments');
             }
         }
-        
+
         // 8. Update summary and button state
         setTimeout(() => {
             updateSummary();
@@ -1127,7 +1122,7 @@
                 <i class="fas fa-spinner fa-spin me-2"></i>Checking availability...
             </div>
 
-            <!-- Staff Conflict Alert -->
+            <!-- Conflict Alert -->
             <div class="alert alert-danger d-none" id="conflict-${index}">
                 <i class="fas fa-exclamation-triangle me-2"></i>
                 <span class="conflict-message"></span>
@@ -1148,7 +1143,7 @@
     `;
 
         container.insertAdjacentHTML("beforeend", appointmentCard);
-        
+
         // Initialize Select2 on service dropdown with search
         $(`.service-select[data-index="${index}"]`).select2({
             theme: 'bootstrap-5',
@@ -1165,7 +1160,7 @@
             updateEndTime(index);
             updateSummary();
         });
-        
+
         // Initialize Select2 on staff dropdown with search
         $(`.staff-select[data-index="${index}"]`).select2({
             theme: 'bootstrap-5',
@@ -1182,7 +1177,7 @@
             checkStaffConflicts(index);
             updateSummary();
         });
-        
+
         attachEventListeners(index);
         updateAppointmentCount();
         updateAddButtonState();
@@ -1626,10 +1621,10 @@
             if (endTimeSelect) {
                 endTimeSelect.disabled = false;
                 const timeOptions = generateTimeOptions();
-                
+
                 // Check if the calculated end time exists in the options
                 const endTimeExists = timeOptions.some(t => t.value === endTime);
-                
+
                 // If the calculated end time doesn't exist in options, add it
                 if (!endTimeExists) {
                     const endTimeLabel = format12Hour(endTime);
@@ -1639,14 +1634,14 @@
                     timeOptions.splice(insertIndex, 0, { value: endTime, label: endTimeLabel });
                     debugLog(`Added calculated end time ${endTime} to options`);
                 }
-                
+
                 endTimeSelect.innerHTML = timeOptions
                     .map(
                         (t) =>
                             `<option value="${t.value}" ${t.value === endTime ? "selected" : ""}>${t.label}</option>`,
                     )
                     .join("");
-                    
+
                 debugLog(`End time dropdown updated, selected value: ${endTimeSelect.value}`);
             }
 
@@ -1682,8 +1677,9 @@
         const dateInput = document.querySelector(`.date-input[data-index="${index}"]`);
         const startTimeSelect = document.querySelector(`.start-time-select[data-index="${index}"]`);
         const endTimeSelect = document.querySelector(`.end-time-select[data-index="${index}"]`);
+        const serviceSelect = document.querySelector(`.service-select[data-index="${index}"]`);
 
-        [staffSelect, dateInput, startTimeSelect, endTimeSelect].forEach(el => {
+        [serviceSelect, staffSelect, dateInput, startTimeSelect, endTimeSelect].forEach(el => {
             el?.classList.remove("field-error", "field-validated", "field-validating", "field-warning");
         });
 
@@ -1810,6 +1806,7 @@
         if (conflictCount > 0) {
             banner.classList.remove("d-none", "alert-success");
             banner.classList.add("alert-warning");
+            banner.querySelector("i").className = "fas fa-exclamation-triangle fs-4 me-3";
             summaryText.innerHTML = `⚠️ ${conflictCount} of ${totalCount} appointment${conflictCount > 1 ? "s have" : " has"} conflicts`;
             summarySubtext.textContent = "Please resolve all conflicts before booking";
         } else if (totalCount > 0) {
@@ -1887,8 +1884,6 @@
         const hasConflicts = document.querySelectorAll(".appointment-card.has-conflict, .appointment-card.has-warning").length > 0;
 
         let allFilled = true;
-        const allAppointments = getAllAppointmentsData();
-
         document.querySelectorAll(".appointment-card").forEach((card) => {
             const data = getAppointmentData(card.dataset.index);
             if (!data.service || !data.staff || !data.date || !data.startTime || !data.endTime) {
