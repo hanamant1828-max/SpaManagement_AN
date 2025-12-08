@@ -751,11 +751,12 @@
                     const schedule = response.schedule;
 
                     // Pre-fill basic information
-                    $('#staffSelect').val(schedule.staff_id);
+                    // Use .trigger('change') for Select2 dropdowns to update the display
+                    $('#staffSelect').val(schedule.staff_id).trigger('change');
                     $('#scheduleName').val(schedule.schedule_name);
                     $('#fromDate').val(schedule.start_date);
                     $('#toDate').val(schedule.end_date);
-                    $('#priority').val(schedule.priority);
+                    $('#priority').val(schedule.priority).trigger('change');
                     $('#description').val(schedule.description);
 
                     // Update default time inputs from loaded schedule if they exist
