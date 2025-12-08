@@ -148,7 +148,17 @@
      * Generate days table based on date range
      */
     function generateDays() {
-        if (!validateForm()) return;
+        console.log('Generate Days clicked');
+        console.log('Staff Select value:', $('#staffSelect').val());
+        console.log('Schedule Name value:', $('#scheduleName').val());
+        console.log('From Date value:', $('#fromDate').val());
+        console.log('To Date value:', $('#toDate').val());
+        
+        if (!validateForm()) {
+            console.log('Form validation failed');
+            return;
+        }
+        console.log('Form validation passed');
 
         const fromDate = $('#fromDate').val();
         const toDate = $('#toDate').val();
