@@ -273,76 +273,54 @@
                         <strong>${index + 1}</strong>
                     </td>
                     <td class="align-middle">
-                        <strong class="text-primary">${formatDateForDisplay(day.date)}</strong>
-                        <br><small class="text-muted">${day.date}</small>
+                        <span class="fw-bold">${formatDateForDisplay(day.date)}</span>
                     </td>
                     <td class="align-middle">
-                        <span class="badge ${getDayBadgeClass(day.dayOfWeek)}">${day.dayName}</span>
+                        <span class="badge ${getDayBadgeClass(day.dayOfWeek)} px-3 py-2">${day.dayName}</span>
                     </td>
                     <td>
-                        <input type="time" class="form-control form-control-sm time-input"
-                               data-field="startTime" data-index="${index}"
-                               value="${day.startTime}" ${day.working ? '' : 'disabled'}>
-                        <small class="text-muted d-block">${convert24To12Hour(day.startTime)}</small>
+                        <div class="d-flex align-items-center gap-2">
+                            <input type="time" class="form-control form-control-sm time-input"
+                                   data-field="startTime" data-index="${index}"
+                                   value="${day.startTime}" ${day.working ? '' : 'disabled'}>
+                            <small class="text-muted">${convert24To12Hour(day.startTime)}</small>
+                        </div>
                     </td>
                     <td>
-                        <input type="time" class="form-control form-control-sm time-input"
-                               data-field="endTime" data-index="${index}"
-                               value="${day.endTime}" ${day.working ? '' : 'disabled'}>
-                        <small class="text-muted d-block">${convert24To12Hour(day.endTime)}</small>
+                        <div class="d-flex align-items-center gap-2">
+                            <input type="time" class="form-control form-control-sm time-input"
+                                   data-field="endTime" data-index="${index}"
+                                   value="${day.endTime}" ${day.working ? '' : 'disabled'}>
+                            <small class="text-muted">${convert24To12Hour(day.endTime)}</small>
+                        </div>
                     </td>
                     <td>
-                        <input type="time" class="form-control form-control-sm time-input break-start"
-                               data-field="breakStart" data-index="${index}"
-                               value="${day.breakStart}" ${day.working ? '' : 'disabled'} onchange="updateBreakTime(this)">
-                        <small class="text-muted d-block">${convert24To12Hour(day.breakStart)}</small>
+                        <div class="d-flex align-items-center gap-2">
+                            <input type="time" class="form-control form-control-sm time-input break-start"
+                                   data-field="breakStart" data-index="${index}"
+                                   value="${day.breakStart}" ${day.working ? '' : 'disabled'} onchange="updateBreakTime(this)">
+                            <small class="text-muted">${convert24To12Hour(day.breakStart)}</small>
+                        </div>
                     </td>
                     <td>
-                        <input type="time" class="form-control form-control-sm time-input break-end"
-                               data-field="breakEnd" data-index="${index}"
-                               value="${day.breakEnd}" ${day.working ? '' : 'disabled'} onchange="updateBreakTime(this)">
-                        <small class="text-muted d-block">${convert24To12Hour(day.breakEnd)}</small>
-                    </td>
-                    <td>
-                        <input type="number" class="form-control form-control-sm break-input"
-                               data-field="breakMinutes" data-index="${index}"
-                               value="${day.breakMinutes}" min="0" max="480" ${day.working ? '' : 'disabled'} readonly>
-                    </td>
-                    <td>
-                        <input type="time" class="form-control form-control-sm time-input out-start"
-                               data-field="outOfOfficeStart" data-index="${index}"
-                               value="${day.outOfOfficeStart || ''}" ${day.working ? '' : 'disabled'} onchange="updateOutOfOfficeTime(this)">
-                        <small class="text-muted d-block">${day.outOfOfficeStart ? convert24To12Hour(day.outOfOfficeStart) : ''}</small>
-                    </td>
-                    <td>
-                        <input type="time" class="form-control form-control-sm time-input out-end"
-                               data-field="outOfOfficeEnd" data-index="${index}"
-                               value="${day.outOfOfficeEnd || ''}" ${day.working ? '' : 'disabled'} onchange="updateOutOfOfficeTime(this)">
-                        <small class="text-muted d-block">${day.outOfOfficeEnd ? convert24To12Hour(day.outOfOfficeEnd) : ''}</small>
-                    </td>
-                    <td>
-                        <input type="number" class="form-control form-control-sm out-minutes"
-                               data-field="outOfOfficeMinutes" data-index="${index}"
-                               value="${day.outOfOfficeMinutes || 0}" min="0" max="480" ${day.working ? '' : 'disabled'} readonly>
-                    </td>
-                    <td>
-                        <input type="text" class="form-control form-control-sm"
-                               data-field="outOfOfficeReason" data-index="${index}"
-                               value="${day.outOfOfficeReason || ''}" placeholder="Reason..." ${day.working ? '' : 'disabled'}>
+                        <div class="d-flex align-items-center gap-2">
+                            <input type="time" class="form-control form-control-sm time-input break-end"
+                                   data-field="breakEnd" data-index="${index}"
+                                   value="${day.breakEnd}" ${day.working ? '' : 'disabled'} onchange="updateBreakTime(this)">
+                            <small class="text-muted">${convert24To12Hour(day.breakEnd)}</small>
+                        </div>
                     </td>
                     <td class="text-center align-middle">
-                        <div class="form-check form-switch">
+                        <div class="form-check form-switch d-flex justify-content-center">
                             <input class="form-check-input working-toggle" type="checkbox"
                                    data-index="${index}" ${day.working ? 'checked' : ''}>
-                            <label class="form-check-label text-sm">
-                                ${day.working ? 'Yes' : 'No'}
-                            </label>
                         </div>
+                        <small class="${day.working ? 'text-success' : 'text-muted'}">${day.working ? 'Working' : 'Off'}</small>
                     </td>
                     <td>
                         <input type="text" class="form-control form-control-sm notes-input"
                                data-field="notes" data-index="${index}"
-                               value="${day.notes}" placeholder="Notes..." ${day.working ? '' : 'disabled'}>
+                               value="${day.notes}" placeholder="Add notes..." ${day.working ? '' : 'disabled'}>
                     </td>
                 </tr>
             `;
@@ -379,14 +357,16 @@
         // Update row appearance and inputs
         const $row = $toggle.closest('tr');
         const $inputs = $row.find('input:not(.working-toggle)');
+        const $label = $row.find('.form-check-input').closest('td').find('small');
 
         if (isWorking) {
             $row.removeClass('table-secondary');
             $inputs.prop('disabled', false);
-            $toggle.next('label').text('Yes');
+            $label.text('Working').removeClass('text-muted').addClass('text-success');
         } else {
             $row.addClass('table-secondary');
             $inputs.prop('disabled', true);
+            $label.text('Off').removeClass('text-success').addClass('text-muted');
             $toggle.next('label').text('No');
         }
 

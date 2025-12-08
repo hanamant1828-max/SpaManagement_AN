@@ -141,13 +141,17 @@
                         </span>
                     </td>
                     <td>
-                        <div class="time-range">
-                            <i class="fas fa-clock me-1"></i>
-                            <span class="fw-bold">${convert24To12Hour(schedule.shift_start_time)}</span>
-                            <span class="text-muted mx-1">to</span>
-                            <span class="fw-bold">${convert24To12Hour(schedule.shift_end_time)}</span>
+                        <div class="shift-time-display">
+                            <div class="time-block">
+                                <span class="time-label">Start:</span>
+                                <span class="time-value">${convert24To12Hour(schedule.shift_start_time)}</span>
+                            </div>
+                            <div class="time-block">
+                                <span class="time-label">End:</span>
+                                <span class="time-value">${convert24To12Hour(schedule.shift_end_time)}</span>
+                            </div>
                         </div>
-                        ${schedule.break_time ? `<small class="text-muted d-block mt-1"><i class="fas fa-coffee me-1"></i>${schedule.break_time}</small>` : ''}
+                        ${schedule.break_time ? `<div class="break-info mt-1"><i class="fas fa-coffee me-1"></i>${schedule.break_time}</div>` : ''}
                     </td>
                     <td class="text-center">
                         ${getStatusBadge(schedule.is_active)}
