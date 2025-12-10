@@ -164,18 +164,20 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const ctx = document.getElementById('serviceRevenueChart').getContext('2d');
-
-    const labels = [
-        {% for item in service_revenue_by_date %}
-        '{{ item.date.strftime("%m/%d") }}'{% if not loop.last %},{% endif %}
-        {% endfor %}
-    ];
-
-    const data = [
-        {% for item in service_revenue_by_date %}
-        {{ item.revenue or 0 }}{% if not loop.last %},{% endif %}
-        {% endfor %}
-    ];
+    
+    const serviceRevenueByDateJson = {{ service_revenue_by_date | tojson | safe }};
+    
+    const labels = serviceRevenueByDateJson.map(function(item) {
+        if (item.date) {
+            var d = new Date(item.date);
+            return (d.getMonth() + 1) + '/' + d.getDate();
+        }
+        return 'N/A';
+    });
+    
+    const data = serviceRevenueByDateJson.map(function(item) {
+        return item.revenue || 0;
+    });
 
     new Chart(ctx, {
         type: 'line',
@@ -196,7 +198,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     beginAtZero: true,
                     ticks: {
                         callback: function(value) {
-                            return '₹' + value.toFixed(2);
+                            return '\u20B9' + value.toFixed(2);
                         }
                     }
                 }
@@ -204,8 +206,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 });
-</script>
-<script>
+
 function exportToExcel() {
     if (typeof XLSX === 'undefined') {
         alert('Excel library not loaded. Please refresh the page and try again.');
@@ -215,48 +216,50 @@ function exportToExcel() {
     try {
         const wb = XLSX.utils.book_new();
 
-        // Service Summary
         const summaryData = [
             ['Service Revenue Report'],
             ['Date Range', '{{ start_date.strftime("%d/%m/%Y") }} - {{ end_date.strftime("%d/%m/%Y") }}'],
             [''],
             ['Summary'],
-            ['Total Service Revenue', {{ total_service_revenue }}],
-            ['Total Service Bookings', {{ total_service_bookings }}],
+            ['Total Service Revenue', {{ total_service_revenue or 0 }}],
+            ['Total Service Bookings', {{ total_service_bookings or 0 }}],
             [''],
             ['Service Performance Summary'],
             ['Service Name', 'Price', 'Bookings', 'Quantity', 'Total Revenue', 'Avg Revenue']
         ];
-        {% for service in service_revenue_summary %}
-        summaryData.push([
-            '{{ service.name }}',
-            {{ service.price or 0 }},
-            {{ service.total_bookings }},
-            {{ service.total_quantity }},
-            {{ service.total_revenue or 0 }},
-            {{ service.avg_revenue or 0 }}
-        ]);
-        {% endfor %}
+        
+        const serviceRevenueSummaryJson = {{ service_revenue_summary | tojson | safe }};
+        serviceRevenueSummaryJson.forEach(function(service) {
+            summaryData.push([
+                service.name || 'N/A',
+                service.price || 0,
+                service.total_bookings || 0,
+                service.total_quantity || 0,
+                service.total_revenue || 0,
+                service.avg_revenue || 0
+            ]);
+        });
 
-        // Daily Revenue
         const dailyData = [
             [''],
             ['Daily Service Revenue'],
             ['Date', 'Revenue', 'Bookings']
         ];
-        {% for item in service_revenue_by_date %}
-        dailyData.push([
-            '{{ item.date.strftime("%d/%m/%Y") }}',
-            {{ item.revenue or 0 }},
-            {{ item.bookings }}
-        ]);
-        {% endfor %}
+        
+        const serviceRevenueByDateJson = {{ service_revenue_by_date | tojson | safe }};
+        serviceRevenueByDateJson.forEach(function(item) {
+            dailyData.push([
+                item.date ? new Date(item.date).toLocaleDateString('en-GB') : 'N/A',
+                item.revenue || 0,
+                item.bookings || 0
+            ]);
+        });
 
         const allData = [...summaryData, ...dailyData];
         const ws = XLSX.utils.aoa_to_sheet(allData);
         XLSX.utils.book_append_sheet(wb, ws, 'Service Revenue');
 
-        const fileName = `Service_Revenue_Only_{{ start_date.strftime("%Y%m%d") }}_{{ end_date.strftime("%Y%m%d") }}.xlsx`;
+        const fileName = 'Service_Revenue_Only_{{ start_date.strftime("%Y%m%d") }}_{{ end_date.strftime("%Y%m%d") }}.xlsx';
         XLSX.writeFile(wb, fileName);
 
         alert('Report exported successfully!');

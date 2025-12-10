@@ -1,4 +1,3 @@
-
 {% extends "base.html" %}
 
 {% block title %}Product Revenue Report - Spa & Salon Management{% endblock %}
@@ -170,49 +169,51 @@ function exportToExcel() {
     try {
         const wb = XLSX.utils.book_new();
 
-        // Product Revenue Summary
         const summaryData = [
             ['Product Revenue Report'],
             ['Date Range', '{{ start_date.strftime("%d/%m/%Y") }} - {{ end_date.strftime("%d/%m/%Y") }}'],
             [''],
             ['Summary'],
-            ['Total Product Revenue', {{ total_product_revenue }}],
-            ['Total Product Sales', {{ total_product_sales }}],
-            ['Total Quantity Sold', {{ total_quantity_sold }}],
+            ['Total Product Revenue', {{ total_product_revenue or 0 }}],
+            ['Total Product Sales', {{ total_product_sales or 0 }}],
+            ['Total Quantity Sold', {{ total_quantity_sold or 0 }}],
             [''],
             ['Product Performance Summary'],
             ['Product Name', 'Batch', 'Quantity Sold', 'Total Sales', 'Total Revenue', 'Avg Price']
         ];
-        {% for product in product_revenue_summary %}
-        summaryData.push([
-            '{{ product.name }}',
-            '{{ product.batch_name or "N/A" }}',
-            {{ product.total_quantity }},
-            {{ product.total_sales }},
-            {{ product.total_revenue or 0 }},
-            {{ product.avg_price or 0 }}
-        ]);
-        {% endfor %}
+        
+        const productRevenueSummaryJson = {{ product_revenue_summary | tojson | safe }};
+        productRevenueSummaryJson.forEach(function(product) {
+            summaryData.push([
+                product.name || 'N/A',
+                product.batch_name || 'N/A',
+                product.total_quantity || 0,
+                product.total_sales || 0,
+                product.total_revenue || 0,
+                product.avg_price || 0
+            ]);
+        });
 
-        // Daily Revenue
         const dailyData = [
             [''],
             ['Daily Product Revenue'],
             ['Date', 'Revenue', 'Quantity Sold']
         ];
-        {% for item in product_revenue_by_date %}
-        dailyData.push([
-            '{{ item.date.strftime("%d/%m/%Y") }}',
-            {{ item.revenue or 0 }},
-            {{ item.quantity_sold }}
-        ]);
-        {% endfor %}
+        
+        const productRevenueByDateJson = {{ product_revenue_by_date | tojson | safe }};
+        productRevenueByDateJson.forEach(function(item) {
+            dailyData.push([
+                item.date ? new Date(item.date).toLocaleDateString('en-GB') : 'N/A',
+                item.revenue || 0,
+                item.quantity_sold || 0
+            ]);
+        });
 
         const allData = [...summaryData, ...dailyData];
         const ws = XLSX.utils.aoa_to_sheet(allData);
         XLSX.utils.book_append_sheet(wb, ws, 'Product Revenue');
 
-        const fileName = `Product_Revenue_Report_{{ start_date.strftime("%Y%m%d") }}_{{ end_date.strftime("%Y%m%d") }}.xlsx`;
+        const fileName = 'Product_Revenue_Report_{{ start_date.strftime("%Y%m%d") }}_{{ end_date.strftime("%Y%m%d") }}.xlsx';
         XLSX.writeFile(wb, fileName);
         
         alert('Report exported successfully!');
@@ -225,61 +226,19 @@ function exportToExcel() {
 document.addEventListener('DOMContentLoaded', function() {
     const ctx = document.getElementById('productRevenueChart').getContext('2d');
     
-    const labels = [
-        {% for item in product_revenue_by_date %}
-        '{{ item.date.strftime("%m/%d") }}'{% if not loop.last %},{% endif %}
-        {% endfor %}
-    ];
+    const productRevenueByDateJson = {{ product_revenue_by_date | tojson | safe }};
     
-    const data = [
-        {% for item in product_revenue_by_date %}
-        {{ item.revenue or 0 }}{% if not loop.last %},{% endif %}
-        {% endfor %}
-    ];
-    
-    new Chart(ctx, {
-        type: 'bar',
-        data: {
-            labels: labels,
-            datasets: [{
-                label: 'Product Revenue',
-                data: data,
-                backgroundColor: 'rgba(246, 194, 62, 0.5)',
-                borderColor: 'rgb(246, 194, 62)',
-                borderWidth: 1
-            }]
-        },
-        options: {
-            responsive: true,
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    ticks: {
-                        callback: function(value) {
-                            return '₹' + value.toFixed(2);
-                        }
-                    }
-                }
-            }
+    const labels = productRevenueByDateJson.map(function(item) {
+        if (item.date) {
+            var d = new Date(item.date);
+            return (d.getMonth() + 1) + '/' + d.getDate();
         }
+        return 'N/A';
     });
-});
-</script>
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    const ctx = document.getElementById('productRevenueChart').getContext('2d');
     
-    const labels = [
-        {% for item in product_revenue_by_date %}
-        '{{ item.date.strftime("%m/%d") }}'{% if not loop.last %},{% endif %}
-        {% endfor %}
-    ];
-    
-    const data = [
-        {% for item in product_revenue_by_date %}
-        {{ item.revenue or 0 }}{% if not loop.last %},{% endif %}
-        {% endfor %}
-    ];
+    const data = productRevenueByDateJson.map(function(item) {
+        return item.revenue || 0;
+    });
     
     new Chart(ctx, {
         type: 'bar',
@@ -300,7 +259,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     beginAtZero: true,
                     ticks: {
                         callback: function(value) {
-                            return '₹' + value.toFixed(2);
+                            return '\u20B9' + value.toFixed(2);
                         }
                     }
                 }

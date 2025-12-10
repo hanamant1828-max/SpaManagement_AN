@@ -187,7 +187,6 @@ function exportToExcel() {
     try {
         const wb = XLSX.utils.book_new();
 
-        // Client Summary
         const summaryData = [
             ['Client Revenue Report'],
             ['Date Range', '{{ start_date.strftime("%d/%m/%Y") }} - {{ end_date.strftime("%d/%m/%Y") }}'],
@@ -195,57 +194,66 @@ function exportToExcel() {
             ['Client Performance Summary'],
             ['Client Name', 'Phone', 'Total Invoices', 'Total Spent', 'Avg Invoice Value', 'Last Visit']
         ];
-        {% for client in client_summary %}
-        summaryData.push([
-            '{{ client.first_name }} {{ client.last_name }}',
-            '{{ client.phone }}',
-            {{ client.total_invoices }},
-            {{ client.total_spent or 0 }},
-            {{ client.avg_invoice_value or 0 }},
-            '{{ client.last_visit.strftime("%d/%m/%Y") if client.last_visit else "N/A" }}'
-        ]);
-        {% endfor %}
+        
+        const clientSummaryJson = {{ client_summary | tojson | safe }};
+        clientSummaryJson.forEach(function(client) {
+            summaryData.push([
+                (client.first_name || '') + ' ' + (client.last_name || ''),
+                client.phone || 'N/A',
+                client.total_invoices || 0,
+                client.total_spent || 0,
+                client.avg_invoice_value || 0,
+                client.last_visit ? new Date(client.last_visit).toLocaleDateString('en-GB') : 'N/A'
+            ]);
+        });
 
-        // Top Services
         const servicesData = [
             [''],
             ['Top Services by Client'],
             ['Client Name', 'Service', 'Service Count', 'Service Revenue']
         ];
-        {% for service in top_services_by_client %}
-        servicesData.push([
-            '{{ service.first_name }} {{ service.last_name }}',
-            '{{ service.service_name }}',
-            {{ service.service_count }},
-            {{ service.service_revenue or 0 }}
-        ]);
-        {% endfor %}
+        
+        const topServicesJson = {{ top_services_by_client | tojson | safe }};
+        topServicesJson.forEach(function(service) {
+            servicesData.push([
+                (service.first_name || '') + ' ' + (service.last_name || ''),
+                service.service_name || 'N/A',
+                service.service_count || 0,
+                service.service_revenue || 0
+            ]);
+        });
 
-        // Detailed Transactions
         const detailsData = [
             [''],
             ['Detailed Client Transactions'],
             ['Date', 'Invoice #', 'Client', 'Phone', 'Staff', 'Service', 'Qty', 'Amount', 'Status']
         ];
-        {% for detail in client_transaction_details %}
-        detailsData.push([
-            '{{ detail.invoice_date.strftime("%d/%m/%Y") }}',
-            '{{ detail.invoice_number }}',
-            '{{ detail.first_name }} {{ detail.last_name }}',
-            '{{ detail.phone }}',
-            '{{ detail.staff_first_name }} {{ detail.staff_last_name if detail.staff_first_name else "N/A" }}',
-            '{{ detail.service_name or "N/A" }}',
-            {{ detail.quantity }},
-            {{ detail.final_amount or 0 }},
-            '{{ detail.payment_status|title }}'
-        ]);
-        {% endfor %}
+        
+        const clientTransactionDetailsJson = {{ client_transaction_details | tojson | safe }};
+        clientTransactionDetailsJson.forEach(function(detail) {
+            var staffName = 'N/A';
+            if (detail.staff_first_name) {
+                staffName = detail.staff_first_name + ' ' + (detail.staff_last_name || '');
+            }
+            
+            detailsData.push([
+                detail.invoice_date ? new Date(detail.invoice_date).toLocaleDateString('en-GB') : 'N/A',
+                detail.invoice_number || 'N/A',
+                (detail.first_name || '') + ' ' + (detail.last_name || ''),
+                detail.phone || 'N/A',
+                staffName,
+                detail.service_name || 'N/A',
+                detail.quantity || 0,
+                detail.final_amount || 0,
+                detail.payment_status || 'N/A'
+            ]);
+        });
 
         const allData = [...summaryData, ...servicesData, ...detailsData];
         const ws = XLSX.utils.aoa_to_sheet(allData);
         XLSX.utils.book_append_sheet(wb, ws, 'Client Revenue');
 
-        const fileName = `Client_Revenue_Report_{{ start_date.strftime("%Y%m%d") }}_{{ end_date.strftime("%Y%m%d") }}.xlsx`;
+        const fileName = 'Client_Revenue_Report_{{ start_date.strftime("%Y%m%d") }}_{{ end_date.strftime("%Y%m%d") }}.xlsx';
         XLSX.writeFile(wb, fileName);
         
         alert('Report exported successfully!');

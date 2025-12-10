@@ -189,7 +189,6 @@ function exportToExcel() {
     try {
         const wb = XLSX.utils.book_new();
 
-        // Category Summary
         const categoryData = [
             ['Service Revenue Report'],
             ['Date Range', '{{ start_date.strftime("%d/%m/%Y") }} - {{ end_date.strftime("%d/%m/%Y") }}'],
@@ -197,60 +196,70 @@ function exportToExcel() {
             ['Category Performance Summary'],
             ['Category', 'Service Count', 'Total Bookings', 'Total Revenue', 'Avg per Booking']
         ];
-        {% for cat in category_summary %}
-        categoryData.push([
-            '{{ cat.category or "Uncategorized" }}',
-            {{ cat.service_count }},
-            {{ cat.total_bookings }},
-            {{ cat.total_revenue or 0 }},
-            {{ (cat.total_revenue or 0) / cat.total_bookings if cat.total_bookings > 0 else 0 }}
-        ]);
-        {% endfor %}
+        
+        const categorySummaryJson = {{ category_summary | tojson | safe }};
+        categorySummaryJson.forEach(function(cat) {
+            var avgPerBooking = cat.total_bookings > 0 ? (cat.total_revenue || 0) / cat.total_bookings : 0;
+            categoryData.push([
+                cat.category || 'Uncategorized',
+                cat.service_count || 0,
+                cat.total_bookings || 0,
+                cat.total_revenue || 0,
+                avgPerBooking
+            ]);
+        });
 
-        // Service Summary
         const serviceData = [
             [''],
             ['Service Performance Summary'],
             ['Service Name', 'Category', 'Price', 'Bookings', 'Quantity', 'Unique Clients', 'Total Revenue', 'Avg per Booking']
         ];
-        {% for service in service_summary %}
-        serviceData.push([
-            '{{ service.name }}',
-            '{{ service.category or "N/A" }}',
-            {{ service.price or 0 }},
-            {{ service.total_bookings }},
-            {{ service.total_quantity }},
-            {{ service.unique_clients }},
-            {{ service.total_revenue or 0 }},
-            {{ service.avg_revenue_per_booking or 0 }}
-        ]);
-        {% endfor %}
+        
+        const serviceSummaryJson = {{ service_summary | tojson | safe }};
+        serviceSummaryJson.forEach(function(service) {
+            serviceData.push([
+                service.name || 'N/A',
+                service.category || 'N/A',
+                service.price || 0,
+                service.total_bookings || 0,
+                service.total_quantity || 0,
+                service.unique_clients || 0,
+                service.total_revenue || 0,
+                service.avg_revenue_per_booking || 0
+            ]);
+        });
 
-        // Detailed Transactions
         const detailsData = [
             [''],
             ['Detailed Service Transactions'],
             ['Date', 'Invoice #', 'Service', 'Category', 'Client', 'Staff', 'Qty', 'Unit Price', 'Total Amount']
         ];
-        {% for detail in service_transaction_details %}
-        detailsData.push([
-            '{{ detail.invoice_date.strftime("%d/%m/%Y") }}',
-            '{{ detail.invoice_number }}',
-            '{{ detail.name }}',
-            '{{ detail.category or "N/A" }}',
-            '{{ detail.client_first_name }} {{ detail.client_last_name }}',
-            '{{ detail.staff_first_name }} {{ detail.staff_last_name if detail.staff_first_name else "N/A" }}',
-            {{ detail.quantity }},
-            {{ detail.unit_price or 0 }},
-            {{ detail.final_amount or 0 }}
-        ]);
-        {% endfor %}
+        
+        const serviceTransactionDetailsJson = {{ service_transaction_details | tojson | safe }};
+        serviceTransactionDetailsJson.forEach(function(detail) {
+            var staffName = 'N/A';
+            if (detail.staff_first_name) {
+                staffName = detail.staff_first_name + ' ' + (detail.staff_last_name || '');
+            }
+            
+            detailsData.push([
+                detail.invoice_date ? new Date(detail.invoice_date).toLocaleDateString('en-GB') : 'N/A',
+                detail.invoice_number || 'N/A',
+                detail.name || 'N/A',
+                detail.category || 'N/A',
+                (detail.client_first_name || '') + ' ' + (detail.client_last_name || ''),
+                staffName,
+                detail.quantity || 0,
+                detail.unit_price || 0,
+                detail.final_amount || 0
+            ]);
+        });
 
         const allData = [...categoryData, ...serviceData, ...detailsData];
         const ws = XLSX.utils.aoa_to_sheet(allData);
         XLSX.utils.book_append_sheet(wb, ws, 'Service Revenue');
 
-        const fileName = `Service_Revenue_Report_{{ start_date.strftime("%Y%m%d") }}_{{ end_date.strftime("%Y%m%d") }}.xlsx`;
+        const fileName = 'Service_Revenue_Report_{{ start_date.strftime("%Y%m%d") }}_{{ end_date.strftime("%Y%m%d") }}.xlsx';
         XLSX.writeFile(wb, fileName);
         
         alert('Report exported successfully!');
