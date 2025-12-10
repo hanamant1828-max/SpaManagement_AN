@@ -330,71 +330,82 @@
 <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
 <script>
 function exportToExcel() {
-    const wb = XLSX.utils.book_new();
+    if (typeof XLSX === 'undefined') {
+        alert('Excel library not loaded. Please refresh the page and try again.');
+        return;
+    }
 
-    // Package Summary
-    const summaryData = [
-        ['Package Billing Report'],
-        ['Date Range', '{{ start_date.strftime("%d/%m/%Y") }} - {{ end_date.strftime("%d/%m/%Y") }}'],
-        [''],
-        ['Summary'],
-        ['Total Package Revenue', '₹{{ "{:,.2f}".format(total_package_revenue) }}'],
-        ['Total Packages Sold', '{{ total_packages_sold }}'],
-        ['Total Redemptions', '{{ total_usage_count }}'],
-        ['Total Value Redeemed', '₹{{ "{:,.2f}".format(total_value_redeemed) }}'],
-        ['Active Packages', '{{ active_packages }}'],
-        ['Expired Packages', '{{ expired_packages }}'],
-        [''],
-        ['Package Sales by Type'],
-        ['Package Type', 'Packages Sold', 'Revenue']
-    ];
-    {% for type_name, stats in package_by_type.items() %}
-    summaryData.push([
-        '{{ type_name }}',
-        '{{ stats.count }}',
-        '₹{{ "{:,.2f}".format(stats.revenue or 0) }}'
-    ]);
-    {% endfor %}
+    try {
+        const wb = XLSX.utils.book_new();
 
-    // Package Sales Details
-    const salesData = [
-        [''],
-        ['Package Sales Details'],
-        ['Date', 'Customer', 'Package Name', 'Package Type', 'Price Paid', 'Payment Method']
-    ];
-    {% for sale in package_sales %}
-    salesData.push([
-        '{{ sale.assigned_on.strftime("%d/%m/%Y") if sale.assigned_on else "N/A" }}',
-        '{{ sale.customer.first_name if sale.customer else "N/A" }} {{ sale.customer.last_name if sale.customer else "" }}',
-        '{{ sale.package_name }}',
-        '{{ sale.package_type|replace("_", " ")|title }}',
-        '₹{{ "{:,.2f}".format(sale.price_paid or 0) }}',
-        '{{ sale.payment_method|title if sale.payment_method else "N/A" }}'
-    ]);
-    {% endfor %}
+        // Package Summary
+        const summaryData = [
+            ['Package Billing Report'],
+            ['Date Range', '{{ start_date.strftime("%d/%m/%Y") }} - {{ end_date.strftime("%d/%m/%Y") }}'],
+            [''],
+            ['Summary'],
+            ['Total Package Revenue', {{ total_package_revenue }}],
+            ['Total Packages Sold', {{ total_packages_sold }}],
+            ['Total Redemptions', {{ total_usage_count }}],
+            ['Total Value Redeemed', {{ total_value_redeemed }}],
+            ['Active Packages', {{ active_packages }}],
+            ['Expired Packages', {{ expired_packages }}],
+            [''],
+            ['Package Sales by Type'],
+            ['Package Type', 'Packages Sold', 'Revenue']
+        ];
+        {% for pkg in top_packages %}
+        summaryData.push([
+            '{{ pkg.type }}',
+            {{ pkg.count }},
+            {{ pkg.revenue }}
+        ]);
+        {% endfor %}
 
-    // Package Usage Details
-    const usageData = [
-        [''],
-        ['Package Usage/Redemptions'],
-        ['Date', 'Customer', 'Service Used', 'Benefit Type', 'Value Applied']
-    ];
-    {% for usage in package_usage %}
-    usageData.push([
-        '{{ usage.charge_date.strftime("%d/%m/%Y") if usage.charge_date else "N/A" }}',
-        '{{ usage.customer.first_name if usage.customer else "N/A" }} {{ usage.customer.last_name if usage.customer else "" }}',
-        '{{ usage.service.name if usage.service else "N/A" }}',
-        '{{ usage.benefit_type or "N/A" }}',
-        '₹{{ "{:,.2f}".format(usage.discount_applied or 0) }}'
-    ]);
-    {% endfor %}
+        // Package Sales Details
+        const salesData = [
+            [''],
+            ['Package Sales Details'],
+            ['Date', 'Customer', 'Package Type', 'Price Paid', 'Status']
+        ];
+        {% for sale in package_sales %}
+        salesData.push([
+            '{{ sale.assigned_on.strftime("%d/%m/%Y") if sale.assigned_on else "N/A" }}',
+            '{{ sale.customer.first_name if sale.customer else "N/A" }} {{ sale.customer.last_name if sale.customer else "" }}',
+            '{{ sale.package_type.replace("_", " ")|title }}',
+            {{ sale.price_paid or 0 }},
+            '{{ sale.status }}'
+        ]);
+        {% endfor %}
 
-    const allData = [...summaryData, ...salesData, ...usageData];
-    const ws = XLSX.utils.aoa_to_sheet(allData);
-    XLSX.utils.book_append_sheet(wb, ws, 'Package Billing');
+        // Package Usage Details
+        const usageData = [
+            [''],
+            ['Package Usage/Redemptions'],
+            ['Date', 'Customer', 'Service Used', 'Benefit Type', 'Value Applied']
+        ];
+        {% for usage in package_usage %}
+        usageData.push([
+            '{{ usage.charge_date.strftime("%d/%m/%Y") if usage.charge_date else "N/A" }}',
+            '{{ usage.customer.first_name if usage.customer else "N/A" }} {{ usage.customer.last_name if usage.customer else "" }}',
+            '{{ usage.service.name if usage.service else "N/A" }}',
+            '{{ usage.benefit_type or "N/A" }}',
+            {{ usage.discount_applied or 0 }}
+        ]);
+        {% endfor %}
 
-    const fileName = `Package_Billing_Report_{{ start_date.strftime("%Y%m%d") }}_{{ end_date.strftime("%Y%m%d") }}.xlsx`;
-    XLSX.writeFile(wb, fileName);
+        const allData = [...summaryData, ...salesData, ...usageData];
+        const ws = XLSX.utils.aoa_to_sheet(allData);
+        XLSX.utils.book_append_sheet(wb, ws, 'Package Billing');
+
+        const fileName = `Package_Billing_Report_{{ start_date.strftime("%Y%m%d") }}_{{ end_date.strftime("%Y%m%d") }}.xlsx`;
+        XLSX.writeFile(wb, fileName);
+        
+        alert('Report exported successfully!');
+    } catch (error) {
+        console.error('Export error:', error);
+        alert('Error exporting to Excel: ' + error.message);
+    }
 }
 </script>
 {% endblock %}

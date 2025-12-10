@@ -179,68 +179,80 @@
 <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
 <script>
 function exportToExcel() {
-    const wb = XLSX.utils.book_new();
+    if (typeof XLSX === 'undefined') {
+        alert('Excel library not loaded. Please refresh the page and try again.');
+        return;
+    }
 
-    // Client Summary
-    const summaryData = [
-        ['Client Revenue Report'],
-        ['Date Range', '{{ start_date.strftime("%d/%m/%Y") }} - {{ end_date.strftime("%d/%m/%Y") }}'],
-        [''],
-        ['Client Performance Summary'],
-        ['Client Name', 'Phone', 'Total Invoices', 'Total Spent', 'Avg Invoice Value', 'Last Visit']
-    ];
-    {% for client in client_summary %}
-    summaryData.push([
-        '{{ client.first_name }} {{ client.last_name }}',
-        '{{ client.phone }}',
-        '{{ client.total_invoices }}',
-        '{{ "{:,.2f}".format(client.total_spent or 0) }}',
-        '{{ "{:,.2f}".format(client.avg_invoice_value or 0) }}',
-        '{{ client.last_visit.strftime("%d/%m/%Y") if client.last_visit else "N/A" }}'
-    ]);
-    {% endfor %}
+    try {
+        const wb = XLSX.utils.book_new();
 
-    // Top Services
-    const servicesData = [
-        [''],
-        ['Top Services by Client'],
-        ['Client Name', 'Service', 'Service Count', 'Service Revenue']
-    ];
-    {% for service in top_services_by_client %}
-    servicesData.push([
-        '{{ service.first_name }} {{ service.last_name }}',
-        '{{ service.service_name }}',
-        '{{ service.service_count }}',
-        '{{ "{:,.2f}".format(service.service_revenue or 0) }}'
-    ]);
-    {% endfor %}
+        // Client Summary
+        const summaryData = [
+            ['Client Revenue Report'],
+            ['Date Range', '{{ start_date.strftime("%d/%m/%Y") }} - {{ end_date.strftime("%d/%m/%Y") }}'],
+            [''],
+            ['Client Performance Summary'],
+            ['Client Name', 'Phone', 'Total Invoices', 'Total Spent', 'Avg Invoice Value', 'Last Visit']
+        ];
+        {% for client in client_summary %}
+        summaryData.push([
+            '{{ client.first_name }} {{ client.last_name }}',
+            '{{ client.phone }}',
+            {{ client.total_invoices }},
+            {{ client.total_spent or 0 }},
+            {{ client.avg_invoice_value or 0 }},
+            '{{ client.last_visit.strftime("%d/%m/%Y") if client.last_visit else "N/A" }}'
+        ]);
+        {% endfor %}
 
-    // Detailed Transactions
-    const detailsData = [
-        [''],
-        ['Detailed Client Transactions'],
-        ['Date', 'Invoice #', 'Client', 'Phone', 'Staff', 'Service', 'Qty', 'Amount', 'Status']
-    ];
-    {% for detail in client_transaction_details %}
-    detailsData.push([
-        '{{ detail.invoice_date.strftime("%d/%m/%Y") }}',
-        '{{ detail.invoice_number }}',
-        '{{ detail.first_name }} {{ detail.last_name }}',
-        '{{ detail.phone }}',
-        '{{ detail.staff_first_name }} {{ detail.staff_last_name if detail.staff_first_name else "N/A" }}',
-        '{{ detail.service_name or "N/A" }}',
-        '{{ detail.quantity }}',
-        '{{ "{:,.2f}".format(detail.final_amount or 0) }}',
-        '{{ detail.payment_status|title }}'
-    ]);
-    {% endfor %}
+        // Top Services
+        const servicesData = [
+            [''],
+            ['Top Services by Client'],
+            ['Client Name', 'Service', 'Service Count', 'Service Revenue']
+        ];
+        {% for service in top_services_by_client %}
+        servicesData.push([
+            '{{ service.first_name }} {{ service.last_name }}',
+            '{{ service.service_name }}',
+            {{ service.service_count }},
+            {{ service.service_revenue or 0 }}
+        ]);
+        {% endfor %}
 
-    const allData = [...summaryData, ...servicesData, ...detailsData];
-    const ws = XLSX.utils.aoa_to_sheet(allData);
-    XLSX.utils.book_append_sheet(wb, ws, 'Client Revenue');
+        // Detailed Transactions
+        const detailsData = [
+            [''],
+            ['Detailed Client Transactions'],
+            ['Date', 'Invoice #', 'Client', 'Phone', 'Staff', 'Service', 'Qty', 'Amount', 'Status']
+        ];
+        {% for detail in client_transaction_details %}
+        detailsData.push([
+            '{{ detail.invoice_date.strftime("%d/%m/%Y") }}',
+            '{{ detail.invoice_number }}',
+            '{{ detail.first_name }} {{ detail.last_name }}',
+            '{{ detail.phone }}',
+            '{{ detail.staff_first_name }} {{ detail.staff_last_name if detail.staff_first_name else "N/A" }}',
+            '{{ detail.service_name or "N/A" }}',
+            {{ detail.quantity }},
+            {{ detail.final_amount or 0 }},
+            '{{ detail.payment_status|title }}'
+        ]);
+        {% endfor %}
 
-    const fileName = `Client_Revenue_Report_{{ start_date.strftime("%Y%m%d") }}_{{ end_date.strftime("%Y%m%d") }}.xlsx`;
-    XLSX.writeFile(wb, fileName);
+        const allData = [...summaryData, ...servicesData, ...detailsData];
+        const ws = XLSX.utils.aoa_to_sheet(allData);
+        XLSX.utils.book_append_sheet(wb, ws, 'Client Revenue');
+
+        const fileName = `Client_Revenue_Report_{{ start_date.strftime("%Y%m%d") }}_{{ end_date.strftime("%Y%m%d") }}.xlsx`;
+        XLSX.writeFile(wb, fileName);
+        
+        alert('Report exported successfully!');
+    } catch (error) {
+        console.error('Export error:', error);
+        alert('Error exporting to Excel: ' + error.message);
+    }
 }
 </script>
 {% endblock %}
