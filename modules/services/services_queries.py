@@ -32,6 +32,10 @@ def get_all_services(category_filter=''):
         print(f"Error retrieving services: {e}")
         return []
 
+def get_active_services():
+    """Get all active services - alias for get_all_services()"""
+    return get_all_services()
+
 def get_service_by_id(service_id):
     """Get service by ID"""
     try:
