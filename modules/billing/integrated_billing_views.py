@@ -446,7 +446,7 @@ def integrated_billing(customer_id=None):
 
                 # Add type-specific fields matching template expectations
                 # Determine package status
-                is_expired = tracker.valid_to and tracker.valid_to < datetime.now()
+                is_expired = tracker.valid_to and tracker.valid_to < dt.now()
                 is_depleted = False
 
                 if tracker.benefit_type == 'free':
@@ -946,7 +946,7 @@ def check_package_benefits():
                 ServicePackageAssignment.customer_id == int(customer_id),
                 ServicePackageAssignment.package_type == 'yearly_membership',
                 ServicePackageAssignment.status == 'active',
-                ServicePackageAssignment.expires_on >= datetime.now()
+                ServicePackageAssignment.expires_on >= dt.now()
             ).first()
 
             if yearly_membership_assignment:
@@ -1555,7 +1555,7 @@ def create_professional_invoice():
                         ServicePackageAssignment.customer_id == int(client_id),
                         ServicePackageAssignment.package_type == 'student_offer',
                         ServicePackageAssignment.status.in_(['active', 'pending']),
-                        ServicePackageAssignment.expires_on >= datetime.now() # Use datetime.now()
+                        ServicePackageAssignment.expires_on >= dt.now() # Use dt.now()
                     ).first()
 
                     if student_offer_assignment:
@@ -1599,7 +1599,7 @@ def create_professional_invoice():
                             ServicePackageAssignment.customer_id == int(client_id),
                             ServicePackageAssignment.package_type == 'yearly_membership',
                             ServicePackageAssignment.status == 'active',
-                            ServicePackageAssignment.expires_on >= datetime.now() # Use datetime.now()
+                            ServicePackageAssignment.expires_on >= dt.now() # Use dt.now()
                         ).first()
 
                         if yearly_membership_assignment:
@@ -1788,7 +1788,7 @@ def get_customer_packages(customer_id):
                 continue
 
             # Determine package status
-            is_expired = tracker.valid_to and tracker.valid_to < datetime.now() # Use datetime.now()
+            is_expired = tracker.valid_to and tracker.valid_to < dt.now() # Use dt.now()
             is_depleted = False
 
             if tracker.benefit_type == 'free':
@@ -2550,7 +2550,7 @@ def generate_invoice_preview():
                     <div class="col-6 text-end">
                         <strong>Invoice Details:</strong><br>
                         Invoice No: PREVIEW<br>
-                        Date: {datetime.now().strftime('%d-%m-%Y')}<br>
+                        Date: {dt.now().strftime('%d-%m-%Y')}<br>
                         GST Treatment: {'Interstate (IGST)' if is_interstate else 'Intrastate (CGST+SGST)'}
                     </div>
                 </div>
