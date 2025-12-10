@@ -11,6 +11,9 @@
                     <i class="fas fa-clipboard-check me-2"></i>Owner Billing Audit
                 </h1>
                 <div>
+                    <button type="button" class="btn btn-info" onclick="exportToExcel()">
+                        <i class="fas fa-file-excel me-1"></i>Export to Excel
+                    </button>
                     <button type="button" class="btn btn-success" onclick="window.print()">
                         <i class="fas fa-print me-1"></i>Print Report
                     </button>
@@ -633,11 +636,74 @@
 {% endblock %}
 
 {% block extra_js %}
+<script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
 <script>
 function setToday() {
     const today = new Date().toISOString().split('T')[0];
     document.getElementById('audit_date').value = today;
     document.querySelector('form').submit();
+}
+
+function exportToExcel() {
+    const wb = XLSX.utils.book_new();
+
+    // Summary Data
+    const summaryData = [
+        ['Owner Billing Audit Report'],
+        ['Audit Date', '{{ audit_date.strftime("%A, %d %B %Y") }}'],
+        [''],
+        ['Grand Summary'],
+        ['Total Collection', '₹{{ "{:,.2f}".format(total_amount_collected) }}'],
+        ['Total Invoices', '{{ total_invoices }} ({{ paid_invoices }} paid)'],
+        ['Pending Amount', '₹{{ "{:,.2f}".format(total_pending_amount) }}'],
+        ['Tax Collected', '₹{{ "{:,.2f}".format(total_tax_collected) }}'],
+        [''],
+        ['Revenue Breakdown'],
+        ['Service Revenue', '₹{{ "{:,.2f}".format(total_service_revenue) }}'],
+        ['Product Revenue', '₹{{ "{:,.2f}".format(total_product_revenue) }}'],
+        ['Package Revenue', '₹{{ "{:,.2f}".format(total_package_revenue) }}'],
+        [''],
+        ['Payment Method Breakdown'],
+        ['Cash', '₹{{ "{:,.2f}".format(cash_total) }}'],
+        ['Card', '₹{{ "{:,.2f}".format(card_total) }}'],
+        ['UPI', '₹{{ "{:,.2f}".format(upi_total) }}'],
+        ['Cheque', '₹{{ "{:,.2f}".format(cheque_total) }}'],
+        [''],
+        ['Deductions & Adjustments'],
+        ['Total Discounts', '₹{{ "{:,.2f}".format(total_discounts) }}'],
+        ['Package Deductions', '₹{{ "{:,.2f}".format(total_package_deductions) }}'],
+        [''],
+        ['Invoice Details'],
+        ['Invoice #', 'Customer', 'Created By', 'Invoice Amount', 'Amount Collected', 'Pending', 'Status']
+    ];
+
+    // Add invoice details
+    {% for inv in invoices %}
+    summaryData.push([
+        '{{ inv.invoice_number }}',
+        '{{ inv.customer.first_name if inv.customer else "N/A" }} {{ inv.customer.last_name if inv.customer else "" }}',
+        '{{ inv.creator.first_name if inv.creator else "N/A" }} {{ inv.creator.last_name if inv.creator else "" }}',
+        '₹{{ "{:,.2f}".format(inv.grand_total or 0) }}',
+        '₹{{ "{:,.2f}".format(inv.amount_paid or 0) }}',
+        '₹{{ "{:,.2f}".format((inv.grand_total or 0) - (inv.amount_paid or 0)) }}',
+        '{{ inv.payment_status|title }}'
+    ]);
+    {% endfor %}
+
+    // Totals row
+    summaryData.push([
+        'TOTALS', '', '',
+        '₹{{ "{:,.2f}".format(total_invoice_amount) }}',
+        '₹{{ "{:,.2f}".format(total_amount_collected) }}',
+        '₹{{ "{:,.2f}".format(total_pending_amount) }}',
+        ''
+    ]);
+
+    const ws = XLSX.utils.aoa_to_sheet(summaryData);
+    XLSX.utils.book_append_sheet(wb, ws, 'Owner Billing Audit');
+
+    const fileName = `Owner_Billing_Audit_{{ audit_date.strftime("%Y%m%d") }}.xlsx`;
+    XLSX.writeFile(wb, fileName);
 }
 </script>
 

@@ -41,6 +41,9 @@
                             <a href="{{ url_for('billing_reports') }}" class="btn btn-outline-secondary">
                                 <i class="fas fa-arrow-left me-1"></i>Back to Reports
                             </a>
+                            <button type="button" class="btn btn-info" onclick="exportToExcel()">
+                                <i class="fas fa-file-excel me-1"></i>Export to Excel
+                            </button>
                         </div>
                     </form>
                 </div>
@@ -155,7 +158,57 @@
 {% endblock %}
 
 {% block extra_scripts %}
+<script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+function exportToExcel() {
+    const wb = XLSX.utils.book_new();
+
+    // Product Revenue Summary
+    const summaryData = [
+        ['Product Revenue Report'],
+        ['Date Range', '{{ start_date.strftime("%d/%m/%Y") }} - {{ end_date.strftime("%d/%m/%Y") }}'],
+        [''],
+        ['Summary'],
+        ['Total Product Revenue', '₹{{ "{:,.2f}".format(total_product_revenue) }}'],
+        ['Total Product Sales', '{{ total_product_sales }}'],
+        ['Total Quantity Sold', '{{ total_quantity_sold }}'],
+        [''],
+        ['Product Performance Summary'],
+        ['Product Name', 'Quantity Sold', 'Total Sales', 'Total Revenue', 'Avg Price']
+    ];
+    {% for product in product_revenue_summary %}
+    summaryData.push([
+        '{{ product.item_name }}',
+        '{{ product.total_quantity }}',
+        '{{ product.total_sales }}',
+        '₹{{ "{:,.2f}".format(product.total_revenue or 0) }}',
+        '₹{{ "{:,.2f}".format((product.total_revenue or 0) / product.total_quantity if product.total_quantity > 0 else 0) }}'
+    ]);
+    {% endfor %}
+
+    // Daily Revenue
+    const dailyData = [
+        [''],
+        ['Daily Product Revenue'],
+        ['Date', 'Revenue', 'Quantity Sold']
+    ];
+    {% for item in product_revenue_by_date %}
+    dailyData.push([
+        '{{ item.date.strftime("%d/%m/%Y") }}',
+        '₹{{ "{:,.2f}".format(item.revenue or 0) }}',
+        '{{ item.quantity_sold }}'
+    ]);
+    {% endfor %}
+
+    const allData = [...summaryData, ...dailyData];
+    const ws = XLSX.utils.aoa_to_sheet(allData);
+    XLSX.utils.book_append_sheet(wb, ws, 'Product Revenue');
+
+    const fileName = `Product_Revenue_Report_{{ start_date.strftime("%Y%m%d") }}_{{ end_date.strftime("%Y%m%d") }}.xlsx`;
+    XLSX.writeFile(wb, fileName);
+}
+</script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const ctx = document.getElementById('productRevenueChart').getContext('2d');
