@@ -4,8 +4,9 @@ Customer Packages Routes - Blueprint for package assignment, usage tracking, and
 from flask import Blueprint, render_template, request, jsonify, flash, redirect, url_for
 from flask_login import login_required, current_user
 from app import db
-from models import Service, Customer, User, Appointment
+from models import Service, Customer, User, Appointment, StudentOffer
 from models import PackageTemplate, PackageTemplateItem, CustomerPackage, CustomerPackageItem, PackageUsage, ServicePackageAssignment
+from sqlalchemy.orm import joinedload
 from datetime import datetime, timedelta
 from sqlalchemy import and_, or_, desc
 from sqlalchemy.exc import IntegrityError
@@ -50,7 +51,19 @@ def edit_student_offer(offer_id):
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
 
-    return render_template("packages/edit_student_offer.html", offer_id=offer_id)
+    # Fetch the student offer with eager-loaded services
+    offer = StudentOffer.query.options(
+        joinedload(StudentOffer.student_offer_services)
+    ).get(offer_id)
+    
+    if not offer:
+        flash('Student offer not found', 'danger')
+        return redirect(url_for('packages'))
+    
+    # Fetch all active services for the checkbox list
+    services = Service.query.filter_by(is_active=True).order_by(Service.name).all()
+
+    return render_template("packages/edit_student_offer.html", offer=offer, services=services)
 
 
 # ========================================
