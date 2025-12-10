@@ -126,7 +126,7 @@
                 </div>
                 <div class="card-body">
                     <div class="table-responsive">
-                        <table class="table table-hover">
+                        <table class="table table-hover" id="serviceRevenueSummaryTable">
                             <thead>
                                 <tr>
                                     <th>Service Name</th>
@@ -163,21 +163,19 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    const ctx = document.getElementById('serviceRevenueChart').getContext('2d');
+    var ctx = document.getElementById('serviceRevenueChart').getContext('2d');
     
-    const serviceRevenueByDateJson = {{ service_revenue_by_date | tojson | safe }};
+    var labels = [
+        {% for item in service_revenue_by_date %}
+        '{{ item.date.strftime("%m/%d") }}'{% if not loop.last %},{% endif %}
+        {% endfor %}
+    ];
     
-    const labels = serviceRevenueByDateJson.map(function(item) {
-        if (item.date) {
-            var d = new Date(item.date);
-            return (d.getMonth() + 1) + '/' + d.getDate();
-        }
-        return 'N/A';
-    });
-    
-    const data = serviceRevenueByDateJson.map(function(item) {
-        return item.revenue || 0;
-    });
+    var data = [
+        {% for item in service_revenue_by_date %}
+        {{ item.revenue or 0 }}{% if not loop.last %},{% endif %}
+        {% endfor %}
+    ];
 
     new Chart(ctx, {
         type: 'line',
@@ -214,52 +212,32 @@ function exportToExcel() {
     }
 
     try {
-        const wb = XLSX.utils.book_new();
+        var wb = XLSX.utils.book_new();
 
-        const summaryData = [
+        var summaryData = [
             ['Service Revenue Report'],
             ['Date Range', '{{ start_date.strftime("%d/%m/%Y") }} - {{ end_date.strftime("%d/%m/%Y") }}'],
             [''],
             ['Summary'],
             ['Total Service Revenue', {{ total_service_revenue or 0 }}],
-            ['Total Service Bookings', {{ total_service_bookings or 0 }}],
-            [''],
-            ['Service Performance Summary'],
-            ['Service Name', 'Price', 'Bookings', 'Quantity', 'Total Revenue', 'Avg Revenue']
+            ['Total Service Bookings', {{ total_service_bookings or 0 }}]
         ];
-        
-        const serviceRevenueSummaryJson = {{ service_revenue_summary | tojson | safe }};
-        serviceRevenueSummaryJson.forEach(function(service) {
-            summaryData.push([
-                service.name || 'N/A',
-                service.price || 0,
-                service.total_bookings || 0,
-                service.total_quantity || 0,
-                service.total_revenue || 0,
-                service.avg_revenue || 0
-            ]);
-        });
 
-        const dailyData = [
-            [''],
-            ['Daily Service Revenue'],
-            ['Date', 'Revenue', 'Bookings']
-        ];
-        
-        const serviceRevenueByDateJson = {{ service_revenue_by_date | tojson | safe }};
-        serviceRevenueByDateJson.forEach(function(item) {
-            dailyData.push([
-                item.date ? new Date(item.date).toLocaleDateString('en-GB') : 'N/A',
-                item.revenue || 0,
-                item.bookings || 0
-            ]);
-        });
+        var serviceTable = document.getElementById('serviceRevenueSummaryTable');
+        if (serviceTable) {
+            summaryData.push(['']);
+            summaryData.push(['Service Revenue Summary']);
+            var serviceSheet = XLSX.utils.table_to_sheet(serviceTable);
+            var serviceArray = XLSX.utils.sheet_to_json(serviceSheet, {header: 1});
+            serviceArray.forEach(function(row) {
+                summaryData.push(row);
+            });
+        }
 
-        const allData = [...summaryData, ...dailyData];
-        const ws = XLSX.utils.aoa_to_sheet(allData);
+        var ws = XLSX.utils.aoa_to_sheet(summaryData);
         XLSX.utils.book_append_sheet(wb, ws, 'Service Revenue');
 
-        const fileName = 'Service_Revenue_Only_{{ start_date.strftime("%Y%m%d") }}_{{ end_date.strftime("%Y%m%d") }}.xlsx';
+        var fileName = 'Service_Revenue_Only_{{ start_date.strftime("%Y%m%d") }}_{{ end_date.strftime("%Y%m%d") }}.xlsx';
         XLSX.writeFile(wb, fileName);
 
         alert('Report exported successfully!');

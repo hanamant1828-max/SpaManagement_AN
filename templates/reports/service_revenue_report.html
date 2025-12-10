@@ -59,7 +59,7 @@
                 </div>
                 <div class="card-body">
                     <div class="table-responsive">
-                        <table class="table table-hover">
+                        <table class="table table-hover" id="categorySummaryTable">
                             <thead>
                                 <tr>
                                     <th>Category</th>
@@ -96,7 +96,7 @@
                 </div>
                 <div class="card-body">
                     <div class="table-responsive">
-                        <table class="table table-hover">
+                        <table class="table table-hover" id="serviceSummaryTable">
                             <thead>
                                 <tr>
                                     <th>Service Name</th>
@@ -139,7 +139,7 @@
                 </div>
                 <div class="card-body">
                     <div class="table-responsive">
-                        <table class="table table-sm table-striped">
+                        <table class="table table-sm table-striped" id="serviceDetailsTable">
                             <thead>
                                 <tr>
                                     <th>Date</th>
@@ -187,79 +187,50 @@ function exportToExcel() {
     }
 
     try {
-        const wb = XLSX.utils.book_new();
+        var wb = XLSX.utils.book_new();
 
-        const categoryData = [
+        var summaryData = [
             ['Service Revenue Report'],
-            ['Date Range', '{{ start_date.strftime("%d/%m/%Y") }} - {{ end_date.strftime("%d/%m/%Y") }}'],
-            [''],
-            ['Category Performance Summary'],
-            ['Category', 'Service Count', 'Total Bookings', 'Total Revenue', 'Avg per Booking']
+            ['Date Range', '{{ start_date.strftime("%d/%m/%Y") }} - {{ end_date.strftime("%d/%m/%Y") }}']
         ];
-        
-        const categorySummaryJson = {{ category_summary | tojson | safe }};
-        categorySummaryJson.forEach(function(cat) {
-            var avgPerBooking = cat.total_bookings > 0 ? (cat.total_revenue || 0) / cat.total_bookings : 0;
-            categoryData.push([
-                cat.category || 'Uncategorized',
-                cat.service_count || 0,
-                cat.total_bookings || 0,
-                cat.total_revenue || 0,
-                avgPerBooking
-            ]);
-        });
 
-        const serviceData = [
-            [''],
-            ['Service Performance Summary'],
-            ['Service Name', 'Category', 'Price', 'Bookings', 'Quantity', 'Unique Clients', 'Total Revenue', 'Avg per Booking']
-        ];
-        
-        const serviceSummaryJson = {{ service_summary | tojson | safe }};
-        serviceSummaryJson.forEach(function(service) {
-            serviceData.push([
-                service.name || 'N/A',
-                service.category || 'N/A',
-                service.price || 0,
-                service.total_bookings || 0,
-                service.total_quantity || 0,
-                service.unique_clients || 0,
-                service.total_revenue || 0,
-                service.avg_revenue_per_booking || 0
-            ]);
-        });
+        var categoryTable = document.getElementById('categorySummaryTable');
+        if (categoryTable) {
+            summaryData.push(['']);
+            summaryData.push(['Category Performance Summary']);
+            var categorySheet = XLSX.utils.table_to_sheet(categoryTable);
+            var categoryArray = XLSX.utils.sheet_to_json(categorySheet, {header: 1});
+            categoryArray.forEach(function(row) {
+                summaryData.push(row);
+            });
+        }
 
-        const detailsData = [
-            [''],
-            ['Detailed Service Transactions'],
-            ['Date', 'Invoice #', 'Service', 'Category', 'Client', 'Staff', 'Qty', 'Unit Price', 'Total Amount']
-        ];
-        
-        const serviceTransactionDetailsJson = {{ service_transaction_details | tojson | safe }};
-        serviceTransactionDetailsJson.forEach(function(detail) {
-            var staffName = 'N/A';
-            if (detail.staff_first_name) {
-                staffName = detail.staff_first_name + ' ' + (detail.staff_last_name || '');
-            }
-            
-            detailsData.push([
-                detail.invoice_date ? new Date(detail.invoice_date).toLocaleDateString('en-GB') : 'N/A',
-                detail.invoice_number || 'N/A',
-                detail.name || 'N/A',
-                detail.category || 'N/A',
-                (detail.client_first_name || '') + ' ' + (detail.client_last_name || ''),
-                staffName,
-                detail.quantity || 0,
-                detail.unit_price || 0,
-                detail.final_amount || 0
-            ]);
-        });
+        var serviceTable = document.getElementById('serviceSummaryTable');
+        if (serviceTable) {
+            summaryData.push(['']);
+            summaryData.push(['Service Performance Summary']);
+            var serviceSheet = XLSX.utils.table_to_sheet(serviceTable);
+            var serviceArray = XLSX.utils.sheet_to_json(serviceSheet, {header: 1});
+            serviceArray.forEach(function(row) {
+                summaryData.push(row);
+            });
+        }
 
-        const allData = [...categoryData, ...serviceData, ...detailsData];
-        const ws = XLSX.utils.aoa_to_sheet(allData);
+        var detailsTable = document.getElementById('serviceDetailsTable');
+        if (detailsTable) {
+            summaryData.push(['']);
+            summaryData.push(['Detailed Service Transactions']);
+            var detailsSheet = XLSX.utils.table_to_sheet(detailsTable);
+            var detailsArray = XLSX.utils.sheet_to_json(detailsSheet, {header: 1});
+            detailsArray.forEach(function(row) {
+                summaryData.push(row);
+            });
+        }
+
+        var ws = XLSX.utils.aoa_to_sheet(summaryData);
         XLSX.utils.book_append_sheet(wb, ws, 'Service Revenue');
 
-        const fileName = 'Service_Revenue_Report_{{ start_date.strftime("%Y%m%d") }}_{{ end_date.strftime("%Y%m%d") }}.xlsx';
+        var fileName = 'Service_Revenue_Report_{{ start_date.strftime("%Y%m%d") }}_{{ end_date.strftime("%Y%m%d") }}.xlsx';
         XLSX.writeFile(wb, fileName);
         
         alert('Report exported successfully!');

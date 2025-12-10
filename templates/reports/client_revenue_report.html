@@ -59,7 +59,7 @@
                 </div>
                 <div class="card-body">
                     <div class="table-responsive">
-                        <table class="table table-hover">
+                        <table class="table table-hover" id="clientSummaryTable">
                             <thead>
                                 <tr>
                                     <th>Client Name</th>
@@ -98,7 +98,7 @@
                 </div>
                 <div class="card-body">
                     <div class="table-responsive">
-                        <table class="table table-hover">
+                        <table class="table table-hover" id="topServicesTable">
                             <thead>
                                 <tr>
                                     <th>Client Name</th>
@@ -133,7 +133,7 @@
                 </div>
                 <div class="card-body">
                     <div class="table-responsive">
-                        <table class="table table-sm table-striped">
+                        <table class="table table-sm table-striped" id="clientDetailsTable">
                             <thead>
                                 <tr>
                                     <th>Date</th>
@@ -185,75 +185,50 @@ function exportToExcel() {
     }
 
     try {
-        const wb = XLSX.utils.book_new();
+        var wb = XLSX.utils.book_new();
 
-        const summaryData = [
+        var summaryData = [
             ['Client Revenue Report'],
-            ['Date Range', '{{ start_date.strftime("%d/%m/%Y") }} - {{ end_date.strftime("%d/%m/%Y") }}'],
-            [''],
-            ['Client Performance Summary'],
-            ['Client Name', 'Phone', 'Total Invoices', 'Total Spent', 'Avg Invoice Value', 'Last Visit']
+            ['Date Range', '{{ start_date.strftime("%d/%m/%Y") }} - {{ end_date.strftime("%d/%m/%Y") }}']
         ];
-        
-        const clientSummaryJson = {{ client_summary | tojson | safe }};
-        clientSummaryJson.forEach(function(client) {
-            summaryData.push([
-                (client.first_name || '') + ' ' + (client.last_name || ''),
-                client.phone || 'N/A',
-                client.total_invoices || 0,
-                client.total_spent || 0,
-                client.avg_invoice_value || 0,
-                client.last_visit ? new Date(client.last_visit).toLocaleDateString('en-GB') : 'N/A'
-            ]);
-        });
 
-        const servicesData = [
-            [''],
-            ['Top Services by Client'],
-            ['Client Name', 'Service', 'Service Count', 'Service Revenue']
-        ];
-        
-        const topServicesJson = {{ top_services_by_client | tojson | safe }};
-        topServicesJson.forEach(function(service) {
-            servicesData.push([
-                (service.first_name || '') + ' ' + (service.last_name || ''),
-                service.service_name || 'N/A',
-                service.service_count || 0,
-                service.service_revenue || 0
-            ]);
-        });
+        var clientTable = document.getElementById('clientSummaryTable');
+        if (clientTable) {
+            summaryData.push(['']);
+            summaryData.push(['Client Performance Summary']);
+            var clientSheet = XLSX.utils.table_to_sheet(clientTable);
+            var clientArray = XLSX.utils.sheet_to_json(clientSheet, {header: 1});
+            clientArray.forEach(function(row) {
+                summaryData.push(row);
+            });
+        }
 
-        const detailsData = [
-            [''],
-            ['Detailed Client Transactions'],
-            ['Date', 'Invoice #', 'Client', 'Phone', 'Staff', 'Service', 'Qty', 'Amount', 'Status']
-        ];
-        
-        const clientTransactionDetailsJson = {{ client_transaction_details | tojson | safe }};
-        clientTransactionDetailsJson.forEach(function(detail) {
-            var staffName = 'N/A';
-            if (detail.staff_first_name) {
-                staffName = detail.staff_first_name + ' ' + (detail.staff_last_name || '');
-            }
-            
-            detailsData.push([
-                detail.invoice_date ? new Date(detail.invoice_date).toLocaleDateString('en-GB') : 'N/A',
-                detail.invoice_number || 'N/A',
-                (detail.first_name || '') + ' ' + (detail.last_name || ''),
-                detail.phone || 'N/A',
-                staffName,
-                detail.service_name || 'N/A',
-                detail.quantity || 0,
-                detail.final_amount || 0,
-                detail.payment_status || 'N/A'
-            ]);
-        });
+        var servicesTable = document.getElementById('topServicesTable');
+        if (servicesTable) {
+            summaryData.push(['']);
+            summaryData.push(['Top Services by Client']);
+            var servicesSheet = XLSX.utils.table_to_sheet(servicesTable);
+            var servicesArray = XLSX.utils.sheet_to_json(servicesSheet, {header: 1});
+            servicesArray.forEach(function(row) {
+                summaryData.push(row);
+            });
+        }
 
-        const allData = [...summaryData, ...servicesData, ...detailsData];
-        const ws = XLSX.utils.aoa_to_sheet(allData);
+        var detailsTable = document.getElementById('clientDetailsTable');
+        if (detailsTable) {
+            summaryData.push(['']);
+            summaryData.push(['Detailed Client Transactions']);
+            var detailsSheet = XLSX.utils.table_to_sheet(detailsTable);
+            var detailsArray = XLSX.utils.sheet_to_json(detailsSheet, {header: 1});
+            detailsArray.forEach(function(row) {
+                summaryData.push(row);
+            });
+        }
+
+        var ws = XLSX.utils.aoa_to_sheet(summaryData);
         XLSX.utils.book_append_sheet(wb, ws, 'Client Revenue');
 
-        const fileName = 'Client_Revenue_Report_{{ start_date.strftime("%Y%m%d") }}_{{ end_date.strftime("%Y%m%d") }}.xlsx';
+        var fileName = 'Client_Revenue_Report_{{ start_date.strftime("%Y%m%d") }}_{{ end_date.strftime("%Y%m%d") }}.xlsx';
         XLSX.writeFile(wb, fileName);
         
         alert('Report exported successfully!');

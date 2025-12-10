@@ -197,7 +197,7 @@
                 </div>
                 <div class="card-body">
                     <div class="table-responsive">
-                        <table class="table table-hover table-sm">
+                        <table class="table table-hover table-sm" id="packageSalesTable">
                             <thead>
                                 <tr>
                                     <th>Date</th>
@@ -258,7 +258,7 @@
                 </div>
                 <div class="card-body">
                     <div class="table-responsive">
-                        <table class="table table-hover table-sm">
+                        <table class="table table-hover table-sm" id="packageUsageTable">
                             <thead>
                                 <tr>
                                     <th>Date</th>
@@ -336,9 +336,9 @@ function exportToExcel() {
     }
 
     try {
-        const wb = XLSX.utils.book_new();
+        var wb = XLSX.utils.book_new();
 
-        const summaryData = [
+        var summaryData = [
             ['Package Billing Report'],
             ['Date Range', '{{ start_date.strftime("%d/%m/%Y") }} - {{ end_date.strftime("%d/%m/%Y") }}'],
             [''],
@@ -348,68 +348,35 @@ function exportToExcel() {
             ['Total Redemptions', {{ total_usage_count or 0 }}],
             ['Total Value Redeemed', {{ total_value_redeemed or 0 }}],
             ['Active Packages', {{ active_packages or 0 }}],
-            ['Expired Packages', {{ expired_packages or 0 }}],
-            [''],
-            ['Package Sales by Type'],
-            ['Package Type', 'Packages Sold', 'Revenue']
+            ['Expired Packages', {{ expired_packages or 0 }}]
         ];
-        
-        const topPackagesData = {{ top_packages | tojson | safe }};
-        topPackagesData.forEach(function(pkg) {
-            summaryData.push([pkg.type || 'N/A', pkg.count || 0, pkg.revenue || 0]);
-        });
 
-        const salesData = [
-            [''],
-            ['Package Sales Details'],
-            ['Date', 'Customer', 'Package Type', 'Price Paid', 'Status']
-        ];
-        
-        const packageSalesData = {{ package_sales | tojson | safe }};
-        packageSalesData.forEach(function(sale) {
-            var customerName = 'N/A';
-            if (sale.customer) {
-                customerName = (sale.customer.first_name || '') + ' ' + (sale.customer.last_name || '');
-            }
-            salesData.push([
-                sale.assigned_on ? new Date(sale.assigned_on).toLocaleDateString('en-GB') : 'N/A',
-                customerName.trim() || 'N/A',
-                (sale.package_type || 'N/A').replace(/_/g, ' '),
-                sale.price_paid || 0,
-                sale.status || 'N/A'
-            ]);
-        });
+        var salesTable = document.getElementById('packageSalesTable');
+        if (salesTable) {
+            summaryData.push(['']);
+            summaryData.push(['Package Sales Details']);
+            var salesSheet = XLSX.utils.table_to_sheet(salesTable);
+            var salesArray = XLSX.utils.sheet_to_json(salesSheet, {header: 1});
+            salesArray.forEach(function(row) {
+                summaryData.push(row);
+            });
+        }
 
-        const usageData = [
-            [''],
-            ['Package Usage/Redemptions'],
-            ['Date', 'Customer', 'Service Used', 'Benefit Type', 'Value Applied']
-        ];
-        
-        const packageUsageData = {{ package_usage | tojson | safe }};
-        packageUsageData.forEach(function(usage) {
-            var customerName = 'N/A';
-            if (usage.customer) {
-                customerName = (usage.customer.first_name || '') + ' ' + (usage.customer.last_name || '');
-            }
-            var serviceName = 'N/A';
-            if (usage.service) {
-                serviceName = usage.service.name || 'N/A';
-            }
-            usageData.push([
-                usage.charge_date ? new Date(usage.charge_date).toLocaleDateString('en-GB') : 'N/A',
-                customerName.trim() || 'N/A',
-                serviceName,
-                usage.benefit_type || 'N/A',
-                usage.discount_applied || 0
-            ]);
-        });
+        var usageTable = document.getElementById('packageUsageTable');
+        if (usageTable) {
+            summaryData.push(['']);
+            summaryData.push(['Package Usage/Redemptions']);
+            var usageSheet = XLSX.utils.table_to_sheet(usageTable);
+            var usageArray = XLSX.utils.sheet_to_json(usageSheet, {header: 1});
+            usageArray.forEach(function(row) {
+                summaryData.push(row);
+            });
+        }
 
-        const allData = [...summaryData, ...salesData, ...usageData];
-        const ws = XLSX.utils.aoa_to_sheet(allData);
+        var ws = XLSX.utils.aoa_to_sheet(summaryData);
         XLSX.utils.book_append_sheet(wb, ws, 'Package Billing');
 
-        const fileName = 'Package_Billing_Report_{{ start_date.strftime("%Y%m%d") }}_{{ end_date.strftime("%Y%m%d") }}.xlsx';
+        var fileName = 'Package_Billing_Report_{{ start_date.strftime("%Y%m%d") }}_{{ end_date.strftime("%Y%m%d") }}.xlsx';
         XLSX.writeFile(wb, fileName);
         
         alert('Report exported successfully!');

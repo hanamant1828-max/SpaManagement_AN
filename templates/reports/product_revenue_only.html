@@ -124,7 +124,7 @@
                 </div>
                 <div class="card-body">
                     <div class="table-responsive">
-                        <table class="table table-hover">
+                        <table class="table table-hover" id="productRevenueSummaryTable">
                             <thead>
                                 <tr>
                                     <th>Product Name</th>
@@ -167,53 +167,33 @@ function exportToExcel() {
     }
 
     try {
-        const wb = XLSX.utils.book_new();
+        var wb = XLSX.utils.book_new();
 
-        const summaryData = [
+        var summaryData = [
             ['Product Revenue Report'],
             ['Date Range', '{{ start_date.strftime("%d/%m/%Y") }} - {{ end_date.strftime("%d/%m/%Y") }}'],
             [''],
             ['Summary'],
             ['Total Product Revenue', {{ total_product_revenue or 0 }}],
             ['Total Product Sales', {{ total_product_sales or 0 }}],
-            ['Total Quantity Sold', {{ total_quantity_sold or 0 }}],
-            [''],
-            ['Product Performance Summary'],
-            ['Product Name', 'Batch', 'Quantity Sold', 'Total Sales', 'Total Revenue', 'Avg Price']
+            ['Total Quantity Sold', {{ total_quantity_sold or 0 }}]
         ];
-        
-        const productRevenueSummaryJson = {{ product_revenue_summary | tojson | safe }};
-        productRevenueSummaryJson.forEach(function(product) {
-            summaryData.push([
-                product.name || 'N/A',
-                product.batch_name || 'N/A',
-                product.total_quantity || 0,
-                product.total_sales || 0,
-                product.total_revenue || 0,
-                product.avg_price || 0
-            ]);
-        });
 
-        const dailyData = [
-            [''],
-            ['Daily Product Revenue'],
-            ['Date', 'Revenue', 'Quantity Sold']
-        ];
-        
-        const productRevenueByDateJson = {{ product_revenue_by_date | tojson | safe }};
-        productRevenueByDateJson.forEach(function(item) {
-            dailyData.push([
-                item.date ? new Date(item.date).toLocaleDateString('en-GB') : 'N/A',
-                item.revenue || 0,
-                item.quantity_sold || 0
-            ]);
-        });
+        var productTable = document.getElementById('productRevenueSummaryTable');
+        if (productTable) {
+            summaryData.push(['']);
+            summaryData.push(['Product Revenue Summary']);
+            var productSheet = XLSX.utils.table_to_sheet(productTable);
+            var productArray = XLSX.utils.sheet_to_json(productSheet, {header: 1});
+            productArray.forEach(function(row) {
+                summaryData.push(row);
+            });
+        }
 
-        const allData = [...summaryData, ...dailyData];
-        const ws = XLSX.utils.aoa_to_sheet(allData);
+        var ws = XLSX.utils.aoa_to_sheet(summaryData);
         XLSX.utils.book_append_sheet(wb, ws, 'Product Revenue');
 
-        const fileName = 'Product_Revenue_Report_{{ start_date.strftime("%Y%m%d") }}_{{ end_date.strftime("%Y%m%d") }}.xlsx';
+        var fileName = 'Product_Revenue_Report_{{ start_date.strftime("%Y%m%d") }}_{{ end_date.strftime("%Y%m%d") }}.xlsx';
         XLSX.writeFile(wb, fileName);
         
         alert('Report exported successfully!');
@@ -224,21 +204,19 @@ function exportToExcel() {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
-    const ctx = document.getElementById('productRevenueChart').getContext('2d');
+    var ctx = document.getElementById('productRevenueChart').getContext('2d');
     
-    const productRevenueByDateJson = {{ product_revenue_by_date | tojson | safe }};
+    var labels = [
+        {% for item in product_revenue_by_date %}
+        '{{ item.date.strftime("%m/%d") }}'{% if not loop.last %},{% endif %}
+        {% endfor %}
+    ];
     
-    const labels = productRevenueByDateJson.map(function(item) {
-        if (item.date) {
-            var d = new Date(item.date);
-            return (d.getMonth() + 1) + '/' + d.getDate();
-        }
-        return 'N/A';
-    });
-    
-    const data = productRevenueByDateJson.map(function(item) {
-        return item.revenue || 0;
-    });
+    var data = [
+        {% for item in product_revenue_by_date %}
+        {{ item.revenue or 0 }}{% if not loop.last %},{% endif %}
+        {% endfor %}
+    ];
     
     new Chart(ctx, {
         type: 'bar',

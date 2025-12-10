@@ -59,7 +59,7 @@
                 </div>
                 <div class="card-body">
                     <div class="table-responsive">
-                        <table class="table table-hover">
+                        <table class="table table-hover" id="departmentTable">
                             <thead>
                                 <tr>
                                     <th>Department</th>
@@ -96,7 +96,7 @@
                 </div>
                 <div class="card-body">
                     <div class="table-responsive">
-                        <table class="table table-hover table-sm">
+                        <table class="table table-hover table-sm" id="staffSummaryTable">
                             <thead>
                                 <tr>
                                     <th>Staff Code</th>
@@ -141,7 +141,7 @@
                 </div>
                 <div class="card-body">
                     <div class="table-responsive">
-                        <table class="table table-sm table-striped">
+                        <table class="table table-sm table-striped" id="staffDetailsTable">
                             <thead>
                                 <tr>
                                     <th>Date</th>
@@ -199,79 +199,50 @@ function exportToExcel() {
     }
 
     try {
-        const wb = XLSX.utils.book_new();
+        var wb = XLSX.utils.book_new();
 
-        const deptData = [
+        var summaryData = [
             ['Staff Revenue Report'],
-            ['Date Range', '{{ start_date.strftime("%d/%m/%Y") }} - {{ end_date.strftime("%d/%m/%Y") }}'],
-            [''],
-            ['Department Performance Summary'],
-            ['Department', 'Staff Count', 'Total Services', 'Total Revenue', 'Avg per Staff']
+            ['Date Range', '{{ start_date.strftime("%d/%m/%Y") }} - {{ end_date.strftime("%d/%m/%Y") }}']
         ];
-        
-        const departmentSummaryData = {{ department_summary | tojson | safe }};
-        departmentSummaryData.forEach(function(dept) {
-            var avgPerStaff = dept.staff_count > 0 ? (dept.total_revenue || 0) / dept.staff_count : 0;
-            deptData.push([
-                dept.department || 'Unassigned',
-                dept.staff_count || 0,
-                dept.total_services || 0,
-                dept.total_revenue || 0,
-                avgPerStaff
-            ]);
-        });
 
-        const staffSummaryData = [
-            [''],
-            ['Staff Performance Summary'],
-            ['Staff Code', 'Staff Name', 'Department', 'Unique Clients', 'Service Revenue', 'Product Revenue', 'Total Revenue', 'Services', 'Products']
-        ];
-        
-        const staffSummaryJson = {{ staff_summary | tojson | safe }};
-        staffSummaryJson.forEach(function(staff) {
-            staffSummaryData.push([
-                staff.staff_code || 'N/A',
-                (staff.first_name || '') + ' ' + (staff.last_name || ''),
-                staff.department || 'Unassigned',
-                staff.unique_clients || 0,
-                staff.service_revenue || 0,
-                staff.product_revenue || 0,
-                staff.total_revenue || 0,
-                staff.service_count || 0,
-                staff.product_count || 0
-            ]);
-        });
+        var deptTable = document.getElementById('departmentTable');
+        if (deptTable) {
+            summaryData.push(['']);
+            summaryData.push(['Department Performance Summary']);
+            var deptSheet = XLSX.utils.table_to_sheet(deptTable);
+            var deptArray = XLSX.utils.sheet_to_json(deptSheet, {header: 1});
+            deptArray.forEach(function(row) {
+                summaryData.push(row);
+            });
+        }
 
-        const detailsData = [
-            [''],
-            ['Detailed Staff Transactions'],
-            ['Date', 'Invoice #', 'Staff Member', 'Department', 'Client Name', 'Type', 'Item Name', 'Qty', 'Staff Revenue']
-        ];
-        
-        const staffRevenueDetailsJson = {{ staff_revenue_details | tojson | safe }};
-        staffRevenueDetailsJson.forEach(function(detail) {
-            var itemType = 'N/A';
-            if (detail.item_type === 'service') itemType = 'Service';
-            else if (detail.item_type === 'inventory') itemType = 'Product';
-            
-            detailsData.push([
-                detail.invoice_date ? new Date(detail.invoice_date).toLocaleDateString('en-GB') : 'N/A',
-                detail.invoice_number || 'N/A',
-                (detail.first_name || '') + ' ' + (detail.last_name || ''),
-                detail.department || 'Unassigned',
-                (detail.customer_first_name || '') + ' ' + (detail.customer_last_name || ''),
-                itemType,
-                detail.item_name || detail.service_name || 'N/A',
-                detail.quantity || 0,
-                detail.staff_revenue_price || 0
-            ]);
-        });
+        var staffTable = document.getElementById('staffSummaryTable');
+        if (staffTable) {
+            summaryData.push(['']);
+            summaryData.push(['Staff Performance Summary']);
+            var staffSheet = XLSX.utils.table_to_sheet(staffTable);
+            var staffArray = XLSX.utils.sheet_to_json(staffSheet, {header: 1});
+            staffArray.forEach(function(row) {
+                summaryData.push(row);
+            });
+        }
 
-        const allData = [...deptData, ...staffSummaryData, ...detailsData];
-        const ws = XLSX.utils.aoa_to_sheet(allData);
+        var detailsTable = document.getElementById('staffDetailsTable');
+        if (detailsTable) {
+            summaryData.push(['']);
+            summaryData.push(['Detailed Staff Transactions']);
+            var detailsSheet = XLSX.utils.table_to_sheet(detailsTable);
+            var detailsArray = XLSX.utils.sheet_to_json(detailsSheet, {header: 1});
+            detailsArray.forEach(function(row) {
+                summaryData.push(row);
+            });
+        }
+
+        var ws = XLSX.utils.aoa_to_sheet(summaryData);
         XLSX.utils.book_append_sheet(wb, ws, 'Staff Revenue');
 
-        const fileName = 'Staff_Revenue_Report_{{ start_date.strftime("%Y%m%d") }}_{{ end_date.strftime("%Y%m%d") }}.xlsx';
+        var fileName = 'Staff_Revenue_Report_{{ start_date.strftime("%Y%m%d") }}_{{ end_date.strftime("%Y%m%d") }}.xlsx';
         XLSX.writeFile(wb, fileName);
         
         alert('Report exported successfully!');
