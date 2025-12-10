@@ -552,20 +552,20 @@ def integrated_billing(customer_id=None):
                 for item in invoice_items:
                     if item.item_type == 'service':
                         service_items.append({
-                            'service_id': item.service_id,
+                            'service_id': item.item_id if hasattr(item, 'item_id') else item.service_id,
                             'quantity': item.quantity,
-                            'appointment_id': item.appointment_id,
-                            'staff_id': item.staff_id,
+                            'appointment_id': item.appointment_id if hasattr(item, 'appointment_id') else None,
+                            'staff_id': item.staff_id if hasattr(item, 'staff_id') else None,
                             'unit_price': item.unit_price,
-                            'deduction_amount': item.deduction_amount or 0
+                            'deduction_amount': item.deduction_amount if hasattr(item, 'deduction_amount') else 0
                         })
                     elif item.item_type == 'inventory':
                         product_items.append({
-                            'product_id': item.product_id,
-                            'batch_id': item.batch_id,
+                            'product_id': item.product_id if hasattr(item, 'product_id') else item.item_id,
+                            'batch_id': item.batch_id if hasattr(item, 'batch_id') else None,
                             'quantity': item.quantity,
                             'unit_price': item.unit_price,
-                            'staff_id': item.staff_id
+                            'staff_id': item.staff_id if hasattr(item, 'staff_id') else None
                         })
 
                 edit_invoice_data = {
@@ -574,26 +574,32 @@ def integrated_billing(customer_id=None):
                     'client_id': invoice.client_id,
                     'service_items': service_items,
                     'product_items': product_items,
-                    'discount_amount': invoice.discount_amount,
-                    'discount_type': invoice.discount_type,
-                    'additional_charges': invoice.additional_charges,
-                    'tips_amount': invoice.tips_amount,
-                    'cgst_rate': invoice.cgst_rate,
-                    'sgst_rate': invoice.sgst_rate,
-                    'igst_rate': invoice.igst_rate,
-                    'is_interstate': invoice.is_interstate,
-                    'payment_terms': invoice.payment_terms,
-                    'notes': invoice.notes
+                    'discount_amount': invoice.discount_amount if hasattr(invoice, 'discount_amount') else 0,
+                    'discount_type': invoice.discount_type if hasattr(invoice, 'discount_type') else 'amount',
+                    'additional_charges': invoice.additional_charges if hasattr(invoice, 'additional_charges') else 0,
+                    'tips_amount': invoice.tips_amount if hasattr(invoice, 'tips_amount') else 0,
+                    'cgst_rate': invoice.cgst_rate if hasattr(invoice, 'cgst_rate') else 9,
+                    'sgst_rate': invoice.sgst_rate if hasattr(invoice, 'sgst_rate') else 9,
+                    'igst_rate': invoice.igst_rate if hasattr(invoice, 'igst_rate') else 0,
+                    'is_interstate': invoice.is_interstate if hasattr(invoice, 'is_interstate') else False,
+                    'payment_terms': invoice.payment_terms if hasattr(invoice, 'payment_terms') else 'immediate',
+                    'notes': invoice.notes if hasattr(invoice, 'notes') else ''
                 }
 
                 # Override customer_id for edit mode
                 if not customer_id:
                     customer_id = invoice.client_id
                     selected_customer = Customer.query.get(customer_id)
+            else:
+                flash('Invoice not found', 'danger')
+                app.logger.error(f"Invoice {edit_invoice_id} not found")
 
         except Exception as e:
             app.logger.error(f"Error loading invoice for edit: {str(e)}")
+            import traceback
+            app.logger.error(traceback.format_exc())
             flash(f'Error loading invoice: {str(e)}', 'danger')
+            edit_invoice_data = None
 
     return render_template('integrated_billing.html',
                          customers=customers,
@@ -2145,6 +2151,12 @@ def edit_integrated_invoice(invoice_id):
     try:
         # Get the invoice to verify it exists
         invoice = EnhancedInvoice.query.get_or_404(invoice_id)
+        
+        # Verify customer exists
+        customer = Customer.query.get(invoice.client_id)
+        if not customer:
+            flash('Customer not found for this invoice', 'danger')
+            return redirect(url_for('list_integrated_invoices'))
 
         # Redirect to integrated billing with edit mode
         return redirect(url_for('integrated_billing',
@@ -2153,6 +2165,8 @@ def edit_integrated_invoice(invoice_id):
 
     except Exception as e:
         app.logger.error(f"Error loading invoice for edit: {str(e)}")
+        import traceback
+        app.logger.error(traceback.format_exc())
         flash(f'Error loading invoice: {str(e)}', 'danger')
         return redirect(url_for('list_integrated_invoices'))
 
