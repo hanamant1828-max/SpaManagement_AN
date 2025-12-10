@@ -167,13 +167,13 @@ document.addEventListener('DOMContentLoaded', function() {
     
     var labels = [
         {% for item in service_revenue_by_date %}
-        '{{ item.date.strftime("%m/%d") }}'{% if not loop.last %},{% endif %}
+        '{{ item["date"].strftime("%m/%d") }}'{% if not loop.last %},{% endif %}
         {% endfor %}
     ];
     
     var data = [
         {% for item in service_revenue_by_date %}
-        {{ item.revenue or 0 }}{% if not loop.last %},{% endif %}
+        {{ item["revenue"] or 0 }}{% if not loop.last %},{% endif %}
         {% endfor %}
     ];
 

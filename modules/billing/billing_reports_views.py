@@ -221,7 +221,7 @@ def service_revenue_only_report():
     ).group_by(Service.id).order_by(func.sum(InvoiceItem.final_amount).desc()).all()
 
     # Service revenue by date
-    service_revenue_by_date = db.session.query(
+    service_revenue_by_date_raw = db.session.query(
         func.date(EnhancedInvoice.invoice_date).label('date'),
         func.sum(InvoiceItem.final_amount).label('revenue'),
         func.count(InvoiceItem.id).label('bookings')
@@ -231,6 +231,18 @@ def service_revenue_only_report():
         EnhancedInvoice.payment_status == 'paid',
         InvoiceItem.item_type == 'service'
     ).group_by(func.date(EnhancedInvoice.invoice_date)).all()
+
+    # Convert string dates to date objects for template compatibility
+    service_revenue_by_date = []
+    for item in service_revenue_by_date_raw:
+        date_val = item.date
+        if isinstance(date_val, str):
+            date_val = datetime.strptime(date_val, '%Y-%m-%d').date()
+        service_revenue_by_date.append({
+            'date': date_val,
+            'revenue': item.revenue,
+            'bookings': item.bookings
+        })
 
     # Calculate totals
     total_service_revenue = sum([item.total_revenue or 0 for item in service_revenue_summary])
@@ -289,7 +301,7 @@ def product_revenue_only_report():
         .order_by(func.sum(InvoiceItem.final_amount).desc()).all()
 
         # Product revenue by date
-        product_revenue_by_date = db.session.query(
+        product_revenue_by_date_raw = db.session.query(
             func.date(EnhancedInvoice.invoice_date).label('date'),
             func.sum(InvoiceItem.final_amount).label('revenue'),
             func.sum(InvoiceItem.quantity).label('quantity_sold')
@@ -299,6 +311,18 @@ def product_revenue_only_report():
             EnhancedInvoice.payment_status == 'paid',
             InvoiceItem.item_type == 'inventory'
         ).group_by(func.date(EnhancedInvoice.invoice_date)).all()
+
+        # Convert string dates to date objects for template compatibility
+        product_revenue_by_date = []
+        for item in product_revenue_by_date_raw:
+            date_val = item.date
+            if isinstance(date_val, str):
+                date_val = datetime.strptime(date_val, '%Y-%m-%d').date()
+            product_revenue_by_date.append({
+                'date': date_val,
+                'revenue': item.revenue,
+                'quantity_sold': item.quantity_sold
+            })
 
     except ImportError:
         product_revenue_summary = []
