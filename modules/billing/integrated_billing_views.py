@@ -446,7 +446,7 @@ def integrated_billing(customer_id=None):
 
                 # Add type-specific fields matching template expectations
                 # Determine package status
-                is_expired = tracker.valid_to and tracker.valid_to < datetime.utcnow()
+                is_expired = tracker.valid_to and tracker.valid_to < datetime.now()
                 is_depleted = False
 
                 if tracker.benefit_type == 'free':
@@ -919,6 +919,7 @@ def check_package_benefits():
 
         from modules.packages.package_billing_service import PackageBillingService
         from models import Service, PackageBenefitTracker, ServicePackageAssignment
+        from datetime import datetime
 
         results = []
 
@@ -944,7 +945,8 @@ def check_package_benefits():
             yearly_membership_assignment = ServicePackageAssignment.query.filter(
                 ServicePackageAssignment.customer_id == int(customer_id),
                 ServicePackageAssignment.package_type == 'yearly_membership',
-                ServicePackageAssignment.status == 'active'
+                ServicePackageAssignment.status == 'active',
+                ServicePackageAssignment.expires_on >= datetime.now()
             ).first()
 
             if yearly_membership_assignment:
@@ -1134,6 +1136,7 @@ def create_professional_invoice():
         from modules.inventory.queries import create_consumption_record
         import datetime
         from app import IST # Import IST timezone from app
+        from datetime import datetime # Import datetime for current_date
 
         # Parse form data
         client_id = request.form.get('client_id')
@@ -1552,7 +1555,7 @@ def create_professional_invoice():
                         ServicePackageAssignment.customer_id == int(client_id),
                         ServicePackageAssignment.package_type == 'student_offer',
                         ServicePackageAssignment.status.in_(['active', 'pending']),
-                        ServicePackageAssignment.expires_on >= current_date
+                        ServicePackageAssignment.expires_on >= datetime.now() # Use datetime.now()
                     ).first()
 
                     if student_offer_assignment:
@@ -1596,7 +1599,7 @@ def create_professional_invoice():
                             ServicePackageAssignment.customer_id == int(client_id),
                             ServicePackageAssignment.package_type == 'yearly_membership',
                             ServicePackageAssignment.status == 'active',
-                            ServicePackageAssignment.expires_on >= current_date
+                            ServicePackageAssignment.expires_on >= datetime.now() # Use datetime.now()
                         ).first()
 
                         if yearly_membership_assignment:
@@ -1766,6 +1769,7 @@ def get_customer_packages(customer_id):
     """Get fresh customer package data (no cache) for UI refresh"""
     try:
         from models import ServicePackageAssignment, PackageBenefitTracker
+        from datetime import datetime
 
         # Get all active benefit trackers for this customer (what billing actually uses)
         benefit_trackers = PackageBenefitTracker.query.filter_by(
@@ -1784,7 +1788,7 @@ def get_customer_packages(customer_id):
                 continue
 
             # Determine package status
-            is_expired = tracker.valid_to and tracker.valid_to < dt.utcnow()
+            is_expired = tracker.valid_to and tracker.valid_to < datetime.now() # Use datetime.now()
             is_depleted = False
 
             if tracker.benefit_type == 'free':
@@ -2151,7 +2155,7 @@ def edit_integrated_invoice(invoice_id):
     try:
         # Get the invoice to verify it exists
         invoice = EnhancedInvoice.query.get_or_404(invoice_id)
-        
+
         # Verify customer exists
         customer = Customer.query.get(invoice.client_id)
         if not customer:
@@ -2448,6 +2452,7 @@ def generate_invoice_preview():
 
     try:
         from modules.settings.settings_queries import get_gst_settings
+        from datetime import datetime # Import datetime here for local use
 
         data = request.json or {}
         gst_config = get_gst_settings()
@@ -2545,7 +2550,7 @@ def generate_invoice_preview():
                     <div class="col-6 text-end">
                         <strong>Invoice Details:</strong><br>
                         Invoice No: PREVIEW<br>
-                        Date: {dt.now().strftime('%d-%m-%Y')}<br>
+                        Date: {datetime.now().strftime('%d-%m-%Y')}<br>
                         GST Treatment: {'Interstate (IGST)' if is_interstate else 'Intrastate (CGST+SGST)'}
                     </div>
                 </div>
