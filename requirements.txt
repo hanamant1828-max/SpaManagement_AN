@@ -321,3 +321,5 @@ pillow
 opencv-python-headless
 pillow
 pillow
+opencv-python-headless
+pillow
