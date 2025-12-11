@@ -291,12 +291,14 @@ def recognize_face():
         ).order_by(UnakiBooking.start_time).all()
         
         for booking in unaki_bookings:
+            start_time_str = str(booking.start_time) if booking.start_time else ''
+            end_time_str = str(booking.end_time) if booking.end_time else ''
             appointments_list.append({
                 'id': booking.id,
                 'service_name': booking.service_name or 'Service',
                 'staff_name': booking.staff_name or 'Unassigned',
-                'start_time': booking.start_time or '',
-                'end_time': booking.end_time or '',
+                'start_time': start_time_str,
+                'end_time': end_time_str,
                 'status': booking.status,
                 'payment_status': booking.payment_status
             })
