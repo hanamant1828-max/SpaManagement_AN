@@ -995,18 +995,20 @@ function editService(serviceId) {
     console.log('Editing service:', serviceId);
 
     if (!serviceId) {
-        alert('Invalid service ID');
+        showNotification('Invalid service ID', 'error');
         return;
     }
 
     fetch(`/api/services/${serviceId}`)
         .then(response => {
+            console.log('Response status:', response.status);
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
             return response.json();
         })
         .then(service => {
+            console.log('Service data received:', service);
             if (!service || service.error) {
                 throw new Error(service?.error || 'Service not found');
             }
@@ -1015,45 +1017,57 @@ function editService(serviceId) {
             if (!modalElement) {
                 throw new Error('Edit modal element not found');
             }
-            const modal = new bootstrap.Modal(modalElement);
-            modal.show();
-
-            // Use setTimeout to ensure modal is fully rendered before populating
-            setTimeout(() => {
-                const setFieldValue = (fieldId, value) => {
-                    const field = document.getElementById(fieldId);
-                    if (field) field.value = value ?? '';
-                    else console.warn(`Field ${fieldId} not found in edit modal.`);
-                };
-
-                const setCheckboxValue = (fieldId, checked) => {
-                    const field = document.getElementById(fieldId);
-                    if (field) field.checked = Boolean(checked);
-                    else console.warn(`Checkbox ${fieldId} not found in edit modal.`);
-                };
-
-                setFieldValue('editServiceId', service.id);
-                setFieldValue('editServiceName', service.name);
-                setFieldValue('editServiceDescription', service.description);
-                setFieldValue('editServiceDuration', service.duration ?? 60);
-                setFieldValue('editServicePrice', service.price ?? 0);
-                setFieldValue('editServiceCategory', service.category_id);
-                setCheckboxValue('editServiceActive', service.is_active);
-
-                // Update form action dynamically
+            
+            // Get or create modal instance
+            let modal = bootstrap.Modal.getInstance(modalElement);
+            if (!modal) {
+                modal = new bootstrap.Modal(modalElement);
+            }
+            
+            // Populate form fields BEFORE showing the modal to avoid timing issues
+            try {
+                const editServiceId = document.getElementById('editServiceId');
+                const editServiceName = document.getElementById('editServiceName');
+                const editServiceDescription = document.getElementById('editServiceDescription');
+                const editServiceDuration = document.getElementById('editServiceDuration');
+                const editServicePrice = document.getElementById('editServicePrice');
+                const editServiceCategory = document.getElementById('editServiceCategory');
+                const editServiceActive = document.getElementById('editServiceActive');
                 const editForm = document.getElementById('editServiceForm');
+                
+                if (editServiceId) editServiceId.value = service.id || '';
+                if (editServiceName) editServiceName.value = service.name || '';
+                if (editServiceDescription) editServiceDescription.value = service.description || '';
+                if (editServiceDuration) editServiceDuration.value = service.duration ?? 60;
+                if (editServicePrice) editServicePrice.value = service.price ?? 0;
+                
+                // Handle category select - check for Select2
+                if (editServiceCategory) {
+                    editServiceCategory.value = service.category_id || '';
+                    // If Select2 is initialized on this element, trigger change
+                    if (typeof $ !== 'undefined' && $(editServiceCategory).hasClass('select2-hidden-accessible')) {
+                        $(editServiceCategory).val(service.category_id || '').trigger('change');
+                    }
+                }
+                
+                if (editServiceActive) editServiceActive.checked = Boolean(service.is_active);
+                
+                // Update form action
                 if (editForm) {
                     editForm.action = `/services/${service.id}/edit`;
-                } else {
-                    console.error('Edit form element not found.');
                 }
-
+                
                 console.log('Edit form populated successfully');
-            }, 150); // A small delay to allow the modal to transition
+            } catch (populateError) {
+                console.error('Error populating form:', populateError);
+            }
+            
+            // Show the modal after populating
+            modal.show();
         })
         .catch(error => {
             console.error('Error in editService:', error);
-            alert('Error loading service data: ' + (error.message || 'Unknown error'));
+            showNotification('Error loading service data: ' + (error.message || 'Unknown error'), 'error');
         });
 }
 
