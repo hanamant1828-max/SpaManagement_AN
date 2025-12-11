@@ -1434,13 +1434,14 @@ async function checkInRecognizedCustomer() {
         const data = await response.json();
 
         if (data.success) {
-            updateStatus('success', 'Check-In Successful!', `${data.customer_name} checked in for ${data.checked_in_count} appointment(s).`);
+            const customerName = data.client_name || data.customer_name || 'Customer';
+            updateStatus('success', 'Check-In Successful!', `${customerName} checked in for ${data.checked_in_count} appointment(s).`);
             
             if (typeof Swal !== 'undefined') {
                 Swal.fire({
                     icon: 'success',
                     title: 'Check-In Successful!',
-                    html: `<strong>${data.customer_name}</strong> has been checked in for <strong>${data.checked_in_count}</strong> appointment(s).`,
+                    html: `<strong>${customerName}</strong> has been checked in for <strong>${data.checked_in_count}</strong> appointment(s).`,
                     timer: 2000,
                     confirmButtonColor: '#10b981',
                     showConfirmButton: false
@@ -1448,7 +1449,7 @@ async function checkInRecognizedCustomer() {
                     location.reload();
                 });
             } else {
-                alert(`Check-In Successful! ${data.customer_name} checked in for ${data.checked_in_count} appointment(s).`);
+                alert(`Check-In Successful! ${customerName} checked in for ${data.checked_in_count} appointment(s).`);
                 location.reload();
             }
         } else {

@@ -229,16 +229,28 @@ def recognize_face():
                 }), 500
 
 
-        # Get customer stats
+        # Get customer stats - check both Appointment and UnakiBooking tables
+        from models import UnakiBooking
+        from sqlalchemy import func, or_
+        
+        # Count completed appointments from both tables
         total_visits = Appointment.query.filter_by(
             client_id=customer.id,
             status='completed'
         ).count()
+        
+        # Also count from UnakiBooking
+        total_visits += UnakiBooking.query.filter_by(
+            client_id=customer.id,
+            status='completed'
+        ).count()
+        
         print(f"📈 Total visits for {customer.full_name}: {total_visits}")
 
-        # Get today's appointments for this customer
-        from sqlalchemy import func
+        # Get today's appointments for this customer from BOTH tables
         today = date.today()
+        
+        # Check traditional Appointment table
         todays_appointments = Appointment.query.filter(
             Appointment.client_id == customer.id,
             func.date(Appointment.appointment_date) == today,
@@ -247,7 +259,6 @@ def recognize_face():
         
         appointments_list = []
         for apt in todays_appointments:
-            # Format start time from appointment_date
             start_time_str = apt.appointment_date.strftime('%I:%M %p') if apt.appointment_date else ''
             end_time_str = apt.end_time.strftime('%I:%M %p') if apt.end_time else ''
             
@@ -259,6 +270,35 @@ def recognize_face():
                 'end_time': end_time_str,
                 'status': apt.status,
                 'payment_status': apt.payment_status
+            })
+        
+        # Also check UnakiBooking table with comprehensive search
+        customer_name = customer.full_name
+        customer_phone = customer.phone
+        
+        search_conditions = [UnakiBooking.client_id == customer.id]
+        if customer_name:
+            search_conditions.append(UnakiBooking.client_name.ilike(f"%{customer_name}%"))
+            if customer.first_name:
+                search_conditions.append(UnakiBooking.client_name.ilike(f"{customer.first_name}%"))
+        if customer_phone:
+            search_conditions.append(UnakiBooking.client_phone == customer_phone)
+        
+        unaki_bookings = UnakiBooking.query.filter(
+            or_(*search_conditions),
+            func.date(UnakiBooking.appointment_date) == today,
+            UnakiBooking.status.in_(['scheduled', 'confirmed'])
+        ).order_by(UnakiBooking.start_time).all()
+        
+        for booking in unaki_bookings:
+            appointments_list.append({
+                'id': booking.id,
+                'service_name': booking.service_name or 'Service',
+                'staff_name': booking.staff_name or 'Unassigned',
+                'start_time': booking.start_time or '',
+                'end_time': booking.end_time or '',
+                'status': booking.status,
+                'payment_status': booking.payment_status
             })
         
         print(f"📅 Today's appointments for {customer.full_name}: {len(appointments_list)}")
