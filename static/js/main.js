@@ -3099,15 +3099,26 @@ function editService(serviceId) {
         .then(service => {
             console.log('Service data received:', service);
             if (service && !service.error) {
-                // Populate edit modal
-                document.getElementById('editServiceId').value = serviceId;
-                document.getElementById('editServiceName').value = service.name || '';
-                document.getElementById('editServiceDescription').value = service.description || '';
-                document.getElementById('editServiceDuration').value = service.duration || 60;
-                document.getElementById('editServicePrice').value = service.price || 0;
-                document.getElementById('editServiceCategory').value = service.category_id || '';
-                document.getElementById('editServiceCommissionRate').value = service.commission_rate || 10;
-                document.getElementById('editServiceActive').checked = service.is_active;
+                // Populate edit modal with null checks
+                const editServiceId = document.getElementById('editServiceId');
+                const editServiceName = document.getElementById('editServiceName');
+                const editServiceDescription = document.getElementById('editServiceDescription');
+                const editServiceDuration = document.getElementById('editServiceDuration');
+                const editServicePrice = document.getElementById('editServicePrice');
+                const editServiceCategory = document.getElementById('editServiceCategory');
+                const editServiceCommissionRate = document.getElementById('editServiceCommissionRate');
+                const editServiceActive = document.getElementById('editServiceActive');
+                const editForm = document.getElementById('editServiceForm');
+                
+                if (editServiceId) editServiceId.value = serviceId;
+                if (editServiceName) editServiceName.value = service.name || '';
+                if (editServiceDescription) editServiceDescription.value = service.description || '';
+                if (editServiceDuration) editServiceDuration.value = service.duration || 60;
+                if (editServicePrice) editServicePrice.value = service.price || 0;
+                if (editServiceCategory) editServiceCategory.value = service.category_id || '';
+                if (editServiceCommissionRate) editServiceCommissionRate.value = service.commission_rate || 10;
+                if (editServiceActive) editServiceActive.checked = service.is_active;
+                if (editForm) editForm.action = `/services/${serviceId}/edit`;
 
                 // Show modal
                 const modal = new bootstrap.Modal(document.getElementById('editServiceModal'));
