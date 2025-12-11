@@ -316,3 +316,5 @@ wtforms
 pillow
 insightface
 onnxruntime
+opencv-python-headless
+pillow
