@@ -110,12 +110,16 @@ def api_create_product():
             is_retail_item=True     # Default to True for spa products
         )
 
+        db.session.add(product)
+        db.session.commit()
+
         return jsonify({
             'success': True,
             'message': 'Product created successfully',
             'product_id': product.id
         })
     except Exception as e:
+        db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/inventory/products/<int:product_id>', methods=['GET'])
