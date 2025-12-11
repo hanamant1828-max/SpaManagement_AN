@@ -237,21 +237,26 @@ def recognize_face():
         print(f"📈 Total visits for {customer.full_name}: {total_visits}")
 
         # Get today's appointments for this customer
+        from sqlalchemy import func
         today = date.today()
         todays_appointments = Appointment.query.filter(
             Appointment.client_id == customer.id,
-            Appointment.appointment_date == today,
+            func.date(Appointment.appointment_date) == today,
             Appointment.status.in_(['scheduled', 'confirmed', 'in_progress'])
-        ).order_by(Appointment.start_time).all()
+        ).order_by(Appointment.appointment_date).all()
         
         appointments_list = []
         for apt in todays_appointments:
+            # Format start time from appointment_date
+            start_time_str = apt.appointment_date.strftime('%I:%M %p') if apt.appointment_date else ''
+            end_time_str = apt.end_time.strftime('%I:%M %p') if apt.end_time else ''
+            
             appointments_list.append({
                 'id': apt.id,
-                'service_name': apt.service.name if apt.service else apt.service_name,
-                'staff_name': apt.assigned_staff.full_name if apt.assigned_staff else 'Unassigned',
-                'start_time': apt.start_time,
-                'end_time': apt.end_time,
+                'service_name': apt.service.name if apt.service else getattr(apt, 'service_name', 'Service'),
+                'staff_name': apt.staff.full_name if apt.staff else 'Unassigned',
+                'start_time': start_time_str,
+                'end_time': end_time_str,
                 'status': apt.status,
                 'payment_status': apt.payment_status
             })
