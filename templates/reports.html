@@ -493,8 +493,26 @@ function exportReport() {
 }
 
 function generateReport(type) {
-    // In a real implementation, this would generate specific detailed reports
-    alert(`Generate ${type} report functionality would be implemented here`);
+    const startDate = document.getElementById('start_date').value;
+    const endDate = document.getElementById('end_date').value;
+    const params = `?start_date=${startDate}&end_date=${endDate}`;
+    
+    switch(type) {
+        case 'clients':
+            window.location.href = '/reports/clients' + params;
+            break;
+        case 'bookings':
+            window.location.href = '/reports/bookings' + params;
+            break;
+        case 'financial':
+            window.location.href = '/reports/financial' + params;
+            break;
+        case 'inventory':
+            window.location.href = '/reports/inventory';
+            break;
+        default:
+            alert('Unknown report type');
+    }
 }
 </script>
 

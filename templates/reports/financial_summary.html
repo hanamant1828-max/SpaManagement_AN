@@ -1,0 +1,171 @@
+{% extends "base.html" %}
+
+{% block title %}Financial Summary Report - Spa & Salon Suite{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('reports') }}">Reports</a></li>
+                    <li class="breadcrumb-item active">Financial Summary</li>
+                </ol>
+            </nav>
+            <h1 class="h3">
+                <i class="fas fa-dollar-sign me-2 text-success"></i>Financial Summary Report
+            </h1>
+            <p class="text-muted">Data from {{ start_date.strftime('%B %d, %Y') }} to {{ end_date.strftime('%B %d, %Y') }}</p>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card border-left-success">
+                <div class="card-body text-center">
+                    <h2 class="text-success">{{ utils.format_currency(total_revenue) }}</h2>
+                    <p class="text-muted mb-0">Total Revenue</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-left-danger">
+                <div class="card-body text-center">
+                    <h2 class="text-danger">{{ utils.format_currency(total_expenses) }}</h2>
+                    <p class="text-muted mb-0">Total Expenses</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-left-{% if profit >= 0 %}primary{% else %}warning{% endif %}">
+                <div class="card-body text-center">
+                    <h2 class="{% if profit >= 0 %}text-primary{% else %}text-warning{% endif %}">{{ utils.format_currency(profit) }}</h2>
+                    <p class="text-muted mb-0">Net Profit</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow h-100">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-success">
+                        <i class="fas fa-arrow-up me-2"></i>Revenue Details
+                    </h6>
+                </div>
+                <div class="card-body">
+                    {% if revenue_data %}
+                    <canvas id="revenueChart" height="200"></canvas>
+                    <div class="table-responsive mt-3">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th class="text-end">Revenue</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in revenue_data[:10] %}
+                                <tr>
+                                    <td>{{ item.date.strftime('%m/%d/%Y') }}</td>
+                                    <td class="text-end text-success">{{ utils.format_currency(item.total or 0) }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-chart-line fa-3x text-muted mb-3"></i>
+                        <p class="text-muted">No revenue data available</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow h-100">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-danger">
+                        <i class="fas fa-arrow-down me-2"></i>Expense Details
+                    </h6>
+                </div>
+                <div class="card-body">
+                    {% if expense_data %}
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Category</th>
+                                    <th>Description</th>
+                                    <th class="text-end">Amount</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in expense_data[:10] %}
+                                <tr>
+                                    <td>{{ item.category if item.category else 'General' }}</td>
+                                    <td>{{ item.description if item.description else '-' }}</td>
+                                    <td class="text-end text-danger">{{ utils.format_currency(item.amount or 0) }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-receipt fa-3x text-muted mb-3"></i>
+                        <p class="text-muted">No expense data available</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <a href="{{ url_for('reports') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left me-1"></i>Back to Reports
+            </a>
+        </div>
+    </div>
+</div>
+
+<style>
+.border-left-success { border-left: 0.25rem solid var(--bs-success) !important; }
+.border-left-danger { border-left: 0.25rem solid var(--bs-danger) !important; }
+.border-left-primary { border-left: 0.25rem solid var(--bs-primary) !important; }
+.border-left-warning { border-left: 0.25rem solid var(--bs-warning) !important; }
+</style>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const revenueCtx = document.getElementById('revenueChart');
+    if (revenueCtx) {
+        new Chart(revenueCtx, {
+            type: 'line',
+            data: {
+                labels: [{% for item in revenue_data %}'{{ item.date.strftime("%m/%d") }}'{% if not loop.last %},{% endif %}{% endfor %}],
+                datasets: [{
+                    label: 'Revenue',
+                    data: [{% for item in revenue_data %}{{ item.total or 0 }}{% if not loop.last %},{% endif %}{% endfor %}],
+                    borderColor: 'rgb(40, 167, 69)',
+                    backgroundColor: 'rgba(40, 167, 69, 0.2)',
+                    tension: 0.1,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: { y: { beginAtZero: true } }
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

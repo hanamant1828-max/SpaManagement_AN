@@ -1,0 +1,157 @@
+{% extends "base.html" %}
+
+{% block title %}Booking Patterns Report - Spa & Salon Suite{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('reports') }}">Reports</a></li>
+                    <li class="breadcrumb-item active">Booking Patterns</li>
+                </ol>
+            </nav>
+            <h1 class="h3">
+                <i class="fas fa-calendar-alt me-2 text-warning"></i>Booking Patterns Report
+            </h1>
+            <p class="text-muted">Data from {{ start_date.strftime('%B %d, %Y') }} to {{ end_date.strftime('%B %d, %Y') }}</p>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow h-100">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-calendar-week me-2"></i>Bookings by Day of Week
+                    </h6>
+                </div>
+                <div class="card-body">
+                    {% if bookings_by_day %}
+                    <canvas id="dayChart" height="250"></canvas>
+                    <div class="table-responsive mt-3">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Day</th>
+                                    <th class="text-end">Bookings</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in bookings_by_day %}
+                                <tr>
+                                    <td>{{ item.day }}</td>
+                                    <td class="text-end"><span class="badge bg-warning text-dark">{{ item.count }}</span></td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-calendar fa-3x text-muted mb-3"></i>
+                        <p class="text-muted">No booking data available</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow h-100">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-clock me-2"></i>Bookings by Hour
+                    </h6>
+                </div>
+                <div class="card-body">
+                    {% if bookings_by_hour %}
+                    <canvas id="hourChart" height="250"></canvas>
+                    <div class="table-responsive mt-3">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Time</th>
+                                    <th class="text-end">Bookings</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in bookings_by_hour %}
+                                <tr>
+                                    <td>{{ item.hour }}</td>
+                                    <td class="text-end"><span class="badge bg-info">{{ item.count }}</span></td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-clock fa-3x text-muted mb-3"></i>
+                        <p class="text-muted">No hourly data available</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <a href="{{ url_for('reports') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left me-1"></i>Back to Reports
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const dayCtx = document.getElementById('dayChart');
+    if (dayCtx) {
+        new Chart(dayCtx, {
+            type: 'bar',
+            data: {
+                labels: [{% for item in bookings_by_day %}'{{ item.day }}'{% if not loop.last %},{% endif %}{% endfor %}],
+                datasets: [{
+                    label: 'Bookings',
+                    data: [{% for item in bookings_by_day %}{{ item.count }}{% if not loop.last %},{% endif %}{% endfor %}],
+                    backgroundColor: 'rgba(255, 193, 7, 0.6)',
+                    borderColor: 'rgba(255, 193, 7, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: { y: { beginAtZero: true } }
+            }
+        });
+    }
+
+    const hourCtx = document.getElementById('hourChart');
+    if (hourCtx) {
+        new Chart(hourCtx, {
+            type: 'line',
+            data: {
+                labels: [{% for item in bookings_by_hour %}'{{ item.hour }}'{% if not loop.last %},{% endif %}{% endfor %}],
+                datasets: [{
+                    label: 'Bookings',
+                    data: [{% for item in bookings_by_hour %}{{ item.count }}{% if not loop.last %},{% endif %}{% endfor %}],
+                    borderColor: 'rgb(23, 162, 184)',
+                    backgroundColor: 'rgba(23, 162, 184, 0.2)',
+                    tension: 0.1,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: { y: { beginAtZero: true } }
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

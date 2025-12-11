@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+
+{% block title %}Client Analysis Report - Spa & Salon Suite{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('reports') }}">Reports</a></li>
+                    <li class="breadcrumb-item active">Client Analysis</li>
+                </ol>
+            </nav>
+            <h1 class="h3">
+                <i class="fas fa-users me-2 text-info"></i>Client Analysis Report
+            </h1>
+            <p class="text-muted">Data from {{ start_date.strftime('%B %d, %Y') }} to {{ end_date.strftime('%B %d, %Y') }}</p>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card border-left-info">
+                <div class="card-body text-center">
+                    <h2 class="text-info">{{ client_data|length }}</h2>
+                    <p class="text-muted mb-0">Active Clients</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-left-success">
+                <div class="card-body text-center">
+                    <h2 class="text-success">{{ utils.format_currency(client_data|sum(attribute='revenue') or 0) }}</h2>
+                    <p class="text-muted mb-0">Total Revenue</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-left-primary">
+                <div class="card-body text-center">
+                    <h2 class="text-primary">{{ client_data|sum(attribute='bookings') or 0 }}</h2>
+                    <p class="text-muted mb-0">Total Bookings</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card shadow">
+        <div class="card-header py-3 d-flex justify-content-between align-items-center">
+            <h6 class="m-0 font-weight-bold text-primary">Client Details</h6>
+            <a href="{{ url_for('reports') }}" class="btn btn-secondary btn-sm">
+                <i class="fas fa-arrow-left me-1"></i>Back to Reports
+            </a>
+        </div>
+        <div class="card-body">
+            {% if client_data %}
+            <div class="table-responsive">
+                <table class="table table-striped table-hover">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Client Name</th>
+                            <th class="text-center">Bookings</th>
+                            <th class="text-end">Revenue</th>
+                            <th class="text-end">Avg. per Booking</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for client in client_data %}
+                        <tr>
+                            <td><strong>{{ client.first_name }} {{ client.last_name }}</strong></td>
+                            <td class="text-center"><span class="badge bg-info">{{ client.bookings }}</span></td>
+                            <td class="text-end">{{ utils.format_currency(client.revenue or 0) }}</td>
+                            <td class="text-end">{{ utils.format_currency((client.revenue / client.bookings) if client.bookings > 0 else 0) }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-5">
+                <i class="fas fa-users fa-3x text-muted mb-3"></i>
+                <h5 class="text-muted">No Client Data</h5>
+                <p class="text-muted">No client activity found for the selected period.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<style>
+.border-left-info { border-left: 0.25rem solid var(--bs-info) !important; }
+.border-left-success { border-left: 0.25rem solid var(--bs-success) !important; }
+.border-left-primary { border-left: 0.25rem solid var(--bs-primary) !important; }
+</style>
+{% endblock %}

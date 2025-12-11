@@ -143,3 +143,180 @@ def revenue_report():
             for item in revenue_data
         ]
     })
+
+
+@app.route('/reports/clients')
+@login_required
+def client_analysis_report():
+    """Generate detailed client analysis report"""
+    if not current_user.can_access('reports'):
+        flash('Access denied', 'danger')
+        return redirect(url_for('dashboard'))
+    
+    start_date_str = request.args.get('start_date')
+    end_date_str = request.args.get('end_date')
+    
+    if start_date_str and end_date_str:
+        try:
+            start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
+            end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
+        except ValueError:
+            end_date = date.today()
+            start_date = end_date - timedelta(days=30)
+    else:
+        end_date = date.today()
+        start_date = end_date - timedelta(days=30)
+    
+    try:
+        client_data = get_client_report(start_date, end_date)
+    except Exception as e:
+        print(f"Error getting client data: {e}")
+        client_data = []
+    
+    return render_template('reports/client_analysis.html',
+                         client_data=client_data,
+                         start_date=start_date,
+                         end_date=end_date)
+
+
+@app.route('/reports/bookings')
+@login_required
+def booking_patterns_report():
+    """Generate booking patterns report"""
+    if not current_user.can_access('reports'):
+        flash('Access denied', 'danger')
+        return redirect(url_for('dashboard'))
+    
+    start_date_str = request.args.get('start_date')
+    end_date_str = request.args.get('end_date')
+    
+    if start_date_str and end_date_str:
+        try:
+            start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
+            end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
+        except ValueError:
+            end_date = date.today()
+            start_date = end_date - timedelta(days=30)
+    else:
+        end_date = date.today()
+        start_date = end_date - timedelta(days=30)
+    
+    try:
+        from models import Appointment
+        
+        bookings_by_day = db.session.query(
+            func.strftime('%w', Appointment.appointment_date).label('day_of_week'),
+            func.count(Appointment.id).label('count')
+        ).filter(
+            Appointment.appointment_date >= start_date,
+            Appointment.appointment_date <= end_date
+        ).group_by(func.strftime('%w', Appointment.appointment_date)).all()
+        
+        bookings_by_hour = db.session.query(
+            func.strftime('%H', Appointment.start_time).label('hour'),
+            func.count(Appointment.id).label('count')
+        ).filter(
+            Appointment.appointment_date >= start_date,
+            Appointment.appointment_date <= end_date
+        ).group_by(func.strftime('%H', Appointment.start_time)).all()
+        
+        day_names = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+        bookings_by_day_data = []
+        for item in bookings_by_day:
+            day_idx = int(item.day_of_week) if item.day_of_week else 0
+            bookings_by_day_data.append({
+                'day': day_names[day_idx],
+                'count': item.count
+            })
+        
+        bookings_by_hour_data = []
+        for item in bookings_by_hour:
+            hour = int(item.hour) if item.hour else 0
+            bookings_by_hour_data.append({
+                'hour': f"{hour:02d}:00",
+                'count': item.count
+            })
+        
+    except Exception as e:
+        print(f"Error getting booking patterns: {e}")
+        bookings_by_day_data = []
+        bookings_by_hour_data = []
+    
+    return render_template('reports/booking_patterns.html',
+                         bookings_by_day=bookings_by_day_data,
+                         bookings_by_hour=bookings_by_hour_data,
+                         start_date=start_date,
+                         end_date=end_date)
+
+
+@app.route('/reports/financial')
+@login_required
+def financial_summary_report():
+    """Generate financial summary report"""
+    if not current_user.can_access('reports'):
+        flash('Access denied', 'danger')
+        return redirect(url_for('dashboard'))
+    
+    start_date_str = request.args.get('start_date')
+    end_date_str = request.args.get('end_date')
+    
+    if start_date_str and end_date_str:
+        try:
+            start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
+            end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
+        except ValueError:
+            end_date = date.today()
+            start_date = end_date - timedelta(days=30)
+    else:
+        end_date = date.today()
+        start_date = end_date - timedelta(days=30)
+    
+    try:
+        revenue_data = get_revenue_report(start_date, end_date)
+        total_revenue = sum(item.total or 0 for item in revenue_data) if revenue_data else 0
+    except Exception as e:
+        print(f"Error getting revenue data: {e}")
+        revenue_data = []
+        total_revenue = 0
+    
+    try:
+        expense_data = get_expense_report(start_date, end_date)
+        total_expenses = sum(item.amount or 0 for item in expense_data) if expense_data else 0
+    except Exception as e:
+        print(f"Error getting expense data: {e}")
+        expense_data = []
+        total_expenses = 0
+    
+    profit = total_revenue - total_expenses
+    
+    return render_template('reports/financial_summary.html',
+                         revenue_data=revenue_data,
+                         expense_data=expense_data,
+                         total_revenue=total_revenue,
+                         total_expenses=total_expenses,
+                         profit=profit,
+                         start_date=start_date,
+                         end_date=end_date)
+
+
+@app.route('/reports/inventory')
+@login_required
+def inventory_report():
+    """Generate inventory report"""
+    if not current_user.can_access('reports'):
+        flash('Access denied', 'danger')
+        return redirect(url_for('dashboard'))
+    
+    try:
+        inventory_data = get_inventory_report()
+    except Exception as e:
+        print(f"Error getting inventory data: {e}")
+        inventory_data = {
+            'total_items': 0,
+            'low_stock_items': [],
+            'expiring_items': [],
+            'total_value': 0
+        }
+    
+    return render_template('reports/inventory_report.html',
+                         inventory_data=inventory_data)
