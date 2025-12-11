@@ -1330,3 +1330,68 @@
     .booking-summary-card .btn i {
         margin-right: 0.5rem;
     }
+
+/* ==================== ALERT/WARNING VISIBILITY FIXES ==================== */
+/* Ensure all alert text is clearly visible */
+.alert {
+    font-weight: 500 !important;
+}
+
+.alert-info {
+    background-color: #cff4fc !important;
+    border-color: #9eeaf9 !important;
+    color: #055160 !important;
+}
+
+.alert-info i {
+    color: #0dcaf0 !important;
+}
+
+.alert-danger {
+    background-color: #f8d7da !important;
+    border-color: #f5c2c7 !important;
+    color: #842029 !important;
+}
+
+.alert-danger i {
+    color: #dc3545 !important;
+}
+
+.alert-warning {
+    background-color: #fff3cd !important;
+    border-color: #ffecb5 !important;
+    color: #664d03 !important;
+}
+
+.alert-warning i {
+    color: #ffc107 !important;
+}
+
+.alert-success {
+    background-color: #d1e7dd !important;
+    border-color: #badbcc !important;
+    color: #0f5132 !important;
+}
+
+.alert-success i {
+    color: #198754 !important;
+}
+
+/* Staff conflict warning specific styling */
+.staff-conflict-warning {
+    font-size: 0.9rem !important;
+    padding: 0.75rem 1rem !important;
+    border-radius: 8px !important;
+    margin-top: 0.5rem !important;
+}
+
+/* Conflict summary header styling */
+.conflict-summary-header,
+.conflict-banner {
+    font-weight: 600 !important;
+    color: #842029 !important;
+}
+
+.conflict-banner .text-muted {
+    color: #6c757d !important;
+}
