@@ -1046,12 +1046,12 @@
                 messageDiv.style.display = 'block';
                 messageDiv.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Checking in client...';
 
-                console.log(' Idani Sending check-in request for client ID:', clientId);
+                console.log(' Idani Sending check-in request for client ID:', clientId, 'on date:', currentDate);
 
                 fetch('/api/unaki/checkin/manual', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ client_id: parseInt(clientId) })
+                    body: JSON.stringify({ client_id: parseInt(clientId), date: currentDate })
                 })
                 .then(response => {
                     console.log('📥 Check-in response status:', response.status);

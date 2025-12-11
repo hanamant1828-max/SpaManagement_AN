@@ -1141,7 +1141,7 @@ def api_unaki_checkin_appointment(booking_id):
 @app.route('/api/unaki/checkin/manual', methods=['POST'])
 @login_required
 def api_unaki_manual_checkin():
-    """Manual check-in for a client - checks in all their appointments for today"""
+    """Manual check-in for a client - checks in all their appointments for a specific date"""
     if not current_user.can_access('bookings'):
         print("❌ Check-in access denied")
         return jsonify({'error': 'Access denied', 'success': False}), 403
@@ -1151,6 +1151,7 @@ def api_unaki_manual_checkin():
         print(f"🔵 Manual check-in request data: {data}")
 
         client_id = data.get('client_id')
+        target_date_str = data.get('date')  # Optional date parameter
 
         if not client_id:
             print("❌ No client_id provided")
@@ -1166,9 +1167,12 @@ def api_unaki_manual_checkin():
 
         print(f"✅ Found customer: {customer.full_name}")
 
-        # Get all appointments for this customer today
-        today = datetime.now(pytz.timezone('Asia/Kolkata')).date()
-        print(f"📅 Searching for appointments on: {today}")
+        # Get all appointments for this customer on the specified date (or today)
+        if target_date_str:
+            target_date = datetime.strptime(target_date_str, '%Y-%m-%d').date()
+        else:
+            target_date = datetime.now(pytz.timezone('Asia/Kolkata')).date()
+        print(f"📅 Searching for appointments on: {target_date}")
 
         # Build comprehensive search query using OR conditions
         customer_name = f"{customer.first_name} {customer.last_name}".strip()
@@ -1201,7 +1205,7 @@ def api_unaki_manual_checkin():
         
         bookings = UnakiBooking.query.filter(
             or_(*search_conditions),
-            func.date(UnakiBooking.appointment_date) == today,
+            func.date(UnakiBooking.appointment_date) == target_date,
             UnakiBooking.status.in_(['scheduled', 'confirmed'])
         ).all()
 
@@ -1212,7 +1216,7 @@ def api_unaki_manual_checkin():
             print(f"   📋 Booking {booking.id}: {booking.client_name} (client_id={booking.client_id}, phone={booking.client_phone})")
 
         if not bookings:
-            error_msg = f'No scheduled appointments found for {customer.full_name} today'
+            error_msg = f'No scheduled appointments found for {customer.full_name} on {target_date}'
             print(f"❌ {error_msg}")
             return jsonify({
                 'success': False,
