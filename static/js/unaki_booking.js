@@ -107,6 +107,21 @@
                 return `${hours.toString().padStart(2, '0')}:${minutes}`;
             }
 
+            // Format date as DD/MM/YYYY
+            function formatDateDDMMYYYY(date, includeWeekday = false) {
+                const day = date.getDate().toString().padStart(2, '0');
+                const month = (date.getMonth() + 1).toString().padStart(2, '0');
+                const year = date.getFullYear();
+                const formattedDate = `${day}/${month}/${year}`;
+                
+                if (includeWeekday) {
+                    const weekdays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+                    const weekday = weekdays[date.getDay()];
+                    return `${weekday}, ${formattedDate}`;
+                }
+                return formattedDate;
+            }
+
             // Validate time input (HH:MM format with proper ranges)
             function validateTimeInput(timeStr, ampm) {
                 // Regex: H:MM or HH:MM format
@@ -167,8 +182,7 @@
                     console.log('🔄 Updated currentDate from date picker:', currentDate);
 
                     const date = new Date(datePicker.value + 'T00:00:00');
-                    const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-                    const formattedDate = date.toLocaleDateString('en-US', options);
+                    const formattedDate = formatDateDDMMYYYY(date, true);
                     document.getElementById('currentDateDisplay').textContent = formattedDate;
                     console.log('📅 Current viewing date:', formattedDate);
                 }
@@ -410,7 +424,7 @@
 
                 appointments.forEach(apt => {
                     const date = new Date(apt.appointment_date);
-                    const formattedDate = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                    const formattedDate = formatDateDDMMYYYY(date, false);
                     const statusColor = apt.status === 'confirmed' ? 'success' : apt.status === 'scheduled' ? 'primary' : 'secondary';
 
                     html += `
@@ -903,10 +917,9 @@
                 // Update UI immediately for better UX
                 document.getElementById('datePicker').value = dateString;
 
-                // Format date for display
+                // Format date for display (DD/MM/YYYY with weekday)
                 const date = new Date(dateString + 'T00:00:00');
-                const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-                const formattedDate = date.toLocaleDateString('en-US', options);
+                const formattedDate = formatDateDDMMYYYY(date, true);
                 document.getElementById('currentDateDisplay').textContent = formattedDate;
 
                 // Show loading indicator
