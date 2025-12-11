@@ -331,7 +331,7 @@ document.addEventListener('DOMContentLoaded', function() {
             data: {
                 labels: [
                     {% for item in revenue_data %}
-                        '{{ item.date.strftime("%m/%d") }}'{% if not loop.last %},{% endif %}
+                        '{{ item.date[-5:] }}'{% if not loop.last %},{% endif %}
                     {% endfor %}
                 ],
                 datasets: [{
