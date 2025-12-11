@@ -915,6 +915,128 @@
             </div>
             {% endif %}
         </div>
+
+        <div class="appointments-section" style="margin-top: 1.5rem;">
+            <div class="section-header">
+                <div class="section-header-icon" style="background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);">
+                    <i class="fas fa-calendar-alt"></i>
+                </div>
+                <h5>Scheduled Appointments (Future)</h5>
+            </div>
+            {% if scheduled_appointments %}
+            <div class="table-responsive">
+                <table class="appointments-table">
+                    <thead>
+                        <tr>
+                            <th>Date & Time</th>
+                            <th>Client</th>
+                            <th>Service</th>
+                            <th>Staff</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for appointment in scheduled_appointments %}
+                        <tr>
+                            <td>
+                                <strong>{{ appointment.appointment_date.strftime('%d %b %Y') }}</strong>
+                                <small style="display: block; color: #64748b;">{{ appointment.appointment_date.strftime('%I:%M %p') }}</small>
+                            </td>
+                            <td class="client-info-cell">
+                                <strong>{{ appointment.client.full_name }}</strong>
+                                <small>{{ appointment.client.phone }}</small>
+                            </td>
+                            <td>{{ appointment.service.name if appointment.service else 'N/A' }}</td>
+                            <td>{{ appointment.assigned_staff.full_name if appointment.assigned_staff else 'Unassigned' }}</td>
+                            <td>
+                                {% if appointment.status == 'scheduled' %}
+                                <span class="badge-status badge-scheduled">Scheduled</span>
+                                {% elif appointment.status == 'confirmed' %}
+                                <span class="badge-status badge-confirmed">Confirmed</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="empty-appointments">
+                <div class="empty-icon" style="background: linear-gradient(135deg, #f3e8ff 0%, #e9d5ff 100%);">
+                    <i class="fas fa-calendar-alt" style="color: #8b5cf6;"></i>
+                </div>
+                <h5>No future appointments</h5>
+                <p>No scheduled appointments for upcoming days.</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="appointments-section" style="margin-top: 1.5rem;">
+            <div class="section-header">
+                <div class="section-header-icon" style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);">
+                    <i class="fas fa-exclamation-circle"></i>
+                </div>
+                <h5>Unpaid Appointments</h5>
+            </div>
+            {% if unpaid_appointments %}
+            <div class="table-responsive">
+                <table class="appointments-table">
+                    <thead>
+                        <tr>
+                            <th>Date & Time</th>
+                            <th>Client</th>
+                            <th>Service</th>
+                            <th>Amount</th>
+                            <th>Payment Status</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for appointment in unpaid_appointments %}
+                        <tr style="background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);">
+                            <td>
+                                <strong>{{ appointment.appointment_date.strftime('%d %b %Y') }}</strong>
+                                <small style="display: block; color: #64748b;">{{ appointment.appointment_date.strftime('%I:%M %p') }}</small>
+                            </td>
+                            <td class="client-info-cell">
+                                <strong>{{ appointment.client.full_name }}</strong>
+                                <small>{{ appointment.client.phone }}</small>
+                            </td>
+                            <td>{{ appointment.service.name if appointment.service else 'N/A' }}</td>
+                            <td><strong style="color: #dc2626;">₹{{ appointment.amount or 0 }}</strong></td>
+                            <td>
+                                {% if appointment.payment_status == 'pending' %}
+                                <span class="badge-status" style="background: #fef3c7; color: #92400e;">Pending</span>
+                                {% elif appointment.payment_status == 'partial' %}
+                                <span class="badge-status" style="background: #fed7aa; color: #c2410c;">Partial</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if appointment.status == 'scheduled' %}
+                                <span class="badge-status badge-scheduled">Scheduled</span>
+                                {% elif appointment.status == 'confirmed' %}
+                                <span class="badge-status badge-confirmed">Confirmed</span>
+                                {% elif appointment.status == 'in_progress' %}
+                                <span class="badge-status badge-in-progress">In Progress</span>
+                                {% elif appointment.status == 'completed' %}
+                                <span class="badge-status badge-completed">Completed</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="empty-appointments">
+                <div class="empty-icon" style="background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);">
+                    <i class="fas fa-check-circle" style="color: #22c55e;"></i>
+                </div>
+                <h5>All payments complete</h5>
+                <p>No unpaid appointments at this time.</p>
+            </div>
+            {% endif %}
+        </div>
     </div>
 </div>
 {% endblock %}

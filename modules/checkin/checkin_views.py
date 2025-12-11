@@ -7,7 +7,8 @@ from flask_login import login_required, current_user
 from app import app, db
 from .checkin_queries import (
     get_todays_appointments, get_appointment_by_id, check_in_appointment,
-    get_client_by_phone, get_client_appointments_today
+    get_client_by_phone, get_client_appointments_today,
+    get_scheduled_appointments, get_unpaid_appointments
 )
 
 # Import face recognition API (optional)
@@ -23,7 +24,12 @@ def checkin():
     """Face recognition check-in page"""
     try:
         appointments = get_todays_appointments()
-        return render_template('checkin.html', appointments=appointments)
+        scheduled_appointments = get_scheduled_appointments()
+        unpaid_appointments = get_unpaid_appointments()
+        return render_template('checkin.html', 
+                             appointments=appointments,
+                             scheduled_appointments=scheduled_appointments,
+                             unpaid_appointments=unpaid_appointments)
     except Exception as e:
         print(f"Checkin error: {e}")
         flash('Error loading check-in page', 'danger')

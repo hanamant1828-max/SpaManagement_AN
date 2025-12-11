@@ -45,3 +45,18 @@ def get_client_appointments_today(client_id):
         Appointment.client_id == client_id,
         func.date(Appointment.appointment_date) == today
     ).order_by(Appointment.appointment_date).all()
+
+def get_scheduled_appointments():
+    """Get future scheduled appointments (after today)"""
+    today = date.today()
+    return Appointment.query.filter(
+        func.date(Appointment.appointment_date) > today,
+        Appointment.status.in_(['scheduled', 'confirmed'])
+    ).order_by(Appointment.appointment_date).all()
+
+def get_unpaid_appointments():
+    """Get unpaid appointments (pending or partial payment status)"""
+    return Appointment.query.filter(
+        Appointment.payment_status.in_(['pending', 'partial']),
+        Appointment.status.in_(['scheduled', 'confirmed', 'completed', 'in_progress'])
+    ).order_by(Appointment.appointment_date.desc()).all()
