@@ -890,6 +890,22 @@
                 </table>
             </div>
             {% else %}
+            <div class="table-responsive">
+                <table class="appointments-table" style="display: none;">
+                    <thead>
+                        <tr>
+                            <th>Time</th>
+                            <th>Client</th>
+                            <th>Service</th>
+                            <th>Staff</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="appointmentsTable">
+                    </tbody>
+                </table>
+            </div>
             <div class="empty-appointments">
                 <div class="empty-icon">
                     <i class="fas fa-calendar-xmark"></i>
