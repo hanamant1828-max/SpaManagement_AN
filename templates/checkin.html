@@ -1421,7 +1421,7 @@ async function checkInRecognizedCustomer() {
 
     try {
         // Use the manual check-in API endpoint
-        const response = await fetch('/api/manual-checkin', {
+        const response = await fetch('/api/unaki/checkin/manual', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
