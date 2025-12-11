@@ -236,6 +236,28 @@ def recognize_face():
         ).count()
         print(f"📈 Total visits for {customer.full_name}: {total_visits}")
 
+        # Get today's appointments for this customer
+        today = date.today()
+        todays_appointments = Appointment.query.filter(
+            Appointment.client_id == customer.id,
+            Appointment.appointment_date == today,
+            Appointment.status.in_(['scheduled', 'confirmed', 'in_progress'])
+        ).order_by(Appointment.start_time).all()
+        
+        appointments_list = []
+        for apt in todays_appointments:
+            appointments_list.append({
+                'id': apt.id,
+                'service_name': apt.service.name if apt.service else apt.service_name,
+                'staff_name': apt.assigned_staff.full_name if apt.assigned_staff else 'Unassigned',
+                'start_time': apt.start_time,
+                'end_time': apt.end_time,
+                'status': apt.status,
+                'payment_status': apt.payment_status
+            })
+        
+        print(f"📅 Today's appointments for {customer.full_name}: {len(appointments_list)}")
+
         return jsonify({
             'success': True,
             'recognized': True,
@@ -246,7 +268,8 @@ def recognize_face():
                 'email': customer.email,
                 'is_vip': customer.is_vip,
                 'total_visits': total_visits
-            }
+            },
+            'todays_appointments': appointments_list
         }), 200
 
     except ImportError as import_error:

@@ -1159,7 +1159,7 @@ function updateStatus(type, title, message) {
     `;
 }
 
-function showCustomerInfo(customer) {
+function showCustomerInfo(customer, todaysAppointments) {
     const customerCard = document.getElementById('customerInfo');
     const customerAvatar = document.getElementById('customerAvatar');
     const customerName = document.getElementById('customerName');
@@ -1174,8 +1174,8 @@ function showCustomerInfo(customer) {
     customerAvatar.innerHTML = `<span>${initials}</span>`;
     customerName.textContent = customer.name;
     customerPhone.textContent = customer.phone || 'No phone';
-    customerVisits.textContent = customer.visits || '0';
-    customerStatus.textContent = customer.status || 'Regular';
+    customerVisits.textContent = customer.total_visits || customer.visits || '0';
+    customerStatus.textContent = customer.is_vip ? 'VIP' : 'Regular';
 
     customerCard.classList.add('visible');
     recognizedCustomerId = customer.id;
@@ -1183,6 +1183,62 @@ function showCustomerInfo(customer) {
     // Show check-in button
     if (checkInBtn) {
         checkInBtn.style.display = 'block';
+    }
+    
+    // Update the appointments table with today's appointments for this customer
+    const appointmentsTable = document.getElementById('appointmentsTable');
+    if (appointmentsTable && todaysAppointments) {
+        if (todaysAppointments.length > 0) {
+            let html = '';
+            todaysAppointments.forEach(apt => {
+                const statusBadge = apt.status === 'scheduled' ? 
+                    '<span class="badge bg-primary">Scheduled</span>' :
+                    apt.status === 'confirmed' ? 
+                    '<span class="badge bg-success">Confirmed</span>' :
+                    apt.status === 'in_progress' ? 
+                    '<span class="badge bg-warning">In Progress</span>' :
+                    `<span class="badge bg-secondary">${apt.status}</span>`;
+                    
+                html += `
+                    <tr data-appointment-id="${apt.id}" data-client-id="${customer.id}">
+                        <td><strong>${apt.start_time}</strong></td>
+                        <td class="client-info-cell">
+                            <strong>${customer.name}</strong>
+                            <small>${customer.phone || ''}</small>
+                        </td>
+                        <td>${apt.service_name}</td>
+                        <td>${apt.staff_name}</td>
+                        <td>${statusBadge}</td>
+                        <td>
+                            <form method="POST" action="/checkin/${apt.id}" style="display: inline;">
+                                <button type="submit" class="btn btn-sm btn-success">
+                                    <i class="fas fa-check me-1"></i>Check In
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                `;
+            });
+            appointmentsTable.innerHTML = html;
+            
+            // Show the appointments section
+            const emptyAppointments = document.querySelector('.empty-appointments');
+            const appointmentsTableEl = document.querySelector('.appointments-table');
+            if (emptyAppointments) emptyAppointments.style.display = 'none';
+            if (appointmentsTableEl) appointmentsTableEl.style.display = 'table';
+            
+            console.log(`📅 Displayed ${todaysAppointments.length} appointments for ${customer.name}`);
+        } else {
+            appointmentsTable.innerHTML = `
+                <tr>
+                    <td colspan="6" class="text-center py-4">
+                        <i class="fas fa-calendar-times fa-2x text-muted mb-2"></i>
+                        <p class="mb-0 text-muted">No appointments scheduled for ${customer.name} today</p>
+                    </td>
+                </tr>
+            `;
+            console.log(`📅 No appointments found for ${customer.name} today`);
+        }
     }
 }
 
@@ -1269,7 +1325,7 @@ async function performRecognition(videoElement) {
             }
 
             updateStatus('success', 'Customer Recognized!', `Welcome back, ${result.customer.name}!`);
-            showCustomerInfo(result.customer);
+            showCustomerInfo(result.customer, result.todays_appointments || []);
 
             const lastRecognition = document.getElementById('lastRecognition');
             if (lastRecognition) {
