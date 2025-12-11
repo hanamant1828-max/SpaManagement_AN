@@ -1171,6 +1171,34 @@ def api_update_category(category_id):
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/inventory/categories/<int:category_id>', methods=['DELETE'])
+@login_required
+def api_delete_category(category_id):
+    """Delete an inventory category"""
+    try:
+        category = InventoryCategory.query.get(category_id)
+        
+        if not category:
+            return jsonify({'error': 'Category not found'}), 404
+        
+        # Check if category has associated products
+        product_count = InventoryProduct.query.filter_by(category_id=category_id).count()
+        if product_count > 0:
+            return jsonify({
+                'error': f'Cannot delete category with {product_count} associated products. Please remove or reassign products first.'
+            }), 400
+        
+        db.session.delete(category)
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Category deleted successfully'
+        })
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/api/inventory/batches/<int:batch_id>', methods=['GET'])
 @login_required
 def api_get_batch(batch_id):
