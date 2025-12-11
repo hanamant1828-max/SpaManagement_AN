@@ -726,8 +726,8 @@ class MembershipService(db.Model):
     service_id = db.Column(db.Integer, db.ForeignKey('service.id'), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-    # Relationships
-    service = db.relationship('Service', backref='membership_services')
+    # Relationships - use passive_deletes to prevent SET NULL on service deletion
+    service = db.relationship('Service', backref=db.backref('membership_services', passive_deletes=True))
 
     __table_args__ = (db.UniqueConstraint('membership_id', 'service_id'),)
 
@@ -740,8 +740,8 @@ class KittyPartyService(db.Model):
     service_id = db.Column(db.Integer, db.ForeignKey('service.id'), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-    # Relationships
-    service = db.relationship('Service', backref='kittyparty_services')
+    # Relationships - use passive_deletes to prevent SET NULL on service deletion
+    service = db.relationship('Service', backref=db.backref('kittyparty_services', passive_deletes=True))
 
     __table_args__ = (db.UniqueConstraint('kittyparty_id', 'service_id'),)
 

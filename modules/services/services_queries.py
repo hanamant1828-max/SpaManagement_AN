@@ -125,8 +125,8 @@ def update_service(service_id, data):
         raise e
 
 def delete_service(service_id):
-    """Delete service with safety checks"""
-    from models import Service, Appointment
+    """Delete service with safety checks and cascade delete of related records"""
+    from models import Service, Appointment, MembershipService, KittyPartyService, ServicePackageAssignment
     try:
         service = Service.query.get(service_id)
         if not service:
@@ -141,7 +141,24 @@ def delete_service(service_id):
             db.session.commit()
             return {'success': True, 'message': 'Service deactivated (has associated appointments)'}
         else:
-            # Hard delete if no associations
+            # Delete related records first to avoid foreign key constraint violations
+            # Delete from membership_services
+            MembershipService.query.filter_by(service_id=service_id).delete()
+            
+            # Delete from kittyparty_services
+            KittyPartyService.query.filter_by(service_id=service_id).delete()
+            
+            # Delete from service_package_assignment (set service_id to NULL for package assignments)
+            ServicePackageAssignment.query.filter_by(service_id=service_id).update({'service_id': None})
+            
+            # Check and delete from student_offer_services if exists
+            try:
+                from models import StudentOfferService
+                StudentOfferService.query.filter_by(service_id=service_id).delete()
+            except Exception:
+                pass  # Table might not exist
+            
+            # Hard delete the service
             db.session.delete(service)
             db.session.commit()
             return {'success': True, 'message': 'Service deleted successfully'}
