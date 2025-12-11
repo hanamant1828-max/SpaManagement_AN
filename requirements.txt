@@ -314,3 +314,5 @@ sqlalchemy
 werkzeug
 wtforms
 pillow
+insightface
+onnxruntime
