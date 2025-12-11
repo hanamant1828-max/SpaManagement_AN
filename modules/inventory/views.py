@@ -341,6 +341,35 @@ def api_update_location(location_id):
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/inventory/locations/<location_id>', methods=['DELETE'])
+@login_required
+def api_delete_location(location_id):
+    """Delete an inventory location"""
+    try:
+        location = InventoryLocation.query.get(location_id)
+        
+        if not location:
+            return jsonify({'error': 'Location not found'}), 404
+        
+        # Check if location has associated batches
+        from .models import InventoryBatch
+        batch_count = InventoryBatch.query.filter_by(location_id=location_id).count()
+        if batch_count > 0:
+            return jsonify({
+                'error': f'Cannot delete location with {batch_count} associated batches. Please remove or transfer batches first.'
+            }), 400
+        
+        db.session.delete(location)
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Location deleted successfully'
+        })
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/api/inventory/batches', methods=['GET'])
 @login_required
 def api_get_batches():
