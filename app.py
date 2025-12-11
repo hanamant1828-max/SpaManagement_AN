@@ -1653,17 +1653,20 @@ def unaki_create_appointment():
 @login_required
 def unaki_booking():
     """Enhanced Unaki Appointment Booking System - Professional spa booking interface"""
-    from datetime import date, datetime
+    from datetime import datetime as dt
 
+    # Use IST timezone for today's date
+    ist_today = get_ist_date_today()
+    
     # Get current date parameter and convert to date object
-    selected_date_str = request.args.get('date', date.today().strftime('%Y-%m-%d'))
+    selected_date_str = request.args.get('date', ist_today.strftime('%Y-%m-%d'))
 
     try:
         # Convert string to date object for template
-        selected_date_obj = datetime.strptime(selected_date_str, '%Y-%m-%d').date()
+        selected_date_obj = dt.strptime(selected_date_str, '%Y-%m-%d').date()
     except ValueError:
-        # Fallback to today if invalid date format
-        selected_date_obj = date.today()
+        # Fallback to today (IST) if invalid date format
+        selected_date_obj = ist_today
         selected_date_str = selected_date_obj.strftime('%Y-%m-%d')
 
     try:
@@ -1675,7 +1678,7 @@ def unaki_booking():
         staff_members = get_staff_members()
         services = get_all_services()
         clients = get_all_customers()
-        today = date.today().strftime('%Y-%m-%d')
+        today = ist_today.strftime('%Y-%m-%d')
 
         print(f"🗓️  Querying Unaki bookings for date: {selected_date_str} (from parameter: {request.args.get('date', 'not provided')})")
         print(f"📊 Loaded {len(staff_members)} staff, {len(services)} services, {len(clients)} clients")
@@ -1694,8 +1697,8 @@ def unaki_booking():
                              staff_members=[],
                              services=[],
                              clients=[],
-                             today=date.today().strftime('%Y-%m-%d'),
-                             today_date=date.today())
+                             today=ist_today.strftime('%Y-%m-%d'),
+                             today_date=ist_today)
 
 @app.route('/api/unaki/get-bookings')
 @login_required
@@ -1714,8 +1717,8 @@ def api_unaki_get_bookings():
         except ValueError:
             return jsonify({'success': False, 'error': 'Invalid date format'}), 400
 
-        # Get today's date for comparison
-        today = date.today()
+        # Get today's date for comparison (using IST)
+        today = get_ist_date_today()
 
         # Get all bookings for the date (including paid ones)
         bookings = UnakiBooking.query.filter(

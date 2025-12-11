@@ -18,7 +18,7 @@ from datetime import datetime, date, timedelta, time
 from sqlalchemy import func
 from urllib.parse import quote
 
-from app import app, db
+from app import app, db, get_ist_date_today
 from forms import AppointmentForm, QuickBookingForm
 from models import (
     Appointment, Customer, Service, User, ShiftManagement,
@@ -49,9 +49,9 @@ def bookings():
         try:
             filter_date = datetime.strptime(filter_date, '%Y-%m-%d').date()
         except ValueError:
-            filter_date = date.today()
+            filter_date = get_ist_date_today()
     else:
-        filter_date = date.today()
+        filter_date = get_ist_date_today()
 
     # Get data based on view type
     appointments = get_appointments_by_date(filter_date)
