@@ -999,13 +999,27 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
 
+            // Validate file type on client side
+            const file = fileInput.files[0];
+            const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/svg+xml'];
+            if (!allowedTypes.includes(file.type)) {
+                alert('Invalid file type. Please upload an image file (PNG, JPG, JPEG, GIF, or SVG).');
+                return;
+            }
+
+            // Validate file size (max 5MB)
+            if (file.size > 5 * 1024 * 1024) {
+                alert('File size too large. Maximum size is 5MB.');
+                return;
+            }
+
             const uploadBtn = document.getElementById('uploadLogoBtn');
             const originalText = uploadBtn.innerHTML;
             uploadBtn.disabled = true;
-            uploadBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Uploading...';
+            uploadBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Saving...';
 
             const formData = new FormData();
-            formData.append('logo', fileInput.files[0]);
+            formData.append('logo', file);
 
             try {
                 const response = await fetch('/api/settings/logo', {
@@ -1013,22 +1027,27 @@ document.addEventListener('DOMContentLoaded', function() {
                     body: formData
                 });
 
+                if (!response.ok) {
+                    throw new Error(`Server error: ${response.status}`);
+                }
+
                 const data = await response.json();
 
                 if (data.success) {
-                    alert('Logo uploaded successfully!');
+                    alert('Logo saved successfully!');
                     await loadLogo();
                     fileInput.value = '';
                 } else {
-                    alert('Error: ' + (data.message || 'Failed to upload logo'));
+                    alert('Error: ' + (data.message || 'Failed to save logo'));
                 }
             } catch (error) {
-                console.error('Error uploading logo:', error);
-                alert('Error uploading logo. Please try again.');
-            } finally {
-                uploadBtn.disabled = false;
-                uploadBtn.innerHTML = originalText;
+                console.error('Error saving logo:', error);
+                alert('Error saving logo: ' + error.message);
             }
+            
+            // Always reset button state
+            uploadBtn.disabled = false;
+            uploadBtn.innerHTML = originalText;
         });
     }
 
