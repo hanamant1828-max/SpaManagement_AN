@@ -5,7 +5,7 @@ Supports services, packages, subscriptions, and inventory items
 from flask import render_template, request, redirect, url_for, flash, jsonify
 from flask_login import login_required, current_user
 from app import app, db
-from datetime import datetime as dt, date
+from datetime import datetime as dt, date, time as dt_time
 import datetime
 import json
 from sqlalchemy import and_
@@ -1365,7 +1365,7 @@ def create_professional_invoice():
             invoice.invoice_number = invoice_number
             invoice.client_id = int(client_id)
             # Store invoice_date as midnight on invoice date
-            invoice.invoice_date = dt.combine(invoice_date_only, datetime.time.min)  # Store as midnight on invoice date
+            invoice.invoice_date = dt.combine(invoice_date_only, dt_time.min)  # Store as midnight on invoice date
             invoice.created_at = ist_now.replace(tzinfo=None)  # Store as naive IST datetime
             invoice.created_by = current_user.id  # Store who created the invoice
 
