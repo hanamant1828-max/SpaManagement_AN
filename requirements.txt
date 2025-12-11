@@ -320,3 +320,4 @@ opencv-python-headless
 pillow
 opencv-python-headless
 pillow
+pillow

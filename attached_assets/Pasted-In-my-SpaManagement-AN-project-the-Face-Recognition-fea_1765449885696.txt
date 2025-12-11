@@ -1,0 +1,88 @@
+In my SpaManagement_AN project, the Face Recognition feature on the Check-In page shows a ‘Recognition Error – Server Error’ when I click ‘Start Recognition’.
+Please debug and fix this entire issue.
+
+✔️ Do all of the following steps:
+1. Check the backend face recognition route
+
+Locate the face recognition API endpoint (likely /recognize or /api/recognize inside the face_recognition blueprint).
+
+Ensure the route is correctly registered in __init__.py or main app with:
+app.register_blueprint(face_recognition_bp)
+
+Fix any import errors, missing dependencies, or incorrect blueprint paths.
+
+2. Validate required Python packages
+
+Ensure these packages are properly installed and imported without error:
+
+opencv-python-headless
+
+face_recognition OR insightface
+
+onnxruntime
+
+numpy
+
+pillow
+
+If any import fails, the API returns a server error. Fix missing or incorrect imports.
+
+3. Fix camera input or uploaded frame handling
+
+The frontend sends a base64 image frame to the backend.
+
+Validate that the backend correctly:
+
+Accepts the base64 frame
+
+Decodes it
+
+Converts to numpy array
+
+Processes it using OpenCV / InsightFace
+
+If decoding fails, the API crashes → “Server Error”.
+
+4. Check model loading
+
+Ensure the face recognition model is loaded ONCE, not inside the request.
+
+If the model fails to load (wrong path / missing file), fix its initialization.
+
+5. Validate the client-face database
+
+Ensure at least one customer face embedding exists.
+
+If missing, recognition should not crash; add graceful error handling.
+
+6. Frontend JS debugging
+
+Fix the JS code that calls the recognition endpoint.
+
+Ensure the correct API URL is used (e.g., /api/recognize, /fr/recognize, etc.).
+
+Add console logs to verify the request is being sent properly.
+
+7. Return a proper JSON response
+
+Modify the endpoint so backend ALWAYS returns:
+
+{ "status": "success", "client_id": ..., "name": ... }
+
+
+or
+
+{ "status": "error", "message": "Face not recognized" }
+
+
+But never return a raw exception.
+
+8. After fixing everything
+
+Test Start Recognition
+
+Test with a registered face
+
+Ensure no more internal server errors occur
+
+Apply all required corrections in frontend + backend + blueprint registration + imports + model loading so the Face Recognition Check-In works properly.”
