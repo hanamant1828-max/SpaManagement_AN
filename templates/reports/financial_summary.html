@@ -68,7 +68,7 @@
                             <tbody>
                                 {% for item in revenue_data[:10] %}
                                 <tr>
-                                    <td>{{ item.date.strftime('%m/%d/%Y') }}</td>
+                                    <td>{{ item.date if item.date is string else item.date.strftime('%m/%d/%Y') }}</td>
                                     <td class="text-end text-success">{{ utils.format_currency(item.total or 0) }}</td>
                                 </tr>
                                 {% endfor %}
@@ -150,7 +150,7 @@ document.addEventListener('DOMContentLoaded', function() {
         new Chart(revenueCtx, {
             type: 'line',
             data: {
-                labels: [{% for item in revenue_data %}'{{ item.date.strftime("%m/%d") }}'{% if not loop.last %},{% endif %}{% endfor %}],
+                labels: [{% for item in revenue_data %}'{{ item.date if item.date is string else item.date.strftime("%m/%d") }}'{% if not loop.last %},{% endif %}{% endfor %}],
                 datasets: [{
                     label: 'Revenue',
                     data: [{% for item in revenue_data %}{{ item.total or 0 }}{% if not loop.last %},{% endif %}{% endfor %}],
