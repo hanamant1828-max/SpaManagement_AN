@@ -1022,12 +1022,21 @@ document.addEventListener('DOMContentLoaded', function() {
             formData.append('logo', file);
 
             try {
+                // Add timeout to prevent infinite loading
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+                
                 const response = await fetch('/api/settings/logo', {
                     method: 'POST',
-                    body: formData
+                    body: formData,
+                    signal: controller.signal
                 });
+                
+                clearTimeout(timeoutId);
 
                 if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('Server response:', errorText);
                     throw new Error(`Server error: ${response.status}`);
                 }
 
@@ -1042,12 +1051,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             } catch (error) {
                 console.error('Error saving logo:', error);
-                alert('Error saving logo: ' + error.message);
+                if (error.name === 'AbortError') {
+                    alert('Upload timed out. Please try again with a smaller file.');
+                } else {
+                    alert('Error saving logo: ' + error.message);
+                }
+            } finally {
+                // Always reset button state
+                uploadBtn.disabled = false;
+                uploadBtn.innerHTML = originalText;
             }
-            
-            // Always reset button state
-            uploadBtn.disabled = false;
-            uploadBtn.innerHTML = originalText;
         });
     }
 
