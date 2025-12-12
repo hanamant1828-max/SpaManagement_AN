@@ -164,11 +164,26 @@ class PackageBillingService:
             ).first()
 
             if existing_usage:
+                # Get package benefit tracker and assignment for metadata
+                package_tracker = PackageBenefitTracker.query.get(existing_usage.package_benefit_id)
+                assignment_id = None
+                package_type = None
+                package_name = 'Package Benefit'
+                if package_tracker and package_tracker.package_assignment:
+                    assignment_id = package_tracker.package_assignment.id
+                    package_type = package_tracker.package_assignment.package_type
+                    package_name = cls._get_package_name(package_tracker)
+                
                 return {
                     'success': True,
                     'applied': True,
                     'message': 'Already processed (idempotent)',
-                    'usage_id': existing_usage.id
+                    'usage_id': existing_usage.id,
+                    'assignment_id': assignment_id,
+                    'package_type': package_type,
+                    'package_name': package_name,
+                    'benefit_type': existing_usage.benefit_type,
+                    'deduction_amount': existing_usage.amount_deducted or existing_usage.discount_applied or 0
                 }
 
             # Find applicable packages
