@@ -39,6 +39,7 @@ The application uses Flask and SQLAlchemy, following a modular design with featu
 - **Session Management:** Utilizes Flask's session management.
 - **Timezone Management:** Comprehensive IST timezone utilities using `pytz` for timestamps.
 - **12-Hour AM/PM Format:** Implemented across all visible time fields with robust input validation.
+- **Invoice Edit Mode Package Preservation (Dec 2025):** Fixed critical bug where editing saved invoices lost package discount information. Uses durable row data attributes (`lockedFinalAmount`, `lockedDeduction`, `lockedServiceId`, `lockedQuantity`, `isPackageLocked`) to preserve package benefit data across recalculation cycles. When service/quantity remain unchanged, the saved NET amount is used directly; when changed, locked attributes are cleared to allow fresh recalculation.
 
 **System Design Choices:**
 - **Database:** Defaults to SQLite for local development (`hanamantdatabase/workspace.db`), with optional PostgreSQL support.

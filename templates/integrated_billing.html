@@ -933,6 +933,10 @@ textarea.form-control {
                                 <input type="hidden" name="benefit_descriptions[]" value="">
                                 <input type="hidden" name="deduction_amounts[]" value="0">
                                 <input type="hidden" name="is_package_deductions[]" value="false">
+                                <input type="hidden" name="saved_unit_prices[]" value="">
+                                <input type="hidden" name="saved_final_amounts[]" value="">
+                                <input type="hidden" name="saved_quantities[]" value="">
+                                <input type="hidden" name="saved_service_ids[]" value="">
                             </div>
                         </div>
                     </div>
@@ -1265,6 +1269,9 @@ const BillingState = {
 let selectedServices = [];
 let selectedProducts = [];
 let taxRate = 9; // Default tax rate
+
+// EDIT MODE: Global flag to prevent recalculation during invoice data loading
+let isLoadingEditData = false;
 
 // Global GST Settings (loaded dynamically from database)
 let GSTSettings = {
@@ -2745,6 +2752,12 @@ function resetCustomerPackages() {
 
     function updateCalculations() {
         console.log('💰 updateCalculations called');
+        
+        // EDIT MODE: Skip calculation during initial load - wait for preserved data to be fully loaded
+        if (typeof isLoadingEditData !== 'undefined' && isLoadingEditData === true) {
+            console.log('⏸️ Skipping updateCalculations during edit data loading');
+            return;
+        }
 
         let servicesSubtotal = 0;
         let productsSubtotal = 0;
@@ -2760,10 +2773,89 @@ function resetCustomerPackages() {
             const qtyInput = row.querySelector('input[name="service_quantities[]"]');
             const appointmentIdInput = row.querySelector('input[name="appointment_ids[]"]');
             const priceInput = row.querySelector('input[name="service_prices[]"]'); // Assuming a hidden price input
+            
+            // EDIT MODE: Check for DURABLE row data attributes for saved package data
+            // These data attributes are set by restoreSavedPackageData and persist on the row element
+            const lockedFinalAmount = parseFloat(row.dataset.lockedFinalAmount);
+            const lockedDeduction = parseFloat(row.dataset.lockedDeduction) || 0;
+            const lockedServiceId = row.dataset.lockedServiceId;
+            const lockedQuantity = parseFloat(row.dataset.lockedQuantity);
+            const isPackageLocked = row.dataset.isPackageLocked === 'true';
+            
+            // FALLBACK: Also check hidden inputs (for backward compatibility)
+            const savedFinalAmountInput = row.querySelector('input[name="saved_final_amounts[]"]');
+            const savedDeductionInput = row.querySelector('input[name="deduction_amounts[]"]');
+            const savedQuantityInput = row.querySelector('input[name="saved_quantities[]"]');
+            const savedServiceIdInput = row.querySelector('input[name="saved_service_ids[]"]');
+            
+            // Use row data attributes first (more durable), fall back to hidden inputs
+            const savedFinalAmount = !isNaN(lockedFinalAmount) ? lockedFinalAmount : parseFloat(savedFinalAmountInput?.value);
+            const savedDeduction = isPackageLocked ? lockedDeduction : (parseFloat(savedDeductionInput?.value) || 0);
+            const savedQuantity = !isNaN(lockedQuantity) ? lockedQuantity : parseFloat(savedQuantityInput?.value);
+            const savedServiceId = lockedServiceId || savedServiceIdInput?.value;
+            
+            // Check for saved package data using durable row flag
+            const hasSavedPackageData = isPackageLocked && !isNaN(savedFinalAmount);
 
             const serviceId = serviceSelect?.value;
             const quantity = parseFloat(qtyInput?.value) || 0;
             let basePrice = parseFloat(serviceSelect.selectedOptions[0]?.dataset.price) || 0; // Get base price from dataset initially
+
+            // EDIT MODE FIX: If we have saved package data and service/quantity haven't changed, use saved values
+            // Note: savedFinalAmount can be 0 for fully covered/free services - this is valid
+            if (hasSavedPackageData && !isNaN(savedFinalAmount)) {
+                // Compare current values against LOCKED values from row data attributes
+                const sameService = serviceId === savedServiceId;
+                const sameQuantity = !isNaN(savedQuantity) && Math.abs(quantity - savedQuantity) < 0.01;
+                
+                if (sameService && sameQuantity) {
+                    console.log(`📦 Using LOCKED package data for row ${index}:`, {
+                        savedFinalAmount,
+                        savedDeduction,
+                        serviceId,
+                        quantity,
+                        isFreeService: savedFinalAmount === 0,
+                        isPackageLocked
+                    });
+                    
+                    // Add the NET amount to subtotal
+                    servicesSubtotal += savedFinalAmount;
+                    
+                    // Track deduction for display - use lockedDeduction directly from row attributes
+                    // Since packageDeductions is reset to 0 at the start of each updateCalculations call,
+                    // we always add the locked deduction here (no need for deductionCounted flag)
+                    if (lockedDeduction > 0) {
+                        packageDeductions += lockedDeduction;
+                    }
+                    
+                    console.log(`💰 Row ${index}: NET=${savedFinalAmount} added to subtotal`);
+                    
+                    // Skip to next row - don't recalculate
+                    return;
+                } else {
+                    console.log(`🔄 Service or quantity changed - clearing saved data for row ${index}`, {
+                        sameService, sameQuantity,
+                        currentServiceId: serviceId, savedServiceId,
+                        currentQuantity: quantity, savedQuantity
+                    });
+                    // Clear DURABLE row data attributes
+                    delete row.dataset.lockedFinalAmount;
+                    delete row.dataset.lockedDeduction;
+                    delete row.dataset.lockedServiceId;
+                    delete row.dataset.lockedQuantity;
+                    delete row.dataset.isPackageLocked;
+                    
+                    // Clear hidden inputs as well
+                    if (savedFinalAmountInput) savedFinalAmountInput.value = '';
+                    const savedUnitPriceInput = row.querySelector('input[name="saved_unit_prices[]"]');
+                    if (savedUnitPriceInput) savedUnitPriceInput.value = '';
+                    if (savedQuantityInput) savedQuantityInput.value = '';
+                    if (savedServiceIdInput) savedServiceIdInput.value = '';
+                    const isPkgDeductionInput = row.querySelector('input[name="is_package_deductions[]"]');
+                    if (isPkgDeductionInput) isPkgDeductionInput.value = 'false';
+                    if (savedDeductionInput) savedDeductionInput.value = '0';
+                }
+            }
 
             // If a price input exists, use its value as it might be updated by package benefits or explicitly set
             // However, for services, this price input might not be present or intended for user input.
@@ -3641,6 +3733,7 @@ function resetCustomerPackages() {
     // ==========================================
     function loadInvoiceEditData(invoiceData) {
         console.log('📝 Loading invoice data for editing:', invoiceData);
+        isLoadingEditData = true; // Set flag to prevent package recalculation
 
         // Pre-populate services
         if (invoiceData.service_items && invoiceData.service_items.length > 0) {
@@ -3659,12 +3752,15 @@ function resetCustomerPackages() {
 
                     if (serviceSelect) {
                         serviceSelect.value = item.service_id;
-                        // Trigger change event to recalculate pricing and package benefits
-                        $(serviceSelect).trigger('change');
+                        // Don't trigger change - we'll restore saved package data instead
+                        $(serviceSelect).val(item.service_id).trigger('change.select2'); // Only update Select2 display, not full change
                     }
                     if (qtyInput) qtyInput.value = item.quantity;
                     if (staffSelect) staffSelect.value = item.staff_id;
                     if (aptIdInput) aptIdInput.value = item.appointment_id || '';
+                    
+                    // CRITICAL: Restore saved package benefit data from invoice
+                    restoreSavedPackageData(row, item);
                 }
             });
         }
@@ -3725,11 +3821,195 @@ function resetCustomerPackages() {
             if (interstateCheckbox) interstateCheckbox.checked = true;
         }
 
-        // Trigger full recalculation after all items are loaded
+        // Trigger calculation after all items are loaded (preserving saved package data)
         setTimeout(() => {
-            updateCalculations();
-            console.log('✅ Invoice data loaded and calculations updated');
+            isLoadingEditData = false; // Clear flag - now updateCalculations can run
+            updateCalculations(); // Use standard function - it now handles saved package data correctly
+            console.log('✅ Invoice data loaded and calculations updated (package data preserved)');
         }, 500); // Increased delay to ensure all product batches are loaded
+    }
+    
+    // Function to restore saved package benefit data when editing an invoice
+    function restoreSavedPackageData(row, item) {
+        console.log('📦 Restoring saved package data for service:', item);
+        
+        // Get hidden input fields for package data
+        const pkgAssignmentInput = row.querySelector('input[name="package_assignment_ids[]"]');
+        const pkgNameInput = row.querySelector('input[name="package_names[]"]');
+        const pkgTypeInput = row.querySelector('input[name="package_types[]"]');
+        const benefitTypeInput = row.querySelector('input[name="benefit_types[]"]');
+        const benefitDescInput = row.querySelector('input[name="benefit_descriptions[]"]');
+        const deductionAmtInput = row.querySelector('input[name="deduction_amounts[]"]');
+        const isPkgDeductionInput = row.querySelector('input[name="is_package_deductions[]"]');
+        const savedUnitPriceInput = row.querySelector('input[name="saved_unit_prices[]"]');
+        const savedFinalAmountInput = row.querySelector('input[name="saved_final_amounts[]"]');
+        const savedQuantityInput = row.querySelector('input[name="saved_quantities[]"]');
+        const savedServiceIdInput = row.querySelector('input[name="saved_service_ids[]"]');
+        
+        // Restore saved values
+        if (pkgAssignmentInput) pkgAssignmentInput.value = item.package_assignment_id || '';
+        if (pkgNameInput) pkgNameInput.value = item.package_name || '';
+        if (pkgTypeInput) pkgTypeInput.value = item.package_type || '';
+        if (benefitTypeInput) benefitTypeInput.value = item.benefit_type || '';
+        if (benefitDescInput) benefitDescInput.value = item.benefit_description || '';
+        if (deductionAmtInput) deductionAmtInput.value = item.deduction_amount || 0;
+        if (isPkgDeductionInput) isPkgDeductionInput.value = item.is_package_deduction ? 'true' : 'false';
+        
+        // CRITICAL: Store saved prices AND original quantity/service for comparison
+        if (savedUnitPriceInput) savedUnitPriceInput.value = item.unit_price || '';
+        if (savedFinalAmountInput) savedFinalAmountInput.value = item.final_amount || '';
+        if (savedQuantityInput) savedQuantityInput.value = item.quantity || '';
+        if (savedServiceIdInput) savedServiceIdInput.value = item.service_id || '';
+        
+        // DURABLE DATA ATTRIBUTES on row element (these won't be cleared by form operations)
+        row.dataset.lockedFinalAmount = item.final_amount || '';
+        row.dataset.lockedDeduction = item.deduction_amount || 0;
+        row.dataset.lockedServiceId = item.service_id || '';
+        row.dataset.lockedQuantity = item.quantity || '';
+        row.dataset.isPackageLocked = item.is_package_deduction ? 'true' : 'false';
+        
+        console.log('💾 Saved data stored (with row data attributes):', {
+            unit_price: item.unit_price,
+            final_amount: item.final_amount,
+            quantity: item.quantity,
+            service_id: item.service_id,
+            deduction_amount: item.deduction_amount
+        });
+        
+        // Show package benefit indicator if there was a package deduction
+        if (item.is_package_deduction && item.deduction_amount > 0) {
+            let benefitDiv = row.querySelector('.package-benefit');
+            if (!benefitDiv) {
+                benefitDiv = document.createElement('div');
+                benefitDiv.className = 'package-benefit';
+                row.appendChild(benefitDiv);
+            }
+            
+            // Apply appropriate styling based on benefit type
+            if (item.benefit_type === 'student_discount') {
+                benefitDiv.className = 'package-benefit student-discount';
+                benefitDiv.innerHTML = `<i class="fas fa-graduation-cap"></i> ${item.package_name || 'Student Offer'}: -₹${parseFloat(item.deduction_amount).toFixed(2)}`;
+            } else {
+                benefitDiv.className = 'package-benefit';
+                benefitDiv.innerHTML = `<i class="fas fa-gift"></i> ${item.package_name || item.benefit_type || 'Package Benefit'}: -₹${parseFloat(item.deduction_amount).toFixed(2)}`;
+            }
+            
+            console.log('✅ Package benefit indicator restored:', {
+                packageName: item.package_name,
+                deductionAmount: item.deduction_amount,
+                benefitType: item.benefit_type
+            });
+        }
+    }
+    
+    // Special calculation function for edit mode that preserves saved package data
+    function updateCalculationsPreservePackages() {
+        console.log('📊 Running calculations with preserved package data...');
+        
+        let servicesSubtotal = 0;
+        let productsSubtotal = 0;
+        let packageDeductions = 0;
+        
+        // Calculate services subtotal using SAVED package data
+        document.querySelectorAll('.service-row').forEach((row, index) => {
+            const serviceSelect = row.querySelector('select[name="service_ids[]"]');
+            const qtyInput = row.querySelector('input[name="service_quantities[]"]');
+            const deductionAmtInput = row.querySelector('input[name="deduction_amounts[]"]');
+            
+            const serviceId = serviceSelect?.value;
+            const quantity = parseFloat(qtyInput?.value) || 0;
+            let basePrice = parseFloat(serviceSelect?.selectedOptions[0]?.dataset.price) || 0;
+            
+            // Get saved deduction amount
+            const savedDeduction = parseFloat(deductionAmtInput?.value) || 0;
+            
+            if (serviceId && quantity > 0) {
+                const originalAmount = basePrice * quantity;
+                const finalAmount = originalAmount - savedDeduction;
+                
+                servicesSubtotal += finalAmount;
+                packageDeductions += savedDeduction;
+                
+                console.log(`➕ Service row ${index}: base=${basePrice}, qty=${quantity}, deduction=${savedDeduction}, final=${finalAmount}`);
+            }
+        });
+        
+        // Calculate products subtotal
+        document.querySelectorAll('.product-row').forEach((row, index) => {
+            const qtyInput = row.querySelector('input[name="product_quantities[]"]');
+            const priceInput = row.querySelector('input[name="product_prices[]"]');
+            const quantity = parseFloat(qtyInput?.value) || 0;
+            const price = parseFloat(priceInput?.value) || 0;
+            
+            if (quantity > 0 && price > 0) {
+                productsSubtotal += price * quantity;
+            }
+        });
+        
+        const subtotal = servicesSubtotal + productsSubtotal;
+        
+        // Apply discount
+        const discountType = document.querySelector('select[name="discount_type"]')?.value || 'percentage';
+        const discountValue = parseFloat(document.getElementById('discount_amount')?.value) || 0;
+        let discountAmount = 0;
+        
+        if (discountType === 'percentage' && discountValue > 0) {
+            discountAmount = subtotal * (discountValue / 100);
+        } else if (discountType === 'fixed' && discountValue > 0) {
+            discountAmount = discountValue;
+        }
+        
+        // Additional charges
+        const additionalCharges = parseFloat(document.getElementById('additional_charges')?.value) || 0;
+        
+        // Calculate taxable amount
+        const taxableAmount = subtotal - discountAmount + additionalCharges;
+        
+        // Tax calculation
+        const isInterstate = document.getElementById('is_interstate')?.checked || false;
+        let cgst = 0, sgst = 0, igst = 0;
+        const gstPercent = parseFloat(document.getElementById('gst_percentage')?.value) || 18;
+        
+        if (isInterstate) {
+            igst = taxableAmount * (gstPercent / 100);
+        } else {
+            cgst = taxableAmount * (gstPercent / 200);
+            sgst = taxableAmount * (gstPercent / 200);
+        }
+        
+        const totalTax = cgst + sgst + igst;
+        const tips = parseFloat(document.getElementById('tips_amount')?.value) || 0;
+        const grandTotal = taxableAmount + totalTax + tips;
+        
+        // Update display
+        document.getElementById('services_subtotal_display').textContent = `₹${servicesSubtotal.toFixed(2)}`;
+        document.getElementById('products_subtotal_display').textContent = `₹${productsSubtotal.toFixed(2)}`;
+        document.getElementById('subtotal_display').textContent = `₹${subtotal.toFixed(2)}`;
+        document.getElementById('discount_display').textContent = `₹${discountAmount.toFixed(2)}`;
+        document.getElementById('additional_charges_display').textContent = `₹${additionalCharges.toFixed(2)}`;
+        
+        const pkgDeductionDisplay = document.getElementById('package_deductions_display');
+        if (pkgDeductionDisplay) {
+            pkgDeductionDisplay.textContent = `-₹${packageDeductions.toFixed(2)}`;
+            pkgDeductionDisplay.closest('.row')?.classList.toggle('d-none', packageDeductions === 0);
+        }
+        
+        if (isInterstate) {
+            document.getElementById('cgst_display').textContent = '₹0.00';
+            document.getElementById('sgst_display').textContent = '₹0.00';
+            document.getElementById('igst_display').textContent = `₹${igst.toFixed(2)}`;
+        } else {
+            document.getElementById('cgst_display').textContent = `₹${cgst.toFixed(2)}`;
+            document.getElementById('sgst_display').textContent = `₹${sgst.toFixed(2)}`;
+            document.getElementById('igst_display').textContent = '₹0.00';
+        }
+        
+        document.getElementById('tips_display').textContent = `₹${tips.toFixed(2)}`;
+        document.getElementById('grand_total_display').textContent = `₹${grandTotal.toFixed(2)}`;
+        
+        console.log('✅ Edit mode calculations complete (package data preserved):', {
+            servicesSubtotal, productsSubtotal, packageDeductions, subtotal, grandTotal
+        });
     }
 
     // ==========================================
