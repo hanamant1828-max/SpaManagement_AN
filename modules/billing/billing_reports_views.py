@@ -814,7 +814,7 @@ def owner_billing_audit():
     ).all()
 
     total_package_redemptions = len(package_usage_today)
-    total_package_value_redeemed = sum([u.value_applied or 0 for u in package_usage_today])
+    total_package_value_redeemed = sum([(u.amount_deducted or 0) + (u.discount_applied or 0) for u in package_usage_today])
 
     # ====== STAFF PERFORMANCE ======
     staff_performance = db.session.query(
