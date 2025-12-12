@@ -2164,6 +2164,9 @@ def integrated_invoice_detail(invoice_id):
         # Use print template if in print mode
         template = 'professional_invoice_print.html' if print_mode else 'integrated_invoice_detail.html'
 
+        # Convert amount to words
+        amount_in_words = number_to_words(invoice.total_amount)
+        
         return render_template(template,
                              invoice=invoice,
                              invoice_items=invoice_items,
@@ -2171,6 +2174,7 @@ def integrated_invoice_detail(invoice_id):
                              customer=customer,
                              gst_config=gst_config,
                              business_logo=business_logo,
+                             amount_in_words=amount_in_words,
                              total_amount_words=number_to_words)
 
     except Exception as e:

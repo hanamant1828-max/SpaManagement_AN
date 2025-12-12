@@ -472,7 +472,7 @@
             <div class="summary-row">
                 <div class="amount-words">
                     <h4>Amount in Words</h4>
-                    <p>Rupees {{ amount_in_words }} Only</p>
+                    <p>{{ amount_in_words }}</p>
                     {% if invoice.payment_method %}
                     <div class="payment-info">
                         <strong>Payment:</strong> {{ invoice.payment_method.replace('_', ' ').title() }}
