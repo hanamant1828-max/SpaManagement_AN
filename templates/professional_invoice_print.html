@@ -415,10 +415,6 @@
                             <td>{{ invoice.invoice_date.strftime('%d-%m-%Y') }}</td>
                         </tr>
                         <tr>
-                            <td>Due Date:</td>
-                            <td>{{ invoice.due_date.strftime('%d-%m-%Y') if invoice.due_date else 'Immediate' }}</td>
-                        </tr>
-                        <tr>
                             <td>GST Treatment:</td>
                             <td>{{ 'Interstate (IGST)' if tax_details.get('is_interstate') else 'Intrastate (CGST+SGST)' }}</td>
                         </tr>
